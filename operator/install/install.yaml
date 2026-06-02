@@ -3575,6 +3575,77 @@ spec:
                             - pull
                             - push
                             type: string
+                          pull:
+                            description: Configure SSH secrets for pull mode (authenticating
+                              to remote Git servers).
+                            properties:
+                              knownHosts:
+                                description: Reference to a Secret containing a known_hosts
+                                  file for verifying remote Git server host keys.
+                                  The key defaults to `known_hosts`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              sshKeys:
+                                description: Reference to a Secret containing the
+                                  SSH private key for authenticating to remote Git
+                                  servers. The key defaults to `id_ed25519`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                            type: object
+                          push:
+                            description: Configure SSH secrets for push mode (SSH
+                              server accepting pushes).
+                            properties:
+                              authorizedKeys:
+                                description: Reference to a Secret containing the
+                                  authorized_keys file that controls which SSH public
+                                  keys are allowed to push. The key defaults to `authorized_keys`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              hostKey:
+                                description: Reference to a Secret containing a persistent
+                                  SSH host key for the sidecar's SSH server. Ensures
+                                  a stable host fingerprint across pod restarts. The
+                                  key defaults to `ssh_host_key`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                            type: object
                           registryId:
                             description: Registry instance identifier. Only data files
                               with a matching registry ID will be loaded. Defaults
@@ -3589,7 +3660,7 @@ spec:
                               properties:
                                 branch:
                                   description: Branch to track in the remote Git repository.
-                                    Defaults to the repository's default branch.
+                                    Defaults to `main`.
                                   type: string
                                 dir:
                                   description: Directory name under the workspace

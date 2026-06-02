@@ -898,6 +898,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.x`
 |Enables production-like behavior for draft versions
+|`apicurio.rest.legacy-error-codes.enabled`
+|`boolean`
+|`false`
+|`3.3.0`
+|When enabled, legacy HTTP error codes are used (e.g. 409 instead of 400 for rule violations)
 |`apicurio.rest.mutability.artifact-version-content.enabled`
 |`boolean [dynamic]`
 |`false`

@@ -219,6 +219,7 @@ jobs:
           # We need to unset the variables to generate a clean install file.
           # See https://github.com/actions/runner/issues/1126
           unset REGISTRY_APP_IMAGE
+          unset REGISTRY_GITOPS_SYNC_IMAGE
           unset IMAGE
           unset BUNDLE_IMAGE
           unset CATALOG_IMAGE

@@ -38,6 +38,7 @@ import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_GITOPS
 import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_POLLING_STORAGE_ID;
 import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_STORAGE_KIND;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.GITOPS_SYNC_CONTAINER_NAME;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
@@ -112,7 +113,7 @@ public class GitOps {
         }
 
         podSpec.getContainers().stream()
-                .filter(c -> "apicurio-registry-app".equals(c.getName()))
+                .filter(c -> REGISTRY_APP_CONTAINER_NAME.equals(c.getName()))
                 .findFirst()
                 .ifPresent(appContainer -> {
                     if (appContainer.getVolumeMounts() == null) {
@@ -213,9 +214,12 @@ public class GitOps {
                         .withPeriodSeconds(10)
                         .build());
             } else {
+                var firstRepoDir = repos.isEmpty() ? "default"
+                        : (!isBlank(repos.get(0).getDir()) ? repos.get(0).getDir() : "default");
                 sidecar.setReadinessProbe(new ProbeBuilder()
                         .withExec(new ExecActionBuilder()
-                                .withCommand("test", "-d", MOUNT_PATH + "/default/.git")
+                                .withCommand("test", "-d",
+                                        MOUNT_PATH + "/" + firstRepoDir + "/.git")
                                 .build())
                         .withInitialDelaySeconds(5)
                         .withPeriodSeconds(10)
@@ -240,7 +244,7 @@ public class GitOps {
     }
 
     public static boolean isPushMode(ApicurioRegistry3 primary) {
-        return ofNullable(primary.getSpec())
+        return isEnabled(primary) && ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
                 .map(AppSpec::getStorage)
                 .map(StorageSpec::getGitops)

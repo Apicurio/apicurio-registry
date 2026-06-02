@@ -40,7 +40,7 @@ public class GitOpsRepoSpec {
 
     @JsonProperty("branch")
     @JsonPropertyDescription("""
-            Branch to track in the remote Git repository. Defaults to the repository's default branch.""")
+            Branch to track in the remote Git repository. Defaults to `main`.""")
     @JsonSetter(nulls = SKIP)
     private String branch;
 

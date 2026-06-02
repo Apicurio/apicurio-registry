@@ -1,7 +1,7 @@
 # GitOps Pull Mode (SSH)
 #
 # Pulls schemas from a private Git repository over SSH.
-# SSH keys are mounted from a Kubernetes Secret via podTemplateSpec.
+# SSH keys are configured via secretRef fields — the operator handles volume mounting.
 #
 # Steps:
 #   1. Generate an SSH key pair:
@@ -38,33 +38,14 @@ spec:
         repos:
           - url: git@github.com:my-org/my-schemas.git
         registryId: prod
-    podTemplateSpec:
-      spec:
-        containers:
-          - name: apicurio-registry-gitops-sync
-            env:
-              - name: APICURIO_GITOPS_PULL_SSH_KEYS
-                value: /secrets/ssh/id_ed25519
-              # Uncomment after creating the known_hosts secret:
-              # - name: APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS
-              #   value: /secrets/known-hosts/known_hosts
-            volumeMounts:
-              - name: ssh-keys
-                mountPath: /secrets/ssh
-                readOnly: true
-              # Uncomment after creating the known_hosts secret:
-              # - name: known-hosts
-              #   mountPath: /secrets/known-hosts
-              #   readOnly: true
-        volumes:
-          - name: ssh-keys
-            secret:
-              secretName: gitops-ssh-keys
-              defaultMode: 0400
+        pull:
+          sshKeys:
+            name: gitops-ssh-keys
+            key: id_ed25519
           # Uncomment after creating the known_hosts secret:
-          # - name: known-hosts
-          #   secret:
-          #     secretName: gitops-known-hosts
+          # knownHosts:
+          #   name: gitops-known-hosts
+          #   key: known_hosts
     ingress:
       host: gitops-pull-ssh-app.apps.cluster.example
   ui:

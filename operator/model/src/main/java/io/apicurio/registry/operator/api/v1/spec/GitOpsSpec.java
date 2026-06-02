@@ -23,7 +23,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({ "mode", "repos", "registryId" })
+@JsonPropertyOrder({ "mode", "repos", "registryId", "pull", "push" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -54,4 +54,16 @@ public class GitOpsSpec {
             Defaults to `default`.""")
     @JsonSetter(nulls = SKIP)
     private String registryId;
+
+    @JsonProperty("pull")
+    @JsonPropertyDescription("""
+            Configure SSH secrets for pull mode (authenticating to remote Git servers).""")
+    @JsonSetter(nulls = SKIP)
+    private GitOpsPullSpec pull;
+
+    @JsonProperty("push")
+    @JsonPropertyDescription("""
+            Configure SSH secrets for push mode (SSH server accepting pushes).""")
+    @JsonSetter(nulls = SKIP)
+    private GitOpsPushSpec push;
 }

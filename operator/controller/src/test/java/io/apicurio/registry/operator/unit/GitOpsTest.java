@@ -7,6 +7,7 @@ import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.EnvVar;
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.fabric8.kubernetes.api.model.PodTemplateSpec;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -205,6 +206,62 @@ public class GitOpsTest {
     }
 
     @Test
+    public void testPullSshSecretRef() {
+        var registry = deserialize("k8s/examples/gitops/example-pull-ssh.yaml");
+        var envVars = new LinkedHashMap<String, EnvVar>();
+        var deployment = createDeployment();
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        var podSpec = deployment.getSpec().getTemplate().getSpec();
+
+        // Verify SSH key secret volume was created with restricted permissions
+        assertThat(podSpec.getVolumes())
+                .anyMatch(v -> "gitops-ssh-keys-volume".equals(v.getName())
+                        && v.getSecret() != null
+                        && "gitops-ssh-keys".equals(v.getSecret().getSecretName())
+                        && Integer.valueOf(0400).equals(v.getSecret().getDefaultMode()));
+
+        // Verify sidecar has the SSH key volume mount and env var
+        var sidecar = podSpec.getContainers().stream()
+                .filter(c -> ContainerNames.GITOPS_SYNC_CONTAINER_NAME.equals(c.getName()))
+                .findFirst().get();
+
+        assertThat(sidecar.getVolumeMounts())
+                .anyMatch(vm -> "gitops-ssh-keys-volume".equals(vm.getName()));
+
+        assertThat(sidecar.getEnv())
+                .anyMatch(e -> "APICURIO_GITOPS_PULL_SSH_KEYS".equals(e.getName())
+                        && e.getValue().contains("id_ed25519"));
+    }
+
+    @Test
+    public void testPushSecretRef() {
+        var registry = deserialize("k8s/examples/gitops/example-push.yaml");
+        var envVars = new LinkedHashMap<String, EnvVar>();
+        var deployment = createDeployment();
+
+        GitOps.configureGitOps(registry, deployment, envVars);
+
+        var podSpec = deployment.getSpec().getTemplate().getSpec();
+
+        // Verify authorized_keys secret volume was created (no restricted permissions)
+        assertThat(podSpec.getVolumes())
+                .anyMatch(v -> "gitops-push-authorized-keys-volume".equals(v.getName())
+                        && v.getSecret() != null
+                        && "gitops-push-authorized-keys".equals(v.getSecret().getSecretName()));
+
+        // Verify sidecar has the authorized_keys env var
+        var sidecar = podSpec.getContainers().stream()
+                .filter(c -> ContainerNames.GITOPS_SYNC_CONTAINER_NAME.equals(c.getName()))
+                .findFirst().get();
+
+        assertThat(sidecar.getEnv())
+                .anyMatch(e -> "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS".equals(e.getName())
+                        && e.getValue().contains("authorized_keys"));
+    }
+
+    @Test
     void testIsEnabled() {
         var registry = deserialize("k8s/examples/gitops/example-pull-https.yaml");
         assertThat(GitOps.isEnabled(registry)).isTrue();
@@ -225,6 +282,8 @@ public class GitOpsTest {
                 .withName("apicurio-registry-app")
                 .build();
         var deployment = new Deployment();
+        deployment.setMetadata(new ObjectMeta());
+        deployment.getMetadata().setName("test-deployment");
         deployment.setSpec(new DeploymentSpec());
         deployment.getSpec().setTemplate(new PodTemplateSpec());
         deployment.getSpec().getTemplate().setSpec(new PodSpec());

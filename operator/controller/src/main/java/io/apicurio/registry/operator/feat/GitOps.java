@@ -5,6 +5,8 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsMode;
+import io.apicurio.registry.operator.api.v1.spec.GitOpsPullSpec;
+import io.apicurio.registry.operator.api.v1.spec.GitOpsPushSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsRepoSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
@@ -39,6 +41,8 @@ import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_POLLIN
 import static io.apicurio.registry.operator.EnvironmentVariables.APICURIO_STORAGE_KIND;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.GITOPS_SYNC_CONTAINER_NAME;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
+import io.apicurio.registry.operator.utils.SecretKeyRefTool;
+
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
@@ -69,7 +73,7 @@ public class GitOps {
 
                     configureRegistryRepoEnvVars(repos, env);
                     configureVolume(deployment);
-                    configureSidecar(repos, mode, deployment);
+                    configureSidecar(gitOps, repos, mode, deployment);
 
                     if (mode == GitOpsMode.PUSH && repos.isEmpty()) {
                         log.warn("GitOps push mode is configured without any repos. "
@@ -131,8 +135,8 @@ public class GitOps {
                 });
     }
 
-    private static void configureSidecar(List<GitOpsRepoSpec> repos, GitOpsMode mode,
-            Deployment deployment) {
+    private static void configureSidecar(GitOpsSpec gitOps, List<GitOpsRepoSpec> repos,
+            GitOpsMode mode, Deployment deployment) {
         var podSpec = deployment.getSpec().getTemplate().getSpec();
 
         var sidecarEnv = new ArrayList<EnvVar>();
@@ -205,6 +209,9 @@ public class GitOps {
             }
         }
 
+        // Mount SSH secrets from pull/push spec
+        configureSshSecrets(gitOps, deployment, sidecarEnv);
+
         if (sidecar.getReadinessProbe() == null) {
             if (mode == GitOpsMode.PUSH) {
                 sidecar.setReadinessProbe(new ProbeBuilder()
@@ -232,6 +239,53 @@ public class GitOps {
         }
         sidecarEnv.addAll(sidecar.getEnv());
         sidecar.setEnv(sidecarEnv);
+    }
+
+    private static void configureSshSecrets(GitOpsSpec gitOps, Deployment deployment,
+            List<EnvVar> sidecarEnv) {
+        // Pull SSH keys
+        var sshKeys = new SecretKeyRefTool(
+                ofNullable(gitOps.getPull()).map(GitOpsPullSpec::getSshKeys).orElse(null),
+                "id_ed25519").withDefaultMode(0400);
+        if (sshKeys.isValid()) {
+            sshKeys.applySecretVolume(deployment, GITOPS_SYNC_CONTAINER_NAME);
+            sidecarEnv.add(new EnvVarBuilder()
+                    .withName("APICURIO_GITOPS_PULL_SSH_KEYS")
+                    .withValue(sshKeys.getSecretVolumeKeyPath()).build());
+        }
+
+        // Pull known_hosts
+        var knownHosts = new SecretKeyRefTool(
+                ofNullable(gitOps.getPull()).map(GitOpsPullSpec::getKnownHosts).orElse(null),
+                "known_hosts");
+        if (knownHosts.isValid()) {
+            knownHosts.applySecretVolume(deployment, GITOPS_SYNC_CONTAINER_NAME);
+            sidecarEnv.add(new EnvVarBuilder()
+                    .withName("APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS")
+                    .withValue(knownHosts.getSecretVolumeKeyPath()).build());
+        }
+
+        // Push authorized_keys
+        var authorizedKeys = new SecretKeyRefTool(
+                ofNullable(gitOps.getPush()).map(GitOpsPushSpec::getAuthorizedKeys).orElse(null),
+                "authorized_keys");
+        if (authorizedKeys.isValid()) {
+            authorizedKeys.applySecretVolume(deployment, GITOPS_SYNC_CONTAINER_NAME);
+            sidecarEnv.add(new EnvVarBuilder()
+                    .withName("APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS")
+                    .withValue(authorizedKeys.getSecretVolumeKeyPath()).build());
+        }
+
+        // Push host key
+        var hostKey = new SecretKeyRefTool(
+                ofNullable(gitOps.getPush()).map(GitOpsPushSpec::getHostKey).orElse(null),
+                "ssh_host_key").withDefaultMode(0400);
+        if (hostKey.isValid()) {
+            hostKey.applySecretVolume(deployment, GITOPS_SYNC_CONTAINER_NAME);
+            sidecarEnv.add(new EnvVarBuilder()
+                    .withName("APICURIO_GITOPS_PUSH_SSH_HOST_KEY")
+                    .withValue(hostKey.getSecretVolumeKeyPath()).build());
+        }
     }
 
     public static boolean isEnabled(ApicurioRegistry3 primary) {

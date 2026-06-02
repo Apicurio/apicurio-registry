@@ -1,0 +1,57 @@
+# GitOps Push Mode
+#
+# The sidecar accepts git push over SSH. Schemas are pushed directly
+# to the registry's backing repository.
+#
+# Steps:
+#   1. Generate an SSH key pair:
+#      ssh-keygen -t ed25519 -f id_ed25519 -N ""
+#
+#   2. Create the authorized keys Secret:
+#      kubectl create secret generic gitops-push-authorized-keys \
+#        --from-file=authorized_keys=id_ed25519.pub
+#
+#   3. Deploy:
+#      kubectl apply -f example-push.yaml
+#
+#   4. Push schemas to the sidecar:
+#      export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -i $(pwd)/id_ed25519"
+#      git clone git@github.com:Apicurio/apicurio-registry-gitops-example.git default
+#      cd default
+#      # Port-forward the SSH service (created automatically by the operator):
+#      kubectl port-forward svc/gitops-push-gitops-ssh-service 2222:2222 &
+#      git remote add registry ssh://git@localhost:2222/repos/default
+#      git push registry main
+#
+#   5. Verify:
+#      kubectl port-forward svc/gitops-push-app-service 8080:8080
+#      curl http://localhost:8080/apis/registry/v3/groups
+#
+# For local Docker Compose deployment, see: examples/gitops/push/
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-push
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        mode: push
+        registryId: prod
+        push:
+          authorizedKeys:
+            name: gitops-push-authorized-keys
+            key: authorized_keys
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-gitops-sync
+            env:
+              - name: APICURIO_GITOPS_SECURITY
+                value: dev
+    ingress:
+      host: gitops-push-app.apps.cluster.example
+  ui:
+    ingress:
+      host: gitops-push-ui.apps.cluster.example

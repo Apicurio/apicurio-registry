@@ -1,20 +1,28 @@
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.contracts.rules.MigrationExecutor;
+import io.apicurio.registry.contracts.rules.RuleDefinition;
+import io.apicurio.registry.contracts.rules.RuleExecutionEngine;
+import io.apicurio.registry.contracts.rules.RuleExecutionResult;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.ContractRulesetCache;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
+import io.apicurio.registry.rest.client.models.ContractRuleSet;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.apicurio.registry.serde.BaseSerde.getByteBuffer;
@@ -40,6 +48,10 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     private final BaseSerde<T, U> baseSerde;
     private boolean contractRulesEnabled = false;
     private boolean contractRulesFailOnError = true;
+    private boolean migrationEnabled = false;
+    private String migrationTargetVersion;
+    private RuleExecutionEngine ruleEngine;
+    private ContractRulesetCache rulesetCache;
 
     public AbstractDeserializer() {
         this.baseSerde = new BaseSerde<>();
@@ -77,6 +89,21 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         Object failOnError = config.originals().get(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR);
         if (failOnError != null) {
             contractRulesFailOnError = Boolean.parseBoolean(failOnError.toString());
+        }
+        if (contractRulesEnabled) {
+            ruleEngine = RuleExecutionEngine.createStandalone();
+            long ttl = SerdeConfig.CONTRACT_RULES_CACHE_TTL_SECONDS_DEFAULT;
+            Object ttlObj = config.originals().get(SerdeConfig.CONTRACT_RULES_CACHE_TTL_SECONDS);
+            if (ttlObj != null) {
+                ttl = Long.parseLong(ttlObj.toString());
+            }
+            rulesetCache = new ContractRulesetCache(ttl);
+            Object migEnabled = config.originals().get(SerdeConfig.CONTRACT_RULES_MIGRATION_ENABLED);
+            if (migEnabled != null) {
+                migrationEnabled = Boolean.parseBoolean(migEnabled.toString());
+            }
+            migrationTargetVersion = (String) config.originals().get(
+                    SerdeConfig.CONTRACT_RULES_MIGRATION_TARGET_VERSION);
         }
     }
 
@@ -211,40 +238,127 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     private void executeContractRulesForRead(SchemaLookupResult<T> schema, U data) {
         try {
             var ref = schema.toArtifactReference();
-            var facade = baseSerde.getClientFacade();
-            if (facade == null) {
-                return;
-            }
             if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
                 return;
             }
-            java.util.Map<String, Object> recordMap = java.util.Map.of();
-            if (data != null) {
-                if (data instanceof java.util.Map) {
-                    recordMap = (java.util.Map<String, Object>) data;
-                } else {
-                    try {
-                        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                        recordMap = mapper.readValue(data.toString(), java.util.Map.class);
-                    } catch (Exception ignored) {
+
+            // Domain rule validation
+            List<RuleDefinition> rules = loadRules(ref.getGroupId(), ref.getArtifactId());
+            if (!rules.isEmpty()) {
+                Map<String, Object> recordMap = dataToMap(data);
+                RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
+                if (!result.isPassed()) {
+                    String msg = "Contract rule validation failed (READ): " + result.getViolations();
+                    if (contractRulesFailOnError) {
+                        throw new RuntimeException(msg);
                     }
+                    LOG.warning(msg);
                 }
             }
-            var result = facade.executeContractRules(
-                    ref.getGroupId(), ref.getArtifactId(), ref.getVersion(),
-                    "READ", recordMap);
-            if (result != null && !result.isPassed()) {
-                String msg = "Contract rule validation failed (READ): " + result.getViolations();
-                if (contractRulesFailOnError) {
-                    throw new RuntimeException(msg);
+
+            // Migration transforms
+            if (migrationEnabled && migrationTargetVersion != null) {
+                String recordVersion = ref.getVersion();
+                if (recordVersion != null && !recordVersion.equals(migrationTargetVersion)) {
+                    executeMigration(ref.getGroupId(), ref.getArtifactId(),
+                            recordVersion, migrationTargetVersion, data);
                 }
-                LOG.warning(msg);
             }
         } catch (RuntimeException e) {
             if (contractRulesFailOnError) {
                 throw e;
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
+        }
+    }
+
+    private void executeMigration(String groupId, String artifactId,
+            String fromVersion, String toVersion, U data) {
+        List<String> allVersions = rulesetCache.getVersionList(groupId, artifactId);
+        if (allVersions == null) {
+            var facade = baseSerde.getClientFacade();
+            if (facade == null) {
+                return;
+            }
+            allVersions = facade.getArtifactVersions(groupId, artifactId);
+            if (allVersions.isEmpty()) {
+                return;
+            }
+            rulesetCache.putVersionList(groupId, artifactId, allVersions);
+        }
+
+        Map<String, Object> recordMap = dataToMap(data);
+        MigrationExecutor migrationExecutor = new MigrationExecutor(ruleEngine);
+
+        RuleExecutionResult result = migrationExecutor.execute(
+                allVersions, fromVersion, toVersion, recordMap,
+                (version, mode) -> loadMigrationRulesForVersion(
+                        groupId, artifactId, version));
+
+        if (!result.isPassed()) {
+            String msg = "Migration transform failed (" + fromVersion + " -> " + toVersion + "): "
+                    + result.getViolations();
+            if (contractRulesFailOnError) {
+                throw new RuntimeException(msg);
+            }
+            LOG.warning(msg);
+        }
+    }
+
+    private List<RuleDefinition> loadMigrationRulesForVersion(String groupId,
+            String artifactId, String version) {
+        ContractRuleSet versionRules = rulesetCache.get(groupId, artifactId, version);
+        if (versionRules == null) {
+            var facade = baseSerde.getClientFacade();
+            if (facade == null) {
+                return List.of();
+            }
+            versionRules = facade.getVersionContractRuleset(groupId, artifactId, version);
+            if (versionRules == null) {
+                return List.of();
+            }
+            rulesetCache.put(groupId, artifactId, version, versionRules);
+        }
+
+        List<RuleDefinition> migrationRules = new java.util.ArrayList<>();
+        if (versionRules.getMigrationRules() != null) {
+            for (var r : versionRules.getMigrationRules()) {
+                migrationRules.add(AbstractSerializer.toRuleDefinition(r));
+            }
+        }
+        return migrationRules;
+    }
+
+    private List<RuleDefinition> loadRules(String groupId, String artifactId) {
+        ContractRuleSet cached = rulesetCache.get(groupId, artifactId, null);
+        if (cached != null) {
+            return AbstractSerializer.toRuleDefinitions(cached);
+        }
+        var facade = baseSerde.getClientFacade();
+        if (facade == null) {
+            return List.of();
+        }
+        ContractRuleSet ruleset = facade.getContractRuleset(groupId, artifactId);
+        if (ruleset == null) {
+            return List.of();
+        }
+        rulesetCache.put(groupId, artifactId, null, ruleset);
+        return AbstractSerializer.toRuleDefinitions(ruleset);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> dataToMap(U data) {
+        if (data == null) {
+            return Map.of();
+        }
+        if (data instanceof Map) {
+            return (Map<String, Object>) data;
+        }
+        try {
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            return mapper.readValue(data.toString(), Map.class);
+        } catch (Exception e) {
+            return Map.of();
         }
     }
 

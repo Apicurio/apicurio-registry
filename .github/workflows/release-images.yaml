@@ -125,18 +125,6 @@ jobs:
       - name: Login to Quay.io Registry
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
-      # Do this first in case something goes wrong.
-      # TODO: Push to DockerHub
-      - name: Build and Push Operator Image
-        working-directory: registry/operator
-        run: |
-          make config-show
-          if [ "$IS_LATEST_RELEASE" = "true" ]; then
-            make ADDITIONAL_IMAGE_TAG=latest image-build image-push
-          else
-            make image-build image-push
-          fi
-
       - name: Build and push Apicurio Registry GitOps Sync image
         working-directory: registry
         run: |

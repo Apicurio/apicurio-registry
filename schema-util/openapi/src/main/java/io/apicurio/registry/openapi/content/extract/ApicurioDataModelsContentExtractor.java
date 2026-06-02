@@ -1,10 +1,10 @@
 package io.apicurio.registry.openapi.content.extract;
 
-import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.TraverserDirection;
-import io.apicurio.datamodels.models.Document;
-import io.apicurio.datamodels.models.Info;
-import io.apicurio.datamodels.models.visitors.CombinedVisitorAdapter;
+import io.apitomy.datamodels.Library;
+import io.apitomy.datamodels.TraverserDirection;
+import io.apitomy.datamodels.models.Document;
+import io.apitomy.datamodels.models.Info;
+import io.apitomy.datamodels.models.visitors.CombinedVisitorAdapter;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;

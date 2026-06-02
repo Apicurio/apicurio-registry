@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.services;
 
 import io.apicurio.registry.cli.auth.CredentialStore;
+import io.apicurio.registry.cli.auth.OidcTokenClient;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.config.ConfigModel;
@@ -28,6 +29,9 @@ public class Client {
 
     @Inject
     CredentialStore credentialStore;
+
+    @Inject
+    OidcTokenClient oidcTokenClient;
 
     private RegistryClient registryClient;
 
@@ -82,6 +86,21 @@ public class Client {
             final var clientSecret = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET,
                     context.isUnsafeCredentialStorage());
             options.oauth2(context.getTokenEndpoint(), context.getClientId(), clientSecret, context.getScope());
+        } else if (ConfigModel.AUTH_TYPE_OIDC.equals(context.getAuthType())) {
+            final var refreshToken = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_REFRESH_TOKEN,
+                    false);
+            try {
+                final var tokenResponse = oidcTokenClient.refreshToken(
+                        context.getTokenEndpoint(), refreshToken, context.getClientId(), context.getScope());
+                if (tokenResponse.refreshToken() != null) {
+                    credentialStore.store(contextName, ConfigModel.CREDENTIAL_KEY_REFRESH_TOKEN,
+                            tokenResponse.refreshToken(), false);
+                }
+                options.bearerToken(tokenResponse.accessToken());
+            } catch (CliException ex) {
+                throw new CliException("Session expired. Run 'acr login --issuer-url "
+                        + context.getIssuerUrl() + "' to re-authenticate.", APPLICATION_ERROR_RETURN_CODE);
+            }
         } else if (!isBlank(context.getAuthType())) {
             throw new CliException("Unsupported auth type '" + context.getAuthType()
                     + "'. Run 'acr login' to reconfigure authentication.", APPLICATION_ERROR_RETURN_CODE);

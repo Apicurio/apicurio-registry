@@ -20,6 +20,17 @@ It manages a local Git repository on a shared volume that the registry reads fro
 See [`examples/gitops/`](../../examples/gitops/) for ready-to-run Docker Compose examples
 covering local volume, HTTPS pull, and SSH pull setups.
 
+### Kubernetes / OpenShift
+
+When using the Apicurio Registry operator, the sidecar container is **automatically injected**
+by the operator when `storage.type: gitops` is set in the CR. You don't need to configure the
+sidecar image, volume mounts, or most environment variables manually — the operator handles this
+based on the `gitops` spec fields, including SSH secrets via `secretRef` fields under
+`gitops.pull` and `gitops.push`.
+
+For operator-based deployment examples, see
+[`operator/controller/src/test/resources/k8s/examples/gitops/`](../../operator/controller/src/test/resources/k8s/examples/gitops/).
+
 ## Configuration Reference
 
 All environment variables use the `APICURIO_GITOPS_` prefix. Variables that correspond to
@@ -168,6 +179,14 @@ the SSH port. Do not expose the SSH port outside the cluster unless necessary.
 | Malicious content in repository | The registry validates all data during loading. Invalid files cause a load failure, and the registry continues serving the last known good data (blue-green swap is not performed). |
 | Force-push erasing history | Shallow clones (`--depth 1`) limit exposure. The registry reads from pinned commit SHAs, so concurrent force-pushes do not corrupt in-flight reads. |
 | Symlink attacks in repository | JGit (used by the registry) does not follow symlinks when reading Git objects. The registry reads from the Git object store, not the working tree. |
+
+### Log Sanitization
+
+HTTPS Git URLs may contain embedded credentials (e.g., `https://token@github.com/...`).
+The sidecar sanitizes all URLs before logging, replacing the userinfo portion with `***`
+(e.g., `https://***@github.com/...`). This applies to both the startup configuration log
+and clone operation logs. SSH key contents and secret file contents are never logged —
+only file paths are shown.
 
 ### Recommendations for Production Deployments
 

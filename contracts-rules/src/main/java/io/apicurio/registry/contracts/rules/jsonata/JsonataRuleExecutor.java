@@ -18,6 +18,13 @@ public class JsonataRuleExecutor implements ContractRuleExecutor {
     @Inject
     JsonataExpressionEvaluator evaluator;
 
+    public JsonataRuleExecutor() {
+    }
+
+    public JsonataRuleExecutor(JsonataExpressionEvaluator evaluator) {
+        this.evaluator = evaluator;
+    }
+
     @Override
     public String getRuleType() {
         return "JSONATA";

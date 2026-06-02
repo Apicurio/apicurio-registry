@@ -37,6 +37,7 @@ public class ResourceKey<R> {
     public static final String APP_SERVICE_ACCOUNT_ID = "AppServiceAccountResource";
     public static final String APP_ROLE_ID = "AppRoleResource";
     public static final String APP_ROLE_BINDING_ID = "AppRoleBindingResource";
+    public static final String GITOPS_SSH_SERVICE_ID = "GitOpsSshServiceResource";
 
     public static final String UI_DEPLOYMENT_ID = "UIDeploymentResource";
     public static final String UI_SERVICE_ID = "UIServiceResource";

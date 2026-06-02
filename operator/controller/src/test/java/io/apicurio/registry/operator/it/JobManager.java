@@ -30,7 +30,7 @@ public class JobManager {
     }
 
     /**
-     * Run a job in the cluster, with the given bash script as an input.
+     * Run a job in the cluster, with the given shell script as an input.
      */
     public JobHandle runJob(String bashScript) {
         return runJob(bashScript, DEFAULT_IMAGE, List.of(), List.of(), false);

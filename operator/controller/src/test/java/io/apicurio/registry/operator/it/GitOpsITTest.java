@@ -18,7 +18,6 @@ import java.net.URI;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
-import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -198,10 +197,11 @@ public class GitOpsITTest extends ITBase {
                   git push registry main
                 """, sshServiceName, sshServiceName, sshServiceName),
                 "alpine/git:latest", extraVolumes, extraMounts)) {
-            if (!pushJob.waitAndIsSuccessful()) {
+            boolean pushSucceeded = pushJob.waitAndIsSuccessful();
+            if (!pushSucceeded) {
                 log.error("Push job failed. Logs:\\n{}", pushJob.getLogs());
             }
-            assertThat(pushJob.waitAndIsSuccessful())
+            assertThat(pushSucceeded)
                     .as("Push job should succeed")
                     .isTrue();
         }
@@ -263,14 +263,22 @@ public class GitOpsITTest extends ITBase {
 
         client.resource(registry).create();
 
-        checkDeploymentExists(registry, COMPONENT_APP, 1);
+        // Use LONG_DURATION because GitOps needs the sidecar to clone first
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.apps().deployments()
+                        .inNamespace(namespace)
+                        .withName(registry.getMetadata().getName() + "-app-deployment").get()
+                        .getStatus().getReadyReplicas()).isEqualTo(1));
 
         return registry;
     }
 
     private int portForwardToRegistry(ApicurioRegistry3 registry) {
-        int port = portForwardManager.startServicePortForward(
-                registry.getMetadata().getName() + "-app-service", 8080);
+        var serviceName = registry.getMetadata().getName() + "-app-service";
+        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.services().inNamespace(namespace)
+                        .withName(serviceName).get()).isNotNull());
+        int port = portForwardManager.startServicePortForward(serviceName, 8080);
         log.info("Registry available at http://localhost:{}", port);
         return port;
     }

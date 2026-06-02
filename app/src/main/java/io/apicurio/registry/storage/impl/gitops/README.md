@@ -35,8 +35,8 @@ Data flows in one direction only: **Git → Registry**. The registry serves data
 write operations. All modifications are made by committing changes to Git.
 
 ```
-Git Repository  ──git pull/push──>  Shared Volume  ──JGit read──>  Registry (read-only)
-                                    (sidecar manages)               (serves via REST API)
+Git Repository ──> git pull/push ──> Shared Volume ────> JGit read ──> Registry (read-only)
+                                     (sidecar manages)                 (serves via REST API)
 ```
 
 ### Sidecar Architecture
@@ -46,20 +46,20 @@ repositories — that responsibility belongs to a sidecar container or external 
 [git-sync](https://github.com/kubernetes/git-sync)).
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Kubernetes Pod                                      │
-│  ┌──────────────┐        ┌────────────────────────┐  │
+┌───────────────────────────────────────────────────────┐
+│  Kubernetes Pod                                       │
+│  ┌───────────────┐        ┌────────────────────────┐  │
 │  │  Sidecar      │        │  Registry Container    │  │
 │  │  (git CLI)    │        │  JGit: read content    │  │
 │  │  Fetches data │        │  Parse *.registry.yaml │  │
 │  │  Handles auth │        │  Load into H2 database │  │
 │  └──────┬────────┘        └───────────┬────────────┘  │
-│         │ read/write                  │ read-only      │
-│         ▼                            ▼                │
-│  ┌────────────────────────────────────────────────┐   │
-│  │                 Shared Volume                  │   │
-│  └────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────┘
+│         │ read/write                  │ read-only     │
+│         ▼                             ▼               │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │                 Shared Volume                   │  │
+│  └─────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────┘
 ```
 
 ### Blue-Green Loading
@@ -96,10 +96,24 @@ discriminator field. Content files are plain schema files referenced via relativ
 | `artifact-v0` | Artifact with inline versions, scoped by `registryIds` |
 | `content-v0` | *(Optional)* Content metadata for explicit `contentId` and references |
 
-### Multi-Registry Routing
+### Multi-Registry and Multi-Repository (N:M)
 
-A single repository can serve multiple registry instances:
+Registries and repositories have an **N:M relationship**:
 
+- A **single repository** can serve **multiple registry instances** — entities use `registryIds` lists to
+  control which registries load them (e.g., staging gets experimental schemas, production doesn't)
+- A **single registry** can aggregate data from **multiple repositories** — each repository contributes
+  its own groups and artifacts, with conflict detection across sources
+
+This flexibility supports two key patterns:
+
+1. **Centralized schema management**: One repository contains all schemas, with multiple registry instances
+   (dev, staging, prod) loading different subsets based on `registryIds`
+2. **Decentralized schema ownership**: Each team/project keeps schemas in their own repository alongside
+   the code that uses them. A single registry instance aggregates schemas from all project repos, giving
+   a unified view without forcing teams into a monorepo
+
+Key fields:
 - `Registry` has a single `registryId` — must match the instance's `apicurio.polling-storage.id`
 - `Group` and `Artifact` have `registryIds` lists — an entity is loaded by all listed registries
 - If `registryIds` is omitted or empty, the entity is loaded by any registry (simple setups)
@@ -138,7 +152,24 @@ Different registry instances point to different branches of the same repository:
 - `staging` branch → Staging Registry
 - `main` branch → Production Registry
 
-Schema promotion is done through Git merges.
+Schema promotion is done through Git merges. Within a single branch, `registryIds` lists can further
+control which entities each environment loads — for example, experimental schemas can be tagged
+with `registryIds: [staging]` so they're only visible in staging, not production.
+
+### Schemas Next to Code (Decentralized Ownership)
+
+Each team keeps their schemas in their own project repository, alongside the application code that
+produces or consumes them. A single registry instance aggregates from all project repos:
+
+```
+Team A repo → ─┐
+Team B repo → ──┼── Registry (multi-repo) ──→ All schemas in one place
+Team C repo → ─┘
+```
+
+This avoids a centralized schema monorepo while still providing a unified view for consumers.
+Teams manage their schemas using the same Git workflows they use for code — branches, PRs,
+code review. The registry handles conflict detection if two repos define the same artifact.
 
 ### Push Model for Restricted Networks
 

@@ -7,9 +7,11 @@ RUN microdnf install -y git-core openssh-clients openssh-server shadow-utils && 
 # The user's shell is git-shell to restrict access to git commands only.
 #
 # OpenShift compatibility:
+#
 # OCP runs containers with arbitrary UIDs (e.g., 1000830000) in group 0 (root).
 # The Dockerfile's USER directive is ignored — the actual UID is assigned by OCP.
 # To support this:
+#
 #   1. Directories are made group-writable (chgrp 0, chmod g=u) so the arbitrary
 #      UID can create files via group permissions.
 #   2. /etc/passwd is made writable so the entrypoint can add a passwd entry

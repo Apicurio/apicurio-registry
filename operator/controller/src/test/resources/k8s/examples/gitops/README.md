@@ -69,6 +69,29 @@ kubectl apply -f gitops-test-data.configmap.yaml
 kubectl apply -f example-local-volume.yaml
 ```
 
+## SSH Secrets
+
+SSH secrets are configured via `secretRef` fields under `gitops.pull` and `gitops.push`.
+The operator handles volume mounting and env var configuration automatically.
+
+| Field | Secret Content | Default Key |
+|-------|---------------|-------------|
+| `pull.sshKeys` | SSH private key for authenticating to remote Git servers | `id_ed25519` |
+| `pull.knownHosts` | known_hosts file for host verification | `known_hosts` |
+| `push.authorizedKeys` | authorized_keys controlling push access | `authorized_keys` |
+| `push.hostKey` | Persistent SSH host key for stable fingerprint | `ssh_host_key` |
+
+Example:
+```yaml
+gitops:
+  repos:
+    - url: git@github.com:my-org/schemas.git
+  pull:
+    sshKeys:
+      name: my-ssh-keys       # Secret name
+      key: id_ed25519          # Key within the Secret (optional, uses default)
+```
+
 ## What the Operator Does
 
 When `storage.type: gitops` is set, the operator automatically:
@@ -77,8 +100,8 @@ When `storage.type: gitops` is set, the operator automatically:
 - Injects the GitOps sync sidecar container with a default image
 - Creates an `emptyDir` shared volume mounted on both containers
 - Sets repo configuration env vars on both the sidecar and registry containers
+- Mounts SSH secrets from `pull`/`push` secretRef fields on the sidecar container
 - In push mode (`mode: push`): creates an SSH service on port 2222 and opens the network policy
 
-Advanced configuration (SSH keys, custom volumes, extra env vars) is done via `podTemplateSpec`
-overrides. The operator merges your overrides with its defaults — you can customize the sidecar
-image, add volume mounts for secrets, or override any setting.
+Additional configuration (extra env vars, custom sidecar image) is done via `podTemplateSpec`
+overrides. The operator merges your overrides with its defaults.

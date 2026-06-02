@@ -25,7 +25,8 @@ covering local volume, HTTPS pull, and SSH pull setups.
 When using the Apicurio Registry operator, the sidecar container is **automatically injected**
 by the operator when `storage.type: gitops` is set in the CR. You don't need to configure the
 sidecar image, volume mounts, or most environment variables manually — the operator handles this
-based on the `gitops` spec fields.
+based on the `gitops` spec fields, including SSH secrets via `secretRef` fields under
+`gitops.pull` and `gitops.push`.
 
 For operator-based deployment examples, see
 [`operator/controller/src/test/resources/k8s/examples/gitops/`](../../operator/controller/src/test/resources/k8s/examples/gitops/).

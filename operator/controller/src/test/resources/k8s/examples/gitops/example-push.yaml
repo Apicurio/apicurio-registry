@@ -39,6 +39,10 @@ spec:
       gitops:
         mode: push
         registryId: prod
+        push:
+          authorizedKeys:
+            name: gitops-push-authorized-keys
+            key: authorized_keys
     podTemplateSpec:
       spec:
         containers:
@@ -46,21 +50,6 @@ spec:
             env:
               - name: APICURIO_GITOPS_SECURITY
                 value: dev
-              - name: APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS
-                value: /secrets/push/authorized_keys
-            ports:
-              - name: ssh
-                containerPort: 2222
-                protocol: TCP
-            volumeMounts:
-              - name: push-authorized-keys
-                mountPath: /secrets/push
-                readOnly: true
-        volumes:
-          - name: push-authorized-keys
-            secret:
-              secretName: gitops-push-authorized-keys
-              defaultMode: 0400
     ingress:
       host: gitops-push-app.apps.cluster.example
   ui:

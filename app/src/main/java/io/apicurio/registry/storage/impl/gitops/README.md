@@ -388,8 +388,18 @@ spec:
 **Important:** The `registryId` field must match the `registryId` value in your `registry.registry.yaml`
 data files. If they don't match, the registry will not load any data. The default value is `default`.
 
-Advanced configuration (SSH keys, push mode, multi-repo, custom volumes) is done via `podTemplateSpec`
-overrides on the CR. See the operator example CRs for all supported scenarios:
+SSH secrets are configured via `secretRef` fields under `gitops.pull` and `gitops.push` — the operator
+handles volume mounting and env var configuration automatically. For example, to use an SSH key:
+
+```yaml
+gitops:
+  pull:
+    sshKeys:
+      name: my-ssh-keys
+```
+
+Additional configuration (custom sidecar image, extra env vars) is done via `podTemplateSpec`
+overrides. See the operator example CRs for all supported scenarios:
 [`operator/controller/src/test/resources/k8s/examples/gitops/`](../../../../operator/controller/src/test/resources/k8s/examples/gitops/).
 
 <!--

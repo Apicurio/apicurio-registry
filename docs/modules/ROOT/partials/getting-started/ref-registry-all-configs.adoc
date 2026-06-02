@@ -1398,6 +1398,11 @@ The following {registry} configuration options are available for each component 
 |`/tmp/apicurio-registry-artifact-types.json`
 |`3.1.0`
 |Path to a configuration file containing a list of supported artifact types.
+|`apicurio.compat.json-schema.use-apitomy`
+|`boolean`
+|`false`
+|`3.3.1`
+|Use the Apitomy Data Models JSON Schema compatibility checker instead of the everit-based one. _(experimental)_
 |===
 
 == ui

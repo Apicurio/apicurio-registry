@@ -8,6 +8,8 @@ This documentation describes how to migrate from {registry} {registry-v2} to {re
 
 {registry} 3.x includes breaking changes that require a new deployment, data migration, and client application updates. There is no in-place upgrade path from v2 to v3.
 
+NOTE: For general versioning policy, upgrade guidance within the 3.x series, and rollback procedures, see xref:versioning-support-policy_{context}[].
+
 
 // con-registry-migration-overview
 [id="registry-migration-overview_{context}"]

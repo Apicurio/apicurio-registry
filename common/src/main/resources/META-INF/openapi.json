@@ -3087,6 +3087,188 @@
         "description": "**Experimental.** Requests an immediate synchronization of the GitOps storage. This resets the poll timer so the next scheduler cycle will poll the Git repository without waiting for the configured poll period.\n\nThe synchronization happens asynchronously \u2014 this endpoint returns immediately and the actual sync occurs on the next scheduler cycle.\n\nThis endpoint is only available when GitOps storage is enabled (`apicurio.storage.kind=gitops`). Returns HTTP 409 (Conflict) if a different storage backend is active.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/admin/gitops/validate": {
+      "summary": "Manage dry-run validation tasks.",
+      "post": {
+        "tags": [
+          "GitOps",
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GitOpsValidateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitOpsValidateTask"
+                }
+              }
+            },
+            "description": "Validation task created. Poll the task status to get the result."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "description": "Dry-run validation is disabled. Enable it by setting `apicurio.gitops.validate.enabled=true`."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "createGitOpsValidateTask",
+        "summary": "Create a dry-run validation task",
+        "description": "**Experimental.** Creates a dry-run validation task that fetches a git ref and validates the data without affecting the live registry. The sidecar fetches the ref, and the registry loads and validates the data in the inactive storage (no swap).\n\nReturns a task object with a `taskId` that can be used to poll for results.\n\nThis endpoint is only available when GitOps storage is enabled.\n\nThis operation can fail for the following reasons:\n\n* GitOps storage is not enabled (HTTP error `409`)\n* Dry-run validation is disabled (HTTP error `503`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "get": {
+        "tags": [
+          "GitOps",
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GitOpsValidateTask"
+                  }
+                }
+              }
+            },
+            "description": "List of active validation tasks."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "description": "Dry-run validation is disabled."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "listGitOpsValidateTasks",
+        "summary": "List validation tasks",
+        "description": "**Experimental.** Returns a list of all active dry-run validation tasks."
+      }
+    },
+    "/admin/gitops/validate/{taskId}": {
+      "summary": "Manage a specific validation task.",
+      "get": {
+        "tags": [
+          "GitOps",
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GitOpsValidateTask"
+                }
+              }
+            },
+            "description": "The validation task details and results."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "description": "Dry-run validation is disabled."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getGitOpsValidateTask",
+        "summary": "Get validation task status",
+        "description": "**Experimental.** Returns the status and results of a specific dry-run validation task."
+      },
+      "delete": {
+        "tags": [
+          "GitOps",
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Validation task deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "description": "Dry-run validation is disabled."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "deleteGitOpsValidateTask",
+        "summary": "Delete a validation task",
+        "description": "**Experimental.** Deletes a validation task and cleans up its checkout directory."
+      }
+    },
     "/groups/{groupId}/artifacts/{artifactId}": {
       "summary": "Manage a single artifact.",
       "get": {
@@ -6204,6 +6386,99 @@
         },
         "required": [
           "detail"
+        ]
+      },
+      "GitOpsValidateRequest": {
+        "title": "Root Type for GitOpsValidateRequest",
+        "description": "Request body for creating a dry-run validation task.",
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "Validation type. Currently only `pull` is supported.",
+            "type": "string",
+            "enum": ["pull"]
+          },
+          "repoId": {
+            "description": "Repository ID to validate against. Must match a configured repository.",
+            "type": "string"
+          },
+          "ref": {
+            "description": "Git ref to validate (branch name, tag, or PR ref like `refs/pull/42/head`).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repoId",
+          "ref"
+        ]
+      },
+      "GitOpsValidateTask": {
+        "title": "Root Type for GitOpsValidateTask",
+        "description": "Represents a dry-run validation task with its current state and results.",
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "description": "Unique identifier for the validation task.",
+            "type": "string"
+          },
+          "type": {
+            "description": "Validation type (`pull` or `push`).",
+            "type": "string"
+          },
+          "repoId": {
+            "description": "Repository ID being validated.",
+            "type": "string"
+          },
+          "ref": {
+            "description": "Git ref being validated.",
+            "type": "string"
+          },
+          "state": {
+            "description": "Current task state: `pending` (queued, waiting for capacity), `submitted` (request sent to sidecar), `fetching` (sidecar is cloning), `validating` (registry is loading and validating), `completed` (finished with results), `failed` (an error occurred).",
+            "type": "string",
+            "enum": ["pending", "submitted", "fetching", "validating", "completed", "failed"]
+          },
+          "result": {
+            "description": "Validation result: `success` (all checks passed) or `failure` (validation errors found). Only present when state is `completed`.",
+            "type": "string",
+            "enum": ["success", "failure"]
+          },
+          "createdAt": {
+            "description": "ISO 8601 timestamp of when the task was created.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "completedAt": {
+            "description": "ISO 8601 timestamp of when the task completed. Only present when state is `completed` or `failed`.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "groupCount": {
+            "description": "Number of groups loaded during validation. Only present when state is `completed`.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "artifactCount": {
+            "description": "Number of artifacts loaded during validation. Only present when state is `completed`.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "versionCount": {
+            "description": "Number of artifact versions loaded during validation. Only present when state is `completed`.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "errors": {
+            "description": "Validation errors. Empty if validation passed.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GitOpsError"
+            }
+          }
+        },
+        "required": [
+          "taskId",
+          "state"
         ]
       },
       "SystemInfo": {

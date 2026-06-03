@@ -163,6 +163,10 @@
     /WARNING
     -->
 
+    <!-- Quarkus BOM overrides (CVE fixes) -->
+    <netty.version>4.1.133.Final</netty.version>
+    <postgresql-jdbc.version>42.7.11</postgresql-jdbc.version>
+
     <!-- Jandex -->
     <jandex.version>3.5.3</jandex.version>
 
@@ -550,6 +554,15 @@
         <version>${project.version}</version>
       </dependency>
 
+      <!-- Netty BOM override (before Quarkus BOM so it takes precedence) -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- Quarkus Dependencies -->
       <dependency>
         <groupId>io.quarkus.platform</groupId>
@@ -570,6 +583,11 @@
       </dependency>
 
       <!-- Overrides of versions from the Quarkus BOM -->
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>${postgresql-jdbc.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>kafka-clients</artifactId>

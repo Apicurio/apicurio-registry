@@ -90,7 +90,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     @BeforeAll
-    void prepareRestAssured() {
+    void prepareRestAssured() throws Exception {
         vertx = Vertx.vertx();
         authServerUrlConfigured = Optional
                 .ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())

@@ -8,6 +8,8 @@ entries:
     name: 3.x
     entries:
       - name: ${PLACEHOLDER_PACKAGE}
+        replaces: apicurio-registry-3.v3.2.5
+      - name: apicurio-registry-3.v3.2.5
         replaces: apicurio-registry-3.v3.2.4
       - name: apicurio-registry-3.v3.2.4
         replaces: apicurio-registry-3.v3.2.3
@@ -46,7 +48,7 @@ entries:
     package: ${PLACEHOLDER_PACKAGE_NAME}
     name: 3.2.x
     entries:
-      - name: ${PLACEHOLDER_PACKAGE}
+      - name: apicurio-registry-3.v3.2.5
         replaces: apicurio-registry-3.v3.2.1
       - name: apicurio-registry-3.v3.2.1
         replaces: apicurio-registry-3.v3.2.0
@@ -55,6 +57,7 @@ entries:
     package: ${PLACEHOLDER_PACKAGE_NAME}
     name: 3.3.x
     entries:
+      - name: ${PLACEHOLDER_PACKAGE}
       - name: ${PLACEHOLDER_PACKAGE}
   - schema: olm.bundle
     image: ${PLACEHOLDER_BUNDLE_IMAGE}
@@ -92,3 +95,5 @@ entries:
     image: quay.io/apicurio/apicurio-registry-3-operator-bundle:3.2.3
   - schema: olm.bundle
     image: quay.io/apicurio/apicurio-registry-3-operator-bundle:3.2.4
+  - schema: olm.bundle
+    image: quay.io/apicurio/apicurio-registry-3-operator-bundle:3.2.5

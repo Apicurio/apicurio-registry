@@ -13,6 +13,8 @@
 ** xref:getting-started/assembly-deploying-registry-secured-kafka.adoc[]
 ** xref:getting-started/assembly-implementing-multitenancy.adoc[]
 ** xref:getting-started/assembly-registry-high-availability.adoc[]
+* Versioning and support
+** xref:getting-started/assembly-versioning-support-policy.adoc[]
 * Migration
 ** xref:getting-started/assembly-migrating-registry-v2-v3.adoc[]
 * Configuration

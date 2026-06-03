@@ -103,7 +103,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         // Make sure all global rules are deleted, anything else should be isolated
         // within a group or artifact on a per-test basis.
-        registryClient.admin().rules().delete();
+        retry(() -> registryClient.admin().rules().delete());
     }
 
     @AfterAll

@@ -114,7 +114,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, results.getArtifacts().size());
 
         // DryRun: Try to create the *same* artifact (conflict)
-        error = Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
+        error = Assertions.assertThrows(ProblemDetails.class, () -> {
             CreateArtifact ca = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO,
                     SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
             clientV3.groups().byGroupId(groupId).artifacts().post(ca, config -> {
@@ -123,7 +123,7 @@ public class DryRunTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(
                 "An artifact with ID 'actual-artifact' in group 'testCreateArtifactDryRun' already exists.",
-                ((RuleViolationProblemDetails) error).getTitle());
+                ((ProblemDetails) error).getTitle());
 
         // DryRun: Try to create the *same* artifact but with ifExists set (success)
         createArtifact = TestUtils.clientCreateArtifact("actual-artifact", ArtifactType.AVRO, SCHEMA_SIMPLE,

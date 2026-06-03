@@ -54,6 +54,11 @@ jobs:
           echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
           echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
 
+      - name: Calculate Minor Series Tag
+        run: |
+          MINOR_TAG=$(echo "$RELEASE_VERSION" | awk -F. '{print $1"."$2}')
+          echo "MINOR_TAG=$MINOR_TAG" >> $GITHUB_ENV
+
       - name: Download Source Code
         run: git clone --branch $RELEASE_VERSION --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git registry
 
@@ -115,6 +120,7 @@ jobs:
         run: |
           docker buildx build --push -f ./target/docker/Dockerfile.jvm \
               -t quay.io/apicurio/apicurio-registry-mcp-server:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry-mcp-server:$MINOR_TAG \
               -t quay.io/apicurio/apicurio-registry-mcp-server:latest \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./target/docker
 
@@ -125,9 +131,11 @@ jobs:
               -t docker.io/apicurio/apicurio-registry:latest \
               -t docker.io/apicurio/apicurio-registry:latest-release \
               -t docker.io/apicurio/apicurio-registry:$RELEASE_VERSION \
+              -t docker.io/apicurio/apicurio-registry:$MINOR_TAG \
               -t quay.io/apicurio/apicurio-registry:latest \
               -t quay.io/apicurio/apicurio-registry:latest-release \
               -t quay.io/apicurio/apicurio-registry:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry:$MINOR_TAG \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
       - name: Build and Push Multi-arch UI Images
@@ -137,9 +145,11 @@ jobs:
               -t docker.io/apicurio/apicurio-registry-ui:latest \
               -t docker.io/apicurio/apicurio-registry-ui:latest-release \
               -t docker.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
+              -t docker.io/apicurio/apicurio-registry-ui:$MINOR_TAG \
               -t quay.io/apicurio/apicurio-registry-ui:latest \
               -t quay.io/apicurio/apicurio-registry-ui:latest-release \
               -t quay.io/apicurio/apicurio-registry-ui:$RELEASE_VERSION \
+              -t quay.io/apicurio/apicurio-registry-ui:$MINOR_TAG \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
   # Slack notification using reusable workflow

@@ -85,7 +85,7 @@ public class LimitsTest extends AbstractResourceTestBase {
 
         // schema number 3 , exceeds the max number of schemas
         var exception2 = Assertions.assertThrows(
-                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class, () -> {
+                io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
                     CreateArtifact createArtifact = new CreateArtifact();
                     createArtifact.setArtifactId(artifactId);
                     createArtifact.setArtifactType(ArtifactType.JSON);

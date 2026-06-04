@@ -9,6 +9,7 @@ import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.auth.AuthSpec;
 import io.apicurio.registry.operator.feat.Cors;
+import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.feat.KafkaSql;
 import io.apicurio.registry.operator.feat.KubernetesOps;
 import io.apicurio.registry.operator.feat.OTel;
@@ -133,6 +134,7 @@ public class AppDeploymentResource extends CRUDKubernetesDependentResource<Deplo
                             deployment.getSpec().getTemplate().getSpec()
                                     .setServiceAccountName(KubernetesOps.getServiceAccountName(primary));
                         }
+                        case GITOPS -> GitOps.configureGitOps(primary, deployment, envVars);
                     }
                 });
 

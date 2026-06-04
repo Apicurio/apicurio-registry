@@ -11,6 +11,7 @@ import io.apicurio.registry.operator.resource.app.AppRoleBindingResource;
 import io.apicurio.registry.operator.resource.app.AppRoleResource;
 import io.apicurio.registry.operator.resource.app.AppServiceAccountResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
+import io.apicurio.registry.operator.resource.app.GitOpsSshServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
@@ -40,6 +41,7 @@ import static io.apicurio.registry.operator.resource.ActivationConditions.AppHor
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.GitOpsSshServiceActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsRoleActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsRoleBindingActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsServiceAccountActivationCondition;
@@ -56,6 +58,7 @@ import static io.apicurio.registry.operator.resource.ResourceKey.APP_ROLE_BINDIN
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_ROLE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ACCOUNT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.GITOPS_SSH_SERVICE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_HORIZONTAL_POD_AUTOSCALER_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
@@ -100,6 +103,13 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
                         name = APP_HORIZONTAL_POD_AUTOSCALER_ID,
                         dependsOn = {APP_DEPLOYMENT_ID},
                         activationCondition = AppHorizontalPodAutoscalerActivationCondition.class
+                ),
+                // ===== GitOps SSH Service
+                @Dependent(
+                        type = GitOpsSshServiceResource.class,
+                        name = GITOPS_SSH_SERVICE_ID,
+                        dependsOn = {APP_DEPLOYMENT_ID},
+                        activationCondition = GitOpsSshServiceActivationCondition.class
                 ),
                 // ===== KubernetesOps RBAC
                 @Dependent(

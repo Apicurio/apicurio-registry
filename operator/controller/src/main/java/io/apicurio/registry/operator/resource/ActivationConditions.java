@@ -9,9 +9,11 @@ import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
 import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
+import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.feat.KubernetesOps;
 import io.apicurio.registry.operator.resource.app.AppHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
+import io.apicurio.registry.operator.resource.app.GitOpsSshServiceResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
 import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.app.AppRoleBindingResource;
@@ -22,6 +24,7 @@ import io.apicurio.registry.operator.resource.ui.UIHorizontalPodAutoscalerResour
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceAccount;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.autoscaling.v2.HorizontalPodAutoscaler;
@@ -152,6 +155,21 @@ public class ActivationConditions {
             boolean isManaged = KubernetesOps.isEnabled(primary);
             if (!isManaged) {
                 ((AppRoleBindingResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    // ===== GitOps SSH Service
+
+    public static class GitOpsSshServiceActivationCondition
+            implements Condition<Service, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<Service, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = GitOps.isPushMode(primary);
+            if (!isManaged) {
+                ((GitOpsSshServiceResource) resource).delete(primary, context);
             }
             return isManaged;
         }

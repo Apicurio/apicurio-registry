@@ -38,7 +38,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.2.4
+PREVIOUS_PACKAGE_VERSION ?= 3.2.5
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 # Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
@@ -506,8 +506,12 @@ release-catalog-template-update: install-yq
 		echo "Adding placeholder to $(CHANNEL) channel (same minor)"; \
 		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
 	elif $(YQ) -e '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)"))' $(CATALOG_DIR)/catalog.template.yaml > /dev/null 2>&1; then \
-		echo "Adding placeholder to existing $(CHANNEL) channel (new minor)"; \
-		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
+		if $(YQ) -e '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}"))' $(CATALOG_DIR)/catalog.template.yaml > /dev/null 2>&1; then \
+			echo "$(CHANNEL) channel already has a placeholder entry, skipping"; \
+		else \
+			echo "Adding placeholder to existing $(CHANNEL) channel (new minor)"; \
+			$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
+		fi; \
 	else \
 		echo "Creating new $(CHANNEL) channel with placeholder (new minor)"; \
 		$(YQ) '.entries |= . + [{"schema": "olm.channel", "package": "$${PLACEHOLDER_PACKAGE_NAME}", "name": "$(CHANNEL)", "entries": [{"name": "$${PLACEHOLDER_PACKAGE}"}]}]' -i $(CATALOG_DIR)/catalog.template.yaml; \

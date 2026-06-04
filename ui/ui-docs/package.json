@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "core-js": "3.49.0",
-    "mobx": "6.15.4",
+    "mobx": "6.16.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "redoc": "2.5.3",

@@ -116,11 +116,20 @@ jobs:
             --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
             --dir cli/target/
 
-      - name: Maven Deploy
+      - name: Maven Deploy (excluding flink)
         working-directory: registry
         run: |
           mvn -B --settings /home/runner/.m2/settings.xml deploy \
-            -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts
+            -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts \
+            -pl '!utils/flink'
+
+      - name: Maven Deploy (flink only)
+        working-directory: registry
+        continue-on-error: true
+        run: |
+          mvn -B --settings /home/runner/.m2/settings.xml deploy \
+            -Pprod -Prelease -DskipTests \
+            -pl utils/flink
 
   # SBOMs Generation
   release-sboms:

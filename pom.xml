@@ -92,6 +92,7 @@
     <module>utils/importexport</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
+    <module>authz</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/asyncapi</module>

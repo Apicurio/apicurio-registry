@@ -300,6 +300,36 @@ public class SqlGroupRepository {
                         buildWildcardClause(where, "g.groupId",
                                 filter.getStringValue(), filter.isNot(), binders);
                         break;
+                    case groupIdIn:
+                        var gGroupIds = filter.getSetValue();
+                        if (gGroupIds.isEmpty()) {
+                            where.append(filter.isNot() ? "1 = 1" : "1 = 0");
+                            break;
+                        }
+                        var gPlaceholders = String.join(", ", gGroupIds.stream().map(g -> "?").toList());
+                        op = filter.isNot() ? "NOT IN" : "IN";
+                        where.append("g.groupId " + op + " (" + gPlaceholders + ")");
+                        for (String gid : gGroupIds) {
+                            binders.add((query, idx) -> {
+                                query.bind(idx, gid);
+                            });
+                        }
+                        break;
+                    case groupIdInOrArtifactExact:
+                        var grpIds = filter.getGroupIdInValue();
+                        if (!grpIds.isEmpty()) {
+                            var grpPlaceholders = String.join(", ",
+                                    grpIds.stream().map(g -> "?").toList());
+                            where.append("g.groupId IN (").append(grpPlaceholders).append(")");
+                            for (String gid : grpIds) {
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, gid);
+                                });
+                            }
+                        } else {
+                            where.append("1 = 0");
+                        }
+                        break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
                         String labelKey = label.getKey().toLowerCase();

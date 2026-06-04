@@ -33,6 +33,8 @@ type SearchedVersion struct {
 	name *string
 	// The owner property
 	owner *string
+	// List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.
+	permissions []string
 	// Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
 	state *VersionState
 	// A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
@@ -212,6 +214,22 @@ func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e8
 		}
 		return nil
 	}
+	res["permissions"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetCollectionOfPrimitiveValues("string")
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			res := make([]string, len(val))
+			for i, v := range val {
+				if v != nil {
+					res[i] = *(v.(*string))
+				}
+			}
+			m.SetPermissions(res)
+		}
+		return nil
+	}
 	res["state"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetEnumValue(ParseVersionState)
 		if err != nil {
@@ -275,6 +293,12 @@ func (m *SearchedVersion) GetName() *string {
 // returns a *string when successful
 func (m *SearchedVersion) GetOwner() *string {
 	return m.owner
+}
+
+// GetPermissions gets the permissions property value. List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.
+// returns a []string when successful
+func (m *SearchedVersion) GetPermissions() []string {
+	return m.permissions
 }
 
 // GetState gets the state property value. Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
@@ -359,6 +383,12 @@ func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0
 	}
 	{
 		err := writer.WriteStringValue("owner", m.GetOwner())
+		if err != nil {
+			return err
+		}
+	}
+	if m.GetPermissions() != nil {
+		err := writer.WriteCollectionOfStringValues("permissions", m.GetPermissions())
 		if err != nil {
 			return err
 		}
@@ -450,6 +480,11 @@ func (m *SearchedVersion) SetOwner(value *string) {
 	m.owner = value
 }
 
+// SetPermissions sets the permissions property value. List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.
+func (m *SearchedVersion) SetPermissions(value []string) {
+	m.permissions = value
+}
+
 // SetState sets the state property value. Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
 func (m *SearchedVersion) SetState(value *VersionState) {
 	m.state = value
@@ -475,6 +510,7 @@ type SearchedVersionable interface {
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
 	GetOwner() *string
+	GetPermissions() []string
 	GetState() *VersionState
 	GetVersion() *string
 	SetArtifactId(value *string)
@@ -489,6 +525,7 @@ type SearchedVersionable interface {
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
 	SetOwner(value *string)
+	SetPermissions(value []string)
 	SetState(value *VersionState)
 	SetVersion(value *string)
 }

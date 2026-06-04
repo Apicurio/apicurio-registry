@@ -58,7 +58,6 @@ entries:
     name: 3.3.x
     entries:
       - name: ${PLACEHOLDER_PACKAGE}
-      - name: ${PLACEHOLDER_PACKAGE}
   - schema: olm.bundle
     image: ${PLACEHOLDER_BUNDLE_IMAGE}
   - schema: olm.bundle

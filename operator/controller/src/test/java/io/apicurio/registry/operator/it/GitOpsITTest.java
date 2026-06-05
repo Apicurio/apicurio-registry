@@ -17,12 +17,15 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.List;
 
+import static java.time.Duration.ofSeconds;
+
 import static io.apicurio.registry.operator.Tags.FEATURE;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 @Tag(FEATURE)
@@ -62,6 +65,82 @@ public class GitOpsITTest extends ITBase {
                     .then()
                     .statusCode(200)
                     .body("count", greaterThanOrEqualTo(2)));
+        } catch (AssertionError e) {
+            throw new AssertionError(EXTERNAL_REPO_HINT, e);
+        }
+    }
+
+    @Test
+    @DisplayName("GitOps dry-run validation [depends on " + EXAMPLE_REPO + "]")
+    void testGitOpsValidation() throws Exception {
+        var registry = deployGitOpsCR("example-pull-https.yaml");
+        int port = portForwardToRegistry(registry);
+
+        try {
+            // Wait for initial data load
+            await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> given()
+                    .get(new URI("http://localhost:" + port + "/apis/registry/v3/admin/gitops/status"))
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("IDLE")));
+
+            // Successful validation: validate the test/valid-pr branch
+            // (adds an optional field — backward compatible)
+            var taskId = given()
+                    .contentType("application/json")
+                    .body("{\"type\": \"pull\", \"repoId\": \"default\", \"ref\": \"test/valid-pr\"}")
+                    .post(new URI("http://localhost:" + port + "/apis/registry/v3/admin/gitops/validate"))
+                    .then()
+                    .statusCode(200)
+                    .body("taskId", notNullValue())
+                    .extract().path("taskId").toString();
+
+            log.info("Validation task created: {}", taskId);
+
+            await().atMost(LONG_DURATION).pollInterval(ofSeconds(5)).untilAsserted(() -> {
+                var response = given()
+                        .get(new URI("http://localhost:" + port
+                                + "/apis/registry/v3/admin/gitops/validate/" + taskId))
+                        .then()
+                        .statusCode(200)
+                        .extract().body().jsonPath();
+                var state = response.getString("state");
+                log.info("[validate:{}] Polling valid-pr task: state={}, result={}, errors={}",
+                        taskId, state, response.getString("result"), response.getList("errors"));
+                assertThat(state).isEqualTo("completed");
+                assertThat(response.getString("result")).isEqualTo("success");
+                assertThat(response.getInt("groupCount")).isGreaterThanOrEqualTo(1);
+                assertThat(response.getInt("artifactCount")).isGreaterThanOrEqualTo(1);
+            });
+
+            log.info("Validation succeeded for 'test/valid-pr' branch");
+
+            // Failed validation: validate the test/invalid-pr branch
+            // (adds a required field without default — breaks BACKWARD compatibility)
+            var failTaskId = given()
+                    .contentType("application/json")
+                    .body("{\"type\": \"pull\", \"repoId\": \"default\", \"ref\": \"test/invalid-pr\"}")
+                    .post(new URI("http://localhost:" + port + "/apis/registry/v3/admin/gitops/validate"))
+                    .then()
+                    .statusCode(200)
+                    .extract().path("taskId").toString();
+
+            await().atMost(LONG_DURATION).pollInterval(ofSeconds(5)).untilAsserted(() -> {
+                var response = given()
+                        .get(new URI("http://localhost:" + port
+                                + "/apis/registry/v3/admin/gitops/validate/" + failTaskId))
+                        .then()
+                        .statusCode(200)
+                        .extract().body().jsonPath();
+                var state = response.getString("state");
+                log.info("[validate:{}] Polling invalid-pr task: state={}, result={}, errors={}",
+                        failTaskId, state, response.getString("result"), response.getList("errors"));
+                assertThat(state).isEqualTo("completed");
+                assertThat(response.getString("result")).isEqualTo("failure");
+            });
+
+            log.info("Validation correctly failed for 'test/invalid-pr' branch (breaking compatibility)");
+
         } catch (AssertionError e) {
             throw new AssertionError(EXTERNAL_REPO_HINT, e);
         }

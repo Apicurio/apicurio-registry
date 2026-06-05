@@ -1,10 +1,10 @@
 package io.apicurio.registry.operator.utils;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
-import org.junit.jupiter.api.extension.TestWatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,16 +20,17 @@ import java.lang.reflect.Method;
  * Each retry is logged with the attempt number and the triggering exception.
  *
  * <p>
- * <b>Cluster diagnostics on failure</b> ({@link TestWatcher}): When a test fails (after all retries are
- * exhausted, or immediately for non-retried tests), the extension dumps the Kubernetes cluster state to the
- * log. This includes CRs, Deployments, Pods, Services, Ingresses, Events, and OLM resources (for OLM tests).
- * The test class must implement {@link OperatorTestContext} to provide the client and namespace.
+ * <b>Cluster diagnostics on failure</b> ({@link AfterTestExecutionCallback}): When a test fails (after all
+ * retries are exhausted, or immediately for non-retried tests), the extension dumps the Kubernetes cluster
+ * state to the log. Uses {@code AfterTestExecutionCallback} so diagnostics run <b>before</b>
+ * {@code @AfterEach} cleanup, while CRs and Pods are still present. The test class must implement
+ * {@link OperatorTestContext} to provide the client and namespace.
  *
  * <p>
  * Register on test base classes with {@code @ExtendWith(OperatorTestExtension.class)} — all subclasses
  * inherit it automatically.
  */
-public class OperatorTestExtension implements InvocationInterceptor, TestWatcher {
+public class OperatorTestExtension implements InvocationInterceptor, AfterTestExecutionCallback {
 
     private static final Logger log = LoggerFactory.getLogger(OperatorTestExtension.class);
 
@@ -86,7 +87,10 @@ public class OperatorTestExtension implements InvocationInterceptor, TestWatcher
     }
 
     @Override
-    public void testFailed(ExtensionContext context, Throwable cause) {
+    public void afterTestExecution(ExtensionContext context) {
+        if (context.getExecutionException().isEmpty()) {
+            return;
+        }
         Object testInstance = context.getRequiredTestInstance();
         if (testInstance instanceof OperatorTestContext ctx) {
             var client = ctx.getClient();

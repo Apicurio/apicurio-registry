@@ -30,6 +30,7 @@ public final class ClusterDiagnostics {
     private static final Logger log = LoggerFactory.getLogger(ClusterDiagnostics.class);
 
     private static final int MAX_EVENTS = 50;
+    private static final int MAX_LOG_LINES = 100;
 
     private ClusterDiagnostics() {
     }
@@ -163,6 +164,7 @@ public final class ClusterDiagnostics {
                 log.error("  Pod: {} | Phase: {}", pod.getMetadata().getName(),
                         pod.getStatus().getPhase());
                 dumpPodStatus(pod);
+                dumpContainerLogs(client, pod);
             }
         } catch (Exception e) {
             log.error("  Failed to list Pods: {}", e.getMessage());
@@ -179,6 +181,25 @@ public final class ClusterDiagnostics {
                 log.error("    Container {}: ready={}, restarts={}, state={}",
                         cs.getName(), cs.getReady(), cs.getRestartCount(),
                         toYAML(cs.getState()));
+            }
+        }
+    }
+
+    private static void dumpContainerLogs(KubernetesClient client, Pod pod) {
+        var namespace = pod.getMetadata().getNamespace();
+        var podName = pod.getMetadata().getName();
+        if (pod.getSpec().getContainers() == null) {
+            return;
+        }
+        for (var container : pod.getSpec().getContainers()) {
+            try {
+                var logs = client.pods().inNamespace(namespace).withName(podName)
+                        .inContainer(container.getName()).tailingLines(MAX_LOG_LINES).getLog();
+                log.error("    --- Container {} logs (last {} lines) ---\n{}",
+                        container.getName(), MAX_LOG_LINES, logs);
+            } catch (Exception e) {
+                log.error("    --- Container {} logs: unavailable ({}) ---",
+                        container.getName(), e.getMessage());
             }
         }
     }

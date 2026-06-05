@@ -177,10 +177,24 @@ In environments where outbound network access is restricted, an external process
 Git repository hosted inside the cluster. The sidecar exposes an SSH endpoint for receiving pushes.
 See [`distro/gitops/README.md`](../../../../distro/gitops/README.md) for push mode configuration.
 
-### PR Verification with CI/CD *(planned)*
+### PR Verification with CI/CD
 
-Validate schema changes in CI before merging PRs. A planned dry-run endpoint or CLI tool will load
-data from a branch without affecting the live registry, reporting any errors.
+Validate schema changes in CI before merging PRs. The dry-run validation endpoint loads data from
+a git ref (branch, tag, or PR ref) into the inactive storage, runs the full validation pipeline
+(rules, compatibility, integrity), and returns the result — without affecting the live registry.
+
+```
+1. Developer opens PR modifying schemas
+2. CI calls: POST /admin/gitops/validate { "type": "pull", "repoId": "default", "ref": "feature/new-schema" }
+3. Sidecar fetches the ref, registry validates
+4. CI polls: GET /admin/gitops/validate/{taskId}
+5. Result: success or failure with detailed errors
+6. Pipeline reports result as a PR check status
+```
+
+See the [Management API](#management-api) section for endpoint details. For a complete
+working example with a GitHub Actions workflow and TypeScript validation script, see the
+[apicurio-registry-gitops-example](https://github.com/Apicurio/apicurio-registry-gitops-example) repository.
 
 ## Configuration
 
@@ -233,6 +247,15 @@ When using environment variables, use the standard underscore format:
 different repositories, the entire load is rejected. Each artifact must be defined
 in exactly one repository.
 
+#### Dry-run validation
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `apicurio.gitops.validate.enabled` | `true` | Enable dry-run validation endpoints. When disabled, endpoints return HTTP 503. |
+| `apicurio.gitops.validate.task.ttl.seconds` | `3600` | Time-to-live for validation tasks. Tasks are auto-removed after this period. |
+| `apicurio.gitops.validate.max-tasks` | `5` | Maximum number of validation tasks with disk resources before new requests are queued. |
+| `apicurio.gitops.validate.fetch.timeout.seconds` | `120` | Timeout for the sidecar to fetch a git ref during validation. |
+
 ## Management API
 
 The registry exposes management endpoints at `/apis/registry/v3/admin/gitops/` when running
@@ -242,6 +265,10 @@ in GitOps mode. These return HTTP 409 if a different storage backend is active.
 |----------|--------|-------------|
 | `/admin/gitops/status` | GET | Returns current sync state, commit SHA, load stats, and errors |
 | `/admin/gitops/sync` | POST | Triggers an immediate sync (returns 204) |
+| `/admin/gitops/validate` | POST | Create a dry-run validation task (returns task with `taskId`) |
+| `/admin/gitops/validate` | GET | List all active validation tasks |
+| `/admin/gitops/validate/{taskId}` | GET | Get validation task status and results |
+| `/admin/gitops/validate/{taskId}` | DELETE | Delete a validation task and clean up files |
 
 The status response includes:
 - `syncState` — one of `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, `ERROR`
@@ -249,6 +276,26 @@ The status response includes:
 - `groupCount`, `artifactCount`, `versionCount` — load statistics
 - `errors` — structured errors from the last failed load, each with `detail`, optional `source` (repo ID), and optional `context` (file path)
 - `sources` — per-source identifiers (map of source ID → abbreviated commit SHA)
+
+### Validation Task Lifecycle
+
+The `POST /admin/gitops/validate` endpoint creates a validation task and returns a `taskId`.
+Poll `GET /admin/gitops/validate/{taskId}` to track progress. Task states:
+
+| State | Description |
+|-------|-------------|
+| `pending` | Task queued, waiting for capacity |
+| `submitted` | Request file written, sidecar picking it up |
+| `fetching` | Sidecar is cloning the git ref |
+| `validating` | Registry is loading and validating the data |
+| `completed` | Finished — check `result` field (`success` or `failure`) |
+| `failed` | An error occurred (sidecar fetch failed, validation error, etc.) |
+
+The response includes `groupCount`, `artifactCount`, `versionCount` on completion,
+and `errors` (array of `{detail, source, context}`) on failure.
+
+Tasks are automatically cleaned up: disk resources are freed shortly after completion,
+and the in-memory record expires after the configured TTL (default: 1 hour).
 
 ## Timestamps
 
@@ -349,8 +396,8 @@ for configuration, security levels, and deployment details.
 
 The following features are planned but not yet implemented:
 
-- **Dry-run validation** — validate schema changes from a branch without affecting live data
 - **CLI validator** — offline validation of `*.registry.yaml` files without a running registry
+- **Push-mode validation** — validate data pushed to a temporary repository before loading
 - **Per-file git history timestamps** — derive `createdOn`/`modifiedOn` from git log per file
 
 For the full design document and implementation plan, see the

@@ -128,7 +128,7 @@ jobs:
         continue-on-error: true
         run: |
           mvn -B --settings /home/runner/.m2/settings.xml deploy \
-            -Pprod -Prelease -DskipTests \
+            -Pprod -Prelease -Dfull -DskipTests \
             -pl utils/flink
 
   # SBOMs Generation

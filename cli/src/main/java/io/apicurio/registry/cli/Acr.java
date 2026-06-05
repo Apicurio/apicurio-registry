@@ -1,6 +1,8 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.artifact.ArtifactCommand;
+import io.apicurio.registry.cli.auth.LoginCommand;
+import io.apicurio.registry.cli.auth.LogoutCommand;
 import io.apicurio.registry.cli.config.ConfigPropertyCommand;
 import io.apicurio.registry.cli.context.ContextCommand;
 import io.apicurio.registry.cli.globalrule.GlobalRuleCommand;
@@ -31,6 +33,8 @@ import static picocli.CommandLine.ScopeType.INHERIT;
                 GlobalRuleCommand.class,
                 GroupCommand.class,
                 InstallCommand.class,
+                LoginCommand.class,
+                LogoutCommand.class,
                 SearchCommand.class,
                 UpdateCommand.class,
                 VersionCommand.class

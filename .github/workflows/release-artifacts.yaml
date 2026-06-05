@@ -9,6 +9,10 @@ on:
         description: 'Artifacts to release (comma-separated: maven,sboms,site,all)'
         required: true
         default: 'all'
+      maven-modules:
+        description: 'Maven modules to deploy (e.g. "utils/flink"). Leave empty to deploy all.'
+        required: false
+        default: ''
   release:
     types: [released]
 
@@ -116,20 +120,18 @@ jobs:
             --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
             --dir cli/target/
 
-      - name: Maven Deploy (excluding flink)
+      - name: Maven Deploy
         working-directory: registry
         run: |
-          mvn -B --settings /home/runner/.m2/settings.xml deploy \
-            -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts \
-            -pl '!utils/flink'
-
-      - name: Maven Deploy (flink only)
-        working-directory: registry
-        continue-on-error: true
-        run: |
-          mvn -B --settings /home/runner/.m2/settings.xml deploy \
-            -Pprod -Prelease -DskipTests \
-            -pl utils/flink
+          MODULES="${{ github.event.inputs.maven-modules }}"
+          if [ -n "$MODULES" ]; then
+            mvn -B --settings /home/runner/.m2/settings.xml deploy \
+              -Pprod -Prelease -Dfull -DskipTests \
+              -pl "$MODULES"
+          else
+            mvn -B --settings /home/runner/.m2/settings.xml deploy \
+              -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts
+          fi
 
   # SBOMs Generation
   release-sboms:

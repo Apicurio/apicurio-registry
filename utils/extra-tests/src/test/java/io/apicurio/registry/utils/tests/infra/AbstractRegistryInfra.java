@@ -34,12 +34,15 @@ public abstract class AbstractRegistryInfra {
                 .withNetwork(Network.SHARED)
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forLogMessage(".*KafkaSQL storage bootstrapped in .* ms.*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(30))
+                        .withStartupTimeout(Duration.ofSeconds(120))
                 );
 
         try {
+            long startTime = System.currentTimeMillis();
             registryContainer.start();
+            long elapsed = System.currentTimeMillis() - startTime;
             registryContainer.followOutput(new Slf4jLogConsumer(log).withPrefix(name));
+            log.info("Container '{}' started in {} ms", name, elapsed);
             return true;
         } catch (ContainerLaunchException ex) {
             log.error("Error starting {} container: {}", name, ex.getMessage(), ex);

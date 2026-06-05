@@ -59,7 +59,7 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
                 }));
 
         // Test create new version (invalid content)
-        retryAssertClientError("RuleViolationException", 409, (rc) -> {
+        retryAssertClientError("RuleViolationException", 400, (rc) -> {
             String invalidContent = "{\"This is not a valid content.";
             CreateVersion tcv = TestUtils.clientCreateVersion(invalidContent, contentType);
             rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(tcv,
@@ -91,7 +91,7 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
                 contentType);
         TestUtils
                 .assertClientError(
-                        "RuleViolationException", 409, () -> registryClient.groups().byGroupId(groupId)
+                        "RuleViolationException", 400, () -> registryClient.groups().byGroupId(groupId)
                                 .artifacts().byArtifactId(artifactId).versions().post(createVersion),
                         errorCodeExtractor);
 

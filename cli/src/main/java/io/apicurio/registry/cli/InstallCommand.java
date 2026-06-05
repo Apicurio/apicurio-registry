@@ -6,6 +6,7 @@ import io.apicurio.registry.cli.config.ConfigModel;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.apicurio.registry.cli.utils.PlatformUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,11 +52,6 @@ public class InstallCommand extends AbstractCommand {
     public static final String ENV_ACR_INSTALL_PATH = "ACR_INSTALL_PATH";
     public static final String ENV_ACR_HOME = "ACR_HOME";
     public static final String ENV_HOME = "HOME";
-
-    // OS detection
-    public static final String OS_NAME_PROPERTY = "os.name";
-    public static final String OS_MAC_IDENTIFIER = "mac";
-    public static final String OS_DARWIN_IDENTIFIER = "darwin";
 
     @Override
     public void run(final OutputBuffer output) throws IOException {
@@ -112,22 +108,12 @@ public class InstallCommand extends AbstractCommand {
     }
 
     /**
-     * Detects if the current OS is macOS.
-     *
-     * @return true if running on macOS, false otherwise
-     */
-    public static boolean detectMacOS() {
-        final String osName = System.getProperty(OS_NAME_PROPERTY).toLowerCase();
-        return osName.contains(OS_MAC_IDENTIFIER) || osName.contains(OS_DARWIN_IDENTIFIER);
-    }
-
-    /**
      * Gets the appropriate shell configuration file name for the current OS.
      *
      * @return ZSHRC for macOS, BASHRC for Linux
      */
     public static String getShellConfigFile() {
-        return detectMacOS() ? ZSHRC : BASHRC;
+        return PlatformUtils.isMacOS() ? ZSHRC : BASHRC;
     }
 
     /**

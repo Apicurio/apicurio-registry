@@ -9,6 +9,7 @@ jobs:
   vulnerability-scan:
     name: Container vulnerability scan
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
     steps:
       - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@v4

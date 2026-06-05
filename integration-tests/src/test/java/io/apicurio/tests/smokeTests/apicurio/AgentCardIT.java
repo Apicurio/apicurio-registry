@@ -257,7 +257,7 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                 }
                 """;
 
-        retryAssertClientError("RuleViolationException", 409, (rc) -> {
+        retryAssertClientError("RuleViolationException", 400, (rc) -> {
             CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AGENT_CARD,
                     invalidAgentCard, ContentTypes.APPLICATION_JSON);
             rc.groups().byGroupId(groupId).artifacts().post(ca);
@@ -294,7 +294,7 @@ class AgentCardIT extends ApicurioRegistryBaseIT {
                 }
                 """;
 
-        retryAssertClientError("RuleViolationException", 409, (rc) -> {
+        retryAssertClientError("RuleViolationException", 400, (rc) -> {
             CreateArtifact ca = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AGENT_CARD,
                     invalidAgentCard, ContentTypes.APPLICATION_JSON);
             rc.groups().byGroupId(groupId).artifacts().post(ca);

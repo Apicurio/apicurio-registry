@@ -38,6 +38,7 @@ jobs:
     name: PR Opened
     runs-on: ubuntu-latest
     if: |
+      github.repository_owner == 'Apicurio' &&
       github.event_name == 'pull_request_target' &&
       (github.event.action == 'opened' || github.event.action == 'reopened') &&
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
@@ -62,6 +63,7 @@ jobs:
     name: PR Push
     runs-on: ubuntu-latest
     if: |
+      github.repository_owner == 'Apicurio' &&
       github.event_name == 'pull_request_target' &&
       github.event.action == 'synchronize' &&
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
@@ -86,6 +88,7 @@ jobs:
     name: Draft to Ready
     runs-on: ubuntu-latest
     if: |
+      github.repository_owner == 'Apicurio' &&
       github.event_name == 'pull_request_target' &&
       github.event.action == 'ready_for_review' &&
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
@@ -110,6 +113,7 @@ jobs:
     name: Command
     runs-on: ubuntu-latest
     if: |
+      github.repository_owner == 'Apicurio' &&
       github.event_name == 'issue_comment' &&
       github.event.action == 'created' &&
       github.event.issue.pull_request &&
@@ -136,6 +140,7 @@ jobs:
     name: Review
     runs-on: ubuntu-latest
     if: |
+      github.repository_owner == 'Apicurio' &&
       github.event_name == 'pull_request_review' &&
       (github.event.action == 'submitted' || github.event.action == 'dismissed') &&
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
@@ -160,6 +165,7 @@ jobs:
     name: Label Guard
     runs-on: ubuntu-latest
     if: |
+      github.repository_owner == 'Apicurio' &&
       github.event_name == 'pull_request_target' &&
       (github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
       github.event.sender.login != 'github-actions[bot]' &&
@@ -185,6 +191,7 @@ jobs:
     name: Test Result
     runs-on: ubuntu-latest
     if: |
+      github.repository_owner == 'Apicurio' &&
       github.event_name == 'workflow_run'
     steps:
       - name: Checkout
@@ -207,6 +214,7 @@ jobs:
     name: Failure Notification
     runs-on: ubuntu-latest
     if: >-
+      github.repository_owner == 'Apicurio' &&
       failure() &&
       github.event_name != 'schedule'
     needs: [pr-opened, pr-synchronize, pr-ready-for-review, command, review, label-guard, test-result, reconcile]
@@ -247,7 +255,7 @@ jobs:
   reconcile:
     name: Reconcile
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -268,7 +276,7 @@ jobs:
   stale:
     name: Stale Detection
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'schedule'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

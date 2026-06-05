@@ -409,7 +409,7 @@ jobs:
   notify-slack:
     name: Slack Notification
     needs: [unit-tests, integration-tests, publish, operator]
-    if: github.event_name == 'push' && always()
+    if: github.event_name == 'push' && github.repository_owner == 'Apicurio' && always()
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}

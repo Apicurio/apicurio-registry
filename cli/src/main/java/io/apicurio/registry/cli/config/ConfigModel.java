@@ -20,6 +20,12 @@ public class ConfigModel {
 
     public static final int CURRENT_INSTALLATION_VERSION = 1;
 
+    public static final String AUTH_TYPE_BASIC = "basic";
+    public static final String AUTH_TYPE_OAUTH2 = "oauth2";
+
+    public static final String CREDENTIAL_KEY_PASSWORD = "password";
+    public static final String CREDENTIAL_KEY_CLIENT_SECRET = "client-secret";
+
     @JsonProperty("installation-version")
     private int installationVersion = CURRENT_INSTALLATION_VERSION;
 
@@ -48,5 +54,33 @@ public class ConfigModel {
 
         @JsonProperty("artifactId")
         private String artifactId;
+
+        @ToString.Exclude
+        @JsonProperty("authType")
+        private String authType;
+
+        @ToString.Exclude
+        @JsonProperty("username")
+        private String username;
+
+        @ToString.Exclude
+        @JsonProperty("tokenEndpoint")
+        private String tokenEndpoint;
+
+        @ToString.Exclude
+        @JsonProperty("clientId")
+        private String clientId;
+
+        @ToString.Exclude
+        @JsonProperty("scope")
+        private String scope;
+
+        public void clearAuth() {
+            authType = null;
+            username = null;
+            tokenEndpoint = null;
+            clientId = null;
+            scope = null;
+        }
     }
 }

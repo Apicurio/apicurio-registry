@@ -48,7 +48,7 @@ acr update
 
 If both a patch and minor update are available, you must specify the version:
 ```bash
-acr update 3.3.0
+acr update <version>
 ```
 
 **Check for updates without installing:**
@@ -59,12 +59,12 @@ acr update --check
 **Postpone update notifications (default: 5 days):**
 ```bash
 acr update --postpone
-acr update --postpone 240  # postpone for 240 hours
+acr update --postpone <hours>
 ```
 
 **Install from a local ZIP:**
 ```bash
-acr update --path /path/to/apicurio-registry-cli-3.2.5-linux-x86_64.zip
+acr update --path <zip-file-path>
 ```
 
 **Disable automatic update checks:**
@@ -162,17 +162,17 @@ acr config
 
 **Get a property:**
 ```bash
-acr config get update.repo.url
+acr config get <property-name>
 ```
 
 **Set properties:**
 ```bash
-acr config set update.check-enabled=false
+acr config set <property-name>=<value>
 ```
 
 **Delete properties:**
 ```bash
-acr config delete my.custom.property
+acr config delete <property-name>
 ```
 
 #### Configuration Properties
@@ -184,22 +184,73 @@ acr config delete my.custom.property
 
 ### Context Management
 
-Contexts allow you to work with multiple Apicurio Registry instances. A context stores the Registry URL and authentication (*TODO*) settings.
+Contexts allow you to work with multiple Apicurio Registry instances. Each context stores the Registry URL and optional authentication settings.
+
+**Create a context and connect to a registry:**
+```bash
+acr context create <context-name> <registry-url>
+
+# Example:
+acr context create dev http://localhost:8080
+```
+
+**Switch between contexts:**
+```bash
+acr context use <context-name>
+```
 
 **List all contexts:**
 ```bash
 acr context
 ```
 
-**Create a new context:**
+**Update a context (updates current context, or specify a context name):**
 ```bash
-acr context create <context-name> <registry-url>
-
-# Example:
-acr context create dev https://registry.example
+acr context update --registry-url <registry-url>
+acr context update --group <group-id>
+acr context update --artifact <artifact-id>
+acr context update <context-name> --registry-url <registry-url>  # update specific context
 ```
 
-Use `--no-switch-current` to add a context without switching to it.
+**Delete a context:**
+```bash
+acr context delete <context-name>
+acr context delete --all
+```
+
+Use `--no-switch-current` when creating a context to add it without switching to it.
+
+### Authentication
+
+The CLI supports authenticating with secured registry instances. Credentials are stored securely in the OS keychain (macOS Keychain or Linux Secret Service) — never in config files.
+
+**Basic authentication:**
+```bash
+# Interactive — prompts for password
+acr login --username <username>
+
+# Non-interactive (CI/CD)
+acr login --username <username> --password <password>
+```
+
+**OAuth2 client credentials:**
+```bash
+acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret>
+
+# With scope
+acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret> --scope <scope>
+```
+
+**Log out (clears credentials from keychain and config):**
+```bash
+acr logout
+```
+
+Authentication is per-context — each context can use different credentials.
+
+**Prerequisites for credential storage:**
+- macOS: No prerequisites (uses Keychain)
+- Linux: `secret-tool` required (`sudo apt install libsecret-tools` or `sudo dnf install libsecret`)
 
 ### Working with Groups
 
@@ -210,7 +261,7 @@ Groups organize artifacts in the registry.
 acr group
 
 # With pagination:
-acr group --page 2 --size 50
+acr group --page <page-number> --size <page-size>
 
 # Output as JSON:
 acr group --output-type json
@@ -221,7 +272,7 @@ acr group --output-type json
 acr group create <group-id>
 
 # With description and labels:
-acr group create my-group --description "My group" --label env=dev --label team=backend
+acr group create <group-id> --description <description> --label <key>=<value> [--label ...]
 ```
 
 **Get group details:**
@@ -229,18 +280,18 @@ acr group create my-group --description "My group" --label env=dev --label team=
 acr group get <group-id>
 
 # Output as JSON:
-acr group get my-group --output-type json
+acr group get <group-id> --output-type json
 ```
 
 **Update a group:**
 ```bash
-acr group update <group-id> --description "Updated description"
+acr group update <group-id> --description <description>
 
 # Set or update labels:
-acr group update my-group --set-label env=prod --set-label owner=alice
+acr group update <group-id> --set-label <key>=<value> [--set-label ...]
 
 # Delete labels:
-acr group update my-group --delete-label env
+acr group update <group-id> --delete-label <key> [--delete-label ...]
 ```
 
 **Delete a group:**
@@ -248,10 +299,129 @@ acr group update my-group --delete-label env
 acr group delete <group-id>
 
 # Force delete a group that contains artifacts:
-acr group delete my-group --force
+acr group delete <group-id> --force
 ```
 
 > **Note:** Apicurio Registry must be configured with `apicurio.rest.deletion.group.enabled=true` to allow group deletions. By default, you cannot delete a group that contains artifacts unless you use the `--force` option.
+
+### Working with Artifacts
+
+Artifacts are schemas or API definitions stored in a group.
+
+**List artifacts in a group:**
+```bash
+acr artifact -g <group-id>
+
+# Uses group from context if set:
+acr artifact
+```
+
+**Create an artifact:**
+```bash
+acr artifact create <artifact-id> -g <group-id> -f <file-path>
+acr artifact create <artifact-id> -g <group-id> -f <file-path> -t <artifact-type>
+
+# Read content from stdin:
+cat schema.json | acr artifact create <artifact-id> -g <group-id> -f -
+```
+
+**Get artifact details or content:**
+```bash
+acr artifact get <artifact-id> -g <group-id>
+acr artifact get <artifact-id> -g <group-id> --content
+```
+
+**Update artifact metadata:**
+```bash
+acr artifact update <artifact-id> -g <group-id> --name <name> --description <description>
+```
+
+**Delete an artifact:**
+```bash
+acr artifact delete <artifact-id> -g <group-id>
+```
+
+### Working with Versions
+
+Each artifact can have multiple versions.
+
+**List versions:**
+```bash
+acr artifact version -g <group-id> -a <artifact-id>
+```
+
+**Create a new version:**
+```bash
+acr artifact version create -g <group-id> -a <artifact-id> -f <file-path>
+```
+
+**Get version details or content:**
+```bash
+acr artifact version get -g <group-id> -a <artifact-id> <version>
+acr artifact version get -g <group-id> -a <artifact-id> <version> --content
+```
+
+**Update version metadata or state:**
+```bash
+acr artifact version update -g <group-id> -a <artifact-id> <version> --description <description>
+acr artifact version update -g <group-id> -a <artifact-id> <version> --state <state>
+```
+
+**Delete a version (DRAFT versions only):**
+```bash
+acr artifact version delete -g <group-id> -a <artifact-id> <version>
+```
+
+### Working with Comments
+
+Add comments to artifact versions.
+
+```bash
+acr artifact version comment list -g <group-id> -a <artifact-id> -v <version>
+acr artifact version comment create -g <group-id> -a <artifact-id> -v <version> -m <text>
+acr artifact version comment update -g <group-id> -a <artifact-id> -v <version> <comment-id> -m <text>
+acr artifact version comment delete -g <group-id> -a <artifact-id> -v <version> <comment-id>
+```
+
+### Working with Rules
+
+Rules enforce content validation at the global, group, or artifact level.
+
+**Global rules:**
+```bash
+acr rule                                                    # list global rules
+acr rule create <rule-type> -c <rule-config>                 # create
+acr rule get <rule-type>                                    # get
+acr rule update <rule-type> -c <rule-config>                # update
+acr rule delete <rule-type>                                 # delete
+acr rule delete --all                                       # delete all
+```
+
+**Group rules:**
+```bash
+acr group rule -g <group-id>                                # list
+acr group rule create -g <group-id> <rule-type> -c <rule-config>
+```
+
+**Artifact rules:**
+```bash
+acr artifact rule -g <group-id> -a <artifact-id>                        # list
+acr artifact rule create -g <group-id> -a <artifact-id> <rule-type> -c <rule-config>
+```
+
+Valid rule types: `VALIDITY`, `COMPATIBILITY`, `INTEGRITY`
+
+### Search
+
+Search across groups, artifacts, and versions.
+
+```bash
+acr search group --group <group-id>
+acr search artifact --name <name> --group <group-id>
+acr search version --name <name> --group <group-id> --artifact <artifact-id>
+```
+
+All filters are optional and can be combined. Additional filters include `--description`, `--type`, `--state`, `--label`, `--global-id`, `--content-id`. Pagination (`--page`, `--size`) and ordering (`--order`, `--order-by`) are supported.
 
 ### Global Options
 

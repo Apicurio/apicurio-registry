@@ -118,6 +118,7 @@ jobs:
 
       - name: Maven Deploy (excluding flink)
         working-directory: registry
+        continue-on-error: true
         run: |
           mvn -B --settings /home/runner/.m2/settings.xml deploy \
             -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts \

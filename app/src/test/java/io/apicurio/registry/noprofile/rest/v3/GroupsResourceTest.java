@@ -856,7 +856,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .serverCreateVersion(artifactContentInvalidSyntax, ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
-                .then().statusCode(409).body("status", equalTo(409))
+                .then().statusCode(400).body("status", equalTo(400))
                 .body("title", startsWith("Syntax or semantic violation for JSON Schema artifact."));
     }
 
@@ -886,7 +886,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .serverCreateVersion(artifactContentInvalidSyntax, ContentTypes.APPLICATION_JSON);
         given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
-                .then().statusCode(409).body("status", equalTo(409))
+                .then().statusCode(400).body("status", equalTo(400))
                 .body("title", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
                         + " of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
@@ -1783,7 +1783,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
                             .post(f_createVersion);
                 });
-        Assertions.assertEquals(409, exception_1.getStatus());
+        Assertions.assertEquals(400, exception_1.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_1.getName());
 
         // Now try registering an artifact with both a valid and invalid ref
@@ -1810,7 +1810,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
                             .post(f_createVersion2);
                 });
-        Assertions.assertEquals(409, exception_2.getStatus());
+        Assertions.assertEquals(400, exception_2.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_2.getName());
 
         // Now try registering an artifact with a duplicate ref
@@ -1824,7 +1824,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                     clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
                             .post(f_createVersion3);
                 });
-        Assertions.assertEquals(409, exception_3.getStatus());
+        Assertions.assertEquals(400, exception_3.getStatus());
         Assertions.assertEquals("RuleViolationException", exception_3.getName());
     }
 

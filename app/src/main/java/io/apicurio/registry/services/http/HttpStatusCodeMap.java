@@ -14,6 +14,7 @@ import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
+import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
@@ -45,6 +46,8 @@ import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.smallrye.mutiny.TimeoutException;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.validation.ValidationException;
 import jakarta.ws.rs.BadRequestException;
@@ -52,7 +55,6 @@ import jakarta.ws.rs.BadRequestException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
@@ -67,13 +69,13 @@ public class HttpStatusCodeMap {
 
     private static final int HTTP_UNPROCESSABLE_ENTITY = 422;
 
-    protected static final Map<Class<? extends Exception>, Integer> CODE_MAP;
+    @Inject
+    RestConfig restConfig;
 
-    private static Set<Class<? extends Exception>> getIgnored() {
-        return CODE_MAP.keySet();
-    }
+    private Map<Class<? extends Exception>, Integer> codeMap;
 
-    static {
+    @PostConstruct
+    void init() {
         // TODO Merge this list with io.apicurio.registry.rest.RegistryExceptionMapper
         // Keep alphabetical
 
@@ -116,7 +118,7 @@ public class HttpStatusCodeMap {
         map.put(RoleMappingNotFoundException.class, HTTP_NOT_FOUND);
         map.put(RuleAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(RuleNotFoundException.class, HTTP_NOT_FOUND);
-        map.put(RuleViolationException.class, HTTP_CONFLICT);
+        map.put(RuleViolationException.class, restConfig.isLegacyErrorCodesEnabled() ? HTTP_CONFLICT : HTTP_BAD_REQUEST);
         map.put(SchemaNotFoundException.class, HTTP_NOT_FOUND);
         map.put(SchemaNotSoftDeletedException.class, HTTP_CONFLICT);
         map.put(SchemaSoftDeletedException.class, HTTP_CONFLICT);
@@ -130,14 +132,14 @@ public class HttpStatusCodeMap {
         map.put(VersionAlreadyExistsOnBranchException.class, HTTP_CONFLICT);
         map.put(VersionNotFoundException.class, HTTP_NOT_FOUND);
 
-        CODE_MAP = Collections.unmodifiableMap(map);
+        codeMap = Collections.unmodifiableMap(map);
     }
 
     public int getCode(Class<?> exceptionClass) {
-        return CODE_MAP.getOrDefault(exceptionClass, HTTP_INTERNAL_ERROR);
+        return codeMap.getOrDefault(exceptionClass, HTTP_INTERNAL_ERROR);
     }
 
     public boolean isIgnored(Class<? extends Throwable> aClass) {
-        return getIgnored().contains(aClass);
+        return codeMap.containsKey(aClass);
     }
 }

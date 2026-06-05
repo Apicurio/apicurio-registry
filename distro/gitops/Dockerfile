@@ -1,6 +1,6 @@
 FROM registry.access.redhat.com/ubi10/ubi-minimal:latest
 
-RUN microdnf install -y git-core openssh-clients openssh-server shadow-utils && \
+RUN microdnf install -y git-core openssh-clients openssh-server shadow-utils jq && \
     microdnf clean all
 
 # Create a dedicated 'git' user for SSH push operations.

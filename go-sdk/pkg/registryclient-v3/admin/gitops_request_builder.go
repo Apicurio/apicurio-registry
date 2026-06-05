@@ -35,3 +35,9 @@ func (m *GitopsRequestBuilder) Status() *GitopsStatusRequestBuilder {
 func (m *GitopsRequestBuilder) Sync() *GitopsSyncRequestBuilder {
 	return NewGitopsSyncRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
+
+// Validate manage dry-run validation tasks.
+// returns a *GitopsValidateRequestBuilder when successful
+func (m *GitopsRequestBuilder) Validate() *GitopsValidateRequestBuilder {
+	return NewGitopsValidateRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}

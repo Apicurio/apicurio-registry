@@ -129,7 +129,6 @@ public class GitOps {
                         appContainer.getVolumeMounts().add(new VolumeMountBuilder()
                                 .withName(VOLUME_NAME)
                                 .withMountPath(MOUNT_PATH)
-                                .withReadOnly(true)
                                 .build());
                     }
                 });

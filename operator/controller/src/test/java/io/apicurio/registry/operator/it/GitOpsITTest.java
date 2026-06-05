@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.List;
 
+import static java.time.Duration.ofSeconds;
+
 import static io.apicurio.registry.operator.Tags.FEATURE;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -95,15 +97,21 @@ public class GitOpsITTest extends ITBase {
 
             log.info("Validation task created: {}", taskId);
 
-            await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> given()
-                    .get(new URI("http://localhost:" + port
-                            + "/apis/registry/v3/admin/gitops/validate/" + taskId))
-                    .then()
-                    .statusCode(200)
-                    .body("state", equalTo("completed"))
-                    .body("result", equalTo("success"))
-                    .body("groupCount", greaterThanOrEqualTo(1))
-                    .body("artifactCount", greaterThanOrEqualTo(1)));
+            await().atMost(LONG_DURATION).pollInterval(ofSeconds(5)).untilAsserted(() -> {
+                var response = given()
+                        .get(new URI("http://localhost:" + port
+                                + "/apis/registry/v3/admin/gitops/validate/" + taskId))
+                        .then()
+                        .statusCode(200)
+                        .extract().body().jsonPath();
+                var state = response.getString("state");
+                log.info("[validate:{}] Polling valid-pr task: state={}, result={}, errors={}",
+                        taskId, state, response.getString("result"), response.getList("errors"));
+                assertThat(state).isEqualTo("completed");
+                assertThat(response.getString("result")).isEqualTo("success");
+                assertThat(response.getInt("groupCount")).isGreaterThanOrEqualTo(1);
+                assertThat(response.getInt("artifactCount")).isGreaterThanOrEqualTo(1);
+            });
 
             log.info("Validation succeeded for 'test/valid-pr' branch");
 
@@ -117,13 +125,19 @@ public class GitOpsITTest extends ITBase {
                     .statusCode(200)
                     .extract().path("taskId").toString();
 
-            await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> given()
-                    .get(new URI("http://localhost:" + port
-                            + "/apis/registry/v3/admin/gitops/validate/" + failTaskId))
-                    .then()
-                    .statusCode(200)
-                    .body("state", equalTo("completed"))
-                    .body("result", equalTo("failure")));
+            await().atMost(LONG_DURATION).pollInterval(ofSeconds(5)).untilAsserted(() -> {
+                var response = given()
+                        .get(new URI("http://localhost:" + port
+                                + "/apis/registry/v3/admin/gitops/validate/" + failTaskId))
+                        .then()
+                        .statusCode(200)
+                        .extract().body().jsonPath();
+                var state = response.getString("state");
+                log.info("[validate:{}] Polling invalid-pr task: state={}, result={}, errors={}",
+                        failTaskId, state, response.getString("result"), response.getList("errors"));
+                assertThat(state).isEqualTo("completed");
+                assertThat(response.getString("result")).isEqualTo("failure");
+            });
 
             log.info("Validation correctly failed for 'test/invalid-pr' branch (breaking compatibility)");
 

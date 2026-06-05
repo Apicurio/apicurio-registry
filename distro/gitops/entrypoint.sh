@@ -45,6 +45,12 @@
 #                                               warn on issues
 #                                      strict - require all keys to be mounted, fail on issues
 #
+# Dry-run validation:
+#   APICURIO_GITOPS_VALIDATE_ENABLED                 Enable validation watch loop (default: true)
+#   APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS   Poll interval for validation requests in seconds (default: 2)
+#   APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS     Stale validation cleanup age in seconds (default: 7200)
+#   APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS   Timeout for git clone during validation in seconds (default: 120)
+#
 
 set -euo pipefail
 
@@ -525,10 +531,163 @@ pull_loop() {
 }
 
 # ---------------------------------------------------------------------------
+# Dry-run validation support
+# ---------------------------------------------------------------------------
+
+VALIDATE_ENABLED="${APICURIO_GITOPS_VALIDATE_ENABLED:-true}"
+VALIDATE_DIR="${WORKSPACE}/validate"
+VALIDATE_POLL_INTERVAL="${APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS:-2}"
+VALIDATE_CLEANUP_AGE="${APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS:-7200}"
+VALIDATE_FETCH_TIMEOUT="${APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS:-120}"
+
+process_validate_request() {
+    local request_file="$1"
+    local task_id
+    task_id=$(basename "${request_file}" .json)
+
+    local state
+    state=$(jq -r '.status.state // "pending"' "${request_file}" 2>/dev/null)
+    if [ "${state}" != "pending" ]; then
+        return
+    fi
+
+    local api_version req_type repo_id ref
+    api_version=$(jq -r '.apiVersion // ""' "${request_file}")
+    if [ -n "${api_version}" ] && [ "${api_version}" != "v1" ]; then
+        jq '.status = {"state": "failed", "error": "Unsupported apiVersion: '"${api_version}"'. Expected v1.", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    req_type=$(jq -r '.spec.type // "pull"' "${request_file}")
+    repo_id=$(jq -r '.spec.repoId // ""' "${request_file}")
+    ref=$(jq -r '.spec.ref // ""' "${request_file}")
+
+    if [ "${req_type}" != "pull" ]; then
+        jq '.status = {"state": "failed", "error": "Unsupported validation type: '"${req_type}"'. Only pull is supported.", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    if [ -z "${repo_id}" ] || [ -z "${ref}" ]; then
+        jq '.status = {"state": "failed", "error": "Missing repoId or ref in spec", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    # Find the matching repo config
+    local repo_index=-1
+    for i in "${!REPO_DIRS[@]}"; do
+        if [ "${REPO_DIRS[$i]}" = "${repo_id}" ]; then
+            repo_index=$i
+            break
+        fi
+    done
+
+    if [ "${repo_index}" -eq -1 ]; then
+        jq '.status = {"state": "failed", "error": "Unknown repoId: '"${repo_id}"'", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    local repo_url="${REPO_URLS[$repo_index]}"
+    if [ -z "${repo_url}" ]; then
+        jq '.status = {"state": "failed", "error": "Repo '"${repo_id}"' has no remote URL configured", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    log "[validate:${task_id}] Fetching ref '${ref}' from repo '${repo_id}'"
+
+    # Update status to fetching
+    jq '.status = {"state": "fetching"}' \
+        "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+
+    local checkout_dir="${VALIDATE_DIR}/${task_id}/repo"
+    mkdir -p "${checkout_dir}"
+
+    # Clone the repo at the specified ref
+    local clone_args="--depth 1 --single-branch"
+    if timeout "${VALIDATE_FETCH_TIMEOUT}" git clone ${clone_args} --branch "${ref}" "${repo_url}" "${checkout_dir}" 2>/dev/null; then
+        log "[validate:${task_id}] Fetch completed successfully"
+        jq '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+    else
+        # Try fetching as a ref (PR refs can't be cloned directly with --branch)
+        rm -rf "${checkout_dir}"
+        mkdir -p "${checkout_dir}"
+        if timeout "${VALIDATE_FETCH_TIMEOUT}" git clone --depth 1 "${repo_url}" "${checkout_dir}" 2>/dev/null && \
+           timeout "${VALIDATE_FETCH_TIMEOUT}" git -C "${checkout_dir}" fetch origin --depth 1 -- "${ref}" 2>/dev/null && \
+           git -C "${checkout_dir}" checkout FETCH_HEAD 2>/dev/null; then
+            log "[validate:${task_id}] Fetch completed successfully (via ref fetch)"
+            jq '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+                "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        else
+            local err_msg="Failed to fetch ref '${ref}' from $(sanitize_url "${repo_url}")"
+            warning "[validate:${task_id}] ${err_msg}"
+            rm -rf "${checkout_dir}"
+            jq '.status = {"state": "failed", "error": "'"${err_msg}"'", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+                "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        fi
+    fi
+}
+
+cleanup_stale_validations() {
+    if [ ! -d "${VALIDATE_DIR}" ]; then
+        return
+    fi
+    local cleanup_min=$(( (VALIDATE_CLEANUP_AGE + 59) / 60 ))
+    [ "${cleanup_min}" -lt 1 ] && cleanup_min=1
+    find "${VALIDATE_DIR}" -maxdepth 1 -name "*.json" -mmin "+${cleanup_min}" 2>/dev/null | while read -r f; do
+        local task_id
+        task_id=$(basename "${f}" .json)
+        log "[validate] Cleaning up stale validation: ${task_id}"
+        rm -rf "${VALIDATE_DIR}/${task_id}"
+        rm -f "${f}"
+    done
+}
+
+validate_loop() {
+    if ! mkdir -p "${VALIDATE_DIR}" 2>/dev/null; then
+        error "Cannot create validation directory ${VALIDATE_DIR}. " \
+              "Ensure the shared volume is writable. " \
+              "Validation watch loop will not start."
+        return 1
+    fi
+    chmod 1777 "${VALIDATE_DIR}" 2>/dev/null || true
+    if ! touch "${VALIDATE_DIR}/.writetest" 2>/dev/null; then
+        error "Validation directory ${VALIDATE_DIR} is not writable. " \
+              "Ensure the shared volume is not mounted read-only."
+        return 1
+    fi
+    rm -f "${VALIDATE_DIR}/.writetest"
+    log "Starting validation watch loop (poll interval: ${VALIDATE_POLL_INTERVAL}s)"
+    local cleanup_counter=0
+    while true; do
+        sleep "${VALIDATE_POLL_INTERVAL}"
+
+        if [ -d "${VALIDATE_DIR}" ]; then
+            for request_file in "${VALIDATE_DIR}"/*.json; do
+                [ -f "${request_file}" ] || continue
+                process_validate_request "${request_file}"
+            done
+        fi
+
+        # Cleanup every ~100 iterations
+        cleanup_counter=$((cleanup_counter + 1))
+        if [ "${cleanup_counter}" -ge 100 ]; then
+            cleanup_stale_validations
+            cleanup_counter=0
+        fi
+    done
+}
+
+# ---------------------------------------------------------------------------
 # Signal handling
 # ---------------------------------------------------------------------------
 
 PULL_PIDS=()
+VALIDATE_PID=""
 
 cleanup() {
     log "Shutting down..."
@@ -538,6 +697,9 @@ cleanup() {
     for pid in "${PULL_PIDS[@]}"; do
         kill "${pid}" 2>/dev/null || true
     done
+    if [ -n "${VALIDATE_PID}" ]; then
+        kill "${VALIDATE_PID}" 2>/dev/null || true
+    fi
     exit 0
 }
 
@@ -627,14 +789,24 @@ main() {
         log "Pull loop started (PID: ${PULL_PIDS[0]})"
     fi
 
-    # Wait for background processes. In mixed mode, exit when either dies
-    # so the container can be restarted by the orchestrator.
-    if [ "${has_push}" = "true" ] && [ "${has_pull}" = "true" ]; then
-        wait -n "${SSHD_PID}" "${PULL_PIDS[0]}" || true
-    elif [ "${has_push}" = "true" ]; then
-        wait "${SSHD_PID}" || true
-    elif [ "${has_pull}" = "true" ]; then
-        wait "${PULL_PIDS[0]}" || true
+    # Start validation watch loop (watches for dry-run requests)
+    if [ "${VALIDATE_ENABLED}" = "true" ]; then
+        validate_loop &
+        VALIDATE_PID=$!
+    fi
+
+    # Collect background PIDs to wait on
+    local wait_pids=()
+    if [ -n "${SSHD_PID:-}" ]; then wait_pids+=("${SSHD_PID}"); fi
+    for pid in "${PULL_PIDS[@]}"; do wait_pids+=("${pid}"); done
+    if [ -n "${VALIDATE_PID}" ]; then wait_pids+=("${VALIDATE_PID}"); fi
+
+    # Wait for background processes. Exit when any dies so the container
+    # can be restarted by the orchestrator.
+    if [ ${#wait_pids[@]} -gt 1 ]; then
+        wait -n "${wait_pids[@]}" || true
+    elif [ ${#wait_pids[@]} -eq 1 ]; then
+        wait "${wait_pids[0]}" || true
     fi
 }
 

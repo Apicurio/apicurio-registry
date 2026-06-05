@@ -169,7 +169,7 @@ class GitRepo {
         }
     }
 
-    private RevCommit resolveHead() throws IOException {
+    RevCommit resolveHead() throws IOException {
         String branch = repoConfig.branch();
         ObjectId headId = repository.resolve("refs/heads/" + branch);
         if (headId == null) {

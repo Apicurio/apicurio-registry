@@ -25,6 +25,11 @@ public class OTelMetricsProvider {
 
     private static final String ICEBERG_PREFIX = METRIC_PREFIX + "iceberg.";
 
+    private static final String DEFAULT_GROUP = "default";
+    private static final String UNKNOWN_TYPE = "unknown";
+    private static final String RESULT_SUCCESS = "success";
+    private static final String RESULT_FAILURE = "failure";
+
     private LongCounter artifactCreatedCounter;
     private LongCounter artifactDeletedCounter;
     private LongCounter versionCreatedCounter;
@@ -132,8 +137,8 @@ public class OTelMetricsProvider {
      */
     public void recordArtifactCreated(String groupId, String artifactType) {
         artifactCreatedCounter.add(1, Attributes.of(
-                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : "default",
-                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown"
+                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : DEFAULT_GROUP,
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE
         ));
     }
 
@@ -145,8 +150,8 @@ public class OTelMetricsProvider {
      */
     public void recordArtifactDeleted(String groupId, String artifactType) {
         artifactDeletedCounter.add(1, Attributes.of(
-                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : "default",
-                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown"
+                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : DEFAULT_GROUP,
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE
         ));
     }
 
@@ -158,8 +163,8 @@ public class OTelMetricsProvider {
      */
     public void recordVersionCreated(String groupId, String artifactType) {
         versionCreatedCounter.add(1, Attributes.of(
-                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : "default",
-                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown"
+                OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : DEFAULT_GROUP,
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE
         ));
     }
 
@@ -171,8 +176,8 @@ public class OTelMetricsProvider {
      */
     public void recordSchemaValidation(String artifactType, boolean success) {
         schemaValidationCounter.add(1, Attributes.of(
-                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : "unknown",
-                OTelAttributes.ATTR_RESULT, success ? "success" : "failure"
+                OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE,
+                OTelAttributes.ATTR_RESULT, success ? RESULT_SUCCESS : RESULT_FAILURE
         ));
     }
 
@@ -184,8 +189,8 @@ public class OTelMetricsProvider {
      */
     public void recordRuleEvaluation(String operation, boolean success) {
         ruleEvaluationCounter.add(1, Attributes.of(
-                OTelAttributes.ATTR_OPERATION, operation != null ? operation : "unknown",
-                OTelAttributes.ATTR_RESULT, success ? "success" : "failure"
+                OTelAttributes.ATTR_OPERATION, operation != null ? operation : UNKNOWN_TYPE,
+                OTelAttributes.ATTR_RESULT, success ? RESULT_SUCCESS : RESULT_FAILURE
         ));
     }
 
@@ -196,7 +201,7 @@ public class OTelMetricsProvider {
      */
     public void recordSearchRequest(String searchType) {
         searchRequestCounter.add(1, Attributes.of(
-                OTelAttributes.ATTR_OPERATION, searchType != null ? searchType : "unknown"
+                OTelAttributes.ATTR_OPERATION, searchType != null ? searchType : UNKNOWN_TYPE
         ));
     }
 
@@ -208,7 +213,7 @@ public class OTelMetricsProvider {
     public void recordIcebergNamespaceOperation(String operation) {
         icebergNamespaceOpsCounter.add(1, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, operation,
-                OTelAttributes.ATTR_RESULT, "success"
+                OTelAttributes.ATTR_RESULT, RESULT_SUCCESS
         ));
     }
 
@@ -220,7 +225,7 @@ public class OTelMetricsProvider {
     public void recordIcebergTableOperation(String operation) {
         icebergTableOpsCounter.add(1, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, operation,
-                OTelAttributes.ATTR_RESULT, "success"
+                OTelAttributes.ATTR_RESULT, RESULT_SUCCESS
         ));
     }
 
@@ -232,7 +237,7 @@ public class OTelMetricsProvider {
     public void recordIcebergViewOperation(String operation) {
         icebergViewOpsCounter.add(1, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, operation,
-                OTelAttributes.ATTR_RESULT, "success"
+                OTelAttributes.ATTR_RESULT, RESULT_SUCCESS
         ));
     }
 

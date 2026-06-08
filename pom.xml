@@ -180,7 +180,7 @@
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.35.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.71.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.72.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -233,7 +233,7 @@
 
     <nats.version>2.25.3</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
-    <woodstox-core.version>7.2.0</woodstox-core.version>
+    <woodstox-core.version>7.2.1</woodstox-core.version>
     <jgit.version>7.6.0.202603022253-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>

@@ -153,6 +153,22 @@ class TracingResponseFilterTest {
     }
 
     @Test
+    void testBoundary499DoesNotSetErrorStatus() {
+        Span span = tracer.spanBuilder("test-request").startSpan();
+
+        try (Scope scope = span.makeCurrent()) {
+            filter.filter(mockRequest(), mockResponse(499));
+        } finally {
+            span.end();
+        }
+
+        List<SpanData> spans = spanExporter.getFinishedSpanItems();
+        SpanData spanData = spans.get(0);
+        assertEquals(499L, spanData.getAttributes().get(OTelAttributes.ATTR_HTTP_RESPONSE_STATUS_CODE));
+        assertEquals(StatusCode.UNSET, spanData.getStatus().getStatusCode());
+    }
+
+    @Test
     void testNoActiveSpanDoesNotThrow() {
         filter.filter(mockRequest(), mockResponse(200));
 

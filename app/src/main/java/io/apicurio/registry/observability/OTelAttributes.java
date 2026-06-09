@@ -20,8 +20,9 @@ import io.opentelemetry.api.common.AttributeKey;
 
 /**
  * Centralized OpenTelemetry attribute key definitions for Apicurio Registry.
- * All custom span attributes follow the OpenTelemetry attribute naming conventions:
- * snake_case with the {@code apicurio.registry.} namespace prefix.
+ * Custom attributes use snake_case with the {@code apicurio.registry.} namespace prefix.
+ * Standard OTel semantic convention attributes (e.g., {@code http.response.status_code})
+ * use their canonical names without prefix.
  *
  * @see <a href="https://opentelemetry.io/docs/specs/semconv/general/attribute-naming/">
  *      OpenTelemetry Attribute Naming</a>

@@ -37,7 +37,7 @@ public class TracingResponseFilter implements ContainerResponseFilter {
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
         Span currentSpan = Span.current();
-        if (currentSpan != null && currentSpan.isRecording()) {
+        if (currentSpan.isRecording()) {
             int statusCode = responseContext.getStatus();
             currentSpan.setAttribute(OTelAttributes.ATTR_HTTP_RESPONSE_STATUS_CODE, (long) statusCode);
 

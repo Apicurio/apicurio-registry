@@ -94,6 +94,32 @@ The important parts are as follows:
 - When creating an artifact of a type that is not included in the default, you must _always_ specify the appropriate artifact type.
 - The registry UI will show the plain name of the additional type and won't have an appropriate icon to identify it.
 
+## Versioning & Release Cycle
+
+Apicurio Registry uses [Semantic Versioning](https://semver.org/) with a clear split between minor and patch releases:
+
+| Release type | Contains | Example |
+|--------------|----------|---------|
+| **Minor** (3.3.0 → 3.4.0) | New features, enhancements, bug fixes | Scheduled development milestones |
+| **Patch** (3.3.0 → 3.3.1) | CVE / security fixes only | Dependency upgrades, security patches |
+
+### Support window
+
+We maintain the **latest two minor versions** with security patches. Once a new minor is released, the oldest supported minor reaches end-of-life.
+
+### Branch strategy
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Active development — next minor release |
+| `3.3.x` | Maintenance branch for 3.3 patch releases (created when 3.4.0 development starts) |
+
+### Where to target your PR
+
+- **Features and bug fixes** → target `main`
+- **CVE / security backports for N-1** → target the maintenance branch (e.g., `3.3.x`), cherry-picked from the fix on `main`
+- Bug fix backports are **not** accepted on maintenance branches — patches are strictly CVE-only
+
 ## The small print
 
 This project is an open source project. Please act responsibly, be nice, polite and enjoy!

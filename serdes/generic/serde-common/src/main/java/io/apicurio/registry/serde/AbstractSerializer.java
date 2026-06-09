@@ -1,11 +1,17 @@
 package io.apicurio.registry.serde;
 
+import io.apicurio.registry.contracts.rules.RuleDefinition;
+import io.apicurio.registry.contracts.rules.RuleExecutionEngine;
+import io.apicurio.registry.contracts.rules.RuleExecutionResult;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.apicurio.registry.resolver.SchemaParser;
 import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.ContractRulesetCache;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.rest.client.models.ContractRule;
+import io.apicurio.registry.rest.client.models.ContractRuleSet;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.serde.data.SerdeMetadata;
@@ -16,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static io.apicurio.registry.serde.BaseSerde.MAGIC_BYTE;
@@ -54,6 +62,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
     private final BaseSerde<T, U> baseSerde;
     private boolean contractRulesEnabled = false;
     private boolean contractRulesFailOnError = true;
+    private RuleExecutionEngine ruleEngine;
+    private ContractRulesetCache rulesetCache;
 
     public AbstractSerializer() {
         this.baseSerde = new BaseSerde<>();
@@ -110,6 +120,15 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
         Object failOnError = config.originals().get(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR);
         if (failOnError != null) {
             contractRulesFailOnError = Boolean.parseBoolean(failOnError.toString());
+        }
+        if (contractRulesEnabled) {
+            ruleEngine = RuleExecutionEngine.createStandalone();
+            long ttl = SerdeConfig.CONTRACT_RULES_CACHE_TTL_SECONDS_DEFAULT;
+            Object ttlObj = config.originals().get(SerdeConfig.CONTRACT_RULES_CACHE_TTL_SECONDS);
+            if (ttlObj != null) {
+                ttl = Long.parseLong(ttlObj.toString());
+            }
+            rulesetCache = new ContractRulesetCache(ttl);
         }
     }
 
@@ -170,18 +189,16 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
     private void executeContractRulesForWrite(SchemaLookupResult<T> schema, U data) {
         try {
             var ref = schema.toArtifactReference();
-            var facade = baseSerde.getClientFacade();
-            if (facade == null) {
-                return;
-            }
             if (ref.getArtifactId() == null || ref.getArtifactId().isEmpty()) {
                 return;
             }
+            List<RuleDefinition> rules = loadRules(ref.getGroupId(), ref.getArtifactId());
+            if (rules.isEmpty()) {
+                return;
+            }
             Map<String, Object> recordMap = dataToMap(data);
-            var result = facade.executeContractRules(
-                    ref.getGroupId(), ref.getArtifactId(), ref.getVersion(),
-                    "WRITE", recordMap);
-            if (result != null && !result.isPassed()) {
+            RuleExecutionResult result = ruleEngine.execute(rules, "WRITE", recordMap);
+            if (!result.isPassed()) {
                 String msg = "Contract rule validation failed (WRITE): " + result.getViolations();
                 if (contractRulesFailOnError) {
                     throw new RuntimeException(msg);
@@ -194,6 +211,51 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
             }
             LOG.warning("Contract rule execution failed: " + e.getMessage());
         }
+    }
+
+    private List<RuleDefinition> loadRules(String groupId, String artifactId) {
+        ContractRuleSet cached = rulesetCache.get(groupId, artifactId, null);
+        if (cached != null) {
+            return toRuleDefinitions(cached);
+        }
+        var facade = baseSerde.getClientFacade();
+        if (facade == null) {
+            return List.of();
+        }
+        ContractRuleSet ruleset = facade.getContractRuleset(groupId, artifactId);
+        if (ruleset == null) {
+            return List.of();
+        }
+        rulesetCache.put(groupId, artifactId, null, ruleset);
+        return toRuleDefinitions(ruleset);
+    }
+
+    static List<RuleDefinition> toRuleDefinitions(ContractRuleSet ruleset) {
+        List<RuleDefinition> result = new ArrayList<>();
+        if (ruleset.getDomainRules() != null) {
+            for (ContractRule r : ruleset.getDomainRules()) {
+                result.add(toRuleDefinition(r));
+            }
+        }
+        if (ruleset.getMigrationRules() != null) {
+            for (ContractRule r : ruleset.getMigrationRules()) {
+                result.add(toRuleDefinition(r));
+            }
+        }
+        return result;
+    }
+
+    static RuleDefinition toRuleDefinition(ContractRule r) {
+        RuleDefinition def = new RuleDefinition();
+        def.setName(r.getName());
+        def.setKind(r.getKind() != null ? r.getKind().getValue() : null);
+        def.setType(r.getType());
+        def.setMode(r.getMode() != null ? r.getMode().getValue() : null);
+        def.setExpr(r.getExpr());
+        def.setOnFailure(r.getOnFailure() != null ? r.getOnFailure().getValue() : null);
+        def.setDisabled(r.getDisabled() != null && r.getDisabled());
+        def.setOrderIndex(0);
+        return def;
     }
 
     @SuppressWarnings("unchecked")

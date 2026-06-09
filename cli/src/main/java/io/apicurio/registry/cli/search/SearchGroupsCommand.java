@@ -8,16 +8,13 @@ import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.search.groups.GroupsRequestBuilder;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
-import java.util.List;
-
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
 import static io.apicurio.registry.cli.utils.Columns.DESCRIPTION;
 import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;
@@ -64,22 +61,13 @@ public class SearchGroupsCommand extends AbstractCommand {
     private OutputTypeMixin outputType;
 
     @Override
-    public void run(final OutputBuffer output) throws JsonProcessingException {
-        try {
+    public void run(final OutputBuffer output) throws Exception {
+        //noinspection ConstantConditions
+        final var results = convert(client.getRegistryClient().search().groups().get(r -> {
             //noinspection ConstantConditions
-            final var results = convert(client.getRegistryClient().search().groups().get(r -> {
-                //noinspection ConstantConditions
-                applyFilters(r.queryParameters);
-            }));
-            printResults(output, results);
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error searching for groups: ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
-        }
+            applyFilters(r.queryParameters);
+        }));
+        printResults(output, results);
     }
 
     private void applyFilters(final GroupsRequestBuilder.GetQueryParameters params) {

@@ -1,7 +1,6 @@
 package io.apicurio.registry.serde.avro;
 
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaNormalization;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.io.DatumReader;
@@ -24,22 +23,11 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
      */
     private final ConcurrentHashMap<String, Schema> readerSchemas = new ConcurrentHashMap<>();
 
-    /**
-     * Cache for DatumWriter instances keyed by schema fingerprint + type.
-     * DatumWriter is thread-safe and can be reused across serializations.
-     */
     private final ConcurrentHashMap<WriterCacheKey, DatumWriter<T>> writerCache = new ConcurrentHashMap<>();
 
-    /**
-     * Cache for DatumReader instances keyed by schema fingerprint.
-     * DatumReader is thread-safe and can be reused across deserializations.
-     */
-    private final ConcurrentHashMap<Long, DatumReader<T>> readerCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Schema, DatumReader<T>> readerCache = new ConcurrentHashMap<>();
 
-    /**
-     * Cache key for DatumWriter that includes schema fingerprint and whether it's specific or generic.
-     */
-    private record WriterCacheKey(long schemaFingerprint, boolean isSpecific) {}
+    private record WriterCacheKey(Schema schema, boolean isSpecific) {}
 
     public DefaultAvroDatumProvider() {
     }
@@ -79,19 +67,10 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
         });
     }
 
-    /**
-     * Gets a fingerprint for the schema to use as a cache key.
-     * Uses Avro's parsing fingerprint which is based on the schema content,
-     * ensuring different schema versions (with same name but different fields) get different cache entries.
-     */
-    private long getSchemaFingerprint(Schema schema) {
-        return SchemaNormalization.parsingFingerprint64(schema);
-    }
-
     @Override
     public DatumWriter<T> createDatumWriter(T data, Schema schema) {
         boolean isSpecific = data instanceof SpecificRecord;
-        WriterCacheKey key = new WriterCacheKey(getSchemaFingerprint(schema), isSpecific);
+        WriterCacheKey key = new WriterCacheKey(schema, isSpecific);
 
         return writerCache.computeIfAbsent(key, k -> {
             if (k.isSpecific()) {
@@ -104,9 +83,7 @@ public class DefaultAvroDatumProvider<T> implements AvroDatumProvider<T> {
 
     @Override
     public DatumReader<T> createDatumReader(Schema schema) {
-        long fingerprint = getSchemaFingerprint(schema);
-
-        return readerCache.computeIfAbsent(fingerprint, k -> {
+        return readerCache.computeIfAbsent(schema, k -> {
             // do not use SpecificDatumReader if schema is a primitive
             if (useSpecificAvroReader != null && useSpecificAvroReader) {
                 if (!AvroSchemaUtils.isPrimitive(schema)) {

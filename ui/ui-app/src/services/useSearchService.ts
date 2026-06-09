@@ -59,7 +59,11 @@ const searchArtifacts = async (config: ConfigService, auth: AuthService, filters
         orderby: sortBy
     };
     filters?.forEach(filter => {
-        queryParams[filter.by] = filter.value;
+        if (filter.by === FilterBy.globalId || filter.by === FilterBy.contentId) {
+            queryParams[filter.by] = Number(filter.value);
+        } else {
+            queryParams[filter.by] = filter.value;
+        }
     });
 
     return getRegistryClient(config, auth).search.artifacts.get({
@@ -81,7 +85,13 @@ const searchVersions = async (config: ConfigService, auth: AuthService, filters:
     // users can type whatever they want when filtering by state, but if they don't enter a valid
     // state name, the REST call will fail.  So make sure to coerce the filter value to something valid.
     filters?.forEach(filter => {
-        queryParams[filter.by] = filter.by === "state" ? filter.value.toUpperCase() : filter.value;
+        if (filter.by === FilterBy.globalId || filter.by === FilterBy.contentId) {
+            queryParams[filter.by] = Number(filter.value);
+        } else if (filter.by === FilterBy.state) {
+            queryParams[filter.by] = filter.value.toUpperCase();
+        } else {
+            queryParams[filter.by] = filter.value;
+        }
     });
 
     if (queryParams["state"]) {

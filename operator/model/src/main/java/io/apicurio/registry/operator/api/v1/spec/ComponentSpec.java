@@ -104,6 +104,15 @@ public abstract class ComponentSpec {
     private Integer replicas;
 
     /**
+     * Autoscaling config
+     */
+    @JsonProperty("autoscaling")
+    @JsonPropertyDescription("""
+            Configuration of a HorizontalPodAutoscaler for the component.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private AutoscalingSpec autoscaling;
+
+    /**
      * Pod disruption budget config
      */
     @JsonProperty("podDisruptionBudget")

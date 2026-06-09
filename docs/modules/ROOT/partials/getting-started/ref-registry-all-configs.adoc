@@ -413,6 +413,26 @@ The following {registry} configuration options are available for each component 
 |
 |`3.2.0`
 |Directory name of the Git repository, relative to the workspace. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.dir properties instead. _(experimental)_
+|`apicurio.gitops.validate.enabled`
+|`boolean`
+|`true`
+|`3.3.0`
+|Enable the dry-run validation endpoints and the sidecar validation watch loop. When disabled, validation endpoints return HTTP 503. _(experimental)_
+|`apicurio.gitops.validate.fetch.timeout.seconds`
+|`int`
+|`120`
+|`3.3.0`
+|Timeout for the sidecar to fetch a git ref during dry-run validation, in seconds. _(experimental)_
+|`apicurio.gitops.validate.max-tasks`
+|`int`
+|`5`
+|`3.3.0`
+|Maximum number of validation tasks with disk resources (submitted, fetching, validating, or awaiting cleanup) before new requests are queued. Prevents disk exhaustion from too many concurrent checkouts. _(experimental)_
+|`apicurio.gitops.validate.task.ttl.seconds`
+|`int`
+|`3600`
+|`3.3.0`
+|Time-to-live for dry-run validation tasks in seconds. Tasks are automatically removed after this period. _(experimental)_
 |`apicurio.gitops.workspace`
 |`string`
 |`/repos`
@@ -898,6 +918,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.x`
 |Enables production-like behavior for draft versions
+|`apicurio.rest.legacy-error-codes.enabled`
+|`boolean`
+|`false`
+|`3.3.0`
+|When enabled, legacy HTTP error codes are used (e.g. 409 instead of 400 for rule violations)
 |`apicurio.rest.mutability.artifact-version-content.enabled`
 |`boolean [dynamic]`
 |`false`

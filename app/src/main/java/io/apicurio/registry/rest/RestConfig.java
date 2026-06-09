@@ -46,6 +46,10 @@ public class RestConfig {
     @Info(category = CATEGORY_REST, description = "Enables production-like behavior for draft versions", availableSince = "3.0.x")
     Supplier<Boolean> draftProductionModeEnabled;
 
+    @ConfigProperty(name = "apicurio.rest.legacy-error-codes.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_REST, description = "When enabled, legacy HTTP error codes are used (e.g. 409 instead of 400 for rule violations)", availableSince = "3.3.0")
+    boolean legacyErrorCodesEnabled;
+
     public int getLabelsInSearchResultsMaxSize() {
         return this.labelsInSearchResultsMaxSize;
     }
@@ -72,6 +76,10 @@ public class RestConfig {
 
     public boolean isDraftProductionModeEnabled() {
         return draftProductionModeEnabled.get();
+    }
+
+    public boolean isLegacyErrorCodesEnabled() {
+        return legacyErrorCodesEnabled;
     }
 
 }

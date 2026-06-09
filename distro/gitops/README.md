@@ -20,6 +20,17 @@ It manages a local Git repository on a shared volume that the registry reads fro
 See [`examples/gitops/`](../../examples/gitops/) for ready-to-run Docker Compose examples
 covering local volume, HTTPS pull, and SSH pull setups.
 
+### Kubernetes / OpenShift
+
+When using the Apicurio Registry operator, the sidecar container is **automatically injected**
+by the operator when `storage.type: gitops` is set in the CR. You don't need to configure the
+sidecar image, volume mounts, or most environment variables manually — the operator handles this
+based on the `gitops` spec fields, including SSH secrets via `secretRef` fields under
+`gitops.pull` and `gitops.push`.
+
+For operator-based deployment examples, see
+[`operator/controller/src/test/resources/k8s/examples/gitops/`](../../operator/controller/src/test/resources/k8s/examples/gitops/).
+
 ## Configuration Reference
 
 All environment variables use the `APICURIO_GITOPS_` prefix. Variables that correspond to
@@ -74,6 +85,10 @@ apicurio.gitops.repos.1.branch=fulfillment
 | `APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS` | *(none)* | Path to `authorized_keys` for push access |
 | `APICURIO_GITOPS_PUSH_SSH_HOST_KEY` | *(none)* | Path to SSH host private key for push server |
 | `APICURIO_GITOPS_SECURITY` | `strict` | Security level: `strict` or `dev` (see below) |
+| `APICURIO_GITOPS_VALIDATE_ENABLED` | `true` | Enable dry-run validation watch loop |
+| `APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS` | `2` | Validation request poll interval in seconds |
+| `APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS` | `7200` | Stale validation cleanup age in seconds |
+| `APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS` | `120` | Timeout for git clone during validation in seconds |
 
 ## Security Levels
 
@@ -110,6 +125,43 @@ security requirements. Two levels are available:
 2. An SSH server starts on `PUSH_PORT`, restricted to a `git` user with `git-shell`.
 3. External clients push changes via SSH; the working tree updates in place.
 4. The registry detects the new commit on its next poll cycle.
+
+### Dry-run validation
+
+The sidecar supports dry-run validation for CI/CD integration. The registry creates a
+validation request file on the shared volume, and the sidecar fetches the specified git ref
+into a temporary checkout directory.
+
+**Protocol:**
+1. Registry writes `/repos/validate/<task-id>.json` with a `spec` containing `repoId` and `ref`
+2. Sidecar detects the file, sets `status.state: fetching`, clones the ref
+3. On success: sets `status.state: fetched` with `checkoutPath: repo`
+4. On failure: sets `status.state: failed` with `error` message
+5. Registry reads the checkout and validates the data
+6. Stale validation directories are cleaned up after a configurable age (default: 2 hours)
+
+**Request file format:**
+```json
+{
+  "apiVersion": "v1",
+  "kind": "ValidateRequest",
+  "spec": {
+    "type": "pull",
+    "repoId": "default",
+    "ref": "refs/pull/42/head",
+    "requestedAt": "2026-06-03T10:00:00Z"
+  },
+  "status": {
+    "state": "fetched",
+    "checkoutPath": "repo",
+    "completedAt": "2026-06-03T10:00:05Z"
+  }
+}
+```
+
+**Configuration:**
+- `APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS` — poll interval in seconds (default: 2)
+- `APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS` — stale cleanup age in seconds (default: 7200)
 
 ### Mixed mode
 
@@ -157,6 +209,7 @@ MITM attacks. Generate it with `ssh-keyscan github.com > known_hosts`.
 | Host key instability across restarts | Mount a persistent host key via `APICURIO_GITOPS_PUSH_SSH_HOST_KEY` (required in strict mode). In dev mode, keys are auto-generated. |
 | Weak host keys | ED25519 (primary) and RSA-4096 (fallback) host keys are generated. No DSA or small RSA keys. |
 | Root login | `PermitRootLogin=no` and `AllowUsers=git` restrict access to the dedicated `git` user. |
+| Cross-repo access via SSH | An authorized push-mode user can access (pull/push) **any** git repository on the shared volume, not just the one they are pushing to. This includes the main data repos and validation checkout directories. `git-shell` limits access to valid git repositories only — arbitrary files cannot be read. This is acceptable in the current design where push access implies full data ownership. |
 
 **Recommendation:** In Kubernetes, use a `NetworkPolicy` to restrict which pods can reach
 the SSH port. Do not expose the SSH port outside the cluster unless necessary.
@@ -168,6 +221,14 @@ the SSH port. Do not expose the SSH port outside the cluster unless necessary.
 | Malicious content in repository | The registry validates all data during loading. Invalid files cause a load failure, and the registry continues serving the last known good data (blue-green swap is not performed). |
 | Force-push erasing history | Shallow clones (`--depth 1`) limit exposure. The registry reads from pinned commit SHAs, so concurrent force-pushes do not corrupt in-flight reads. |
 | Symlink attacks in repository | JGit (used by the registry) does not follow symlinks when reading Git objects. The registry reads from the Git object store, not the working tree. |
+
+### Log Sanitization
+
+HTTPS Git URLs may contain embedded credentials (e.g., `https://token@github.com/...`).
+The sidecar sanitizes all URLs before logging, replacing the userinfo portion with `***`
+(e.g., `https://***@github.com/...`). This applies to both the startup configuration log
+and clone operation logs. SSH key contents and secret file contents are never logged —
+only file paths are shown.
 
 ### Recommendations for Production Deployments
 

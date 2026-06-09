@@ -5,6 +5,7 @@ import { useConfigService } from "@services/useConfigService.ts";
 import { useUserService } from "@services/useUserService.ts";
 import {
     AGENTS_PAGE_IDX,
+    CONTRACT_RULES_PAGE_IDX,
     DASHBOARD_PAGE_IDX,
     DRAFTS_PAGE_IDX,
     EXPLORE_PAGE_IDX,
@@ -53,6 +54,10 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
                 // navigate to global rules
                 appNavigation.navigateTo("/rules");
             }
+            if (eventKey === CONTRACT_RULES_PAGE_IDX) {
+                // navigate to global contract rules
+                appNavigation.navigateTo("/contract-rules");
+            }
             if (eventKey === ROLES_PAGE_IDX) {
                 // navigate to permissions page
                 appNavigation.navigateTo("/roles");
@@ -88,6 +93,11 @@ export const RootPageHeader: FunctionComponent<RootPageHeaderProps> = (props: Ro
     // Always show the Global Rules tab
     tabs.push(
         <Tab data-testid="rules-tab" key={RULES_PAGE_IDX} eventKey={RULES_PAGE_IDX} title={<TabTitleText>Global rules</TabTitleText>} />
+    );
+
+    // Always show the Contract Rules tab
+    tabs.push(
+        <Tab data-testid="contract-rules-tab" key={CONTRACT_RULES_PAGE_IDX} eventKey={CONTRACT_RULES_PAGE_IDX} title={<TabTitleText>Contract rules</TabTitleText>} />
     );
 
     // Show Roles tab if RBAC is enabled and the user is an admin

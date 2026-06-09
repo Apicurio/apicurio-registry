@@ -34,9 +34,11 @@ public abstract class AbstractRegistryInfra {
                 .withNetwork(Network.SHARED)
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forLogMessage(".*KafkaSQL storage bootstrapped in .* ms.*", 1)
-                        // KafkaSQL bootstrap involves 3 sequential Kafka consumer operations,
-                        // each with a 5s poll timeout. Under CI load, worst case is ~49s.
-                        .withStartupTimeout(Duration.ofSeconds(120))
+                        // KafkaSQL bootstrap involves sequential Kafka consumer polls
+                        // at 5s intervals plus SQL initialization. 75s provides margin
+                        // over observed ~49s worst case under CI load without masking
+                        // genuinely hung containers.
+                        .withStartupTimeout(Duration.ofSeconds(75))
                 );
 
         try {

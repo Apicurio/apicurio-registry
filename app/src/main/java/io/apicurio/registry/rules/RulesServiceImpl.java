@@ -123,7 +123,7 @@ public class RulesServiceImpl implements RulesService {
                         resolvedReferences);
             }
             otelMetrics.recordRuleEvaluation(ruleOperation, true);
-        } catch (RuleViolationException ex) {
+        } catch (Exception ex) {
             otelMetrics.recordRuleEvaluation(ruleOperation, false);
             throw ex;
         }

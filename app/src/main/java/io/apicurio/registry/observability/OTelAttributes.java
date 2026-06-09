@@ -77,9 +77,6 @@ public final class OTelAttributes {
     /** Result of an operation (success or failure). */
     public static final AttributeKey<String> ATTR_RESULT = AttributeKey.stringKey("apicurio.registry.result");
 
-    /** Client identifier for usage tracking. */
-    public static final AttributeKey<String> ATTR_CLIENT_ID = AttributeKey.stringKey("apicurio.registry.client_id");
-
     /** Entity type (e.g., table, view). */
     public static final AttributeKey<String> ATTR_ENTITY_TYPE = AttributeKey.stringKey("apicurio.registry.entity_type");
 

@@ -543,7 +543,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-        String artifactType = storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType();
+        String artifactType = null;
+        try {
+            artifactType = storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType();
+        } catch (ArtifactNotFoundException e) {
+            // Artifact may already be gone; proceed with delete and record with null type
+        }
         storage.deleteArtifact(rawGroupId, artifactId);
         otelMetrics.recordArtifactDeleted(rawGroupId, artifactType);
     }

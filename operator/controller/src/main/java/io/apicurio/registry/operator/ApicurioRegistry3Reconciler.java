@@ -3,6 +3,7 @@ package io.apicurio.registry.operator;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ActivationConditions;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
+import io.apicurio.registry.operator.resource.app.AppHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
 import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
@@ -10,7 +11,9 @@ import io.apicurio.registry.operator.resource.app.AppRoleBindingResource;
 import io.apicurio.registry.operator.resource.app.AppRoleResource;
 import io.apicurio.registry.operator.resource.app.AppServiceAccountResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
+import io.apicurio.registry.operator.resource.app.GitOpsSshServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
+import io.apicurio.registry.operator.resource.ui.UIHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
@@ -34,16 +37,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.operator.CRContext.deleteCRContext;
+import static io.apicurio.registry.operator.resource.ActivationConditions.AppHorizontalPodAutoscalerActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppNetworkPolicyActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppPodDisruptionBudgetActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.GitOpsSshServiceActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsRoleActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsRoleBindingActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.KubernetesOpsServiceAccountActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.UIHorizontalPodAutoscalerActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UINetworkPolicyActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIPodDisruptionBudgetActivationCondition;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.APP_HORIZONTAL_POD_AUTOSCALER_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_NETWORK_POLICY_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_POD_DISRUPTION_BUDGET_ID;
@@ -51,7 +58,9 @@ import static io.apicurio.registry.operator.resource.ResourceKey.APP_ROLE_BINDIN
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_ROLE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ACCOUNT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_SERVICE_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.GITOPS_SSH_SERVICE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.UI_HORIZONTAL_POD_AUTOSCALER_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_NETWORK_POLICY_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
@@ -88,6 +97,19 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
                         name = APP_NETWORK_POLICY_ID,
                         dependsOn = {APP_DEPLOYMENT_ID},
                         activationCondition = AppNetworkPolicyActivationCondition.class
+                ),
+                @Dependent(
+                        type = AppHorizontalPodAutoscalerResource.class,
+                        name = APP_HORIZONTAL_POD_AUTOSCALER_ID,
+                        dependsOn = {APP_DEPLOYMENT_ID},
+                        activationCondition = AppHorizontalPodAutoscalerActivationCondition.class
+                ),
+                // ===== GitOps SSH Service
+                @Dependent(
+                        type = GitOpsSshServiceResource.class,
+                        name = GITOPS_SSH_SERVICE_ID,
+                        dependsOn = {APP_DEPLOYMENT_ID},
+                        activationCondition = GitOpsSshServiceActivationCondition.class
                 ),
                 // ===== KubernetesOps RBAC
                 @Dependent(
@@ -134,6 +156,12 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
                         name = UI_NETWORK_POLICY_ID,
                         dependsOn = {UI_DEPLOYMENT_ID},
                         activationCondition = UINetworkPolicyActivationCondition.class
+                ),
+                @Dependent(
+                        type = UIHorizontalPodAutoscalerResource.class,
+                        name = UI_HORIZONTAL_POD_AUTOSCALER_ID,
+                        dependsOn = {UI_DEPLOYMENT_ID},
+                        activationCondition = UIHorizontalPodAutoscalerActivationCondition.class
                 )
         }
 )

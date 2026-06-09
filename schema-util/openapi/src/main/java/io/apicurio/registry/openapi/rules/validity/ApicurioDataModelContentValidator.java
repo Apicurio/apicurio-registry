@@ -2,13 +2,13 @@ package io.apicurio.registry.openapi.rules.validity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.TraverserDirection;
-import io.apicurio.datamodels.models.Document;
-import io.apicurio.datamodels.models.Node;
-import io.apicurio.datamodels.models.Referenceable;
-import io.apicurio.datamodels.models.visitors.AllNodeVisitor;
-import io.apicurio.datamodels.validation.ValidationProblem;
+import io.apitomy.datamodels.Library;
+import io.apitomy.datamodels.TraverserDirection;
+import io.apitomy.datamodels.models.Document;
+import io.apitomy.datamodels.models.Node;
+import io.apitomy.datamodels.models.Referenceable;
+import io.apitomy.datamodels.models.visitors.AllNodeVisitor;
+import io.apitomy.datamodels.validation.ValidationProblem;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -93,7 +93,7 @@ public abstract class ApicurioDataModelContentValidator extends AbstractContentV
         Set<String> references = new HashSet<>();
 
         /**
-         * @see io.apicurio.datamodels.models.visitors.AllNodeVisitor#visitNode(io.apicurio.datamodels.models.Node)
+         * @see io.apitomy.datamodels.models.visitors.AllNodeVisitor#visitNode(io.apitomy.datamodels.models.Node)
          */
         @Override
         protected void visitNode(Node node) {

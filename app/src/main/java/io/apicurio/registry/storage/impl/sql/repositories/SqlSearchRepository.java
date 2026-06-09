@@ -133,18 +133,12 @@ public class SqlSearchRepository {
                         }
                         break;
                     case groupId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.groupId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
-                        });
+                        buildWildcardClause(where, "a.groupId",
+                                normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
                     case artifactId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.artifactId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
+                        buildWildcardClause(where, "a.artifactId",
+                                filter.getStringValue(), filter.isNot(), binders);
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
@@ -174,22 +168,15 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        // Note: convert search to lowercase when searching for labels (case-insensitivity
-                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append(
-                                "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
+                        where.append("EXISTS(SELECT l.* FROM artifact_labels l WHERE ");
+                        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
-                            });
+                            where.append(" AND ");
+                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                                    binders);
                         }
                         where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
                         break;
@@ -314,11 +301,8 @@ public class SqlSearchRepository {
                 where.append(" AND (");
                 switch (filter.getType()) {
                     case groupId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.groupId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
-                        });
+                        buildWildcardClause(where, "a.groupId",
+                                normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
@@ -328,6 +312,9 @@ public class SqlSearchRepository {
                         });
                         break;
                     case artifactId:
+                        buildWildcardClause(where, "v.artifactId",
+                                filter.getStringValue(), filter.isNot(), binders);
+                        break;
                     case contentId:
                     case globalId:
                     case state:
@@ -355,21 +342,15 @@ public class SqlSearchRepository {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        // Note: convert search to lowercase when searching for labels (case-insensitivity
-                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
+                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE ");
+                        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
-                            });
+                            where.append(" AND ");
+                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                                    binders);
                         }
                         where.append(" AND l.globalId = v.globalId)");
                         break;
@@ -461,6 +442,24 @@ public class SqlSearchRepository {
             results.setCount(count);
             return results;
         });
+    }
+
+    private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,
+            List<SqlStatementVariableBinder> binders) {
+        if (value.contains("*")) {
+            String op = not ? "NOT LIKE" : "LIKE";
+            where.append(column).append(" ").append(op).append(" ?");
+            String pattern = value.replace('*', '%');
+            binders.add((query, idx) -> {
+                query.bind(idx, pattern);
+            });
+        } else {
+            String op = not ? "!=" : "=";
+            where.append(column).append(" ").append(op).append(" ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, value);
+            });
+        }
     }
 
     /**

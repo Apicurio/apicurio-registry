@@ -101,7 +101,9 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
 
     const onFilterChange = (filters: SearchFilter[]): void => {
         setFilters(filters);
-        search(searchType, filters, sortBy, sortOrder, paging);
+        const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+        setPaging(resetPaging);
+        search(searchType, filters, sortBy, sortOrder, resetPaging);
     };
 
     const onFilterByLabel = (key: string, value: string | undefined): void => {
@@ -127,7 +129,9 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
             newFilters.push(dsf);
         }
         setFilters(newFilters);
-        search(searchType, newFilters, sortBy, sortOrder, paging);
+        const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+        setPaging(resetPaging);
+        search(searchType, newFilters, sortBy, sortOrder, resetPaging);
     };
 
     const isFiltered = (): boolean => {

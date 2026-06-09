@@ -18,6 +18,7 @@ env:
 jobs:
   manage-milestones:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
     timeout-minutes: 5
     steps:
       - name: Fetch Release Details

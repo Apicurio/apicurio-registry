@@ -90,7 +90,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
     }
 
     @BeforeAll
-    void prepareRestAssured() {
+    void prepareRestAssured() throws Exception {
         vertx = Vertx.vertx();
         authServerUrlConfigured = Optional
                 .ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())
@@ -103,7 +103,7 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
         // Make sure all global rules are deleted, anything else should be isolated
         // within a group or artifact on a per-test basis.
-        registryClient.admin().rules().delete();
+        retry(() -> registryClient.admin().rules().delete());
     }
 
     @AfterAll

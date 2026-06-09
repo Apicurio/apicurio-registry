@@ -1,0 +1,47 @@
+# GitOps Test Data ConfigMap
+#
+# Contains a minimal set of registry data files for testing GitOps storage.
+# Used by the example-local-volume.yaml CR and the GitOps integration test.
+#
+# Deploy:
+#   kubectl apply -f gitops-test-data.configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitops-test-data
+data:
+  registry.registry.yaml: |
+    $type: registry-v0
+    registryId: prod
+    properties: []
+
+  group-test.registry.yaml: |
+    $type: group-v0
+    registryIds: [prod]
+    groupId: test-group
+    description: Test group for GitOps operator integration test
+
+  artifact-greeting.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [prod]
+    groupId: test-group
+    artifactId: greeting
+    artifactType: AVRO
+    name: Greeting
+    description: A simple Avro schema for testing
+    versions:
+      - version: "1"
+        state: ENABLED
+        description: Initial version
+        content: ./content/greeting.avsc
+
+  content---greeting.avsc: |
+    {
+      "type": "record",
+      "name": "Greeting",
+      "namespace": "com.example",
+      "fields": [
+        { "name": "message", "type": "string" },
+        { "name": "timestamp", "type": "long" }
+      ]
+    }

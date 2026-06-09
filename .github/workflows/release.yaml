@@ -6,7 +6,7 @@ on:
         description: Version being released
         required: true
       branch:
-        description: Branch to release from (main for minor releases, release/X.Y.x for patches)
+        description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
       no-more-minor-releases:
@@ -425,7 +425,7 @@ jobs:
 
           if [ "$PATCH" = "0" ] && [ "$MINOR" -gt "0" ]; then
             PREV_MINOR=$((MINOR - 1))
-            MAINT_BRANCH="release/${MAJOR}.${PREV_MINOR}.x"
+            MAINT_BRANCH="${MAJOR}.${PREV_MINOR}.x"
             # Find the latest tag for the previous minor
             PREV_TAG=$(git tag -l "${MAJOR}.${PREV_MINOR}.*" --sort=-v:refname | head -1)
             if [ -n "$PREV_TAG" ] && ! git ls-remote --exit-code origin "refs/heads/$MAINT_BRANCH" > /dev/null 2>&1; then

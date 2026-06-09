@@ -6,12 +6,6 @@ import io.apicurio.registry.cli.utils.PlatformUtils;
 import io.vertx.core.http.HttpMethod;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.jboss.logging.Logger;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.nio.file.Files;
@@ -23,6 +17,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.eclipse.microprofile.config.ConfigProvider;
+import org.jboss.logging.Logger;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 

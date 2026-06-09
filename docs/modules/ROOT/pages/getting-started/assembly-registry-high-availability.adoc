@@ -452,7 +452,7 @@ For production environments, we strongly recommend using Operator Lifecycle Mana
 
 If you need to update the application without updating {operator} (*not recommended* except as a workaround for critical issues), you can override the application image in your pod template:
 
-[source,yaml]
+[source,yaml,subs="+attributes"]
 ----
 spec:
   app:
@@ -460,7 +460,7 @@ spec:
       spec:
         containers:
           - name: apicurio-registry-app
-            image: quay.io/apicurio/apicurio-registry:3.1.0
+            image: quay.io/apicurio/apicurio-registry:{registry-release}
 ----
 
 === Safe update practices

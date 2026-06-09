@@ -6,7 +6,7 @@ on:
         description: Version being released
         required: true
       branch:
-        description: Branch to release from
+        description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
       no-more-minor-releases:
@@ -413,6 +413,29 @@ jobs:
           pushd typescript-sdk
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           popd
+
+      - name: Create maintenance branch for previous minor
+        if: github.event.inputs.branch == 'main'
+        run: |
+          cd registry
+          RELEASE_VERSION="${{ github.event.inputs.release-version }}"
+          MAJOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $1}')
+          MINOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $2}')
+          PATCH=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $3}')
+
+          if [ "$PATCH" = "0" ] && [ "$MINOR" -gt "0" ]; then
+            PREV_MINOR=$((MINOR - 1))
+            MAINT_BRANCH="${MAJOR}.${PREV_MINOR}.x"
+            # Find the latest tag for the previous minor
+            PREV_TAG=$(git tag -l "${MAJOR}.${PREV_MINOR}.*" --sort=-v:refname | head -1)
+            if [ -n "$PREV_TAG" ] && ! git ls-remote --exit-code origin "refs/heads/$MAINT_BRANCH" > /dev/null 2>&1; then
+              echo "Creating maintenance branch $MAINT_BRANCH from tag $PREV_TAG"
+              git branch "$MAINT_BRANCH" "$PREV_TAG"
+              git push origin "$MAINT_BRANCH"
+            else
+              echo "Maintenance branch $MAINT_BRANCH already exists or no previous tag found, skipping"
+            fi
+          fi
 
       - name: Commit Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |

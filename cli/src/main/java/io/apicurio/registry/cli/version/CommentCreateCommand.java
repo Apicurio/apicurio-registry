@@ -7,13 +7,11 @@ import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.models.NewComment;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Columns.COMMENT;
 import static io.apicurio.registry.cli.utils.Columns.COMMENT_ID;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
@@ -64,39 +62,24 @@ public class CommentCreateCommand extends AbstractCommand {
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
-        try {
-            final var registryClient = client.getRegistryClient();
-            IdUtil.validateGroup(registryClient, resolvedGroupId);
-            IdUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
-            final var resolvedText = "-".equals(commentText)
-                    ? new String(System.in.readAllBytes()).trim()
-                    : commentText;
-            final var newComment = new NewComment();
-            newComment.setValue(resolvedText);
-            //noinspection ConstantConditions
-            final var created = convert(registryClient.groups().byGroupId(resolvedGroupId)
-                    .artifacts().byArtifactId(resolvedArtifactId)
-                    .versions().byVersionExpression(versionExpression)
-                    .comments().post(newComment));
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> out.append("Comment added successfully.\n"));
-                case table -> output.writeStdOutChunk(out -> out.append("Comment added successfully.\n"));
-            }
-            printComment(output, created, outputType);
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error adding comment to version '")
-                        .append(versionExpression)
-                        .append("' of artifact '")
-                        .append(resolvedArtifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        IdUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
+        final var resolvedText = "-".equals(commentText)
+                ? new String(System.in.readAllBytes()).trim()
+                : commentText;
+        final var newComment = new NewComment();
+        newComment.setValue(resolvedText);
+        //noinspection ConstantConditions
+        final var created = convert(registryClient.groups().byGroupId(resolvedGroupId)
+                .artifacts().byArtifactId(resolvedArtifactId)
+                .versions().byVersionExpression(versionExpression)
+                .comments().post(newComment));
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> out.append("Comment added successfully.\n"));
+            case table -> output.writeStdOutChunk(out -> out.append("Comment added successfully.\n"));
         }
+        printComment(output, created, outputType);
     }
 
     static void printComment(final OutputBuffer output, final Comment comment,

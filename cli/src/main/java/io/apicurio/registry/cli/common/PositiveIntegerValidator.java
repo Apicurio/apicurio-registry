@@ -1,11 +1,10 @@
 package io.apicurio.registry.cli.common;
 
+import java.util.Stack;
 import picocli.CommandLine.IParameterConsumer;
 import picocli.CommandLine.Model.ArgSpec;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.ParameterException;
-
-import java.util.Stack;
 
 public class PositiveIntegerValidator implements IParameterConsumer {
 

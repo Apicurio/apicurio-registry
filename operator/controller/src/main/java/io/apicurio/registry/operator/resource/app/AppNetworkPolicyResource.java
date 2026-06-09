@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.resource.app;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.feat.TLS;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
@@ -68,6 +69,16 @@ public class AppNetworkPolicyResource
             networkPolicy.getSpec().getIngress().add(httpsRule);
         }
         networkPolicy.getSpec().getIngress().add(managementRule);
+
+        if (GitOps.isPushMode(primary)) {
+            var sshRule = new NetworkPolicyIngressRuleBuilder()
+                    .addNewPort()
+                    .withProtocol("TCP")
+                    .withPort(new IntOrString(GitOps.SSH_PORT))
+                    .endPort()
+                    .build();
+            networkPolicy.getSpec().getIngress().add(sshRule);
+        }
 
         log.trace("Desired {} is {}", APP_NETWORK_POLICY_KEY.getId(), toYAML(networkPolicy));
         return networkPolicy;

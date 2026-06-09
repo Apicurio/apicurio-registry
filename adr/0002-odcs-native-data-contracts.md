@@ -71,6 +71,12 @@ All endpoints are defined in the OpenAPI spec and generated into the `GroupsReso
 | GET | `/groups/{g}/contracts/{id}` | Retrieve ODCS YAML |
 | PUT | `/groups/{g}/contracts/{id}` | Update contract, re-project |
 | DELETE | `/groups/{g}/contracts/{id}` | Delete contract |
+| GET | `/groups/{g}/artifacts/{a}/contract/metadata` | Get contract metadata (from labels) |
+| PUT | `/groups/{g}/artifacts/{a}/contract/metadata` | Update contract metadata (stored as labels) |
+| POST | `/groups/{g}/artifacts/{a}/contract/status` | Transition lifecycle status (DRAFT→STABLE→DEPRECATED) |
+| GET | `/groups/{g}/artifacts/{a}/contract/ruleset` | Get artifact-level contract ruleset |
+| PUT | `/groups/{g}/artifacts/{a}/contract/ruleset` | Set artifact-level contract ruleset |
+| DELETE | `/groups/{g}/artifacts/{a}/contract/ruleset` | Delete artifact-level contract ruleset |
 | GET | `/groups/{g}/artifacts/{a}/contract/export` | Export artifact state as ODCS YAML |
 | POST | `/groups/{g}/artifacts/{a}/contract/promote` | Promote contract stage (DEV→STAGE→PROD) |
 | GET | `/groups/{g}/artifacts/{a}/contract/quality?contractId=` | Get quality score |
@@ -79,7 +85,7 @@ All endpoints are defined in the OpenAPI spec and generated into the `GroupsReso
 | GET | `/groups/{g}/artifacts/{a}/contract/audit` | Get contract audit log entries |
 | GET | `/groups/{g}/artifacts/{a}/contract/compatibility-group` | Get compatibility group |
 | PUT | `/groups/{g}/artifacts/{a}/contract/compatibility-group` | Set compatibility group |
-| GET | `/search/contracts` | Search contracts by status, owner, classification |
+| GET | `/search/contracts` | Search contracts by status, ownerTeam, compatibilityGroup |
 | GET | `/admin/contracts/ruleset` | Get global contract ruleset |
 | PUT | `/admin/contracts/ruleset` | Set global contract ruleset |
 | DELETE | `/admin/contracts/ruleset` | Delete global contract ruleset |
@@ -96,12 +102,12 @@ The `contracts-rules` Maven module (`apicurio-registry-contracts-rules`) provide
 
 ### JSONata transform engine (Phase 6)
 
-The `contracts-rules` module includes a JSONata rule executor (`JsonataRuleExecutor`) using `com.dashjoin:jsonata:0.9.9`. JSONata expressions support both CONDITION and TRANSFORM kinds:
+The `contracts-rules` module includes a JSONata rule executor (`JsonataRuleExecutor`) using `com.dashjoin:jsonata:0.9.10`. JSONata expressions support both CONDITION and TRANSFORM kinds:
 
 - **CONDITION:** evaluates the expression and checks for a truthy result
 - **TRANSFORM:** evaluates the expression and returns the transformed data as the new record
 
-`JsonataExpressionEvaluator` provides LRU caching (capacity 256) of parsed JSONata expressions. Expressions are compiled once and reused.
+`JsonataExpressionEvaluator` provides LRU caching (capacity 1000) of parsed JSONata expressions. Expressions are compiled once and reused.
 
 ### Migration rule orchestration (Phase 6)
 
@@ -130,26 +136,26 @@ Events are published via the existing `OutboxEvent` infrastructure (Debezium out
 
 ### Contract audit log (Phase 7)
 
-`ContractAuditService` records contract operations in a `contract_audit_log` SQL table (DB upgrade 106). Each entry includes: `tenantId`, `groupId`, `artifactId`, `action` (e.g., `METADATA_UPDATED`, `RULESET_CONFIGURED`, `STATUS_TRANSITION`), `detail` (human-readable description), `userId`, and `createdOn` timestamp.
+`ContractAuditService` records contract operations in a `contract_audit_log` SQL table (DB upgrade 106). Each entry includes: `groupId`, `artifactId`, `version` (nullable), `action` (e.g., `METADATA_UPDATED`, `RULESET_CONFIGURED`, `STATUS_TRANSITION`), `principal`, `details` (human-readable description), and `createdOn` timestamp. Indexed on `(groupId, artifactId)` and `(createdOn)`.
 
 `SqlContractAuditRepository` provides JDBC persistence. The REST endpoint `GET /groups/{g}/artifacts/{a}/contract/audit` returns audit entries as a JSON array.
 
 ### Contract search (Phase 7)
 
-`SearchResource` exposes `GET /search/contracts` with query parameters: `status`, `ownerTeam`, `classification`, `groupId`, `artifactId`, `limit`, `offset`, `orderby`, `order`. Searches across artifact labels matching the `contract.*` namespace.
+`SearchResource` exposes `GET /search/contracts` with query parameters: `status`, `ownerTeam`, `compatibilityGroup`, `limit`, `offset`, `orderby`, `order`. Searches across artifact labels matching the `contract.*` namespace using prefix-based label filters.
 
 ### Java SerDes rule integration (Phase 7)
 
 `AbstractSerializer` and `AbstractDeserializer` integrate contract rule execution into the normal Kafka serialize/deserialize path:
 
-- **Serializer:** after schema resolution and before serialization, calls `executeContractRules` with mode `WRITE` if `apicurio.registry.contract-rules.enabled=true`
+- **Serializer:** after schema resolution and before serialization, calls `executeContractRules` with mode `WRITE` if `apicurio.registry.serde.contract-rules.enabled=true`
 - **Deserializer:** after deserialization, calls `executeContractRules` with mode `READ`
-- **Failure handling:** controlled by `apicurio.registry.contract-rules.fail-on-error` (default `true`). When `false`, violations are logged but serialization proceeds (for DLQ routing by the application)
+- **Failure handling:** controlled by `apicurio.registry.serde.contract-rules.fail-on-error` (default `true`). When `false`, violations are logged but serialization proceeds (for DLQ routing by the application)
 - **Record conversion:** `dataToMap()` converts GenericRecord/SpecificRecord to `Map<String, Object>` via JSON parsing of `toString()` output
 
 `RegistryClientFacadeImpl.executeContractRules` calls the server-side rule execution endpoint via `java.net.http.HttpClient` (not the Kiota SDK, which doesn't support the execute endpoint's dynamic request/response shape). The `baseUrl` is extracted from the `SerdeConfig.REGISTRY_URL` property.
 
-Contract rules are disabled by default (`apicurio.registry.contract-rules.enabled` defaults to `false`). Users opt in explicitly.
+Contract rules are disabled by default (`apicurio.registry.serde.contract-rules.enabled` defaults to `false`). Users opt in explicitly.
 
 ### Global contract rules (Phase 8)
 
@@ -248,17 +254,17 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 
 **Remaining risk:** Someone modifying schema artifact labels directly (bypassing the contract) can still cause divergence. The ODCS artifact remains the authoritative source — re-submitting the contract corrects the projected state.
 
-### L4: ODCS model coverage — PARTIALLY RESOLVED
+### L4: ODCS model coverage — RESOLVED
 
 ~~The ODCS model covers the core sections but does not model every ODCS v3.1 field.~~
 
-**Resolution:** Added explicit fields for `terms`, `roles`, `servers`, `links`, and `tags` to `OdcsContract`. Combined with `@JsonAnySetter`/`@JsonAnyGetter`, all ODCS v3.1 fields are now preserved on round-trip. Fields not in the model are captured in `additionalProperties`.
+**Resolution:** All ODCS v3.1 top-level fields are now explicitly modeled in `OdcsContract`: `customProperties`, `support`, `price`, `slaProperties`, `authoritativeDefinitions`, `tenant`, `dataProduct`, `contractCreatedTs`, `domain`, `version`, `status`, `description`, `schema` (ODCS v3.1 alternate to `schemas`). `@JsonAnySetter`/`@JsonAnyGetter` is retained only as a safety net for future ODCS spec versions (v3.2+). Sub-objects (`OdcsTeam`, `OdcsFieldMetadata`) also preserve unknown fields via `@JsonAnySetter` instead of silently dropping them.
 
 ### L5: Label key size limits — RESOLVED
 
 ~~Field tag labels can produce long keys. No validation is currently applied.~~
 
-**Resolution:** `OdcsTagProjector` now validates label key length against a `MAX_LABEL_KEY_LENGTH` (512 chars). Tags that would exceed this limit are skipped with a warning in the projection result instead of causing storage errors.
+**Resolution:** `OdcsTagProjector` validates label key length against `MAX_LABEL_KEY_LENGTH` (512 chars). Tags that would exceed this limit are skipped with a warning in the projection result. The SQL storage layer enforces a 256-char limit on label keys via `VARCHAR(512)` columns (the index prefix limit is more restrictive on MySQL). Both layers reject instead of truncating.
 
 ### L6: CEL library ABI incompatibility with Confluent SerDes — OPEN
 
@@ -273,11 +279,13 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 
 ### L7: SerDes contract rule execution uses raw HTTP — OPEN
 
-`RegistryClientFacadeImpl.executeContractRules` uses `java.net.http.HttpClient` directly instead of the Kiota-generated SDK client. The execute endpoint's dynamic request/response shape (arbitrary `record` map, dynamic `violations` list) doesn't map cleanly to Kiota's generated types.
+`RegistryClientFacadeImpl.executeContractRules` uses `java.net.http.HttpClient` directly instead of the Kiota-generated SDK client. Although the SDK has generated types (`ExecutePostRequestBody`, `ExecutePostResponse`), Kiota's serialization layer cannot handle arbitrary nested `Object` values in `AdditionalDataHolder` maps (e.g., `{"orderId": "ORD-001", "totalAmount": 99.99}`). Attempting to use the SDK results in `"could not serialize value"` errors at runtime.
 
 **Impact:** SerDes contract rule execution doesn't benefit from the SDK's authentication, retry, or serialization infrastructure.
 
-**Mitigation:** Add the execute endpoint to the SDK with `additionalData`-based request/response types, or keep the raw HTTP approach as-is (it's simple and works).
+**Root cause:** Kiota's `writeAdditionalData` only handles primitive types and `Parsable` objects, not arbitrary `Map<String, Object>` with mixed value types (String, Double, nested Maps).
+
+**Mitigation:** Keep raw HTTP. The approach is simple, tested, and works. Alternatively, contribute a Kiota serialization enhancement for arbitrary map values upstream.
 
 ## Consequences
 
@@ -295,9 +303,8 @@ The ODCS YAML exists as an artifact AND its contents are projected as labels/rul
 
 ### Negative
 
-- Dual storage (ODCS artifact + projected labels) adds complexity
-- ODCS model coverage is partial (core sections only, extended via @JsonAnySetter)
-- SerDes rule execution uses raw HTTP instead of the SDK client
+- Dual storage (ODCS artifact + projected labels) adds complexity — justified for versioning, export, and re-projection
+- SerDes rule execution uses raw HTTP — Kiota's serializer can't handle arbitrary `Map<String, Object>` values
 - CEL library conflict prevents coexistence with Confluent's `kafka-schema-rules`
 
 ### Neutral

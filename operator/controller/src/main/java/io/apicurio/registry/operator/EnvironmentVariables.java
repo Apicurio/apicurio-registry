@@ -91,6 +91,14 @@ public class EnvironmentVariables {
     public static final String APICURIO_KUBERNETESOPS_WATCH_ENABLED = "APICURIO_KUBERNETESOPS_WATCH_ENABLED";
     public static final String APICURIO_KUBERNETESOPS_WATCH_RECONNECT_DELAY = "APICURIO_KUBERNETESOPS_WATCH_RECONNECT_DELAY";
 
+    // GitOps related environment variables
+    public static final String APICURIO_GITOPS_MODE = "APICURIO_GITOPS_MODE";
+    // Indexed format for multi-repo support
+    public static final String APICURIO_GITOPS_REPOS_PREFIX = "APICURIO_GITOPS_REPOS_";
+    public static final String APICURIO_GITOPS_REPOS_URL_SUFFIX = "_URL";
+    public static final String APICURIO_GITOPS_REPOS_BRANCH_SUFFIX = "_BRANCH";
+    public static final String APICURIO_GITOPS_REPOS_DIR_SUFFIX = "_DIR";
+
     // Search index related environment variables
     public static final String APICURIO_FEATURES_EXPERIMENTAL_ENABLED = "APICURIO_FEATURES_EXPERIMENTAL_ENABLED";
     public static final String APICURIO_SEARCH_INDEX_ENABLED = "APICURIO_SEARCH_INDEX_ENABLED";

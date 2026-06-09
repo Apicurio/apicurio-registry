@@ -1,7 +1,7 @@
 package io.apicurio.registry.cli.group;
 
-import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateRule;
@@ -12,7 +12,6 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.common.RuleUtil.printRule;
 import static io.apicurio.registry.cli.common.RuleUtil.rejectDefaultGroup;
 import static io.apicurio.registry.cli.common.RuleUtil.validateRuleConfig;
@@ -58,38 +57,21 @@ public class GroupRuleCreateCommand extends AbstractCommand {
         rejectDefaultGroup(resolvedGroupId);
         validateRuleType(ruleType);
         validateRuleConfig(ruleType, ruleConfig);
+        final var registryClient = client.getRegistryClient();
+        final var newRule = new CreateRule();
+        newRule.setRuleType(RuleType.forValue(ruleType));
+        newRule.setConfig(ruleConfig);
+        registryClient.groups().byGroupId(resolvedGroupId).rules().post(newRule);
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType, resolvedGroupId));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType, resolvedGroupId));
+        }
         try {
-            final var registryClient = client.getRegistryClient();
-            final var newRule = new CreateRule();
-            newRule.setRuleType(RuleType.forValue(ruleType));
-            newRule.setConfig(ruleConfig);
-            registryClient.groups().byGroupId(resolvedGroupId).rules().post(newRule);
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, ruleType, resolvedGroupId));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, ruleType, resolvedGroupId));
-            }
-            try {
-                //noinspection ConstantConditions
-                final var rule = convert(registryClient.groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).get());
-                printRule(output, rule, outputType);
-            } catch (final ProblemDetails ex) {
-                output.writeStdErrChunk(err -> {
-                    err.append("Warning: Group rule was created but failed to retrieve details: ")
-                            .append(ex.getDetail())
-                            .append('\n');
-                });
-            }
-        } catch (final ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating rule '")
-                        .append(ruleType)
-                        .append("' for group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+            //noinspection ConstantConditions
+            final var rule = convert(registryClient.groups().byGroupId(resolvedGroupId).rules().byRuleType(ruleType).get());
+            printRule(output, rule, outputType);
+        } catch (ProblemDetails ex) {
+            handleProblemDetails(output, ex);
         }
     }
 

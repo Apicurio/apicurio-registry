@@ -86,9 +86,9 @@ PREVIOUS_VERSION=$(echo "$METADATA_XML" \
     | sort -t. -k1,1n -k2,2n -k3,3n \
     | while IFS=. read -r maj min pat; do
         IFS=. read -r cmaj cmin cpat <<< "$CURRENT_BASE"
-        if [ "$maj" -lt "$cmaj" ]] || \
-           { [ "$maj" -eq "$cmaj" ] && [ "$min" -lt "$cmin" ]; } || \
-           { [ "$maj" -eq "$cmaj" ] && [ "$min" -eq "$cmin" ] && [ "$pat" -lt "$cpat" ]; }; then
+        if [[ "$maj" -lt "$cmaj" ]] || \
+           { [[ "$maj" -eq "$cmaj" ]] && [[ "$min" -lt "$cmin" ]]; } || \
+           { [[ "$maj" -eq "$cmaj" ]] && [[ "$min" -eq "$cmin" ]] && [[ "$pat" -lt "$cpat" ]]; }; then
             echo "${maj}.${min}.${pat}"
         fi
     done | tail -1)
@@ -102,9 +102,9 @@ fi
 MIN_UPGRADABLE="3.3.0"
 IFS=. read -r pMaj pMin pPat <<< "$PREVIOUS_VERSION"
 IFS=. read -r mMaj mMin mPat <<< "$MIN_UPGRADABLE"
-if [ "$pMaj" -lt "$mMaj" ]] || \
-   { [ "$pMaj" -eq "$mMaj" ] && [ "$pMin" -lt "$mMin" ]; } || \
-   { [ "$pMaj" -eq "$mMaj" ] && [ "$pMin" -eq "$mMin" ] && [ "$pPat" -lt "$mPat" ]; }; then
+if [[ "$pMaj" -lt "$mMaj" ]] || \
+   { [[ "$pMaj" -eq "$mMaj" ]] && [[ "$pMin" -lt "$mMin" ]]; } || \
+   { [[ "$pMaj" -eq "$mMaj" ]] && [[ "$pMin" -eq "$mMin" ]] && [[ "$pPat" -lt "$mPat" ]]; }; then
     skip "Previous version $PREVIOUS_VERSION is older than $MIN_UPGRADABLE (first native CLI release with auto-update)"
 fi
 info "Previous release version to test: $PREVIOUS_VERSION"
@@ -152,7 +152,7 @@ export HOME="$USER_HOME"
 export ACR_INSTALL_PATH="$INSTALL_HOME"
 export ACR_CURRENT_HOME="$PREV_UNZIP"
 
-"$PREV_UNZIP/acr" install 2>/dev/null
+ACR_CURRENT_HOME="$PREV_UNZIP" "$PREV_UNZIP/acr_runner" install 2>/dev/null
 pass "Previous version $PREVIOUS_VERSION installed"
 
 export ACR_HOME="$INSTALL_HOME"

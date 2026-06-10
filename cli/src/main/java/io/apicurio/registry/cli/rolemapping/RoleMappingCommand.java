@@ -5,6 +5,7 @@ import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.models.RoleMapping;
+import java.util.List;
 import java.util.Optional;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -15,8 +16,8 @@ import static io.apicurio.registry.cli.utils.Columns.PRINCIPAL_NAME;
 import static io.apicurio.registry.cli.utils.Columns.ROLE;
 
 @Command(
-        name = "role-mapping",
-        aliases = {"role-mappings"},
+        name = "role",
+        aliases = {"roles"},
         description = "Work with role mappings",
         subcommands = {
                 RoleMappingCreateCommand.class,
@@ -33,7 +34,7 @@ public class RoleMappingCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var results = client.getRegistryClient().admin().roleMappings().get();
-        final var mappings = Optional.ofNullable(results.getRoleMappings()).orElse(java.util.List.of());
+        final var mappings = Optional.ofNullable(results.getRoleMappings()).orElse(List.of());
 
         switch (outputType.getOutputType()) {
             case json -> printRoleMappingJson(output, mappings);

@@ -608,19 +608,19 @@ The following {registry} configuration options are available for each component 
 |Temporary work directory to use when importing data.
 |`apicurio.import.zip.max-entry-count`
 |`int`
-|`100000`
+|`10000`
 |`3.0.7`
-|Maximum number of ZIP entries allowed during import. Defaults to 100,000.
+|Maximum number of ZIP entries allowed during import. Defaults to 10,000.
 |`apicurio.import.zip.max-entry-size`
 |`long`
-|`1073741824`
+|`10485760`
 |`3.0.7`
-|Maximum decompressed size in bytes allowed for a single ZIP entry during import. Defaults to 1 GiB.
+|Maximum decompressed size in bytes allowed for a single ZIP entry during import. Defaults to 10 MiB.
 |`apicurio.import.zip.max-total-size`
 |`long`
-|`1073741824`
+|`104857600`
 |`3.0.7`
-|Maximum total decompressed size in bytes allowed across all ZIP entries during import. Defaults to 1 GiB.
+|Maximum total decompressed size in bytes allowed across all ZIP entries during import. Defaults to 100 MiB.
 |===
 
 == kubernetesops

@@ -7,6 +7,7 @@ import io.apicurio.registry.storage.dto.LazyContentList;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -35,6 +36,9 @@ public class RulesServiceImpl implements RulesService {
 
     @Inject
     RulesProperties rulesProperties;
+
+    @Inject
+    OTelMetricsProvider otelMetrics;
 
     @Inject
     ArtifactTypeUtilProviderFactory providerFactory;
@@ -141,7 +145,19 @@ public class RulesServiceImpl implements RulesService {
                 .artifactType(artifactType).currentContent(currentContent).updatedContent(updatedContent)
                 .configuration(ruleConfiguration).references(references)
                 .resolvedReferences(resolvedReferences).storage(storageToUse).build();
-        executor.execute(context);
+        try {
+            executor.execute(context);
+            otelMetrics.recordRuleEvaluation(ruleType.value(), true);
+            if (ruleType == RuleType.VALIDITY) {
+                otelMetrics.recordSchemaValidation(artifactType, true);
+            }
+        } catch (RuleViolationException e) {
+            otelMetrics.recordRuleEvaluation(ruleType.value(), false);
+            if (ruleType == RuleType.VALIDITY) {
+                otelMetrics.recordSchemaValidation(artifactType, false);
+            }
+            throw e;
+        }
     }
 
     @Override

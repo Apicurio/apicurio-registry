@@ -8,6 +8,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GroupId;
@@ -61,6 +62,9 @@ public class SearchResourceImpl implements SearchResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    OTelMetricsProvider otelMetrics;
 
     @Context
     HttpServletRequest request;
@@ -133,6 +137,7 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
+        otelMetrics.recordSearchRequest("artifacts");
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
@@ -182,6 +187,7 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
+        otelMetrics.recordSearchRequest("artifactsByContent");
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
@@ -238,6 +244,7 @@ public class SearchResourceImpl implements SearchResource {
             }).forEach(filters::add);
         }
 
+        otelMetrics.recordSearchRequest("groups");
         GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
@@ -322,6 +329,7 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofStructure(structure));
         }
 
+        otelMetrics.recordSearchRequest("versions");
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);
@@ -376,6 +384,7 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
 
+        otelMetrics.recordSearchRequest("versionsByContent");
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
         return V3ApiUtil.dtoToSearchResults(results);

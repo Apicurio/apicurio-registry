@@ -412,6 +412,22 @@ acr artifact rule create -g <group-id> -a <artifact-id> <rule-type> -c <rule-con
 
 Valid rule types: `VALIDITY`, `COMPATIBILITY`, `INTEGRITY`
 
+### Role Mappings
+
+Manage role-based access control (RBAC) for the registry.
+
+```bash
+acr role                                                    # list all role mappings
+acr role create <principal-id> <role> [--name <name>]       # create
+acr role get <principal-id>                                 # get
+acr role update <principal-id> --role <role>                 # update
+acr role delete <principal-id>                              # delete
+```
+
+Valid roles: `ADMIN`, `DEVELOPER`, `READ_ONLY`
+
+> **Note:** RBAC must be enabled on the registry (`apicurio.auth.role-based-authorization=true` with `apicurio.auth.role-source=application`).
+
 ### Search
 
 Search across groups, artifacts, and versions.

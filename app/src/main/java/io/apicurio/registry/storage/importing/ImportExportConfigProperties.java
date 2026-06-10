@@ -32,4 +32,16 @@ public class ImportExportConfigProperties {
     @Info(category = CATEGORY_IMPORT, description = "The import URL", availableSince = "2.1.0.Final")
     public Optional<URL> registryImportUrlProp;
 
+    @ConfigProperty(name = "apicurio.import.zip.max-entry-size", defaultValue = "1073741824")
+    @Info(category = CATEGORY_IMPORT, description = "Maximum decompressed size in bytes allowed for a single ZIP entry during import. Defaults to 1 GiB.", availableSince = "3.0.7")
+    public long zipMaxEntrySize;
+
+    @ConfigProperty(name = "apicurio.import.zip.max-total-size", defaultValue = "1073741824")
+    @Info(category = CATEGORY_IMPORT, description = "Maximum total decompressed size in bytes allowed across all ZIP entries during import. Defaults to 1 GiB.", availableSince = "3.0.7")
+    public long zipMaxTotalSize;
+
+    @ConfigProperty(name = "apicurio.import.zip.max-entry-count", defaultValue = "100000")
+    @Info(category = CATEGORY_IMPORT, description = "Maximum number of ZIP entries allowed during import. Defaults to 100,000.", availableSince = "3.0.7")
+    public int zipMaxEntryCount;
+
 }

@@ -7,10 +7,21 @@ spec:
   replicas: 1
   template:
     spec:
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: apicurio-registry-operator
           image: PLACEHOLDER_IMAGE
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: POD_NAME
               valueFrom:

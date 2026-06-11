@@ -1,8 +1,8 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="operator-config-reference_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = {operator} configuration reference
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can use the following reference information to configure {registry} instances by using the `ApicurioRegistry3`
@@ -19,8 +19,8 @@ custom resource.
 
 // ref-operator-cr-structure
 [id="operator-cr-structure_{context}"]
-:_mod-docs-content-type: REFERENCE
 == ApicurioRegistry3 custom resource structure
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The `ApicurioRegistry3` custom resource defines the desired state of a {registry} instance. The resource is
@@ -41,8 +41,8 @@ spec:
 
 // ref-operator-app-spec-reference
 [id="operator-app-spec-reference_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry-app} configuration reference
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The `spec.app` section configures the backend component, which provides the REST API.
@@ -197,8 +197,8 @@ spec:
 
 // ref-operator-ui-spec-reference
 [id="operator-ui-spec-reference_{context}"]
-:_mod-docs-content-type: REFERENCE
 == UI component configuration reference
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The `spec.ui` section configures the {registry} web console component.
@@ -237,8 +237,8 @@ spec:
 
 // ref-operator-storage-reference
 [id="operator-storage-reference_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Storage configuration reference
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The `spec.app.storage` section configures the storage backend for {registry}.
@@ -596,8 +596,8 @@ NOTE: KubernetesOps storage is read-only. All changes must be made by creating o
 
 // ref-operator-auth-reference
 [id="operator-auth-reference_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Authentication and authorization configuration reference
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The `spec.app.auth` section configures OIDC authentication and role-based authorization.
@@ -920,8 +920,8 @@ spec:
 
 // ref-operator-ingress-reference
 [id="operator-ingress-reference_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Ingress configuration reference
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The `ingress` section is available for both `spec.app` and `spec.ui` components.
@@ -1006,8 +1006,8 @@ password:
 
 // ref-operator-for-developers
 [id="operator-for-developers_{context}"]
-:_mod-docs-content-type: REFERENCE
 == For Developers
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Java model classes for the `ApicurioRegistry3` custom resource are available as a Maven artifact:

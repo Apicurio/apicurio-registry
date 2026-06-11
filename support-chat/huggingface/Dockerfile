@@ -1,7 +1,7 @@
 FROM quay.io/apicurio/apicurio-registry:latest AS registry
 FROM quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot AS support-chat
 
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21.0.11_10-jre
 
 RUN apt-get update && apt-get install -y --no-install-recommends supervisor && \
     rm -rf /var/lib/apt/lists/*

@@ -1,6 +1,8 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+// assembly-managing-registry-artifacts-api
 [id="managing-registry-artifacts-api_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Managing {registry} content using the REST API
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
@@ -14,7 +16,8 @@ This chapter shows examples of how to use the Core Registry API v3 to perform th
 * xref:managing-artifact-references-using-rest-api_{context}[]
 * xref:exporting-importing-using-rest-api_{context}[]
 
-.Prerequisites
+**Prerequisites**
+
 * {registry-overview}
 
 [role="_additional-resources"]
@@ -27,7 +30,9 @@ This chapter shows examples of how to use the Core Registry API v3 to perform th
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
+// proc-managing-artifacts-using-rest-api
 [id="managing-artifacts-using-rest-api_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifacts using {registry} REST API commands
 
 [role="_abstract"]
@@ -84,14 +89,16 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
+// proc-managing-artifact-versions-using-rest-api
 [id="managing-artifact-versions-using-rest-api_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifact versions using {registry} REST API commands
 
 [role="_abstract"]
@@ -153,14 +160,16 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
+// proc-managing-artifact-references-using-rest-api
 [id="managing-artifact-references-using-rest-api_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifact references using {registry} REST API commands
 
 [role="_abstract"]
@@ -178,7 +187,8 @@ This section shows a simple curl-based example of using the Core Registry API v3
 
 This example first creates a schema artifact named `ItemId`:
 
-.ItemId schema
+**ItemId schema**
+
 [source,json]
 ----
 {
@@ -196,7 +206,8 @@ This example first creates a schema artifact named `ItemId`:
 
 This example then creates a schema artifact named `Item`, which includes a reference to the nested `ItemId` artifact.
 
-.Item schema with nested ItemId schema
+**Item schema with nested ItemId schema**
+
 [source,json]
 ----
 {
@@ -211,6 +222,12 @@ This example then creates a schema artifact named `Item`, which includes a refer
     ]
 }
 ----
+
+**Dereference**
+
+There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _references parameter_ in certain operations.
+
+This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
 
 .Prerequisites
 
@@ -288,12 +305,6 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3
 [{"groupId":"my-group","artifactId":"ItemId","version":"1.0.0","name":"com.example.common.ItemId"}]
 ----
 
-**Dereference**
-
-There are some situations where having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _references parameter_ in certain operations.
-
-This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
-
 . Retrieve the dereferenced (inlined) schema content:
 +
 [source,bash]
@@ -307,24 +318,26 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3
 ----
 {"type":"record","name":"Item","namespace":"com.example.common","fields":[{"name":"itemId","type":{"type":"record","name":"ItemId","fields":[{"name":"id","type":"int"}]}}]}
 ----
-
++
 This support is currently implemented only for Avro, Protobuf, OpenAPI, AsyncAPI, and JSON Schema artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types.
-
++
 NOTE: For Protobuf artifacts, dereferencing content is supported only when all the schemas belong to the same package.
-
-NOTE: Circular dependencies are allowed by some artifact types (e.g. JSON Schema) but are not supported by {registry}.
++
+NOTE: Circular dependencies are allowed by some artifact types (for example, JSON Schema) but are not supported by {registry}.
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the {registry-rest-api}.
-* For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
+* {registry-rest-api}
+* {registry-client-serdes-config}
 
 
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
+// proc-exporting-importing-using-rest-api
 [id="exporting-importing-using-rest-api_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Exporting and importing registry data using {registry} REST API commands
 
 [role="_abstract"]
@@ -367,7 +380,7 @@ host name on which the target {registry} is deployed. For example: `\http://my-t
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the `admin` endpoint in the {registry-rest-api}.
+* {registry-rest-api}
 //* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
 
 

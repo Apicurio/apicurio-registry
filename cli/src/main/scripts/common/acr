@@ -20,7 +20,7 @@ function error_exit() {
     exit "${2:-1}"
 }
 
-export ACR_INSTALL_PATH="$HOME/.apicurio/apicurio-registry-cli"
+export ACR_INSTALL_PATH="${ACR_INSTALL_PATH:-$HOME/.apicurio/apicurio-registry-cli}"
 
 find_acr_home() {
   # "$(script_dir)" must be first.

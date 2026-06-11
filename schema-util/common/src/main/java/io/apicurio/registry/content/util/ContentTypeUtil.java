@@ -9,6 +9,7 @@ import io.apicurio.registry.types.ContentTypes;
 import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
@@ -124,6 +125,10 @@ public final class ContentTypeUtil {
     public static boolean isParsableXml(ContentHandle content) {
         try {
             SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
             SAXParser saxParser = factory.newSAXParser();
             saxParser.parse(new InputSource(new StringReader(content.content())), new DefaultHandler());
             // If no exception is thrown, the XML is valid

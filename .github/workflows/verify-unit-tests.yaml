@@ -11,6 +11,9 @@ on:
         required: true
         description: 'Build artifact identifier (commit SHA)'
 
+permissions:
+  contents: read
+
 jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.shard.name }})

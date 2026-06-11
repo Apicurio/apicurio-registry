@@ -33,6 +33,10 @@ public abstract class AbstractArtifactTypeUtilProvider implements ArtifactTypeUt
 
     protected abstract ContentAccepter createContentAccepter();
 
+    public void setCompatibilityChecker(CompatibilityChecker checker) {
+        this.compatibilityChecker = checker;
+    }
+
     @Override
     public CompatibilityChecker getCompatibilityChecker() {
         if (compatibilityChecker == null) {

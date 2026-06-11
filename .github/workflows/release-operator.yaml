@@ -85,7 +85,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION config-show
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin
@@ -130,7 +130,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: operator-test-artifacts
           path: |
@@ -140,7 +140,7 @@ jobs:
           retention-days: 1
 
       - name: Upload bundle artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: operator-bundle-artifacts
           path: |
@@ -207,19 +207,19 @@ jobs:
           cd registry && git checkout "${{ needs.release-build.outputs.release-version }}"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
 
       - name: Download test artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: operator-test-artifacts
           path: registry/operator/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -262,7 +262,7 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin
@@ -274,7 +274,7 @@ jobs:
           make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build
 
       - name: Download bundle artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: operator-bundle-artifacts
           path: registry/operator/target/bundle/
@@ -428,6 +428,6 @@ jobs:
 
       - name: Setup tmate session on failure
         if: failure()
-        uses: mxschmitt/action-tmate@v3
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
         with:
           limit-access-to-actor: true

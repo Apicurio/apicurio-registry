@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
   ],
   "baseBranches": [
     "main",
@@ -9,7 +10,8 @@
   ],
   "enabledManagers": [
     "npm",
-    "maven"
+    "maven",
+    "github-actions"
   ],
   "dependencyDashboard": true,
   "rangeStrategy": "bump",

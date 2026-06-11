@@ -486,12 +486,12 @@ The following {registry} configuration options are available for each component 
 |`15`
 |`1.0.2.Final`
 |Timeout of persistence readiness check
-|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`apicurio.metrics.persistence-timeout-readiness-check.status-reset-window-duration.seconds`
 |`integer`
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence readiness check
-|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
+|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
@@ -531,7 +531,7 @@ The following {registry} configuration options are available for each component 
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check
-|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
+|`apicurio.metrics.response-timeout-readiness-check.status-reset-window-duration.seconds`
 |`instance<integer>`
 |`300`
 |`1.0.2.Final`
@@ -1817,11 +1817,11 @@ NOTE: For each configuration property, you can override the value by using the c
 |`registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
 |`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
 |`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`
-|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`apicurio.metrics.persistence-timeout-readiness-check.status-reset-window-duration.seconds`
 |`registry.metrics.PersistenceTimeoutReadinessCheck.timeoutSec`
 |`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
 |`registry.metrics.ResponseErrorLivenessCheck.counterResetWindowDurationSec`
-|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
+|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
 |`registry.metrics.ResponseErrorLivenessCheck.disableLogging`
 |`apicurio.metrics.response-error-liveness-check.disabled`
 |`registry.metrics.ResponseErrorLivenessCheck.errorThreshold`
@@ -1833,7 +1833,7 @@ NOTE: For each configuration property, you can override the value by using the c
 |`registry.metrics.ResponseTimeoutReadinessCheck.errorThreshold`
 |`apicurio.metrics.response-timeout-readiness-check.error-threshold`
 |`registry.metrics.ResponseTimeoutReadinessCheck.statusResetWindowDurationSec`
-|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
+|`apicurio.metrics.response-timeout-readiness-check.status-reset-window-duration.seconds`
 |`registry.metrics.ResponseTimeoutReadinessCheck.timeoutSec`
 |`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
 |`registry.storage.metrics.cache.check-period`

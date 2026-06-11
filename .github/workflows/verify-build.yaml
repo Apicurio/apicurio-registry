@@ -14,6 +14,9 @@ on:
         description: 'Docker image tag (commit SHA)'
         value: ${{ jobs.build-java.outputs.image-tag }}
 
+permissions:
+  contents: read
+
 jobs:
   build-java:
     name: Build Java Application (no tests)

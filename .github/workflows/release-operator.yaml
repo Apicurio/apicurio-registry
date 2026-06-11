@@ -13,6 +13,9 @@ on:
   release:
     types: [ released ]
 
+permissions:
+  contents: read
+
 jobs:
 
   release-build:

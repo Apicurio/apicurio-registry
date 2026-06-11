@@ -11,6 +11,9 @@ on:
         required: true
         description: 'Docker image tag to test'
 
+permissions:
+  contents: read
+
 jobs:
   verify-python-sdk:
     name: Verify Python SDK

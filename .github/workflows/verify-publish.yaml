@@ -18,6 +18,9 @@ on:
       QUAY_PASSWORD:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   publish-app-image:
     name: Publish App Docker Image

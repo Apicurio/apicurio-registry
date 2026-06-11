@@ -90,6 +90,9 @@ on:
       QUAY_PASSWORD:
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   docker-build:
     name: Build and Push Docker Image

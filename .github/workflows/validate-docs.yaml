@@ -7,6 +7,9 @@ on:
       - 'docs/**'
       - 'docs-playbook/**'
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Validate Docs

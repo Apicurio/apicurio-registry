@@ -11,6 +11,9 @@ on:
         required: true
         description: 'Docker image tag to test'
 
+permissions:
+  contents: read
+
 jobs:
   integration-tests:
     name: Integration Tests (${{ matrix.storage }}-${{ matrix.name || matrix.groups }})

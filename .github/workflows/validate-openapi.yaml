@@ -6,6 +6,9 @@ on:
     paths:
       - common/src/main/resources/META-INF/openapi.json
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Validate

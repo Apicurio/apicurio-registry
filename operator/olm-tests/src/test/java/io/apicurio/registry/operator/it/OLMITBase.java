@@ -186,11 +186,11 @@ public abstract class OLMITBase implements OperatorTestContext {
     }
 
     private static String deriveChannel(String version) {
-        // Derive minor-version channel from version (e.g., "3.2.1" -> "3.2.x", "3.3.0-SNAPSHOT" -> "3.3.x")
+        // Derive major-version channel from version (e.g., "3.2.1" -> "3.x", "3.3.0-SNAPSHOT" -> "3.x")
         var lc = version.toLowerCase();
         var parts = lc.split("\\.");
-        if (parts.length >= 2) {
-            return parts[0] + "." + parts[1] + ".x";
+        if (parts.length >= 1) {
+            return parts[0] + ".x";
         }
         return lc;
     }

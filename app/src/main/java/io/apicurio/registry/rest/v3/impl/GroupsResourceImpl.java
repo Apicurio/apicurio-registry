@@ -1846,7 +1846,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
 
         if (!(dryRun != null && dryRun)) {
-            otelMetrics.recordVersionCreated(groupId, artifactType);
+            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
         }
 
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);

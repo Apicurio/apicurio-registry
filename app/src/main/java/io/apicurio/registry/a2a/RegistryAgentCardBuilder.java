@@ -42,8 +42,8 @@ public class RegistryAgentCardBuilder {
                 .provider(buildProvider())
                 .capabilities(buildCapabilities())
                 .skills(buildSkills())
-                .defaultInputModes(List.of("text"))
-                .defaultOutputModes(List.of("text"))
+                .defaultInputModes(List.of("text/plain"))
+                .defaultOutputModes(List.of("text/plain"))
                 .securitySchemes(buildSecuritySchemes());
 
         a2aConfig.getDocumentationUrl().ifPresent(builder::documentationUrl);
@@ -70,6 +70,7 @@ public class RegistryAgentCardBuilder {
                 .streaming(a2aConfig.isCapabilitiesStreaming())
                 .pushNotifications(a2aConfig.isCapabilitiesPushNotifications())
                 .extendedAgentCard(false)
+                .stateTransitionHistory(false)
                 .build();
     }
 

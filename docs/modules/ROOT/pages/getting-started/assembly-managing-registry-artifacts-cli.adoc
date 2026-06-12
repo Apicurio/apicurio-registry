@@ -2,6 +2,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="managing-registry-artifacts-cli_{context}"]
 = Managing {registry} content using the command-line interface
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can use the {registry} command-line interface (CLI) to manage {registry} content from the command line. The CLI provides commands for managing CLI contexts and artifact groups.
@@ -9,7 +10,7 @@ You can use the {registry} command-line interface (CLI) to manage {registry} con
 ifndef::service-registry-downstream[]
 [NOTE]
 ====
-The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet. The CLI currently implements only group management commands. Future releases will include additional commands.
+The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). The CLI does not support Windows yet. The CLI currently implements only group management commands. Future releases will include additional commands.
 ====
 
 [IMPORTANT]
@@ -21,7 +22,7 @@ endif::[]
 ifdef::service-registry-downstream[]
 [IMPORTANT]
 ====
-The CLI is a Technology Preview feature. Technology Preview features are not supported with Red{nbsp}Hat production service level agreements (SLAs) and might not be functionally complete. Red{nbsp}Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+The CLI is a Technology Preview feature. Red{nbsp}Hat does not support Technology Preview features under production service level agreements (SLAs), and the features might not be functionally complete. Red{nbsp}Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functions and provide feedback during the development process.
 ====
 endif::[]
 
@@ -31,13 +32,15 @@ endif::[]
 * xref:registry-cli-output-formats_{context}[]
 * xref:registry-cli-reference_{context}[]
 
-.Prerequisites
+== Prerequisites
+
 * You have installed {registry}.
 * You have Java 11 or higher installed.
 * You have access to a bash shell (Linux) or zsh shell (macOS).
 
 [id="installing-registry-cli_{context}"]
 == Installing the {registry} CLI
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can install the {registry} CLI to interact with {registry} from the command line. The CLI comes as a .zip file that has the executable program and required dependencies.
@@ -67,7 +70,7 @@ $ cd ~/apicurio-cli
 $ ./acr install
 ----
 +
-This command installs the CLI executable to `$HOME/bin` and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli`. The command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions.
+The `acr install` command installs the CLI executable to `$HOME/bin` and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli`. The command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions.
 . Reload your shell configuration:
 +
 On Linux:
@@ -93,15 +96,16 @@ $ acr --help
 [role="_additional-resources"]
 .Additional resources
 ifndef::service-registry-downstream[]
-* For more information, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README] on GitHub.
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
 endif::[]
 
 
 [id="configuring-registry-cli-contexts_{context}"]
 == Configuring {registry} CLI contexts
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-An {registry} CLI context stores the registry URL and identifies the instance that the CLI commands target. You can create many contexts and switch between them as needed, similar to how you use contexts in {kubernetes}.
+You can configure {registry} CLI contexts to store the registry URL and identify target {registry} instances. You can create multiple contexts and switch between them, similar to how you manage contexts in {kubernetes}.
 
 .Procedure
 . Create a new context for your {registry} instance:
@@ -151,15 +155,15 @@ $ acr context delete _CONTEXT_NAME_
 
 
 [id="managing-groups-using-registry-cli_{context}"]
-== Managing groups using the CLI
+== Group management using the {registry} CLI
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-You can use the CLI to create, list, update, and delete artifact groups in {registry}. Groups offer a way to organize related artifacts.
+You can use the {registry} CLI to create, list, update, and delete artifact groups. Groups provide a way to organize related artifacts.
 
-.Prerequisites
-* You have configured at least one CLI context.
+You must configure at least one CLI context before you use these commands.
 
-=== Listing groups
+**Group listing**
 
 To list all groups in the registry:
 
@@ -175,7 +179,7 @@ You can use pagination options for large result sets:
 $ acr group --page 1 --size 50
 ----
 
-=== Creating a group
+**Group creation**
 
 To create a new group:
 
@@ -191,7 +195,7 @@ You can include a description and labels:
 $ acr group create my-schemas --description "Production schemas" --label env=prod --label team=platform
 ----
 
-=== Getting group details
+**Group details**
 
 To get details for a specific group:
 
@@ -207,7 +211,7 @@ For example:
 $ acr group get my-schemas
 ----
 
-=== Updating a group
+**Group updates**
 
 To update a group description:
 
@@ -230,7 +234,7 @@ To delete labels:
 $ acr group update my-schemas --delete-label env
 ----
 
-=== Deleting a group
+**Group deletion**
 
 To delete a group:
 
@@ -253,17 +257,19 @@ $ acr group delete my-schemas --force
 
 [NOTE]
 ====
-Using `--force` deletes the group and all artifacts it contains. Use this option with caution.
+The `--force` option deletes the group and all artifacts it contains. Use this option with caution.
 ====
 
 
 [id="registry-cli-output-formats_{context}"]
 == CLI output formats and pagination
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The CLI supports different output formats and pagination options for managing large result sets.
 
-.Output formats
+**Output formats**
+
 The CLI supports the following output formats:
 
 * `table` (default) - Human-readable tabular format
@@ -277,7 +283,8 @@ $ acr group --output-type json
 $ acr group get my-schemas -o json
 ----
 
-.Pagination
+**Pagination**
+
 For commands that return lists, you can use pagination options:
 
 * `--page` - The page number (starting from 1)
@@ -292,13 +299,12 @@ $ acr group --page 2 --size 25
 
 [id="registry-cli-reference_{context}"]
 == CLI reference
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following tables describe CLI global options and exit codes.
+The {registry} CLI provides global options, exit codes, and available commands described in the following tables.
 
 .Global options
-The following options are available for most CLI commands:
-
 [cols="2,3", options="header"]
 |===
 | Option
@@ -315,8 +321,6 @@ The following options are available for most CLI commands:
 |===
 
 .Exit codes
-The CLI uses the following exit codes:
-
 [cols="1,3", options="header"]
 |===
 | Code
@@ -336,7 +340,6 @@ The CLI uses the following exit codes:
 |===
 
 .Command summary
-The following commands are currently available:
 
 [cols="2,3", options="header"]
 |===
@@ -382,5 +385,5 @@ The following commands are currently available:
 * {managing-registry-artifacts-api}
 * {rest-client}
 ifndef::service-registry-downstream[]
-* For the latest CLI documentation, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README] on GitHub.
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
 endif::[]

@@ -339,7 +339,8 @@ public class AdminResourceImpl implements AdminResource {
         try {
             tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
                     "apicurio-import_");
-            IoUtil.unpackToDisk(zip, tempDirectory);
+            IoUtil.unpackToDisk(zip, tempDirectory, importExportProps.zipMaxEntrySize,
+                    importExportProps.zipMaxTotalSize, importExportProps.zipMaxEntryCount);
             zip.close();
         } catch (IOException e) {
             throw new BadRequestException("Error importing data: " + e.getMessage(), e);

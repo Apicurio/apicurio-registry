@@ -1,5 +1,6 @@
 package io.apicurio.registry.types.provider.configured;
 
+import io.apicurio.registry.types.provider.AbstractArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,6 +8,8 @@ import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
 import io.apicurio.registry.http.HttpClientService;
+import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -36,17 +39,34 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     @Getter
     private String configFile;
 
+    @ConfigProperty(name = "apicurio.compat.json-schema.use-apitomy", defaultValue = "false")
+    @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Use the Apitomy Data Models JSON Schema compatibility checker instead of the everit-based one.", availableSince = "3.3.1", experimental = true)
+    boolean useApitomyJsonSchemaChecker;
+
     @PostConstruct
     public void init() {
         // Try to load from external config file for user-defined custom types
         ArtifactTypesConfiguration config = loadArtifactTypeConfiguration();
         if (config != null) {
             loadConfiguredProviders(config);
-            return;
+        } else {
+            // No external config — use standard providers (includes all built-in types)
+            loadStandardProviders();
         }
 
-        // No external config — use standard providers (includes all built-in types)
-        loadStandardProviders();
+        applyExperimentalOverrides();
+    }
+
+    private void applyExperimentalOverrides() {
+        if (useApitomyJsonSchemaChecker) {
+            log.info("Using Apitomy Data Models JSON Schema compatibility checker (experimental).");
+            providers.stream()
+                    .filter(p -> ArtifactType.JSON.equals(p.getArtifactType()))
+                    .filter(AbstractArtifactTypeUtilProvider.class::isInstance)
+                    .map(AbstractArtifactTypeUtilProvider.class::cast)
+                    .findFirst()
+                    .ifPresent(p -> p.setCompatibilityChecker(new ApitomyJsonSchemaCompatibilityChecker()));
+        }
     }
 
     private ArtifactTypesConfiguration loadArtifactTypeConfiguration() {

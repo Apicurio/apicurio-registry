@@ -112,12 +112,12 @@ We maintain the **latest two minor versions** with security patches. Once a new 
 | Branch | Purpose |
 |--------|---------|
 | `main` | Active development — next minor release |
-| `release/3.3.x` | Maintenance branch for 3.3 patch releases (created when 3.4.0 development starts) |
+| `3.3.x` | Maintenance branch for 3.3 patch releases (created when 3.4.0 development starts) |
 
 ### Where to target your PR
 
 - **Features and bug fixes** → target `main`
-- **CVE / security backports for N-1** → target the maintenance branch (e.g., `release/3.3.x`), cherry-picked from the fix on `main`
+- **CVE / security backports for N-1** → target the maintenance branch (e.g., `3.3.x`), cherry-picked from the fix on `main`
 - Bug fix backports are **not** accepted on maintenance branches — patches are strictly CVE-only
 
 ## The small print

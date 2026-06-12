@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,7 +12,6 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -19,13 +19,28 @@ public class IoUtil {
 
     /**
      * Writes the given zip file to an output directory (assumed to either not exist or be empty).
-     * 
-     * @param zip
-     * @param outputDirectory
+     * Enforces per-entry size, total decompressed size, and entry count limits to prevent zip bomb
+     * attacks (CWE-409).
+     *
+     * @param zip the ZIP input stream to extract
+     * @param outputDirectory the target directory for extracted files
+     * @param maxEntrySize maximum decompressed size in bytes for a single entry
+     * @param maxTotalSize maximum total decompressed size in bytes across all entries
+     * @param maxEntryCount maximum number of ZIP entries allowed
      */
-    public static void unpackToDisk(ZipInputStream zip, Path outputDirectory) throws IOException {
+    public static void unpackToDisk(ZipInputStream zip, Path outputDirectory, long maxEntrySize,
+            long maxTotalSize, int maxEntryCount) throws IOException {
+        long totalBytes = 0;
+        int entryCount = 0;
+
         ZipEntry entry = zip.getNextEntry();
         while (entry != null) {
+            entryCount++;
+            if (entryCount > maxEntryCount) {
+                throw new IOException(
+                        "ZIP entry count exceeds the configured limit of " + maxEntryCount);
+            }
+
             Path entryPath = zipPath(entry, outputDirectory);
             if (entry.isDirectory()) {
                 Files.createDirectories(entryPath);
@@ -34,11 +49,37 @@ public class IoUtil {
                 if (parentPath != null && Files.notExists(parentPath)) {
                     Files.createDirectories(parentPath);
                 }
-                Files.copy(zip, entryPath, StandardCopyOption.REPLACE_EXISTING);
+                totalBytes = copyZipEntry(zip, entryPath, maxEntrySize, totalBytes, maxTotalSize);
             }
             zip.closeEntry();
             entry = zip.getNextEntry();
         }
+    }
+
+    private static long copyZipEntry(ZipInputStream zip, Path target, long maxEntrySize,
+            long totalBytesSoFar, long maxTotalSize) throws IOException {
+        long entryBytes = 0;
+        long totalBytes = totalBytesSoFar;
+        final byte[] buffer = new byte[8192];
+        int n;
+
+        try (FileOutputStream out = new FileOutputStream(target.toFile())) {
+            while ((n = zip.read(buffer)) != -1) {
+                entryBytes += n;
+                totalBytes += n;
+                if (entryBytes > maxEntrySize) {
+                    throw new IOException("ZIP entry decompressed size exceeds the configured limit of "
+                            + maxEntrySize + " bytes: " + target.getFileName());
+                }
+                if (totalBytes > maxTotalSize) {
+                    throw new IOException(
+                            "ZIP total decompressed size exceeds the configured limit of " + maxTotalSize
+                                    + " bytes");
+                }
+                out.write(buffer, 0, n);
+            }
+        }
+        return totalBytes;
     }
 
     private static Path zipPath(ZipEntry entry, Path targetDir) throws IOException {

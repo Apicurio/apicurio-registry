@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: "0 6 * * *"
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   vulnerability-scan:
     name: Container vulnerability scan
@@ -12,10 +16,10 @@ jobs:
     if: github.repository_owner == 'Apicurio'
     steps:
       - name: Checkout "${{ github.ref }}"
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: quay.io/apicurio/apicurio-registry:latest-snapshot
           format: 'sarif'
@@ -25,6 +29,6 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3
         with:
           sarif_file: 'trivy-results.sarif'

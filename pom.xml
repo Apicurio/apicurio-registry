@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.3.0-SNAPSHOT</version>
+  <version>3.3.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -168,7 +168,7 @@
     -->
 
     <!-- Jandex -->
-    <jandex.version>3.5.3</jandex.version>
+    <jandex.version>3.6.0</jandex.version>
 
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>
@@ -178,9 +178,9 @@
     <okio.version>3.17.0</okio.version>
     <kotlin-stdlib.version>2.4.0</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.35.0</protobuf.version>
+    <protobuf.version>4.35.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.71.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.72.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -203,7 +203,7 @@
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
     <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
-    <apitomy-data-models.version>3.1.0</apitomy-data-models.version>
+    <apitomy-data-models.version>3.1.1</apitomy-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>26.0</graphql.version>
@@ -219,7 +219,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.43</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.44</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -228,13 +228,13 @@
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>3.5.2.Final</debezium.version>
-    <pulsar-clients.version>4.2.1</pulsar-clients.version>
+    <pulsar-clients.version>4.2.2</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.25.3</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
-    <woodstox-core.version>7.2.0</woodstox-core.version>
-    <jgit.version>7.6.0.202603022253-r</jgit.version>
+    <woodstox-core.version>7.2.1</woodstox-core.version>
+    <jgit.version>7.7.0.202606012155-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>6.0.0</semver4j.version>
@@ -281,10 +281,10 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
-    <flink.version>1.20.4</flink.version>
+    <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.9.2</kiota.libs.version>
+    <kiota.libs.version>1.9.3</kiota.libs.version>
     <kiota.community.version>0.0.35</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>

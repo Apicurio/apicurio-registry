@@ -19,9 +19,12 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableResourceMetaDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.ResourceMetaDto;
+import io.apicurio.registry.storage.dto.XRegistryMetaLabels;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
@@ -1294,6 +1297,30 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param consumer receives each version's metadata and content
      */
     void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer);
+
+    // -- xRegistry resource meta (stored as artifact labels with "xregistry.meta." prefix) --
+
+    String XREGISTRY_META_PREFIX = "xregistry.meta.";
+
+    default ResourceMetaDto getResourceMeta(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        ArtifactMetaDataDto amd = getArtifactMetaData(groupId, artifactId);
+        return XRegistryMetaLabels.fromLabels(groupId, artifactId, amd.getLabels());
+    }
+
+    default void updateResourceMeta(String groupId, String artifactId, EditableResourceMetaDto dto)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        Map<String, String> labels = XRegistryMetaLabels.toLabels(dto);
+        if (!labels.isEmpty()) {
+            mergeArtifactLabels(groupId, artifactId, XREGISTRY_META_PREFIX, labels);
+        }
+    }
+
+    default void deleteResourceMeta(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        mergeArtifactLabels(groupId, artifactId, XREGISTRY_META_PREFIX,
+                java.util.Collections.emptyMap());
+    }
 
     /**
      * Legacy code: we used to have an enum that drove how to retrieve versions. This has since been converted

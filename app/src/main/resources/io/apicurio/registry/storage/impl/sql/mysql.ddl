@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 107);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 108);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -76,6 +76,7 @@ CREATE TABLE `groups` (
     modifiedBy    VARCHAR(256),
     modifiedOn    TIMESTAMP,
     labels        TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    epoch         BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (groupId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 
@@ -108,6 +109,7 @@ CREATE TABLE artifacts (
     name        VARCHAR(512),
     description VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     labels      TEXT,
+    epoch       BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (groupId, artifactId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 CREATE INDEX IDX_artifacts_0 ON artifacts (type);
@@ -150,6 +152,7 @@ CREATE TABLE versions (
     modifiedOn   TIMESTAMP    NOT NULL,
     labels       TEXT,
     contentId    BIGINT       NOT NULL,
+    epoch        BIGINT       NOT NULL DEFAULT 0,
     PRIMARY KEY (globalId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);

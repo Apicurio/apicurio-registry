@@ -27,4 +27,5 @@ public class GroupMetaDataDto {
     private String modifiedBy;
     private long modifiedOn;
     private Map<String, String> labels;
+    private long epoch;
 }

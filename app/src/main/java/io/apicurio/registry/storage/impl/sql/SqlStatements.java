@@ -850,4 +850,12 @@ public interface SqlStatements {
     String selectContractAuditLogCount();
 
     String deleteAllContractAuditEntries();
+
+    // -- xRegistry data model extensions --
+
+    String updateGroupEpoch();
+
+    String updateArtifactEpoch();
+
+    String updateVersionEpochByGAV();
 }

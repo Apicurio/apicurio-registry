@@ -40,4 +40,5 @@ public class ArtifactVersionMetaDataDto {
     private String artifactType;
     private VersionState state;
     private Map<String, String> labels;
+    private long epoch;
 }

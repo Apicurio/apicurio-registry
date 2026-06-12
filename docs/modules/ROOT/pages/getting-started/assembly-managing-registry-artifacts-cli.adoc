@@ -72,7 +72,7 @@ $ cd ~/apicurio-cli
 $ ./acr install
 ----
 +
-This command installs the CLI executable to `$HOME/bin` and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli`. The command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions.
+The `acr install` command installs the CLI executable to `$HOME/bin` and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli`. The command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions.
 . Reload your shell configuration:
 +
 On Linux:
@@ -163,10 +163,9 @@ $ acr context delete _CONTEXT_NAME_
 [role="_abstract"]
 You can use the {registry} CLI to create, list, update, and delete artifact groups. Groups provide a way to organize related artifacts.
 
-These commands require at least one CLI context to be configured.
+You must configure at least one CLI context before using these commands.
 
 **Listing groups**
-
 
 To list all groups in the registry:
 
@@ -184,7 +183,6 @@ $ acr group --page 1 --size 50
 
 **Creating a group**
 
-
 To create a new group:
 
 [source,bash,subs="+quotes"]
@@ -201,7 +199,6 @@ $ acr group create my-schemas --description "Production schemas" --label env=pro
 
 **Getting group details**
 
-
 To get details for a specific group:
 
 [source,bash,subs="+quotes"]
@@ -217,7 +214,6 @@ $ acr group get my-schemas
 ----
 
 **Updating a group**
-
 
 To update a group description:
 
@@ -242,7 +238,6 @@ $ acr group update my-schemas --delete-label env
 
 **Deleting a group**
 
-
 To delete a group:
 
 [source,bash,subs="+quotes"]
@@ -264,7 +259,7 @@ $ acr group delete my-schemas --force
 
 [NOTE]
 ====
-Using `--force` deletes the group and all artifacts it contains. Use this option with caution.
+The `--force` option deletes the group and all artifacts it contains. Use this option with caution.
 ====
 
 

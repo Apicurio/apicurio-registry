@@ -152,7 +152,6 @@ You can create rules first and add content later.
 ** *Versions*: Displays a list of all artifact versions. The tab is empty unless you uploaded a version when you created the artifact.
 ** *Branches*: Displays a list of branches for the artifact. The tab displays at least the `latest` branch and might display other generated branches depending on your configuration.
 +
-+
 .Artifact details in {registry} web console
 image::images/getting-started/registry-web-console-artifact.png[Artifact details in Registry web console]
 
@@ -364,7 +363,7 @@ If the *Artifact owner-only authorization* option is enabled on the *Settings* t
 NOTE: {registry} displays the *Artifact owner-only authorization* setting and the artifact *Owner* field only when authentication was enabled during deployment. For more information, see
 
 ifdef::apicurio-registry[]
-xref:../getting-started/assembly-configuring-the-registry.adoc[].
+xref:getting-started/assembly-configuring-the-registry.adoc[].
 endif::[] 
 ifdef::rh-service-registry[]
 link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
@@ -394,7 +393,7 @@ endif::[]
 [role="_additional-resources"]
 .Additional resources
 ifdef::apicurio-registry[]
-* xref:../getting-started/assembly-configuring-the-registry.adoc[]
+* xref:getting-started/assembly-configuring-the-registry.adoc[]
 endif::[] 
 ifdef::rh-service-registry[]
 * link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
@@ -412,7 +411,7 @@ endif::[]
 As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} at runtime. You can manage configuration options for features such as authentication, authorization, and API compatibility.
 
 NOTE: {registry} displays authentication and authorization settings in the web console only when authentication was already enabled during deployment. For more information, see
-xref:../getting-started/assembly-configuring-the-registry.adoc[].
+xref:getting-started/assembly-configuring-the-registry.adoc[].
 
 .Prerequisites
 
@@ -504,7 +503,7 @@ Not selected by default.
 
 [role="_additional-resources"]
 .Additional resources
-* xref:../getting-started/assembly-configuring-the-registry.adoc[]
+* xref:getting-started/assembly-configuring-the-registry.adoc[]
 
 
 

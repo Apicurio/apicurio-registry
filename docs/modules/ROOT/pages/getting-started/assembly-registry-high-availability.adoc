@@ -2,9 +2,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="registry-high-availability_{context}"]
 = Deploying {registry} for high availability
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter explains how to configure {registry} for high availability in a single {kubernetes} cluster:
+You can deploy {registry} for high availability in a single {kubernetes} cluster by running multiple stateless replicas with a highly available storage backend.
+
+This assembly includes the following topics:
 
 * xref:ha-architecture-overview_{context}[]
 * xref:ha-application-scaling_{context}[]
@@ -14,36 +17,45 @@ This chapter explains how to configure {registry} for high availability in a sin
 * xref:ha-rolling-updates_{context}[]
 * xref:ha-backup-restore_{context}[]
 
-.Prerequisites
+== Prerequisites
 * {installing-the-registry-openshift}
 
 //INCLUDES
 
 [id="ha-architecture-overview_{context}"]
 == High availability architecture overview
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+A highly available {registry} deployment runs multiple stateless replicas distributed across failure domains, backed by a highly available storage layer. This architecture eliminates single points of failure for both the application tier and the data tier.
 
 A highly available {registry} deployment consists of the following components:
 
-* *Application (backend) pods* - Multiple stateless replicas that process REST API requests. These pods can
-scale horizontally and are distributed across cluster nodes for fault tolerance.
+.High availability components
+[cols="1,3", options="header"]
+|===
+|Component |Description
 
-* *UI pods* - Multiple stateless replicas serving the web console (static files). Typically fewer replicas are
-needed compared to the backend.
+|Application (backend) pods
+|Multiple stateless replicas that process REST API requests. These pods scale horizontally and are distributed across cluster nodes for fault tolerance.
 
-* *Storage layer* - The stateful component requiring HA configuration. Strategy depends on whether you use SQL
-database or KafkaSQL storage.
+|UI pods
+|Multiple stateless replicas serving the web console (static files). Typically fewer replicas are needed compared to the backend.
 
-The application and UI components are stateless and can be scaled horizontally. High availability is achieved
-by running multiple replicas distributed across failure domains (availability zones) and implementing a highly
-available storage layer.
+|Storage layer
+|The stateful component requiring HA configuration. The strategy depends on whether you use SQL database or KafkaSQL storage.
+|===
+
+The application and UI components are stateless and scale horizontally. High availability is achieved by running multiple replicas distributed across failure domains (availability zones) and implementing a highly available storage layer.
 
 [id="ha-application-scaling_{context}"]
-== Configuring application component high availability
+== Application component high availability
+:_mod-docs-content-type: CONCEPT
 
-The {registry} backend and UI components are stateless and can scale horizontally to provide high availability
-and increased throughput.
+[role="_abstract"]
+The {registry} backend and UI components are stateless and scale horizontally. You can configure multiple replicas, distribute them across nodes and availability zones, set resource limits, and define disruption budgets to maintain availability during planned operations.
 
-=== Configuring multiple replicas
+**Multiple replica configuration**
 
 Configure the number of replicas for each component in the `ApicurioRegistry3` custom resource:
 
@@ -76,7 +88,7 @@ spec:
 IMPORTANT: Running multiple replicas requires a production-ready storage backend (PostgreSQL, MySQL, or KafkaSQL
 with persistent Kafka). Do not use the default embedded H2 configuration with multiple replicas.
 
-=== Distributing pods across nodes
+**Pod distribution across nodes**
 
 To ensure high availability, distribute {registry} pods across different nodes and availability zones:
 
@@ -110,7 +122,7 @@ spec:
 
 This configuration spreads pods across different nodes (hostname) and availability zones when possible.
 
-=== Configuring resource requests and limits
+**Resource requests and limits**
 
 Set appropriate resource requests and limits to ensure pod scheduling and prevent resource contention:
 
@@ -131,7 +143,7 @@ spec:
                 cpu: "1000m"
 ----
 
-=== Configuring PodDisruptionBudget
+**PodDisruptionBudget configuration**
 
 Ensure minimum availability during voluntary disruptions such as node drains or cluster upgrades. The operator
 creates a PodDisruptionBudget with `maxUnavailable: 1` by default, but you can customize it by creating your own:
@@ -161,24 +173,35 @@ spec:
 ----
 
 [id="ha-sql-storage_{context}"]
-== Configuring SQL database storage for high availability
+== SQL database storage high availability
+:_mod-docs-content-type: CONCEPT
 
-When using PostgreSQL or MySQL storage, high availability depends on your database configuration. The database
-must be configured with replication and automatic failover.
+[role="_abstract"]
+When you use PostgreSQL or MySQL storage, high availability depends on your database configuration. You must configure the database with replication and automatic failover before running multiple {registry} replicas.
 
 NOTE: MySQL storage is not yet supported by the operator and requires manual configuration using environment variables.
 
-=== Database high availability options
+**Database high availability options**
 
-Consider these database HA strategies:
+.Database high availability strategies
+[cols="2,3", options="header"]
+|===
+|Strategy |Description
 
-* *PostgreSQL with streaming replication* - Primary-replica configuration with automatic failover using tools
-like Patroni, CloudNativePG, or Crunchy PostgreSQL Operator
-* *PostgreSQL with synchronous replication* - Ensures zero data loss but may impact performance
-* *MySQL with Group Replication* - Multi-primary or single-primary mode with automatic failover
-* *Managed database services* - Cloud provider managed databases (RDS, Cloud SQL, Azure Database) with built-in HA
+|PostgreSQL with streaming replication
+|Primary-replica configuration with automatic failover using tools such as Patroni, CloudNativePG, or Crunchy PostgreSQL Operator
 
-=== Configuring connection pool for failover
+|PostgreSQL with synchronous replication
+|Ensures zero data loss but may impact performance
+
+|MySQL with Group Replication
+|Multi-primary or single-primary mode with automatic failover
+
+|Managed database services
+|Cloud provider managed databases (RDS, Cloud SQL, Azure Database) with built-in HA
+|===
+
+**Connection pool configuration for failover**
 
 Configure the Agroal connection pool to handle database failover gracefully. Add these environment variables
 to the `app` component:
@@ -219,9 +242,9 @@ These settings ensure that:
 * Stale connections are removed and recreated
 * Connection acquisition times out rather than hanging indefinitely
 
-=== Example: PostgreSQL with CloudNativePG
+**Example: PostgreSQL with CloudNativePG**
 
-When using the CloudNativePG operator for PostgreSQL HA:
+When you use the CloudNativePG operator for PostgreSQL HA:
 
 [source,yaml]
 ----
@@ -260,12 +283,13 @@ spec:
 ----
 
 [id="ha-kafkasql-storage_{context}"]
-== Configuring KafkaSQL storage for high availability
+== KafkaSQL storage high availability
+:_mod-docs-content-type: CONCEPT
 
-When using KafkaSQL storage, high availability depends on the Kafka cluster configuration. Each {registry}
-replica independently consumes all messages from the Kafka journal topic.
+[role="_abstract"]
+When you use KafkaSQL storage, high availability depends on the Kafka cluster configuration. Each {registry} replica independently consumes all messages from the Kafka journal topic, which means you can add or restart replicas without affecting others.
 
-=== Kafka cluster high availability
+**Kafka cluster high availability**
 
 Configure your Kafka cluster for high availability:
 
@@ -298,17 +322,42 @@ spec:
 
 Key configuration for HA:
 
-* *Kafka replicas: 3* - Provides fault tolerance for broker failures
-* *Replication factor: 3* - Each partition has 3 copies
-* *min.insync.replicas: 2* - Requires at least 2 replicas to acknowledge writes
+.Key Kafka configuration for high availability
+[cols="2,3", options="header"]
+|===
+|Configuration |Purpose
 
-=== KafkaSQL topic configuration
+|`replicas: 3`
+|Provides fault tolerance for broker failures.
+
+|`default.replication.factor: 3`
+|Ensures each partition has three copies.
+
+|`min.insync.replicas: 2`
+|Requires at least two replicas to acknowledge writes before returning success.
+|===
+
+**KafkaSQL topic configuration**
 
 {registry} uses three Kafka topics for various purposes:
 
-* *Journal topic* - Stores all changes to the registry data. Named `kafkasql-journal` by default and is the most important topic for data durability.
-* *Snapshots topic* - Stores periodic snapshots of the registry state for faster startup, if the snapshotting feature is used. It's named `kafkasql-snapshots` by default and should be configured with similar replication settings as the journal topic.
-* *Events topic* - Stores events to support Kafka-based Registry eventing feature. Named `registry-events` by default, its configuration depends on your event processing needs. *Currently, {registry} sends messages to only 1 partition of this topic.*
+.KafkaSQL topic descriptions
+[cols="2,1,3", options="header"]
+|===
+|Topic |Default name |Purpose
+
+|Journal topic
+|`kafkasql-journal`
+|Stores all changes to the registry data. This is the most important topic for data durability.
+
+|Snapshots topic
+|`kafkasql-snapshots`
+|Stores periodic snapshots of the registry state for faster startup. Configure with similar replication settings as the journal topic.
+
+|Events topic
+|`registry-events`
+|Stores events for the Kafka-based eventing feature. Configuration depends on your event processing needs. {registry} sends messages to only 1 partition of this topic.
+|===
 
 Configure the Kafka topics used by {registry} with appropriate replication:
 
@@ -344,7 +393,7 @@ APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_REPLICATION_FACTOR=3
 APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_MIN_INSYNC_REPLICAS=2
 ----
 
-=== Consumer behavior with multiple replicas
+**Consumer behavior with multiple replicas**
 
 When running multiple {registry} replicas with KafkaSQL storage:
 
@@ -368,37 +417,67 @@ name for monitoring, use the `APICURIO_KAFKASQL_CONSUMER_GROUP_PREFIX` environme
 which sets a prefix while still generating a unique group ID on each startup.
 
 [id="ha-monitoring_{context}"]
-== Monitoring high availability deployments
+== High availability monitoring
+:_mod-docs-content-type: CONCEPT
 
-{registry} exposes Prometheus metrics for monitoring application health and performance.
+[role="_abstract"]
+{registry} exposes Prometheus metrics that enable you to monitor application health and performance in high availability deployments. You can configure the Prometheus Operator to scrape metrics and set up alerts for common failure conditions.
 
-=== Enabling metrics
+**Metrics endpoint**
 
 Metrics are enabled by default. Access the metrics endpoint at `/metrics` on the management port (default 9000).
 
-=== Key metrics to monitor
+**Key metrics to monitor**
 
 Monitor these metrics for HA deployments:
 
-* *REST API metrics:*
-** `http_server_requests_seconds` - Request latency
-** `http_server_active_requests` - Concurrent requests
-** `http_server_requests_total` - Total request count
+.Key metrics for high availability deployments
+[cols="2,1,3", options="header"]
+|===
+|Metric |Category |Description
 
-* *Storage metrics:*
-** `apicurio_storage_operation_seconds` - Storage operation latency
-** `apicurio_storage_concurrent_operations` - Concurrent storage operations
-** `apicurio_storage_operation_total` - Total storage operations
+|`http_server_requests_seconds`
+|REST API
+|Request latency
 
-* *Health check metrics:*
-** Readiness probe: `/health/ready` (on management port 9000)
-** Liveness probe: `/health/live` (on management port 9000)
+|`http_server_active_requests`
+|REST API
+|Concurrent requests
 
-* *JVM metrics:*
-** `jvm_memory_used_bytes` - Memory usage
-** `jvm_gc_pause_seconds` - Garbage collection pauses
+|`http_server_requests_total`
+|REST API
+|Total request count
 
-=== Configuring ServiceMonitor for Prometheus Operator
+|`apicurio_storage_operation_seconds`
+|Storage
+|Storage operation latency
+
+|`apicurio_storage_concurrent_operations`
+|Storage
+|Concurrent storage operations
+
+|`apicurio_storage_operation_total`
+|Storage
+|Total storage operations
+
+|`jvm_memory_used_bytes`
+|JVM
+|Memory usage
+
+|`jvm_gc_pause_seconds`
+|JVM
+|Garbage collection pauses
+
+|`/health/ready`
+|Health check
+|Readiness probe endpoint (management port 9000)
+
+|`/health/live`
+|Health check
+|Liveness probe endpoint (management port 9000)
+|===
+
+**ServiceMonitor configuration for Prometheus Operator**
 
 If using the Prometheus Operator, create a ServiceMonitor to scrape metrics:
 
@@ -420,7 +499,7 @@ spec:
       interval: 30s
 ----
 
-=== Alerting recommendations
+**Alerting recommendations**
 
 Configure alerts for:
 
@@ -431,11 +510,13 @@ Configure alerts for:
 * Kafka consumer lag (for KafkaSQL storage)
 
 [id="ha-rolling-updates_{context}"]
-== Performing rolling updates
+== Rolling updates
+:_mod-docs-content-type: CONCEPT
 
-When updating {registry} to a new version, use rolling updates to minimize downtime.
+[role="_abstract"]
+Rolling updates allow you to update {registry} to a new version with minimal downtime by replacing pods one at a time, ensuring that readiness checks pass before proceeding to the next pod.
 
-=== Rolling update strategy
+**Rolling update strategy**
 
 The operator performs rolling updates automatically when you update the `ApicurioRegistry3` CR. The default
 strategy ensures:
@@ -444,7 +525,7 @@ strategy ensures:
 * Each new pod must pass readiness checks before the next pod is updated
 * PodDisruptionBudget prevents too many pods being unavailable
 
-=== Updating {registry} version
+**{registry} version updates**
 
 {registry} and {operator} are versioned together. To update {registry} to a new version, update {operator}, which will automatically update the application.
 
@@ -463,25 +544,44 @@ spec:
             image: quay.io/apicurio/apicurio-registry:{registry-release}
 ----
 
-=== Safe update practices
+**Safe update practices**
 
 Follow these practices for safe updates:
 
-* *Test in non-production first* - Validate the new version in a test environment
-* *Monitor during rollout* - Watch metrics and logs during the update
-* *Maintain minimum replicas* - Keep at least 2 replicas to ensure availability during updates
-* *Review release notes* - Check for breaking changes or migration steps
+.Safe update practices
+[cols="2,3", options="header"]
+|===
+|Practice |Details
+
+|Test in non-production first
+|Validate the new version in a test environment before rolling out to production.
+
+|Monitor during rollout
+|Watch metrics and logs during the update.
+
+|Maintain minimum replicas
+|Keep at least 2 replicas to ensure availability during updates.
+
+|Review release notes
+|Check for breaking changes or migration steps before upgrading.
+|===
 
 IMPORTANT: For patch releases (e.g., 3.1.0 to 3.1.1), rolling updates typically complete without issues. For major or minor version updates, always review the migration guide.
 
-=== Upgrading to the management interface (port 9000)
+**Management interface upgrade (port 9000)**
 
 Starting with {registry} 3.x, health check and metrics endpoints are served on a dedicated management port (9000) instead of the main application port (8080). This is a *breaking change* that requires updates to your deployment configuration when upgrading from earlier versions.
 
-The following items must be updated:
+The following components require configuration updates:
 
-* *Kubernetes liveness and readiness probes* - Update probe definitions to target port `9000` instead of port `8080`. The endpoint paths (`/health/ready` and `/health/live`) remain the same.
-+
+.Configuration changes required when upgrading to management port 9000
+[cols="2,3", options="header"]
+|===
+|Component |Required change
+
+|Kubernetes health probes
+a|Update liveness and readiness probe definitions to target port `9000`. The endpoint paths remain the same.
+
 [source,yaml]
 ----
 # Before (old configuration)
@@ -504,35 +604,43 @@ livenessProbe:
     scheme: HTTPS
 ----
 
-* *Prometheus scrape targets* - Update your Prometheus configuration or `ServiceMonitor` resources to scrape metrics from port `9000` at path `/metrics`.
+|Prometheus scrape targets
+|Update your Prometheus configuration or `ServiceMonitor` resources to scrape metrics from port `9000` at path `/metrics`.
 
-* *Network policies* - If you use Kubernetes `NetworkPolicy` resources, ensure that ingress traffic on port `9000` is allowed from your monitoring infrastructure and the kubelet (for health probes).
+|Network policies
+|If you use Kubernetes `NetworkPolicy` resources, ensure that ingress traffic on port `9000` is allowed from your monitoring infrastructure and the kubelet (for health probes).
 
-* *TLS considerations* - The management interface inherits the default TLS configuration from the Quarkus TLS registry. When TLS is enabled, the management interface on port `9000` also serves HTTPS, and health probes must use `scheme: HTTPS`. The {operator} handles this automatically.
+|TLS configuration
+|The management interface inherits the default TLS configuration from the Quarkus TLS registry. When TLS is enabled, health probes must use `scheme: HTTPS`. The {operator} handles this automatically.
 
-* *{operator} managed deployments* - If you are using the {operator}, it will automatically configure the correct probe ports. No manual changes are required for operator-managed deployments.
+|{operator} managed deployments
+|The {operator} automatically configures the correct probe ports. No manual changes are required.
+|===
 
 [id="ha-backup-restore_{context}"]
-== Backup and restore procedures
+== Backup and restore
+:_mod-docs-content-type: CONCEPT
 
-Regular backups are essential for disaster recovery and data protection.
+[role="_abstract"]
+Regular backups protect your {registry} data from accidental loss and enable disaster recovery. The backup strategy depends on your storage type: SQL database (PostgreSQL or MySQL) or KafkaSQL storage.
 
-=== SQL database backup
+**SQL database backup**
 
 For SQL storage (PostgreSQL or MySQL), backup strategies depend on your database setup:
 
-==== PostgreSQL backup options
+**PostgreSQL backup options**
 
-* *pg_dump logical backups:*
-+
+Use `pg_dump` for logical backups:
+
 [source,bash]
 ----
 pg_dump -h postgresql-host -U registry_user -d registry > registry-backup.sql
 ----
 
-* *Continuous archiving with WAL* - For point-in-time recovery
-* *Operator-managed backups* - If using CloudNativePG or Crunchy PostgreSQL Operator:
-+
+For point-in-time recovery, use continuous archiving with WAL.
+
+If you use the CloudNativePG or Crunchy PostgreSQL Operator, configure operator-managed backups:
+
 [source,yaml]
 ----
 spec:
@@ -551,18 +659,18 @@ spec:
     retentionPolicy: "30d"
 ----
 
-==== MySQL backup options
+**MySQL backup options**
 
-* *mysqldump logical backups:*
-+
+Use `mysqldump` for logical backups:
+
 [source,bash]
 ----
 mysqldump -h mysql-host -u registry_user -p registry > registry-backup.sql
 ----
 
-* *Binary backups* - Using tools like Percona XtraBackup or MySQL Enterprise Backup
+For physical backups, use tools such as Percona XtraBackup or MySQL Enterprise Backup.
 
-==== Restoring from SQL backup
+**SQL backup restoration**
 
 To restore from a logical backup:
 
@@ -575,11 +683,11 @@ psql -h postgresql-host -U registry_user -d registry < registry-backup.sql
 mysql -h mysql-host -u registry_user -p registry < registry-backup.sql
 ----
 
-=== KafkaSQL storage backup
+**KafkaSQL storage backup**
 
 For KafkaSQL storage, back up the Kafka journal topic and snapshots topic.
 
-==== Backing up Kafka topics
+**Kafka topic backup**
 
 Use Kafka's MirrorMaker 2 or {kafka-streams} Mirror Maker for topic replication (recommended):
 
@@ -607,7 +715,7 @@ spec:
 
 Alternatively, export and import topics using Kafka's console consumer or CLI tools like `kcat`/`kafkacat`. Since the topics might contain binary data, which might be affected by text file encoding, make sure they are exported correctly when using CLI tools. See our xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[] guide for more details.
 
-=== Testing backup and restore
+**Backup and restore verification**
 
 Regularly test your backup and restore procedures:
 
@@ -619,6 +727,5 @@ Regularly test your backup and restore procedures:
 [role="_additional-resources"]
 .Additional resources
 
-* For more information on {registry} configuration, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
-* For Kafka HA configuration with {kafka-streams}, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
-* For health checks and metrics, see the health endpoint (`/health/ready` on management port 9000) and metrics endpoint (`/metrics` on management port 9000) in your {registry} deployment.
+* xref:getting-started/assembly-deploying-registry-operator.adoc[]
+* link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]

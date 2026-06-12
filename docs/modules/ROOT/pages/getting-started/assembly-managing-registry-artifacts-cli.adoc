@@ -10,7 +10,7 @@ You can use the {registry} command-line interface (CLI) to manage {registry} con
 ifndef::service-registry-downstream[]
 [NOTE]
 ====
-The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet. The CLI currently implements only group management commands. Future releases will include additional commands.
+The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). The CLI does not support Windows yet. The CLI currently implements only group management commands. Future releases will include additional commands.
 ====
 
 [IMPORTANT]
@@ -22,11 +22,9 @@ endif::[]
 ifdef::service-registry-downstream[]
 [IMPORTANT]
 ====
-The CLI is a Technology Preview feature. Technology Preview features are not supported with Red{nbsp}Hat production service level agreements (SLAs) and might not be functionally complete. Red{nbsp}Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+The CLI is a Technology Preview feature. Red{nbsp}Hat does not support Technology Preview features under production service level agreements (SLAs), and the features might not be functionally complete. Red{nbsp}Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functions and provide feedback during the development process.
 ====
 endif::[]
-
-This assembly includes the following topics:
 
 * xref:installing-registry-cli_{context}[]
 * xref:configuring-registry-cli-contexts_{context}[]
@@ -163,9 +161,9 @@ $ acr context delete _CONTEXT_NAME_
 [role="_abstract"]
 You can use the {registry} CLI to create, list, update, and delete artifact groups. Groups provide a way to organize related artifacts.
 
-You must configure at least one CLI context before using these commands.
+You must configure at least one CLI context before you use these commands.
 
-**Listing groups**
+**Group listing**
 
 To list all groups in the registry:
 
@@ -181,7 +179,7 @@ You can use pagination options for large result sets:
 $ acr group --page 1 --size 50
 ----
 
-**Creating a group**
+**Group creation**
 
 To create a new group:
 
@@ -197,7 +195,7 @@ You can include a description and labels:
 $ acr group create my-schemas --description "Production schemas" --label env=prod --label team=platform
 ----
 
-**Getting group details**
+**Group details**
 
 To get details for a specific group:
 
@@ -213,7 +211,7 @@ For example:
 $ acr group get my-schemas
 ----
 
-**Updating a group**
+**Group updates**
 
 To update a group description:
 
@@ -236,7 +234,7 @@ To delete labels:
 $ acr group update my-schemas --delete-label env
 ----
 
-**Deleting a group**
+**Group deletion**
 
 To delete a group:
 

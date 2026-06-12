@@ -6,10 +6,10 @@
 
 The CLI is distributed as a native executable. A separate ZIP is provided for each platform:
 
-| Platform | Architecture | ZIP Classifier | Shell |
-|----------|-------------|----------------|-------|
-| Linux    | x86_64      | `linux-x86_64` | bash  |
-| macOS    | aarch64 (Apple Silicon) | `osx-aarch64` | zsh |
+| Platform | Architecture            | ZIP Classifier | Shell |
+|----------|-------------------------|----------------|-------|
+| Linux    | x86_64                  | `linux-x86_64` | bash  |
+| macOS    | aarch64 (Apple Silicon) | `osx-aarch64`  | zsh   |
 
 Windows is not supported.
 
@@ -21,7 +21,7 @@ Prerequisites:
 
 To install the Apicurio Registry CLI:
 
-1. Download the ZIP for your platform from [GitHub Releases]() or [Maven Central]().
+1. Download the ZIP for your platform from [GitHub Releases](https://github.com/Apicurio/apicurio-registry/releases) or [Maven Central](https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli).
 2. Unzip the downloaded file to a location of your choice.
 3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
 
@@ -84,20 +84,21 @@ mvn clean package -pl cli -am -DskipTests
 
 The output ZIP will be at `cli/target/apicurio-registry-cli-*-<os>-<arch>.zip`.
 
-By default, the native build uses a Mandrel container image. To use a local GraalVM installation instead:
-
-```bash
-GRAALVM_HOME=/path/to/graalvm mvn clean package -pl cli -am -DskipTests -Dquarkus.native.container-build=false
-```
-
-When building locally (without a container), the system must have the `zlib` static library installed:
+By default, the native build uses the local GraalVM installation (set `GRAALVM_HOME` or have
+`native-image` on your PATH). The system must also have `gcc` and the `zlib` static library (or `zlib-ng-compat-static`) installed:
 
 ```bash
 # Fedora/RHEL/CentOS
-sudo dnf install zlib-static
+sudo dnf install gcc zlib-static
 
 # Debian/Ubuntu
-sudo apt install zlib1g-dev
+sudo apt install gcc zlib1g-dev
+```
+
+To use a Mandrel container image instead (no local GraalVM or native toolchain needed, requires Docker/Podman):
+
+```bash
+mvn clean package -pl cli -am -DskipTests -Dquarkus.native.container-build=true
 ```
 
 #### Skipping Native Build (Development Only)
@@ -112,9 +113,9 @@ mvn clean package -pl cli -am -DskipTests -DcliSkipNative
 
 #### GraalVM Version Compatibility
 
-The **container-based build** (default) uses a Mandrel image and works out of the box — no GraalVM version management needed.
+The **local build** (default) requires GraalVM CE or Mandrel for JDK 17 or later. Set `GRAALVM_HOME` to point to the installation.
 
-For **local builds** (`-Dquarkus.native.container-build=false`), GraalVM CE or Mandrel for JDK 17 or later is required. Set `GRAALVM_HOME` to point to the installation.
+The **container-based build** (`-Dquarkus.native.container-build=true`) uses a Mandrel image and works out of the box — no local GraalVM or native toolchain needed.
 
 ### Installation from Build
 
@@ -177,10 +178,10 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property | Default | Description |
-|---|---|---|
-| `update.check-enabled` | `true` | Enable automatic update checks |
-| `update.timeout-seconds` | `60` | Timeout for update network requests |
+| Property                 | Default | Description                         |
+|--------------------------|---------|-------------------------------------|
+| `update.check-enabled`   | `true`  | Enable automatic update checks      |
+| `update.timeout-seconds` | `60`    | Timeout for update network requests |
 
 ### Context Management
 
@@ -411,6 +412,22 @@ acr artifact rule create -g <group-id> -a <artifact-id> <rule-type> -c <rule-con
 
 Valid rule types: `VALIDITY`, `COMPATIBILITY`, `INTEGRITY`
 
+### Role Mappings
+
+Manage role-based access control (RBAC) for the registry.
+
+```bash
+acr role                                                    # list all role mappings
+acr role create <principal-id> <role> [--name <name>]       # create
+acr role get <principal-id>                                 # get
+acr role update <principal-id> --role <role>                 # update
+acr role delete <principal-id>                              # delete
+```
+
+Valid roles: `ADMIN`, `DEVELOPER`, `READ_ONLY`
+
+> **Note:** RBAC must be enabled on the registry (`apicurio.auth.role-based-authorization=true` with `apicurio.auth.role-source=application`).
+
 ### Search
 
 Search across groups, artifacts, and versions.
@@ -443,7 +460,7 @@ These options work with most commands:
 ### Guidelines
 
 - Suggested reading: [Command Line Interface Guidelines](https://clig.dev)
-- Use [picocli features](https://picocli.info/) where possible (e.g., for parsing, validation, help generation, etc.).
+- Use [picocli features](https://picocli.info) where possible (e.g., for parsing, validation, help generation, etc.).
 - Use hierarchical *command* → *sub-command* structure to organize commands logically.
 - Use `STDOUT` and `STDERR` appropriately. Use `STDERR` for logging and error messages, and `STDOUT` for command output. When outputting machine-readable formats (e.g. JSON), ensure that only the relevant data is printed to STDOUT, so that it can be easily piped to other tools.
 - Default options should work for basic use cases. For example, the CLI uses `--no-switch-current` instead of `--switch-current` when creating a new context, because we expect that users would want to use the context they just added in most cases.

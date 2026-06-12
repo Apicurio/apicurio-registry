@@ -21,6 +21,8 @@ on:
       SLACK_ERROR_WEBHOOK:
         required: true
 
+permissions: {}
+
 jobs:
   notify:
     name: Send Slack Notification

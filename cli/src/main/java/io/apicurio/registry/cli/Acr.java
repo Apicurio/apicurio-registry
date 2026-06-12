@@ -7,6 +7,7 @@ import io.apicurio.registry.cli.config.ConfigPropertyCommand;
 import io.apicurio.registry.cli.context.ContextCommand;
 import io.apicurio.registry.cli.globalrule.GlobalRuleCommand;
 import io.apicurio.registry.cli.group.GroupCommand;
+import io.apicurio.registry.cli.rolemapping.RoleMappingCommand;
 import io.apicurio.registry.cli.search.SearchCommand;
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import lombok.Getter;
@@ -35,6 +36,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
                 InstallCommand.class,
                 LoginCommand.class,
                 LogoutCommand.class,
+                RoleMappingCommand.class,
                 SearchCommand.class,
                 UpdateCommand.class,
                 VersionCommand.class

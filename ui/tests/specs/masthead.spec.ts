@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 const REGISTRY_UI_URL: string = process.env["REGISTRY_UI_URL"] || "http://localhost:8888/";
 const IS_DOWNSTREAM: boolean = process.env["IS_DOWNSTREAM"] === "true";
 const EXPECTED_ALT: string = process.env["EXPECTED_ALT"] || (IS_DOWNSTREAM ? "Red Hat build of Apicurio Registry" : "Apicurio Registry");
-const EXPECTED_LOGO_SRC: string = process.env["EXPECTED_LOGO_SRC"] || (IS_DOWNSTREAM ? "/red-hat-logo-reverse-transparent-100px.png" : "/apicurio_registry_logo_default.svg");
+const EXPECTED_LOGO_SRC: string = process.env["EXPECTED_LOGO_SRC"] || (IS_DOWNSTREAM ? "/red-hat-logo-default-transparent-36px.png" : "/apicurio_registry_logo_default.svg");
 
 test("Masthead - Logo verification", async ({ page }) => {
     await page.goto(REGISTRY_UI_URL);

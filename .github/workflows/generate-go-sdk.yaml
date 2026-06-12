@@ -6,6 +6,9 @@ on:
       - common/src/main/resources/META-INF/openapi-v2.json
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   generate-go-sdk:
     name: Generate Go SDK
@@ -26,7 +29,7 @@ jobs:
           git pull
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: '1.23'
 

@@ -6,7 +6,7 @@ on:
         description: Version being released
         required: true
       branch:
-        description: Branch to release from (main for minor releases, release/X.Y.x for patches)
+        description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
       no-more-minor-releases:
@@ -16,6 +16,9 @@ on:
       notice:
         type: boolean
         description: I will notify jsenko if the operator release workflow fails!
+
+permissions:
+  contents: read
 
 jobs:
   # Phase 1: Bump version, commit, push. Fast job that gates all parallel builds.
@@ -49,13 +52,13 @@ jobs:
 
       # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
@@ -189,12 +192,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -212,7 +215,7 @@ jobs:
             -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Upload Release Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-artifacts
           path: |
@@ -231,12 +234,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
@@ -265,12 +268,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@bef4b0e916c7dd079bf60fb95d49139f67e32c5f # v1
         with:
           java-version: '23'
           distribution: 'graalvm-community'
@@ -290,7 +293,7 @@ jobs:
             -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Upload CLI ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cli-${{ matrix.os-name }}
           path: cli/target/apicurio-registry-cli-${{ github.event.inputs.release-version }}-*.zip
@@ -306,13 +309,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: release-artifacts
           path: artifacts/
 
       - name: Download CLI ZIPs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: cli-*
           path: cli-zips/
@@ -332,7 +335,7 @@ jobs:
           done
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           name: ${{ github.event.inputs.release-version }}
           tag_name: ${{ github.event.inputs.release-version }}
@@ -357,7 +360,7 @@ jobs:
           echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
@@ -425,7 +428,7 @@ jobs:
 
           if [ "$PATCH" = "0" ] && [ "$MINOR" -gt "0" ]; then
             PREV_MINOR=$((MINOR - 1))
-            MAINT_BRANCH="release/${MAJOR}.${PREV_MINOR}.x"
+            MAINT_BRANCH="${MAJOR}.${PREV_MINOR}.x"
             # Find the latest tag for the previous minor
             PREV_TAG=$(git tag -l "${MAJOR}.${PREV_MINOR}.*" --sort=-v:refname | head -1)
             if [ -n "$PREV_TAG" ] && ! git ls-remote --exit-code origin "refs/heads/$MAINT_BRANCH" > /dev/null 2>&1; then

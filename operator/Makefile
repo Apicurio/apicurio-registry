@@ -38,14 +38,15 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.2.5
+PREVIOUS_PACKAGE_VERSION ?= 3.3.0
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 # Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
 CHANNEL ?= $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
 PREVIOUS_CHANNEL ?= $(shell echo "$(PREVIOUS_PACKAGE_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
 
-CHANNELS ?= $(CHANNEL)
+MAJOR_CHANNEL ?= $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\)\..*/\1.x/')
+CHANNELS ?= $(MAJOR_CHANNEL),$(CHANNEL)
 DEFAULT_CHANNEL ?= $(CHANNEL)
 
 BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --version $(LC_VERSION) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
@@ -158,6 +159,7 @@ endif
 	@echo "$(CC_CYAN)Bundle$(CC_END)"
 	@echo "PACKAGE_NAME=$(PACKAGE_NAME)"
 	@echo "CHANNEL=$(CHANNEL)"
+	@echo "MAJOR_CHANNEL=$(MAJOR_CHANNEL)"
 	@echo "PREVIOUS_CHANNEL=$(PREVIOUS_CHANNEL)"
 	@echo "CHANNELS=$(CHANNELS)"
 	@echo "DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)"

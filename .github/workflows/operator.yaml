@@ -7,6 +7,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 env:
   REGISTRY_APP_IMAGE: ttl.sh/apicurio-registry-${{ github.sha }}:8h
   REGISTRY_GITOPS_SYNC_IMAGE: ttl.sh/apicurio-registry-gitops-sync-${{ github.sha }}:8h
@@ -23,10 +26,10 @@ jobs:
     steps:
 
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin
@@ -70,7 +73,7 @@ jobs:
           make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: operator-build-artifacts
           path: |
@@ -88,16 +91,16 @@ jobs:
     steps:
 
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -162,22 +165,22 @@ jobs:
     steps:
 
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: operator-build-artifacts
           path: operator/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -201,10 +204,10 @@ jobs:
     steps:
 
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin
@@ -250,10 +253,10 @@ jobs:
           echo "CATALOG_IMAGE_TAG=latest-snapshot" >> $GITHUB_ENV
 
       - name: Checkout ${{ github.ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: '21'
           distribution: temurin

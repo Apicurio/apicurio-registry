@@ -9,18 +9,23 @@
   ],
   "enabledManagers": [
     "npm",
-    "maven"
+    "maven",
+    "dockerfile"
   ],
   "dependencyDashboard": true,
   "rangeStrategy": "bump",
   "ignorePaths": [
     "ui/deploy-examples/**",
     "ui/Dockerfile",
-    "distro/**",
+    "distro/connect-converter/**",
+    "distro/docker-compose/**",
+    "distro/metrics/**",
+    "distro/openshift-template/**",
     "docs/**",
     "docs-playbook/**",
     "examples/**",
-    "utils/maven-plugin/src/test/resources/test-builds"
+    "utils/maven-plugin/src/test/resources/test-builds",
+    "support-chat/**"
   ],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 10,
@@ -398,6 +403,19 @@
       ],
       "schedule": [
         "* 0 15 * *"
+      ]
+    },
+
+    {
+      "groupName": "Dependencies: Docker Base Images",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "enabled": true,
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
       ]
     },
 

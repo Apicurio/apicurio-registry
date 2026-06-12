@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: "0 6 * * *"
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   vulnerability-scan:
     name: Container vulnerability scan

@@ -191,6 +191,48 @@ public class AuthCommandTest extends AbstractCLITest {
         assertThat(context.getUsername()).isEqualTo("user2");
     }
 
+    // -- Unsafe credential storage --
+
+    @Test
+    public void testLoginBasicWithUnsafeStorage() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+                "--allow-unsafe-credential-storage");
+        assertThat(out.toString())
+                .as(withCliOutput("Should warn about unsafe storage"))
+                .contains("Logged in to context")
+                .contains("not recommended for production");
+
+        var context = getTestContext();
+        assertThat(context.isUnsafeCredentialStorage()).isTrue();
+    }
+
+    @Test
+    public void testLoginOAuth2WithUnsafeStorage() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("login", "--token-endpoint", tokenEndpoint(),
+                "--client-id", TEST_CLIENT_ID, "--client-secret", TEST_CLIENT_SECRET,
+                "--allow-unsafe-credential-storage");
+        assertThat(out.toString())
+                .as(withCliOutput("Should warn about unsafe storage"))
+                .contains("Logged in to context")
+                .contains("not recommended for production");
+
+        var context = getTestContext();
+        assertThat(context.isUnsafeCredentialStorage()).isTrue();
+    }
+
+    @Test
+    public void testLogoutClearsUnsafeStorage() {
+        executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+                "--allow-unsafe-credential-storage");
+
+        executeAndAssertSuccess("logout");
+
+        var context = getTestContext();
+        assertThat(context.isUnsafeCredentialStorage()).isFalse();
+    }
+
     // -- Helpers --
 
     private void loginBasic() {

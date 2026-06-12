@@ -7,6 +7,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 env:
   REGISTRY_APP_IMAGE: ttl.sh/apicurio-registry-${{ github.sha }}:8h
   REGISTRY_GITOPS_SYNC_IMAGE: ttl.sh/apicurio-registry-gitops-sync-${{ github.sha }}:8h

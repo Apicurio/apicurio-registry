@@ -8,6 +8,8 @@ on:
   release:
     types: [released]
 
+permissions:
+  contents: read
 
 env:
   # The values are extracted from the github.event context,

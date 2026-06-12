@@ -13,6 +13,8 @@ public class WSDLReaderAccessor {
             try {
                 WSDLFactory wsdlFactory = WSDLFactory.newInstance();
                 wsdlReader = wsdlFactory.newWSDLReader();
+                wsdlReader.setFeature("javax.wsdl.importDocuments", false);
+                wsdlReader.setFeature("com.ibm.wsdl.parseXMLSchemas", false);
             } catch (WSDLException e) {
                 throw new RuntimeException(e);
             }

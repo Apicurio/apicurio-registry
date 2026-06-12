@@ -35,8 +35,8 @@ Data flows in one direction only: **Git → Registry**. The registry serves data
 write operations. All modifications are made by committing changes to Git.
 
 ```
-Git Repository  ──git pull/push──>  Shared Volume  ──JGit read──>  Registry (read-only)
-                                    (sidecar manages)               (serves via REST API)
+Git Repository ──> git pull/push ──> Shared Volume ────> JGit read ──> Registry (read-only)
+                                     (sidecar manages)                 (serves via REST API)
 ```
 
 ### Sidecar Architecture
@@ -46,20 +46,20 @@ repositories — that responsibility belongs to a sidecar container or external 
 [git-sync](https://github.com/kubernetes/git-sync)).
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Kubernetes Pod                                      │
-│  ┌──────────────┐        ┌────────────────────────┐  │
+┌───────────────────────────────────────────────────────┐
+│  Kubernetes Pod                                       │
+│  ┌───────────────┐        ┌────────────────────────┐  │
 │  │  Sidecar      │        │  Registry Container    │  │
 │  │  (git CLI)    │        │  JGit: read content    │  │
 │  │  Fetches data │        │  Parse *.registry.yaml │  │
 │  │  Handles auth │        │  Load into H2 database │  │
 │  └──────┬────────┘        └───────────┬────────────┘  │
-│         │ read/write                  │ read-only      │
-│         ▼                            ▼                │
-│  ┌────────────────────────────────────────────────┐   │
-│  │                 Shared Volume                  │   │
-│  └────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────┘
+│         │ read/write                  │ read-only     │
+│         ▼                             ▼               │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │                 Shared Volume                   │  │
+│  └─────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────┘
 ```
 
 ### Blue-Green Loading
@@ -96,10 +96,24 @@ discriminator field. Content files are plain schema files referenced via relativ
 | `artifact-v0` | Artifact with inline versions, scoped by `registryIds` |
 | `content-v0` | *(Optional)* Content metadata for explicit `contentId` and references |
 
-### Multi-Registry Routing
+### Multi-Registry and Multi-Repository (N:M)
 
-A single repository can serve multiple registry instances:
+Registries and repositories have an **N:M relationship**:
 
+- A **single repository** can serve **multiple registry instances** — entities use `registryIds` lists to
+  control which registries load them (e.g., staging gets experimental schemas, production doesn't)
+- A **single registry** can aggregate data from **multiple repositories** — each repository contributes
+  its own groups and artifacts, with conflict detection across sources
+
+This flexibility supports two key patterns:
+
+1. **Centralized schema management**: One repository contains all schemas, with multiple registry instances
+   (dev, staging, prod) loading different subsets based on `registryIds`
+2. **Decentralized schema ownership**: Each team/project keeps schemas in their own repository alongside
+   the code that uses them. A single registry instance aggregates schemas from all project repos, giving
+   a unified view without forcing teams into a monorepo
+
+Key fields:
 - `Registry` has a single `registryId` — must match the instance's `apicurio.polling-storage.id`
 - `Group` and `Artifact` have `registryIds` lists — an entity is loaded by all listed registries
 - If `registryIds` is omitted or empty, the entity is loaded by any registry (simple setups)
@@ -138,7 +152,24 @@ Different registry instances point to different branches of the same repository:
 - `staging` branch → Staging Registry
 - `main` branch → Production Registry
 
-Schema promotion is done through Git merges.
+Schema promotion is done through Git merges. Within a single branch, `registryIds` lists can further
+control which entities each environment loads — for example, experimental schemas can be tagged
+with `registryIds: [staging]` so they're only visible in staging, not production.
+
+### Schemas Next to Code (Decentralized Ownership)
+
+Each team keeps their schemas in their own project repository, alongside the application code that
+produces or consumes them. A single registry instance aggregates from all project repos:
+
+```
+Team A repo → ─┐
+Team B repo → ──┼── Registry (multi-repo) ──→ All schemas in one place
+Team C repo → ─┘
+```
+
+This avoids a centralized schema monorepo while still providing a unified view for consumers.
+Teams manage their schemas using the same Git workflows they use for code — branches, PRs,
+code review. The registry handles conflict detection if two repos define the same artifact.
 
 ### Push Model for Restricted Networks
 
@@ -146,10 +177,24 @@ In environments where outbound network access is restricted, an external process
 Git repository hosted inside the cluster. The sidecar exposes an SSH endpoint for receiving pushes.
 See [`distro/gitops/README.md`](../../../../distro/gitops/README.md) for push mode configuration.
 
-### PR Verification with CI/CD *(planned)*
+### PR Verification with CI/CD
 
-Validate schema changes in CI before merging PRs. A planned dry-run endpoint or CLI tool will load
-data from a branch without affecting the live registry, reporting any errors.
+Validate schema changes in CI before merging PRs. The dry-run validation endpoint loads data from
+a git ref (branch, tag, or PR ref) into the inactive storage, runs the full validation pipeline
+(rules, compatibility, integrity), and returns the result — without affecting the live registry.
+
+```
+1. Developer opens PR modifying schemas
+2. CI calls: POST /admin/gitops/validate { "type": "pull", "repoId": "default", "ref": "feature/new-schema" }
+3. Sidecar fetches the ref, registry validates
+4. CI polls: GET /admin/gitops/validate/{taskId}
+5. Result: success or failure with detailed errors
+6. Pipeline reports result as a PR check status
+```
+
+See the [Management API](#management-api) section for endpoint details. For a complete
+working example with a GitHub Actions workflow and TypeScript validation script, see the
+[apicurio-registry-gitops-example](https://github.com/Apicurio/apicurio-registry-gitops-example) repository.
 
 ## Configuration
 
@@ -202,6 +247,15 @@ When using environment variables, use the standard underscore format:
 different repositories, the entire load is rejected. Each artifact must be defined
 in exactly one repository.
 
+#### Dry-run validation
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `apicurio.gitops.validate.enabled` | `true` | Enable dry-run validation endpoints. When disabled, endpoints return HTTP 503. |
+| `apicurio.gitops.validate.task.ttl.seconds` | `3600` | Time-to-live for validation tasks. Tasks are auto-removed after this period. |
+| `apicurio.gitops.validate.max-tasks` | `5` | Maximum number of validation tasks with disk resources before new requests are queued. |
+| `apicurio.gitops.validate.fetch.timeout.seconds` | `120` | Timeout for the sidecar to fetch a git ref during validation. |
+
 ## Management API
 
 The registry exposes management endpoints at `/apis/registry/v3/admin/gitops/` when running
@@ -211,6 +265,10 @@ in GitOps mode. These return HTTP 409 if a different storage backend is active.
 |----------|--------|-------------|
 | `/admin/gitops/status` | GET | Returns current sync state, commit SHA, load stats, and errors |
 | `/admin/gitops/sync` | POST | Triggers an immediate sync (returns 204) |
+| `/admin/gitops/validate` | POST | Create a dry-run validation task (returns task with `taskId`) |
+| `/admin/gitops/validate` | GET | List all active validation tasks |
+| `/admin/gitops/validate/{taskId}` | GET | Get validation task status and results |
+| `/admin/gitops/validate/{taskId}` | DELETE | Delete a validation task and clean up files |
 
 The status response includes:
 - `syncState` — one of `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, `ERROR`
@@ -218,6 +276,26 @@ The status response includes:
 - `groupCount`, `artifactCount`, `versionCount` — load statistics
 - `errors` — structured errors from the last failed load, each with `detail`, optional `source` (repo ID), and optional `context` (file path)
 - `sources` — per-source identifiers (map of source ID → abbreviated commit SHA)
+
+### Validation Task Lifecycle
+
+The `POST /admin/gitops/validate` endpoint creates a validation task and returns a `taskId`.
+Poll `GET /admin/gitops/validate/{taskId}` to track progress. Task states:
+
+| State | Description |
+|-------|-------------|
+| `pending` | Task queued, waiting for capacity |
+| `submitted` | Request file written, sidecar picking it up |
+| `fetching` | Sidecar is cloning the git ref |
+| `validating` | Registry is loading and validating the data |
+| `completed` | Finished — check `result` field (`success` or `failure`) |
+| `failed` | An error occurred (sidecar fetch failed, validation error, etc.) |
+
+The response includes `groupCount`, `artifactCount`, `versionCount` on completion,
+and `errors` (array of `{detail, source, context}`) on failure.
+
+Tasks are automatically cleaned up: disk resources are freed shortly after completion,
+and the in-memory record expires after the configured TTL (default: 1 hour).
 
 ## Timestamps
 
@@ -318,8 +396,8 @@ for configuration, security levels, and deployment details.
 
 The following features are planned but not yet implemented:
 
-- **Dry-run validation** — validate schema changes from a branch without affecting live data
 - **CLI validator** — offline validation of `*.registry.yaml` files without a running registry
+- **Push-mode validation** — validate data pushed to a temporary repository before loading
 - **Per-file git history timestamps** — derive `createdOn`/`modifiedOn` from git log per file
 
 For the full design document and implementation plan, see the
@@ -327,7 +405,49 @@ For the full design document and implementation plan, see the
 
 ## Getting Started
 
+### Docker Compose
+
 For complete working examples with Docker Compose, see [`examples/gitops/`](../../../../examples/gitops/).
+
+### Kubernetes / OpenShift (Operator)
+
+The Apicurio Registry operator can deploy GitOps storage via the `ApicurioRegistry3` custom resource.
+The operator automatically injects the GitOps sync sidecar container, creates a shared volume,
+and configures environment variables. For push mode, the operator also creates an SSH service on port 2222.
+
+Minimal CR example:
+
+```yaml
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        repos:
+          - url: https://github.com/my-org/my-schemas.git
+        registryId: prod
+```
+
+**Important:** The `registryId` field must match the `registryId` value in your `registry.registry.yaml`
+data files. If they don't match, the registry will not load any data. The default value is `default`.
+
+SSH secrets are configured via `secretRef` fields under `gitops.pull` and `gitops.push` — the operator
+handles volume mounting and env var configuration automatically. For example, to use an SSH key:
+
+```yaml
+gitops:
+  pull:
+    sshKeys:
+      name: my-ssh-keys
+```
+
+Additional configuration (custom sidecar image, extra env vars) is done via `podTemplateSpec`
+overrides. See the operator example CRs for all supported scenarios:
+[`operator/controller/src/test/resources/k8s/examples/gitops/`](../../../../operator/controller/src/test/resources/k8s/examples/gitops/).
 
 <!--
 

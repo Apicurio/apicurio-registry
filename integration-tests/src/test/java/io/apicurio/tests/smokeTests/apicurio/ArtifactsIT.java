@@ -126,7 +126,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String invalidArtifactId = "createAndUpdateArtifactId2";
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        assertClientError("RuleViolationException", 409,
+        assertClientError("RuleViolationException", 400,
                 () -> registryClient.groups().byGroupId("ccc").artifacts()
                         .post(TestUtils.clientCreateArtifact(invalidArtifactId, ArtifactType.AVRO,
                                 invalidArtifactDefinition, ContentTypes.APPLICATION_JSON)),

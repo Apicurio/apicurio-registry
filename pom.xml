@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.3.0-SNAPSHOT</version>
+  <version>3.3.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -168,19 +168,19 @@
     -->
 
     <!-- Jandex -->
-    <jandex.version>3.5.3</jandex.version>
+    <jandex.version>3.6.0</jandex.version>
 
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
-    <wire-schema.version>5.3.3</wire-schema.version>
+    <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.17.0</okio.version>
-    <kotlin-stdlib.version>2.3.21</kotlin-stdlib.version>
+    <kotlin-stdlib.version>2.4.0</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.35.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.71.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.72.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -202,15 +202,15 @@
     <!-- Skip commit id plugin -->
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
-    <!-- Apicurio Data Models (OpenAPI and AsyncAPI support) -->
-    <apicurio-data-models.version>3.0.1</apicurio-data-models.version>
+    <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
+    <apitomy-data-models.version>3.1.1</apitomy-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>26.0</graphql.version>
 
     <!-- JSON Schema Validator -->
     <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
-    <json-sKema.version>0.30.0</json-sKema.version>
+    <json-sKema.version>0.31.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
     <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
@@ -219,7 +219,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.42</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.43</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -227,14 +227,14 @@
     <netty.version>4.1.132.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
-    <debezium.version>3.5.1.Final</debezium.version>
-    <pulsar-clients.version>4.2.1</pulsar-clients.version>
+    <debezium.version>3.5.2.Final</debezium.version>
+    <pulsar-clients.version>4.2.2</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.25.3</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
-    <woodstox-core.version>7.2.0</woodstox-core.version>
-    <jgit.version>7.6.0.202603022253-r</jgit.version>
+    <woodstox-core.version>7.2.1</woodstox-core.version>
+    <jgit.version>7.7.0.202606012155-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>6.0.0</semver4j.version>
@@ -275,7 +275,7 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.10.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.4.2</version.puppycrawl>
+    <version.puppycrawl>13.5.0</version.puppycrawl>
     <!-- Protocol Buffers -->
     <proto-plugin.version>5.1.4</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
@@ -284,7 +284,7 @@
     <flink.version>1.20.4</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.9.2</kiota.libs.version>
+    <kiota.libs.version>1.9.3</kiota.libs.version>
     <kiota.community.version>0.0.35</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
@@ -629,9 +629,9 @@
         <version>${nats.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-data-models</artifactId>
-        <version>${apicurio-data-models.version}</version>
+        <groupId>io.apitomy</groupId>
+        <artifactId>apitomy-data-models</artifactId>
+        <version>${apitomy-data-models.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.avro</groupId>

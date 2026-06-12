@@ -333,4 +333,25 @@ class RuleExecutionEngineTest {
             return items.size() == 1;
         }
     }
+
+    @Test
+    void testCreateStandalone() {
+        RuleExecutionEngine standalone = RuleExecutionEngine.createStandalone();
+
+        RuleDefinition rule = new RuleDefinition();
+        rule.setName("standalone-test");
+        rule.setKind("CONDITION");
+        rule.setType("CEL");
+        rule.setExpr("amount > 0");
+        rule.setOnFailure("ERROR");
+
+        Map<String, Object> validRecord = Map.of("amount", 50L);
+        RuleExecutionResult passResult = standalone.execute(List.of(rule), "WRITE", validRecord);
+        assertTrue(passResult.isPassed());
+
+        Map<String, Object> invalidRecord = Map.of("amount", -1L);
+        RuleExecutionResult failResult = standalone.execute(List.of(rule), "WRITE", invalidRecord);
+        assertFalse(failResult.isPassed());
+        assertEquals(1, failResult.getViolations().size());
+    }
 }

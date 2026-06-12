@@ -1,12 +1,11 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.cli.utils.Utils.Function0Ex;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 public class OutputBuffer {
 

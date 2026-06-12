@@ -1,6 +1,8 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.observability.OTelAttributes;
 import io.apicurio.registry.util.Priorities;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -26,15 +28,15 @@ public class TracingFilter implements ContainerRequestFilter {
         Span currentSpan = Span.current();
         if (currentSpan != null && currentSpan.isRecording()) {
             // Add Apicurio-specific trace attributes from headers
-            addAttributeIfPresent(currentSpan, requestContext, HEADER_GROUP_ID, "apicurio.groupId");
-            addAttributeIfPresent(currentSpan, requestContext, HEADER_ARTIFACT_ID, "apicurio.artifactId");
-            addAttributeIfPresent(currentSpan, requestContext, HEADER_VERSION, "apicurio.version");
-            addAttributeIfPresent(currentSpan, requestContext, HEADER_ARTIFACT_TYPE, "apicurio.artifactType");
+            addAttributeIfPresent(currentSpan, requestContext, HEADER_GROUP_ID, OTelAttributes.ATTR_GROUP_ID);
+            addAttributeIfPresent(currentSpan, requestContext, HEADER_ARTIFACT_ID, OTelAttributes.ATTR_ARTIFACT_ID);
+            addAttributeIfPresent(currentSpan, requestContext, HEADER_VERSION, OTelAttributes.ATTR_VERSION);
+            addAttributeIfPresent(currentSpan, requestContext, HEADER_ARTIFACT_TYPE, OTelAttributes.ATTR_ARTIFACT_TYPE);
 
             // Add request path information
             String path = requestContext.getUriInfo().getPath();
             if (path != null) {
-                currentSpan.setAttribute("apicurio.request.path", path);
+                currentSpan.setAttribute(OTelAttributes.ATTR_REQUEST_PATH, path);
             }
 
             // Extract group and artifact IDs from path parameters if available
@@ -43,22 +45,22 @@ public class TracingFilter implements ContainerRequestFilter {
             String version = extractPathParam(requestContext, "version");
 
             if (groupId != null) {
-                currentSpan.setAttribute("apicurio.path.groupId", groupId);
+                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_GROUP_ID, groupId);
             }
             if (artifactId != null) {
-                currentSpan.setAttribute("apicurio.path.artifactId", artifactId);
+                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_ARTIFACT_ID, artifactId);
             }
             if (version != null) {
-                currentSpan.setAttribute("apicurio.path.version", version);
+                currentSpan.setAttribute(OTelAttributes.ATTR_PATH_VERSION, version);
             }
         }
     }
 
     private void addAttributeIfPresent(Span span, ContainerRequestContext context,
-                                       String headerName, String attributeName) {
+                                       String headerName, AttributeKey<String> attributeKey) {
         String value = context.getHeaderString(headerName);
         if (value != null && !value.isEmpty()) {
-            span.setAttribute(attributeName, value);
+            span.setAttribute(attributeKey, value);
         }
     }
 

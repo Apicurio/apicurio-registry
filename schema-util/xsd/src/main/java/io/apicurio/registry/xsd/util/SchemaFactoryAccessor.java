@@ -15,8 +15,9 @@ public class SchemaFactoryAccessor {
             try {
                 factory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
                 factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+                factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             } catch (SAXNotRecognizedException | SAXNotSupportedException e) {
-                // Don't care.
+                throw new RuntimeException(e);
             }
             return factory;
         }

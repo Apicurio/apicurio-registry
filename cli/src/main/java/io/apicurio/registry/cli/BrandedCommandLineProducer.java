@@ -5,11 +5,10 @@ import io.quarkus.picocli.runtime.PicocliCommandLineFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
-import org.jboss.logging.Logger;
-import picocli.CommandLine;
-import picocli.CommandLine.Model.CommandSpec;
-
 import java.util.LinkedHashMap;
+import org.jboss.logging.Logger;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine;
 
 @ApplicationScoped
 public class BrandedCommandLineProducer {

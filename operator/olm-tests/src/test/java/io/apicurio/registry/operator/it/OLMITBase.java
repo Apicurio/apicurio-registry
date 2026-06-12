@@ -2,6 +2,8 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.utils.OperatorTestContext;
+import io.apicurio.registry.operator.utils.OperatorTestExtension;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.NamespaceableResource;
@@ -10,6 +12,7 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +31,8 @@ import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-public abstract class OLMITBase {
+@ExtendWith(OperatorTestExtension.class)
+public abstract class OLMITBase implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(OLMITBase.class);
 
@@ -41,6 +45,21 @@ public abstract class OLMITBase {
     protected static String namespace;
     protected static IngressManager ingressManager;
     protected static boolean cleanup;
+
+    @Override
+    public KubernetesClient getClient() {
+        return client;
+    }
+
+    @Override
+    public String getNamespace() {
+        return namespace;
+    }
+
+    @Override
+    public boolean isOLMTest() {
+        return true;
+    }
 
     @BeforeAll
     public static void beforeAll() throws Exception {
@@ -162,7 +181,18 @@ public abstract class OLMITBase {
         rawResource = rawResource.replace("${PLACEHOLDER_PACKAGE}", "apicurio-registry-3.v" + projectVersion.toLowerCase());
         rawResource = rawResource.replace("${PLACEHOLDER_VERSION}", projectVersion);
         rawResource = rawResource.replace("${PLACEHOLDER_LC_VERSION}", projectVersion.toLowerCase());
+        rawResource = rawResource.replace("${PLACEHOLDER_CHANNEL}", deriveChannel(projectVersion));
         return rawResource;
+    }
+
+    private static String deriveChannel(String version) {
+        // Derive minor-version channel from version (e.g., "3.2.1" -> "3.2.x", "3.3.0-SNAPSHOT" -> "3.3.x")
+        var lc = version.toLowerCase();
+        var parts = lc.split("\\.");
+        if (parts.length >= 2) {
+            return parts[0] + "." + parts[1] + ".x";
+        }
+        return lc;
     }
 
     @AfterEach

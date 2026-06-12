@@ -1,10 +1,12 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+// assembly-using-iceberg-catalog
 [id="using-iceberg-catalog_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Using {registry} as an Apache Iceberg REST Catalog
 
 [role="_abstract"]
-This chapter explains how to use {registry} as an Apache Iceberg REST Catalog to manage table metadata for your data lakehouse applications:
+You can use {registry} as an Apache Iceberg REST Catalog to manage table metadata for your data lakehouse applications.
 
 * xref:registry-iceberg-catalog-overview_{context}[]
 * xref:registry-iceberg-catalog-config_{context}[]
@@ -13,6 +15,7 @@ This chapter explains how to use {registry} as an Apache Iceberg REST Catalog to
 * xref:registry-iceberg-catalog-error-handling_{context}[]
 * xref:registry-iceberg-catalog-auth_{context}[]
 * xref:registry-iceberg-catalog-query-engines_{context}[]
+* xref:registry-iceberg-catalog-api-reference_{context}[]
 * xref:registry-iceberg-catalog-limitations_{context}[]
 
 
@@ -21,19 +24,21 @@ This chapter explains how to use {registry} as an Apache Iceberg REST Catalog to
 * Query engines or tools that support the Iceberg REST Catalog specification (Apache Spark, Trino, ClickHouse, DuckDB, Flink)
 
 
-[id='registry-iceberg-catalog-overview_{context}']
+// con-registry-iceberg-catalog-overview
+[id="registry-iceberg-catalog-overview_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Overview of the {registry} Iceberg REST Catalog
 
 [role="_abstract"]
-{registry} implements the Apache Iceberg REST Catalog API specification, enabling it to serve as a metadata catalog for Iceberg tables. This allows query engines like Apache Spark, Trino, ClickHouse, DuckDB, and Flink to use {registry} as their Iceberg catalog for managing table metadata.
+{registry} implements the Apache Iceberg REST Catalog API specification, which means it can serve as a metadata catalog for Iceberg tables. Query engines such as Apache Spark, Trino, ClickHouse, DuckDB, and Flink can use {registry} as their Iceberg catalog for managing table metadata.
 
 The catalog maps {registry} concepts to Iceberg concepts as follows:
 
 .Mapping between {registry} and Iceberg concepts
 [.table-expandable,width="100%",cols="3,3,5",options="header"]
 |===
-|{registry} Concept
-|Iceberg Concept
+|{registry} concept
+|Iceberg concept
 |Description
 |Group
 |Namespace
@@ -59,27 +64,29 @@ The catalog maps {registry} concepts to Iceberg concepts as follows:
 |===
 
 
-[id='registry-iceberg-catalog-config_{context}']
-== Configuring the {registry} Iceberg REST Catalog
+// ref-registry-iceberg-catalog-config
+[id="registry-iceberg-catalog-config_{context}"]
+:_mod-docs-content-type: REFERENCE
+== {registry} Iceberg REST Catalog configuration
 
 [role="_abstract"]
-This section describes the configuration options available for the {registry} Iceberg REST Catalog.
+You can configure the {registry} Iceberg REST Catalog by using several properties.
 
 .{registry} Iceberg configuration properties
 [.table-expandable,width="100%",cols="4,4,3,5",options="header"]
 |===
 |Property
-|Environment Variable
+|Environment variable
 |Default
 |Description
 |`apicurio.iceberg.enabled`
 |`APICURIO_ICEBERG_ENABLED`
 |`false`
-|Enables or disables the Iceberg REST Catalog API. This is an experimental feature and also requires `apicurio.features.experimental.enabled=true`.
+|Enables or disables the Iceberg REST Catalog API. Because this feature is experimental, you must also set `apicurio.features.experimental.enabled=true`.
 |`apicurio.iceberg.warehouse`
 |`APICURIO_ICEBERG_WAREHOUSE`
 |Empty string
-|The default warehouse location for Iceberg tables. This is returned in the catalog configuration.
+|The default warehouse location for Iceberg tables. The catalog configuration response includes this value.
 |`apicurio.iceberg.default-prefix`
 |`APICURIO_ICEBERG_DEFAULT_PREFIX`
 |`default`
@@ -96,13 +103,15 @@ apicurio.iceberg.default-prefix=production
 ----
 
 
-[id='registry-iceberg-catalog-rest-api_{context}']
-== Using the Iceberg REST API
+// ref-registry-iceberg-catalog-rest-api
+[id="registry-iceberg-catalog-rest-api_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Iceberg REST API usage
 
 [role="_abstract"]
-{registry} exposes the Iceberg REST Catalog API at the `/apis/iceberg/v1` endpoint. The following examples demonstrate how to interact with the API using `curl`.
+{registry} exposes the Iceberg REST Catalog API at the `/apis/iceberg/v1` endpoint. You can interact with the API by using `curl` as shown in these examples.
 
-=== Getting catalog configuration
+.Getting catalog configuration
 
 [source,bash]
 ----
@@ -118,7 +127,7 @@ curl http://localhost:8080/apis/iceberg/v1/config
 }
 ----
 
-=== Creating a namespace
+.Creating a namespace
 
 [source,bash]
 ----
@@ -145,7 +154,7 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces \
 }
 ----
 
-=== Listing namespaces
+.Listing namespaces
 
 [source,bash]
 ----
@@ -163,7 +172,7 @@ curl http://localhost:8080/apis/iceberg/v1/default/namespaces
 }
 ----
 
-=== Creating a table
+.Creating a table
 
 [source,bash]
 ----
@@ -187,14 +196,14 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
   }'
 ----
 
-=== Loading a table
+.Loading a table
 
 [source,bash]
 ----
 curl http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users
 ----
 
-=== Listing tables in a namespace
+.Listing tables in a namespace
 
 [source,bash]
 ----
@@ -214,7 +223,7 @@ curl http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables
 }
 ----
 
-=== Renaming a table
+.Renaming a table
 
 [source,bash]
 ----
@@ -232,35 +241,37 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/tables/rename \
   }'
 ----
 
-=== Dropping a table
+.Dropping a table
 
 [source,bash]
 ----
 curl -X DELETE http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users
 ----
 
-=== Dropping a namespace
-
-NOTE: A namespace must be empty (contain no tables) before it can be dropped.
+.Dropping a namespace
 
 [source,bash]
 ----
 curl -X DELETE http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database
 ----
 
+NOTE: A namespace must be empty (contain no tables) before you can drop it.
 
-[id='registry-iceberg-catalog-commit-table_{context}']
-== Committing updates to a table
+
+// ref-registry-iceberg-catalog-commit-table
+[id="registry-iceberg-catalog-commit-table_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Table commit operations
 
 [role="_abstract"]
-The CommitTable operation is the core mechanism for updating Iceberg table metadata. It enables atomic metadata updates with optimistic concurrency control, which is the foundation of Iceberg's snapshot isolation model.
+The CommitTable operation is the core mechanism for updating Iceberg table metadata. It provides atomic metadata updates with optimistic concurrency control, which is the foundation of Iceberg's snapshot isolation model.
 
 A commit request contains two parts:
 
-* *Requirements* -- preconditions that must be satisfied for the commit to proceed. If any requirement is not met, the commit fails with a `409 Conflict` response and no changes are applied.
-* *Updates* -- mutations to apply to the table metadata. All updates within a single commit are applied atomically to produce one new metadata version.
+* *Requirements*: preconditions that must be satisfied for the commit to proceed. If any requirement is not met, the commit fails with a `409 Conflict` response and no changes are applied.
+* *Updates*: mutations to apply to the table metadata. All updates within a single commit are applied atomically to produce one new metadata version.
 
-=== Concurrency control
+.Concurrency control
 
 {registry} uses optimistic concurrency to detect conflicting commits. When a commit is processed:
 
@@ -268,32 +279,32 @@ A commit request contains two parts:
 . All requirements are validated against the current metadata.
 . All updates are applied in-memory to produce new metadata.
 . The new metadata is stored as a new artifact version.
-. If another commit was interleaved between steps 1 and 4, the conflict is detected and the commit fails with a `409 Conflict` response.
+. If another commit is interleaved between steps 1 and 4, the conflict is detected and the commit fails with a `409 Conflict` response.
 
-This ensures that concurrent writers cannot silently overwrite each other's changes. Clients that receive a `409` response should reload the current table metadata, revalidate their changes, and retry the commit.
+Concurrent writers cannot silently overwrite each other's changes. Clients that receive a `409` response must reload the current table metadata, revalidate their changes, and retry the commit.
 
-All changes within a single commit -- including the new version and any artifact-level label updates -- are applied atomically within a single storage transaction. If any part of the commit fails, the entire operation is rolled back and no partial state is persisted.
+All changes within a single commit, including the new version and any artifact-level label updates, are applied atomically within a single storage transaction. If any part of the commit fails, the entire operation is rolled back and no partial state is persisted.
 
-=== Conflict handling and retries
+.Conflict handling and retries
 
 When a commit fails with a `409 Conflict` response, the appropriate client behavior is:
 
-. Reload the current table metadata using the `LoadTable` endpoint.
+. Reload the current table metadata by using the `LoadTable` endpoint.
 . Revalidate the intended changes against the new metadata.
 . Rebuild the commit request with updated requirements.
 . Retry the commit.
 
 Most Iceberg client libraries (such as the Apache Iceberg Java SDK) handle this retry loop automatically.
 
-=== KafkaSQL storage considerations
+.KafkaSQL storage considerations
 
-When {registry} is deployed with the KafkaSQL storage backend, all write operations -- including commits -- are serialized through a Kafka journal topic. This has the following implications:
+When {registry} is deployed with the KafkaSQL storage backend, all write operations, including commits, are serialized through a Kafka journal topic. This serialization has several implications:
 
-* *Ordering*: Commits to the same table are totally ordered through Kafka partitioning. This means the optimistic concurrency check is always evaluated against the true latest state.
-* *Failed commits*: When a commit fails (for example, due to a concurrent write detected by the version-order check), the Kafka message remains in the journal. This is expected and harmless: during journal replay (such as when a new replica starts up), the message is re-consumed, the same version-order check fails again, and the message is silently discarded since no HTTP thread is waiting for a response.
+* *Ordering*: Commits to the same table are totally ordered through Kafka partitioning. The optimistic concurrency check is always evaluated against the true latest state.
+* *Failed commits*: When a commit fails (for example, due to a concurrent write detected by the version-order check), the Kafka message remains in the journal. This behavior is expected and harmless: during journal replay (such as when a new replica starts up), the message is re-consumed, the same version-order check fails again, and the message is silently discarded because no HTTP thread is waiting for a response.
 * *Atomicity*: The version creation and any artifact-level metadata updates are performed in a single SQL transaction. If the transaction fails, no data is written and the Kafka message becomes a no-op on replay.
 
-=== Requirements
+.Requirements
 
 Requirements are assertions about the current state of the table. Each requirement has a `type` field that specifies the kind of assertion.
 
@@ -329,7 +340,7 @@ Requirements are assertions about the current state of the table. Each requireme
 |Asserts that the default sort order ID matches the expected value.
 |===
 
-=== Updates
+.Updates
 
 Updates are mutations applied to the table metadata. Each update has an `action` field that specifies the type of mutation.
 
@@ -386,7 +397,7 @@ Updates are mutations applied to the table metadata. Each update has an `action`
 |Removes keys from the table properties.
 |===
 
-=== Example: Adding a schema and setting it as current
+.Example: Adding a schema and setting it as current
 
 [source,bash]
 ----
@@ -416,7 +427,7 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
   }'
 ----
 
-=== Example: Adding a snapshot and updating the main branch
+.Example: Adding a snapshot and updating the main branch
 
 [source,bash]
 ----
@@ -446,7 +457,7 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
   }'
 ----
 
-=== Example: Setting and removing table properties
+.Example: Setting and removing table properties
 
 [source,bash]
 ----
@@ -470,13 +481,13 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
   }'
 ----
 
-=== Error responses
+.Error responses
 
 .CommitTable error responses
 [.table-expandable,width="100%",cols="2,3,5",options="header"]
 |===
-|HTTP Status
-|Error Type
+|HTTP status
+|Error type
 |Description
 |`200`
 |--
@@ -493,17 +504,19 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
 |===
 
 
-[id='registry-iceberg-catalog-error-handling_{context}']
+// ref-registry-iceberg-catalog-error-handling
+[id="registry-iceberg-catalog-error-handling_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Error handling
 
 [role="_abstract"]
-All Iceberg REST Catalog API endpoints return errors in the Iceberg error format. The following table lists the error types that can be returned by the API.
+All Iceberg REST Catalog API endpoints return errors in the Iceberg error format. Each error response includes an HTTP status code and error type.
 
 .Iceberg REST Catalog API error types
 [.table-expandable,width="100%",cols="2,3,5",options="header"]
 |===
-|HTTP Status
-|Error Type
+|HTTP status
+|Error type
 |Description
 |`400`
 |`BadRequestException`
@@ -532,7 +545,9 @@ All Iceberg REST Catalog API endpoints return errors in the Iceberg error format
 |===
 
 
-[id='registry-iceberg-catalog-auth_{context}']
+// ref-registry-iceberg-catalog-auth
+[id="registry-iceberg-catalog-auth_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Authentication and authorization
 
 [role="_abstract"]
@@ -542,7 +557,7 @@ When {registry} is configured with authentication enabled, the Iceberg REST Cata
 [.table-expandable,width="100%",cols="4,2,5",options="header"]
 |===
 |Operation
-|Minimum Level
+|Minimum level
 |Notes
 |Get catalog configuration
 |Read
@@ -589,13 +604,15 @@ When {registry} is configured with authentication enabled, the Iceberg REST Cata
 |===
 
 
-[id='registry-iceberg-catalog-query-engines_{context}']
-== Using {registry} with query engines
+// ref-registry-iceberg-catalog-query-engines
+[id="registry-iceberg-catalog-query-engines_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Query engine configuration for {registry}
 
 [role="_abstract"]
-This section provides configuration examples for popular query engines that support the Iceberg REST Catalog specification.
+You can configure popular query engines that support the Iceberg REST Catalog specification to use {registry} as their catalog.
 
-=== Apache Spark
+.Apache Spark
 
 Configure Spark to use {registry} as the Iceberg catalog:
 
@@ -627,7 +644,7 @@ CREATE TABLE apicurio.my_database.events (
 SELECT * FROM apicurio.my_database.events;
 ----
 
-=== Trino
+.Trino
 
 Configure Trino to use {registry} as the Iceberg catalog by creating a catalog properties file:
 
@@ -657,7 +674,7 @@ CREATE TABLE apicurio.my_database.products (
 SELECT * FROM apicurio.my_database.products;
 ----
 
-=== DuckDB
+.DuckDB
 
 Configure DuckDB to use {registry} as the Iceberg catalog:
 
@@ -674,7 +691,7 @@ ATTACH 'http://localhost:8080/apis/iceberg/v1' AS apicurio (TYPE ICEBERG);
 SELECT * FROM apicurio.my_database.users;
 ----
 
-=== ClickHouse
+.ClickHouse
 
 Configure ClickHouse to use {registry} as the Iceberg catalog:
 
@@ -692,11 +709,13 @@ SELECT * FROM apicurio_db.users;
 ----
 
 
-[id='registry-iceberg-catalog-api-reference_{context}']
+// ref-registry-iceberg-catalog-api-reference
+[id="registry-iceberg-catalog-api-reference_{context}"]
+:_mod-docs-content-type: REFERENCE
 == API reference
 
 [role="_abstract"]
-The following table lists all Iceberg REST Catalog API endpoints supported by {registry}.
+{registry} supports a set of Iceberg REST Catalog API endpoints for managing namespaces, tables, and views.
 
 .Iceberg REST Catalog API endpoints
 [.table-expandable,width="100%",cols="2,4,5",options="header"]
@@ -770,11 +789,13 @@ The following table lists all Iceberg REST Catalog API endpoints supported by {r
 |===
 
 
-[id='registry-iceberg-catalog-limitations_{context}']
+// ref-registry-iceberg-catalog-limitations
+[id="registry-iceberg-catalog-limitations_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Limitations
 
 [role="_abstract"]
-The {registry} Iceberg REST Catalog implementation has the following limitations:
+The {registry} Iceberg REST Catalog implementation has several known limitations:
 
 * *Multi-table transactions are not supported.* Each CommitTable operation is scoped to a single table. Cross-table atomic commits are not available.
 * *Server-side content management.* {registry} stores table metadata but does not manage data files. Clients are responsible for writing data files to the configured warehouse location.
@@ -784,7 +805,7 @@ The {registry} Iceberg REST Catalog implementation has the following limitations
 
 [role="_additional-resources"]
 .Additional resources
-* For more information about the Iceberg REST Catalog specification, see the link:https://github.com/apache/iceberg/blob/main/open-api/rest-catalog-open-api.yaml[Apache Iceberg REST Catalog OpenAPI specification]
-* For information on {registry} groups and artifacts, see {registry-overview}
-* For information about Apache Iceberg, see the link:https://iceberg.apache.org/[Apache Iceberg documentation]
+* link:https://github.com/apache/iceberg/blob/main/open-api/rest-catalog-open-api.yaml[Apache Iceberg REST Catalog OpenAPI specification]
+* {registry-overview}
+* link:https://iceberg.apache.org/[Apache Iceberg documentation]
 

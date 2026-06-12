@@ -21,6 +21,7 @@ import static io.apicurio.registry.operator.utils.Utils.isBlank;
 public class SecretKeyRefTool {
 
     private SecretKeyRef secretKeyRef;
+    private Integer defaultMode;
 
     /**
      * Create a utility wrapper around a SecretKeyRef.
@@ -38,6 +39,15 @@ public class SecretKeyRefTool {
             this.secretKeyRef = SecretKeyRef.builder().name(secretKeyRef.getName())
                     .key(secretKeyRef.getKey() != null ? secretKeyRef.getKey() : defaultKey).build();
         }
+    }
+
+    /**
+     * Set file permissions for the mounted Secret volume (e.g., 0400 for SSH private keys).
+     * If not set, K8s uses the default (0644).
+     */
+    public SecretKeyRefTool withDefaultMode(int mode) {
+        this.defaultMode = mode;
+        return this;
     }
 
     public boolean isValid() {
@@ -75,7 +85,7 @@ public class SecretKeyRefTool {
      */
     public void applySecretVolume(Deployment deployment, String containerName) {
         requireValid();
-        addSecretVolume(deployment, secretKeyRef.getName(), getSecretVolumeName());
+        addSecretVolume(deployment, secretKeyRef.getName(), getSecretVolumeName(), defaultMode);
         addSecretVolumeMount(deployment, containerName, getSecretVolumeName(), getSecretVolumeMountPath());
     }
 
@@ -100,19 +110,22 @@ public class SecretKeyRefTool {
         // @formatter:on
     }
 
-    private static void addSecretVolume(Deployment deployment, String secretName, String volumeName) {
+    private static void addSecretVolume(Deployment deployment, String secretName, String volumeName,
+            Integer defaultMode) {
         // Skip if the volume already exists, so we don't have to add it multiple times.
         // This assumes there is a bijection between the secret names and volume names.
         if (deployment.getSpec().getTemplate().getSpec().getVolumes().stream()
                 .filter(v -> v.getName().equals(volumeName)).findAny().isEmpty()) {
             // @formatter:off
+            var volumeBuilder = new VolumeBuilder()
+                    .withName(volumeName)
+                    .withNewSecret()
+                    .withSecretName(secretName);
+            if (defaultMode != null) {
+                volumeBuilder = volumeBuilder.withDefaultMode(defaultMode);
+            }
             deployment.getSpec().getTemplate().getSpec().getVolumes().add(
-                    new VolumeBuilder()
-                            .withName(volumeName)
-                            .withNewSecret()
-                            .withSecretName(secretName)
-                            .endSecret()
-                            .build()
+                    volumeBuilder.endSecret().build()
             );
             // @formatter:on
         }

@@ -45,8 +45,30 @@
 #                                               warn on issues
 #                                      strict - require all keys to be mounted, fail on issues
 #
+# Dry-run validation:
+#   APICURIO_GITOPS_VALIDATE_ENABLED                 Enable validation watch loop (default: true)
+#   APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS   Poll interval for validation requests in seconds (default: 2)
+#   APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS     Stale validation cleanup age in seconds (default: 7200)
+#   APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS   Timeout for git clone during validation in seconds (default: 120)
+#
 
 set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# OCP arbitrary UID support
+# ---------------------------------------------------------------------------
+# OpenShift runs containers with arbitrary UIDs in group 0.
+# If the current UID doesn't have a passwd entry, create one so $HOME,
+# SSH, and git-shell work correctly.
+if ! whoami &>/dev/null 2>&1; then
+    if [ -w /etc/passwd ]; then
+        grep -v "^git:" /etc/passwd > /tmp/passwd.tmp
+        echo "git:x:$(id -u):0:git:/home/git:/usr/bin/git-shell" >> /tmp/passwd.tmp
+        cat /tmp/passwd.tmp > /etc/passwd
+        rm -f /tmp/passwd.tmp
+    fi
+fi
+export HOME=/home/git
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -92,6 +114,10 @@ log() {
 
 success() {
     echo -e "${_CYAN}[$(_timestamp)]${_RESET} ${_GREEN}$*${_RESET}"
+}
+
+sanitize_url() {
+    echo "$1" | sed 's|://[^@]*@|://***@|'
 }
 
 warning() {
@@ -278,7 +304,7 @@ validate_ssh_key_permissions() {
 setup_ssh_client() {
     local ssh_dir="${HOME}/.ssh"
     mkdir -p "${ssh_dir}"
-    chmod 700 "${ssh_dir}"
+    chmod 700 "${ssh_dir}" 2>/dev/null || true
 
     # Collect SSH keys: global keys (PULL_SSH_KEYS) and per-repo keys (REPOS_N_SSH_KEYS).
     # All keys are added as IdentityFile entries — SSH tries each in order.
@@ -299,7 +325,7 @@ setup_ssh_client() {
             fi
             validate_ssh_key_permissions "${key_path}"
             cp "${key_path}" "${ssh_dir}/id_key_${key_index}"
-            chmod 600 "${ssh_dir}/id_key_${key_index}"
+            chmod 600 "${ssh_dir}/id_key_${key_index}" 2>/dev/null || true
             key_index=$((key_index + 1))
         done
         success "${key_index} SSH client key(s) configured"
@@ -330,7 +356,7 @@ setup_ssh_client() {
         [ -f "${key_file}" ] && echo "    IdentityFile ${key_file}" >> "${ssh_dir}/config"
     done
 
-    chmod 600 "${ssh_dir}/config"
+    chmod 600 "${ssh_dir}/config" 2>/dev/null || true
 
     # Set GIT_SSH_COMMAND so git uses our config
     export GIT_SSH_COMMAND="ssh -F ${ssh_dir}/config"
@@ -350,7 +376,7 @@ setup_ssh_host_keys() {
         fi
         validate_ssh_key_permissions "${PUSH_SSH_HOST_KEY}"
         cp "${PUSH_SSH_HOST_KEY}" "${sshd_dir}/ssh_host_key"
-        chmod 600 "${sshd_dir}/ssh_host_key"
+        chmod 600 "${sshd_dir}/ssh_host_key" 2>/dev/null || true
 
         # Also copy the public key if it exists alongside the private key
         if [ -f "${PUSH_SSH_HOST_KEY}.pub" ]; then
@@ -391,26 +417,29 @@ setup_ssh_server() {
 HostKey ${sshd_dir}/ssh_host_rsa_key"
     fi
 
-    # Set up authorized keys
-    local auth_keys_dir="/home/git/.ssh"
-    mkdir -p "${auth_keys_dir}"
-    chmod 700 "${auth_keys_dir}"
-
-    if [ -n "${PUSH_SSH_AUTHORIZED_KEYS}" ] && [ -f "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
-        cp "${PUSH_SSH_AUTHORIZED_KEYS}" "${auth_keys_dir}/authorized_keys"
-        chmod 600 "${auth_keys_dir}/authorized_keys"
-        success "Authorized keys configured for push access"
+    # Set up authorized keys — use the mounted path directly (avoids ownership issues with arbitrary UIDs)
+    local auth_keys_file=""
+    if [ -n "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+        if [ -f "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+            auth_keys_file="${PUSH_SSH_AUTHORIZED_KEYS}"
+            success "Authorized keys configured for push access"
+        elif [ -d "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+            error "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS must point to a file, not a directory: ${PUSH_SSH_AUTHORIZED_KEYS}"
+        else
+            error "Authorized keys file not found: ${PUSH_SSH_AUTHORIZED_KEYS}"
+        fi
     elif is_strict; then
         error "APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS is required in strict mode. Provide an authorized_keys file to control push access."
     else
         warning "Push mode enabled but no authorized keys configured (APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS)"
+        auth_keys_file="/dev/null"
     fi
 
     # Render sshd config from template
     render_template "${TEMPLATE_DIR}/sshd_config.template" "${sshd_dir}/sshd_config" \
         "PUSH_PORT=${PUSH_PORT}" \
         "HOST_KEY_DIRECTIVES=${host_key_directives}" \
-        "AUTH_KEYS_DIR=${auth_keys_dir}" \
+        "AUTH_KEYS_FILE=${auth_keys_file}" \
         "SSHD_DIR=${sshd_dir}"
 
     success "SSH server configured on port ${PUSH_PORT}"
@@ -445,7 +474,7 @@ init_repo() {
             error "[${repo_dir}] Repository URL is required when pull mode is enabled"
         fi
 
-        log "[${repo_dir}] Cloning ${repo_url} (branch: ${repo_branch})..."
+        log "[${repo_dir}] Cloning $(sanitize_url "${repo_url}") (branch: ${repo_branch})..."
         local depth_args=""
         if [ "${PULL_DEPTH}" -gt 0 ] 2>/dev/null; then
             depth_args="--depth ${PULL_DEPTH}"
@@ -502,10 +531,163 @@ pull_loop() {
 }
 
 # ---------------------------------------------------------------------------
+# Dry-run validation support
+# ---------------------------------------------------------------------------
+
+VALIDATE_ENABLED="${APICURIO_GITOPS_VALIDATE_ENABLED:-true}"
+VALIDATE_DIR="${WORKSPACE}/validate"
+VALIDATE_POLL_INTERVAL="${APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS:-2}"
+VALIDATE_CLEANUP_AGE="${APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS:-7200}"
+VALIDATE_FETCH_TIMEOUT="${APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS:-120}"
+
+process_validate_request() {
+    local request_file="$1"
+    local task_id
+    task_id=$(basename "${request_file}" .json)
+
+    local state
+    state=$(jq -r '.status.state // "pending"' "${request_file}" 2>/dev/null)
+    if [ "${state}" != "pending" ]; then
+        return
+    fi
+
+    local api_version req_type repo_id ref
+    api_version=$(jq -r '.apiVersion // ""' "${request_file}")
+    if [ -n "${api_version}" ] && [ "${api_version}" != "v1" ]; then
+        jq '.status = {"state": "failed", "error": "Unsupported apiVersion: '"${api_version}"'. Expected v1.", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    req_type=$(jq -r '.spec.type // "pull"' "${request_file}")
+    repo_id=$(jq -r '.spec.repoId // ""' "${request_file}")
+    ref=$(jq -r '.spec.ref // ""' "${request_file}")
+
+    if [ "${req_type}" != "pull" ]; then
+        jq '.status = {"state": "failed", "error": "Unsupported validation type: '"${req_type}"'. Only pull is supported.", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    if [ -z "${repo_id}" ] || [ -z "${ref}" ]; then
+        jq '.status = {"state": "failed", "error": "Missing repoId or ref in spec", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    # Find the matching repo config
+    local repo_index=-1
+    for i in "${!REPO_DIRS[@]}"; do
+        if [ "${REPO_DIRS[$i]}" = "${repo_id}" ]; then
+            repo_index=$i
+            break
+        fi
+    done
+
+    if [ "${repo_index}" -eq -1 ]; then
+        jq '.status = {"state": "failed", "error": "Unknown repoId: '"${repo_id}"'", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    local repo_url="${REPO_URLS[$repo_index]}"
+    if [ -z "${repo_url}" ]; then
+        jq '.status = {"state": "failed", "error": "Repo '"${repo_id}"' has no remote URL configured", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        return
+    fi
+
+    log "[validate:${task_id}] Fetching ref '${ref}' from repo '${repo_id}'"
+
+    # Update status to fetching
+    jq '.status = {"state": "fetching"}' \
+        "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+
+    local checkout_dir="${VALIDATE_DIR}/${task_id}/repo"
+    mkdir -p "${checkout_dir}"
+
+    # Clone the repo at the specified ref
+    local clone_args="--depth 1 --single-branch"
+    if timeout "${VALIDATE_FETCH_TIMEOUT}" git clone ${clone_args} --branch "${ref}" "${repo_url}" "${checkout_dir}" 2>/dev/null; then
+        log "[validate:${task_id}] Fetch completed successfully"
+        jq '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+    else
+        # Try fetching as a ref (PR refs can't be cloned directly with --branch)
+        rm -rf "${checkout_dir}"
+        mkdir -p "${checkout_dir}"
+        if timeout "${VALIDATE_FETCH_TIMEOUT}" git clone --depth 1 "${repo_url}" "${checkout_dir}" 2>/dev/null && \
+           timeout "${VALIDATE_FETCH_TIMEOUT}" git -C "${checkout_dir}" fetch origin --depth 1 -- "${ref}" 2>/dev/null && \
+           git -C "${checkout_dir}" checkout FETCH_HEAD 2>/dev/null; then
+            log "[validate:${task_id}] Fetch completed successfully (via ref fetch)"
+            jq '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+                "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        else
+            local err_msg="Failed to fetch ref '${ref}' from $(sanitize_url "${repo_url}")"
+            warning "[validate:${task_id}] ${err_msg}"
+            rm -rf "${checkout_dir}"
+            jq '.status = {"state": "failed", "error": "'"${err_msg}"'", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
+                "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        fi
+    fi
+}
+
+cleanup_stale_validations() {
+    if [ ! -d "${VALIDATE_DIR}" ]; then
+        return
+    fi
+    local cleanup_min=$(( (VALIDATE_CLEANUP_AGE + 59) / 60 ))
+    [ "${cleanup_min}" -lt 1 ] && cleanup_min=1
+    find "${VALIDATE_DIR}" -maxdepth 1 -name "*.json" -mmin "+${cleanup_min}" 2>/dev/null | while read -r f; do
+        local task_id
+        task_id=$(basename "${f}" .json)
+        log "[validate] Cleaning up stale validation: ${task_id}"
+        rm -rf "${VALIDATE_DIR}/${task_id}"
+        rm -f "${f}"
+    done
+}
+
+validate_loop() {
+    if ! mkdir -p "${VALIDATE_DIR}" 2>/dev/null; then
+        error "Cannot create validation directory ${VALIDATE_DIR}. " \
+              "Ensure the shared volume is writable. " \
+              "Validation watch loop will not start."
+        return 1
+    fi
+    chmod 1777 "${VALIDATE_DIR}" 2>/dev/null || true
+    if ! touch "${VALIDATE_DIR}/.writetest" 2>/dev/null; then
+        error "Validation directory ${VALIDATE_DIR} is not writable. " \
+              "Ensure the shared volume is not mounted read-only."
+        return 1
+    fi
+    rm -f "${VALIDATE_DIR}/.writetest"
+    log "Starting validation watch loop (poll interval: ${VALIDATE_POLL_INTERVAL}s)"
+    local cleanup_counter=0
+    while true; do
+        sleep "${VALIDATE_POLL_INTERVAL}"
+
+        if [ -d "${VALIDATE_DIR}" ]; then
+            for request_file in "${VALIDATE_DIR}"/*.json; do
+                [ -f "${request_file}" ] || continue
+                process_validate_request "${request_file}"
+            done
+        fi
+
+        # Cleanup every ~100 iterations
+        cleanup_counter=$((cleanup_counter + 1))
+        if [ "${cleanup_counter}" -ge 100 ]; then
+            cleanup_stale_validations
+            cleanup_counter=0
+        fi
+    done
+}
+
+# ---------------------------------------------------------------------------
 # Signal handling
 # ---------------------------------------------------------------------------
 
 PULL_PIDS=()
+VALIDATE_PID=""
 
 cleanup() {
     log "Shutting down..."
@@ -515,6 +697,9 @@ cleanup() {
     for pid in "${PULL_PIDS[@]}"; do
         kill "${pid}" 2>/dev/null || true
     done
+    if [ -n "${VALIDATE_PID}" ]; then
+        kill "${VALIDATE_PID}" 2>/dev/null || true
+    fi
     exit 0
 }
 
@@ -529,11 +714,19 @@ main() {
 
     build_repo_list
 
-    log "  Workspace: ${WORKSPACE}"
-    log "  Repos:     ${#REPO_DIRS[@]}"
+    log "  Workspace:     ${WORKSPACE}"
+    log "  Security:      ${SECURITY}"
+    log "  Pull interval: ${PULL_INTERVAL}s"
+    log "  Repos:         ${#REPO_DIRS[@]}"
     for i in "${!REPO_DIRS[@]}"; do
-        log "    [${REPO_DIRS[$i]}] mode=${REPO_MODES[$i]} branch=${REPO_BRANCHES[$i]} url=${REPO_URLS[$i]:-<local>}"
+        log "    [${REPO_DIRS[$i]}] mode=${REPO_MODES[$i]} branch=${REPO_BRANCHES[$i]} url=$(sanitize_url "${REPO_URLS[$i]:-<local>}")"
     done
+    if [ -n "${PULL_SSH_KEYS}" ]; then
+        log "  Pull SSH keys: ${PULL_SSH_KEYS}"
+    fi
+    if [ -n "${PUSH_SSH_AUTHORIZED_KEYS}" ]; then
+        log "  Push auth keys: ${PUSH_SSH_AUTHORIZED_KEYS}"
+    fi
 
     validate_mode
     validate_security_level
@@ -596,14 +789,24 @@ main() {
         log "Pull loop started (PID: ${PULL_PIDS[0]})"
     fi
 
-    # Wait for background processes. In mixed mode, exit when either dies
-    # so the container can be restarted by the orchestrator.
-    if [ "${has_push}" = "true" ] && [ "${has_pull}" = "true" ]; then
-        wait -n "${SSHD_PID}" "${PULL_PIDS[0]}" || true
-    elif [ "${has_push}" = "true" ]; then
-        wait "${SSHD_PID}" || true
-    elif [ "${has_pull}" = "true" ]; then
-        wait "${PULL_PIDS[0]}" || true
+    # Start validation watch loop (watches for dry-run requests)
+    if [ "${VALIDATE_ENABLED}" = "true" ]; then
+        validate_loop &
+        VALIDATE_PID=$!
+    fi
+
+    # Collect background PIDs to wait on
+    local wait_pids=()
+    if [ -n "${SSHD_PID:-}" ]; then wait_pids+=("${SSHD_PID}"); fi
+    for pid in "${PULL_PIDS[@]}"; do wait_pids+=("${pid}"); done
+    if [ -n "${VALIDATE_PID}" ]; then wait_pids+=("${VALIDATE_PID}"); fi
+
+    # Wait for background processes. Exit when any dies so the container
+    # can be restarted by the orchestrator.
+    if [ ${#wait_pids[@]} -gt 1 ]; then
+        wait -n "${wait_pids[@]}" || true
+    elif [ ${#wait_pids[@]} -eq 1 ]; then
+        wait "${wait_pids[0]}" || true
     fi
 }
 

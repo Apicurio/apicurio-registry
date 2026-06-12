@@ -33,42 +33,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
-/**
- * Demonstrates the full ODCS Data Contracts lifecycle (Phases 1-8) with Apicurio Registry.
- *
- * Prerequisites:
- *   1. Build and start Apicurio Registry:
- *      ./mvnw clean install -DskipTests
- *      cd app/ && ../mvnw quarkus:dev
- *
- *   2. Run this example:
- *      cd examples/odcs-data-contracts
- *      mvn compile exec:java
- *
- * Steps demonstrated:
- *    1. Register Avro schema (v1)
- *    2. Submit ODCS contract
- *    3. List contracts
- *    4. Get contract metadata
- *    5. Export as ODCS YAML
- *    6. Check quality score
- *    7. Promote DEV -> STAGE
- *    8. Set contract rules (CEL + JSONata)
- *    9. Execute contract rules
- *   10. Set compatibility group
- *   11. Register v2 schema + migrate record
- *   12. Search contracts
- *   13. Get audit log
- *   14. Set global contract rules
- *   15. Start embedded Kafka (Testcontainers)
- *   16. Produce with contract rules — valid record (passes)
- *   17. Produce with contract rules — invalid record (blocked)
- *   18. Consume the valid message
- *   19. Stop Kafka
- *   20. Clean up
- */
 public class OdcsDataContractsDemo {
 
     private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
@@ -77,6 +44,17 @@ public class OdcsDataContractsDemo {
     private static final String CONTRACT_ID = "orders-contract";
 
     private static final HttpClient HTTP = HttpClient.newHttpClient();
+
+    private static final String B = "\033[1m";
+    private static final String G = "\033[32m";
+    private static final String R = "\033[31m";
+    private static final String C = "\033[36m";
+    private static final String Y = "\033[33m";
+    private static final String M = "\033[35m";
+    private static final String X = "\033[0m";
+
+    private static boolean interactive = true;
+    private static Scanner scanner;
 
     private static final String AVRO_SCHEMA_V1 = """
             {
@@ -106,116 +84,115 @@ public class OdcsDataContractsDemo {
             """;
 
     public static void main(String[] args) {
+        interactive = !(args.length > 0 && "--no-pause".equals(args[0]));
+        if (interactive) {
+            scanner = new Scanner(System.in);
+        }
+
         RegistryClient client = RegistryClientFactory.create(
                 RegistryClientOptions.create(REGISTRY_URL));
 
         try {
-            System.out.println("=== ODCS Data Contracts Demo (Phases 1-8) ===\n");
+            banner("ODCS Data Contracts Demo", "Apicurio Registry 3.3.0 — Phases 1-8");
 
-            // ==================== Phase 1-3: Foundation + ODCS ====================
+            cleanup(client);
 
-            // Step 0: Clean up any leftover data from previous runs
-            try {
-                client.groups().byGroupId(GROUP_ID)
-                        .contracts().byContractId(CONTRACT_ID).delete();
-            } catch (Exception ignored) { }
-            try {
-                client.groups().byGroupId(GROUP_ID)
-                        .artifacts().byArtifactId(ARTIFACT_ID).delete();
-            } catch (Exception ignored) { }
-            try {
-                client.admin().contracts().ruleset().delete();
-            } catch (Exception ignored) { }
+            // ═══════════════════ Phase 1-3: Foundation + ODCS ═══════════════════
 
-            // Step 1: Register the schema artifact
-            System.out.println("1. Registering Avro schema artifact (v1)...");
+            phase("PHASE 1-3", "Foundation + ODCS Support");
+
+            step(1, "Register Avro Schema (v1)",
+                    "Avro schema with inline PII tags → automatic tag extraction");
             registerSchema(client, AVRO_SCHEMA_V1);
-            System.out.println("   Schema registered: " + GROUP_ID + "/" + ARTIFACT_ID);
+            ok("Schema registered: " + GROUP_ID + "/" + ARTIFACT_ID);
+            data("Fields: orderId (string), customerEmail (string, PII), totalAmount (double)");
+            data("Inline tags: customerEmail → [PII, EMAIL]");
 
-            // Step 2: Submit the ODCS contract
-            System.out.println("\n2. Submitting ODCS data contract...");
+            step(2, "Submit ODCS Contract",
+                    "ODCS v3.1 YAML projected onto the schema artifact");
             String contractYaml = loadContractYaml();
             OdcsContractResult result = client.groups().byGroupId(GROUP_ID)
                     .contracts()
                     .post(new ByteArrayInputStream(
                             contractYaml.getBytes(StandardCharsets.UTF_8)));
-            System.out.println("   Contract submitted: " + result.getContractId());
-            System.out.println("   Rules applied: " + result.getProjection().getRulesApplied());
-            System.out.println("   Labels applied: " + result.getProjection().getLabelsApplied());
-            System.out.println("   Tags applied: " + result.getProjection().getTagsApplied());
+            ok("Contract submitted: " + result.getContractId());
+            data("Rules applied:  " + result.getProjection().getRulesApplied()
+                    + "  (CEL from quality.accuracy)");
+            data("Labels applied: " + result.getProjection().getLabelsApplied()
+                    + "  (owner, status, classification, SLA)");
+            data("Tags applied:   " + result.getProjection().getTagsApplied()
+                    + "  (PII, EMAIL on customerEmail)");
 
-            // Step 3: List contracts
-            System.out.println("\n3. Listing contracts in group '" + GROUP_ID + "'...");
+            step(3, "Inspect: List, Metadata, Export",
+                    "Verify what the projection created on the schema artifact");
             List<OdcsContractSummary> contracts = client.groups()
                     .byGroupId(GROUP_ID).contracts().get();
             if (contracts != null) {
                 for (OdcsContractSummary summary : contracts) {
-                    System.out.println("   - " + summary.getContractId()
+                    data("Contract: " + summary.getContractId()
                             + " (" + summary.getName() + ")");
                 }
             }
 
-            // Step 4: Get contract metadata
-            System.out.println("\n4. Getting contract metadata...");
             ContractMetadata metadata = client.groups().byGroupId(GROUP_ID)
                     .artifacts().byArtifactId(ARTIFACT_ID)
                     .contract().metadata().get();
-            System.out.println("   Status: " + metadata.getStatus());
-            System.out.println("   Owner: " + metadata.getOwnerTeam());
-            System.out.println("   Classification: " + metadata.getClassification());
+            data("Status:         " + metadata.getStatus());
+            data("Owner:          " + metadata.getOwnerTeam());
+            data("Classification: " + metadata.getClassification());
 
-            // Step 5: Export as ODCS YAML
-            System.out.println("\n5. Exporting contract as ODCS YAML...");
             InputStream exported = client.groups().byGroupId(GROUP_ID)
                     .artifacts().byArtifactId(ARTIFACT_ID)
                     .contract().export().get();
             String exportedYaml = new BufferedReader(
                     new InputStreamReader(exported, StandardCharsets.UTF_8))
                     .lines().collect(Collectors.joining("\n"));
-            System.out.println("   Exported (first 200 chars): "
-                    + exportedYaml.substring(0, Math.min(200, exportedYaml.length())) + "...");
+            ok("ODCS export: " + exportedYaml.length() + " chars");
 
-            // ==================== Phase 4: Governance ====================
+            // ═══════════════════ Phase 4: Governance ═══════════════════
 
-            // Step 6: Check quality score
-            System.out.println("\n6. Checking quality score...");
+            phase("PHASE 4", "Governance & Quality");
+
+            step(4, "Quality Score",
+                    "Weighted score: completeness 30%, compliance 40%, stability 30%");
             var quality = client.groups().byGroupId(GROUP_ID)
                     .artifacts().byArtifactId(ARTIFACT_ID)
                     .contract().quality().get(config -> {
                         config.queryParameters.contractId = CONTRACT_ID;
                     });
-            System.out.println("   Overall:      " + quality.getOverall());
-            System.out.println("   Completeness: " + quality.getCompleteness());
-            System.out.println("   Compliance:   " + quality.getCompliance());
-            System.out.println("   Stability:    " + quality.getStability());
+            data("Overall:      " + quality.getOverall());
+            data("Completeness: " + quality.getCompleteness() + "  (30% weight)");
+            data("Compliance:   " + quality.getCompliance() + "  (40% weight)");
+            data("Stability:    " + quality.getStability() + "  (30% weight)");
 
-            // Step 7: Promote DEV -> STAGE
-            System.out.println("\n7. Promoting contract (DEV -> STAGE)...");
+            step(5, "Promote DEV → STAGE",
+                    "Promotion pipeline: DEV → STAGE → PROD");
             PromotePostRequestBody promoteDevBody = new PromotePostRequestBody();
             promoteDevBody.setContractId(CONTRACT_ID);
             promoteDevBody.setTargetStage(PromotePostRequestBodyTargetStage.DEV);
             client.groups().byGroupId(GROUP_ID).artifacts().byArtifactId(ARTIFACT_ID)
                     .contract().promote().post(promoteDevBody);
-            System.out.println("   Promoted to DEV");
+            ok("Promoted to DEV");
 
             PromotePostRequestBody promoteStageBody = new PromotePostRequestBody();
             promoteStageBody.setContractId(CONTRACT_ID);
             promoteStageBody.setTargetStage(PromotePostRequestBodyTargetStage.STAGE);
             client.groups().byGroupId(GROUP_ID).artifacts().byArtifactId(ARTIFACT_ID)
                     .contract().promote().post(promoteStageBody);
-            System.out.println("   Promoted to STAGE");
+            ok("Promoted to STAGE");
 
-            // ==================== Phase 5: Runtime Rules ====================
+            // ═══════════════════ Phase 5: Runtime Rules ═══════════════════
 
-            // Step 8: Verify ODCS-projected rules and add migration rule
-            System.out.println("\n8. Verifying ODCS-projected rules and adding migration rule...");
+            phase("PHASE 5", "Runtime Rules (CEL)");
+
+            step(6, "Verify ODCS-Projected Rules + Add Migration Rule",
+                    "ODCS quality rules → CEL rules. JSONata for schema migration.");
             ContractRuleSet existingRules = client.groups().byGroupId(GROUP_ID)
                     .artifacts().byArtifactId(ARTIFACT_ID).contract().ruleset().get();
-            System.out.println("   ODCS-projected domain rules: "
-                    + (existingRules.getDomainRules() != null ? existingRules.getDomainRules().size() : 0));
             if (existingRules.getDomainRules() != null) {
                 for (var r : existingRules.getDomainRules()) {
-                    System.out.println("   - " + r.getName() + " (" + r.getType() + "): " + r.getExpr());
+                    data("ODCS rule: " + r.getName() + " [" + r.getType()
+                            + "] → " + r.getExpr());
                 }
             }
 
@@ -233,58 +210,58 @@ public class OdcsDataContractsDemo {
             ContractRuleSet updatedRules = new ContractRuleSet();
             updatedRules.setDomainRules(domainRules);
             updatedRules.setMigrationRules(List.of(jsonataRule));
-
             client.groups().byGroupId(GROUP_ID).artifacts().byArtifactId(ARTIFACT_ID)
                     .contract().ruleset().put(updatedRules);
-            System.out.println("   Added JSONata migration rule (preserving ODCS domain rules)");
+            ok("Added JSONata migration rule: add-currency-default");
 
-            // Step 9: Execute contract rules
-            System.out.println("\n9. Executing contract rules against a test record...");
-            var executeResponse = httpPost(
+            step(7, "Execute CEL Rules Against Data",
+                    "Server-side rule execution via POST .../contract/execute");
+            var passResponse = httpPost(
                     "/groups/" + GROUP_ID + "/artifacts/" + ARTIFACT_ID
                             + "/versions/branch%3Dlatest/contract/execute",
                     "{\"mode\":\"WRITE\",\"record\":{\"orderId\":\"ORD-123\","
                             + "\"customerEmail\":\"alice@example.com\",\"totalAmount\":99.99}}");
-            System.out.println("   Result: " + executeResponse);
+            ok("Valid record (totalAmount=99.99): " + passResponse);
 
-            // ==================== Phase 6: Migration ====================
+            var failResponse = httpPost(
+                    "/groups/" + GROUP_ID + "/artifacts/" + ARTIFACT_ID
+                            + "/versions/branch%3Dlatest/contract/execute",
+                    "{\"mode\":\"WRITE\",\"record\":{\"orderId\":\"ORD-456\","
+                            + "\"customerEmail\":\"bob@example.com\",\"totalAmount\":-5.0}}");
+            fail("Invalid record (totalAmount=-5.0): " + failResponse);
 
-            // Step 10: Set compatibility group
-            System.out.println("\n10. Setting compatibility group...");
+            // ═══════════════════ Phase 6: Migration ═══════════════════
+
+            phase("PHASE 6", "Schema Migration");
+
+            step(8, "Compatibility Group + Schema v2",
+                    "Compatibility groups scope version history. JSONata transforms data.");
             CompatibilityGroupPutRequestBody compatBody = new CompatibilityGroupPutRequestBody();
             compatBody.setContractId(CONTRACT_ID);
             compatBody.setCompatibilityGroup("orders-v1");
             client.groups().byGroupId(GROUP_ID).artifacts().byArtifactId(ARTIFACT_ID)
                     .contract().compatibilityGroup().put(compatBody);
+            ok("Compatibility group set: orders-v1");
 
-            var compatResult = client.groups().byGroupId(GROUP_ID)
-                    .artifacts().byArtifactId(ARTIFACT_ID)
-                    .contract().compatibilityGroup().get(config -> {
-                        config.queryParameters.contractId = CONTRACT_ID;
-                    });
-            System.out.println("   Compatibility group: " + compatResult.getCompatibilityGroup());
-
-            // Step 11: Register v2 and migrate
-            System.out.println("\n11. Registering v2 schema and migrating a record...");
             registerSchemaVersion(client, AVRO_SCHEMA_V2, "2");
-            System.out.println("   Schema v2 registered (adds 'currency' field)");
+            ok("Schema v2 registered (adds 'currency' field)");
 
             var migrateResponse = httpPost(
                     "/groups/" + GROUP_ID + "/artifacts/" + ARTIFACT_ID + "/contract/migrate",
                     "{\"fromVersion\":\"1\",\"toVersion\":\"2\",\"record\":"
                             + "{\"orderId\":\"ORD-456\",\"customerEmail\":\"bob@example.com\","
                             + "\"totalAmount\":50.0}}");
-            System.out.println("   Migration result: " + migrateResponse);
+            ok("Migration v1→v2: " + migrateResponse);
 
-            // ==================== Phase 7: Integration ====================
+            // ═══════════════════ Phase 7: Integration ═══════════════════
 
-            // Step 12: Search contracts
-            System.out.println("\n12. Searching for contracts...");
+            phase("PHASE 7", "Integration (Search, Audit)");
+
+            step(9, "Search Contracts + Audit Log",
+                    "Search across artifacts. Audit trail for compliance.");
             ArtifactSearchResults searchResults = client.search().contracts().get();
-            System.out.println("   Found " + searchResults.getCount() + " contract(s)");
+            ok("Found " + searchResults.getCount() + " contract(s)");
 
-            // Step 13: Get audit log
-            System.out.println("\n13. Getting contract audit log...");
             try {
                 List<Audit> auditEntries = client.groups().byGroupId(GROUP_ID)
                         .artifacts().byArtifactId(ARTIFACT_ID)
@@ -293,21 +270,22 @@ public class OdcsDataContractsDemo {
                             config.queryParameters.offset = 0;
                         });
                 if (auditEntries != null) {
-                    System.out.println("   Audit entries (" + auditEntries.size() + "):");
+                    ok("Audit log (" + auditEntries.size() + " entries):");
                     for (Audit entry : auditEntries) {
-                        System.out.println("   - " + entry.getAction()
-                                + " by " + entry.getPrincipal()
+                        data("  " + entry.getAction() + " by " + entry.getPrincipal()
                                 + " at " + entry.getCreatedOn());
                     }
                 }
             } catch (Exception e) {
-                System.out.println("   Audit log not available (DB upgrade 104 may not be applied yet)");
+                warn("Audit log: " + e.getMessage());
             }
 
-            // ==================== Phase 8: Global Rules ====================
+            // ═══════════════════ Phase 8: Global Rules ═══════════════════
 
-            // Step 14: Set global contract rules
-            System.out.println("\n14. Setting global contract rules...");
+            phase("PHASE 8", "Global Rules");
+
+            step(10, "Set Global Contract Rules",
+                    "Organization-wide rules. Precedence: global → artifact → version");
             ContractRuleSet globalRuleSet = new ContractRuleSet();
             ContractRule globalRule = new ContractRule();
             globalRule.setName("global-non-empty-id");
@@ -319,41 +297,32 @@ public class OdcsDataContractsDemo {
             globalRule.setDisabled(false);
             globalRuleSet.setDomainRules(List.of(globalRule));
             globalRuleSet.setMigrationRules(new ArrayList<>());
-
             client.admin().contracts().ruleset().put(globalRuleSet);
-            System.out.println("   Global ruleset set: 1 CEL rule (non-empty orderId)");
+            ok("Global rule set: non-empty orderId (CEL)");
 
             ContractRuleSet retrievedGlobal = client.admin().contracts().ruleset().get();
-            System.out.println("   Retrieved: " + retrievedGlobal.getDomainRules().size()
-                    + " domain rule(s)");
+            data("Global rules: " + retrievedGlobal.getDomainRules().size() + " domain rule(s)");
 
-            // ==================== SerDes Integration ====================
+            // ═══════════════════ SerDes Integration ═══════════════════
 
-            // Step 15: Start embedded Kafka
-            System.out.println("\n15. Starting embedded Kafka (Testcontainers)...");
+            phase("KAFKA SERDES", "Contract Rules in the Kafka Pipeline");
+
+            step(11, "Start Embedded Kafka",
+                    "Testcontainers Kafka — contract rules enforced during produce/consume");
             var kafka = new org.testcontainers.kafka.KafkaContainer("apache/kafka:3.8.1");
             kafka.start();
             String bootstrapServers = kafka.getBootstrapServers();
-            System.out.println("   Kafka running at: " + bootstrapServers);
+            ok("Kafka running at: " + bootstrapServers);
 
             String topic = "orders-topic";
 
-            // Step 16: Produce with contract rules — valid message
-            System.out.println("\n16. Producing Kafka message with contract rules enabled (valid record)...");
+            step(12, "Produce Valid Message",
+                    "contract-rules.enabled=true — CEL rules pass, message sent");
             {
                 var schema = new org.apache.avro.Schema.Parser().parse(AVRO_SCHEMA_V1);
-                var props = new java.util.Properties();
-                props.put("bootstrap.servers", bootstrapServers);
-                props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-                props.put("value.serializer", "io.apicurio.registry.serde.avro.AvroKafkaSerializer");
-                props.put("apicurio.registry.url", REGISTRY_URL);
-                props.put("apicurio.registry.auto-register", "true");
-                props.put("apicurio.registry.artifact.group-id", GROUP_ID);
-                props.put("apicurio.registry.artifact.artifact-id", ARTIFACT_ID);
-                props.put("apicurio.registry.serde.contract-rules.enabled", "true");
-                props.put("apicurio.registry.serde.contract-rules.fail-on-error", "true");
-
-                var producer = new org.apache.kafka.clients.producer.KafkaProducer<String, org.apache.avro.generic.GenericRecord>(props);
+                var props = kafkaProducerProps(bootstrapServers);
+                var producer = new org.apache.kafka.clients.producer.KafkaProducer<String,
+                        org.apache.avro.generic.GenericRecord>(props);
                 var validRecord = new org.apache.avro.generic.GenericData.Record(schema);
                 validRecord.put("orderId", "ORD-KAFKA-001");
                 validRecord.put("customerEmail", "alice@example.com");
@@ -362,26 +331,17 @@ public class OdcsDataContractsDemo {
                 var record = new org.apache.kafka.clients.producer.ProducerRecord<>(
                         topic, "key1", (org.apache.avro.generic.GenericRecord) validRecord);
                 producer.send(record).get();
-                System.out.println("   Valid message sent successfully (totalAmount=99.99, rule passed)");
+                ok("Message sent: orderId=ORD-KAFKA-001, totalAmount=99.99");
                 producer.close();
             }
 
-            // Step 17: Produce with contract rules — invalid message
-            System.out.println("\n17. Producing Kafka message with contract rules enabled (invalid record)...");
+            step(13, "Produce Invalid Message",
+                    "totalAmount=-5.0 violates CEL rule → serialization rejected");
             {
                 var schema = new org.apache.avro.Schema.Parser().parse(AVRO_SCHEMA_V1);
-                var props = new java.util.Properties();
-                props.put("bootstrap.servers", bootstrapServers);
-                props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-                props.put("value.serializer", "io.apicurio.registry.serde.avro.AvroKafkaSerializer");
-                props.put("apicurio.registry.url", REGISTRY_URL);
-                props.put("apicurio.registry.auto-register", "true");
-                props.put("apicurio.registry.artifact.group-id", GROUP_ID);
-                props.put("apicurio.registry.artifact.artifact-id", ARTIFACT_ID);
-                props.put("apicurio.registry.serde.contract-rules.enabled", "true");
-                props.put("apicurio.registry.serde.contract-rules.fail-on-error", "true");
-
-                var producer = new org.apache.kafka.clients.producer.KafkaProducer<String, org.apache.avro.generic.GenericRecord>(props);
+                var props = kafkaProducerProps(bootstrapServers);
+                var producer = new org.apache.kafka.clients.producer.KafkaProducer<String,
+                        org.apache.avro.generic.GenericRecord>(props);
                 var invalidRecord = new org.apache.avro.generic.GenericData.Record(schema);
                 invalidRecord.put("orderId", "ORD-KAFKA-002");
                 invalidRecord.put("customerEmail", "bob@example.com");
@@ -391,24 +351,26 @@ public class OdcsDataContractsDemo {
                     var record = new org.apache.kafka.clients.producer.ProducerRecord<>(
                             topic, "key2", (org.apache.avro.generic.GenericRecord) invalidRecord);
                     producer.send(record).get();
-                    System.out.println("   ERROR: Message should have been rejected!");
+                    fail("ERROR: Message should have been rejected!");
                 } catch (Exception e) {
-                    System.out.println("   Message correctly rejected by contract rule!");
+                    ok("Message correctly REJECTED by contract rule!");
                     String cause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    System.out.println("   Error: " + cause);
+                    fail("Violation: " + cause);
                 }
                 producer.close();
             }
 
-            // Step 18: Consume the valid message
-            System.out.println("\n18. Consuming messages from Kafka...");
+            step(14, "Consume Valid Message",
+                    "Consumer reads the valid message — read-side rules pass");
             {
                 var props = new java.util.Properties();
                 props.put("bootstrap.servers", bootstrapServers);
                 props.put("group.id", "odcs-demo-consumer");
                 props.put("auto.offset.reset", "earliest");
-                props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-                props.put("value.deserializer", "io.apicurio.registry.serde.avro.AvroKafkaDeserializer");
+                props.put("key.deserializer",
+                        "org.apache.kafka.common.serialization.StringDeserializer");
+                props.put("value.deserializer",
+                        "io.apicurio.registry.serde.avro.AvroKafkaDeserializer");
                 props.put("apicurio.registry.url", REGISTRY_URL);
                 props.put("apicurio.registry.serde.contract-rules.enabled", "true");
                 props.put("apicurio.registry.serde.contract-rules.fail-on-error", "true");
@@ -420,50 +382,118 @@ public class OdcsDataContractsDemo {
                     try {
                         var records = consumer.poll(java.time.Duration.ofSeconds(5));
                         for (var r : records) {
-                            System.out.println("   - Key: " + r.key() + ", Value: " + r.value());
+                            ok("Consumed: key=" + r.key() + " value=" + r.value());
                             totalConsumed++;
                         }
                         if (totalConsumed > 0) break;
                     } catch (Exception e) {
-                        System.out.println("   Consumer error (attempt " + (attempt + 1) + "): " + e.getMessage());
-                        Throwable cause = e;
-                        while (cause.getCause() != null) cause = cause.getCause();
-                        System.out.println("   Root cause: " + cause.getClass().getName() + ": " + cause.getMessage());
+                        fail("Consumer error: " + e.getMessage());
                         break;
                     }
                 }
-                System.out.println("   Consumed " + totalConsumed + " message(s)");
+                data("Total consumed: " + totalConsumed + " message(s)");
                 consumer.close();
             }
 
-            // Step 19: Stop Kafka
-            System.out.println("\n19. Stopping embedded Kafka...");
+            System.out.println("\n" + Y + "  Stopping Kafka..." + X);
             kafka.stop();
-            System.out.println("   Kafka stopped.");
+            ok("Kafka stopped.");
 
-            // ==================== Clean Up ====================
+            // ═══════════════════ Done ═══════════════════
 
-            // Step 20: Clean up (commented out to allow UI testing)
-            // System.out.println("\n20. Cleaning up...");
-            // client.admin().contracts().ruleset().delete();
-            // client.groups().byGroupId(GROUP_ID)
-            //         .contracts().byContractId(CONTRACT_ID).delete();
-            // client.groups().byGroupId(GROUP_ID)
-            //         .artifacts().byArtifactId(ARTIFACT_ID).delete();
-            // System.out.println("   Cleaned up global rules, contract, and schema.");
-            System.out.println("\n20. Cleanup skipped — data left for UI testing.");
-
-            System.out.println("\n=== Demo complete! ===");
-            System.out.println("\nTo explore the UI:");
-            System.out.println("  1. Start the UI dev server: cd ui/ui-app && npm run dev");
-            System.out.println("  2. Open http://localhost:8888");
-            System.out.println("  3. Navigate: Explore > odcs-example > OrderEvent > Contract tab");
+            System.out.println("\n" + B + G
+                    + "══════════════════════════════════════════════════════" + X);
+            System.out.println(B + G
+                    + "  ✓ Demo complete!" + X);
+            System.out.println(B + G
+                    + "══════════════════════════════════════════════════════" + X);
+            System.out.println();
+            System.out.println(C + "  Next: Open the UI for the UI Tour slide" + X);
+            System.out.println(C + "    1. cd ui/ui-app && npm run dev" + X);
+            System.out.println(C + "    2. Open http://localhost:8888" + X);
+            System.out.println(C + "    3. Explore > odcs-example > OrderEvent > Contract tab" + X);
+            System.out.println();
 
         } catch (Exception e) {
-            System.err.println("\nError: " + e.getMessage()); // NOSONAR — demo code, not production
+            System.err.println("\n" + R + "Error: " + e.getMessage() + X);
         } finally {
+            if (scanner != null) scanner.close();
             DefaultVertxInstance.close();
         }
+    }
+
+    private static void banner(String title, String subtitle) {
+        System.out.println();
+        System.out.println(B + M + "╔══════════════════════════════════════════════════════╗" + X);
+        System.out.println(B + M + "║  " + title + X);
+        System.out.println(B + M + "║  " + Y + subtitle + X);
+        System.out.println(B + M + "╚══════════════════════════════════════════════════════╝" + X);
+        System.out.println();
+    }
+
+    private static void phase(String tag, String description) {
+        System.out.println();
+        System.out.println(B + Y + "  ┌──────────────────────────────────────────────────┐" + X);
+        System.out.println(B + Y + "  │  " + tag + ": " + description + X);
+        System.out.println(B + Y + "  └──────────────────────────────────────────────────┘" + X);
+    }
+
+    private static void step(int num, String title, String description) {
+        System.out.println();
+        System.out.println(B + C + "  ══════════════════════════════════════════════════════" + X);
+        System.out.println(B + C + "  ▶ Step " + num + ": " + title + X);
+        System.out.println("    " + description);
+        if (interactive) {
+            System.out.print(Y + "    Press ENTER to continue..." + X);
+            scanner.nextLine();
+        }
+        System.out.println(B + C + "  ══════════════════════════════════════════════════════" + X);
+    }
+
+    private static void ok(String msg) {
+        System.out.println("  " + G + "✓ " + msg + X);
+    }
+
+    private static void fail(String msg) {
+        System.out.println("  " + R + "✗ " + msg + X);
+    }
+
+    private static void data(String msg) {
+        System.out.println("  " + C + "  " + msg + X);
+    }
+
+    private static void warn(String msg) {
+        System.out.println("  " + Y + "⚠ " + msg + X);
+    }
+
+    private static void cleanup(RegistryClient client) {
+        try {
+            client.groups().byGroupId(GROUP_ID)
+                    .contracts().byContractId(CONTRACT_ID).delete();
+        } catch (Exception ignored) { }
+        try {
+            client.groups().byGroupId(GROUP_ID)
+                    .artifacts().byArtifactId(ARTIFACT_ID).delete();
+        } catch (Exception ignored) { }
+        try {
+            client.admin().contracts().ruleset().delete();
+        } catch (Exception ignored) { }
+    }
+
+    private static java.util.Properties kafkaProducerProps(String bootstrapServers) {
+        var props = new java.util.Properties();
+        props.put("bootstrap.servers", bootstrapServers);
+        props.put("key.serializer",
+                "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer",
+                "io.apicurio.registry.serde.avro.AvroKafkaSerializer");
+        props.put("apicurio.registry.url", REGISTRY_URL);
+        props.put("apicurio.registry.auto-register", "true");
+        props.put("apicurio.registry.artifact.group-id", GROUP_ID);
+        props.put("apicurio.registry.artifact.artifact-id", ARTIFACT_ID);
+        props.put("apicurio.registry.serde.contract-rules.enabled", "true");
+        props.put("apicurio.registry.serde.contract-rules.fail-on-error", "true");
+        return props;
     }
 
     private static void registerSchema(RegistryClient client, String schema) {

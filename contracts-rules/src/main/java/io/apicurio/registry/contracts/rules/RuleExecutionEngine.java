@@ -18,6 +18,22 @@ public class RuleExecutionEngine {
     @Inject
     ContractRuleExecutorFactory executorFactory;
 
+    public RuleExecutionEngine() {
+    }
+
+    public RuleExecutionEngine(ContractRuleExecutorFactory executorFactory) {
+        this.executorFactory = executorFactory;
+    }
+
+    public static RuleExecutionEngine createStandalone() {
+        var celEvaluator = new io.apicurio.registry.contracts.rules.cel.CelExpressionEvaluator();
+        var celExecutor = new io.apicurio.registry.contracts.rules.cel.CelRuleExecutor(celEvaluator);
+        var jsonataEvaluator = new io.apicurio.registry.contracts.rules.jsonata.JsonataExpressionEvaluator();
+        var jsonataExecutor = new io.apicurio.registry.contracts.rules.jsonata.JsonataRuleExecutor(jsonataEvaluator);
+        var factory = ContractRuleExecutorFactory.createStandalone(java.util.List.of(celExecutor, jsonataExecutor));
+        return new RuleExecutionEngine(factory);
+    }
+
     public RuleExecutionResult execute(List<RuleDefinition> rules, String mode,
             Map<String, Object> record) {
         List<RuleDefinition> applicable = rules.stream()

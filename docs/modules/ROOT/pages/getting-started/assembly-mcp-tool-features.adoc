@@ -1,43 +1,67 @@
-// MCP Tool Definition Features Documentation
-[id="assembly-mcp-tool-features"]
-= MCP Tool Definition Features in Apicurio Registry
+include::{mod-loc}shared/all-attributes.adoc[]
 
-Apicurio Registry supports storing and managing MCP (Model Context Protocol) tool definitions as first-class artifacts. This enables central governance, version management, and discovery of MCP tools across an organization.
+:_mod-docs-content-type: ASSEMBLY
+[id="assembly-mcp-tool-features_{context}"]
+= MCP tool definition features in {registry}
 
+[role="_abstract"]
+You can store and manage MCP (Model Context Protocol) tool definitions as first-class artifacts in {registry}. You can use MCP tool features for central governance, version management, and discovery of MCP tools across your organization.
+
+ifdef::service-registry-downstream[]
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope].
+endif::[]
+
+* xref:mcp-tool-features-overview_{context}[]
+* xref:mcp-tool-configuration_{context}[]
+* xref:mcp-tool-definition-schema_{context}[]
+* xref:mcp-well-known-endpoints_{context}[]
+* xref:creating-mcp-tool-artifact_{context}[]
+* xref:mcp-validation-rules_{context}[]
+* xref:mcp-compatibility-checking_{context}[]
+* xref:mcp-automatic-label-extraction_{context}[]
+
+// con-mcp-tool-features-overview
+:_mod-docs-content-type: CONCEPT
+[id="mcp-tool-features-overview_{context}"]
 == Overview
 
-The https://modelcontextprotocol.io/[Model Context Protocol (MCP)] allows servers to expose tools that can be invoked by language models. Tools enable models to interact with external systems, such as querying databases, calling APIs, or performing computations.
+[role="_abstract"]
+The https://modelcontextprotocol.io/[Model Context Protocol (MCP)] defines a standard for servers to expose tools that language models can invoke. With MCP tools, models can interact with external systems, such as querying databases, calling APIs, or running computations.
 
-Apicurio Registry acts as a **Tool Registry**, storing MCP tool definitions with:
+{registry} provides a Tool Registry that stores MCP tool definitions with the following capabilities:
 
-* **Version management** — Track tool evolution with full version history
-* **Validation** — Ensure tool definitions conform to the MCP specification
-* **Compatibility checking** — Detect breaking changes in tool input schemas
-* **Discovery** — Search for tools by name or input parameter
-* **Well-known endpoints** — Serve tool definitions at standard URLs
+NOTE: Storing an `MCP_TOOL` definition in {registry} provides governance, versioning, and searchability for tool definitions. To make stored tools available to LLM clients such as Claude Desktop, you must also deploy the {registry} MCP server. For more information, see xref:getting-started/assembly-mcp-server-integration.adoc[MCP server integration].
 
-[source,text]
-----
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Apicurio Registry                                  │
-│                                                                              │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                    MCP Tool Registry                                   │   │
-│  │                                                                        │   │
-│  │  /.well-known/mcp-tools                (search tools)                  │   │
-│  │  /.well-known/mcp-tools/{group}/{id}   (retrieve tool)                 │   │
-│  │                                                                        │   │
-│  │  - Store tool definitions                                              │   │
-│  │  - Search by name or parameter                                         │   │
-│  │  - Version management                                                  │   │
-│  │  - Validation and compatibility checking                               │   │
-│  └──────────────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────────┘
-----
+Version management:: Track tool evolution with full version history.
+Validation:: Ensure that tool definitions conform to the MCP specification.
+Compatibility checking:: Detect breaking changes in tool input schemas.
+Discovery:: Search for tools by name or input parameter.
+Well-known endpoints:: Serve tool definitions at standard URLs.
 
+.MCP tool registry endpoints and capabilities
+[cols="1,1",options="header"]
+|===
+|Well-known endpoints
+|Capabilities
+
+a|
+* `/.well-known/mcp-tools` (search tools)
+* `/.well-known/mcp-tools/\{groupId}/\{artifactId}` (retrieve tool)
+
+a|
+* Store tool definitions as `MCP_TOOL` artifacts
+* Search by name or input parameter
+* Version management
+* Validation and compatibility checking
+|===
+
+// ref-mcp-tool-configuration
+:_mod-docs-content-type: REFERENCE
+[id="mcp-tool-configuration_{context}"]
 == Configuration
 
-MCP tool features are controlled via configuration properties:
+[role="_abstract"]
+You can configure MCP tool features by using the following configuration properties.
 
 [cols="2,1,3"]
 |===
@@ -45,11 +69,11 @@ MCP tool features are controlled via configuration properties:
 
 |`apicurio.mcp-tools.enabled`
 |`false`
-|Enable/disable MCP tool definition support (experimental)
+|Enables or disables MCP tool definition support (experimental)
 
 |`apicurio.features.experimental.enabled`
 |`false`
-|Must be enabled to use experimental features like MCP tools
+|Set to `true` to use experimental features such as MCP tools
 |===
 
 To enable MCP tool support, set both properties:
@@ -60,13 +84,17 @@ apicurio.features.experimental.enabled=true
 apicurio.mcp-tools.enabled=true
 ----
 
-== MCP Tool Definition Schema
+// ref-mcp-tool-definition-schema
+:_mod-docs-content-type: REFERENCE
+[id="mcp-tool-definition-schema_{context}"]
+== MCP tool definition schema
 
+[role="_abstract"]
 Tool definitions follow the https://modelcontextprotocol.io/specification/2025-11-25/server/tools[MCP specification (2025-11-25)].
 
-NOTE: The MCP specification has two authoritative sources: the formal https://github.com/modelcontextprotocol/specification/blob/main/schema/2025-11-25/schema.json[JSON schema] and the https://modelcontextprotocol.io/specification/2025-11-25/server/tools[specification docs]. In some cases these sources diverge. The table below notes where Apicurio Registry's validation follows the spec docs guidance rather than the formal JSON schema.
+NOTE: The MCP specification has two authoritative sources: the formal https://github.com/modelcontextprotocol/specification/blob/main/schema/2025-11-25/schema.json[JSON schema] and the https://modelcontextprotocol.io/specification/2025-11-25/server/tools[specification docs]. In some cases, these sources diverge. The following table notes where {registry} validation follows the spec docs guidance rather than the formal JSON schema.
 
-=== Tool Fields
+.Tool fields
 
 [cols="1,1,1,3"]
 |===
@@ -113,9 +141,9 @@ NOTE: The MCP specification has two authoritative sources: the formal https://gi
 |Optional execution-related properties such as task support. _Described in the spec docs but not yet present in the formal MCP Tool JSON schema._ Passed through without validation.
 |===
 
-=== Input Schema
+.Input schema
 
-The `inputSchema` field is a JSON Schema object with these properties:
+The `inputSchema` field is a JSON Schema object with the following properties:
 
 [cols="1,1,1,3"]
 |===
@@ -124,7 +152,7 @@ The `inputSchema` field is a JSON Schema object with these properties:
 |`type`
 |string
 |Yes
-|Must be `"object"`. The formal MCP JSON schema does not enforce this constraint, but the spec docs and all examples require it. Apicurio Registry enforces `type` = `"object"` during full validation.
+|Must be `"object"`. The formal MCP JSON schema does not enforce this constraint, but the spec docs and all examples require it. {registry} enforces `type` = `"object"` during full validation.
 
 |`properties`
 |object
@@ -137,9 +165,9 @@ The `inputSchema` field is a JSON Schema object with these properties:
 |List of required parameter names
 |===
 
-=== Annotations (ToolAnnotations)
+.Annotations (ToolAnnotations)
 
-Annotations provide metadata about the tool using the MCP `ToolAnnotations` type:
+Annotations provide metadata about the tool by using the MCP `ToolAnnotations` type:
 
 [cols="1,1,3"]
 |===
@@ -147,18 +175,18 @@ Annotations provide metadata about the tool using the MCP `ToolAnnotations` type
 
 |`title`
 |string
-|Optional fallback display name. Per the spec docs, display precedence is: top-level `title` -> `annotations.title` -> `name`. _Note: this field is referenced in the spec docs as a display name fallback but is not formally defined in the `ToolAnnotations` JSON schema._ Apicurio Registry validates and displays it for interoperability.
+|Optional fallback display name. Per the spec docs, display precedence is: top-level `title` -> `annotations.title` -> `name`. _Note: the spec docs reference the `annotations.title` field as a display name fallback, but the `ToolAnnotations` JSON schema does not formally define it._ {registry} validates and displays it for interoperability.
 
 |`audience`
 |array of strings
-|Intended audience. The MCP spec defines a `Role` enum with values `"user"` and `"assistant"`. Apicurio Registry accepts any string values for forward compatibility with future spec revisions.
+|Intended audience. The MCP spec defines a `Role` enum with values `"user"` and `"assistant"`. {registry} accepts any string values for forward compatibility with future spec revisions.
 
 |`priority`
 |number (0-1)
 |Priority hint; higher values indicate higher priority
 |===
 
-=== Example Tool Definition
+.Example tool definition
 
 [source,json]
 ----
@@ -198,14 +226,19 @@ Annotations provide metadata about the tool using the MCP `ToolAnnotations` type
 }
 ----
 
-== Well-Known Endpoints
+// ref-mcp-well-known-endpoints
+:_mod-docs-content-type: REFERENCE
+[id="mcp-well-known-endpoints_{context}"]
+== Well-known endpoints
 
-=== GET /.well-known/mcp-tools
+[role="_abstract"]
+You can search for and retrieve MCP tool definitions by using the following well-known endpoints.
+
+.GET /.well-known/mcp-tools
 
 Search for registered MCP tool definitions with filtering support.
 
-**Query Parameters:**
-
+.Query parameters
 [cols="1,1,3"]
 |===
 |Parameter |Type |Description
@@ -227,13 +260,13 @@ Search for registered MCP tool definitions with filtering support.
 |Pagination limit (default: 20)
 |===
 
-**Example Request:**
+.Example request
 [source,bash]
 ----
 curl "http://localhost:8080/.well-known/mcp-tools?parameter=location"
 ----
 
-**Response:** `McpToolSearchResults`
+.Response: `McpToolSearchResults`
 
 [source,json]
 ----
@@ -254,33 +287,45 @@ curl "http://localhost:8080/.well-known/mcp-tools?parameter=location"
 }
 ----
 
-=== GET /.well-known/mcp-tools/{groupId}/{artifactId}
+.GET /.well-known/mcp-tools/{groupId}/{artifactId}
 
 Retrieve a specific registered MCP tool definition.
 
-**Path Parameters:**
+.Path parameters
+`groupId`:: The group containing the tool definition
+`artifactId`:: The artifact ID of the tool definition
 
-- `groupId` - The group containing the tool definition
-- `artifactId` - The artifact ID of the tool definition
+.Query parameters
+`version` (optional):: Specific version (defaults to latest)
 
-**Query Parameters:**
+.Response
+MCP tool definition JSON document
 
-- `version` (optional) - Specific version (defaults to latest)
+.GET /.well-known/schemas/mcp-tool/v1
 
-**Response:** MCP tool definition JSON document
+Use this endpoint to retrieve the JSON Schema for MCP tool definitions. You can use the schema for IDE autocompletion and validation.
 
-=== GET /.well-known/schemas/mcp-tool/v1
-
-Returns the JSON Schema for MCP tool definitions. This enables IDE autocompletion and validation.
-
-**Example:**
+.Example
 [source,bash]
 ----
 curl "http://localhost:8080/.well-known/schemas/mcp-tool/v1"
 ----
 
-== Creating an MCP Tool Artifact
+// proc-creating-mcp-tool-artifact
+:_mod-docs-content-type: PROCEDURE
+[id="creating-mcp-tool-artifact_{context}"]
+== Creating an MCP tool artifact
 
+[role="_abstract"]
+You can create an MCP tool artifact in {registry} by using the REST API.
+
+.Prerequisites
+* {registry} is installed and running.
+* MCP tools support is enabled (`apicurio.mcp-tools.enabled=true` and `apicurio.features.experimental.enabled=true`).
+
+.Procedure
+* Send a `POST` request to the {registry} REST API to create the MCP tool artifact:
++
 [source,bash]
 ----
 curl -X POST "http://localhost:8080/apis/registry/v3/groups/mcp-tools/artifacts" \
@@ -298,63 +343,74 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/mcp-tools/artifacts"
   }'
 ----
 
-== Validation Rules
+// ref-mcp-validation-rules
+:_mod-docs-content-type: REFERENCE
+[id="mcp-validation-rules_{context}"]
+== Validation rules
 
-MCP tool definitions support three validation levels:
+[role="_abstract"]
+{registry} validates MCP tool definitions at three levels.
 
 [cols="1,3"]
 |===
 |Level |Description
 
 |`NONE`
-|No validation performed
+|No validation
 
 |`SYNTAX_ONLY`
 |Validates JSON syntax and that the document is a JSON object
 
 |`FULL`
-|Complete validation including:
-- Required `name` field (non-empty string)
-- Required `inputSchema` field (object with `type` = `"object"` per spec docs guidance)
-- Optional `title` and `description` must be strings if present
-- Optional `outputSchema` must be an object if present
-- Optional `annotations` validated as ToolAnnotations: `title` (string), `audience` (array of strings), `priority` (number 0-1). Note: `annotations.title` validation follows spec docs guidance; `audience` values are not restricted to the `Role` enum for forward compatibility.
+a|Complete validation including:
+
+* Required `name` field (non-empty string)
+* Required `inputSchema` field (object with `type` = `"object"` per spec docs guidance)
+* Optional `title` and `description` must be strings if present
+* Optional `outputSchema` must be an object if present
+* Optional `annotations` validated as ToolAnnotations: `title` (string), `audience` (array of strings), `priority` (number 0-1). Note: `annotations.title` validation follows spec docs guidance; `audience` values are not restricted to the `Role` enum for forward compatibility.
 |===
 
-== Compatibility Checking
+// ref-mcp-compatibility-checking
+:_mod-docs-content-type: REFERENCE
+[id="mcp-compatibility-checking_{context}"]
+== Compatibility checking
 
-When versioning MCP tool definitions, compatibility rules detect breaking changes:
+[role="_abstract"]
+When you version MCP tool definitions, {registry} checks for breaking changes based on compatibility rules.
 
-**Compatible Changes (allowed):**
+.Compatible changes (allowed)
+* Adding optional input parameters
+* Changing name, title, or description
+* Changing annotations
+* Adding or modifying outputSchema
 
-- Adding optional input parameters
-- Changing name, title, description
-- Changing annotations
-- Adding or modifying outputSchema
+.Incompatible changes (might break clients)
+* Removing input parameters from inputSchema.properties
+* Adding new required parameters
+* Removing required parameters
+* Changing the inputSchema type
 
-**Incompatible Changes (may break clients):**
+// ref-mcp-automatic-label-extraction
+:_mod-docs-content-type: REFERENCE
+[id="mcp-automatic-label-extraction_{context}"]
+== Automatic label extraction
 
-- Removing input parameters from inputSchema.properties
-- Adding new required parameters
-- Removing required parameters
-- Changing the inputSchema type
-
-== Automatic Label Extraction
-
-When MCP tool definitions are stored, structured elements are automatically extracted for search:
+[role="_abstract"]
+When you store MCP tool definitions, {registry} automatically extracts structured elements for search.
 
 [cols="2,3"]
 |===
-|Element Pattern |Source
+|Element pattern |Source
 
 |`mcp_tool:parameter:<name>`
 |Each parameter name from inputSchema.properties
 |===
 
-This enables efficient parameter-based discovery using the Registry's search.
+You can use the extracted labels for efficient parameter-based discovery by using the {registry} search.
 
-== See Also
-
+[role="_additional-resources"]
+.Additional resources
 * xref:getting-started/assembly-a2a-features.adoc[A2A Protocol Features]
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM Artifact Types]
 * link:https://modelcontextprotocol.io/specification/2025-11-25/server/tools[MCP Tools Specification]

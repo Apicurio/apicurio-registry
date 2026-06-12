@@ -7,8 +7,12 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 env:
   REGISTRY_APP_IMAGE: ttl.sh/apicurio-registry-${{ github.sha }}:8h
+  REGISTRY_GITOPS_SYNC_IMAGE: ttl.sh/apicurio-registry-gitops-sync-${{ github.sha }}:8h
   IMAGE: ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h
   BUNDLE_IMAGE: ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h
   CATALOG_IMAGE: ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h
@@ -40,6 +44,11 @@ jobs:
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
           docker push "$REGISTRY_APP_IMAGE"
+
+      - name: Build and push temporary GitOps sync sidecar image
+        run: |
+          docker build -t "$REGISTRY_GITOPS_SYNC_IMAGE" ./distro/gitops
+          docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
 
       # We need to push the bundle image because opm always pulls; the catalog image because OLM
       # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
@@ -213,6 +222,7 @@ jobs:
           # We need to unset the variables to generate a clean install file.
           # See https://github.com/actions/runner/issues/1126
           unset REGISTRY_APP_IMAGE
+          unset REGISTRY_GITOPS_SYNC_IMAGE
           unset IMAGE
           unset BUNDLE_IMAGE
           unset CATALOG_IMAGE

@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 105);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 107);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE content (
     canonicalHash VARCHAR(64) NOT NULL,
     contentHash   VARCHAR(64) NOT NULL,
     contentType   VARCHAR(64) NOT NULL,
-    content       BLOB        NOT NULL,
+    content       MEDIUMBLOB  NOT NULL,
     refs          TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     PRIMARY KEY (contentId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
@@ -236,6 +236,29 @@ CREATE TABLE contract_rules (
 ALTER TABLE contract_rules ADD CONSTRAINT FK_contract_rules_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
 CREATE INDEX IDX_contract_rules_1 ON contract_rules(groupId, artifactId);
 CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);
+
+CREATE TABLE outbox (
+    id            VARCHAR(128) NOT NULL,
+    aggregatetype VARCHAR(255) NOT NULL,
+    aggregateid   VARCHAR(255) NOT NULL,
+    type          VARCHAR(255) NOT NULL,
+    payload       JSON         NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE contract_audit_log (
+    auditId    BIGINT       NOT NULL AUTO_INCREMENT,
+    groupId    VARCHAR(512),
+    artifactId VARCHAR(512) NOT NULL,
+    version    VARCHAR(256),
+    action     VARCHAR(64)  NOT NULL,
+    principal  VARCHAR(256),
+    details    TEXT,
+    createdOn  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (auditId)
+);
+CREATE INDEX IDX_contract_audit_1 ON contract_audit_log(groupId(255), artifactId(255));
+CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 
 CREATE TABLE schema_usage (
     globalId        BIGINT       NOT NULL,

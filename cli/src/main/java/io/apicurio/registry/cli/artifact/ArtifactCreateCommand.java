@@ -9,18 +9,15 @@ import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import java.util.HashMap;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.util.HashMap;
-import java.util.List;
-
 import static io.apicurio.registry.cli.artifact.ArtifactGetCommand.printArtifact;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
@@ -128,28 +125,15 @@ public class ArtifactCreateCommand extends AbstractCommand {
             newArtifact.setFirstVersion(firstVersion);
         }
 
-        try {
-            final var result = client.getRegistryClient()
-                    .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
-            //noinspection ConstantConditions
-            final var artifact = convert(result.getArtifact());
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
-            }
-            printArtifact(output, artifact, outputType.getOutputType());
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating artifact '")
-                        .append(artifactId)
-                        .append("' in group '")
-                        .append(resolvedGroupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        final var result = client.getRegistryClient()
+                .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
+        //noinspection ConstantConditions
+        final var artifact = convert(result.getArtifact());
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
         }
+        printArtifact(output, artifact, outputType.getOutputType());
     }
 
     private static void successMessage(final StringBuilder out, final String groupId, final String artifactId) {

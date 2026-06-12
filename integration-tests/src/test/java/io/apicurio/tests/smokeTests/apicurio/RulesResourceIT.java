@@ -110,7 +110,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         TestUtils.assertClientError(
-                "RuleViolationException", 409, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO,
+                "RuleViolationException", 400, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO,
                         invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null, null),
                 errorCodeExtractor);
         TestUtils
@@ -174,7 +174,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         TestUtils
                 .assertClientError(
-                        "RuleViolationException", 409, () -> createArtifactVersion(groupId, artifactId1,
+                        "RuleViolationException", 400, () -> createArtifactVersion(groupId, artifactId1,
                                 invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null),
                         errorCodeExtractor);
 

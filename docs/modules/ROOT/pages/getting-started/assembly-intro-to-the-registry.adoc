@@ -1,11 +1,12 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="intro-to-the-registry_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Introduction to {registry}
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter introduces {registry} concepts and features and provides details on the supported artifact types that are stored in the registry:
+{registry} is a datastore for sharing standard event schemas and API designs across event-driven and API architectures. Learn about key {registry} concepts, artifact types, and available integrations:
 
 * xref:registry-overview_{context}[]
 * xref:registry-artifacts_{context}[]
@@ -22,7 +23,9 @@ This chapter introduces {registry} concepts and features and provides details on
 
 // Metadata created by nebel
 
+// con-registry-overview
 [id="registry-overview_{context}"]
+:_mod-docs-content-type: CONCEPT
 == What is {registry}?
 
 [role="_abstract"]
@@ -37,12 +40,11 @@ Using {registry} to decouple your data structure from your applications reduces 
 You can configure optional rules to govern the evolution of your {registry} content. These include rules to ensure that uploaded content is valid, or is compatible with other versions. Any configured rules must pass before new versions can be uploaded to {registry}, which ensures that time is not wasted on invalid or incompatible schemas or API designs.
 
 ifndef::apicurio-registry[]
-{registry-name-full} is based on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry. 
+{registry-name-full} is based on the Apicurio Registry open source community project. For details, see https://github.com/apicurio/apicurio-registry.
 endif::[]
 
 
-[discrete]
-=== {registry} capabilities
+**{registry} capabilities**
 
 * Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, and more.
 
@@ -70,13 +72,16 @@ endif::[]
 
 // Metadata created by nebel
 
+// con-registry-artifacts
 [id="registry-artifacts_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Schema and API artifacts in {registry}
 
 [role="_abstract"]
 The items stored in {registry}, such as event schemas and API designs, are known as registry _artifacts_. The following shows an example of an Apache Avro schema artifact in JSON format for a simple share price application:
 
-.Example Avro schema
+**Example Avro schema**
+
 [source,json]
 ----
 {
@@ -100,7 +105,7 @@ When a schema or API design is added as an artifact in {registry}, client applic
 
 Artifacts have metadata, both generated and editable.  Standard metadata for an artifact includes (but may not be limited to):
 
-==== Generated or immutable properties
+**Generated or immutable properties**
 
 - groupId
 - artifactId
@@ -109,14 +114,15 @@ Artifacts have metadata, both generated and editable.  Standard metadata for an 
 - modifiedBy
 - modifiedOn
 
-==== Editable properties
+**Editable properties**
+
 - name
 - description
 - labels
 - owner
 
-[discrete]
-=== Artifact Versions
+**Artifact versions**
+
 Every artifact is composed of zero or more _artifact version_s.  Only artifact versions have actual
 content (as well as metadata).  These versions represent the evolution of the content of an artifact,
 and are immutable.  You can think of an Artifact as an ordered sequence of Versions, typically with
@@ -125,7 +131,7 @@ the most recent version representing the "current" schema or API design content.
 
 Artifact Versions have metadata, both generated and editable.  Standard metadata for an artifact version includes (but may not be limited to):
 
-==== Generated or immutable properties
+**Generated or immutable properties**
 
 - groupId
 - artifactId
@@ -137,15 +143,15 @@ Artifact Versions have metadata, both generated and editable.  Standard metadata
 - modifiedBy
 - modifiedOn
 
-==== Editable properties
+**Editable properties**
+
 - name
 - description
 - labels
 - state
 
 
-[discrete]
-=== Groups of schemas and APIs
+**Groups of schemas and APIs**
 
 An _artifact group_ is an optional named collection of schema or API artifacts. Each group contains a logically related set of schemas or API designs, typically managed by a single entity, belonging to a particular application or organization.
 
@@ -155,7 +161,7 @@ Schema and API groups can contain multiple artifact types. For example, you coul
 
 Groups have metadata, both generated and editable.  Standard metadata for a group includes (but may not be limited to):
 
-==== Generated or immutable properties
+**Generated or immutable properties**
 
 - groupId
 - owner
@@ -163,7 +169,8 @@ Groups have metadata, both generated and editable.  Standard metadata for a grou
 - modifiedBy
 - modifiedOn
 
-==== Editable properties
+**Editable properties**
+
 - description
 - labels
 
@@ -171,21 +178,14 @@ You can create schema and API artifacts and groups using the {registry} web cons
 
 NOTE: Specifying a group is optional when using the {registry} web console, and the `default` group is used automatically. When using the REST API or Maven plug-in, specify the `default` group in the API path if you do not want to create a unique group.
 
-[role="_additional-resources"]
-.Additional resources
-
-* For information on supported artifact types, see {registry-artifact-reference}.
-* For information on the Core Registry API, see the {registry-rest-api}.
-
-
-[discrete]
-=== References to other schemas and APIs
+**References to other schemas and APIs**
 
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations. For example, you can specify a reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google Protobuf using an `import` statement, or in Apache Avro using a nested namespace.
 
 The following example shows a simple Avro schema named `TradeKey` that includes a reference to another schema named `Exchange` using a nested namespace:
 
-.Tradekey schema with nested Exchange schema
+**Tradekey schema with nested Exchange schema**
+
 [source,json]
 ----
 {
@@ -205,7 +205,8 @@ The following example shows a simple Avro schema named `TradeKey` that includes 
 }
 ----
 
-.Exchange schema
+**Exchange schema**
+
 [source,json]
 ----
 {
@@ -225,8 +226,8 @@ An artifact reference is stored in {registry} as a collection of artifact metada
 
 You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserializers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
 
-[discrete]
-==== Supported artifact types
+**Supported artifact types**
+
 {registry} currently supports artifact references for the following artifact types only:
 
 * Avro
@@ -237,21 +238,23 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 
 [role="_additional-resources"]
 .Additional resources
-
-* For details on managing artifact references, see:
-** {managing-registry-artifacts-api}.
-** {managing-registry-artifacts-maven}.
-* For a Java example, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[Apicurio Registry SerDes with references demonstration].
+* {registry-artifact-reference}
+* {registry-rest-api}
+* {managing-registry-artifacts-api}
+* {managing-registry-artifacts-maven}
+* https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[{registry} SerDes with references example]
 
 
 
 // Metadata created by nebel
 
+// con-registry-web-console
 [id="registry-web-console_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Manage content using the {registry} web console
 
 [role="_abstract"]
-You can use the {registry} web console to browse and search the schema and API artifacts and optional groups stored in the registry, and to add new schema and API artifacts, groups, and versions. You can search for artifacts by label, name, group, and description. You can view an artifact’s content or its available versions, or download an artifact file locally.
+You can use the {registry} web console to browse and search the schema and API artifacts and optional groups stored in the registry, and to add new schema and API artifacts, groups, and versions. You can search for artifacts by label, name, group, and description. You can view an artifact's content or its available versions, or download an artifact file locally.
 
 You can also configure optional rules for registry content, globally, for groups, and for each schema and API artifact. These optional rules for content validation and compatibility are applied when new schema and API artifacts or versions are uploaded to the registry.
 
@@ -270,10 +273,12 @@ The {registry} web console is available from `{registry-url}`.
 
 // Metadata created by nebel
 
+// ref-registry-rest-api
 [id="registry-rest-api_{context}"]
+:_mod-docs-content-type: REFERENCE
+== {registry} REST API for clients
 
 [role="_abstract"]
-== {registry} REST API for clients
 Client applications can use the Core Registry API v3 to manage the schema and API artifacts in {registry}. This API provides operations for the following features:
 
 Admin::
@@ -299,8 +304,8 @@ Get the {registry} version and the limits on resources for the {registry} server
 Users::
 Get the current {registry} user.
 
-[discrete]
-=== Compatibility with other schema registry REST APIs
+**Compatibility with other schema registry REST APIs**
+
 {registry} also provides compatibility with the following schema registries by including implementations of their respective REST APIs:
 
 * {registry} Core Registry API v2
@@ -316,14 +321,16 @@ endif::[]
 
 [role="_additional-resources"]
 .Additional resources
-* For more information on the Core Registry API v3, see the {registry-rest-api}.
-* For API documentation on the Core Registry API v3 and all compatible APIs, browse to the `/apis` endpoint of your {registry}, for example, `\http://MY-REGISTRY-URL/apis`.
+* {registry-rest-api}
 
 
 
 // Metadata created by nebel
 
+
+// ref-registry-storage
 [id="registry-storage_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} storage options
 
 [role="_abstract"]
@@ -356,15 +363,17 @@ ifdef::apicurio-registry[]
 * {installing-the-registry-storage-openshift}
 endif::[]
 ifdef::rh-service-registry[]
-* For more details on storage options, see link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
+* link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
 endif::[]
 
 
 // Metadata created by nebel
 
 
+// con-client-serde
 [id="client-serde_{context}"]
-==  Validate Kafka messages using schemas and Java client serializers/deserializers
+:_mod-docs-content-type: CONCEPT
+== Validate Kafka messages using schemas and Java client serializers/deserializers
 
 [role="_abstract"]
 Kafka producer applications can use serializers to encode messages that conform to a specific event schema. Kafka consumer applications can then use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID.
@@ -390,7 +399,9 @@ These implementations include custom Java classes for each supported message typ
 
 // Metadata created by nebel
 
+// con-kafka-connect
 [id="kafka-connect_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Stream data to external systems with Kafka Connect converters
 
 [role="_abstract"]
@@ -427,7 +438,9 @@ endif::[]
 
 // Metadata created by nebel
 
+// con-registry-demo
 [id="registry-demo_{context}"]
+:_mod-docs-content-type: CONCEPT
 == {registry} demonstration examples
 
 [role="_abstract"]
@@ -449,13 +462,15 @@ These applications demonstrate use cases such as the following examples:
 
 [role="_additional-resources"]
 .Additional resources
-* For more details, see link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[{registry} example applications]
 
 
 
 // Metadata created by nebel
 
+// ref-registry-distros
 [id="registry-distros_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} available distributions
 
 [role="_abstract"]
@@ -476,9 +491,10 @@ ifdef::apicurio-registry[]
 |https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
 
+[role="_additional-resources"]
 .Additional resources
-* For details on building from source code and running Docker images, see link:https://github.com/Apicurio/apicurio-registry[]
-* For details on using the Operator to deploy, see link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[]
+* link:https://github.com/Apicurio/apicurio-registry[{registry} source code and Docker images]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[{registry} Operator]
 
 endif::[]
 

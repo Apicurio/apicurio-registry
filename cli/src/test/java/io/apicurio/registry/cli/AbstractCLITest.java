@@ -63,6 +63,8 @@ public abstract class AbstractCLITest {
                 .withEnv("APICURIO_REST_DELETION_ARTIFACT_ENABLED", "true")
                 .withEnv("APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED", "true")
                 .withEnv("APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED", "true")
+                .withEnv("APICURIO_AUTH_ROLE_BASED_AUTHORIZATION", "true")
+                .withEnv("APICURIO_AUTH_ROLE_SOURCE", "application")
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forHttp("/apis/registry/v3/system/info")
                         .forStatusCode(200)

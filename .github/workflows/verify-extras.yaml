@@ -14,6 +14,9 @@ on:
         required: true
         description: 'Docker image tag to test'
 
+permissions:
+  contents: read
+
 jobs:
   extra-tests:
     name: Extra Tests

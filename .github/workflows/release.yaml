@@ -17,6 +17,9 @@ on:
         type: boolean
         description: I will notify jsenko if the operator release workflow fails!
 
+permissions:
+  contents: read
+
 jobs:
   # Phase 1: Bump version, commit, push. Fast job that gates all parallel builds.
   release-prepare:

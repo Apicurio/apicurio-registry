@@ -8,6 +8,9 @@ on:
         required: true
         description: 'Build artifact identifier (commit SHA)'
 
+permissions:
+  contents: read
+
 jobs:
   cli-verify:
     name: CLI (${{ matrix.os-name }})

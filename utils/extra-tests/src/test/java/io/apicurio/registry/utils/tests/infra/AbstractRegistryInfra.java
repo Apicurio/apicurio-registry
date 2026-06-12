@@ -16,6 +16,11 @@ public abstract class AbstractRegistryInfra {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractRegistryInfra.class);
 
+    // KafkaSQL bootstrap involves sequential Kafka consumer polls at 5s intervals
+    // plus SQL initialization. 75s provides margin over observed ~49s worst case
+    // under CI load without masking genuinely hung containers.
+    private static final Duration KAFKASQL_STARTUP_TIMEOUT = Duration.ofSeconds(75);
+
     private final String name;
 
     protected GenericContainer<?> registryContainer;
@@ -34,11 +39,14 @@ public abstract class AbstractRegistryInfra {
                 .withNetwork(Network.SHARED)
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forLogMessage(".*KafkaSQL storage bootstrapped in .* ms.*", 1)
-                        .withStartupTimeout(Duration.ofSeconds(30))
+                        .withStartupTimeout(KAFKASQL_STARTUP_TIMEOUT)
                 );
 
         try {
+            long startTime = System.currentTimeMillis();
             registryContainer.start();
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info("Container '{}' started in {} ms", name, elapsed);
             registryContainer.followOutput(new Slf4jLogConsumer(log).withPrefix(name));
             return true;
         } catch (ContainerLaunchException ex) {

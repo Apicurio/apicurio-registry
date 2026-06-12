@@ -35,6 +35,14 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testImportsNotFetched() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("wsdl-with-import.wsdl");
+        WsdlContentValidator validator = new WsdlContentValidator();
+        // Must not throw — if the import were fetched, the unreachable URL would cause a timeout/error
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
     public void testinValidSemantics() throws Exception {
         TypedContent content = resourceToTypedContentHandle("wsdl-invalid-semantics.wsdl");
         WsdlContentValidator validator = new WsdlContentValidator();

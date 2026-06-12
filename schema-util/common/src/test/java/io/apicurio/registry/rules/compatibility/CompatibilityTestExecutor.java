@@ -32,13 +32,16 @@ public class CompatibilityTestExecutor {
 
     private CompatibilityChecker checker;
 
-    public CompatibilityTestExecutor(CompatibilityChecker checker) {
+    private final Set<String> skipFields;
+
+    public CompatibilityTestExecutor(CompatibilityChecker checker, String... skipFields) {
         this.checker = checker;
+        this.skipFields = Set.of(skipFields);
     }
 
     public Set<String> execute(String testData) throws Exception {
 
-        Set<String> failed = new HashSet<>(); // TODO add diff
+        Set<String> failed = new HashSet<>();
 
         JSONObject testDataJson = MAPPER.readValue(testData, JSONObject.class);
         JSONArray testCasesData = testDataJson.getJSONArray("tests");
@@ -48,7 +51,16 @@ public class CompatibilityTestExecutor {
             String caseId = testCaseData.getString("id");
 
             if (!testCaseData.getBoolean("enabled")) {
-                log.warn("Skipping {}", caseId);
+                log.warn("Skipping disabled test case: {}", caseId);
+                continue;
+            }
+
+            var skipReason = skipFields.stream()
+                    .filter(testCaseData::has)
+                    .map(testCaseData::getString)
+                    .findFirst();
+            if (skipReason.isPresent()) {
+                log.warn("Skipping test case {}: {}", caseId, skipReason.get());
                 continue;
             }
 
@@ -62,46 +74,44 @@ public class CompatibilityTestExecutor {
                 ? testCaseData.get("updatedContentType").toString() : ContentTypes.APPLICATION_JSON;
             var updatedTypedContent = TypedContent.create(updated, updatedCT);
 
-            var resultBackward = checker.testCompatibility(CompatibilityLevel.BACKWARD,
-                    List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
-            var resultForward = checker.testCompatibility(CompatibilityLevel.FORWARD,
-                    List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
+            try {
+                var resultBackward = checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                        List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
+                var resultForward = checker.testCompatibility(CompatibilityLevel.FORWARD,
+                        List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
 
-            switch (testCaseData.getString("compatibility")) {
-                case "backward":
-                    if (resultBackward.isCompatible() && !resultForward.isCompatible()) {
-                        // ok
-                        log.debug("OK caseId: {}", caseId);
-                    } else {
-                        // bad
-                        failed.add(caseId);
-                        logFail(caseId, resultBackward, resultForward);
-                    }
-                    break;
-
-                case "both":
-                    if (resultBackward.isCompatible() && resultForward.isCompatible()) {
-                        // ok
-                        log.debug("OK caseId: {}", caseId);
-                    } else {
-                        // bad
-                        failed.add(caseId);
-                        logFail(caseId, resultBackward, resultForward);
-                    }
-                    break;
-                case "none":
-                    if (!resultBackward.isCompatible() && !resultForward.isCompatible()) {
-                        // ok
-                        log.debug("OK caseId: {}", caseId);
-                    } else {
-                        // bad
-                        failed.add(caseId);
-                        logFail(caseId, resultBackward, resultForward);
-                    }
-                    break;
-                default:
-                    throw new IllegalArgumentException(
-                            "Unsupported compatibility type: " + testCaseData.getString("compatibility"));
+                switch (testCaseData.getString("compatibility")) {
+                    case "backward":
+                        if (resultBackward.isCompatible() && !resultForward.isCompatible()) {
+                            log.debug("OK caseId: {}", caseId);
+                        } else {
+                            failed.add(caseId);
+                            logFail(caseId, resultBackward, resultForward);
+                        }
+                        break;
+                    case "both":
+                        if (resultBackward.isCompatible() && resultForward.isCompatible()) {
+                            log.debug("OK caseId: {}", caseId);
+                        } else {
+                            failed.add(caseId);
+                            logFail(caseId, resultBackward, resultForward);
+                        }
+                        break;
+                    case "none":
+                        if (!resultBackward.isCompatible() && !resultForward.isCompatible()) {
+                            log.debug("OK caseId: {}", caseId);
+                        } else {
+                            failed.add(caseId);
+                            logFail(caseId, resultBackward, resultForward);
+                        }
+                        break;
+                    default:
+                        throw new IllegalArgumentException(
+                                "Unsupported compatibility type: " + testCaseData.getString("compatibility"));
+                }
+            } catch (Exception e) {
+                failed.add(caseId);
+                log.error("Test case {} threw exception: {}", caseId, e.getMessage(), e);
             }
         }
         return failed;

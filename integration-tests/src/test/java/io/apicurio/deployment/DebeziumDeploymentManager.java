@@ -29,6 +29,10 @@ public class DebeziumDeploymentManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DebeziumDeploymentManager.class);
 
+    private static final int CONNECT_READY_MAX_ATTEMPTS = 60;
+    private static final int CONNECT_READY_SLEEP_MS = 5000;
+    private static final int CONNECT_READY_INITIAL_DELAY_MS = 10000;
+
     // Flags to track what infrastructure has been deployed (for idempotency)
     private static volatile boolean kafkaDeployed = false;
     private static volatile boolean postgresqlDeployed = false;
@@ -469,22 +473,20 @@ public class DebeziumDeploymentManager {
         try {
             // In minikube with tunnel, the service should be accessible via localhost
             // Let's wait a bit and then try to connect
-            Thread.sleep(10000); // Give minikube tunnel time to set up the route
+            Thread.sleep(CONNECT_READY_INITIAL_DELAY_MS);
 
             String port = useLocalConverters ? "8084" : "8083";
-            // Try to connect to the Debezium Connect REST API
             String connectUrl = "http://localhost:" + port;
             LOGGER.info("Checking Debezium Connect readiness at: {}", connectUrl);
 
-            int maxAttempts = 30;
             int attempt = 0;
             boolean ready = false;
 
-            while (attempt < maxAttempts && !ready) {
+            while (attempt < CONNECT_READY_MAX_ATTEMPTS && !ready) {
+                java.net.HttpURLConnection conn = null;
                 try {
-                    // Simple HTTP GET to check if service is responding
                     java.net.URL url = new java.net.URL(connectUrl);
-                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn = (java.net.HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("GET");
                     conn.setConnectTimeout(2000);
                     conn.setReadTimeout(2000);
@@ -494,19 +496,25 @@ public class DebeziumDeploymentManager {
                         ready = true;
                         LOGGER.info("Debezium Connect is ready!");
                     } else {
-                        LOGGER.debug("Debezium Connect returned status code: {}", responseCode);
+                        LOGGER.info("Attempt {}/{}: Debezium Connect returned status code: {}",
+                                attempt + 1, CONNECT_READY_MAX_ATTEMPTS, responseCode);
                     }
-                    conn.disconnect();
                 } catch (Exception e) {
-                    LOGGER.debug("Attempt {}/{}: Debezium Connect not ready yet: {}",
-                            attempt + 1, maxAttempts, e.getMessage());
-                    Thread.sleep(5000);
+                    LOGGER.info("Attempt {}/{}: Debezium Connect not ready yet: {}",
+                            attempt + 1, CONNECT_READY_MAX_ATTEMPTS, e.getMessage());
+                } finally {
+                    if (conn != null) {
+                        conn.disconnect();
+                    }
+                }
+                if (!ready) {
+                    Thread.sleep(CONNECT_READY_SLEEP_MS);
                 }
                 attempt++;
             }
 
             if (!ready) {
-                throw new RuntimeException("Debezium Connect did not become ready after " + maxAttempts + " attempts. " +
+                throw new RuntimeException("Debezium Connect did not become ready after " + CONNECT_READY_MAX_ATTEMPTS + " attempts. " +
                         "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
             }
 

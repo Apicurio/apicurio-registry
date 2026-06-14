@@ -8,6 +8,8 @@ import io.opentelemetry.api.metrics.LongUpDownCounter;
 import io.opentelemetry.api.metrics.Meter;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provider for OpenTelemetry metrics in Apicurio Registry.
@@ -19,6 +21,8 @@ import jakarta.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 public class OTelMetricsProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(OTelMetricsProvider.class);
 
     private static final String INSTRUMENTATION_NAME = "io.apicurio.registry";
     private static final String METRIC_PREFIX = "apicurio.";
@@ -136,7 +140,7 @@ public class OTelMetricsProvider {
      * @param artifactType the type of the artifact
      */
     public void recordArtifactCreated(String groupId, String artifactType) {
-        artifactCreatedCounter.add(1, Attributes.of(
+        safeIncrement(artifactCreatedCounter, Attributes.of(
                 OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : DEFAULT_GROUP,
                 OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE
         ));
@@ -149,7 +153,7 @@ public class OTelMetricsProvider {
      * @param artifactType the type of the artifact
      */
     public void recordArtifactDeleted(String groupId, String artifactType) {
-        artifactDeletedCounter.add(1, Attributes.of(
+        safeIncrement(artifactDeletedCounter, Attributes.of(
                 OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : DEFAULT_GROUP,
                 OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE
         ));
@@ -162,7 +166,7 @@ public class OTelMetricsProvider {
      * @param artifactType the type of the artifact
      */
     public void recordVersionCreated(String groupId, String artifactType) {
-        versionCreatedCounter.add(1, Attributes.of(
+        safeIncrement(versionCreatedCounter, Attributes.of(
                 OTelAttributes.ATTR_GROUP_ID, groupId != null ? groupId : DEFAULT_GROUP,
                 OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE
         ));
@@ -175,7 +179,7 @@ public class OTelMetricsProvider {
      * @param success whether the validation was successful
      */
     public void recordSchemaValidation(String artifactType, boolean success) {
-        schemaValidationCounter.add(1, Attributes.of(
+        safeIncrement(schemaValidationCounter, Attributes.of(
                 OTelAttributes.ATTR_ARTIFACT_TYPE, artifactType != null ? artifactType : UNKNOWN_TYPE,
                 OTelAttributes.ATTR_RESULT, success ? RESULT_SUCCESS : RESULT_FAILURE
         ));
@@ -188,7 +192,7 @@ public class OTelMetricsProvider {
      * @param success whether the rule evaluation passed
      */
     public void recordRuleEvaluation(String operation, boolean success) {
-        ruleEvaluationCounter.add(1, Attributes.of(
+        safeIncrement(ruleEvaluationCounter, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, operation != null ? operation : UNKNOWN_TYPE,
                 OTelAttributes.ATTR_RESULT, success ? RESULT_SUCCESS : RESULT_FAILURE
         ));
@@ -200,7 +204,7 @@ public class OTelMetricsProvider {
      * @param searchType the type of search (e.g., "artifacts", "versions", "groups")
      */
     public void recordSearchRequest(String searchType) {
-        searchRequestCounter.add(1, Attributes.of(
+        safeIncrement(searchRequestCounter, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, searchType != null ? searchType : UNKNOWN_TYPE
         ));
     }
@@ -211,7 +215,7 @@ public class OTelMetricsProvider {
      * @param operation the operation type (e.g., "created", "deleted", "updated")
      */
     public void recordIcebergNamespaceOperation(String operation) {
-        icebergNamespaceOpsCounter.add(1, Attributes.of(
+        safeIncrement(icebergNamespaceOpsCounter, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, operation,
                 OTelAttributes.ATTR_RESULT, RESULT_SUCCESS
         ));
@@ -223,7 +227,7 @@ public class OTelMetricsProvider {
      * @param operation the operation type (e.g., "created", "deleted", "renamed", "committed")
      */
     public void recordIcebergTableOperation(String operation) {
-        icebergTableOpsCounter.add(1, Attributes.of(
+        safeIncrement(icebergTableOpsCounter, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, operation,
                 OTelAttributes.ATTR_RESULT, RESULT_SUCCESS
         ));
@@ -235,7 +239,7 @@ public class OTelMetricsProvider {
      * @param operation the operation type (e.g., "created", "deleted", "renamed", "replaced")
      */
     public void recordIcebergViewOperation(String operation) {
-        icebergViewOpsCounter.add(1, Attributes.of(
+        safeIncrement(icebergViewOpsCounter, Attributes.of(
                 OTelAttributes.ATTR_OPERATION, operation,
                 OTelAttributes.ATTR_RESULT, RESULT_SUCCESS
         ));
@@ -247,7 +251,7 @@ public class OTelMetricsProvider {
      * @param entityType the entity type ("table" or "view")
      */
     public void recordIcebergCommitConflict(String entityType) {
-        icebergCommitConflictsCounter.add(1, Attributes.of(
+        safeIncrement(icebergCommitConflictsCounter, Attributes.of(
                 OTelAttributes.ATTR_ENTITY_TYPE, entityType
         ));
     }
@@ -258,9 +262,17 @@ public class OTelMetricsProvider {
      * @param errorType the Iceberg error type (e.g., "NoSuchNamespaceException")
      */
     public void recordIcebergError(String errorType) {
-        icebergErrorsCounter.add(1, Attributes.of(
+        safeIncrement(icebergErrorsCounter, Attributes.of(
                 OTelAttributes.ATTR_ERROR_TYPE, errorType
         ));
+    }
+
+    private void safeIncrement(LongCounter counter, Attributes attributes) {
+        try {
+            counter.add(1, attributes);
+        } catch (Exception e) {
+            log.debug("Failed to record OTel metric", e);
+        }
     }
 
     public synchronized void updateUsageSummaryCounts(int active, int stale, int dead) {

@@ -20,8 +20,9 @@ import io.opentelemetry.api.common.AttributeKey;
 
 /**
  * Centralized OpenTelemetry attribute key definitions for Apicurio Registry.
- * All custom span attributes follow the OpenTelemetry attribute naming conventions:
- * snake_case with the {@code apicurio.registry.} namespace prefix.
+ * Custom attributes use snake_case with the {@code apicurio.registry.} namespace prefix.
+ * Standard OTel semantic convention attributes (e.g., {@code http.response.status_code})
+ * use their canonical names without prefix.
  *
  * @see <a href="https://opentelemetry.io/docs/specs/semconv/general/attribute-naming/">
  *      OpenTelemetry Attribute Naming</a>
@@ -68,4 +69,9 @@ public final class OTelAttributes {
 
     /** Full method signature including parameter types. */
     public static final AttributeKey<String> ATTR_STORAGE_METHOD_SIGNATURE = AttributeKey.stringKey("apicurio.registry.storage.method_signature");
+
+    // -- HTTP response attributes (OTel semantic conventions) --
+
+    /** HTTP response status code. */
+    public static final AttributeKey<Long> ATTR_HTTP_RESPONSE_STATUS_CODE = AttributeKey.longKey("http.response.status_code");
 }

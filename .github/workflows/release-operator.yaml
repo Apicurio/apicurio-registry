@@ -120,7 +120,11 @@ jobs:
       - name: Build operator bundle
         working-directory: registry/operator
         run: |
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION bundle
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle
 
       - name: Build operator catalog
         working-directory: registry/operator
@@ -361,13 +365,23 @@ jobs:
       - name: Update Makefile
         working-directory: registry/operator
         run: |
+          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
+            echo "OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL" >> $GITHUB_ENV
+          fi
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
           git add Makefile
 
       - name: Update catalog template
         working-directory: registry/operator
         run: |
-          make release-catalog-template-update
+          CATALOG_ARGS=""
+          if [ -n "${OLD_PREVIOUS_CHANNEL:-}" ]; then
+            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_PREVIOUS_CHANNEL"
+          fi
+          make $CATALOG_ARGS release-catalog-template-update
           git add "$(make VAR=CATALOG_DIR variable-get)"
 
       - name: Update install file
@@ -402,8 +416,15 @@ jobs:
 
           # Reuse the same make targets as the post-release steps
           cd operator
+          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          CATALOG_ARGS=""
+          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
+            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL"
+          fi
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-          make release-catalog-template-update
+          make $CATALOG_ARGS release-catalog-template-update
 
           cd ..
           git add .

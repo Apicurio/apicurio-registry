@@ -178,7 +178,7 @@
     <okio.version>3.17.0</okio.version>
     <kotlin-stdlib.version>2.4.0</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.35.0</protobuf.version>
+    <protobuf.version>4.35.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.72.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -219,7 +219,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.43</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.44</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -281,7 +281,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
-    <flink.version>1.20.4</flink.version>
+    <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
@@ -1477,5 +1477,4 @@
       </repositories>
     </profile>
   </profiles>
-
 </project>

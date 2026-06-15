@@ -74,4 +74,18 @@ public final class OTelAttributes {
 
     /** HTTP response status code. */
     public static final AttributeKey<Long> ATTR_HTTP_RESPONSE_STATUS_CODE = AttributeKey.longKey("http.response.status_code");
+
+    // -- Metrics attributes --
+
+    /** Operation type (e.g., CREATE, UPDATE, artifacts, versions). */
+    public static final AttributeKey<String> ATTR_OPERATION = AttributeKey.stringKey("apicurio.registry.operation");
+
+    /** Result of an operation (success or failure). */
+    public static final AttributeKey<String> ATTR_RESULT = AttributeKey.stringKey("apicurio.registry.result");
+
+    /** Entity type (e.g., table, view). */
+    public static final AttributeKey<String> ATTR_ENTITY_TYPE = AttributeKey.stringKey("apicurio.registry.entity_type");
+
+    /** Error type classification. */
+    public static final AttributeKey<String> ATTR_ERROR_TYPE = AttributeKey.stringKey("apicurio.registry.error_type");
 }

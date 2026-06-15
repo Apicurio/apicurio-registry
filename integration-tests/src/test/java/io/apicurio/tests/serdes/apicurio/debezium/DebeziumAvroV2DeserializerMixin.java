@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Mixin interface providing Apicurio Registry wire format deserialization logic with
@@ -19,7 +20,8 @@ import java.nio.charset.StandardCharsets;
  * <p>Applies the same heuristic as {@code OptimisticFallbackIdHandler}: peek at the first
  * 4 bytes after the magic byte. If they are all zeros the data was written with the legacy
  * 8-byte format (globalId as a long); otherwise it was written with the default 4-byte
- * format (contentId as an int). The schema is then fetched via the matching endpoint.
+ * format (contentId as an int). The schema is then fetched via the matching endpoint and
+ * any Avro references are resolved before deserialization.
  */
 public interface DebeziumAvroV2DeserializerMixin {
 
@@ -37,7 +39,7 @@ public interface DebeziumAvroV2DeserializerMixin {
      * <p>If the first 4 bytes after the magic byte are all zeros the record is treated as
      * legacy 8-byte globalId format; otherwise it is treated as default 4-byte contentId
      * format. This mirrors the {@code OptimisticFallbackIdHandler} logic used in the serde
-     * library.
+     * library. Schema references are resolved before parsing.
      */
     default GenericRecord deserializeAvroValueV2(byte[] bytes) throws Exception {
         if (bytes == null || bytes.length < 5) {
@@ -65,24 +67,27 @@ public interface DebeziumAvroV2DeserializerMixin {
 
         boolean legacy8Byte = (firstFour == 0 && buffer.remaining() >= 4);
 
-        InputStream schemaStream;
+        String schemaJson;
+        Schema.Parser parser = new Schema.Parser();
+
         if (legacy8Byte) {
             // Rewind the 4 bytes we just read and consume a full 8-byte long
             buffer.position(buffer.position() - 4);
             long globalId = buffer.getLong();
             LOG.info("Detected legacy 8-byte format. Global ID: {} (0x{})",
                     globalId, Long.toHexString(globalId));
-            schemaStream = fetchSchemaByGlobalId(globalId);
+            schemaJson = fetchSchemaStringByGlobalId(globalId);
+            resolveReferencesByGlobalId(globalId, parser);
         } else {
             long contentId = Integer.toUnsignedLong(firstFour);
             LOG.info("Detected default 4-byte format. Content ID: {} (0x{})",
                     contentId, Long.toHexString(contentId));
-            schemaStream = fetchSchemaByContentId(contentId);
+            schemaJson = fetchSchemaStringByContentId(contentId);
+            resolveReferencesByContentId(contentId, parser);
         }
 
         try {
-            String schemaJson = new String(schemaStream.readAllBytes(), StandardCharsets.UTF_8);
-            Schema schema = new Schema.Parser().parse(schemaJson);
+            Schema schema = parser.parse(schemaJson);
 
             // Deserialize payload
             byte[] payload = new byte[buffer.remaining()];
@@ -100,11 +105,12 @@ public interface DebeziumAvroV2DeserializerMixin {
     }
 
     /**
-     * Fetches a schema by globalId (legacy 8-byte format).
+     * Fetches a schema as a JSON string by globalId (legacy 8-byte format).
      */
-    private InputStream fetchSchemaByGlobalId(long globalId) throws Exception {
+    private String fetchSchemaStringByGlobalId(long globalId) throws Exception {
         try {
-            return getRegistryClient().ids().globalIds().byGlobalId(globalId).get();
+            InputStream stream = getRegistryClient().ids().globalIds().byGlobalId(globalId).get();
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             LOG.error("Failed to fetch schema for globalId: {}. Error: {}", globalId, e.getMessage());
             logRecentArtifacts();
@@ -113,15 +119,74 @@ public interface DebeziumAvroV2DeserializerMixin {
     }
 
     /**
-     * Fetches a schema by contentId (default 4-byte format).
+     * Fetches a schema as a JSON string by contentId (default 4-byte format).
      */
-    private InputStream fetchSchemaByContentId(long contentId) throws Exception {
+    private String fetchSchemaStringByContentId(long contentId) throws Exception {
         try {
-            return getRegistryClient().ids().contentIds().byContentId(contentId).get();
+            InputStream stream = getRegistryClient().ids().contentIds().byContentId(contentId).get();
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             LOG.error("Failed to fetch schema for contentId: {}. Error: {}", contentId, e.getMessage());
             logRecentArtifacts();
             throw e;
+        }
+    }
+
+    /**
+     * Resolves and pre-parses schema references for a globalId.
+     */
+    private void resolveReferencesByGlobalId(long globalId, Schema.Parser parser) {
+        try {
+            var references = getRegistryClient().ids().globalIds().byGlobalId(globalId).references().get();
+            resolveReferences(references, parser);
+        } catch (Exception e) {
+            LOG.warn("Could not resolve references for globalId {}: {}", globalId, e.getMessage());
+        }
+    }
+
+    /**
+     * Resolves and pre-parses schema references for a contentId.
+     */
+    private void resolveReferencesByContentId(long contentId, Schema.Parser parser) {
+        try {
+            var references = getRegistryClient().ids().contentIds().byContentId(contentId).references().get();
+            resolveReferences(references, parser);
+        } catch (Exception e) {
+            LOG.warn("Could not resolve references for contentId {}: {}", contentId, e.getMessage());
+        }
+    }
+
+    /**
+     * Fetches and pre-parses each referenced schema so the main schema can resolve them.
+     */
+    private void resolveReferences(
+            List<io.apicurio.registry.rest.client.models.ArtifactReference> references,
+            Schema.Parser parser) {
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+        LOG.info("Schema has {} references, resolving...", references.size());
+        for (var ref : references) {
+            try {
+                String refGroupId = ref.getGroupId() != null ? ref.getGroupId() : "default";
+                String refArtifactId = ref.getArtifactId();
+                String refVersion = ref.getVersion();
+
+                LOG.info("Resolving reference: name={}, groupId={}, artifactId={}, version={}",
+                        ref.getName(), refGroupId, refArtifactId, refVersion);
+
+                String versionExpr = (refVersion != null && !refVersion.isEmpty()) ? refVersion : "latest";
+                InputStream refStream = getRegistryClient().groups().byGroupId(refGroupId)
+                        .artifacts().byArtifactId(refArtifactId)
+                        .versions().byVersionExpression(versionExpr)
+                        .content().get();
+
+                String refSchemaJson = new String(refStream.readAllBytes(), StandardCharsets.UTF_8);
+                parser.parse(refSchemaJson);
+                LOG.info("Successfully resolved reference: {}", ref.getName());
+            } catch (Exception e) {
+                LOG.warn("Failed to resolve reference {}: {}", ref.getName(), e.getMessage());
+            }
         }
     }
 

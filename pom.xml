@@ -300,7 +300,7 @@
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
-    <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.116.0</strimzi-test-container.version>
 
     <!-- Iceberg -->
     <iceberg.version>1.11.0</iceberg.version>

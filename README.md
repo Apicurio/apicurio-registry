@@ -319,6 +319,17 @@ to ignore the usage of **maven-dependency-plugin**.
 the **Reload workspace lifecycle mappings metadata** button.
 * If you've already imported the Apicurio projects, select all of them and choose **Maven->Update Project**.
 
+## Community
+
+Apicurio Registry is a [Cloud Native Computing Foundation](https://cncf.io) Sandbox project.
+
+We abide by the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+Copyright Apicurio Registry a Series of LF Projects, LLC.
+For web site terms of use, trademark policy and other project policies please see https://lfprojects.org/policies/.
+
 ### Prevent Eclipse from aggressively cleaning generated classes
 
 We use some Google Protobuf files and a maven plugin to generate some Java classes that

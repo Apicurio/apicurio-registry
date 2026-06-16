@@ -23,7 +23,7 @@ import { plural } from "pluralize";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter } from "@services/useSearchService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
-import { useArtifactTypesService } from "@services/useArtifactTypesService.ts";
+import { useArtifactTypesService, ArtifactTypeInfo } from "@services/useArtifactTypesService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
@@ -85,6 +85,13 @@ const FILTER_TYPE_LOOKUP: any = {};
     FILTER_TYPE_LOOKUP[filterType.value] = filterType;
 });
 
+const STATE_OPTIONS: { value: string; label: string }[] = [
+    { value: "ENABLED", label: "Enabled" },
+    { value: "DISABLED", label: "Disabled" },
+    { value: "DEPRECATED", label: "Deprecated" },
+    { value: "DRAFT", label: "Draft" },
+];
+
 /**
  * Models the toolbar for the Search page.
  */
@@ -94,18 +101,13 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
 
     const [artifactTypeOptions, setArtifactTypeOptions] = useState<{ value: string; label: string }[]>([]);
 
-    const stateOptions: { value: string; label: string }[] = [
-        { value: "ENABLED", label: "Enabled" },
-        { value: "DISABLED", label: "Disabled" },
-        { value: "DEPRECATED", label: "Deprecated" },
-        { value: "DRAFT", label: "Draft" },
-    ];
-
     useEffect(() => {
         atService.allTypesWithLabels().then(types => {
-            setArtifactTypeOptions(types.map((t: any) => ({ value: t.id, label: t.label })));
+            setArtifactTypeOptions(types.map((t: ArtifactTypeInfo) => ({ value: t.id, label: t.label })));
+        }).catch(error => {
+            console.error("[SearchPageToolbar] Failed to load artifact types for filter dropdown:", error);
         });
-    }, []);
+    }, [atService]);
 
     const filterCriteria: ChipFilterCriteria[] = props.filters.map(c => {
         return {
@@ -165,7 +167,7 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
                 return {
                     ...ft,
                     type: "select" as const,
-                    options: stateOptions,
+                    options: STATE_OPTIONS,
                     noSelectionLabel: "Select a state"
                 };
             }

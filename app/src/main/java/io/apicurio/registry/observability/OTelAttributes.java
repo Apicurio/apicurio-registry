@@ -68,4 +68,18 @@ public final class OTelAttributes {
 
     /** Full method signature including parameter types. */
     public static final AttributeKey<String> ATTR_STORAGE_METHOD_SIGNATURE = AttributeKey.stringKey("apicurio.registry.storage.method_signature");
+
+    // -- Metrics attributes --
+
+    /** Operation type (e.g., CREATE, UPDATE, artifacts, versions). */
+    public static final AttributeKey<String> ATTR_OPERATION = AttributeKey.stringKey("apicurio.registry.operation");
+
+    /** Result of an operation (success or failure). */
+    public static final AttributeKey<String> ATTR_RESULT = AttributeKey.stringKey("apicurio.registry.result");
+
+    /** Entity type (e.g., table, view). */
+    public static final AttributeKey<String> ATTR_ENTITY_TYPE = AttributeKey.stringKey("apicurio.registry.entity_type");
+
+    /** Error type classification. */
+    public static final AttributeKey<String> ATTR_ERROR_TYPE = AttributeKey.stringKey("apicurio.registry.error_type");
 }

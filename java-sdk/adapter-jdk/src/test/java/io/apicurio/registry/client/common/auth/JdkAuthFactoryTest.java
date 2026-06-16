@@ -81,7 +81,8 @@ class JdkAuthFactoryTest {
                 "https://auth.example.com/oauth/token",
                 "client-id",
                 "client-secret",
-                "openid profile"
+                "openid profile",
+                false
         );
 
         assertNotNull(tokenProvider);
@@ -97,7 +98,8 @@ class JdkAuthFactoryTest {
                 "https://auth.example.com/oauth/token",
                 "client-id",
                 "client-secret",
-                null
+                null,
+                false
         );
 
         assertNotNull(tokenProvider);
@@ -112,7 +114,8 @@ class JdkAuthFactoryTest {
                 "https://invalid.endpoint.local/oauth/token",
                 "client-id",
                 "client-secret",
-                null
+                null,
+                false
         );
 
         // Should throw IOException when trying to get token from invalid endpoint

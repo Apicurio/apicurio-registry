@@ -25,6 +25,20 @@ public class JdkAuthFactory {
 
     private static final Logger log = Logger.getLogger(JdkAuthFactory.class.getName());
 
+    private static final boolean OTEL_AVAILABLE;
+
+    static {
+        boolean available;
+        try {
+            Class.forName("io.opentelemetry.api.GlobalOpenTelemetry", false,
+                    JdkAuthFactory.class.getClassLoader());
+            available = true;
+        } catch (ClassNotFoundException e) {
+            available = false;
+        }
+        OTEL_AVAILABLE = available;
+    }
+
     private JdkAuthFactory() {
         // Prevent instantiation
     }
@@ -70,11 +84,13 @@ public class JdkAuthFactory {
      * @param clientId      the OAuth2 client ID
      * @param clientSecret  the OAuth2 client secret
      * @param scope         the OAuth2 scope (optional, can be null)
+     * @param otelEnabled   whether to inject OpenTelemetry trace context into token requests
      * @return a TokenProvider that supplies valid access tokens
      */
     public static TokenProvider buildOAuth2TokenProvider(HttpClient httpClient, String tokenEndpoint,
-                                                         String clientId, String clientSecret, String scope) {
-        return new OAuth2TokenProvider(httpClient, tokenEndpoint, clientId, clientSecret, scope);
+                                                         String clientId, String clientSecret, String scope,
+                                                         boolean otelEnabled) {
+        return new OAuth2TokenProvider(httpClient, tokenEndpoint, clientId, clientSecret, scope, otelEnabled);
     }
 
     /**
@@ -105,18 +121,21 @@ public class JdkAuthFactory {
         private final String clientId;
         private final String clientSecret;
         private final String scope;
+        private final boolean otelEnabled;
 
         private final ReentrantLock lock = new ReentrantLock();
         private volatile String cachedToken;
         private volatile Instant tokenExpiry;
 
         public OAuth2TokenProvider(HttpClient httpClient, String tokenEndpoint,
-                                   String clientId, String clientSecret, String scope) {
+                                   String clientId, String clientSecret, String scope,
+                                   boolean otelEnabled) {
             this.httpClient = httpClient;
             this.tokenEndpoint = tokenEndpoint;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
             this.scope = scope;
+            this.otelEnabled = otelEnabled;
         }
 
         @Override
@@ -148,12 +167,18 @@ public class JdkAuthFactory {
                 body.append("&scope=").append(urlEncode(scope));
             }
 
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(tokenEndpoint))
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .timeout(Duration.ofSeconds(30))
-                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                    .build();
+                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()));
+
+            // Inject OTel trace context if available and enabled
+            if (otelEnabled && OTEL_AVAILABLE) {
+                injectTraceContext(requestBuilder);
+            }
+
+            HttpRequest request = requestBuilder.build();
 
             try {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -196,6 +221,49 @@ public class JdkAuthFactory {
             } catch (java.io.UnsupportedEncodingException e) {
                 // UTF-8 is always supported
                 throw new RuntimeException(e);
+            }
+        }
+
+        /**
+         * Injects OpenTelemetry trace context headers into the request builder.
+         * Uses reflection to avoid compile-time dependency on OTel API.
+         */
+        private static void injectTraceContext(HttpRequest.Builder requestBuilder) {
+            try {
+                // Get GlobalOpenTelemetry.getPropagators()
+                Class<?> globalOpenTelemetryClass = Class.forName("io.opentelemetry.api.GlobalOpenTelemetry");
+                Object contextPropagators = globalOpenTelemetryClass.getMethod("getPropagators").invoke(null);
+
+                // Get TextMapPropagator from ContextPropagators
+                Class<?> contextPropagatorsClass = Class.forName("io.opentelemetry.context.propagation.ContextPropagators");
+                Object textMapPropagator = contextPropagatorsClass.getMethod("getTextMapPropagator").invoke(contextPropagators);
+
+                // Get Context.current()
+                Class<?> contextClass = Class.forName("io.opentelemetry.context.Context");
+                Object currentContext = contextClass.getMethod("current").invoke(null);
+
+                // Create TextMapSetter lambda using reflection
+                Class<?> textMapSetterClass = Class.forName("io.opentelemetry.context.propagation.TextMapSetter");
+                Object setter = java.lang.reflect.Proxy.newProxyInstance(
+                        textMapSetterClass.getClassLoader(),
+                        new Class<?>[]{textMapSetterClass},
+                        (proxy, method, args) -> {
+                            if ("set".equals(method.getName()) && args.length == 3) {
+                                String key = (String) args[1];
+                                String value = (String) args[2];
+                                requestBuilder.header(key, value);
+                            }
+                            return null;
+                        });
+
+                // Call inject(context, carrier, setter)
+                Class<?> textMapPropagatorClass = Class.forName("io.opentelemetry.context.propagation.TextMapPropagator");
+                textMapPropagatorClass.getMethod("inject", contextClass, Object.class, textMapSetterClass)
+                        .invoke(textMapPropagator, currentContext, requestBuilder, setter);
+
+            } catch (Exception e) {
+                // Log but don't fail the request if trace context injection fails
+                log.log(Level.WARNING, "Failed to inject OTel trace context into OAuth2 token request", e);
             }
         }
     }

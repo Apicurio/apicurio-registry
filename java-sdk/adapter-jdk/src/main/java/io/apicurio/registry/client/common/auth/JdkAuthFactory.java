@@ -93,6 +93,11 @@ public class JdkAuthFactory {
         return new OAuth2TokenProvider(httpClient, tokenEndpoint, clientId, clientSecret, scope, otelEnabled);
     }
 
+    public static TokenProvider buildOAuth2TokenProvider(HttpClient httpClient, String tokenEndpoint,
+                                                         String clientId, String clientSecret, String scope) {
+        return buildOAuth2TokenProvider(httpClient, tokenEndpoint, clientId, clientSecret, scope, false);
+    }
+
     /**
      * Interface for providing authentication tokens.
      */
@@ -224,46 +229,78 @@ public class JdkAuthFactory {
             }
         }
 
-        /**
-         * Injects OpenTelemetry trace context headers into the request builder.
-         * Uses reflection to avoid compile-time dependency on OTel API.
-         */
+        private static final java.lang.reflect.Method GET_PROPAGATORS;
+        private static final java.lang.reflect.Method GET_TEXT_MAP_PROPAGATOR;
+        private static final java.lang.reflect.Method CONTEXT_CURRENT;
+        private static final java.lang.reflect.Method INJECT_METHOD;
+        private static final Class<?> TEXT_MAP_SETTER_CLASS;
+        private static final Class<?> CONTEXT_CLASS;
+        private static volatile boolean otelReflectionFailed = false;
+
+        static {
+            java.lang.reflect.Method getPropagators = null;
+            java.lang.reflect.Method getTextMapPropagator = null;
+            java.lang.reflect.Method contextCurrent = null;
+            java.lang.reflect.Method injectMethod = null;
+            Class<?> setterClass = null;
+            Class<?> ctxClass = null;
+            if (OTEL_AVAILABLE) {
+                try {
+                    Class<?> globalOTel = Class.forName("io.opentelemetry.api.GlobalOpenTelemetry");
+                    getPropagators = globalOTel.getMethod("getPropagators");
+                    Class<?> propagatorsClass = Class.forName(
+                            "io.opentelemetry.context.propagation.ContextPropagators");
+                    getTextMapPropagator = propagatorsClass.getMethod("getTextMapPropagator");
+                    ctxClass = Class.forName("io.opentelemetry.context.Context");
+                    contextCurrent = ctxClass.getMethod("current");
+                    setterClass = Class.forName(
+                            "io.opentelemetry.context.propagation.TextMapSetter");
+                    Class<?> propagatorClass = Class.forName(
+                            "io.opentelemetry.context.propagation.TextMapPropagator");
+                    injectMethod = propagatorClass.getMethod("inject", ctxClass,
+                            Object.class, setterClass);
+                } catch (ReflectiveOperationException e) {
+                    log.log(Level.WARNING,
+                            "OTel API is on classpath but reflection setup failed; "
+                                    + "OAuth2 token requests will not include trace context", e);
+                    otelReflectionFailed = true;
+                }
+            }
+            GET_PROPAGATORS = getPropagators;
+            GET_TEXT_MAP_PROPAGATOR = getTextMapPropagator;
+            CONTEXT_CURRENT = contextCurrent;
+            INJECT_METHOD = injectMethod;
+            TEXT_MAP_SETTER_CLASS = setterClass;
+            CONTEXT_CLASS = ctxClass;
+        }
+
         private static void injectTraceContext(HttpRequest.Builder requestBuilder) {
+            if (otelReflectionFailed || INJECT_METHOD == null) {
+                return;
+            }
             try {
-                // Get GlobalOpenTelemetry.getPropagators()
-                Class<?> globalOpenTelemetryClass = Class.forName("io.opentelemetry.api.GlobalOpenTelemetry");
-                Object contextPropagators = globalOpenTelemetryClass.getMethod("getPropagators").invoke(null);
+                Object propagators = GET_PROPAGATORS.invoke(null);
+                Object textMapPropagator = GET_TEXT_MAP_PROPAGATOR.invoke(propagators);
+                Object currentContext = CONTEXT_CURRENT.invoke(null);
 
-                // Get TextMapPropagator from ContextPropagators
-                Class<?> contextPropagatorsClass = Class.forName("io.opentelemetry.context.propagation.ContextPropagators");
-                Object textMapPropagator = contextPropagatorsClass.getMethod("getTextMapPropagator").invoke(contextPropagators);
-
-                // Get Context.current()
-                Class<?> contextClass = Class.forName("io.opentelemetry.context.Context");
-                Object currentContext = contextClass.getMethod("current").invoke(null);
-
-                // Create TextMapSetter lambda using reflection
-                Class<?> textMapSetterClass = Class.forName("io.opentelemetry.context.propagation.TextMapSetter");
                 Object setter = java.lang.reflect.Proxy.newProxyInstance(
-                        textMapSetterClass.getClassLoader(),
-                        new Class<?>[]{textMapSetterClass},
+                        TEXT_MAP_SETTER_CLASS.getClassLoader(),
+                        new Class<?>[]{TEXT_MAP_SETTER_CLASS},
                         (proxy, method, args) -> {
-                            if ("set".equals(method.getName()) && args.length == 3) {
-                                String key = (String) args[1];
-                                String value = (String) args[2];
-                                requestBuilder.header(key, value);
+                            if ("set".equals(method.getName()) && args != null && args.length == 3) {
+                                requestBuilder.header((String) args[1], (String) args[2]);
                             }
                             return null;
                         });
 
-                // Call inject(context, carrier, setter)
-                Class<?> textMapPropagatorClass = Class.forName("io.opentelemetry.context.propagation.TextMapPropagator");
-                textMapPropagatorClass.getMethod("inject", contextClass, Object.class, textMapSetterClass)
-                        .invoke(textMapPropagator, currentContext, requestBuilder, setter);
-
-            } catch (Exception e) {
-                // Log but don't fail the request if trace context injection fails
-                log.log(Level.WARNING, "Failed to inject OTel trace context into OAuth2 token request", e);
+                INJECT_METHOD.invoke(textMapPropagator, currentContext, requestBuilder, setter);
+            } catch (ReflectiveOperationException e) {
+                if (!otelReflectionFailed) {
+                    otelReflectionFailed = true;
+                    log.log(Level.WARNING,
+                            "Failed to inject OTel trace context into OAuth2 token request; "
+                                    + "will not retry on subsequent calls", e);
+                }
             }
         }
     }

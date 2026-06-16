@@ -121,4 +121,31 @@ class JdkAuthFactoryTest {
         // Should throw IOException when trying to get token from invalid endpoint
         assertThrows(IOException.class, tokenProvider::getToken);
     }
+
+    @Test
+    void testOAuth2TokenProviderWithOtelEnabledGracefulDegradation() {
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        JdkAuthFactory.TokenProvider tokenProvider = JdkAuthFactory.buildOAuth2TokenProvider(
+                httpClient,
+                "https://invalid.example.com/token",
+                "client-id",
+                "client-secret",
+                null,
+                true
+        );
+        assertNotNull(tokenProvider);
+    }
+
+    @Test
+    void testBuildOAuth2TokenProviderBackwardCompatibleOverload() {
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        JdkAuthFactory.TokenProvider tokenProvider = JdkAuthFactory.buildOAuth2TokenProvider(
+                httpClient,
+                "https://invalid.example.com/token",
+                "client-id",
+                "client-secret",
+                null
+        );
+        assertNotNull(tokenProvider);
+    }
 }

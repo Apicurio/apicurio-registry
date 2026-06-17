@@ -9,6 +9,7 @@ import io.apicurio.registry.cli.globalrule.GlobalRuleCommand;
 import io.apicurio.registry.cli.group.GroupCommand;
 import io.apicurio.registry.cli.rolemapping.RoleMappingCommand;
 import io.apicurio.registry.cli.search.SearchCommand;
+import io.apicurio.registry.cli.serverconfig.ServerConfigCommand;
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import lombok.Getter;
 import picocli.CommandLine.Command;
@@ -38,6 +39,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
                 LogoutCommand.class,
                 RoleMappingCommand.class,
                 SearchCommand.class,
+                ServerConfigCommand.class,
                 UpdateCommand.class,
                 VersionCommand.class
         },

@@ -3,6 +3,7 @@ package io.apicurio.registry.cli;
 import io.apicurio.registry.cli.artifact.ArtifactCommand;
 import io.apicurio.registry.cli.auth.LoginCommand;
 import io.apicurio.registry.cli.auth.LogoutCommand;
+import io.apicurio.registry.cli.content.ContentCommand;
 import io.apicurio.registry.cli.config.ConfigPropertyCommand;
 import io.apicurio.registry.cli.context.ContextCommand;
 import io.apicurio.registry.cli.globalrule.GlobalRuleCommand;
@@ -30,6 +31,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
         subcommands = {
                 ArtifactCommand.class,
                 ConfigPropertyCommand.class,
+                ContentCommand.class,
                 ContextCommand.class,
                 GlobalRuleCommand.class,
                 GroupCommand.class,

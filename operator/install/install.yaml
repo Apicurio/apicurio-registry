@@ -7481,6 +7481,9 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
         startupProbe:
           failureThreshold: 14
           httpGet:
@@ -7494,3 +7497,6 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: apicurio-registry-operator
+      volumes:
+      - emptyDir: {}
+        name: tmp

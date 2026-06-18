@@ -7476,9 +7476,6 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: true
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
         startupProbe:
           failureThreshold: 14
           httpGet:
@@ -7487,6 +7484,9 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
       securityContext:
         runAsNonRoot: true
         seccompProfile:

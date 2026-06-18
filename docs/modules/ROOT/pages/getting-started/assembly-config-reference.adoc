@@ -496,7 +496,7 @@ The following {registry} configuration options are available for each component 
 |`60`
 |`1.0.2.Final`
 |Counter reset window duration of response liveness check
-|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
+|`apicurio.metrics.persistence-timeout-readiness-check.counter-reset-window-duration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
@@ -1813,7 +1813,7 @@ NOTE: For each configuration property, you can override the value by using the c
 |`registry.metrics.PersistenceExceptionLivenessCheck.statusResetWindowDurationSec`
 |`apicurio.metrics.persistence-exception-liveness-check.status-reset-window-duration.seconds`
 |`registry.metrics.PersistenceTimeoutReadinessCheck.counterResetWindowDurationSec`
-|`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
+|`apicurio.metrics.persistence-timeout-readiness-check.counter-reset-window-duration.seconds`
 |`registry.metrics.PersistenceTimeoutReadinessCheck.errorThreshold`
 |`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
 |`registry.metrics.PersistenceTimeoutReadinessCheck.statusResetWindowDurationSec`

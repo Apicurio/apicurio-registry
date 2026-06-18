@@ -21,7 +21,7 @@ jobs:
   release-build:
     name: Build & Publish
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
       release-version: ${{ steps.config.outputs.release-version }}
@@ -88,7 +88,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION config-show
 
       - name: Set up JDK 21
-        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -120,7 +120,11 @@ jobs:
       - name: Build operator bundle
         working-directory: registry/operator
         run: |
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION bundle
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle
 
       - name: Build operator catalog
         working-directory: registry/operator
@@ -154,7 +158,7 @@ jobs:
     name: Test (${{ matrix.name }})
     needs: release-build
     if: needs.release-build.outputs.run-tests == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -210,7 +214,7 @@ jobs:
           cd registry && git checkout "${{ needs.release-build.outputs.release-version }}"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -244,7 +248,7 @@ jobs:
     name: Post-Release
     needs: [release-build, release-test]
     if: always() && needs.release-build.result == 'success' && (needs.release-test.result == 'success' || needs.release-test.result == 'skipped')
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
@@ -265,7 +269,7 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -361,13 +365,23 @@ jobs:
       - name: Update Makefile
         working-directory: registry/operator
         run: |
+          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
+            echo "OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL" >> $GITHUB_ENV
+          fi
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
           git add Makefile
 
       - name: Update catalog template
         working-directory: registry/operator
         run: |
-          make release-catalog-template-update
+          CATALOG_ARGS=""
+          if [ -n "${OLD_PREVIOUS_CHANNEL:-}" ]; then
+            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_PREVIOUS_CHANNEL"
+          fi
+          make $CATALOG_ARGS release-catalog-template-update
           git add "$(make VAR=CATALOG_DIR variable-get)"
 
       - name: Update install file
@@ -402,8 +416,15 @@ jobs:
 
           # Reuse the same make targets as the post-release steps
           cd operator
+          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          CATALOG_ARGS=""
+          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
+            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL"
+          fi
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-          make release-catalog-template-update
+          make $CATALOG_ARGS release-catalog-template-update
 
           cd ..
           git add .

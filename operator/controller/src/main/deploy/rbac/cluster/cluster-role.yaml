@@ -23,16 +23,10 @@ rules:
       - '*'
 
   - apiGroups:
-      - events.k8s.io
-    resources:
-      - events
-    verbs:
-      - '*'
-
-  - apiGroups:
       - ''
     resources:
       - configmaps
+      - events
       - pods
       - services
       - serviceaccounts

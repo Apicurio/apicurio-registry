@@ -272,12 +272,12 @@
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->
-    <version.org.sonatype.central-publishing-maven-plugin>0.10.0</version.org.sonatype.central-publishing-maven-plugin>
+    <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.5.0</version.puppycrawl>
+    <version.puppycrawl>13.6.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.4</proto-plugin.version>
+    <proto-plugin.version>5.1.5</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -285,7 +285,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
-    <kiota.community.version>0.0.35</kiota.community.version>
+    <kiota.community.version>0.0.36</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
@@ -300,7 +300,7 @@
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
-    <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.116.0</strimzi-test-container.version>
 
     <!-- Iceberg -->
     <iceberg.version>1.11.0</iceberg.version>

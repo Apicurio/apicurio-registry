@@ -60,12 +60,12 @@ jobs:
       - name: Build and push temporary operator bundle
         working-directory: operator
         run: |
-          make bundle
+          make ROLLING_CHANNEL=3.x bundle
 
       - name: Build and push temporary operator catalog
         working-directory: operator
         run: |
-          make catalog
+          make ROLLING_CHANNEL=3.x catalog
 
       - name: Generate install file for tests
         working-directory: operator

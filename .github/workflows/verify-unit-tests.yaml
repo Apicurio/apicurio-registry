@@ -25,27 +25,27 @@ jobs:
           - name: app-rest
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-sql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.sql.**,io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.impl.polling.**,io.apicurio.registry.storage.impl.readonly.**,io.apicurio.registry.storage.decorator.**,io.apicurio.registry.storage.dto.**,io.apicurio.registry.event.sql.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kafkasql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kafkasql.**,io.apicurio.registry.event.kafkasql.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-gitops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**"
-            maven-opts: "-Xmx2g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kubernetesops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
-            maven-opts: "-Xmx2g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
             test-filter: ""
@@ -55,14 +55,14 @@ jobs:
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .

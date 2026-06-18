@@ -75,10 +75,12 @@ public class Client {
                                final ConfigModel.Context context,
                                final String contextName) {
         if (ConfigModel.AUTH_TYPE_BASIC.equals(context.getAuthType())) {
-            final var password = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD);
+            final var password = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD,
+                    context.isUnsafeCredentialStorage());
             options.basicAuth(context.getUsername(), password);
         } else if (ConfigModel.AUTH_TYPE_OAUTH2.equals(context.getAuthType())) {
-            final var clientSecret = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET);
+            final var clientSecret = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET,
+                    context.isUnsafeCredentialStorage());
             options.oauth2(context.getTokenEndpoint(), context.getClientId(), clientSecret, context.getScope());
         } else if (!isBlank(context.getAuthType())) {
             throw new CliException("Unsupported auth type '" + context.getAuthType()
@@ -86,8 +88,9 @@ public class Client {
         }
     }
 
-    private String requireCredential(final String contextName, final String key) {
-        final var value = credentialStore.retrieve(contextName, key);
+    private String requireCredential(final String contextName, final String key,
+                                     final boolean unsafeStorage) {
+        final var value = credentialStore.retrieve(contextName, key, unsafeStorage);
         if (isBlank(value)) {
             throw new CliException("Credentials not found for context '" + contextName
                     + "'. Run 'acr login' to authenticate.", APPLICATION_ERROR_RETURN_CODE);

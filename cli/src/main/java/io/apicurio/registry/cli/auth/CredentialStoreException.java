@@ -1,8 +1,8 @@
 package io.apicurio.registry.cli.auth;
 
-class CredentialStoreException extends RuntimeException {
+public class CredentialStoreException extends RuntimeException {
 
-    CredentialStoreException(final String message) {
+    public CredentialStoreException(final String message) {
         super(message);
     }
 

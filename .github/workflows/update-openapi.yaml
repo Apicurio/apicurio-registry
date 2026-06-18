@@ -36,7 +36,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Maven
-        uses: stCarolas/setup-maven@1d56b37995622db66cce1214d81014b09807fb5a # v4
+        uses: stCarolas/setup-maven@12eb41b233df95d49b0c11fc1b5bc8312e5d4ce0 # v5
         with:
           maven-version: '3.6.3'
 

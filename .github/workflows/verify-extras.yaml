@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: tests-logs-extra
           path: artifacts
@@ -111,7 +111,7 @@ jobs:
           npm run test
 
       - name: Upload Test Report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: playwright-report
@@ -155,7 +155,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: tests-logs-legacy-v2
           path: artifacts
@@ -199,7 +199,7 @@ jobs:
           cache: 'maven'
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .

@@ -1805,7 +1805,7 @@ NOTE: For each configuration property, you can override the value by using the c
 |`registry.liveness.errors.ignored`
 |`apicurio.liveness.errors.ignored`
 |`registry.metrics.PersistenceExceptionLivenessCheck.counterResetWindowDurationSec`
-|`apicurio.metrics.response-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`apicurio.metrics.persistence-exception-liveness-check.counter-reset-window-duration.seconds`
 |`registry.metrics.PersistenceExceptionLivenessCheck.disableLogging`
 |`apicurio.metrics.persistence-exception-liveness-check.logging.disabled`
 |`registry.metrics.PersistenceExceptionLivenessCheck.errorThreshold`

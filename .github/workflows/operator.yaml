@@ -60,12 +60,12 @@ jobs:
       - name: Build and push temporary operator bundle
         working-directory: operator
         run: |
-          make bundle
+          make ROLLING_CHANNEL=3.x bundle
 
       - name: Build and push temporary operator catalog
         working-directory: operator
         run: |
-          make catalog
+          make ROLLING_CHANNEL=3.x catalog
 
       - name: Generate install file for tests
         working-directory: operator
@@ -73,7 +73,7 @@ jobs:
           make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: operator-build-artifacts
           path: |
@@ -100,7 +100,7 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -175,12 +175,12 @@ jobs:
           cache: maven
 
       - name: Download build artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: operator-build-artifacts
           path: operator/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'

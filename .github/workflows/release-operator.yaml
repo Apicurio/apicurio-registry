@@ -21,7 +21,7 @@ jobs:
   release-build:
     name: Build & Publish
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
       release-version: ${{ steps.config.outputs.release-version }}
@@ -137,7 +137,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: operator-test-artifacts
           path: |
@@ -147,7 +147,7 @@ jobs:
           retention-days: 1
 
       - name: Upload bundle artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: operator-bundle-artifacts
           path: |
@@ -158,7 +158,7 @@ jobs:
     name: Test (${{ matrix.name }})
     needs: release-build
     if: needs.release-build.outputs.run-tests == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -221,12 +221,12 @@ jobs:
           cache: maven
 
       - name: Download test artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: operator-test-artifacts
           path: registry/operator/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -248,7 +248,7 @@ jobs:
     name: Post-Release
     needs: [release-build, release-test]
     if: always() && needs.release-build.result == 'success' && (needs.release-test.result == 'success' || needs.release-test.result == 'skipped')
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
@@ -281,7 +281,7 @@ jobs:
           make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build
 
       - name: Download bundle artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: operator-bundle-artifacts
           path: registry/operator/target/bundle/

@@ -59,7 +59,7 @@ jobs:
             ./distro/docker/target/docker
 
       - name: Save Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
         with:
           image-name: apicurio/apicurio-registry
           tag: '${{ github.sha }}'
@@ -67,7 +67,7 @@ jobs:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
       - name: Upload Build Artifacts for Publish
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
@@ -128,7 +128,7 @@ jobs:
           docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
 
       - name: Save UI Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@1da7e1fef5962e611805b46e181e623efba5a5f9 # v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
         with:
           image-name: apicurio/apicurio-registry-ui
           tag: '${{ github.sha }}'

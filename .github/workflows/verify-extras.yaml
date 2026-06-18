@@ -29,7 +29,7 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
           image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
@@ -73,14 +73,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-ui-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-ui-${{ inputs.image-tag }}.tar'
@@ -131,7 +131,7 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -164,7 +164,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -208,7 +208,7 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@8eb9b9495e35a3aac41ca8f361e6f4dc64d4f867 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'

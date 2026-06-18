@@ -153,12 +153,14 @@ public class GitOpsSmokeTest {
         });
 
         // Verify status shows ERROR with the expected rule type
-        get("/apis/registry/v3/admin/gitops/status")
-                .then()
-                .statusCode(200)
-                .body("syncState", equalTo("ERROR"))
-                .body("errors", hasSize(1))
-                .body("errors[0].detail", containsString("Rule " + expectedRuleType + " violation"));
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors", hasSize(1))
+                    .body("errors[0].detail", containsString("Rule " + expectedRuleType + " violation"));
+        });
     }
 
     @Test

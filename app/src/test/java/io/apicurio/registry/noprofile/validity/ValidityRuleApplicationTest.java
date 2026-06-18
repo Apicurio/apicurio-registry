@@ -78,7 +78,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
                     createArtifactVersion(artifactId, INVALID_SCHEMA, ContentTypes.APPLICATION_JSON);
                 });
         assertEquals("RuleViolationException", exception.getName());
-        assertEquals(409, exception.getStatus());
+        assertEquals(400, exception.getStatus());
     }
 
     @Test
@@ -96,7 +96,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
                     createArtifactVersion(artifactId, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
                 });
         assertEquals("RuleViolationException", exception.getName());
-        assertEquals(409, exception.getStatus());
+        assertEquals(400, exception.getStatus());
     }
 
     @Test
@@ -122,7 +122,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
                             ContentTypes.APPLICATION_JSON);
                 });
         assertEquals("RuleViolationException", exception.getName());
-        assertEquals(409, exception.getStatus());
+        assertEquals(400, exception.getStatus());
     }
 
     @Test
@@ -143,7 +143,7 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
                             ContentTypes.APPLICATION_JSON);
                 });
         assertEquals("RuleViolationException", exception.getName());
-        assertEquals(409, exception.getStatus());
+        assertEquals(400, exception.getStatus());
     }
 
 }

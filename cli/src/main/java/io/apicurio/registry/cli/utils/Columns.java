@@ -36,4 +36,8 @@ public final class Columns {
 
     public static final String COMMENT_ID = "Comment ID";
     public static final String COMMENT = "Comment";
+
+    public static final String PRINCIPAL_ID = "Principal ID";
+    public static final String PRINCIPAL_NAME = "Principal Name";
+    public static final String ROLE = "Role";
 }

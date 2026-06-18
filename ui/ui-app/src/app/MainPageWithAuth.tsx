@@ -13,6 +13,7 @@ import {
     GroupPage,
     NotFoundPage,
     RootRedirectPage,
+    GlobalContractRulesPage,
     RulesPage,
     SearchPage,
     VersionPage
@@ -64,6 +65,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                         <Route path="/" element={ <RootRedirectPage /> } />
                         <Route path="/dashboard" element={ <DashboardPage /> } />
                         <Route path="/rules" element={ <RulesPage /> } />
+                        <Route path="/contract-rules" element={ <GlobalContractRulesPage /> } />
                         <Route path="/roles" element={ <RolesPage /> } />
                         <Route path="/settings" element={ <SettingsPage /> } />
                         <Route path="/search" element={ <SearchPage /> } />
@@ -90,6 +92,10 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                         />
                         <Route
                             path="/explore/:groupId/:artifactId/branches"
+                            element={ <ArtifactPage /> }
+                        />
+                        <Route
+                            path="/explore/:groupId/:artifactId/contract"
                             element={ <ArtifactPage /> }
                         />
                         <Route

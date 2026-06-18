@@ -1527,6 +1527,11 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
+    public String updateVersionLabels() {
+        return "UPDATE versions SET labels = ? WHERE globalId = ?";
+    }
+
+    @Override
     public String selectVersionLabels() {
         return "SELECT labelKey, labelValue FROM version_labels WHERE globalId = ?";
     }
@@ -1549,5 +1554,35 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String selectContractRulesByTag() {
         return "SELECT r.* FROM contract_rules r WHERE r.tags LIKE ?";
+    }
+
+    @Override
+    public String selectGlobalContractRules() {
+        return "SELECT r.* FROM contract_rules r WHERE r.groupId = '__GLOBAL__' AND r.artifactId = '__GLOBAL__' AND r.globalId IS NULL ORDER BY r.ruleCategory, r.orderIndex";
+    }
+
+    @Override
+    public String deleteGlobalContractRules() {
+        return "DELETE FROM contract_rules WHERE groupId = '__GLOBAL__' AND artifactId = '__GLOBAL__' AND globalId IS NULL";
+    }
+
+    @Override
+    public String insertContractAuditEntry() {
+        return "INSERT INTO contract_audit_log (groupId, artifactId, version, action, principal, details, createdOn) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    @Override
+    public String selectContractAuditLog() {
+        return "SELECT * FROM contract_audit_log WHERE groupId = ? AND artifactId = ? ORDER BY createdOn DESC LIMIT ? OFFSET ?";
+    }
+
+    @Override
+    public String selectContractAuditLogCount() {
+        return "SELECT COUNT(*) FROM contract_audit_log WHERE groupId = ? AND artifactId = ?";
+    }
+
+    @Override
+    public String deleteAllContractAuditEntries() {
+        return "DELETE FROM contract_audit_log";
     }
 }

@@ -19,6 +19,13 @@ Most examples also have a `docker-compose-dev.yaml` for use with `mvn quarkus:de
 
 See the comments at the top of each compose file for setup and run instructions.
 
+### Kubernetes / OpenShift
+
+For Kubernetes and OpenShift deployments using the Apicurio Registry operator, see the
+example CRs in [`operator/controller/src/test/resources/k8s/examples/gitops/`](../../operator/controller/src/test/resources/k8s/examples/gitops/).
+These include pull (HTTPS/SSH), push, multi-repo, and local volume examples with
+deployment instructions.
+
 ## Local Volume
 
 The simplest setup — the example repository is cloned locally and mounted into the

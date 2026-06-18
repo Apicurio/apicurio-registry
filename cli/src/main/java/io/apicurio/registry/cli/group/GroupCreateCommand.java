@@ -2,18 +2,17 @@ package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.Labels;
-import io.apicurio.registry.rest.client.models.ProblemDetails;
+import java.util.HashMap;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Parameters;
 
-import java.util.Map;
-
 import static io.apicurio.registry.cli.group.GroupGetCommand.printGroup;
-import static io.apicurio.registry.cli.common.CliException.exitQuietServerError;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static picocli.CommandLine.Option;
@@ -26,7 +25,8 @@ import static picocli.CommandLine.Option;
 public class GroupCreateCommand extends AbstractCommand {
 
     @Parameters(
-            index = "0"
+            index = "0",
+            description = "The group ID."
     )
     private String groupId;
 
@@ -38,16 +38,14 @@ public class GroupCreateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--label"},
-            description = "Provide a list of group labels.",
-            mapFallbackValue = ""
+            description = "Provide a list of group labels (format: key=value or key). Use \\= to include = in a key."
     )
-    private Map<String, String> labels;
+    private List<String> labels;
 
     @Mixin
     private OutputTypeMixin outputType;
 
     @Override
-    @SuppressWarnings("unchecked")
     public void run(OutputBuffer output) throws Exception {
         var newGroup = new CreateGroup();
         newGroup.setGroupId(groupId);
@@ -56,26 +54,15 @@ public class GroupCreateCommand extends AbstractCommand {
         }
         if (labels != null) {
             var newLabels = new Labels();
-            newLabels.setAdditionalData((Map<String, Object>) (Map<String, ?>) labels);
+            newLabels.setAdditionalData(new HashMap<>(Conversions.parseLabels(labels)));
             newGroup.setLabels(newLabels);
         }
-        try {
-            var group = convert(client.getRegistryClient().groups().post(newGroup));
-            switch (outputType.getOutputType()) {
-                case json -> output.writeStdErrChunk(out -> successMessage(out, group.getGroupId()));
-                case table -> output.writeStdOutChunk(out -> successMessage(out, group.getGroupId()));
-            }
-            printGroup(output, group, outputType);
-        } catch (ProblemDetails ex) {
-            output.writeStdErrChunk(err -> {
-                err.append("Error creating a new group '")
-                        .append(groupId)
-                        .append("': ")
-                        .append(ex.getDetail())
-                        .append('\n');
-            });
-            exitQuietServerError();
+        var group = convert(client.getRegistryClient().groups().post(newGroup));
+        switch (outputType.getOutputType()) {
+            case json -> output.writeStdErrChunk(out -> successMessage(out, group.getGroupId()));
+            case table -> output.writeStdOutChunk(out -> successMessage(out, group.getGroupId()));
         }
+        printGroup(output, group, outputType);
     }
 
     private static void successMessage(StringBuilder out, String groupId) {

@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # ============================================================================
   # DECIDE: Centralized decision on what to run
@@ -30,12 +33,14 @@ jobs:
       run-extras: ${{ steps.decide.outputs.run-extras }}
       run-sdk: ${{ steps.decide.outputs.run-sdk }}
       run-cli: ${{ steps.decide.outputs.run-cli }}
+      run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
+      run-operator: ${{ steps.decide.outputs.run-operator }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Detect changed paths
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3
         id: filter
         with:
           filters: |
@@ -68,10 +73,16 @@ jobs:
               - 'go-sdk/**'
               - 'python-sdk/**'
               - 'typescript-sdk/**'
+            go-sdk-gen:
+              - 'common/src/main/resources/META-INF/openapi.json'
+              - 'common/src/main/resources/META-INF/openapi-v2.json'
+              - 'go-sdk/**'
             cli:
               - 'cli/**'
               - 'java-sdk/**'
               - '.github/workflows/verify-cli.yaml'
+            operator:
+              - 'operator/**'
             ci:
               - '.github/workflows/**'
 
@@ -100,7 +111,7 @@ jobs:
               LABEL='${{ github.event.label.name }}'
               if [[ "$LABEL" != lifecycle/* ]]; then
                 echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli; do
+                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
                 exit 0
@@ -140,6 +151,8 @@ jobs:
           INTEGRATION='${{ steps.filter.outputs.integration }}'
           SDK='${{ steps.filter.outputs.sdk }}'
           CLI='${{ steps.filter.outputs.cli }}'
+          OPERATOR='${{ steps.filter.outputs.operator }}'
+          GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
 
           # ── Phase 3: Combine scope + changes into per-phase decisions ─
@@ -167,6 +180,8 @@ jobs:
           decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
+          decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI"
+          decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
       - name: Save decision summary
         if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
@@ -179,7 +194,9 @@ jobs:
             "run-integration": "${{ steps.decide.outputs.run-integration }}",
             "run-extras": "${{ steps.decide.outputs.run-extras }}",
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
-            "run-cli": "${{ steps.decide.outputs.run-cli }}"
+            "run-cli": "${{ steps.decide.outputs.run-cli }}",
+            "run-operator": "${{ steps.decide.outputs.run-operator }}",
+            "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}"
           }
           ARTIFACT_EOF
           cat > /tmp/verify-changes.json << 'ARTIFACT_EOF'
@@ -189,13 +206,15 @@ jobs:
             "integration": "${{ steps.filter.outputs.integration }}",
             "sdk": "${{ steps.filter.outputs.sdk }}",
             "cli": "${{ steps.filter.outputs.cli }}",
+            "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",
+            "operator": "${{ steps.filter.outputs.operator }}",
             "ci": "${{ steps.filter.outputs.ci }}"
           }
           ARTIFACT_EOF
 
       - name: Upload decision summary
         if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: verify-decisions
           retention-days: 1
@@ -213,7 +232,7 @@ jobs:
     if: needs.decide.outputs.lifecycle-ready == 'true'
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Run linter
         run: ./scripts/validate-files.sh
@@ -280,6 +299,35 @@ jobs:
       image-tag: ${{ github.sha }}
 
   # ============================================================================
+  # Go SDK Freshness Check (no build dependency — runs early)
+  # ============================================================================
+  go-sdk-freshness:
+    name: Go SDK Freshness
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-go-sdk-freshness == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: '1.26.4'
+
+      - name: Regenerate Go SDK
+        run: |
+          cd go-sdk
+          make generate format
+
+      - name: Check for drift
+        run: |
+          if ! git diff --exit-code go-sdk/pkg/; then
+            echo "::error::Go SDK is out of date. Run 'cd go-sdk && make generate format' and commit the changes."
+            exit 1
+          fi
+
+  # ============================================================================
   # PHASE 6: SDK Verification (parallel)
   # ============================================================================
   sdk:
@@ -289,6 +337,18 @@ jobs:
     uses: ./.github/workflows/verify-sdk.yaml
     with:
       image-tag: ${{ github.sha }}
+
+  # ============================================================================
+  # Operator Tests
+  # ============================================================================
+  operator:
+    name: Operator Tests
+    needs: [decide]
+    if: needs.decide.outputs.run-operator == 'true'
+    uses: ./.github/workflows/operator.yaml
+    with:
+      publish: ${{ github.event_name == 'push' }}
+    secrets: inherit
 
   # ============================================================================
   # VERIFICATION GATE: Single required check for branch protection
@@ -302,7 +362,7 @@ jobs:
     name: Verification Gate
     if: always()
     needs: [decide, lint-and-validate, build, unit-tests, cli-verify,
-            integration-tests, extras, sdk]
+            integration-tests, extras, sdk, go-sdk-freshness, operator]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate
@@ -351,13 +411,13 @@ jobs:
   # ============================================================================
   notify-slack:
     name: Slack Notification
-    needs: [unit-tests, integration-tests, publish]
-    if: github.event_name == 'push' && always()
+    needs: [unit-tests, integration-tests, publish, operator]
+    if: github.event_name == 'push' && github.repository_owner == 'Apicurio' && always()
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'verification'
-      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure') && 'failure' || 'success' }}
+      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

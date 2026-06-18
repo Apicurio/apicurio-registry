@@ -92,10 +92,10 @@ class OdcsContractIT extends ApicurioRegistryBaseIT {
                 ContentTypes.APPLICATION_JSON, null, null);
     }
 
-    private OdcsContractResult submitContract(String groupId, String contractYaml) throws Exception {
-        return retry(() -> registryClient.groups().byGroupId(groupId)
+    private OdcsContractResult submitContract(String groupId, String contractYaml) {
+        return registryClient.groups().byGroupId(groupId)
                 .contracts()
-                .post(new ByteArrayInputStream(contractYaml.getBytes(StandardCharsets.UTF_8))));
+                .post(new ByteArrayInputStream(contractYaml.getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -321,7 +321,7 @@ class OdcsContractIT extends ApicurioRegistryBaseIT {
     }
 
     @Test
-    void testSubmitContractWithMissingSchemaReturnsWarnings() throws Exception {
+    void testSubmitContractWithMissingSchemaReturnsWarnings() {
         String groupId = TestUtils.generateGroupId();
         String contractId = "contract-" + UUID.randomUUID();
         String contract = createOdcsContract(groupId, "nonexistent-artifact", contractId);

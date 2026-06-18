@@ -281,7 +281,7 @@ The following {registry} configuration options are available for each component 
 |Enable auth
 |`quarkus.oidc.token-path`
 |`string`
-|`/protocol/openid-connect/token/`
+|`/protocol/openid-connect/token`
 |`2.1.0.Final`
 |Authentication server token endpoint.
 |===
@@ -413,6 +413,26 @@ The following {registry} configuration options are available for each component 
 |
 |`3.2.0`
 |Directory name of the Git repository, relative to the workspace. This is a shorthand for single-repo setups. For multiple repositories, use the indexed apicurio.gitops.repos.N.dir properties instead. _(experimental)_
+|`apicurio.gitops.validate.enabled`
+|`boolean`
+|`true`
+|`3.3.0`
+|Enable the dry-run validation endpoints and the sidecar validation watch loop. When disabled, validation endpoints return HTTP 503. _(experimental)_
+|`apicurio.gitops.validate.fetch.timeout.seconds`
+|`int`
+|`120`
+|`3.3.0`
+|Timeout for the sidecar to fetch a git ref during dry-run validation, in seconds. _(experimental)_
+|`apicurio.gitops.validate.max-tasks`
+|`int`
+|`5`
+|`3.3.0`
+|Maximum number of validation tasks with disk resources (submitted, fetching, validating, or awaiting cleanup) before new requests are queued. Prevents disk exhaustion from too many concurrent checkouts. _(experimental)_
+|`apicurio.gitops.validate.task.ttl.seconds`
+|`int`
+|`3600`
+|`3.3.0`
+|Time-to-live for dry-run validation tasks in seconds. Tasks are automatically removed after this period. _(experimental)_
 |`apicurio.gitops.workspace`
 |`string`
 |`/repos`
@@ -586,6 +606,21 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Temporary work directory to use when importing data.
+|`apicurio.import.zip.max-entry-count`
+|`int`
+|`10000`
+|`3.0.7`
+|Maximum number of ZIP entries allowed during import. Defaults to 10,000.
+|`apicurio.import.zip.max-entry-size`
+|`long`
+|`10485760`
+|`3.0.7`
+|Maximum decompressed size in bytes allowed for a single ZIP entry during import. Defaults to 10 MiB.
+|`apicurio.import.zip.max-total-size`
+|`long`
+|`104857600`
+|`3.0.7`
+|Maximum total decompressed size in bytes allowed across all ZIP entries during import. Defaults to 100 MiB.
 |===
 
 == kubernetesops
@@ -898,6 +933,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.x`
 |Enables production-like behavior for draft versions
+|`apicurio.rest.legacy-error-codes.enabled`
+|`boolean`
+|`false`
+|`3.3.0`
+|When enabled, legacy HTTP error codes are used (e.g. 409 instead of 400 for rule violations)
 |`apicurio.rest.mutability.artifact-version-content.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -1373,6 +1413,11 @@ The following {registry} configuration options are available for each component 
 |`/tmp/apicurio-registry-artifact-types.json`
 |`3.1.0`
 |Path to a configuration file containing a list of supported artifact types.
+|`apicurio.compat.json-schema.use-apitomy`
+|`boolean`
+|`false`
+|`3.3.1`
+|Use the Apitomy Data Models JSON Schema compatibility checker instead of the everit-based one. _(experimental)_
 |===
 
 == ui

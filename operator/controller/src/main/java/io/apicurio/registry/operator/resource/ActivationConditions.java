@@ -3,24 +3,31 @@ package io.apicurio.registry.operator.resource;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.AutoscalingSpec;
 import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
 import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
+import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.feat.KubernetesOps;
+import io.apicurio.registry.operator.resource.app.AppHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
+import io.apicurio.registry.operator.resource.app.GitOpsSshServiceResource;
 import io.apicurio.registry.operator.resource.app.AppNetworkPolicyResource;
 import io.apicurio.registry.operator.resource.app.AppPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.app.AppRoleBindingResource;
 import io.apicurio.registry.operator.resource.app.AppRoleResource;
 import io.apicurio.registry.operator.resource.app.AppServiceAccountResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
+import io.apicurio.registry.operator.resource.ui.UIHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceAccount;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.autoscaling.v2.HorizontalPodAutoscaler;
 import io.fabric8.kubernetes.api.model.networking.v1.Ingress;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
@@ -69,8 +76,12 @@ public class ActivationConditions {
                     .orElse(Boolean.TRUE);
             int numReplicas = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                     .map(ComponentSpec::getReplicas).orElse(1);
+            boolean autoscalingCanScaleAboveOne = ofNullable(primary.getSpec())
+                    .map(ApicurioRegistry3Spec::getApp).map(ComponentSpec::getAutoscaling)
+                    .filter(a -> Boolean.TRUE.equals(a.getEnabled()))
+                    .map(AutoscalingSpec::getMaxReplicas).map(max -> max > 1).orElse(false);
 
-            boolean isManaged = isEnabled && numReplicas > 1;
+            boolean isManaged = isEnabled && (numReplicas > 1 || autoscalingCanScaleAboveOne);
             if (!isManaged) {
                 ((AppPodDisruptionBudgetResource) resource).delete(primary, context);
             }
@@ -88,6 +99,21 @@ public class ActivationConditions {
                     .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((AppNetworkPolicyResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    public static class AppHorizontalPodAutoscalerActivationCondition
+            implements Condition<HorizontalPodAutoscaler, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<HorizontalPodAutoscaler, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
+                    .map(ComponentSpec::getAutoscaling).map(AutoscalingSpec::getEnabled)
+                    .orElse(Boolean.FALSE);
+            if (!isManaged) {
+                ((AppHorizontalPodAutoscalerResource) resource).delete(primary, context);
             }
             return isManaged;
         }
@@ -129,6 +155,21 @@ public class ActivationConditions {
             boolean isManaged = KubernetesOps.isEnabled(primary);
             if (!isManaged) {
                 ((AppRoleBindingResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    // ===== GitOps SSH Service
+
+    public static class GitOpsSshServiceActivationCondition
+            implements Condition<Service, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<Service, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = GitOps.isPushMode(primary);
+            if (!isManaged) {
+                ((GitOpsSshServiceResource) resource).delete(primary, context);
             }
             return isManaged;
         }
@@ -195,6 +236,21 @@ public class ActivationConditions {
                     .orElse(Boolean.TRUE);
             if (!isManaged) {
                 ((UINetworkPolicyResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    public static class UIHorizontalPodAutoscalerActivationCondition
+            implements Condition<HorizontalPodAutoscaler, ApicurioRegistry3> {
+        @Override
+        public boolean isMet(DependentResource<HorizontalPodAutoscaler, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
+                    .map(ComponentSpec::getAutoscaling).map(AutoscalingSpec::getEnabled)
+                    .orElse(Boolean.FALSE);
+            if (!isManaged) {
+                ((UIHorizontalPodAutoscalerResource) resource).delete(primary, context);
             }
             return isManaged;
         }

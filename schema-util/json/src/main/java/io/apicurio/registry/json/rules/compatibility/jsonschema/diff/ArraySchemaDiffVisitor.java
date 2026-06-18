@@ -92,7 +92,7 @@ public class ArraySchemaDiffVisitor extends JsonSchemaWrapperVisitor {
             visitItemSchema(i, itemSchemas.get(i));
         }
 
-        if (updatedSize > size) { // adding items
+        if (itemSchemas != null && updatedSize > size) { // adding items
             DiffUtil.diffSubSchemasAdded(ctx.sub("addItemSchema"), itemSchemas.subList(size, updatedSize),
                     original.permitsAdditionalItems(), wrap(original.getSchemaOfAdditionalItems()),
                     schema.permitsAdditionalItems(), DiffType.ARRAY_TYPE_ITEM_SCHEMAS_EXTENDED,

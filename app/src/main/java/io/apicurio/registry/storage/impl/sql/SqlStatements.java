@@ -827,8 +827,6 @@ public interface SqlStatements {
 
     String deleteAllContractRules();
 
-    String selectVersionLabels();
-
     String exportContractRules();
 
     String exportContractRulesByGroupId();
@@ -836,4 +834,20 @@ public interface SqlStatements {
     String importContractRule();
 
     String selectContractRulesByTag();
+
+    String updateVersionLabels();
+
+    String selectVersionLabels();
+
+    String selectGlobalContractRules();
+
+    String deleteGlobalContractRules();
+
+    String insertContractAuditEntry();
+
+    String selectContractAuditLog();
+
+    String selectContractAuditLogCount();
+
+    String deleteAllContractAuditEntries();
 }

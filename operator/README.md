@@ -74,7 +74,7 @@ The following steps have been tested for OpenShift:
 
 ### On-cluster Development Quickstart
 
-1. Create an image repository for your operator build, e.g. `quay.io/foo/apicurio-registry-operator`:
+1. Create an image repository for your operator build, e.g. `quay.io/foo/apicurio-registry-3-operator`:
     ```shell
    export IMAGE_REGISTRY=quay.io/foo
     ```
@@ -123,7 +123,7 @@ Available options:
 | Option               | Type   | Default value                  | Description                           |
 |----------------------|--------|--------------------------------|---------------------------------------|
 | IMAGE_REGISTRY       | string | `quay.io/apicurio`             | -                                     |
-| IMAGE_NAME           | string | `apicurio-registry-operator`   | -                                     |
+| IMAGE_NAME           | string | `apicurio-registry-3-operator`   | -                                     |
 | IMAGE_TAG            | string | *(current version, lowercase)* | -                                     |
 | ADDITIONAL_IMAGE_TAG | string | -                              | Tag the image with an additional tag. |
 
@@ -319,7 +319,7 @@ Available options:
 | INSTALL_FILE       | string | `install/apicurio-registry-operator-`*(current version)*`.yaml` | -           |
 | INSTALL_NAMESPACE  | string | `PLACEHOLDER_NAMESPACE`                                         | -           |
 | IMAGE_REGISTRY     | string | `quay.io/apicurio`                                              | -           |
-| IMAGE_NAME         | string | `apicurio-registry-operator`                                    | -           |
+| IMAGE_NAME         | string | `apicurio-registry-3-operator`                                    | -           |
 | IMAGE_TAG          | string | *(current version, lowercase)*                                  | -           |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`            | -           |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot`         | -           |
@@ -340,7 +340,7 @@ Available options:
 | Option             | Type   | Default value                                           | Description |
 |--------------------|--------|---------------------------------------------------------|-------------|
 | IMAGE_REGISTRY     | string | `quay.io/apicurio`                                      | -           |
-| IMAGE_NAME         | string | `apicurio-registry-operator`                            | -           |
+| IMAGE_NAME         | string | `apicurio-registry-3-operator`                            | -           |
 | IMAGE_TAG          | string | *(current version, lowercase)*                          | -           |
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`    | -           |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot` | -           |
@@ -351,7 +351,7 @@ Available options:
 
 ### Operator Bundle
 
-You can create an OLM bundle files by running:
+You can create OLM bundle files by running:
 
 ```shell
 make bundle-build
@@ -359,13 +359,17 @@ make bundle-build
 
 Available options:
 
-| Option                   | Type             | Default value                  | Description |
-|--------------------------|------------------|--------------------------------|-------------|
-| BUNDLE_CHANNEL           | string           | `3.x`                          | -           |
-| BUNDLE_VERSION           | string           | *(current version, lowercase)* | -           |
-| PREVIOUS_PACKAGE_VERSION | string           | **TODO**                       | -           |
+| Option                   | Type   | Default value                           | Description                                                                                          |
+|--------------------------|--------|-----------------------------------------|------------------------------------------------------------------------------------------------------|
+| CHANNEL                  | string | *(auto-derived, e.g. `3.3.x`)*         | Minor-version channel, derived from the project version.                                             |
+| ROLLING_CHANNEL          | string | *(empty)*                               | Set to `3.x` to include the rolling channel. CI sets this for main-branch releases.                  |
+| CHANNELS                 | string | `ROLLING_CHANNEL,CHANNEL` or `CHANNEL`  | Computed from `ROLLING_CHANNEL` and `CHANNEL`. Do not override directly.                             |
+| DEFAULT_CHANNEL          | string | `ROLLING_CHANNEL` or `CHANNEL`          | Default channel for new installations.                                                               |
+| PREVIOUS_PACKAGE_VERSION | string | *(set in Makefile)*                     | Last released version; determines the `replaces` field.                                              |
 
 *NOTE: The CRD file must have been generated using `make build`.*
+
+See [RELEASING.md](RELEASING.md) for details on how channels work across main and maintenance branches.
 
 Then, to create a bundle image, run:
 
@@ -375,12 +379,12 @@ make bundle-image-build
 
 Available options:
 
-| Option                | Type   | Default value                       | Description                           |
-|-----------------------|--------|-------------------------------------|---------------------------------------|
-| IMAGE_REGISTRY        | string | `quay.io/apicurio`                  | -                                     |
-| BUNDLE_IMAGE_NAME     | string | `apicurio-registry-operator-bundle` | -                                     |
-| BUNDLE_IMAGE_TAG      | string | *(current version, lowercase)*      | -                                     |
-| ADDITIONAL_BUNDLE_TAG | string | -                                   | Tag the image with an additional tag. |
+| Option                | Type   | Default value                            | Description                           |
+|-----------------------|--------|------------------------------------------|---------------------------------------|
+| IMAGE_REGISTRY        | string | `quay.io/apicurio`                       | -                                     |
+| BUNDLE_IMAGE_NAME     | string | `apicurio-registry-3-operator-bundle`    | -                                     |
+| BUNDLE_IMAGE_TAG      | string | *(current version, lowercase)*           | -                                     |
+| ADDITIONAL_BUNDLE_TAG | string | -                                        | Tag the image with an additional tag. |
 
 After the bundle image is built, push it by running:
 
@@ -411,7 +415,7 @@ Available options:
 | Option                 | Type   | Default value                                                       | Description                           |
 |------------------------|--------|---------------------------------------------------------------------|---------------------------------------|
 | IMAGE_REGISTRY         | string | `quay.io/apicurio`                                                  | -                                     |
-| CATALOG_IMAGE_NAME     | string | `apicurio-registry-operator-catalog`                                | -                                     |
+| CATALOG_IMAGE_NAME     | string | `apicurio-registry-3-operator-catalog`                              | -                                     |
 | CATALOG_IMAGE_TAG      | string | *(current version, lowercase)*                                      | -                                     |
 | ADDITIONAL_CATALOG_TAG | string | `latest` *(with version suffix, lowercase, e.g. `latest-snapshot`)* | Tag the image with an additional tag. |
 
@@ -445,3 +449,28 @@ Available options:
 ### Watched Namespaces
 
 Namespace that are watched by the operator are configured using `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable. Its value is configured to reflect the OLM annotation `olm.targetNamespaces` by default. This means that if the operator is not installed by OLM (e.g. using the install file), the annotation is empty, which means the operator will watch **all namespaces**. Because of this, cluster-level RBAC resources are used by default. In the future, we may release additional install file with reduced permissions, intended to be used when the operator only manages its own namespace.
+
+### Leader Election
+
+The operator supports Kubernetes leader election to enable high availability (HA) deployments.
+When leader election is enabled, multiple operator replicas can run simultaneously, with only one active leader performing reconciliation. If the leader pod fails, another replica automatically takes over.
+
+Leader election uses the `coordination.k8s.io/v1` Lease API, which is the standard Kubernetes mechanism for leader election ([Kubernetes Lease documentation](https://kubernetes.io/docs/concepts/architecture/leases/#leader-election)).
+
+The following environment variables control leader election:
+
+| Environment Variable                                 | Description                                              | Default Value                          |
+|------------------------------------------------------|----------------------------------------------------------|----------------------------------------|
+| `APICURIO_OPERATOR_LEADER_ELECTION_ENABLED`          | Enable or disable leader election.                       | `true`                                |
+| `APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAME`       | Name of the Lease resource used for leader election.     | `apicurio-registry-operator-lease`     |
+| `APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAMESPACE`  | Namespace of the Lease resource. Falls back to `POD_NAMESPACE`. | *(value of `POD_NAMESPACE`)*    |
+
+To disable leader election, set the `APICURIO_OPERATOR_LEADER_ELECTION_ENABLED` environment variable to `false` on the operator Deployment:
+
+```yaml
+env:
+  - name: APICURIO_OPERATOR_LEADER_ELECTION_ENABLED
+    value: "false"
+```
+
+**RBAC**: The operator's ClusterRole already includes the required permissions for `coordination.k8s.io` leases (`get`, `create`, `update`). No additional RBAC configuration is needed.

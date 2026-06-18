@@ -8,6 +8,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GroupId;
@@ -67,6 +68,9 @@ public class SearchResourceImpl implements SearchResource {
 
     @Inject
     RegistryStorageContentUtils contentUtils;
+
+    @Inject
+    OTelMetricsProvider otelMetrics;
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
@@ -135,6 +139,7 @@ public class SearchResourceImpl implements SearchResource {
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
+        otelMetrics.recordSearchRequest("artifacts");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -184,6 +189,7 @@ public class SearchResourceImpl implements SearchResource {
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
+        otelMetrics.recordSearchRequest("artifacts");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -240,6 +246,7 @@ public class SearchResourceImpl implements SearchResource {
 
         GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
+        otelMetrics.recordSearchRequest("groups");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -324,6 +331,7 @@ public class SearchResourceImpl implements SearchResource {
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
+        otelMetrics.recordSearchRequest("versions");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -378,6 +386,7 @@ public class SearchResourceImpl implements SearchResource {
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
+        otelMetrics.recordSearchRequest("versions");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -388,6 +397,7 @@ public class SearchResourceImpl implements SearchResource {
             throw new MissingRequiredParameterException("tag");
         }
         List<ContractRuleWithCoordinatesDto> results = storage.getContractRulesByTag(tag);
+        otelMetrics.recordSearchRequest("contractRules");
         return results.stream()
                 .map(this::toContractRuleSearchResult)
                 .collect(Collectors.toList());
@@ -431,6 +441,44 @@ public class SearchResourceImpl implements SearchResource {
         rule.setDisabled(ruleDto.isDisabled());
         result.setRule(rule);
         return result;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public ArtifactSearchResults searchContracts(String status, String ownerTeam,
+            String compatibilityGroup, BigInteger offset, BigInteger limit,
+            SortOrder order, String orderby) {
+
+        if (offset == null) {
+            offset = BigInteger.valueOf(0);
+        }
+        if (limit == null) {
+            limit = BigInteger.valueOf(20);
+        }
+
+        final OrderBy oBy = orderby != null ? OrderBy.valueOf(orderby) : OrderBy.createdOn;
+        final OrderDirection oDir = (order == null || order == SortOrder.desc)
+                ? OrderDirection.desc : OrderDirection.asc;
+
+        Set<SearchFilter> filters = new HashSet<>();
+
+        // All contracts have a contract.*.status label
+        filters.add(SearchFilter.ofLabel("contract."));
+
+        if (!StringUtil.isEmpty(status)) {
+            filters.add(SearchFilter.ofLabel("contract.", status));
+        }
+        if (!StringUtil.isEmpty(ownerTeam)) {
+            filters.add(SearchFilter.ofLabel("contract.", ownerTeam));
+        }
+        if (!StringUtil.isEmpty(compatibilityGroup)) {
+            filters.add(SearchFilter.ofLabel("contract.", compatibilityGroup));
+        }
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
+                offset.intValue(), limit.intValue());
+        otelMetrics.recordSearchRequest("contracts");
+        return V3ApiUtil.dtoToSearchResults(results);
     }
 
     /**

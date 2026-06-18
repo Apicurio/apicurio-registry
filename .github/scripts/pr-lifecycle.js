@@ -274,8 +274,8 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
 
     // Wait for the run to fully complete — the Verification Gate job
     // has `if: always()` and keeps the run alive after cancellation.
-    for (let attempt = 0; attempt < 10; attempt++) {
-      await new Promise(r => setTimeout(r, 3000));
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await new Promise(r => setTimeout(r, 5000));
       const fresh = await api.getWorkflowRun(run.id);
       if (fresh.status === 'completed') break;
     }
@@ -293,7 +293,7 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
   }
 }
 
-function isApproved(reviews) {
+function latestReviewsByReviewer(reviews) {
   const latestByReviewer = new Map();
   for (const review of reviews) {
     if (review.state === 'APPROVED' || review.state === 'CHANGES_REQUESTED') {
@@ -303,10 +303,18 @@ function isApproved(reviews) {
       }
     }
   }
-  const latest = Array.from(latestByReviewer.values());
+  return Array.from(latestByReviewer.values());
+}
+
+function isApproved(reviews) {
+  const latest = latestReviewsByReviewer(reviews);
   const hasApproval = latest.some(r => r.state === 'APPROVED');
   const hasChangesRequested = latest.some(r => r.state === 'CHANGES_REQUESTED');
   return hasApproval && !hasChangesRequested;
+}
+
+function hasLatestChangesRequested(reviews) {
+  return latestReviewsByReviewer(reviews).some(r => r.state === 'CHANGES_REQUESTED');
 }
 
 async function performMerge(api, config, pr, core) {
@@ -341,8 +349,9 @@ async function performMerge(api, config, pr, core) {
   }
 }
 
-async function checkAndTransitionToReady(api, pr, core) {
-  const approved = isApproved(await api.getReviews(pr.number));
+async function checkAndTransitionToReady(api, pr, core, reviews) {
+  if (!reviews) reviews = await api.getReviews(pr.number);
+  const approved = isApproved(reviews);
   const reviewSkipped = hasLabel(pr, LABELS.REVIEW_SKIPPED);
   const tested = hasLabel(pr, LABELS.TESTED);
   const state = getLifecycleState(pr);
@@ -359,7 +368,6 @@ async function checkAndTransitionToReady(api, pr, core) {
     }
 
     // Ping reviewers/requested reviewers so they know the PR is ready
-    const reviews = await api.getReviews(pr.number);
     const reviewerLogins = [...new Set(reviews.map(r => r.user.login))];
     const requestedLogins = (pr.requested_reviewers || []).map(r => r.login);
     const allReviewers = [...new Set([...reviewerLogins, ...requestedLogins])];
@@ -416,9 +424,27 @@ async function reconcile(github, api, pr, core) {
     return;
   }
 
-  // 2. Ready-for-review with all conditions met but not transitioned
+  // 2. Ready-for-review: fix waiting-on-* labels based on review state,
+  //    and check if it should transition to ready-to-merge
   if (state === LABELS.READY_FOR_REVIEW) {
-    const result = await checkAndTransitionToReady(api, pr, core);
+    const reviews = await api.getReviews(pr.number);
+    const approved = isApproved(reviews);
+    const hasChangesRequested = !approved && hasLatestChangesRequested(reviews);
+
+    if (hasChangesRequested) {
+      await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+      await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
+      core.info(`PR #${pr.number} reconciler fixed waiting-on labels (changes requested)`);
+    } else if (!hasChangesRequested && hasLabel(pr, LABELS.WAITING_ON_AUTHOR) && hasLabel(pr, LABELS.TESTED)) {
+      // Only remove waiting-on-author if tests passed — otherwise the label
+      // may have been set by a test failure, not a review.
+      await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+      await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      core.info(`PR #${pr.number} reconciler fixed waiting-on labels (changes addressed)`);
+    }
+
+    const result = await checkAndTransitionToReady(api, pr, core, reviews);
     if (result === 'auto-merge') {
       await performMerge(api, config, pr, core);
     } else if (result === 'ready-to-merge') {
@@ -444,17 +470,21 @@ async function handlePrOpened({ github, context, core }) {
       ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes, ` +
         `or \`/auto-merge\` to merge automatically once approved and tested.`
       : '';
+    const forkHint = pr.head.repo?.full_name !== `${owner}/${repo}`
+      ? `\n\n**Note (fork PR):** Review label updates may not apply automatically. ` +
+        `A maintainer can use \`/retry\` after reviewing to update the labels.`
+      : '';
     if (pr.draft) {
       await api.postComment(pr.number,
         `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
         `When ready, use \`/ready\` or mark as non-draft to run the full test suite.` +
-        maintainerHint
+        maintainerHint + forkHint
       );
     } else {
       await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       await api.postComment(pr.number,
         `PR auto-accepted (trusted author). Full test suite will run.` +
-        maintainerHint
+        maintainerHint + forkHint
       );
     }
     core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${initialState}`);
@@ -466,7 +496,11 @@ async function handlePrOpened({ github, context, core }) {
   if (!pr.draft) {
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   }
-  const message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
+  let message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
+  if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
+    message += `\n**Note (fork PR):** Review label updates may not apply automatically. ` +
+      `A maintainer can use \`/retry\` after reviewing to update the labels.`;
+  }
   await api.postComment(pr.number, message);
   core.info(`PR #${pr.number} opened, set to lifecycle/new`);
 }
@@ -486,11 +520,9 @@ async function handlePrSynchronize({ github, context, core }) {
     await api.removeLabel(pr.number, LABELS.SMOKE_TESTED);
     core.info(`PR #${pr.number} new push, removed lifecycle/smoke-tested`);
   }
-  if (hasLabel(pr, LABELS.REVIEW_APPROVED)) {
-    await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
-    rerunHints.push('Review approval has been reset — a new review is required.');
-    core.info(`PR #${pr.number} new push, removed lifecycle/review-approved`);
-  }
+  // review-approved is not removed here — it is only removed when GitHub
+  // dismisses the review (pull_request_review dismissed event), keeping
+  // parity with GitHub's branch protection "dismiss stale reviews" setting.
   if (hasLabel(pr, LABELS.AUTO_MERGE)) {
     await api.removeLabel(pr.number, LABELS.AUTO_MERGE);
     rerunHints.push('Auto-merge has been disabled — use `/auto-merge` to re-enable after tests pass.');
@@ -899,27 +931,52 @@ async function handleReview({ github, context, core }) {
     return;
   }
 
-  if (review.state === 'changes_requested') {
-    await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-    await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-    await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
-    core.info(`PR #${pr.number} changes requested by ${review.user.login}`);
-    return;
-  }
+  try {
+    if (context.payload.action === 'dismissed') {
+      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
+      if (state === LABELS.READY_TO_MERGE) {
+        await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      }
+      core.info(`PR #${pr.number} review dismissed, removed review-approved`);
+      const freshPr = await api.getPr(pr.number);
+      await reconcile(github, api, freshPr, core);
+      return;
+    }
 
-  if (review.state === 'approved') {
-    await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-    await api.addLabel(pr.number, LABELS.REVIEW_APPROVED);
+    if (review.state === 'changes_requested') {
+      await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+      await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
+      core.info(`PR #${pr.number} changes requested by ${review.user.login}`);
+      return;
+    }
+
+    if (review.state === 'approved') {
+      if (hasLabel(pr, LABELS.TESTED)) {
+        await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+      }
+      await api.addLabel(pr.number, LABELS.REVIEW_APPROVED);
+      const freshPr = await api.getPr(pr.number);
+      const result = await checkAndTransitionToReady(api, freshPr, core);
+      if (result === 'auto-merge') {
+        const config = loadConfig();
+        await performMerge(api, config, freshPr, core);
+      }
+    }
+
     const freshPr = await api.getPr(pr.number);
-    const result = await checkAndTransitionToReady(api, freshPr, core);
-    if (result === 'auto-merge') {
-      const config = loadConfig();
-      await performMerge(api, config, freshPr, core);
+    await reconcile(github, api, freshPr, core);
+  } catch (e) {
+    if (e.status === 403) {
+      // Fork PRs have read-only tokens for pull_request_review events.
+      // The reconciler will fix labels when the Verify workflow completes
+      // (workflow_run events always have write permissions).
+      core.warning(`PR #${pr.number} review handler lacks write permissions (fork PR). Labels will be reconciled when the Verify workflow completes.`);
+    } else {
+      throw e;
     }
   }
-
-  const freshPr = await api.getPr(pr.number);
-  await reconcile(github, api, freshPr, core);
 }
 
 // ---------------------------------------------------------------------------
@@ -1053,6 +1110,12 @@ async function handleTestResult({ github, context, core }) {
         `[workflow run](${workflowRun.html_url}) and push a fix.`
       );
       core.info(`PR #${pr.number} tests failed`);
+    } else if (workflowRun.conclusion === 'cancelled') {
+      await api.postComment(pr.number,
+        `The test suite was cancelled for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
+        `See the [workflow run](${workflowRun.html_url}). Use \`/retry\` to re-run.`
+      );
+      core.info(`PR #${pr.number} tests cancelled`);
     }
 
     // Post or update the decision summary comment
@@ -1067,8 +1130,9 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
   const DECISION_KEYS = new Set([
     'lifecycle-ready', 'run-build', 'run-unit-tests',
     'run-integration', 'run-extras', 'run-sdk', 'run-cli',
+    'run-operator', 'run-go-sdk-freshness',
   ]);
-  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'ci']);
+  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'operator', 'go-sdk-gen', 'ci']);
   const ALLOWED_VALUES = new Set(['true', 'false', 'skip']);
   const EXPECTED_FILES = new Set(['verify-decisions.json', 'verify-changes.json']);
   const MAX_ARTIFACT_BYTES = 10240;
@@ -1170,6 +1234,7 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       ['Extra Tests', 'run-extras', 'Extra Tests /'],
       ['SDK Verification', 'run-sdk', 'SDK Verification /'],
       ['CLI Verification', 'run-cli', 'CLI Verification'],
+      ['Operator Tests', 'run-operator', 'Operator Tests /'],
     ];
 
     const rows = phases.map(([label, key, jobPrefix]) =>
@@ -1297,6 +1362,14 @@ async function handleStale({ github, context, core }) {
 // Exports
 // ---------------------------------------------------------------------------
 
+async function handleReconcile({ github, context, core, prNumber }) {
+  const { owner, repo } = context.repo;
+  const api = createApi(github, owner, repo);
+  const pr = await api.getPr(prNumber);
+  core.info(`Reconciling PR #${prNumber} via workflow_dispatch`);
+  await reconcile(github, api, pr, core);
+}
+
 module.exports = {
   handlePrOpened,
   handlePrSynchronize,
@@ -1306,6 +1379,7 @@ module.exports = {
   handleLabelChange,
   handleTestResult,
   handleStale,
+  handleReconcile,
   reconcile,
   LABELS,
 };

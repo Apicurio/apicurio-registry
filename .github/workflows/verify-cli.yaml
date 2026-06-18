@@ -8,6 +8,9 @@ on:
         required: true
         description: 'Build artifact identifier (commit SHA)'
 
+permissions:
+  contents: read
+
 jobs:
   cli-verify:
     name: CLI (${{ matrix.os-name }})
@@ -27,12 +30,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
       # forward-compatibility issues with GraalVM/native-image early in PRs.
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1
         with:
           java-version: '25'
           distribution: 'graalvm-community'
@@ -40,7 +43,7 @@ jobs:
           native-image-job-reports: 'true'
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .

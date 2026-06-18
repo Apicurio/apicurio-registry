@@ -1,8 +1,6 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.cli.common.CliException;
-import org.jboss.logging.Logger;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,6 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import org.jboss.logging.Logger;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static java.util.Comparator.reverseOrder;

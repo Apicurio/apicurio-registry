@@ -18,9 +18,13 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
 
@@ -30,18 +34,22 @@ import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
  */
 public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
+    private static final Logger LOG = LoggerFactory.getLogger(RegistryClientFacadeImpl.class);
     private static final String CLIENT_ID_HEADER = "X-Registry-Client-Id";
     private static final String OPERATION_HEADER = "X-Registry-Operation";
 
     private final RegistryClient client;
+    private final String baseUrl;
+    private static final HttpClient HTTP = HttpClient.newHttpClient();
     private final String clientId;
 
     public RegistryClientFacadeImpl(RegistryClient client) {
-        this(client, null);
+        this(client, null, null);
     }
 
-    public RegistryClientFacadeImpl(RegistryClient client, String clientId) {
+    public RegistryClientFacadeImpl(RegistryClient client, String baseUrl, String clientId) {
         this.client = client;
+        this.baseUrl = baseUrl;
         this.clientId = clientId;
     }
 
@@ -182,6 +190,55 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+    }
+
+    @Override
+    public io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(
+            String groupId, String artifactId) {
+        try {
+            String g = groupId != null ? groupId : "default";
+            return client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
+                    .contract().ruleset().get();
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch contract ruleset for {}/{}: {}", groupId, artifactId, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public io.apicurio.registry.rest.client.models.ContractRuleSet getVersionContractRuleset(
+            String groupId, String artifactId, String version) {
+        try {
+            String g = groupId != null ? groupId : "default";
+            String ver = version != null ? version : "branch=latest";
+            return client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
+                    .versions().byVersionExpression(ver).contract().ruleset().get();
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch version contract ruleset for {}/{}/{}: {}",
+                    groupId, artifactId, version, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public List<String> getArtifactVersions(String groupId, String artifactId) {
+        try {
+            String g = groupId != null ? groupId : "default";
+            var result = client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
+                    .versions().get(config -> {
+                        config.queryParameters.limit = 500;
+                        config.queryParameters.offset = 0;
+                    });
+            if (result == null || result.getVersions() == null) {
+                return List.of();
+            }
+            return result.getVersions().stream()
+                    .map(v -> v.getVersion())
+                    .toList();
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch versions for {}/{}: {}", groupId, artifactId, e.getMessage());
+            return List.of();
+        }
     }
 
     private static List<ArtifactReference> toClientReferences(Set<RegistryArtifactReference> references) {

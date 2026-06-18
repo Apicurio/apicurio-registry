@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends supervisor && \
 
 RUN useradd -m -u 1001 appuser
 
-COPY --from=registry /deployments/quarkus-app /opt/registry/
+COPY --from=registry /deployments/ /opt/registry/
 COPY --from=support-chat /deployments/ /opt/support-chat/
 
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf

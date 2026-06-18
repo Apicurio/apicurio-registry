@@ -199,6 +199,23 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.mergeVersionLabels(groupId, artifactId, version, prefix, labels);
     }
 
+    public void insertContractAuditEntry(ContractAuditEntryDto entry)
+            throws RegistryStorageException {
+        checkReadOnly();
+        delegate.insertContractAuditEntry(entry);
+    }
+
+    public void setGlobalContractRuleset(ContractRuleSetDto ruleset)
+            throws RegistryStorageException {
+        checkReadOnly();
+        delegate.setGlobalContractRuleset(ruleset);
+    }
+
+    public void deleteGlobalContractRuleset() throws RegistryStorageException {
+        checkReadOnly();
+        delegate.deleteGlobalContractRuleset();
+    }
+
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, RegistryStorageException {
         checkReadOnly();

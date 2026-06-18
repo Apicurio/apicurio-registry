@@ -18,6 +18,8 @@ public final class DocumentBuilderAccessor {
                 DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
                 factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
                 factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
                 factory.setNamespaceAware(true);
                 builder = factory.newDocumentBuilder();
             } catch (ParserConfigurationException e) {

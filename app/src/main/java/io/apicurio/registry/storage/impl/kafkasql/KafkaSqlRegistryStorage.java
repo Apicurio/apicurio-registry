@@ -556,7 +556,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void mergeArtifactLabels(String groupId, String artifactId,
             String prefix, java.util.Map<String, String> labels) throws RegistryStorageException {
-        var message = new MergeArtifactLabels4Message(groupId, artifactId, prefix, labels);
+        var message = new io.apicurio.registry.storage.impl.kafkasql.messages
+                .MergeArtifactLabels4Message(groupId, artifactId, prefix, labels);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
@@ -564,7 +565,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void mergeVersionLabels(String groupId, String artifactId, String version,
             String prefix, java.util.Map<String, String> labels) throws RegistryStorageException {
-        var message = new MergeVersionLabels5Message(groupId, artifactId, version, prefix, labels);
+        var message = new io.apicurio.registry.storage.impl.kafkasql.messages
+                .MergeVersionLabels5Message(groupId, artifactId, version, prefix, labels);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }
@@ -720,6 +722,36 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     public List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
             throws RegistryStorageException {
         return sqlStore.getContractRulesByTag(tag);
+    }
+
+    @Override
+    public io.apicurio.registry.storage.dto.ContractRuleSetDto getGlobalContractRuleset()
+            throws RegistryStorageException {
+        return sqlStore.getGlobalContractRuleset();
+    }
+
+    @Override
+    public void setGlobalContractRuleset(io.apicurio.registry.storage.dto.ContractRuleSetDto ruleset)
+            throws RegistryStorageException {
+        sqlStore.setGlobalContractRuleset(ruleset);
+    }
+
+    @Override
+    public void deleteGlobalContractRuleset() throws RegistryStorageException {
+        sqlStore.deleteGlobalContractRuleset();
+    }
+
+    @Override
+    public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry)
+            throws RegistryStorageException {
+        sqlStore.insertContractAuditEntry(entry);
+    }
+
+    @Override
+    public java.util.List<io.apicurio.registry.storage.dto.ContractAuditEntryDto> getContractAuditLog(
+            String groupId, String artifactId, int offset, int limit)
+            throws RegistryStorageException {
+        return sqlStore.getContractAuditLog(groupId, artifactId, offset, limit);
     }
 
     /**

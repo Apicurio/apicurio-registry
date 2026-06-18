@@ -23,16 +23,10 @@ rules:
       - '*'
 
   - apiGroups:
-      - events.k8s.io
-    resources:
-      - events
-    verbs:
-      - '*'
-
-  - apiGroups:
       - ''
     resources:
       - configmaps
+      - events
       - pods
       - services
       - serviceaccounts
@@ -72,8 +66,32 @@ rules:
       - '*'
 
   - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - apiGroups:
       - ''
     resources:
       - secrets
     verbs:
       [ create, get, list ]
+
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - create
+      - update
+      - patch
+      - delete

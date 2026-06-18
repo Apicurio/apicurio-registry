@@ -18,6 +18,13 @@ public class CelRuleExecutor implements ContractRuleExecutor {
     @Inject
     CelExpressionEvaluator evaluator;
 
+    public CelRuleExecutor() {
+    }
+
+    public CelRuleExecutor(CelExpressionEvaluator evaluator) {
+        this.evaluator = evaluator;
+    }
+
     @Override
     public String getRuleType() {
         return "CEL";

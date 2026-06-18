@@ -68,7 +68,7 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "2.1.0.Final")
     String authServerUrl;
 
-    @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "/protocol/openid-connect/token/")
+    @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "/protocol/openid-connect/token")
     @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "2.1.0.Final")
     String oidcTokenPath;
 

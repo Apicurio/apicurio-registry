@@ -61,4 +61,30 @@ public interface RegistryClientFacade {
      * example, this might return an instance of {@link io.apicurio.registry.rest.client.RegistryClient}.
      */
     Object getClient();
+
+    /**
+     * Gets the merged contract ruleset (global + artifact scope) for the given artifact.
+     * Returns null if contract rules are not supported by this facade implementation.
+     */
+    default io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(
+            String groupId, String artifactId) {
+        return null;
+    }
+
+    /**
+     * Gets the contract ruleset for a specific artifact version (version-level rules only).
+     * Returns null if contract rules are not supported by this facade implementation.
+     */
+    default io.apicurio.registry.rest.client.models.ContractRuleSet getVersionContractRuleset(
+            String groupId, String artifactId, String version) {
+        return null;
+    }
+
+    /**
+     * Gets the ordered list of version identifiers for an artifact.
+     * Returns an empty list if not supported.
+     */
+    default java.util.List<String> getArtifactVersions(String groupId, String artifactId) {
+        return java.util.List.of();
+    }
 }

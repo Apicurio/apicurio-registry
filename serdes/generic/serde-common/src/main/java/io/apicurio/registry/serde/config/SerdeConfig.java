@@ -159,6 +159,41 @@ public class SerdeConfig extends SchemaResolverConfig {
      */
     public static final String DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS = "apicurio.registry.deserializer.value.return-class";
 
+    /**
+     * Boolean used to enable or disable contract rule execution during serialization/deserialization.
+     * When enabled, the serializer executes WRITE-mode rules and the deserializer executes READ-mode rules
+     * against the registry's rule execution endpoint.
+     */
+    public static final String CONTRACT_RULES_ENABLED = "apicurio.registry.serde.contract-rules.enabled";
+    public static final boolean CONTRACT_RULES_ENABLED_DEFAULT = false;
+
+    /**
+     * Boolean used to control whether contract rule failures cause serialization/deserialization to fail.
+     * When true (default), a rule failure throws an exception. When false, failures are logged as warnings.
+     */
+    public static final String CONTRACT_RULES_FAIL_ON_ERROR = "apicurio.registry.serde.contract-rules.fail-on-error";
+    public static final boolean CONTRACT_RULES_FAIL_ON_ERROR_DEFAULT = true;
+
+    /**
+     * TTL in seconds for the cached contract ruleset. When the cache expires, the ruleset is re-fetched
+     * from the registry on the next message.
+     */
+    public static final String CONTRACT_RULES_CACHE_TTL_SECONDS = "apicurio.registry.serde.contract-rules.cache.ttl.seconds";
+    public static final long CONTRACT_RULES_CACHE_TTL_SECONDS_DEFAULT = 60;
+
+    /**
+     * Boolean used to enable inline schema migration during deserialization. When enabled and the record's
+     * schema version differs from the target version, UPGRADE/DOWNGRADE transform rules are applied locally.
+     */
+    public static final String CONTRACT_RULES_MIGRATION_ENABLED = "apicurio.registry.serde.contract-rules.migration.enabled";
+    public static final boolean CONTRACT_RULES_MIGRATION_ENABLED_DEFAULT = false;
+
+    /**
+     * The target schema version for migration. When migration is enabled and the record's version differs
+     * from this value, transform rules are applied to reach the target version.
+     */
+    public static final String CONTRACT_RULES_MIGRATION_TARGET_VERSION = "apicurio.registry.serde.contract-rules.migration.target-version";
+
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(entry(ID_HANDLER, ID_HANDLER_DEFAULT),
             entry(USE_ID, USE_ID_DEFAULT));
 

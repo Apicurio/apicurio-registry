@@ -278,7 +278,7 @@
     <apicurio-maven-plugin.version>0.0.16</apicurio-maven-plugin.version>
 
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.4</proto-plugin.version>
+    <proto-plugin.version>5.1.5</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -286,7 +286,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
-    <kiota.community.version>0.0.35</kiota.community.version>
+    <kiota.community.version>0.0.36</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->

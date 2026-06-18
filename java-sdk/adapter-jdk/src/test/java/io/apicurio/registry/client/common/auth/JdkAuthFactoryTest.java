@@ -81,7 +81,8 @@ class JdkAuthFactoryTest {
                 "https://auth.example.com/oauth/token",
                 "client-id",
                 "client-secret",
-                "openid profile"
+                "openid profile",
+                false
         );
 
         assertNotNull(tokenProvider);
@@ -97,7 +98,8 @@ class JdkAuthFactoryTest {
                 "https://auth.example.com/oauth/token",
                 "client-id",
                 "client-secret",
-                null
+                null,
+                false
         );
 
         assertNotNull(tokenProvider);
@@ -112,10 +114,38 @@ class JdkAuthFactoryTest {
                 "https://invalid.endpoint.local/oauth/token",
                 "client-id",
                 "client-secret",
-                null
+                null,
+                false
         );
 
         // Should throw IOException when trying to get token from invalid endpoint
         assertThrows(IOException.class, tokenProvider::getToken);
+    }
+
+    @Test
+    void testOAuth2TokenProviderWithOtelEnabledGracefulDegradation() {
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        JdkAuthFactory.TokenProvider tokenProvider = JdkAuthFactory.buildOAuth2TokenProvider(
+                httpClient,
+                "https://invalid.example.com/token",
+                "client-id",
+                "client-secret",
+                null,
+                true
+        );
+        assertNotNull(tokenProvider);
+    }
+
+    @Test
+    void testBuildOAuth2TokenProviderBackwardCompatibleOverload() {
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        JdkAuthFactory.TokenProvider tokenProvider = JdkAuthFactory.buildOAuth2TokenProvider(
+                httpClient,
+                "https://invalid.example.com/token",
+                "client-id",
+                "client-secret",
+                null
+        );
+        assertNotNull(tokenProvider);
     }
 }

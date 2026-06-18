@@ -137,7 +137,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: operator-test-artifacts
           path: |
@@ -147,7 +147,7 @@ jobs:
           retention-days: 1
 
       - name: Upload bundle artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: operator-bundle-artifacts
           path: |
@@ -221,7 +221,7 @@ jobs:
           cache: maven
 
       - name: Download test artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: operator-test-artifacts
           path: registry/operator/
@@ -281,7 +281,7 @@ jobs:
           make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build
 
       - name: Download bundle artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: operator-bundle-artifacts
           path: registry/operator/target/bundle/

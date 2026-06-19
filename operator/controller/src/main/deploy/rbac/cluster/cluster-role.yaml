@@ -13,14 +13,26 @@ rules:
       - apicurioregistries3
       - apicurioregistries3/status
     verbs:
-      - '*'
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 
   - apiGroups:
       - apps
     resources:
       - deployments
     verbs:
-      - '*'
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 
   - apiGroups:
       - ''
@@ -31,7 +43,13 @@ rules:
       - services
       - serviceaccounts
     verbs:
-      - '*'
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 
   - apiGroups:
       - rbac.authorization.k8s.io
@@ -39,7 +57,13 @@ rules:
       - roles
       - rolebindings
     verbs:
-      - '*'
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 
   - apiGroups:
       - apiextensions.k8s.io
@@ -56,14 +80,26 @@ rules:
       - ingresses
       - networkpolicies
     verbs:
-      - '*'
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 
   - apiGroups:
       - policy
     resources:
       - poddisruptionbudgets
     verbs:
-      - '*'
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
 
   - apiGroups:
       - autoscaling
@@ -83,7 +119,7 @@ rules:
     resources:
       - secrets
     verbs:
-      [ create, get, list ]
+      [ create, get ]
 
   - apiGroups:
       - coordination.k8s.io

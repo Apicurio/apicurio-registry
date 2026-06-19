@@ -221,10 +221,14 @@
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
     <swagger-parser-v3.version>2.1.44</swagger-parser-v3.version>
 
+    <!-- Quarkus BOM overrides (CVE fixes) -->
+    <netty.version>4.1.135.Final</netty.version>
+    <postgresql-jdbc.version>42.7.11</postgresql-jdbc.version>
+    <jackson3.version>3.1.4</jackson3.version>
+
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.22.0</commons-codec.version>
-    <netty.version>4.1.135.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>3.5.2.Final</debezium.version>
@@ -595,7 +599,7 @@
         <version>${connect.version}</version>
       </dependency>
 
-      <!-- Overrides of versions from the Quarkus BOM -->
+      <!-- Overrides of versions from the Quarkus BOM (CVE fixes) -->
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-codec-http</artifactId>
@@ -605,6 +609,21 @@
         <groupId>io.netty</groupId>
         <artifactId>netty-codec-http2</artifactId>
         <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>${postgresql-jdbc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${jackson3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${jackson3.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.kafka</groupId>

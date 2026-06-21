@@ -274,8 +274,8 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
 
     // Wait for the run to fully complete — the Verification Gate job
     // has `if: always()` and keeps the run alive after cancellation.
-    for (let attempt = 0; attempt < 10; attempt++) {
-      await new Promise(r => setTimeout(r, 3000));
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await new Promise(r => setTimeout(r, 5000));
       const fresh = await api.getWorkflowRun(run.id);
       if (fresh.status === 'completed') break;
     }

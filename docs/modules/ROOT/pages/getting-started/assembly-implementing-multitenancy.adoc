@@ -1,13 +1,15 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+// assembly-implementing-multitenancy
 [id="implementing-multitenancy_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Implementing multitenancy with {registry}
 
 [role="_abstract"]
-This chapter explains how to implement multitenancy with {registry} on {kubernetes} using the {operator}.
-{registry} achieves multitenancy through a multi-instance operator pattern: each tenant receives a dedicated
+Implement multitenancy with {registry} on {kubernetes} using the {operator}.
+{registry} uses a multi-instance operator pattern. Each tenant receives a dedicated
 `ApicurioRegistry3` custom resource (CR), which the operator reconciles into an independent set of {kubernetes}
-resources. This approach provides strong isolation between tenants at the infrastructure level, leveraging
+resources. This approach provides strong isolation between tenants at the infrastructure level. It uses
 {kubernetes}-native mechanisms for security, resource management, and network segmentation.
 
 * xref:multitenancy-overview_{context}[]
@@ -20,14 +22,18 @@ resources. This approach provides strong isolation between tenants at the infras
 * xref:multitenancy-lightweight-group-isolation_{context}[]
 
 .Prerequisites
+
 * {installing-the-registry-openshift}
-* You must have already installed the {operator}. See xref:deploying-registry-operator_{context}[].
+* Ensure that you have installed the {operator}. See xref:deploying-registry-operator_{context}[].
 
 //INCLUDES
 
+// con-multitenancy-overview
 [id="multitenancy-overview_{context}"]
-== Overview
+:_mod-docs-content-type: CONCEPT
+== Multitenancy overview
 
+[role="_abstract"]
 The {operator} watches for `ApicurioRegistry3` custom resources and creates the following {kubernetes} resources
 for each CR:
 
@@ -47,26 +53,26 @@ Each CR instance is completely independent. Resources are named using the patter
 `{cr-name}-{component}-{resource-type}` and labeled with instance-specific selectors to prevent any
 cross-tenant interference.
 
-=== Isolation boundaries
-
 The multi-instance approach provides the following isolation boundaries:
 
-* *Compute isolation*: Separate Deployments and Pods per tenant.
-* *Network isolation*: Separate Services, Ingresses, and optional NetworkPolicies per tenant.
-* *Storage isolation*: Each tenant can use a separate database or Kafka cluster.
-* *Authentication isolation*: Each tenant can have its own OIDC provider or realm.
-* *Configuration isolation*: Environment variables and settings are per-CR.
+* *Compute isolation*: Separate Deployments and Pods per tenant
+* *Network isolation*: Separate Services, Ingresses, and optional NetworkPolicies per tenant
+* *Storage isolation*: Each tenant can use a separate database or Kafka cluster
+* *Authentication isolation*: Each tenant can have its own OIDC provider or realm
+* *Configuration isolation*: Environment variables and settings are per-CR
 
+// ref-multitenancy-deployment-patterns
 [id="multitenancy-deployment-patterns_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Deployment patterns
 
+[role="_abstract"]
 You can deploy multiple {registry} instances using three primary patterns.
 
-=== Pattern A: Single namespace, multiple tenants
-
+Pattern A: Single namespace, multiple tenants::
 All tenant registry instances reside in the same {kubernetes-namespace}. The operator creates uniquely named
 resources for each CR.
-
++
 ----
 Namespace: apicurio-registries
 ├── Operator Pod
@@ -79,13 +85,12 @@ Namespace: apicurio-registries
     ├── tenant-beta-ui-deployment
     └── ...
 ----
-
++
 This pattern is best for a small number of tenants managed by a single platform team.
 
-=== Pattern B: Namespace per tenant (recommended)
-
+Pattern B: Namespace per tenant (recommended)::
 Each tenant gets its own {kubernetes-namespace}. A single operator instance watches all namespaces.
-
++
 ----
 Cluster
 ├── apicurio-system namespace
@@ -95,15 +100,14 @@ Cluster
 └── tenant-beta namespace
     └── ApicurioRegistry3: registry
 ----
-
++
 This pattern provides stronger isolation using {kubernetes} RBAC, ResourceQuotas, and NetworkPolicies at the
 {kubernetes-namespace} level. It is the recommended approach for most production environments.
 
-=== Pattern C: Operator per namespace
-
-Each {kubernetes-namespace} has its own operator instance, restricted to watching only that {kubernetes-namespace}
-via the `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable.
-
+Pattern C: Operator per namespace::
+Each {kubernetes-namespace} has its own operator instance. The instance is restricted to watching only that {kubernetes-namespace}
+by using the `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable.
++
 ----
 Cluster
 ├── tenant-alpha namespace
@@ -113,18 +117,21 @@ Cluster
     ├── Operator Pod (APICURIO_OPERATOR_WATCHED_NAMESPACES="tenant-beta")
     └── ApicurioRegistry3: registry
 ----
-
++
 This pattern provides maximum isolation and is suitable when tenants manage their own operator lifecycle.
 
+// proc-multitenancy-namespace-per-tenant
 [id="multitenancy-namespace-per-tenant_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Deploying with namespace-per-tenant isolation
 
-This section walks through deploying {registry} using the namespace-per-tenant pattern (Pattern B).
+[role="_abstract"]
+Deploy {registry} using the namespace-per-tenant pattern (Pattern B) to provide strong isolation between tenants.
 
 .Prerequisites
-* You must have cluster administrator access to {kubernetes-with-article} cluster.
-* You must have already installed the {operator}. See {installing-the-registry-openshift}.
-* You must have storage infrastructure (PostgreSQL or Kafka) available for each tenant.
+* Ensure that you have cluster administrator access to {kubernetes-with-article} cluster.
+* Ensure that you have installed the {operator}. See {installing-the-registry-openshift}.
+* Ensure that storage infrastructure (PostgreSQL or Kafka) is available for each tenant.
 
 .Procedure
 
@@ -136,7 +143,7 @@ This section walks through deploying {registry} using the namespace-per-tenant p
 {kubernetes-client} apply -f operator/install/install.yaml -n apicurio-system
 ----
 
-. Verify the operator is running:
+. Verify that the operator is running:
 +
 [source,bash,subs="attributes"]
 ----
@@ -242,18 +249,20 @@ spec:
 * Access each tenant's {registry} web console using the configured hostnames and verify that the UI loads
   successfully.
 
+// ref-multitenancy-storage-isolation
 [id="multitenancy-storage-isolation_{context}"]
-== Configuring storage isolation
+:_mod-docs-content-type: REFERENCE
+== Storage isolation options
 
-Each tenant's CR must point to a separate storage backend. The operator does not automatically provision
-databases or Kafka topics; these must be pre-provisioned.
+[role="_abstract"]
+Each tenant's CR must point to a separate storage backend. The operator does not provision
+databases or Kafka topics automatically. Pre-provision storage before you deploy tenant CRs.
 
-=== Separate databases on a shared PostgreSQL instance
-
-The recommended approach is to use one database per tenant on a shared PostgreSQL instance.
-{registry} manages its own schema within each database.
-Use separate PostgreSQL users with permissions limited to their respective database for additional security.
-
+Separate databases on a shared PostgreSQL instance::
+Use one database per tenant on a shared PostgreSQL instance.
+The registry manages its own schema within each database.
+Use separate PostgreSQL users with permissions limited to each tenant's database for additional security.
++
 [source,yaml]
 ----
 # Tenant Alpha
@@ -283,10 +292,9 @@ spec:
             key: password
 ----
 
-=== Separate PostgreSQL instances
-
-For maximum storage isolation, each tenant can have its own PostgreSQL instance:
-
+Separate PostgreSQL instances::
+For maximum storage isolation, each tenant can have its own PostgreSQL instance.
++
 [source,yaml]
 ----
 spec:
@@ -302,11 +310,10 @@ spec:
             key: password
 ----
 
-=== KafkaSQL storage
-
-When using KafkaSQL storage, each tenant should use separate Kafka bootstrap servers or, at minimum, separate
-topics:
-
+KafkaSQL storage::
+When you use KafkaSQL storage, configure each tenant with separate Kafka bootstrap servers or, at minimum, separate
+topics.
++
 [source,yaml]
 ----
 spec:
@@ -317,18 +324,21 @@ spec:
         bootstrapServers: "kafka-alpha.tenant-alpha.svc:9092"
 ----
 
-WARNING: When using KafkaSQL, ensure each tenant uses separate Kafka topics. The default topic name
-`kafkasql-journal` is the same for all instances. Configure separate topic names using the
+WARNING: When using KafkaSQL, ensure that each tenant uses separate Kafka topics. The default topic name
+`kafkasql-journal` is the same for all instances. Configure separate topic names by using the
 `APICURIO_KAFKASQL_TOPIC` environment variable if tenants share a Kafka cluster.
 
+// ref-multitenancy-authentication-per-tenant
 [id="multitenancy-authentication-per-tenant_{context}"]
-== Configuring authentication per tenant
+:_mod-docs-content-type: REFERENCE
+== Authentication options per tenant
 
-Each tenant instance can be configured with its own authentication settings. This allows different tenants to
+[role="_abstract"]
+Each tenant instance can be configured with its own authentication settings. Different tenants can
 use different identity providers or OIDC realms.
 
-=== Using shared {keycloak} with separate realms
-
+Shared {keycloak} with separate realms::
++
 [source,yaml]
 ----
 apiVersion: registry.apicur.io/v1
@@ -362,10 +372,9 @@ spec:
       host: tenant-alpha-ui.apps.cluster.example
 ----
 
-=== Using separate identity providers
-
-Each tenant CR can reference a completely different OIDC provider by specifying different `authServerUrl` values:
-
+Separate identity providers::
+Each tenant CR can reference a different OIDC provider by specifying different `authServerUrl` values.
++
 [source,yaml]
 ----
 # Tenant Alpha uses Keycloak
@@ -383,13 +392,15 @@ spec:
       authServerUrl: https://login.microsoftonline.com/{tenant-id}/v2.0
 ----
 
+// ref-multitenancy-resource-management
 [id="multitenancy-resource-management_{context}"]
-== Managing resources per tenant
+:_mod-docs-content-type: REFERENCE
+== Resource management per tenant
 
-=== Default resource allocation
+[role="_abstract"]
+Each {registry} instance receives the following default resource requests and limits.
 
-Each {registry} instance receives the following default resource requests and limits:
-
+.Default resource allocation
 [cols="1,1,1,1,1", options="header"]
 |===
 | Component | CPU request | CPU limit | Memory request | Memory limit
@@ -408,8 +419,6 @@ Each {registry} instance receives the following default resource requests and li
 |===
 
 The total minimum per tenant is approximately 600m CPU and 768Mi memory.
-
-=== Customizing resources per tenant
 
 Use `podTemplateSpec` to adjust resources for high-traffic or resource-constrained tenants:
 
@@ -430,9 +439,7 @@ spec:
                 memory: 4Gi
 ----
 
-=== Scaling per tenant
-
-Each tenant instance can be independently scaled:
+You can independently scale each tenant instance:
 
 [source,yaml]
 ----
@@ -442,8 +449,6 @@ spec:
   ui:
     replicas: 2
 ----
-
-=== Using {kubernetes} ResourceQuotas
 
 Use {kubernetes} `ResourceQuota` objects to enforce per-{kubernetes-namespace} resource limits when using the
 namespace-per-tenant pattern:
@@ -464,14 +469,13 @@ spec:
     pods: "10"
 ----
 
+// ref-multitenancy-network-isolation
 [id="multitenancy-network-isolation_{context}"]
-== Configuring network isolation
+:_mod-docs-content-type: REFERENCE
+== Network isolation options
 
-=== Default NetworkPolicy
-
+[role="_abstract"]
 The operator creates NetworkPolicy resources for each instance by default.
-
-=== Namespace-level network isolation
 
 For additional security when using the namespace-per-tenant pattern, apply a default-deny policy in each
 tenant {kubernetes-namespace}:
@@ -515,8 +519,6 @@ spec:
           port: 8080
 ----
 
-=== Restricting the operator to specific namespaces
-
 To limit the operator to watching only certain namespaces, set the `APICURIO_OPERATOR_WATCHED_NAMESPACES`
 environment variable on the operator Deployment:
 
@@ -527,21 +529,20 @@ env:
     value: "tenant-alpha,tenant-beta"
 ----
 
-When this variable is empty or unset, the operator watches all namespaces. When installed via OLM, this is
+When this variable is empty or unset, the operator watches all namespaces. When installed by using OLM, this is
 automatically derived from the `olm.targetNamespaces` annotation.
 
+// con-multitenancy-lightweight-group-isolation
 [id="multitenancy-lightweight-group-isolation_{context}"]
-== Alternative: Lightweight isolation with groups
+:_mod-docs-content-type: CONCEPT
+== Lightweight isolation with groups
 
-For scenarios where full instance-per-tenant isolation is excessive, {registry} supports logical isolation
+[role="_abstract"]
+For scenarios where full instance-per-tenant isolation is not required, {registry} supports logical isolation
 within a single instance using *groups* and *owner-based access control*.
 
-=== How it works
-
-. Each logical tenant uses one or more groups as their namespace within the registry.
-. Users can only modify artifacts and groups they own.
-
-=== Configuration
+Each logical tenant uses one or more groups as their namespace within the registry. Users can only modify
+artifacts and groups they own.
 
 Enable owner-based access control in the `ApicurioRegistry3` CR:
 
@@ -564,10 +565,10 @@ spec:
 
 With this configuration:
 
-* `ownerOnlyEnabled` restricts artifact modifications to the artifact's creator.
-* `groupAccessEnabled` restricts group modifications to the group's creator.
+* `ownerOnlyEnabled` restricts artifact modifications to the artifact's creator
+* `groupAccessEnabled` restricts group modifications to the group's creator
 
-=== Trade-offs
+The following table compares the advantages and limitations of this approach:
 
 [cols="1,1", options="header"]
 |===
@@ -586,15 +587,12 @@ With this configuration:
 | No independent scaling per tenant
 |===
 
-This approach is suitable for development environments, internal teams, or scenarios where tenants do not
+This configuration is suitable for development environments, internal teams, or scenarios where tenants do not
 require strict data or infrastructure isolation.
 
 [role="_additional-resources"]
 .Additional resources
 
-* For more information on deploying {registry} using the operator, see
-  xref:getting-started/assembly-deploying-registry-operator.adoc[].
-* For more information on configuring {registry} security, see
-  xref:getting-started/assembly-configuring-registry-security.adoc[].
-* For the complete operator configuration reference, see
-  xref:getting-started/assembly-operator-config-reference.adoc[].
+* xref:getting-started/assembly-deploying-registry-operator.adoc[]
+* xref:getting-started/assembly-configuring-registry-security.adoc[]
+* xref:getting-started/assembly-operator-config-reference.adoc[]

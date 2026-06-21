@@ -75,12 +75,16 @@ public class ConfigModel {
         @JsonProperty("scope")
         private String scope;
 
+        @JsonProperty("unsafeCredentialStorage")
+        private boolean unsafeCredentialStorage;
+
         public void clearAuth() {
             authType = null;
             username = null;
             tokenEndpoint = null;
             clientId = null;
             scope = null;
+            unsafeCredentialStorage = false;
         }
     }
 }

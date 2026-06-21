@@ -80,7 +80,7 @@ public final class JdkAdapterFactory {
             case OAUTH2:
                 JdkAuthFactory.TokenProvider tokenProvider = JdkAuthFactory.buildOAuth2TokenProvider(
                         httpClient, options.getTokenEndpoint(), options.getClientId(),
-                        options.getClientSecret(), options.getScope());
+                        options.getClientSecret(), options.getScope(), options.isOtelEnabled());
                 return new JdkOAuth2RequestAdapter(httpClient, tokenProvider);
 
             default:

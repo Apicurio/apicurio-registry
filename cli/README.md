@@ -249,9 +249,16 @@ acr logout
 
 Authentication is per-context — each context can use different credentials.
 
+**Headless/CI environments (no OS keychain):**
+```bash
+acr login --username <username> --password <password> --allow-unsafe-credential-storage
+```
+Credentials are stored in a local file instead of the OS keychain. A warning is printed. The preference is saved so subsequent commands don't need the flag again.
+
 **Prerequisites for credential storage:**
 - macOS: No prerequisites (uses Keychain)
 - Linux: `secret-tool` required (`sudo apt install libsecret-tools` or `sudo dnf install libsecret`)
+- Headless/CI: Use `--allow-unsafe-credential-storage` if no keychain is available
 
 ### Working with Groups
 

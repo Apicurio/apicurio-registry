@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.auth;
 
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.config.Config;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
@@ -8,7 +9,7 @@ import org.jboss.logging.Logger;
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 
 /**
- * Stores and retrieves credentials per context using the OS keychain.
+ * Stores and retrieves credentials per context using the OS keychain or file-based fallback.
  */
 @ApplicationScoped
 public class CredentialStore {
@@ -18,16 +19,43 @@ public class CredentialStore {
     @Inject
     CredentialProvider provider;
 
-    public void store(final String contextName, final String key, final String secret) {
+    @Inject
+    Config config;
+
+    private FileCredentialProvider fileProvider;
+
+    /**
+     * @return true if file-based fallback was used
+     */
+    public boolean store(final String contextName, final String key, final String secret,
+                         final boolean allowUnsafe) {
         try {
             provider.store(credentialKey(contextName, key), secret);
+            cleanupStaleFileCredential(contextName, key);
+            return false;
         } catch (CredentialStoreException ex) {
-            throw new CliException("Failed to store credentials. Ensure the system keychain is available.",
-                    APPLICATION_ERROR_RETURN_CODE);
+            if (allowUnsafe) {
+                log.debug("OS keychain not available, using file-based credential storage.");
+                getFileProvider().store(credentialKey(contextName, key), secret);
+                return true;
+            } else {
+                throw new CliException(
+                        "Failed to store credentials. Ensure the system keychain is available, "
+                                + "or use --allow-unsafe-credential-storage to store credentials in a file.",
+                        APPLICATION_ERROR_RETURN_CODE);
+            }
         }
     }
 
-    public String retrieve(final String contextName, final String key) {
+    public void store(final String contextName, final String key, final String secret) {
+        store(contextName, key, secret, false);
+    }
+
+    public String retrieve(final String contextName, final String key,
+                           final boolean unsafeStorage) {
+        if (unsafeStorage) {
+            return getFileProvider().retrieve(credentialKey(contextName, key));
+        }
         try {
             return provider.retrieve(credentialKey(contextName, key));
         } catch (CredentialStoreException ex) {
@@ -36,8 +64,32 @@ public class CredentialStore {
         }
     }
 
+    public String retrieve(final String contextName, final String key) {
+        return retrieve(contextName, key, false);
+    }
+
     public void delete(final String contextName, final String key) {
-        provider.delete(credentialKey(contextName, key));
+        try {
+            provider.delete(credentialKey(contextName, key));
+        } catch (CredentialStoreException ex) {
+            // Ignore — credential may not exist in OS keychain
+        }
+        getFileProvider().delete(credentialKey(contextName, key));
+    }
+
+    private void cleanupStaleFileCredential(final String contextName, final String key) {
+        try {
+            getFileProvider().delete(credentialKey(contextName, key));
+        } catch (CredentialStoreException ex) {
+            log.debugf("Could not clean up stale file credentials: %s", ex.getMessage());
+        }
+    }
+
+    private FileCredentialProvider getFileProvider() {
+        if (fileProvider == null) {
+            fileProvider = new FileCredentialProvider(config);
+        }
+        return fileProvider;
     }
 
     private static String credentialKey(final String contextName, final String key) {

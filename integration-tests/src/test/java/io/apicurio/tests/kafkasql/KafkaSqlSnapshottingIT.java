@@ -14,13 +14,17 @@ public class KafkaSqlSnapshottingIT extends ApicurioRegistryBaseIT {
     private static final String NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID = "SNAPSHOT_TEST_GROUP_ID";
 
     @Test
-    public void testRecoverFromSnapshot() throws InterruptedException {
+    public void testRecoverFromSnapshot() throws Exception {
         // We expect 1000 artifacts to be present in the snapshots group, created before the snapshot.
-        Assertions.assertEquals(1000, registryClient.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID)
-                .artifacts().get().getCount());
+        retry(() -> {
+            Assertions.assertEquals(1000, registryClient.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID)
+                    .artifacts().get().getCount());
+        }, "verify 1000 artifacts in snapshot group", 20);
 
         // And another 1000 in the default group, created after the snapshot.
-        Assertions.assertEquals(1000, registryClient.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID)
-                .artifacts().get().getCount());
+        retry(() -> {
+            Assertions.assertEquals(1000, registryClient.groups().byGroupId("default")
+                    .artifacts().get().getCount());
+        }, "verify 1000 artifacts in default group", 20);
     }
 }

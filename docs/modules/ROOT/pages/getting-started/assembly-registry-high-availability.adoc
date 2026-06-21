@@ -17,7 +17,7 @@ This assembly includes the following topics:
 * xref:ha-rolling-updates_{context}[]
 * xref:ha-backup-restore_{context}[]
 
-== Prerequisites
+.Prerequisites
 * {installing-the-registry-openshift}
 
 //INCLUDES
@@ -43,7 +43,7 @@ A highly available {registry} deployment consists of the following components:
 |Multiple stateless replicas serving the web console (static files). Typically fewer replicas are needed compared to the backend.
 
 |Storage layer
-|The stateful component requiring HA configuration. The strategy depends on whether you use SQL database or KafkaSQL storage.
+|The stateful component requiring HA configuration. The strategy depends on the storage type: SQL database, KafkaSQL, GitOps, or KubernetesOps.
 |===
 
 The application and UI components are stateless and scale horizontally. High availability is achieved by running multiple replicas distributed across failure domains (availability zones) and implementing a highly available storage layer.
@@ -173,8 +173,8 @@ spec:
 ----
 
 [id="ha-sql-storage_{context}"]
-== SQL database storage high availability
-:_mod-docs-content-type: CONCEPT
+== Configuring SQL database storage for high availability
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 When you use PostgreSQL or MySQL storage, high availability depends on your database configuration. You must configure the database with replication and automatic failover before running multiple {registry} replicas.
@@ -341,23 +341,14 @@ Key configuration for HA:
 
 {registry} uses three Kafka topics for various purposes:
 
-.KafkaSQL topic descriptions
-[cols="2,1,3", options="header"]
-|===
-|Topic |Default name |Purpose
+Journal topic (`kafkasql-journal`)::
+Stores all changes to the registry data. This is the most important topic for data durability.
 
-|Journal topic
-|`kafkasql-journal`
-|Stores all changes to the registry data. This is the most important topic for data durability.
+Snapshots topic (`kafkasql-snapshots`)::
+Stores periodic snapshots of the registry state for faster startup. Configure with similar replication settings as the journal topic.
 
-|Snapshots topic
-|`kafkasql-snapshots`
-|Stores periodic snapshots of the registry state for faster startup. Configure with similar replication settings as the journal topic.
-
-|Events topic
-|`registry-events`
-|Stores events for the Kafka-based eventing feature. Configuration depends on your event processing needs. {registry} sends messages to only 1 partition of this topic.
-|===
+Events topic (`registry-events`)::
+Stores events for the Kafka-based eventing feature. Configuration depends on your event processing needs. {registry} sends messages to only 1 partition of this topic.
 
 Configure the Kafka topics used by {registry} with appropriate replication:
 
@@ -574,14 +565,9 @@ Starting with {registry} 3.x, health check and metrics endpoints are served on a
 
 The following components require configuration updates:
 
-.Configuration changes required when upgrading to management port 9000
-[cols="2,3", options="header"]
-|===
-|Component |Required change
-
-|Kubernetes health probes
-a|Update liveness and readiness probe definitions to target port `9000`. The endpoint paths remain the same.
-
+Kubernetes health probes::
+Update liveness and readiness probe definitions to target port `9000`. The endpoint paths remain the same.
++
 [source,yaml]
 ----
 # Before (old configuration)
@@ -604,18 +590,17 @@ livenessProbe:
     scheme: HTTPS
 ----
 
-|Prometheus scrape targets
-|Update your Prometheus configuration or `ServiceMonitor` resources to scrape metrics from port `9000` at path `/metrics`.
+Prometheus scrape targets::
+Update your Prometheus configuration or `ServiceMonitor` resources to scrape metrics from port `9000` at path `/metrics`.
 
-|Network policies
-|If you use Kubernetes `NetworkPolicy` resources, ensure that ingress traffic on port `9000` is allowed from your monitoring infrastructure and the kubelet (for health probes).
+Network policies::
+If you use Kubernetes `NetworkPolicy` resources, ensure that ingress traffic on port `9000` is allowed from your monitoring infrastructure and the kubelet (for health probes).
 
-|TLS configuration
-|The management interface inherits the default TLS configuration from the Quarkus TLS registry. When TLS is enabled, health probes must use `scheme: HTTPS`. The {operator} handles this automatically.
+TLS configuration::
+The management interface inherits the default TLS configuration from the Quarkus TLS registry. When TLS is enabled, health probes must use `scheme: HTTPS`. The {operator} handles this automatically.
 
-|{operator} managed deployments
-|The {operator} automatically configures the correct probe ports. No manual changes are required.
-|===
+{operator} managed deployments::
+The {operator} automatically configures the correct probe ports. No manual changes are required.
 
 [id="ha-backup-restore_{context}"]
 == Backup and restore

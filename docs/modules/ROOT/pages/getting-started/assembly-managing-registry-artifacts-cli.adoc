@@ -10,7 +10,7 @@ You can use the {registry} command-line interface (CLI) to manage {registry} con
 ifndef::service-registry-downstream[]
 [NOTE]
 ====
-The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). The CLI does not support Windows yet. The CLI currently implements only group management commands. Future releases will include additional commands.
+The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). The CLI does not support Windows yet. The CLI currently implements only group management commands.
 ====
 
 [IMPORTANT]
@@ -32,8 +32,7 @@ endif::[]
 * xref:registry-cli-output-formats_{context}[]
 * xref:registry-cli-reference_{context}[]
 
-== Prerequisites
-
+.Prerequisites
 * You have installed {registry}.
 * You have Java 11 or higher installed.
 * You have access to a bash shell (Linux) or zsh shell (macOS).
@@ -385,5 +384,5 @@ The {registry} CLI provides global options, exit codes, and available commands d
 * {managing-registry-artifacts-api}
 * {rest-client}
 ifndef::service-registry-downstream[]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
+* For the latest CLI documentation, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README] on GitHub.
 endif::[]

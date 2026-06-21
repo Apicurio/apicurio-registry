@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.auth.CredentialProvider;
+import io.apicurio.registry.cli.auth.CredentialStoreException;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
@@ -17,9 +18,17 @@ import java.util.concurrent.ConcurrentMap;
 public class TestCredentialProvider implements CredentialProvider {
 
     private final ConcurrentMap<String, String> store = new ConcurrentHashMap<>();
+    private boolean failOnStore;
+
+    public void setFailOnStore(final boolean fail) {
+        this.failOnStore = fail;
+    }
 
     @Override
     public void store(final String account, final String secret) {
+        if (failOnStore) {
+            throw new CredentialStoreException("Simulated keychain failure");
+        }
         store.put(account, secret);
     }
 

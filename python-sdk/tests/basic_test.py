@@ -54,10 +54,10 @@ def poll_for_ready():
 @pytest.fixture(scope="session", autouse=True)
 def registry_server(request):
     registry_jar = os.path.join(
-        sys.path[0], "..", "..", "app", "target", "apicurio-registry-app-*-runner.jar"
+        sys.path[0], "..", "..", "app", "target", "quarkus-app", "quarkus-run.jar"
     )
     print(f" Starting Registry from jar {registry_jar}")
-    p = subprocess.Popen(f"java -jar {registry_jar}", shell=True)
+    p = subprocess.Popen(["java", "-jar", registry_jar])
     request.addfinalizer(p.kill)
     poll_for_ready()
 

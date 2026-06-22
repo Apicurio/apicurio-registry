@@ -2534,6 +2534,56 @@
         }
       ]
     },
+    "/system/canonicalize": {
+      "summary": "Canonicalize content",
+      "post": {
+        "requestBody": {
+          "description": "The content to canonicalize.",
+          "content": {
+            "*/*": {
+              "schema": {
+                "$ref": "#/components/schemas/FileContent"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "System"
+        ],
+        "parameters": [
+          {
+            "name": "artifactType",
+            "description": "Indicates the type of artifact represented by the content.  The server uses this to determine how to canonicalize the content.",
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
+            },
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ArtifactContent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "canonicalizeContent",
+        "summary": "Canonicalize content",
+        "description": "Canonicalizes the provided content using the rules for the specified artifact type.  Canonicalization is specific to each artifact type, but typically involves removing extra whitespace, sorting object keys, and formatting the content in a consistent manner.  The canonicalized content is returned as the response body.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* The artifact type was not provided or was invalid (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
     "/system/uiConfig": {
       "summary": "Get UI configuration",
       "description": "This endpoint is used by the user interface to retrieve UI specific configuration\nin a JSON payload.  This allows the UI and the backend to be configured in the \nsame place (the backend process/pod).  When the UI loads, it will make an API call\nto this endpoint to determine what UI features and options are configured.",
@@ -3400,6 +3450,14 @@
             "description": "Allows the user to specify how references in the content should be treated.",
             "schema": {
               "$ref": "#/components/schemas/HandleReferencesType"
+            },
+            "in": "query"
+          },
+          {
+            "name": "canonical",
+            "description": "Parameter that can be set to `true` to indicate that the server should return the canonicalized form of the artifact content.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.",
+            "schema": {
+              "type": "boolean"
             },
             "in": "query"
           }

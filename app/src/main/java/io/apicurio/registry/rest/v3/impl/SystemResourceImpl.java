@@ -6,23 +6,31 @@ import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.limits.RegistryLimitsConfiguration;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.rest.v3.beans.SystemInfo;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigAuth;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigFeatures;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigUi;
+import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.ui.UserInterfaceConfigProperties;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,6 +57,12 @@ public class SystemResourceImpl implements SystemResource {
     @Inject
     ElasticsearchSearchConfig esSearchConfig;
 
+    @Inject
+    RegistryStorageContentUtils contentUtils;
+
+    @Context
+    HttpServletRequest request;
+
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
      */
@@ -61,6 +75,20 @@ public class SystemResourceImpl implements SystemResource {
         info.setVersion(system.getVersion());
         info.setBuiltOn(system.getDate());
         return info;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public Response canonicalizeContent(String artifactType, InputStream data) {
+        ContentHandle content = ContentHandle.create(data);
+        if (content.bytes().length == 0) {
+            throw new BadRequestException("Empty content is not allowed.");
+        }
+        String ct = request.getContentType();
+        TypedContent typedContent = TypedContent.create(content, ct);
+        TypedContent canonicalized = contentUtils.canonicalizeContent(artifactType, typedContent,
+                Map.of());
+        return Response.ok(canonicalized.getContent()).type(canonicalized.getContentType()).build();
     }
 
     /**

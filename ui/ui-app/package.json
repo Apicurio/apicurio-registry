@@ -51,7 +51,7 @@
     "@patternfly/react-core": "6.5.1",
     "@patternfly/react-icons": "6.5.1",
     "@patternfly/react-table": "6.5.1",
-    "@xyflow/react": "12.11.0",
+    "@xyflow/react": "12.11.1",
     "axios": "1.18.0",
     "html-to-image": "1.11.13",
     "buffer": "6.0.3",

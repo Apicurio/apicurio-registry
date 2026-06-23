@@ -40,6 +40,7 @@ jobs:
         run: |
           ./mvnw clean package -T 0.5C --no-transfer-progress \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+            -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 

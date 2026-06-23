@@ -87,9 +87,9 @@ jobs:
           fi
 
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
-          python-version: '3.11'
+          python-version: '3.14.6'
 
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
@@ -134,7 +134,7 @@ jobs:
           fi
 
       - name: Setup Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: '1.26.4'
           cache: false
@@ -203,9 +203,9 @@ jobs:
           fi
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 20
+          node-version: 24.17.0
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm

@@ -481,6 +481,9 @@ public class DebeziumDeploymentManager {
 
             int attempt = 0;
             boolean ready = false;
+            int connectionRefusedCount = 0;
+            int httpResponseCount = 0;
+            int lastStatusCode = -1;
 
             while (attempt < CONNECT_READY_MAX_ATTEMPTS && !ready) {
                 java.net.HttpURLConnection conn = null;
@@ -496,12 +499,15 @@ public class DebeziumDeploymentManager {
                         ready = true;
                         LOGGER.info("Debezium Connect is ready!");
                     } else {
-                        LOGGER.info("Attempt {}/{}: Debezium Connect returned status code: {}",
+                        httpResponseCount++;
+                        lastStatusCode = responseCode;
+                        LOGGER.info("Attempt {}/{}: Debezium Connect starting up (HTTP {})",
                                 attempt + 1, CONNECT_READY_MAX_ATTEMPTS, responseCode);
                     }
                 } catch (Exception e) {
-                    LOGGER.info("Attempt {}/{}: Debezium Connect not ready yet: {}",
+                    LOGGER.info("Attempt {}/{}: Debezium Connect not reachable ({})",
                             attempt + 1, CONNECT_READY_MAX_ATTEMPTS, e.getMessage());
+                    connectionRefusedCount++;
                 } finally {
                     if (conn != null) {
                         conn.disconnect();
@@ -514,8 +520,21 @@ public class DebeziumDeploymentManager {
             }
 
             if (!ready) {
-                throw new RuntimeException("Debezium Connect did not become ready after " + CONNECT_READY_MAX_ATTEMPTS + " attempts. " +
-                        "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
+                String diagnosis;
+                if (httpResponseCount == 0) {
+                    diagnosis = "All " + CONNECT_READY_MAX_ATTEMPTS + " attempts got Connection refused — " +
+                            "this is a routing issue, not a startup timeout. Check minikube tunnel status.";
+                } else if (connectionRefusedCount == 0) {
+                    diagnosis = "All attempts reached the server but never got HTTP 200 (last status: " +
+                            lastStatusCode + ") — startup is too slow or the service is unhealthy.";
+                } else {
+                    diagnosis = "Mixed signals: " + connectionRefusedCount + " Connection refused, " +
+                            httpResponseCount + " HTTP responses (last status: " + lastStatusCode +
+                            "). Service was intermittently reachable.";
+                }
+                LOGGER.error("Debezium Connect readiness check failed. Diagnosis: {}", diagnosis);
+                throw new RuntimeException("Debezium Connect did not become ready after " +
+                        CONNECT_READY_MAX_ATTEMPTS + " attempts. " + diagnosis);
             }
 
         } catch (InterruptedException e) {

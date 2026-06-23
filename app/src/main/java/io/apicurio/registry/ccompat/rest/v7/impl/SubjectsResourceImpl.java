@@ -98,7 +98,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                 : cconfig.maxSubjects.get();
 
         ArtifactSearchResultsDto searchResults = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.asc, effectiveOffset, effectiveLimit);
+                OrderDirection.asc, effectiveOffset, effectiveLimit, false);
         Function<SearchedArtifactDto, String> toSubject = SearchedArtifactDto::getArtifactId;
         if (cconfig.groupConcatEnabled) {
             toSubject = (dto) -> toSubjectWithGroupConcat(dto);
@@ -231,7 +231,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         }
 
         VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, 500);
+                OrderDirection.asc, 0, 500, false);
         rval = searchResults.getVersions().stream()
                 .map(SearchedVersionDto::getVersionOrder)
                 .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
@@ -553,7 +553,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             filters.add(SearchFilter.ofGroupId(groupId));
             filters.add(SearchFilter.ofArtifactId(artifactId));
             VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                    OrderDirection.asc, 0, 500);
+                    OrderDirection.asc, 0, 500, false);
             List<BigInteger> result = searchResults.getVersions().stream()
                     .map(SearchedVersionDto::getVersionOrder)
                     .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
@@ -570,7 +570,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         filters.add(SearchFilter.ofGroupId(groupId));
         filters.add(SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, 500);
+                OrderDirection.asc, 0, 500, false);
         try {
             searchResults.getVersions().forEach(v -> storage.updateArtifactVersionState(groupId,
                     artifactId, v.getVersion(), VersionState.DISABLED, false));

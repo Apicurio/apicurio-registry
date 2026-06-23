@@ -1300,6 +1300,23 @@
       </properties>
     </profile>
     <profile>
+      <id>quick</id>
+      <activation>
+        <property>
+          <name>quick</name>
+        </property>
+      </activation>
+      <properties>
+        <skipTests>true</skipTests>
+        <skipITs>true</skipITs>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <skipCommitIdPlugin>true</skipCommitIdPlugin>
+        <assembly.skipAssembly>true</assembly.skipAssembly>
+      </properties>
+    </profile>
+    <profile>
       <id>non-essential</id>
       <activation>
         <property>

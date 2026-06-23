@@ -107,6 +107,10 @@ a| Mapping detection not supported
 a| Syntax Only
 a| None
 a| Mapping detection not supported
+|*Thrift*
+a| Syntax Only
+a| None
+a| Mapping detection not supported
 |*WSDL*
 a| Full
 a| None

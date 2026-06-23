@@ -417,7 +417,7 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 |Skill ID |Description
 
 |`schema-validation`
-|Validate schemas against format specifications (Avro, JSON Schema, Protobuf, OpenAPI, AsyncAPI, GraphQL, WSDL, XSD)
+|Validate schemas against format specifications (Avro, JSON Schema, Protobuf, OpenAPI, AsyncAPI, GraphQL, Thrift, WSDL, XSD)
 
 |`schema-search`
 |Search for schemas and APIs in the registry by name, labels, or content

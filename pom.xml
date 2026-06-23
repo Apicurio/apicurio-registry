@@ -104,6 +104,7 @@
     <module>schema-util/openapi</module>
     <module>schema-util/openrpc</module>
     <module>schema-util/protobuf</module>
+    <module>schema-util/thrift</module>
     <module>schema-util/util-provider</module>
     <module>schema-util/wsdl</module>
     <module>schema-util/xml</module>
@@ -522,6 +523,11 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-openrpc</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-thrift</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

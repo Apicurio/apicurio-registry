@@ -68,4 +68,7 @@ public class ArtifactType {
     /** Open Data Contract Standard (ODCS) v3.1 contract definition. */
     public static final String ODCS_CONTRACT = "ODCS_CONTRACT";
 
+    /** Apache Thrift interface definition language (IDL). */
+    public static final String THRIFT = "THRIFT";
+
 }

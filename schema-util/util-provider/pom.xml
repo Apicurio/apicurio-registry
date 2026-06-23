@@ -70,6 +70,10 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-thrift</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>

@@ -11,6 +11,7 @@ export class ArtifactTypes {
     public static WSDL = "WSDL";
     public static XSD = "XSD";
     public static XML = "XML";
+    public static THRIFT = "THRIFT";
     public static AGENT_CARD = "AGENT_CARD";
     public static MCP_TOOL = "MCP_TOOL";
     public static MODEL_SCHEMA = "MODEL_SCHEMA";
@@ -48,6 +49,9 @@ export class ArtifactTypes {
                 break;
             case "XML":
                 title = "XML";
+                break;
+            case "THRIFT":
+                title = "Thrift IDL";
                 break;
             case "AGENT_CARD":
                 title = "A2A Agent Card";
@@ -98,6 +102,9 @@ export class ArtifactTypes {
             case "XML":
                 title = "XML";
                 break;
+            case "THRIFT":
+                title = "Thrift";
+                break;
             case "AGENT_CARD":
                 title = "Agent Card";
                 break;
@@ -146,6 +153,9 @@ export class ArtifactTypes {
                 break;
             case "XML":
                 classes += " xml-icon24";
+                break;
+            case "THRIFT":
+                classes += " thrift-icon24";
                 break;
             case "AGENT_CARD":
                 classes += " agentcard-icon24";

@@ -38,10 +38,10 @@ public class RulesServiceImpl implements RulesService {
     RulesProperties rulesProperties;
 
     @Inject
-    ArtifactTypeUtilProviderFactory providerFactory;
+    OTelMetricsProvider otelMetrics;
 
     @Inject
-    OTelMetricsProvider otelMetrics;
+    ArtifactTypeUtilProviderFactory providerFactory;
 
     /**
      * @see io.apicurio.registry.rules.RulesService#applyRules(String, String, String, TypedContent,
@@ -74,7 +74,7 @@ public class RulesServiceImpl implements RulesService {
         }
 
         applyAllRules(storageToUse, groupId, artifactId, artifactType, currentContent, content,
-                artifactRules, references, resolvedReferences, ruleApplicationType.name());
+                artifactRules, references, resolvedReferences);
     }
 
     @Override
@@ -84,13 +84,13 @@ public class RulesServiceImpl implements RulesService {
             throws RuleViolationException {
         Set<RuleType> artifactRules = new HashSet<>(storageToUse.getArtifactRules(groupId, artifactId));
         applyAllRules(storageToUse, groupId, artifactId, artifactType, existingContent, content,
-                artifactRules, references, resolvedReferences, RuleApplicationType.UPDATE.name());
+                artifactRules, references, resolvedReferences);
     }
 
     private void applyAllRules(RegistryStorage storageToUse, String groupId, String artifactId,
             String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
             Set<RuleType> artifactRules, List<ArtifactReference> references,
-            Map<String, TypedContent> resolvedReferences, String ruleOperation) {
+            Map<String, TypedContent> resolvedReferences) {
 
         Map<RuleType, RuleConfigurationDto> allRules = new HashMap<>();
 
@@ -115,17 +115,11 @@ public class RulesServiceImpl implements RulesService {
             }
         });
 
-        // Apply rules
-        try {
-            for (RuleType ruleType : allRules.keySet()) {
-                applyRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
-                        ruleType, allRules.get(ruleType).getConfiguration(), references,
-                        resolvedReferences);
-            }
-            otelMetrics.recordRuleEvaluation(ruleOperation, true);
-        } catch (Exception ex) {
-            otelMetrics.recordRuleEvaluation(ruleOperation, false);
-            throw ex;
+        // Apply rules (metrics are recorded per-rule in applyRule)
+        for (RuleType ruleType : allRules.keySet()) {
+            applyRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
+                    ruleType, allRules.get(ruleType).getConfiguration(), references,
+                    resolvedReferences);
         }
     }
 
@@ -143,6 +137,8 @@ public class RulesServiceImpl implements RulesService {
                 ruleConfiguration, references, resolvedReferences);
     }
 
+    // Metrics are recorded here even during dry-run requests because rule evaluation genuinely
+    // executes during dry-run — only artifact/version creation metrics are suppressed.
     private void applyRule(RegistryStorage storageToUse, String groupId, String artifactId,
             String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
             RuleType ruleType, String ruleConfiguration, List<ArtifactReference> references,
@@ -152,7 +148,19 @@ public class RulesServiceImpl implements RulesService {
                 .artifactType(artifactType).currentContent(currentContent).updatedContent(updatedContent)
                 .configuration(ruleConfiguration).references(references)
                 .resolvedReferences(resolvedReferences).storage(storageToUse).build();
-        executor.execute(context);
+        try {
+            executor.execute(context);
+            otelMetrics.recordRuleEvaluation(ruleType.value(), true);
+            if (ruleType == RuleType.VALIDITY) {
+                otelMetrics.recordSchemaValidation(artifactType, true);
+            }
+        } catch (Exception e) {
+            otelMetrics.recordRuleEvaluation(ruleType.value(), false);
+            if (ruleType == RuleType.VALIDITY) {
+                otelMetrics.recordSchemaValidation(artifactType, false);
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -166,6 +174,6 @@ public class RulesServiceImpl implements RulesService {
         Set<RuleType> artifactRules = new HashSet<>(storage.getArtifactRules(groupId, artifactId));
         applyAllRules(storage, groupId, artifactId, artifactType,
                 Collections.singletonList(typedVersionContent), updatedContent, artifactRules,
-                references, resolvedReferences, RuleApplicationType.UPDATE.name());
+                references, resolvedReferences);
     }
 }

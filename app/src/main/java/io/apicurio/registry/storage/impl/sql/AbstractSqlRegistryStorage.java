@@ -719,9 +719,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) {
 
-        return searchRepository.searchArtifacts(filters, orderBy, orderDirection, offset, limit);
+        return searchRepository.searchArtifacts(filters, orderBy, orderDirection, offset, limit, skipCount);
     }
 
     @Override
@@ -1016,9 +1016,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
+            throws RegistryStorageException {
 
-        return searchRepository.searchVersions(filters, orderBy, orderDirection, offset, limit);
+        return searchRepository.searchVersions(filters, orderBy, orderDirection, offset, limit, skipCount);
     }
 
     @Override

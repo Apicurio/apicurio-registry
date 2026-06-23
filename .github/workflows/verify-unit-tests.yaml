@@ -83,6 +83,7 @@ jobs:
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipCommitIdPlugin=true \
+            -Dcheckstyle.skip=true \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5

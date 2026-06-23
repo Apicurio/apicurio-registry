@@ -37,11 +37,11 @@ jobs:
           - name: app-gitops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**"
-            maven-opts: "-Xmx2g"
+            maven-opts: "-Xmx4g"
           - name: app-kubernetesops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
-            maven-opts: "-Xmx2g"
+            maven-opts: "-Xmx4g"
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"

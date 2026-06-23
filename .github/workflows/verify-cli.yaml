@@ -79,6 +79,7 @@ jobs:
             --no-transfer-progress \
             -Dquarkus.native.container-build=false \
             ${{ matrix.test-args }} \
+            -Dmaven.javadoc.skip=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 

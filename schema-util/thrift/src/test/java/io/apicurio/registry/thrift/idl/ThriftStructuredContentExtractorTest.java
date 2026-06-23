@@ -14,8 +14,15 @@ public class ThriftStructuredContentExtractorTest {
 
     @Test
     public void testExtractsStructNames() {
-        String schema = "namespace java com.example\nstruct Person {\n  1: string name\n}\n"
-                + "struct Address {\n  1: string street\n}\n";
+        String schema = """
+                namespace java com.example
+                struct Person {
+                  1: string name
+                }
+                struct Address {
+                  1: string street
+                }
+                """;
         List<StructuredElement> elements = extractor.extract(ContentHandle.create(schema));
 
         Assertions.assertTrue(elements.stream()
@@ -97,12 +104,23 @@ public class ThriftStructuredContentExtractorTest {
 
     @Test
     public void testComplexSchemaExtraction() {
-        String schema = "namespace java com.example\n"
-                + "enum Status { ACTIVE = 1, INACTIVE = 2 }\n"
-                + "struct User {\n  1: string name\n}\n"
-                + "union Response {\n  1: User user,\n  2: string error\n}\n"
-                + "exception AuthError {\n  1: string reason\n}\n"
-                + "service UserService {\n  User getUser(1: string id)\n}\n";
+        String schema = """
+                namespace java com.example
+                enum Status { ACTIVE = 1, INACTIVE = 2 }
+                struct User {
+                  1: string name
+                }
+                union Response {
+                  1: User user,
+                  2: string error
+                }
+                exception AuthError {
+                  1: string reason
+                }
+                service UserService {
+                  User getUser(1: string id)
+                }
+                """;
 
         List<StructuredElement> elements = extractor.extract(ContentHandle.create(schema));
 

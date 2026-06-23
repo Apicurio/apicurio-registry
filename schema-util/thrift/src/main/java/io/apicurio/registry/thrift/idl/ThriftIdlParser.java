@@ -22,7 +22,7 @@ public class ThriftIdlParser {
     private static final Pattern SERVICE_PATTERN = Pattern
             .compile("^\\s*service\\s+(\\w+)(?:\\s+extends\\s+[\\w.]+)?\\s*\\{");
     private static final Pattern FIELD_PATTERN = Pattern
-            .compile("^\\s*\\d+\\s*:\\s*(optional|required)?\\s*\\S+\\s+\\w+");
+            .compile("^\\s*\\d+\\s*:\\s*(?:optional|required)?\\s*\\S+\\s+\\w+");
 
     private ThriftIdlParser() {
     }
@@ -42,104 +42,15 @@ public class ThriftIdlParser {
         while (i < lines.size()) {
             String line = lines.get(i).trim();
 
-            if (line.isEmpty()) {
+            if (line.isEmpty() || line.matches("[};,]+")) {
                 i++;
-                continue;
+            } else {
+                ParseResult result = parseLine(line, lines, i, document);
+                if (result.foundConstruct) {
+                    foundThriftConstruct = true;
+                }
+                i = result.nextIndex;
             }
-
-            Matcher m;
-
-            m = NAMESPACE_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addNamespace(m.group(1), m.group(2));
-                foundThriftConstruct = true;
-                i++;
-                continue;
-            }
-
-            m = INCLUDE_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addInclude(m.group(1));
-                foundThriftConstruct = true;
-                i++;
-                continue;
-            }
-
-            m = CPP_INCLUDE_PATTERN.matcher(line);
-            if (m.find()) {
-                foundThriftConstruct = true;
-                i++;
-                continue;
-            }
-
-            m = CONST_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addConstant(m.group(2), m.group(1));
-                foundThriftConstruct = true;
-                i++;
-                continue;
-            }
-
-            m = TYPEDEF_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addTypedef(m.group(2), m.group(1));
-                foundThriftConstruct = true;
-                i++;
-                continue;
-            }
-
-            m = ENUM_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addEnum(m.group(1));
-                foundThriftConstruct = true;
-                i = skipBlock(lines, i);
-                continue;
-            }
-
-            m = STRUCT_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addStruct(m.group(1));
-                foundThriftConstruct = true;
-                i = skipBlock(lines, i);
-                continue;
-            }
-
-            m = UNION_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addUnion(m.group(1));
-                foundThriftConstruct = true;
-                i = skipBlock(lines, i);
-                continue;
-            }
-
-            m = EXCEPTION_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addException(m.group(1));
-                foundThriftConstruct = true;
-                i = skipBlock(lines, i);
-                continue;
-            }
-
-            m = SERVICE_PATTERN.matcher(line);
-            if (m.find()) {
-                document.addService(m.group(1));
-                foundThriftConstruct = true;
-                i = skipBlock(lines, i);
-                continue;
-            }
-
-            if (FIELD_PATTERN.matcher(line).find()) {
-                foundThriftConstruct = true;
-                i++;
-                continue;
-            }
-
-            if (line.matches("[};,]+")) {
-                i++;
-                continue;
-            }
-
-            i++;
         }
 
         if (!foundThriftConstruct) {
@@ -148,6 +59,88 @@ public class ThriftIdlParser {
         }
 
         return document;
+    }
+
+    private static ParseResult parseLine(String line, List<String> lines, int index,
+            ThriftDocument document) {
+        Matcher m;
+
+        m = NAMESPACE_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addNamespace(m.group(1), m.group(2));
+            return new ParseResult(index + 1, true);
+        }
+
+        m = INCLUDE_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addInclude(m.group(1));
+            return new ParseResult(index + 1, true);
+        }
+
+        m = CPP_INCLUDE_PATTERN.matcher(line);
+        if (m.find()) {
+            return new ParseResult(index + 1, true);
+        }
+
+        m = CONST_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addConstant(m.group(2), m.group(1));
+            return new ParseResult(index + 1, true);
+        }
+
+        m = TYPEDEF_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addTypedef(m.group(2), m.group(1));
+            return new ParseResult(index + 1, true);
+        }
+
+        ParseResult blockResult = parseBlockConstruct(line, lines, index, document);
+        if (blockResult != null) {
+            return blockResult;
+        }
+
+        if (FIELD_PATTERN.matcher(line).find()) {
+            return new ParseResult(index + 1, true);
+        }
+
+        return new ParseResult(index + 1, false);
+    }
+
+    private static ParseResult parseBlockConstruct(String line, List<String> lines, int index,
+            ThriftDocument document) {
+        Matcher m;
+
+        m = ENUM_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addEnum(m.group(1));
+            return new ParseResult(skipBlock(lines, index), true);
+        }
+
+        m = STRUCT_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addStruct(m.group(1));
+            return new ParseResult(skipBlock(lines, index), true);
+        }
+
+        m = UNION_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addUnion(m.group(1));
+            return new ParseResult(skipBlock(lines, index), true);
+        }
+
+        m = EXCEPTION_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addException(m.group(1));
+            return new ParseResult(skipBlock(lines, index), true);
+        }
+
+        m = SERVICE_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addService(m.group(1));
+            return new ParseResult(skipBlock(lines, index), true);
+        }
+
+        return null;
     }
 
     public static boolean isThriftIdl(String content) {
@@ -161,66 +154,69 @@ public class ThriftIdlParser {
 
     public static String stripComments(String content) {
         StringBuilder result = new StringBuilder();
-        boolean inBlockComment = false;
-        boolean inString = false;
-        char stringChar = 0;
+        int i = 0;
 
-        for (int i = 0; i < content.length(); i++) {
+        while (i < content.length()) {
             char c = content.charAt(i);
 
-            if (inBlockComment) {
-                if (c == '*' && i + 1 < content.length() && content.charAt(i + 1) == '/') {
-                    inBlockComment = false;
-                    i++;
-                }
-                continue;
-            }
-
-            if (inString) {
-                result.append(c);
-                if (c == '\\' && i + 1 < content.length()) {
-                    result.append(content.charAt(i + 1));
-                    i++;
-                } else if (c == stringChar) {
-                    inString = false;
-                }
-                continue;
-            }
-
             if (c == '"' || c == '\'') {
-                inString = true;
-                stringChar = c;
-                result.append(c);
-                continue;
-            }
-
-            if (c == '/' && i + 1 < content.length()) {
-                char next = content.charAt(i + 1);
-                if (next == '/') {
-                    while (i < content.length() && content.charAt(i) != '\n') {
-                        i++;
-                    }
-                    result.append('\n');
-                    continue;
-                } else if (next == '*') {
-                    inBlockComment = true;
-                    i++;
-                    continue;
-                }
-            }
-
-            if (c == '#') {
-                while (i < content.length() && content.charAt(i) != '\n') {
-                    i++;
-                }
+                i = appendString(content, i, result);
+            } else if (c == '/' && i + 1 < content.length() && content.charAt(i + 1) == '/') {
+                i = skipLineComment(content, i);
                 result.append('\n');
-                continue;
+            } else if (c == '/' && i + 1 < content.length() && content.charAt(i + 1) == '*') {
+                i = skipBlockComment(content, i + 2);
+            } else if (c == '#') {
+                i = skipLineComment(content, i);
+                result.append('\n');
+            } else {
+                result.append(c);
+                i++;
             }
-
-            result.append(c);
         }
 
         return result.toString();
+    }
+
+    private static int appendString(String content, int start, StringBuilder result) {
+        char quote = content.charAt(start);
+        result.append(quote);
+        int i = start + 1;
+
+        while (i < content.length()) {
+            char c = content.charAt(i);
+            result.append(c);
+            if (c == '\\' && i + 1 < content.length()) {
+                i++;
+                result.append(content.charAt(i));
+            } else if (c == quote) {
+                i++;
+                return i;
+            }
+            i++;
+        }
+
+        return i;
+    }
+
+    private static int skipLineComment(String content, int start) {
+        int i = start;
+        while (i < content.length() && content.charAt(i) != '\n') {
+            i++;
+        }
+        return i;
+    }
+
+    private static int skipBlockComment(String content, int start) {
+        int i = start;
+        while (i < content.length()) {
+            if (content.charAt(i) == '*' && i + 1 < content.length()
+                    && content.charAt(i + 1) == '/') {
+                return i + 2;
+            }
+            i++;
+        }
+        return i;
     }
 
     private static int skipBlock(List<String> lines, int startLine) {
@@ -245,6 +241,17 @@ public class ThriftIdlParser {
         }
 
         return i;
+    }
+
+    private static class ParseResult {
+
+        final int nextIndex;
+        final boolean foundConstruct;
+
+        ParseResult(int nextIndex, boolean foundConstruct) {
+            this.nextIndex = nextIndex;
+            this.foundConstruct = foundConstruct;
+        }
     }
 
     public static class ThriftDocument {

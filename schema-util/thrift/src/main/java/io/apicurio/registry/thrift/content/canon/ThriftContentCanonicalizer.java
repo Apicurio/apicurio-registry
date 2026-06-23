@@ -30,7 +30,7 @@ public class ThriftContentCanonicalizer implements ContentCanonicalizer {
         for (String line : lines) {
             String trimmed = line.trim();
             if (trimmed.isEmpty()) {
-                if (!previousBlank && result.length() > 0) {
+                if (!previousBlank && !result.isEmpty()) {
                     result.append('\n');
                     previousBlank = true;
                 }

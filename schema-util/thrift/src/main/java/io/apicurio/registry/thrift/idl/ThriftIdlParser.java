@@ -22,7 +22,7 @@ public class ThriftIdlParser {
     private static final Pattern SERVICE_PATTERN = Pattern
             .compile("^\\s*service\\s+(\\w+)(?:\\s+extends\\s+[\\w.]+)?\\s*\\{");
     private static final Pattern FIELD_PATTERN = Pattern
-            .compile("^\\s*\\d+\\s*:\\s*(?:optional|required)?\\s*\\S+\\s+\\w+");
+            .compile("^\\s*\\d+\\s*:\\s*(?:(?:optional|required)\\s+)?\\S+\\s+\\w+");
 
     private ThriftIdlParser() {
     }
@@ -161,14 +161,12 @@ public class ThriftIdlParser {
 
             if (c == '"' || c == '\'') {
                 i = appendString(content, i, result);
-            } else if (c == '/' && i + 1 < content.length() && content.charAt(i + 1) == '/') {
+            } else if (c == '#'
+                    || (c == '/' && i + 1 < content.length() && content.charAt(i + 1) == '/')) {
                 i = skipLineComment(content, i);
                 result.append('\n');
             } else if (c == '/' && i + 1 < content.length() && content.charAt(i + 1) == '*') {
                 i = skipBlockComment(content, i + 2);
-            } else if (c == '#') {
-                i = skipLineComment(content, i);
-                result.append('\n');
             } else {
                 result.append(c);
                 i++;

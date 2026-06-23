@@ -11,9 +11,11 @@ permissions:
   contents: read
 
 env:
-  REGISTRY_APP_IMAGE: ttl.sh/apicurio-registry-${{ github.sha }}:8h
-  REGISTRY_GITOPS_SYNC_IMAGE: ttl.sh/apicurio-registry-gitops-sync-${{ github.sha }}:8h
-  IMAGE: ttl.sh/apicurio-registry-3-operator-${{ github.sha }}:8h
+  # Non-OLM test shards use workflow artifacts + minikube image load (no registry needed).
+  # OLM shards still need ttl.sh because OLM itself pulls bundle/catalog images.
+  REGISTRY_APP_IMAGE: localhost/apicurio-registry:${{ github.sha }}
+  REGISTRY_GITOPS_SYNC_IMAGE: localhost/apicurio-registry-gitops-sync:${{ github.sha }}
+  IMAGE: localhost/apicurio-registry-3-operator:${{ github.sha }}
   BUNDLE_IMAGE: ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h
   CATALOG_IMAGE: ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h
 
@@ -39,30 +41,27 @@ jobs:
       - name: Build
         run: ./mvnw -B clean package -Dfull -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip
 
-      # We need to push the operand image to ttl.sh so test matrix jobs on separate runners can pull it.
-      - name: Build and push temporary operand image
+      - name: Build operand image
         run: |
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
-          docker push "$REGISTRY_APP_IMAGE"
 
-      - name: Build and push temporary GitOps sync sidecar image
+      - name: Build GitOps sync sidecar image
         run: |
           docker build -t "$REGISTRY_GITOPS_SYNC_IMAGE" ./distro/gitops
-          docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
 
-      # We need to push the bundle image because opm always pulls; the catalog image because OLM
-      # deploys it with `imagePullPolicy: Always`; and also the operator image itself for the same reason.
-      - name: Build and push temporary operator image
+      - name: Build operator image
         working-directory: operator
         run: |
-          make image-build image-push
+          make image-build
 
-      - name: Build and push temporary operator bundle
+      # OLM bundle and catalog must be pushed to a registry because OLM pulls them directly.
+      # ttl.sh is kept only for these two images.
+      - name: Build and push OLM bundle (ttl.sh)
         working-directory: operator
         run: |
           make ROLLING_CHANNEL=3.x bundle
 
-      - name: Build and push temporary operator catalog
+      - name: Build and push OLM catalog (ttl.sh)
         working-directory: operator
         run: |
           make ROLLING_CHANNEL=3.x catalog
@@ -71,6 +70,21 @@ jobs:
         working-directory: operator
         run: |
           make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+
+      # Save Docker images as artifacts so test shards can load them without a registry.
+      # This replaces ttl.sh for the operand, operator, and gitops-sync images.
+      - name: Save Docker images
+        run: |
+          docker save "$REGISTRY_APP_IMAGE" -o /tmp/operator-test-registry-app.tar
+          docker save "$REGISTRY_GITOPS_SYNC_IMAGE" -o /tmp/operator-test-gitops-sync.tar
+          docker save "$IMAGE" -o /tmp/operator-test-operator.tar
+
+      - name: Upload Docker images
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: operator-test-images
+          path: /tmp/operator-test-*.tar
+          retention-days: 1
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -180,6 +194,12 @@ jobs:
           name: operator-build-artifacts
           path: operator/
 
+      - name: Download Docker images
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: operator-test-images
+          path: /tmp/
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           driver: 'none'
@@ -187,6 +207,14 @@ jobs:
           olm-enable: ${{ matrix.olm-enable }}
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
+
+      # Load pre-built images into the Docker daemon (shared with Minikube via driver: none).
+      # This eliminates ttl.sh dependency for operand, operator, and gitops-sync images.
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/operator-test-registry-app.tar
+          docker load -i /tmp/operator-test-gitops-sync.tar
+          docker load -i /tmp/operator-test-operator.tar
 
       - name: Run ${{ matrix.name }} tests on Minikube
         working-directory: operator

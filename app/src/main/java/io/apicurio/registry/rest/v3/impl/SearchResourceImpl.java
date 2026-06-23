@@ -63,14 +63,14 @@ public class SearchResourceImpl implements SearchResource {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    OTelMetricsProvider otelMetrics;
+
     @Context
     HttpServletRequest request;
 
     @Inject
     RegistryStorageContentUtils contentUtils;
-
-    @Inject
-    OTelMetricsProvider otelMetrics;
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
@@ -189,7 +189,7 @@ public class SearchResourceImpl implements SearchResource {
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        otelMetrics.recordSearchRequest("artifacts");
+        otelMetrics.recordSearchRequest("artifactsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -386,7 +386,7 @@ public class SearchResourceImpl implements SearchResource {
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        otelMetrics.recordSearchRequest("versions");
+        otelMetrics.recordSearchRequest("versionsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 

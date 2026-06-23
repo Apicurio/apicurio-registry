@@ -1241,7 +1241,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public ArtifactSearchResults listArtifactsInGroup(String groupId, BigInteger limit, BigInteger offset,
-            SortOrder order, ArtifactSortBy orderby) {
+            SortOrder order, ArtifactSortBy orderby, Boolean skipCount) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
         if (orderby == null) {
@@ -1262,7 +1262,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
 
         ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), skipCount != null && skipCount);
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1469,7 +1469,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionSearchResults listArtifactVersions(String groupId, String artifactId, BigInteger offset,
-            BigInteger limit, SortOrder order, VersionSortBy orderby) {
+            BigInteger limit, SortOrder order, VersionSortBy orderby, Boolean skipCount) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         if (orderby == null) {
@@ -1495,7 +1495,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()),
                 SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto resultsDto = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), skipCount != null && skipCount);
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -2350,7 +2350,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
                 OrderBy.createdOn, OrderDirection.desc, effectiveOffset,
-                effectiveLimit);
+                effectiveLimit, false);
 
         return results.getArtifacts().stream()
                 .map(meta -> {

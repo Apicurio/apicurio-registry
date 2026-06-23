@@ -179,10 +179,10 @@ public class ReadOnlyRegistryStorageTest {
                 entry("resetContentId0", new State(true, RegistryStorage::resetContentId)),
                 entry("resetCommentId0", new State(true, RegistryStorage::resetCommentId)),
                 entry("resetGlobalId0", new State(true, RegistryStorage::resetGlobalId)),
-                entry("searchArtifacts5", new State(false, s -> s.searchArtifacts(null, null, null, 0, 0))),
+                entry("searchArtifacts6", new State(false, s -> s.searchArtifacts(null, null, null, 0, 0, false))),
                 entry("searchGroups5", new State(false, s -> s.searchGroups(null, null, null, null, null))),
                 entry("searchRoleMappings2", new State(false, s -> s.searchRoleMappings(0, 20))),
-                entry("searchVersions5", new State(false, s -> s.searchVersions(null, null, null, 0, 0))),
+                entry("searchVersions6", new State(false, s -> s.searchVersions(null, null, null, 0, 0, false))),
                 entry("setConfigProperty1", new State(true, s -> {
                     var dto = new DynamicConfigPropertyDto();
                     dto.setName("test");

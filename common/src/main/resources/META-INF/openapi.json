@@ -426,6 +426,16 @@
               "$ref": "#/components/schemas/ArtifactType"
             },
             "in": "query"
+          },
+          {
+            "name": "skipCount",
+            "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -529,6 +539,16 @@
               "$ref": "#/components/schemas/ArtifactSortBy"
             },
             "in": "query"
+          },
+          {
+            "name": "skipCount",
+            "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -1659,6 +1679,16 @@
               "$ref": "#/components/schemas/ArtifactSortBy"
             },
             "in": "query"
+          },
+          {
+            "name": "skipCount",
+            "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -2294,6 +2324,16 @@
               "$ref": "#/components/schemas/VersionSortBy"
             },
             "in": "query"
+          },
+          {
+            "name": "skipCount",
+            "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -3869,6 +3909,16 @@
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "skipCount",
+            "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -3980,6 +4030,16 @@
               "$ref": "#/components/schemas/ArtifactId"
             },
             "in": "query"
+          },
+          {
+            "name": "skipCount",
+            "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -6454,7 +6514,9 @@
           "type": {
             "description": "Validation type. Currently only `pull` is supported.",
             "type": "string",
-            "enum": ["pull"]
+            "enum": [
+              "pull"
+            ]
           },
           "repoId": {
             "description": "Repository ID to validate against. Must match a configured repository.",
@@ -6494,12 +6556,22 @@
           "state": {
             "description": "Current task state: `pending` (queued, waiting for capacity), `submitted` (request sent to sidecar), `fetching` (sidecar is cloning), `validating` (registry is loading and validating), `completed` (finished with results), `failed` (an error occurred).",
             "type": "string",
-            "enum": ["pending", "submitted", "fetching", "validating", "completed", "failed"]
+            "enum": [
+              "pending",
+              "submitted",
+              "fetching",
+              "validating",
+              "completed",
+              "failed"
+            ]
           },
           "result": {
             "description": "Validation result: `success` (all checks passed) or `failure` (validation errors found). Only present when state is `completed`.",
             "type": "string",
-            "enum": ["success", "failure"]
+            "enum": [
+              "success",
+              "failure"
+            ]
           },
           "createdAt": {
             "description": "ISO 8601 timestamp of when the task was created.",

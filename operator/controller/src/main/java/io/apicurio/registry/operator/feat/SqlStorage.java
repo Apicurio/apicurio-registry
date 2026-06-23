@@ -55,9 +55,6 @@ public class SqlStorage {
                         addEnvVar(env, new EnvVarBuilder().withName(ENV_APICURIO_STORAGE_SQL_KIND)
                                 .withValue(sqlKind).build());
 
-                        // Explicitly activate the appropriate Quarkus named datasource
-                        configureDatasourceActivation(storageType, env);
-
                         // Configure datasource connection details
                         addEnvVar(env, new EnvVarBuilder().withName(ENV_APICURIO_DATASOURCE_URL)
                                 .withValue(url).build());
@@ -117,47 +114,4 @@ public class SqlStorage {
         }
     }
 
-    /**
-     * Configures Quarkus datasource activation flags based on the storage type.
-     * Explicitly activates the correct named datasource and deactivates others.
-     *
-     * @param storageType the storage type from the CR
-     * @param env the environment variables map to populate
-     */
-    private static void configureDatasourceActivation(StorageType storageType, Map<String, EnvVar> env) {
-        // H2 is always inactive for operator-managed deployments
-        addEnvVar(env, new EnvVarBuilder()
-                .withName("QUARKUS_DATASOURCE_H2_ACTIVE")
-                .withValue("false")
-                .build());
-
-        // Activate the appropriate datasource based on storage type
-        if (storageType == StorageType.POSTGRESQL) {
-            addEnvVar(env, new EnvVarBuilder()
-                    .withName("QUARKUS_DATASOURCE_POSTGRESQL_ACTIVE")
-                    .withValue("true")
-                    .build());
-            addEnvVar(env, new EnvVarBuilder()
-                    .withName("QUARKUS_DATASOURCE_MYSQL_ACTIVE")
-                    .withValue("false")
-                    .build());
-            addEnvVar(env, new EnvVarBuilder()
-                    .withName("QUARKUS_DATASOURCE_MSSQL_ACTIVE")
-                    .withValue("false")
-                    .build());
-        } else if (storageType == StorageType.MYSQL) {
-            addEnvVar(env, new EnvVarBuilder()
-                    .withName("QUARKUS_DATASOURCE_POSTGRESQL_ACTIVE")
-                    .withValue("false")
-                    .build());
-            addEnvVar(env, new EnvVarBuilder()
-                    .withName("QUARKUS_DATASOURCE_MYSQL_ACTIVE")
-                    .withValue("true")
-                    .build());
-            addEnvVar(env, new EnvVarBuilder()
-                    .withName("QUARKUS_DATASOURCE_MSSQL_ACTIVE")
-                    .withValue("false")
-                    .build());
-        }
-    }
 }

@@ -212,9 +212,12 @@ jobs:
       # This eliminates ttl.sh dependency for operand, operator, and gitops-sync images.
       - name: Load Docker images
         run: |
+          docker load -i /tmp/operator-test-operator.tar
+      - name: Load operand images
+        if: matrix.olm-enable == 'false'
+        run: |
           docker load -i /tmp/operator-test-registry-app.tar
           docker load -i /tmp/operator-test-gitops-sync.tar
-          docker load -i /tmp/operator-test-operator.tar
 
       - name: Run ${{ matrix.name }} tests on Minikube
         working-directory: operator

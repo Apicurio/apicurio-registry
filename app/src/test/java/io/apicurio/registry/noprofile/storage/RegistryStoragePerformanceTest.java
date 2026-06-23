@@ -97,21 +97,21 @@ public class RegistryStoragePerformanceTest {
         long startAllSearch = System.currentTimeMillis();
         Set<SearchFilter> filters = Collections.emptySet();
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc,
-                0, 20);
+                0, 20, false);
         long endAllSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
 
         long startNameSearch = System.currentTimeMillis();
         filters = Collections.singleton(SearchFilter.ofName("testStoragePerformance-9999"));
-        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         long endNameSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
         long startAllNameSearch = System.currentTimeMillis();
         filters = Collections.singleton(SearchFilter.ofName("testStoragePerformance"));
-        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         long endAllNameSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());
@@ -119,14 +119,14 @@ public class RegistryStoragePerformanceTest {
         long startLabelSearch = System.currentTimeMillis();
 
         filters = Collections.singleton(SearchFilter.ofLabel("key-" + (NUM_ARTIFACTS - 1)));
-        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         long endLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
 
         long startAllLabelSearch = System.currentTimeMillis();
         filters = Collections.singleton(SearchFilter.ofLabel("key"));
-        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         long endAllLabelSearch = System.currentTimeMillis();
         Assertions.assertNotNull(results);
         Assertions.assertEquals(NUM_ARTIFACTS, results.getCount());

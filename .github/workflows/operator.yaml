@@ -54,11 +54,17 @@ jobs:
         run: |
           make image-build
 
-      # Build OLM bundle and catalog images (no push — saved as artifacts like all other images).
-      - name: Build OLM bundle
+      # Start a local registry so opm can pull the bundle image during catalog-build.
+      # The catalog-build step uses opm render-template which needs to pull the bundle.
+      - name: Start local registry for OLM build
+        run: |
+          docker run -d -p 5000:5000 ghcr.io/distribution/distribution:3.0
+
+      # Build OLM bundle, push to local registry, then build catalog (which pulls from it).
+      - name: Build and push OLM bundle to local registry
         working-directory: operator
         run: |
-          make ROLLING_CHANNEL=3.x bundle-build bundle-image-build
+          make ROLLING_CHANNEL=3.x bundle-build bundle-image-build bundle-image-push
 
       - name: Build OLM catalog
         working-directory: operator

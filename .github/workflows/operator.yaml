@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 env:
-  # All test images use localhost:5000 (a local registry started in each test shard).
-  # This eliminates the ttl.sh dependency entirely.
+  # Operator/operand/gitops-sync: saved as artifacts, pushed to localhost:5000 in test shards.
+  # Bundle/catalog: pushed to ttl.sh by build job (opm requires HTTPS for catalog-build).
   REGISTRY_APP_IMAGE: localhost:5000/apicurio-registry:${{ github.sha }}
   REGISTRY_GITOPS_SYNC_IMAGE: localhost:5000/apicurio-registry-gitops-sync:${{ github.sha }}
   IMAGE: localhost:5000/apicurio-registry-3-operator:${{ github.sha }}
-  BUNDLE_IMAGE: localhost:5000/apicurio-registry-3-operator-bundle:${{ github.sha }}
-  CATALOG_IMAGE: localhost:5000/apicurio-registry-3-operator-catalog:${{ github.sha }}
+  BUNDLE_IMAGE: ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h
+  CATALOG_IMAGE: ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h
 
 jobs:
 
@@ -54,43 +54,31 @@ jobs:
         run: |
           make image-build
 
-      # Build OLM bundle and catalog. The catalog-build uses opm which needs to pull
-      # the bundle image. We push bundle to the local registry first, then opm pulls it.
-      # Docker needs insecure-registries for localhost:5000 (plain HTTP).
-      # opm uses containers/image library — needs registries.conf to allow HTTP.
-      - name: Start local registry and configure insecure access
-        run: |
-          echo '{"insecure-registries": ["localhost:5000"]}' | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
-          docker run -d -p 5000:5000 ghcr.io/distribution/distribution:3.0
-          mkdir -p $HOME/.config/containers
-          printf 'unqualified-search-registries = ["docker.io"]\n\n[[registry]]\nlocation = "localhost:5000"\ninsecure = true\n' > $HOME/.config/containers/registries.conf
-          sleep 2
-
-      - name: Build and push OLM bundle to local registry
+      # OLM bundle and catalog: opm requires an HTTPS registry to pull the bundle
+      # image during catalog-build. We use ttl.sh for the build step only (opm needs
+      # it), then save the final images as artifacts for test shards.
+      - name: Build and push OLM bundle
         working-directory: operator
         run: |
-          make ROLLING_CHANNEL=3.x bundle-build bundle-image-build bundle-image-push
+          make ROLLING_CHANNEL=3.x bundle
 
-      - name: Build OLM catalog
+      - name: Build and push OLM catalog
         working-directory: operator
         run: |
-          make ROLLING_CHANNEL=3.x catalog-build catalog-image-build
+          make ROLLING_CHANNEL=3.x catalog
 
       - name: Generate install file for tests
         working-directory: operator
         run: |
           make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
-      # Save ALL Docker images as artifacts so test shards can load them without any registry.
-      # This completely eliminates the ttl.sh dependency.
+      # Save operator/operand/gitops-sync images as artifacts for test shards.
+      # Bundle/catalog are already on ttl.sh (pushed by make bundle/catalog above).
       - name: Save Docker images
         run: |
           docker save "$REGISTRY_APP_IMAGE" -o /tmp/operator-test-registry-app.tar
           docker save "$REGISTRY_GITOPS_SYNC_IMAGE" -o /tmp/operator-test-gitops-sync.tar
           docker save "$IMAGE" -o /tmp/operator-test-operator.tar
-          docker save "$BUNDLE_IMAGE" -o /tmp/operator-test-bundle.tar
-          docker save "$CATALOG_IMAGE" -o /tmp/operator-test-catalog.tar
 
       - name: Upload Docker images
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -238,18 +226,16 @@ jobs:
 
       # Load pre-built images into Docker, then push to the local registry.
       # With driver: none, localhost:5000 is accessible to both Docker and Kubernetes.
+      # Operator/operand/gitops-sync use localhost:5000; bundle/catalog use ttl.sh
+      # (pushed by the build job — OLM pulls them directly from ttl.sh).
       - name: Load and push images to local registry
         run: |
           docker load -i /tmp/operator-test-operator.tar
           docker load -i /tmp/operator-test-registry-app.tar
           docker load -i /tmp/operator-test-gitops-sync.tar
-          docker load -i /tmp/operator-test-bundle.tar
-          docker load -i /tmp/operator-test-catalog.tar
           docker push "$REGISTRY_APP_IMAGE"
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
-          docker push "$BUNDLE_IMAGE"
-          docker push "$CATALOG_IMAGE"
 
       - name: Run ${{ matrix.name }} tests on Minikube
         working-directory: operator

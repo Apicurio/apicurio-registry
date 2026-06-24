@@ -217,13 +217,6 @@ jobs:
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
 
-      # Configure Docker to allow HTTP push to the local registry (services: block
-      # runs plain HTTP, but Docker defaults to HTTPS for non-localhost pushes).
-      - name: Configure insecure registry
-        run: |
-          echo '{"insecure-registries": ["localhost:5000"]}' | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
-
       # Load pre-built images into Docker, then push to the local registry.
       # With driver: none, localhost:5000 is accessible to both Docker and Kubernetes.
       # Operator/operand/gitops-sync use localhost:5000; bundle/catalog use ttl.sh

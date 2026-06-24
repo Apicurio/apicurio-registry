@@ -54,19 +54,19 @@ jobs:
         run: |
           make image-build
 
-      # Start a local registry so opm can pull the bundle image during catalog-build.
-      # opm uses containers/image library which reads registries.conf for HTTP vs HTTPS.
-      # Docker also needs insecure-registries config for docker push to work.
-      - name: Start local registry for OLM build
+      # Build OLM bundle and catalog. The catalog-build uses opm which needs to pull
+      # the bundle image. We push bundle to the local registry first, then opm pulls it.
+      # Docker needs insecure-registries for localhost:5000 (plain HTTP).
+      # opm uses containers/image library — needs registries.conf to allow HTTP.
+      - name: Start local registry and configure insecure access
         run: |
-          sudo mkdir -p /etc/containers/registries.conf.d
-          printf '[[registry]]\nlocation = "localhost:5000"\ninsecure = true\n' | sudo tee /etc/containers/registries.conf.d/localhost.conf
           echo '{"insecure-registries": ["localhost:5000"]}' | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
           docker run -d -p 5000:5000 ghcr.io/distribution/distribution:3.0
+          mkdir -p $HOME/.config/containers
+          printf 'unqualified-search-registries = ["docker.io"]\n\n[[registry]]\nlocation = "localhost:5000"\ninsecure = true\n' > $HOME/.config/containers/registries.conf
           sleep 2
 
-      # Build OLM bundle, push to local registry, then build catalog (which pulls from it).
       - name: Build and push OLM bundle to local registry
         working-directory: operator
         run: |

@@ -11,13 +11,13 @@ permissions:
   contents: read
 
 env:
-  # Non-OLM test shards use workflow artifacts + minikube image load (no registry needed).
-  # OLM shards still need ttl.sh because OLM itself pulls bundle/catalog images.
-  REGISTRY_APP_IMAGE: localhost/apicurio-registry:${{ github.sha }}
-  REGISTRY_GITOPS_SYNC_IMAGE: localhost/apicurio-registry-gitops-sync:${{ github.sha }}
-  IMAGE: localhost/apicurio-registry-3-operator:${{ github.sha }}
-  BUNDLE_IMAGE: ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h
-  CATALOG_IMAGE: ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h
+  # All test images use localhost:5000 (a local registry started in each test shard).
+  # This eliminates the ttl.sh dependency entirely.
+  REGISTRY_APP_IMAGE: localhost:5000/apicurio-registry:${{ github.sha }}
+  REGISTRY_GITOPS_SYNC_IMAGE: localhost:5000/apicurio-registry-gitops-sync:${{ github.sha }}
+  IMAGE: localhost:5000/apicurio-registry-3-operator:${{ github.sha }}
+  BUNDLE_IMAGE: localhost:5000/apicurio-registry-3-operator-bundle:${{ github.sha }}
+  CATALOG_IMAGE: localhost:5000/apicurio-registry-3-operator-catalog:${{ github.sha }}
 
 jobs:
 
@@ -54,30 +54,31 @@ jobs:
         run: |
           make image-build
 
-      # OLM bundle and catalog must be pushed to a registry because OLM pulls them directly.
-      # ttl.sh is kept only for these two images.
-      - name: Build and push OLM bundle (ttl.sh)
+      # Build OLM bundle and catalog images (no push — saved as artifacts like all other images).
+      - name: Build OLM bundle
         working-directory: operator
         run: |
-          make ROLLING_CHANNEL=3.x bundle
+          make ROLLING_CHANNEL=3.x bundle-build bundle-image-build
 
-      - name: Build and push OLM catalog (ttl.sh)
+      - name: Build OLM catalog
         working-directory: operator
         run: |
-          make ROLLING_CHANNEL=3.x catalog
+          make ROLLING_CHANNEL=3.x catalog-build catalog-image-build
 
       - name: Generate install file for tests
         working-directory: operator
         run: |
           make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
-      # Save Docker images as artifacts so test shards can load them without a registry.
-      # This replaces ttl.sh for the operand, operator, and gitops-sync images.
+      # Save ALL Docker images as artifacts so test shards can load them without any registry.
+      # This completely eliminates the ttl.sh dependency.
       - name: Save Docker images
         run: |
           docker save "$REGISTRY_APP_IMAGE" -o /tmp/operator-test-registry-app.tar
           docker save "$REGISTRY_GITOPS_SYNC_IMAGE" -o /tmp/operator-test-gitops-sync.tar
           docker save "$IMAGE" -o /tmp/operator-test-operator.tar
+          docker save "$BUNDLE_IMAGE" -o /tmp/operator-test-bundle.tar
+          docker save "$CATALOG_IMAGE" -o /tmp/operator-test-catalog.tar
 
       - name: Upload Docker images
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -130,6 +131,14 @@ jobs:
     name: Remote Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: operator-build
+    # OLM shards need a local registry so Kubernetes/OLM can pull bundle/catalog images.
+    # Non-OLM shards use docker load + imagePullPolicy: IfNotPresent (no registry needed,
+    # but we start one anyway for simplicity — all shards use the same image refs).
+    services:
+      registry:
+        image: ghcr.io/distribution/distribution:3.0
+        ports:
+          - 5000:5000
     strategy:
       fail-fast: false
       matrix:
@@ -208,21 +217,25 @@ jobs:
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
 
-      # Load pre-built images into the Docker daemon (shared with Minikube via driver: none).
-      # This eliminates ttl.sh dependency for operand, operator, and gitops-sync images.
-      - name: Load Docker images
+      # Load pre-built images into Docker, then push to the local registry.
+      # With driver: none, localhost:5000 is accessible to both Docker and Kubernetes.
+      - name: Load and push images to local registry
         run: |
           docker load -i /tmp/operator-test-operator.tar
-      - name: Load operand images
-        if: matrix.olm-enable == 'false'
-        run: |
           docker load -i /tmp/operator-test-registry-app.tar
           docker load -i /tmp/operator-test-gitops-sync.tar
+          docker load -i /tmp/operator-test-bundle.tar
+          docker load -i /tmp/operator-test-catalog.tar
+          docker push "$REGISTRY_APP_IMAGE"
+          docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
+          docker push "$IMAGE"
+          docker push "$BUNDLE_IMAGE"
+          docker push "$CATALOG_IMAGE"
 
       - name: Run ${{ matrix.name }} tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS="--no-transfer-progress ${{ matrix.extra-build-opts }}" \
+          make BUILD_OPTS="--no-transfer-progress -Dtest.operator.deployment-target=minikube ${{ matrix.extra-build-opts }}" \
             REMOTE_TESTS_ALL_INSTALL_FILE=controller/target/test-install.yaml \
             GROUPS="${{ matrix.groups }}" \
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \

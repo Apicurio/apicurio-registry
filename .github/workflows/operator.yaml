@@ -131,14 +131,6 @@ jobs:
     name: Remote Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: operator-build
-    # OLM shards need a local registry so Kubernetes/OLM can pull bundle/catalog images.
-    # Non-OLM shards use docker load + imagePullPolicy: IfNotPresent (no registry needed,
-    # but we start one anyway for simplicity — all shards use the same image refs).
-    services:
-      registry:
-        image: ghcr.io/distribution/distribution:3.0
-        ports:
-          - 5000:5000
     strategy:
       fail-fast: false
       matrix:
@@ -217,10 +209,16 @@ jobs:
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
 
+      # Start a local registry AFTER Minikube setup. The services: block doesn't
+      # survive Minikube's Docker reconfiguration with driver: none.
+      - name: Start local registry
+        run: |
+          docker run -d -p 5000:5000 --restart=always ghcr.io/distribution/distribution:3.0
+          sleep 2
+          curl -sf http://localhost:5000/v2/ || (echo "Registry not ready"; exit 1)
+
       # Load pre-built images into Docker, then push to the local registry.
-      # With driver: none, localhost:5000 is accessible to both Docker and Kubernetes.
-      # Operator/operand/gitops-sync use localhost:5000; bundle/catalog use ttl.sh
-      # (pushed by the build job — OLM pulls them directly from ttl.sh).
+      # Operator/operand/gitops-sync use localhost:5000; bundle/catalog use ttl.sh.
       - name: Load and push images to local registry
         run: |
           docker load -i /tmp/operator-test-operator.tar

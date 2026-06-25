@@ -1282,8 +1282,8 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       const matching = jobs.filter(j => j.name.startsWith(namePrefix));
       if (!matching.length) return 'skipped';
       if (matching.some(j => j.conclusion === 'failure')) return 'failure';
-      if (matching.every(j => j.conclusion === 'success')) return 'success';
       if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
+      if (matching.every(j => j.conclusion === 'success' || j.conclusion === 'skipped')) return 'success';
       return 'mixed';
     };
 
@@ -1334,17 +1334,25 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
 
     const body = bodyParts.join('\n');
 
-    // ── Post or update comment (paginated lookup) ────────────────────
+    // ── Minimize previous summaries and post a new comment ────────────
     const comments = await github.paginate(github.rest.issues.listComments, {
       owner, repo, issue_number: prNumber, per_page: 100,
     });
-    const existing = comments.find(c => c.body?.includes('<!-- verify-decide-summary -->'));
-
-    if (existing) {
-      await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-    } else {
-      await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+    const previous = comments.filter(c => c.body?.includes('<!-- verify-decide-summary -->'));
+    for (const old of previous) {
+      try {
+        await github.graphql(`
+          mutation($id: ID!) {
+            minimizeComment(input: { subjectId: $id, classifier: OUTDATED }) {
+              minimizedComment { isMinimized }
+            }
+          }
+        `, { id: old.node_id });
+      } catch (e) {
+        core.warning(`Failed to minimize old summary comment ${old.id}: ${e.message}`);
+      }
     }
+    await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
     core.info(`PR #${prNumber} decision summary posted`);
   } catch (err) {
     core.warning(`Failed to post decision summary: ${err.message}`);

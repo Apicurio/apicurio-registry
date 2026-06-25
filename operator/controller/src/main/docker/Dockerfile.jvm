@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:5ee73448f86838eecff13f80512b49ff6ea0fa21aaf5d1fa8afe3402fc965e9e
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:1f10cbee346b2f513085b7a81f7c69091735b98c7e22dd6acae0ebc5e2c713ef
 
 ENV APP_URL="quarkus-app" \
     JAVA_OPTIONS="-Djava.util.logging.manager=org.jboss.logmanager.LogManager"

@@ -123,6 +123,15 @@ jobs:
             LABELS=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '[.labels[].name]')
             has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
 
+            # Orchestrator-initiated branch update for merge — skip all tests
+            if has_label "orchestrator/merge-rebase"; then
+              echo "lifecycle-ready=true" >> "$GITHUB_OUTPUT"
+              for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
+                echo "$out=false" >> "$GITHUB_OUTPUT"
+              done
+              exit 0
+            fi
+
             if has_label "orchestrator/disabled"; then
               if has_label "DO NOT MERGE"; then
                 run_smoke=false; run_full=false

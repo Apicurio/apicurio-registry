@@ -219,10 +219,10 @@ function createApi(github, owner, repo) {
       }
     },
 
-    updateBranch: async (prNumber) => {
-      await github.rest.pulls.updateBranch({
-        owner, repo, pull_number: prNumber,
-      });
+    updateBranch: async (prNumber, expectedHeadSha) => {
+      const params = { owner, repo, pull_number: prNumber };
+      if (expectedHeadSha) params.expected_head_sha = expectedHeadSha;
+      await github.rest.pulls.updateBranch(params);
     },
 
     findLatestVerifyRun: async (headSha) => {
@@ -341,13 +341,16 @@ async function performMerge(api, config, pr, core, { allowBranchUpdate = true } 
     core.info(`PR #${pr.number} merged using ${strategy}`);
     return true;
   } catch (e) {
-    // Branch is behind but can be cleanly updated — rebase and retry
-    if (allowBranchUpdate) {
+    // Branch is behind but can be cleanly updated — rebase and retry.
+    // Skip for permission errors (403 / "Resource not accessible") which
+    // indicate a different problem (e.g. workflow file modifications).
+    const isPermissionError = e.status === 403 || e.message?.includes('Resource not accessible');
+    if (allowBranchUpdate && !isPermissionError) {
       const currentPr = await api.getPr(pr.number);
       if (currentPr.rebaseable) {
         try {
           await api.addLabel(pr.number, LABELS.MERGE_REBASE);
-          await api.updateBranch(pr.number);
+          await api.updateBranch(pr.number, currentPr.head.sha);
           await api.postComment(pr.number,
             `Merge could not proceed because the branch is behind \`${currentPr.base.ref}\`. ` +
             `The branch has been updated automatically. Tests are skipped (they already ` +
@@ -542,13 +545,19 @@ async function handlePrSynchronize({ github, context, core }) {
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
 
-  // Orchestrator-initiated branch update for merge — preserve state
+  // Orchestrator-initiated branch update for merge — preserve state.
+  // Only honour for bot-triggered syncs; if a human pushes while the
+  // label is set, abort the fast-merge flow and proceed normally.
   if (hasLabel(pr, LABELS.MERGE_REBASE)) {
-    core.info(`PR #${pr.number} orchestrator-initiated branch update for merge, preserving state`);
-    if (hasLabel(pr, LABELS.STALE)) {
-      await api.removeLabel(pr.number, LABELS.STALE);
+    if (context.payload.sender?.login === BOT_LOGIN) {
+      core.info(`PR #${pr.number} orchestrator-initiated branch update for merge, preserving state`);
+      if (hasLabel(pr, LABELS.STALE)) {
+        await api.removeLabel(pr.number, LABELS.STALE);
+      }
+      return;
     }
-    return;
+    await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
+    core.info(`PR #${pr.number} human push during merge-rebase, aborting fast-merge`);
   }
 
   const rerunHints = [];

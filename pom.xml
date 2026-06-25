@@ -219,7 +219,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.44</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.45</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -277,7 +277,7 @@
     <!-- Plugin Deps -->
     <version.puppycrawl>13.6.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.5</proto-plugin.version>
+    <proto-plugin.version>5.1.6</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->

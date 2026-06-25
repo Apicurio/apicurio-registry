@@ -87,6 +87,8 @@ jobs:
               - 'operator/**'
             ci:
               - '.github/workflows/**'
+            ci-operator:
+              - '.github/workflows/operator.yaml'
 
       - name: Evaluate scope and decide
         id: decide
@@ -156,6 +158,7 @@ jobs:
           OPERATOR='${{ steps.filter.outputs.operator }}'
           GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
+          CI_OPERATOR='${{ steps.filter.outputs.ci-operator }}'
 
           # ── Phase 3: Combine scope + changes into per-phase decisions ─
           # decide <output-name> <scope-flag> <change-flags...>
@@ -182,7 +185,7 @@ jobs:
           decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
-          decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI"
+          decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
           decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
       - name: Save decision summary

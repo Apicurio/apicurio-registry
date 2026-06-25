@@ -60,7 +60,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 24.17.0
+          node-version: 24.18.0
 
       - name: Set up json CLI
         run: npm install -g json
@@ -241,7 +241,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 24.17.0
+          node-version: 24.18.0
 
       - name: Build Registry UI
         working-directory: ui
@@ -362,7 +362,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 24.17.0
+          node-version: 24.18.0
 
       - name: Set up json CLI
         run: npm install -g json

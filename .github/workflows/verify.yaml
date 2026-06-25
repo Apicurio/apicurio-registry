@@ -55,7 +55,8 @@ jobs:
               - 'java-sdk/**'
               - 'mcp/**'
               - 'distro/**'
-              - 'integration-tests/**'
+              - 'integration-tests/src/**'
+              - 'integration-tests/pom.xml'
               - 'pom.xml'
             ui:
               - 'ui/**'

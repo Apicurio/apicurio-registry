@@ -39,7 +39,7 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.58.1",
     "uuid": "13.0.2",
-    "vite": "7.3.5",
+    "vite": "7.3.6",
     "vite-plugin-dts": "4.5.4",
     "vitest": "4.1.9"
   }

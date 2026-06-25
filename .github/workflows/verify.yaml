@@ -123,8 +123,11 @@ jobs:
             LABELS=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '[.labels[].name]')
             has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
 
-            # Orchestrator-initiated branch update for merge — skip all tests
-            if has_label "orchestrator/merge-rebase"; then
+            # Orchestrator-initiated branch update for merge — skip all tests.
+            # Only honour for bot-triggered syncs to prevent skipping tests
+            # if a human pushes while the label is still set.
+            SENDER='${{ github.event.sender.login }}'
+            if has_label "orchestrator/merge-rebase" && [ "$SENDER" = "github-actions[bot]" ]; then
               echo "lifecycle-ready=true" >> "$GITHUB_OUTPUT"
               for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"

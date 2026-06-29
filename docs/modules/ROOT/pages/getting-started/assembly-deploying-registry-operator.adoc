@@ -1,10 +1,12 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+// assembly-deploying-registry-operator
 [id="deploying-registry-operator_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Deploying {registry} using the Operator
 
 [role="_abstract"]
-This chapter explains how to deploy and configure {registry} instances using the {operator} on
+Deploy and configure {registry} instances by using the {operator} on
 {kubernetes}:
 
 * xref:operator-overview_{context}[]
@@ -12,27 +14,41 @@ This chapter explains how to deploy and configure {registry} instances using the
 * xref:deploying-registry-postgresql_{context}[]
 * xref:deploying-registry-mysql_{context}[]
 * xref:deploying-registry-kafkasql_{context}[]
+* xref:configuring-kafkasql-tls_{context}[]
+* xref:configuring-kafkasql-sasl_{context}[]
 * xref:deploying-registry-kubernetesops_{context}[]
 * xref:configuring-registry-authentication_{context}[]
-* xref:configuring-registry-ingress_{context}[]
-* xref:configuring-registry-features_{context}[]
-* xref:configuring-registry-ui-component_{context}[]
-* xref:advanced-registry-configuration_{context}[]
+* xref:configuring-basic-auth-credentials_{context}[]
+* xref:configuring-tls-oidc_{context}[]
+* xref:configuring-ingress-hostname_{context}[]
+* xref:disabling-operator-ingress_{context}[]
+* xref:configuring-networkpolicy_{context}[]
+* xref:enabling-resource-deletion_{context}[]
+* xref:enabling-version-mutability_{context}[]
+* xref:disabling-ui-component_{context}[]
+* xref:configuring-ui-env-vars_{context}[]
+* xref:configuring-replicas_{context}[]
+* xref:configuring-poddisruptionbudget_{context}[]
+* xref:configuring-env-vars_{context}[]
+* xref:using-podtemplatespec_{context}[]
+* xref:configuring-app-tls_{context}[]
 
-.Prerequisites
+**Prerequisites**
+
 * {installing-the-registry-openshift}
 
 //INCLUDES
 
+// con-operator-overview
 [id="operator-overview_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Understanding {operator} deployment
 
-The {operator} installs the `ApicurioRegistry3` custom resource defintion (CRD). You use the `ApicurioRegistry3`  CR  to deploy and manage {registry} instances on {kubernetes}. The custom resource allows you to declaratively configure all aspects of your {registry} deployment,
+[role="_abstract"]
+The {operator} installs the `ApicurioRegistry3` custom resource definition (CRD). You use the `ApicurioRegistry3` CR to deploy and manage {registry} instances on {kubernetes}. The custom resource enables you to declaratively configure all aspects of your {registry} deployment,
 including storage, authentication, networking, and component-specific settings.
 
 NOTE: Additional `ApicurioRegistry3` custom resource examples can be found in the https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/controller/src/test/resources/k8s/examples[{registry} upstream repository].
-
-=== Custom resource structure
 
 The `ApicurioRegistry3` custom resource is organized into two main components:
 
@@ -42,8 +58,12 @@ The `ApicurioRegistry3` custom resource is organized into two main components:
 Each component can be independently configured with its own settings for replicas, ingress, environment variables,
 and pod specifications.
 
-=== Storage options
+// ref-operator-storage-options
+[id="operator-storage-options_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Storage options
 
+[role="_abstract"]
 {registry} supports the following storage options:
 
 * *Embedded H2 database* (default) - When you do not specify a storage type, {registry} uses SQL storage with an embedded H2 database. Suitable for development and testing only. {registry} stores all data in memory and loses it when the pod restarts.
@@ -55,9 +75,12 @@ Kubernetes-native and GitOps workflows. This is an experimental feature.
 
 IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Configure a storage type (`postgresql`, `mysql`, `kafkasql`, or `kubernetesops`) for production use.
 
+// proc-deploying-registry-inmemory
 [id="deploying-registry-inmemory_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Deploying {registry} with default configuration (embedded H2 database)
 
+[role="_abstract"]
 You can deploy a basic {registry} instance by using the default storage configuration (SQL with an embedded H2 database). You do not need to specify a storage type in the CR. When omitted, {registry} defaults to an embedded H2 database. This configuration is suitable for development and testing environments only.
 
 .Prerequisites
@@ -100,10 +123,13 @@ NOTE: Replace the `host` values with appropriate hostnames for your environment.
 
 * Access the {registry} web console using the configured hostname and verify that the UI loads successfully.
 
+// proc-deploying-registry-postgresql
 [id="deploying-registry-postgresql_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Deploying {registry} with PostgreSQL storage
 
-This section explains how to deploy {registry} with PostgreSQL database storage. This configuration is suitable
+[role="_abstract"]
+Deploy {registry} with PostgreSQL database storage. This configuration is suitable
 for production environments.
 
 .Prerequisites
@@ -170,13 +196,15 @@ the database.
 [role="_additional-resources"]
 .Additional resources
 
-* For information on PostgreSQL Operators available on OpenShift, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
-in {installing-the-registry-storage-openshift}.
+* xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
 
+// proc-deploying-registry-mysql
 [id="deploying-registry-mysql_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Deploying {registry} with MySQL storage
 
-This section explains how to deploy {registry} with MySQL database storage. This configuration is suitable
+[role="_abstract"]
+Deploy {registry} with MySQL database storage. This configuration is suitable
 for production environments.
 
 .Prerequisites
@@ -240,9 +268,12 @@ NOTE: Update the `url` to match your MySQL service name, namespace, port, and da
 the database.
 * Restart the {registry} pod and verify that the artifact still exists, confirming that data is persisted.
 
+// proc-deploying-registry-kafkasql
 [id="deploying-registry-kafkasql_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Deploying {registry} with KafkaSQL storage
 
+[role="_abstract"]
 You can deploy {registry} with KafkaSQL storage. KafkaSQL uses Apache Kafka as the primary
 data store, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. This configuration is suitable for production environments
 when you configure persistent Kafka storage.
@@ -311,9 +342,18 @@ WARNING: You must configure the Kafka topic used by {registry} with `cleanup.pol
 * Access the {registry} web console and create a test artifact to verify that data is being persisted to Kafka.
 * Restart the {registry} pod and verify that the artifact still exists after the cache is rebuilt from Kafka.
 
-=== Configuring KafkaSQL with TLS
+[role="_additional-resources"]
+.Additional resources
 
-When your Kafka cluster requires TLS encryption, you can configure {registry} to connect securely:
+* xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
+
+// ref-configuring-kafkasql-tls
+[id="configuring-kafkasql-tls_{context}"]
+:_mod-docs-content-type: REFERENCE
+== KafkaSQL TLS configuration
+
+[role="_abstract"]
+When your Kafka cluster requires TLS encryption, you can configure {registry} to connect securely.
 
 [source,yaml]
 ----
@@ -340,11 +380,15 @@ spec:
 
 NOTE: The Secret containing the Kafka cluster CA certificate must be in PKCS12 format.
 
-=== Configuring KafkaSQL with SASL authentication
+// ref-configuring-kafkasql-sasl
+[id="configuring-kafkasql-sasl_{context}"]
+:_mod-docs-content-type: REFERENCE
+== KafkaSQL SASL authentication configuration
 
+[role="_abstract"]
 When your Kafka cluster requires SASL authentication (such as SCRAM-SHA-512), the recommended approach is to use
 the Strimzi Kafka Access Operator (available starting with {registry} version 3.2.0), which automatically provides
-all connection details in a single Kubernetes Secret:
+all connection details in a single Kubernetes Secret.
 
 [source,yaml]
 ----
@@ -396,16 +440,13 @@ spec:
       host: registry.example.com
 ----
 
-[role="_additional-resources"]
-.Additional resources
-
-* For more information on Kafka storage configuration, see xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
-in {installing-the-registry-storage-openshift}.
-
+// proc-deploying-registry-kubernetesops
 [id="deploying-registry-kubernetesops_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Deploying {registry} with KubernetesOps storage
 
-This section explains how to deploy {registry} with KubernetesOps storage. KubernetesOps is a read-only storage
+[role="_abstract"]
+Deploy {registry} with KubernetesOps storage. KubernetesOps is a read-only storage
 variant that loads registry data from Kubernetes ConfigMaps, enabling Kubernetes-native and GitOps workflows for
 managing schemas and APIs.
 
@@ -464,12 +505,15 @@ REST API or web console.
 [role="_additional-resources"]
 .Additional resources
 
-* For detailed configuration options, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[].
+* xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[]
 
+// proc-configuring-registry-authentication
 [id="configuring-registry-authentication_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring authentication and authorization
 
-This section explains how to configure {registry} with OIDC authentication and role-based authorization using
+[role="_abstract"]
+Configure {registry} with OIDC authentication and role-based authorization by using
 an identity provider such as {keycloak}.
 
 .Prerequisites
@@ -480,8 +524,8 @@ an identity provider such as {keycloak}.
 .Procedure
 
 . Configure two clients in your identity provider:
-** Backend API client (e.g., `registry-client-api`) - Used by the {registry-app}.
-** UI client (e.g., `registry-client-ui`) - Used by the {registry-ui}.
+** Backend API client (for example, `registry-client-api`) - Used by the {registry-app}.
+** UI client (for example, `registry-client-ui`) - Used by the {registry-ui}.
 
 . Update your `ApicurioRegistry3` custom resource to enable authentication:
 +
@@ -567,9 +611,18 @@ spec:
 * Access the {registry} web console and verify that you are redirected to the identity provider login page.
 * Log in with different users having different roles and verify that authorization is enforced correctly.
 
-=== Configuring basic authentication for client credentials
+[role="_additional-resources"]
+.Additional resources
 
-To enable HTTP basic authentication for client credentials flow (useful for service accounts):
+* xref:getting-started/assembly-configuring-registry-security.adoc[]
+
+// ref-configuring-basic-auth-credentials
+[id="configuring-basic-auth-credentials_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Basic authentication for client credentials
+
+[role="_abstract"]
+To enable HTTP basic authentication for client credentials flow (useful for service accounts), add the `basicAuth` configuration to your `ApicurioRegistry3` custom resource.
 
 [source,yaml]
 ----
@@ -584,9 +637,13 @@ spec:
         cacheExpiration: 25m
 ----
 
-=== Configuring TLS for OIDC connections
+// ref-configuring-tls-oidc
+[id="configuring-tls-oidc_{context}"]
+:_mod-docs-content-type: REFERENCE
+== TLS configuration for OIDC connections
 
-When your identity provider uses custom certificates, configure TLS verification:
+[role="_abstract"]
+When your identity provider uses custom certificates, configure TLS verification in your `ApicurioRegistry3` custom resource.
 
 [source,yaml]
 ----
@@ -608,20 +665,13 @@ spec:
 
 NOTE: Set `tlsVerificationType` to `none` to disable TLS verification (not recommended for production).
 
-[role="_additional-resources"]
-.Additional resources
+// ref-configuring-ingress-hostname
+[id="configuring-ingress-hostname_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Ingress hostname and class configuration
 
-* For more information on {registry} security configuration, see
-{registry-name-full} security in xref:getting-started/assembly-configuring-registry-security.adoc[].
-
-[id="configuring-registry-ingress_{context}"]
-== Configuring Ingress and networking
-
-This section explains how to configure Ingress resources and networking for {registry} components.
-
-=== Configuring Ingress hostname and class
-
-You can specify the Ingress hostname and IngressClass for each component:
+[role="_abstract"]
+You can specify the Ingress hostname and IngressClass for each component.
 
 [source,yaml]
 ----
@@ -644,9 +694,13 @@ spec:
         nginx.org/proxy-connect-timeout: "30s"
 ----
 
-=== Disabling operator-managed Ingress
+// ref-disabling-operator-ingress
+[id="disabling-operator-ingress_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Disabling operator-managed Ingress
 
-If you want to manage Ingress resources manually:
+[role="_abstract"]
+To manage Ingress resources manually, disable the operator-managed Ingress.
 
 [source,yaml]
 ----
@@ -662,9 +716,13 @@ spec:
 NOTE: When Ingress is disabled, you must create your own Ingress or Route resources to expose the {registry}
 services.
 
-=== Configuring NetworkPolicy
+// ref-configuring-networkpolicy
+[id="configuring-networkpolicy_{context}"]
+:_mod-docs-content-type: REFERENCE
+== NetworkPolicy configuration
 
-The operator creates NetworkPolicy resources by default. To manage NetworkPolicy manually:
+[role="_abstract"]
+The operator creates NetworkPolicy resources by default. To manage NetworkPolicy manually, disable the operator-managed NetworkPolicy.
 
 [source,yaml]
 ----
@@ -677,14 +735,13 @@ spec:
       enabled: false
 ----
 
-[id="configuring-registry-features_{context}"]
-== Configuring {registry} features
+// ref-enabling-resource-deletion
+[id="enabling-resource-deletion_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Resource deletion configuration
 
-This section explains how to enable optional features in {registry}.
-
-=== Enabling resource deletion
-
-By default, artifacts and groups in {registry} are immutable and cannot be deleted. To enable deletion:
+[role="_abstract"]
+By default, artifacts and groups in {registry} are immutable and cannot be deleted. To enable deletion, set the `resourceDeleteEnabled` feature flag.
 
 [source,yaml]
 ----
@@ -698,9 +755,13 @@ spec:
       resourceDeleteEnabled: true
 ----
 
-=== Enabling artifact version mutability
+// ref-enabling-version-mutability
+[id="enabling-version-mutability_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Artifact version mutability configuration
 
-By default, artifact versions are immutable once created. To allow draft versions to be mutable:
+[role="_abstract"]
+By default, artifact versions are immutable once created. To allow draft versions to be mutable, set the `versionMutabilityEnabled` feature flag.
 
 [source,yaml]
 ----
@@ -712,14 +773,13 @@ spec:
 
 NOTE: Enabling version mutability also unlocks Studio functionality in the {registry} UI.
 
-[id="configuring-registry-ui-component_{context}"]
-== Configuring the UI component
+// ref-disabling-ui-component
+[id="disabling-ui-component_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Disabling the UI component
 
-This section explains how to configure the {registry} web console component.
-
-=== Disabling the UI component
-
-If you only need the REST API and don't want to deploy the UI:
+[role="_abstract"]
+If you only need the REST API and do not want to deploy the UI, disable the UI component.
 
 [source,yaml]
 ----
@@ -735,9 +795,13 @@ spec:
     enabled: false
 ----
 
-=== Configuring UI environment variables
+// ref-configuring-ui-env-vars
+[id="configuring-ui-env-vars_{context}"]
+:_mod-docs-content-type: REFERENCE
+== UI environment variable configuration
 
-You can configure the UI with environment variables:
+[role="_abstract"]
+You can configure the UI with environment variables in the `ApicurioRegistry3` custom resource.
 
 [source,yaml]
 ----
@@ -750,14 +814,13 @@ spec:
       host: registry-ui.example.com
 ----
 
-[id="advanced-registry-configuration_{context}"]
-== Advanced configuration
+// ref-configuring-replicas
+[id="configuring-replicas_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Replica configuration
 
-This section covers advanced configuration options for {registry}.
-
-=== Configuring replicas
-
-You can configure the number of replicas for each component:
+[role="_abstract"]
+You can configure the number of replicas for each component.
 
 [source,yaml]
 ----
@@ -776,9 +839,13 @@ spec:
       host: registry-ui.example.com
 ----
 
-=== Configuring PodDisruptionBudget
+// ref-configuring-poddisruptionbudget
+[id="configuring-poddisruptionbudget_{context}"]
+:_mod-docs-content-type: REFERENCE
+== PodDisruptionBudget configuration
 
-The operator creates PodDisruptionBudget resources by default. To manage PodDisruptionBudget manually:
+[role="_abstract"]
+The operator creates PodDisruptionBudget resources by default. To manage PodDisruptionBudget manually, disable the operator-managed PodDisruptionBudget.
 
 [source,yaml]
 ----
@@ -791,9 +858,13 @@ spec:
       enabled: false
 ----
 
-=== Configuring environment variables
+// ref-configuring-env-vars
+[id="configuring-env-vars_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Environment variable configuration
 
-You can add custom environment variables to {registry} components:
+[role="_abstract"]
+You can add custom environment variables to {registry} components.
 
 [source,yaml]
 ----
@@ -809,11 +880,15 @@ spec:
             key: custom.value
 ----
 
-IMPORTANT: *Order of evaluation:* The environment variables defined in the `env` field override any environment variables set by the operator. This allows you to customize configuration and provide workarounds in case of bugs while still benefiting from operator-managed settings. You should not use the custom PodTemplateSpec method described below to set environment variables.
+IMPORTANT: *Order of evaluation:* The environment variables defined in the `env` field override any environment variables set by the operator. This enables you to customize configuration and provide workarounds while still benefiting from operator-managed settings. Do not use the custom PodTemplateSpec method to set environment variables.
 
-=== Using PodTemplateSpec for advanced customization
+// ref-using-podtemplatespec
+[id="using-podtemplatespec_{context}"]
+:_mod-docs-content-type: REFERENCE
+== PodTemplateSpec advanced customization
 
-For advanced pod configuration, you can provide a custom PodTemplateSpec:
+[role="_abstract"]
+For advanced pod configuration, you can provide a custom PodTemplateSpec.
 
 [source,yaml]
 ----
@@ -854,13 +929,17 @@ To customize the component container (for example, to set resource requests/limi
 * `apicurio-registry-app` for the {registry-app}.
 * `apicurio-registry-ui` for the {registry-ui}.
 
-However, you can also add additional containers to the pod if needed.
+You can also add additional containers to the pod if needed.
 
 IMPORTANT: *Order of evaluation:* The operator first extends the provided PodTemplateSpec with default values and then applies additional configuration based on other fields in the `ApicurioRegistry3` CR. Therefore, other configuration fields might override settings in the PodTemplateSpec.
 
-=== Configuring TLS for the application
+// ref-configuring-app-tls
+[id="configuring-app-tls_{context}"]
+:_mod-docs-content-type: REFERENCE
+== Application TLS configuration
 
-To configure TLS certificates for the {registry} application:
+[role="_abstract"]
+To configure TLS certificates for the {registry} application, provide keystore references in the `ApicurioRegistry3` custom resource.
 
 [source,yaml]
 ----
@@ -878,5 +957,5 @@ spec:
 [role="_additional-resources"]
 .Additional resources
 
-* For the complete configuration reference, see xref:getting-started/assembly-operator-config-reference.adoc[].
-* For more information on configuring {registry}, see {registry-overview}.
+* xref:getting-started/assembly-operator-config-reference.adoc[]
+* {registry-overview}

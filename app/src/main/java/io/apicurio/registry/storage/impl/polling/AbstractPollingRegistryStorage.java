@@ -399,14 +399,18 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
 
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-                                                    OrderDirection orderDirection, int offset, int limit) {
-        return proxy(storage -> storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit));
+                                                    OrderDirection orderDirection, int offset, int limit,
+                                                    boolean skipCount) {
+        return proxy(
+                storage -> storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit, skipCount));
     }
 
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-                                                  OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
-        return proxy(storage -> storage.searchVersions(filters, orderBy, orderDirection, offset, limit));
+                                                  OrderDirection orderDirection, int offset, int limit,
+                                                  boolean skipCount) throws RegistryStorageException {
+        return proxy(
+                storage -> storage.searchVersions(filters, orderBy, orderDirection, offset, limit, skipCount));
     }
 
     @Override

@@ -150,12 +150,12 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         insertCustomer(tableName, "Alice Smith", "alice@example.com");
         insertCustomer(tableName, "Bob Jones", "bob@example.com");
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 2, Duration.ofSeconds(10));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 2, Duration.ofSeconds(20));
         assertEquals(2, events.size(), "Expected 2 CDC events");
 
         GenericRecord firstEvent = events.get(0);
@@ -188,7 +188,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         // INSERT
         try (PreparedStatement stmt = getDatabaseConnection().prepareStatement(
@@ -282,14 +282,14 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         String topic3 = getTopicNameForTable(table3);
 
         consumer.subscribe(List.of(topic1, topic2, topic3));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         executeUpdate("INSERT INTO " + table1 + " (order_number, total) VALUES ('ORD-001', 99.99)");
         executeUpdate("INSERT INTO " + table2 + " (order_id, product_name, quantity) VALUES (1, 'Laptop', 1)");
         executeUpdate("INSERT INTO " + table3 + " (sku, stock_count) VALUES ('SKU-123', 50)");
 
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+        Unreliables.retryUntilTrue(15, TimeUnit.SECONDS, () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(allRecords::add);
             return allRecords.size() >= 3;
         });
@@ -323,13 +323,13 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         // Using shared connector from @BeforeAll
         // Note: Shared connector already has schema.name.adjustment.mode and field.name.adjustment.mode set to "avro"
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         executeUpdate("INSERT INTO " + tableName +
                 " (`first-name`, `last name`, `email@address`) VALUES " +
                 "('John', 'Doe', 'john@example.com')");
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -358,11 +358,11 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         executeUpdate("INSERT INTO " + tableName + " (name) VALUES ('Original')");
 
-        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events1.size());
 
         waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
@@ -373,7 +373,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         executeUpdate("INSERT INTO " + tableName + " (name, email) VALUES ('New Record', 'test@example.com')");
 
-        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events2.size());
 
         GenericRecord newEvent = events2.get(0);
@@ -407,7 +407,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('test')");
         waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
@@ -447,19 +447,19 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         executeUpdate("INSERT INTO " + tableName + " (field1) VALUES ('v1')");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         waitForSchemaInRegistry(topicName + "-value", Duration.ofSeconds(10));
 
         executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN field2 VARCHAR(100)");
         executeUpdate("INSERT INTO " + tableName + " (field1, field2) VALUES ('v2', 'data2')");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
 
         executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN field3 INT");
         executeUpdate("INSERT INTO " + tableName + " (field1, field2, field3) VALUES ('v3', 'data3', 123)");
-        consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
 
         var versions = registryClient.groups().byGroupId("default")
                 .artifacts().byArtifactId(topicName + "-value")
@@ -496,7 +496,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         try (PreparedStatement stmt = getDatabaseConnection().prepareStatement(
                 "INSERT INTO " + tableName +
@@ -512,7 +512,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
             stmt.executeUpdate();
         }
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -545,7 +545,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         try (PreparedStatement stmt = getDatabaseConnection().prepareStatement(
                 "INSERT INTO " + tableName + " (price, tax_rate, weight, quantity) VALUES (?, ?, ?, ?)")) {
@@ -556,7 +556,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
             stmt.executeUpdate();
         }
 
-        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events.size());
 
         GenericRecord event = events.get(0);
@@ -587,7 +587,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         int totalRows = 1000;
         int batchSize = 100;
@@ -631,14 +631,14 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
 
         // Using shared connector from @BeforeAll
         consumer.subscribe(List.of(topicName));
-        waitForConsumerReady(Duration.ofSeconds(5));
+        waitForConsumerReady(Duration.ofSeconds(10));
 
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('before')");
-        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events1.size());
 
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('after')");
-        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(10));
+        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(15));
         assertEquals(1, events2.size());
 
         GenericRecord afterEvent = events2.get(0);

@@ -213,7 +213,7 @@
     <json-sKema.version>0.29.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250107</org.json.version>
-    <jackson-datatype-json-org.version>2.18.2</jackson-datatype-json-org.version>
+    <jackson-datatype-json-org.version>2.18.8</jackson-datatype-json-org.version>
     <jackson-dataformat-yaml.version>2.18.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->

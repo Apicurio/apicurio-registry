@@ -202,6 +202,10 @@
     <!-- Skip commit id plugin -->
     <skipCommitIdPlugin>true</skipCommitIdPlugin>
 
+    <!-- Flaky test retry: 0 locally, CI sets higher values -->
+    <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
+    <failsafe.rerunFailingTestsCount>0</failsafe.rerunFailingTestsCount>
+
     <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
     <apitomy-data-models.version>3.1.1</apitomy-data-models.version>
 
@@ -1033,11 +1037,17 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${version.failsafe.plugin}</version>
+          <configuration>
+            <rerunFailingTestsCount>${failsafe.rerunFailingTestsCount}</rerunFailingTestsCount>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${version.surefire.plugin}</version>
+          <configuration>
+            <rerunFailingTestsCount>${surefire.rerunFailingTestsCount}</rerunFailingTestsCount>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

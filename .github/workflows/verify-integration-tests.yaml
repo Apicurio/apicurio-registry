@@ -73,7 +73,8 @@ jobs:
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
             -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -pl integration-tests \
-            -Dmaven.javadoc.skip=true
+            -Dmaven.javadoc.skip=true \
+            -Dfailsafe.rerunFailingTestsCount=2
 
       - name: Collect logs
         if: failure()

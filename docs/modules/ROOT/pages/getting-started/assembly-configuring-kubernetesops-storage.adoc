@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="configuring-kubernetesops-storage_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Configuring {registry} with KubernetesOps storage
 
 [role="_abstract"]
@@ -14,8 +14,8 @@ You can configure {registry} to use Kubernetes ConfigMaps as the data source for
 * xref:kubernetesops-limitations_{context}[]
 
 // con-kubernetesops-overview
-:_mod-docs-content-type: CONCEPT
 [id="kubernetesops-overview_{context}"]
+:_mod-docs-content-type: CONCEPT
 == Overview of KubernetesOps storage
 
 IMPORTANT: KubernetesOps storage is an *experimental* feature. You must set the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it.
@@ -85,8 +85,8 @@ Use KubernetesOps storage when:
 
 
 // proc-configuring-kubernetesops-storage
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-kubernetesops-storage-procedure_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Configuring KubernetesOps storage
 
 [role="_abstract"]
@@ -186,8 +186,8 @@ spec:
 
 
 // ref-kubernetesops-configmap-format
-:_mod-docs-content-type: REFERENCE
 [id="kubernetesops-configmap-format_{context}"]
+:_mod-docs-content-type: REFERENCE
 == ConfigMap data format
 
 [role="_abstract"]
@@ -631,8 +631,8 @@ The following tables list all supported fields for each entity type. Fields mark
 
 
 // ref-kubernetesops-rbac-requirements
-:_mod-docs-content-type: REFERENCE
 [id="kubernetesops-rbac-requirements_{context}"]
+:_mod-docs-content-type: REFERENCE
 == RBAC requirements
 
 [role="_abstract"]
@@ -675,8 +675,8 @@ For multi-namespace scenarios, create a ClusterRole and ClusterRoleBinding inste
 
 
 // ref-kubernetesops-limitations
-:_mod-docs-content-type: REFERENCE
 [id="kubernetesops-limitations_{context}"]
+:_mod-docs-content-type: REFERENCE
 == Limitations and considerations
 
 [role="_abstract"]

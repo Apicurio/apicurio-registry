@@ -214,8 +214,12 @@ jobs:
       - name: Start local registry
         run: |
           docker run -d -p 5000:5000 --restart=always ghcr.io/distribution/distribution:3.0
-          sleep 2
-          curl -sf http://localhost:5000/v2/ || (echo "Registry not ready"; exit 1)
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:5000/v2/ >/dev/null 2>&1 && break
+            echo "Waiting for registry... ($i/20)"
+            sleep 0.5
+          done
+          curl -sf http://localhost:5000/v2/ || (echo "Registry not ready after 10s"; exit 1)
 
       # Load pre-built images into Docker, then push to the local registry.
       # Operator/operand/gitops-sync use localhost:5000; bundle/catalog use ttl.sh.

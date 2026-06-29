@@ -51,7 +51,7 @@ public class SqlSearchRepository {
      * Search for artifacts based on filters.
      */
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
@@ -243,15 +243,20 @@ public class SqlSearchRepository {
                     where.toString(), orderByQuery.toString());
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
 
-            String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts", "a",
-                    where.toString());
-            Query countQuery = handle.createQuery(countQuerySql);
+            Query countQuery = null;
+            if (!skipCount) {
+                String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts",
+                        "a", where.toString());
+                countQuery = handle.createQuery(countQuerySql);
+            }
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(artifactsQuery, idx);
-                binder.bind(countQuery, idx);
+                if (countQuery != null) {
+                    binder.bind(countQuery, idx);
+                }
                 idx++;
             }
             if ("mssql".equals(sqlStatements.dbType())) {
@@ -266,7 +271,7 @@ public class SqlSearchRepository {
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
             limitReturnedLabelsInArtifacts(artifacts);
             // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+            int count = countQuery != null ? countQuery.mapTo(Integer.class).one() : 0;
 
             ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
             results.setArtifacts(artifacts);
@@ -279,7 +284,8 @@ public class SqlSearchRepository {
      * Search for versions based on filters.
      */
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
+            throws RegistryStorageException {
 
         log.debug("Searching for versions");
         return handles.withHandleNoException(handle -> {
@@ -411,15 +417,20 @@ public class SqlSearchRepository {
                     .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
             Query versionsQuery = handle.createQuery(versionsQuerySql);
             // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(v.globalId)");
-            Query countQuery = handle.createQuery(countQuerySql);
+            Query countQuery = null;
+            if (!skipCount) {
+                String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                        .replace("{{selectColumns}}", "count(v.globalId)");
+                countQuery = handle.createQuery(countQuerySql);
+            }
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(versionsQuery, idx);
-                binder.bind(countQuery, idx);
+                if (countQuery != null) {
+                    binder.bind(countQuery, idx);
+                }
                 idx++;
             }
 
@@ -435,7 +446,7 @@ public class SqlSearchRepository {
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
             limitReturnedLabelsInVersions(versions);
             // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+            int count = countQuery != null ? countQuery.mapTo(Integer.class).one() : 0;
 
             VersionSearchResultsDto results = new VersionSearchResultsDto();
             results.setVersions(versions);

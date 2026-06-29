@@ -188,7 +188,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         // Execute search
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit);
+                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit, false);
 
         // Convert to agent search results
         List<AgentSearchResult> agents = new ArrayList<>();
@@ -331,7 +331,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.desc, offset, limit);
+                OrderDirection.desc, offset, limit, false);
 
         List<McpToolSearchResult> tools = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {

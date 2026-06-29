@@ -690,7 +690,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         VersionSearchResultsDto result = storage().searchVersions(
                 Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(aid3)), OrderBy.groupId,
-                OrderDirection.asc, 0, 10);
+                OrderDirection.asc, 0, 10, false);
         Assertions.assertNotNull(result);
         Assertions.assertEquals(1, result.getCount());
         Assertions.assertEquals("1", result.getVersions().iterator().next().getVersion());
@@ -942,14 +942,14 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofName("testSearchArtifacts*"));
         ArtifactSearchResultsDto results = storage().searchArtifacts(filters, OrderBy.name,
-                OrderDirection.asc, 0, 10);
+                OrderDirection.asc, 0, 10, false);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(50, results.getCount());
         Assertions.assertNotNull(results.getArtifacts());
         Assertions.assertEquals(10, results.getArtifacts().size());
 
         filters = Collections.singleton(SearchFilter.ofName("testSearchArtifacts-19-name"));
-        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertNotNull(results.getArtifacts());
@@ -957,7 +957,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("testSearchArtifacts-19-name", results.getArtifacts().get(0).getName());
 
         filters = Collections.singleton(SearchFilter.ofDescription("testSearchArtifacts-33-description"));
-        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertNotNull(results.getArtifacts());
@@ -965,13 +965,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("testSearchArtifacts-33-name", results.getArtifacts().get(0).getName());
 
         filters = Collections.emptySet();
-        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         Assertions.assertNotNull(results);
         Assertions.assertNotNull(results.getArtifacts());
         Assertions.assertEquals(10, results.getArtifacts().size());
 
         filters = Collections.singleton(SearchFilter.ofLabel("key", "value-17"));
-        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10);
+        results = storage().searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
         Assertions.assertNotNull(results);
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertNotNull(results.getArtifacts());
@@ -1011,14 +1011,14 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         TestUtils.retry(() -> {
             VersionSearchResultsDto results = storage().searchVersions(
                     Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId)),
-                    OrderBy.groupId, OrderDirection.asc, 0, 10);
+                    OrderBy.groupId, OrderDirection.asc, 0, 10, false);
             Assertions.assertNotNull(results);
             Assertions.assertEquals(50, results.getCount());
             Assertions.assertEquals(10, results.getVersions().size());
 
             results = storage().searchVersions(
                     Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId)),
-                    OrderBy.groupId, OrderDirection.asc, 0, 50);
+                    OrderBy.groupId, OrderDirection.asc, 0, 50, false);
             Assertions.assertNotNull(results);
             Assertions.assertEquals(50, results.getCount());
             Assertions.assertEquals(50, results.getVersions().size());

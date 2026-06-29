@@ -160,7 +160,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
         // Search for versions to get schemas
         VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, effectiveOffset, effectiveLimit);
+                OrderDirection.asc, effectiveOffset, effectiveLimit, false);
 
         List<Schema> schemas = new ArrayList<>();
         Set<Long> seenContentIds = new HashSet<>();

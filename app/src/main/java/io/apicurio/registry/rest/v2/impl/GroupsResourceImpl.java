@@ -902,7 +902,7 @@ public class GroupsResourceImpl implements GroupsResource {
         filters.add(SearchFilter.ofGroupId(defaultGroupIdToNull(groupId)));
 
         ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1136,7 +1136,7 @@ public class GroupsResourceImpl implements GroupsResource {
         Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(defaultGroupIdToNull(groupId)),
                 SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto resultsDto = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, offset.intValue(), limit.intValue());
+                OrderDirection.asc, offset.intValue(), limit.intValue(), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 

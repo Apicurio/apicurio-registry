@@ -249,7 +249,8 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
+            throws RegistryStorageException {
         throw new UnsupportedOperationException();
     }
 
@@ -338,7 +339,7 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) {
         throw new UnsupportedOperationException();
     }
 

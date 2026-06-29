@@ -1,7 +1,7 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.observability.OTelAttributes;
 import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.data.LongPointData;
@@ -74,8 +74,8 @@ class OTelMetricsProviderTest {
 
         LongPointData point = metricData.getLongSumData().getPoints().stream().findFirst().orElseThrow();
         assertEquals(1, point.getValue());
-        assertEquals("test-group", point.getAttributes().get(AttributeKey.stringKey("groupId")));
-        assertEquals("AVRO", point.getAttributes().get(AttributeKey.stringKey("artifactType")));
+        assertEquals("test-group", point.getAttributes().get(OTelAttributes.ATTR_GROUP_ID));
+        assertEquals("AVRO", point.getAttributes().get(OTelAttributes.ATTR_ARTIFACT_TYPE));
     }
 
     @Test
@@ -93,8 +93,8 @@ class OTelMetricsProviderTest {
         assertTrue(artifactCreatedMetric.isPresent());
 
         LongPointData point = artifactCreatedMetric.get().getLongSumData().getPoints().stream().findFirst().orElseThrow();
-        assertEquals("default", point.getAttributes().get(AttributeKey.stringKey("groupId")));
-        assertEquals("unknown", point.getAttributes().get(AttributeKey.stringKey("artifactType")));
+        assertEquals("default", point.getAttributes().get(OTelAttributes.ATTR_GROUP_ID));
+        assertEquals("unknown", point.getAttributes().get(OTelAttributes.ATTR_ARTIFACT_TYPE));
     }
 
     @Test
@@ -111,8 +111,8 @@ class OTelMetricsProviderTest {
 
         LongPointData point = artifactDeletedMetric.get().getLongSumData().getPoints().stream().findFirst().orElseThrow();
         assertEquals(1, point.getValue());
-        assertEquals("my-group", point.getAttributes().get(AttributeKey.stringKey("groupId")));
-        assertEquals("JSON", point.getAttributes().get(AttributeKey.stringKey("artifactType")));
+        assertEquals("my-group", point.getAttributes().get(OTelAttributes.ATTR_GROUP_ID));
+        assertEquals("JSON", point.getAttributes().get(OTelAttributes.ATTR_ARTIFACT_TYPE));
     }
 
     @Test
@@ -145,8 +145,8 @@ class OTelMetricsProviderTest {
 
         LongPointData point = validationMetric.get().getLongSumData().getPoints().stream().findFirst().orElseThrow();
         assertEquals(1, point.getValue());
-        assertEquals("AVRO", point.getAttributes().get(AttributeKey.stringKey("artifactType")));
-        assertEquals("success", point.getAttributes().get(AttributeKey.stringKey("result")));
+        assertEquals("AVRO", point.getAttributes().get(OTelAttributes.ATTR_ARTIFACT_TYPE));
+        assertEquals("success", point.getAttributes().get(OTelAttributes.ATTR_RESULT));
     }
 
     @Test
@@ -162,7 +162,7 @@ class OTelMetricsProviderTest {
         assertTrue(validationMetric.isPresent());
 
         LongPointData point = validationMetric.get().getLongSumData().getPoints().stream().findFirst().orElseThrow();
-        assertEquals("failure", point.getAttributes().get(AttributeKey.stringKey("result")));
+        assertEquals("failure", point.getAttributes().get(OTelAttributes.ATTR_RESULT));
     }
 
     @Test
@@ -179,8 +179,8 @@ class OTelMetricsProviderTest {
 
         LongPointData point = ruleMetric.get().getLongSumData().getPoints().stream().findFirst().orElseThrow();
         assertEquals(1, point.getValue());
-        assertEquals("CREATE", point.getAttributes().get(AttributeKey.stringKey("operation")));
-        assertEquals("success", point.getAttributes().get(AttributeKey.stringKey("result")));
+        assertEquals("CREATE", point.getAttributes().get(OTelAttributes.ATTR_OPERATION));
+        assertEquals("success", point.getAttributes().get(OTelAttributes.ATTR_RESULT));
     }
 
     @Test
@@ -197,7 +197,7 @@ class OTelMetricsProviderTest {
 
         LongPointData point = searchMetric.get().getLongSumData().getPoints().stream().findFirst().orElseThrow();
         assertEquals(1, point.getValue());
-        assertEquals("artifacts", point.getAttributes().get(AttributeKey.stringKey("operation")));
+        assertEquals("artifacts", point.getAttributes().get(OTelAttributes.ATTR_OPERATION));
     }
 
     @Test

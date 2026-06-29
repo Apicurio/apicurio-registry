@@ -1,0 +1,47 @@
+{
+  "type": "record",
+  "name": "ExampleRecordWithRef",
+  "namespace": "io.apicurio.registry.avro.example.search.avro.with.config.combinations.test",
+  "fields": [
+    {
+      "name": "userId",
+      "type": {
+        "type": "string",
+        "logicalType": "uuid"
+      }
+    },
+    {
+      "name": "type",
+      "type": {
+        "type": "enum",
+        "name": "UserType",
+        "symbols": [
+          "ADMIN",
+          "USER",
+          "GUEST",
+          "OTHER"
+        ],
+        "default": "OTHER"
+      }
+    },
+    {
+      "name": "creationDate",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    },
+    {
+      "name": "userStatus",
+      "type": {
+        "type": "enum",
+        "name": "UserStatus",
+        "symbols": [
+          "ENABLED",
+          "DISABLED",
+          "PENDING"
+        ]
+      }
+    }
+  ]
+}

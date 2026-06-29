@@ -474,31 +474,31 @@ The following {registry} configuration options are available for each component 
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence liveness check
+|`apicurio.metrics.persistence-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of persistence readiness check
 |`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
 |`integer`
 |`5`
 |`1.0.2.Final`
 |Error threshold of persistence readiness check
+|`apicurio.metrics.persistence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence readiness check
 |`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
 |`integer`
 |`15`
 |`1.0.2.Final`
 |Timeout of persistence readiness check
-|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
-|`integer`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of persistence readiness check
-|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
-|`integer`
-|`60`
-|`1.0.2.Final`
-|Counter reset window duration of response liveness check
 |`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
-|Counter reset window duration of persistence readiness check
+|Counter reset window duration of response liveness check
 |`apicurio.metrics.response-error-liveness-check.disabled`
 |`boolean`
 |`false`
@@ -524,16 +524,16 @@ The following {registry} configuration options are available for each component 
 |`1`
 |`1.0.2.Final`
 |Error threshold of response readiness check
+|`apicurio.metrics.response-timeout-readiness-check.status-reset-window-duration.seconds`
+|`instance<integer>`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response readiness check
 |`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
 |`instance<integer>`
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check
-|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
-|`instance<integer>`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of response readiness check
 |`apicurio.storage.metrics.cache.check-period.ms`
 |`long`
 |`30000`

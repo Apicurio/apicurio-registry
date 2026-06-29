@@ -58,7 +58,7 @@ Additionally, there are 2 main configuration profiles:
 ### Getting started (APIs)
 
  ```
- ./mvnw clean install -Dfast -DskipTests
+ ./mvnw clean install -Dlocal -DskipTests
  cd app/
  ../mvnw quarkus:dev
  ```
@@ -87,15 +87,15 @@ For more information on the UI, see the UI module's [README.md](ui/README.md).
 
 The project uses a three-tier build system to allow developers to build only what they need:
 
-| Tier        | Flag     | What's included                                         | Use case                           |
-|-------------|----------|---------------------------------------------------------|------------------------------------|
-| **Fast**    | `-Dfast` | Core server, Java SDK, schema utilities                 | Quick server development iteration |
-| **Default** | *(none)* | Fast + serializers, CLI, docs, distribution             | Normal development                 |
-| **Full**    | `-Dfull` | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
+| Tier        | Flag      | What's included                                         | Use case                           |
+|-------------|-----------|--------------------------------------------------------|------------------------------------|
+| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
+| **Default** | *(none)*  | Local + serializers, CLI, docs, distribution            | Normal development                 |
+| **Full**    | `-Dfull`  | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
 
 ```bash
-# Fast: core server only (~3 min)
-./mvnw clean install -Dfast -DskipTests
+# Local: core server only, skip non-essential plugins (~3 min)
+./mvnw clean install -Dlocal -DskipTests
 
 # Default: normal development
 ./mvnw clean install -DskipTests

@@ -1,17 +1,19 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+// assembly-installing-registry-ocp
 [id="installing-registry-ocp_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = Installing {registry} on OpenShift
 
 [role="_abstract"]
-This chapter explains how to install {registry} on OpenShift Container Platform:
+Install {registry} on OpenShift Container Platform:
 
 * xref:installing-registry-operatorhub_{context}[]
 
 
 [role="_additional-resources"]
 .Additional resources
-* For details on building from source, see https://github.com/Apicurio/apicurio-registry.
+* https://github.com/Apicurio/apicurio-registry[Apicurio Registry source repository]
 
 //INCLUDES
 
@@ -20,9 +22,10 @@ This chapter explains how to install {registry} on OpenShift Container Platform:
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
+// proc-installing-registry-operatorhub
 [id="installing-registry-operatorhub_{context}"]
+:_mod-docs-content-type: PROCEDURE
 == Installing {registry} from the OpenShift OperatorHub
-// Start the title of a procedure module with a verb, such as Creating or Create. See also _Wording of headings_ in _The IBM Style Guide_.
 
 [role="_abstract"]
 You can install the {operator} on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
@@ -32,7 +35,7 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 
 .Prerequisites
 
-* You must have cluster administrator access to an OpenShift cluster.
+* Ensure that you have cluster administrator access to an OpenShift cluster.
 
 .Procedure
 
@@ -47,14 +50,15 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 . In the *Filter by keyword* text box, enter `registry` to find the *{operator}*.
 . Read the information about the Operator, and click *Install* to display the Operator subscription page.
 
-. Select your subscription settings, for example:
+. Select your subscription settings:
++
 ** *Update Channel*: Select one of the following:
-*** *2.x*: Includes all minor and patch updates, such as 2.3.0 and 2.0.3. For example, an installation on 2.0.x will upgrade to 2.3.x.
-*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x will ignore 2.3.x.
+*** *2.x*: Includes all minor and patch updates, such as 2.3.0 and 2.0.3. For example, an installation on 2.0.x upgrades to 2.3.x.
+*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x ignores 2.3.x.
 ** *Installation Mode*: Select one of the following:
 *** *All namespaces on the cluster (default)*
-*** *A specific namespace on the cluster*  and then *my-project*
-** *Approval Strategy*: Select *Automatic* or *Manual*
+*** *A specific namespace on the cluster*, and then select *my-project*.
+** *Approval Strategy*: Select *Automatic* or *Manual*.
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 
 [role="_additional-resources"]

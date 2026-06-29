@@ -42,7 +42,7 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 
 .Prerequisites
 
-* Ensure that you have cluster administrator access to an OpenShift cluster.
+* Cluster administrator access to an OpenShift cluster is configured.
 
 
 .Procedure
@@ -82,9 +82,9 @@ You can configure Kafka-based storage for {registry} by using {kafka-streams} on
 You can install {registry} in an existing Kafka cluster or create a new Kafka cluster, depending on your environment.
 
 .Prerequisites
-* Ensure that you have an OpenShift cluster with cluster administrator access.
-* Ensure that you have installed {registry}. See {installing-the-registry-openshift}.
-* Ensure that you have installed {kafka-streams}. See xref:installing-kafka-streams-operatorhub_{context}[].
+* An OpenShift cluster with cluster administrator access is configured.
+* {registry} is installed. See {installing-the-registry-openshift}.
+* {kafka-streams} is installed. See xref:installing-kafka-streams-operatorhub_{context}[].
 
 .Procedure
 
@@ -225,7 +225,7 @@ Alternatively, you can configure OAuth by setting environment variables in your 
 
 
 .Prerequisites
-* Ensure that you have configured Kafka-based storage of {registry} data in {kafka-streams}. See xref:setting-up-kafka-streams-storage_{context}[].
+* Kafka-based storage of {registry} data in {kafka-streams} is configured. See xref:setting-up-kafka-streams-storage_{context}[].
 
 .Procedure
 
@@ -271,7 +271,7 @@ If you do not already have a PostgreSQL database Operator installed, you can ins
 
 .Prerequisites
 
-* Ensure that you have cluster administrator access to an OpenShift cluster.
+* Cluster administrator access to an OpenShift cluster is configured.
 
 .Procedure
 
@@ -316,9 +316,9 @@ IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operato
 Configure storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. The following example uses the PostgreSQL Operator by Dev4Ddevs.com.
 
 .Prerequisites
-* Ensure that you have an OpenShift cluster with cluster administrator access.
-* Ensure that you have installed {registry}. See {installing-the-registry-openshift}.
-* Ensure that you have installed a PostgreSQL Operator on OpenShift. For example, see xref:installing-postgresql-operatorhub_{context}[].
+* An OpenShift cluster with cluster administrator access is configured.
+* {registry} is installed. See {installing-the-registry-openshift}.
+* A PostgreSQL Operator is installed on OpenShift. For example, see xref:installing-postgresql-operatorhub_{context}[].
 
 .Procedure
 

@@ -39,8 +39,8 @@ NOTE: The default embedded H2 configuration is suitable for development and test
 
 .Prerequisites
 
-* Ensure that you have Docker installed and the Docker daemon is running.
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+* Docker is installed and the Docker daemon is running.
+* You can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
 
 .Procedure
 
@@ -96,9 +96,9 @@ Install and run {registry} with storage in a PostgreSQL database from a containe
 
 .Prerequisites
 
-* Ensure that you have Docker installed and the Docker daemon is running.
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
-* Ensure that you have a PostgreSQL database server installed and running. For example:
+* Docker is installed and the Docker daemon is running.
+* You can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+* A PostgreSQL database server is installed and running. For example:
 +
 [source,bash]
 ----
@@ -169,7 +169,7 @@ This approach follows Docker's recommended secret management practices. It is mo
 environment variables.
 
 Instead of passing credentials and secrets as environment variables (which can be exposed in process lists and container
-inspection), you can use file-based secrets. The registry supports a generic `_FILE` suffix pattern that works with
+inspection), you can use file-based secrets. {registry} supports a generic `_FILE` suffix pattern that works with
 any configuration property.
 
 Quarkus automatically converts environment variables to configuration properties. For example,
@@ -217,8 +217,8 @@ variables (300) > `application.properties` (250).
 
 .Prerequisites
 
-* Ensure that you have Docker and Docker Compose installed.
-* Ensure that you have a database server installed and running (PostgreSQL, MySQL, or Microsoft SQL Server).
+* Docker and Docker Compose are installed.
+* A database server is installed and running (PostgreSQL, MySQL, or Microsoft SQL Server).
 
 .Procedure
 
@@ -317,10 +317,10 @@ You can install and run {registry} with Kafka storage from a container image. Th
 
 .Prerequisites
 
-* Ensure that you have Docker installed and the Docker daemon is running.
-* Ensure that you can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
-* Ensure that `KAFKA_HOME` is set to the location of your Kafka-based system.
-* Ensure that your Kafka broker is running. For example:
+* Docker is installed and the Docker daemon is running.
+* You can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+* `KAFKA_HOME` is set to the location of your Kafka-based system.
+* Kafka broker is running. For example:
 +
 [source,bash]
 ----

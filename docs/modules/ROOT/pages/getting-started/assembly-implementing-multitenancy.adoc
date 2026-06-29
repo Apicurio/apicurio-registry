@@ -7,10 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [role="_abstract"]
 Implement multitenancy with {registry} on {kubernetes} using the {operator}.
-{registry} uses a multi-instance operator pattern. Each tenant receives a dedicated
-`ApicurioRegistry3` custom resource (CR), which the operator reconciles into an independent set of {kubernetes}
-resources. This approach provides strong isolation between tenants at the infrastructure level. It uses
-{kubernetes}-native mechanisms for security, resource management, and network segmentation.
+{registry} uses a multi-instance operator pattern. Each tenant receives a dedicated `ApicurioRegistry3` custom resource (CR), which the operator reconciles into an independent set of {kubernetes} resources. This approach provides strong isolation between tenants at the infrastructure level. It uses {kubernetes}-native mechanisms for security, resource management, and network segmentation.
 
 * xref:multitenancy-overview_{context}[]
 * xref:multitenancy-deployment-patterns_{context}[]
@@ -24,7 +21,7 @@ resources. This approach provides strong isolation between tenants at the infras
 .Prerequisites
 
 * {installing-the-registry-openshift}
-* Ensure that you have installed the {operator}. See xref:deploying-registry-operator_{context}[].
+* The {operator} is installed. See xref:deploying-registry-operator_{context}[].
 
 //INCLUDES
 
@@ -105,8 +102,7 @@ This pattern provides stronger isolation using {kubernetes} RBAC, ResourceQuotas
 {kubernetes-namespace} level. It is the recommended approach for most production environments.
 
 Pattern C: Operator per namespace::
-Each {kubernetes-namespace} has its own operator instance. The instance is restricted to watching only that {kubernetes-namespace}
-by using the `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable.
+Each {kubernetes-namespace} has its own operator instance. The instance is restricted to watching only that {kubernetes-namespace} by using the `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable.
 +
 ----
 Cluster
@@ -129,9 +125,9 @@ This pattern provides maximum isolation and is suitable when tenants manage thei
 Deploy {registry} using the namespace-per-tenant pattern (Pattern B) to provide strong isolation between tenants.
 
 .Prerequisites
-* Ensure that you have cluster administrator access to {kubernetes-with-article} cluster.
-* Ensure that you have installed the {operator}. See {installing-the-registry-openshift}.
-* Ensure that storage infrastructure (PostgreSQL or Kafka) is available for each tenant.
+* Cluster administrator access to {kubernetes-with-article} cluster is configured.
+* The {operator} is installed. See {installing-the-registry-openshift}.
+* Storage infrastructure (PostgreSQL or Kafka) is available for each tenant.
 
 .Procedure
 

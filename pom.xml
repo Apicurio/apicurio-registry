@@ -136,14 +136,14 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.33.1</quarkus.version>
+    <quarkus.version>3.33.2</quarkus.version>
     <!--
     # QOSDK
 
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/7.1.4/quarkus-operator-sdk-parent-7.1.4.pom
     to check that the versions match as best as possible:
 
-    - QOSDK 7.7.3 -> Quarkus 3.33.1 (LTS)
+    - QOSDK 7.7.3 -> Quarkus 3.33.2 (LTS)
     - QOSDK 7.2.1 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - QOSDK 7.2.0 -> Quarkus 3.23.2
     - QOSDK 7.1.4 -> Quarkus 3.20.1
@@ -157,7 +157,7 @@
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/mcp/quarkus-mcp-server-parent/1.6.0/quarkus-mcp-server-parent-1.6.0.pom
     to check that the versions match as best as possible:
 
-    - MCP Server 1.11.0 -> Quarkus 3.33.0 (using 3.33.1 patch)
+    - MCP Server 1.11.0 -> Quarkus 3.33.0 (using 3.33.2 patch)
     - MCP Server 1.7.0 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - MCP Server 1.6.1 -> Quarkus 3.20.2.2
     - MCP Server 1.6.0 -> Quarkus 3.20.2.2
@@ -178,7 +178,7 @@
     <okio.version>3.17.0</okio.version>
     <kotlin-stdlib.version>2.4.0</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.35.0</protobuf.version>
+    <protobuf.version>4.35.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.72.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -219,12 +219,12 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.43</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.45</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.22.0</commons-codec.version>
-    <netty.version>4.1.132.Final</netty.version>
+    <netty.version>4.1.135.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>3.5.2.Final</debezium.version>
@@ -234,7 +234,7 @@
     <nats.version>2.25.3</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.2.1</woodstox-core.version>
-    <jgit.version>7.6.0.202603022253-r</jgit.version>
+    <jgit.version>7.7.0.202606012155-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>6.0.0</semver4j.version>
@@ -272,20 +272,20 @@
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->
-    <version.org.sonatype.central-publishing-maven-plugin>0.10.0</version.org.sonatype.central-publishing-maven-plugin>
+    <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.5.0</version.puppycrawl>
+    <version.puppycrawl>13.6.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.4</proto-plugin.version>
+    <proto-plugin.version>5.1.6</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
-    <flink.version>1.20.4</flink.version>
+    <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.9.2</kiota.libs.version>
-    <kiota.community.version>0.0.35</kiota.community.version>
+    <kiota.libs.version>1.9.3</kiota.libs.version>
+    <kiota.community.version>0.0.36</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
@@ -300,7 +300,7 @@
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
-    <strimzi-test-container.version>0.115.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.116.0</strimzi-test-container.version>
 
     <!-- Iceberg -->
     <iceberg.version>1.11.0</iceberg.version>
@@ -1477,5 +1477,4 @@
       </repositories>
     </profile>
   </profiles>
-
 </project>

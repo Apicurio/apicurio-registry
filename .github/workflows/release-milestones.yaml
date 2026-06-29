@@ -8,6 +8,8 @@ on:
   release:
     types: [released]
 
+permissions:
+  contents: read
 
 env:
   # The values are extracted from the github.event context,
@@ -28,7 +30,7 @@ jobs:
           echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
 
       - name: Manage Milestones
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           github-token: ${{ secrets.ACCESS_TOKEN }}
           script: |

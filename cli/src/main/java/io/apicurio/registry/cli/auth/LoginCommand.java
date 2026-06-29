@@ -22,6 +22,9 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
 )
 public class LoginCommand extends AbstractCommand {
 
+    private static final String UNSAFE_STORAGE_WARNING =
+            "Warning: Credentials stored in a file. This is not recommended for production use.\n";
+
     @Option(
             names = {"-u", "--username"},
             description = "Username for basic authentication."
@@ -62,6 +65,13 @@ public class LoginCommand extends AbstractCommand {
     )
     private String scope;
 
+    @Option(
+            names = {"--allow-unsafe-credential-storage"},
+            description = "Allow storing credentials in a file when the OS keychain is not available.",
+            defaultValue = "false"
+    )
+    private boolean allowUnsafeCredentialStorage;
+
     @Inject
     CredentialStore credentialStore;
 
@@ -99,13 +109,21 @@ public class LoginCommand extends AbstractCommand {
                     "Password cannot be empty.");
         }
 
-        credentialStore.store(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD, resolvedPassword);
+        final var allowUnsafe = allowUnsafeCredentialStorage || context.isUnsafeCredentialStorage();
+        final var usedFileFallback = credentialStore.store(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD,
+                resolvedPassword, allowUnsafe);
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET);
 
         context.clearAuth();
         context.setAuthType(ConfigModel.AUTH_TYPE_BASIC);
         context.setUsername(username);
+        context.setUnsafeCredentialStorage(usedFileFallback);
         config.write(configModel);
+
+        if (usedFileFallback) {
+            output.writeStdOutChunk(out ->
+                    out.append(UNSAFE_STORAGE_WARNING));
+        }
 
         client.reset();
 
@@ -130,7 +148,9 @@ public class LoginCommand extends AbstractCommand {
                     "Client secret cannot be empty.");
         }
 
-        credentialStore.store(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET, resolvedSecret);
+        final var allowUnsafe = allowUnsafeCredentialStorage || context.isUnsafeCredentialStorage();
+        final var usedFileFallback = credentialStore.store(contextName,
+                ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET, resolvedSecret, allowUnsafe);
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD);
 
         context.clearAuth();
@@ -138,7 +158,13 @@ public class LoginCommand extends AbstractCommand {
         context.setTokenEndpoint(tokenEndpoint);
         context.setClientId(clientId);
         context.setScope(scope);
+        context.setUnsafeCredentialStorage(usedFileFallback);
         config.write(configModel);
+
+        if (usedFileFallback) {
+            output.writeStdOutChunk(out ->
+                    out.append(UNSAFE_STORAGE_WARNING));
+        }
 
         client.reset();
 

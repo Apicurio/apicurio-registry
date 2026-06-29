@@ -11,6 +11,9 @@ on:
         required: true
         description: 'Build artifact identifier (commit SHA)'
 
+permissions:
+  contents: read
+
 jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.shard.name }})
@@ -22,44 +25,44 @@ jobs:
           - name: app-rest
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-sql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.sql.**,io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.impl.polling.**,io.apicurio.registry.storage.impl.readonly.**,io.apicurio.registry.storage.decorator.**,io.apicurio.registry.storage.dto.**,io.apicurio.registry.event.sql.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kafkasql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kafkasql.**,io.apicurio.registry.event.kafkasql.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-gitops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**"
-            maven-opts: "-Xmx2g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kubernetesops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
-            maven-opts: "-Xmx2g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"
-            maven-opts: "-Xmx4g"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
             test-filter: ""
-            maven-opts: "-Xmx2g"
+            maven-opts: "-Xmx4g"
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .
@@ -79,6 +82,8 @@ jobs:
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
-            -DskipCommitIdPlugin=false \
+            -DskipCommitIdPlugin=true \
+            -Dcheckstyle.skip=true \
+            -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5

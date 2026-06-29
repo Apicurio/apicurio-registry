@@ -25,6 +25,7 @@ const LABELS = {
   AUTO_MERGE: 'orchestrator/auto-merge',
   TESTS_DISABLED: 'orchestrator/tests-disabled',
   REVIEW_SKIPPED: 'orchestrator/review-skipped',
+  MERGE_REBASE: 'orchestrator/merge-rebase',
 };
 
 const PRIMARY_STATES = [
@@ -62,6 +63,7 @@ const LABEL_DEFS = {
   [LABELS.AUTO_MERGE]:           { color: COLORS.INFO, description: 'Auto-merge enabled' },
   [LABELS.TESTS_DISABLED]:       { color: COLORS.INFO, description: 'Smoke tests disabled for this PR' },
   [LABELS.REVIEW_SKIPPED]:       { color: COLORS.INFO, description: 'Review requirement skipped by maintainer' },
+  [LABELS.MERGE_REBASE]:         { color: COLORS.INFO, description: 'Branch auto-updated for merge, tests skipped' },
 };
 
 const BOT_LOGIN = 'github-actions[bot]';
@@ -217,6 +219,12 @@ function createApi(github, owner, repo) {
       }
     },
 
+    updateBranch: async (prNumber, expectedHeadSha) => {
+      const params = { owner, repo, pull_number: prNumber };
+      if (expectedHeadSha) params.expected_head_sha = expectedHeadSha;
+      await github.rest.pulls.updateBranch(params);
+    },
+
     findLatestVerifyRun: async (headSha) => {
       const { data } = await github.rest.actions.listWorkflowRuns({
         owner, repo, workflow_id: 'verify.yaml',
@@ -274,8 +282,8 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
 
     // Wait for the run to fully complete — the Verification Gate job
     // has `if: always()` and keeps the run alive after cancellation.
-    for (let attempt = 0; attempt < 10; attempt++) {
-      await new Promise(r => setTimeout(r, 3000));
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await new Promise(r => setTimeout(r, 5000));
       const fresh = await api.getWorkflowRun(run.id);
       if (fresh.status === 'completed') break;
     }
@@ -317,7 +325,7 @@ function hasLatestChangesRequested(reviews) {
   return latestReviewsByReviewer(reviews).some(r => r.state === 'CHANGES_REQUESTED');
 }
 
-async function performMerge(api, config, pr, core) {
+async function performMerge(api, config, pr, core, { allowBranchUpdate = true } = {}) {
   const freshPr = await api.getPr(pr.number);
   if (!hasLabel(freshPr, LABELS.TESTED) || !hasLabel(freshPr, LABELS.READY_TO_MERGE)) {
     core.warning(`PR #${pr.number} merge aborted: state changed since merge was initiated`);
@@ -333,16 +341,43 @@ async function performMerge(api, config, pr, core) {
     core.info(`PR #${pr.number} merged using ${strategy}`);
     return true;
   } catch (e) {
+    // Branch is behind but can be cleanly updated — rebase and retry.
+    // Skip for permission errors (403 / "Resource not accessible") which
+    // indicate a different problem (e.g. workflow file modifications).
+    const isPermissionError = e.status === 403 || e.message?.includes('Resource not accessible');
+    if (allowBranchUpdate && !isPermissionError) {
+      const currentPr = await api.getPr(pr.number);
+      if (currentPr.rebaseable) {
+        try {
+          await api.addLabel(pr.number, LABELS.MERGE_REBASE);
+          await api.updateBranch(pr.number, currentPr.head.sha);
+          await api.postComment(pr.number,
+            `Merge could not proceed because the branch is behind \`${currentPr.base.ref}\`. ` +
+            `The branch has been updated automatically. Tests are skipped (they already ` +
+            `passed for the previous HEAD) and the merge will proceed shortly.`
+          );
+          core.info(`PR #${pr.number} branch updated for merge-rebase`);
+          return false;
+        } catch (updateErr) {
+          await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
+          core.warning(`PR #${pr.number} branch update failed: ${updateErr.message}`);
+        }
+      }
+    }
+
     const workflowHint = e.message?.includes('Resource not accessible')
       ? ' This may be because the PR modifies workflow files, which requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
+      : '';
+    const conflictHint = freshPr.rebaseable === false
+      ? ' The branch has conflicts with the base branch that need manual resolution.'
       : '';
     await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
     await api.removeLabel(pr.number, LABELS.TESTED);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await api.postComment(pr.number,
       `Merge failed: ${e.message}\n\n` +
-      `Reverted to \`lifecycle/ready-for-review\`.${workflowHint}` +
-      (workflowHint ? '' : ` The branch may need to be rebased. Use \`/auto-merge\` to merge automatically once approved and tested.`)
+      `Reverted to \`lifecycle/ready-for-review\`.${workflowHint}${conflictHint}` +
+      (workflowHint || conflictHint ? '' : ` The branch may need to be rebased. Use \`/auto-merge\` to merge automatically once approved and tested.`)
     );
     core.error(`PR #${pr.number} merge failed: ${e.message}`);
     return false;
@@ -509,6 +544,21 @@ async function handlePrSynchronize({ github, context, core }) {
   const pr = context.payload.pull_request;
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
+
+  // Orchestrator-initiated branch update for merge — preserve state.
+  // Only honour for bot-triggered syncs; if a human pushes while the
+  // label is set, abort the fast-merge flow and proceed normally.
+  if (hasLabel(pr, LABELS.MERGE_REBASE)) {
+    if (context.payload.sender?.login === BOT_LOGIN) {
+      core.info(`PR #${pr.number} orchestrator-initiated branch update for merge, preserving state`);
+      if (hasLabel(pr, LABELS.STALE)) {
+        await api.removeLabel(pr.number, LABELS.STALE);
+      }
+      return;
+    }
+    await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
+    core.info(`PR #${pr.number} human push during merge-rebase, aborting fast-merge`);
+  }
 
   const rerunHints = [];
 
@@ -1063,6 +1113,35 @@ async function handleTestResult({ github, context, core }) {
     if (hasLabel(pr, LABELS.DISABLED)) continue;
 
     const state = getLifecycleState(pr);
+
+    // Merge-rebase flow: branch was auto-updated, tests were skipped,
+    // proceed to merge once the Verification Gate passes.
+    if (state === LABELS.READY_TO_MERGE && hasLabel(pr, LABELS.MERGE_REBASE)) {
+      if (pr.head.sha !== workflowRun.head_sha) {
+        core.info(`PR #${pr.number} merge-rebase SHA mismatch, skipping`);
+        continue;
+      }
+      if (workflowRun.conclusion === 'success') {
+        await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
+        const config = loadConfig();
+        const merged = await performMerge(api, config, pr, core, { allowBranchUpdate: false });
+        if (!merged) {
+          core.warning(`PR #${pr.number} merge-rebase: merge failed after branch update`);
+        }
+      } else {
+        await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
+        await api.removeLabel(pr.number, LABELS.TESTED);
+        await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+        await api.postComment(pr.number,
+          `The verification workflow failed after the branch update. ` +
+          `Reverting to \`lifecycle/ready-for-review\` for a full test run.`
+        );
+      }
+      await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
+      continue;
+    }
+
     if (state !== LABELS.READY_FOR_REVIEW && state !== LABELS.WIP) {
       core.info(`PR #${pr.number} not in ready-for-review or wip state, skipping test result`);
       continue;
@@ -1212,8 +1291,8 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       const matching = jobs.filter(j => j.name.startsWith(namePrefix));
       if (!matching.length) return 'skipped';
       if (matching.some(j => j.conclusion === 'failure')) return 'failure';
-      if (matching.every(j => j.conclusion === 'success')) return 'success';
       if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
+      if (matching.every(j => j.conclusion === 'success' || j.conclusion === 'skipped')) return 'success';
       return 'mixed';
     };
 
@@ -1264,17 +1343,25 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
 
     const body = bodyParts.join('\n');
 
-    // ── Post or update comment (paginated lookup) ────────────────────
+    // ── Minimize previous summaries and post a new comment ────────────
     const comments = await github.paginate(github.rest.issues.listComments, {
       owner, repo, issue_number: prNumber, per_page: 100,
     });
-    const existing = comments.find(c => c.body?.includes('<!-- verify-decide-summary -->'));
-
-    if (existing) {
-      await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
-    } else {
-      await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+    const previous = comments.filter(c => c.body?.includes('<!-- verify-decide-summary -->'));
+    for (const old of previous) {
+      try {
+        await github.graphql(`
+          mutation($id: ID!) {
+            minimizeComment(input: { subjectId: $id, classifier: OUTDATED }) {
+              minimizedComment { isMinimized }
+            }
+          }
+        `, { id: old.node_id });
+      } catch (e) {
+        core.warning(`Failed to minimize old summary comment ${old.id}: ${e.message}`);
+      }
     }
+    await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
     core.info(`PR #${prNumber} decision summary posted`);
   } catch (err) {
     core.warning(`Failed to post decision summary: ${err.message}`);

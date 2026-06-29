@@ -43,6 +43,8 @@ type ArtifactsRequestBuilderGetQueryParameters struct {
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsArtifactSortBy *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.ArtifactSortBy `uriparametername:"orderby"`
+	// Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.
+	SkipCount *bool `uriparametername:"skipCount"`
 }
 
 // ArtifactsRequestBuilderGetRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -77,6 +79,8 @@ type ArtifactsRequestBuilderPostQueryParameters struct {
 	Orderby *string `uriparametername:"orderby"`
 	// The field to sort by.  Can be one of:* `name`* `createdOn`
 	OrderbyAsArtifactSortBy *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.ArtifactSortBy `uriparametername:"orderby"`
+	// Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.
+	SkipCount *bool `uriparametername:"skipCount"`
 }
 
 // ArtifactsRequestBuilderPostRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.
@@ -92,7 +96,7 @@ type ArtifactsRequestBuilderPostRequestConfiguration struct {
 // NewArtifactsRequestBuilderInternal instantiates a new ArtifactsRequestBuilder and sets the default values.
 func NewArtifactsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ArtifactsRequestBuilder {
 	m := &ArtifactsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,skipCount*}", pathParameters),
 	}
 	return m
 }

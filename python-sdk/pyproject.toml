@@ -18,13 +18,13 @@ repository = "https://github.com/apicurio/apicurio-registry"
 keywords = ["apicurio", "registry"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-microsoft-kiota-abstractions = "^1.3.3"
-microsoft-kiota-http = "^1.3.3"
-microsoft-kiota-serialization-json = "^1.3.2"
-microsoft-kiota-serialization-text = "^1.0.0"
-microsoft-kiota-serialization-form = "^0.1.1"
-microsoft-kiota-serialization-multipart = "^0.1.0"
+python = "^3.10"
+microsoft-kiota-abstractions = "^1.10.3"
+microsoft-kiota-http = "^1.10.3"
+microsoft-kiota-serialization-json = "^1.10.3"
+microsoft-kiota-serialization-text = "^1.10.3"
+microsoft-kiota-serialization-form = "^1.10.3"
+microsoft-kiota-serialization-multipart = "^1.10.3"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"

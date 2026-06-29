@@ -167,7 +167,7 @@ render_template() {
         content="${content//${placeholder}/${value}}"
     done
 
-    printf '%s' "${content}" > "${output}"
+    printf '%s\n' "${content}" > "${output}"
 }
 
 # ---------------------------------------------------------------------------

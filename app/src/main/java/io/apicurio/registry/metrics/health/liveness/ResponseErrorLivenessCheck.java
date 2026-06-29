@@ -35,7 +35,7 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck
      * The counter is reset after some time without errors. i.e. to fail the check after 2 errors in a minute,
      * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
-    @ConfigProperty(name = "apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds", defaultValue = "60")
+    @ConfigProperty(name = "apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds", defaultValue = "60")
     @Info(category = CATEGORY_HEALTH, description = "Counter reset window duration of response liveness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 

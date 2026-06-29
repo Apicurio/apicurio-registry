@@ -248,9 +248,10 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param orderDirection the direction to order the results
      * @param offset the number of artifacts to skip
      * @param limit the result size limit
+     * @param skipCount whether to skip the total count query
      */
     ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit);
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount);
 
     /**
      * Get metadata for an artifact using GA information.
@@ -595,7 +596,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit)
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
             throws ArtifactNotFoundException, RegistryStorageException;
 
     /**

@@ -9,7 +9,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
 import org.eclipse.microprofile.health.HealthCheckResponse;
-import org.eclipse.microprofile.health.Liveness;
+import org.eclipse.microprofile.health.Readiness;
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -20,7 +20,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEA
  * Fail readiness check if the duration of processing a artifactStore operation is too high.
  */
 @ApplicationScoped
-@Liveness
+@Readiness
 @Default
 public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealthCheck implements HealthCheck {
 
@@ -38,7 +38,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * The counter is reset after some time without errors. i.e. to fail the check after 2 errors in a minute,
      * set the threshold to 1 and this configuration option to 60. TODO report the absolute count as a metric?
      */
-    @ConfigProperty(name = "apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds", defaultValue = "60")
+    @ConfigProperty(name = "apicurio.metrics.persistence-timeout-readiness-check.counter-reset-window-duration.seconds", defaultValue = "60")
     @Info(category = CATEGORY_HEALTH, description = "Counter reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configCounterResetWindowDurationSec;
 
@@ -46,7 +46,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
      * If set to a positive value, reset the readiness status after this time window passes without any
      * further errors.
      */
-    @ConfigProperty(name = "apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds", defaultValue = "300")
+    @ConfigProperty(name = "apicurio.metrics.persistence-timeout-readiness-check.status-reset-window-duration.seconds", defaultValue = "300")
     @Info(category = CATEGORY_HEALTH, description = "Status reset window duration of persistence readiness check", availableSince = "1.0.2.Final")
     Integer configStatusResetWindowDurationSec;
 

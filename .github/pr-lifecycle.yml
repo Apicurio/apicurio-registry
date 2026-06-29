@@ -6,6 +6,7 @@ maintainers:
   - jsenko
   - paoloantinori
   - vandanayadav7
+  - eameh
 
 auto_accept:
   - renovate[bot]

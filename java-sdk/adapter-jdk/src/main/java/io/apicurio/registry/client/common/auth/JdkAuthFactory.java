@@ -25,6 +25,20 @@ public class JdkAuthFactory {
 
     private static final Logger log = Logger.getLogger(JdkAuthFactory.class.getName());
 
+    private static final boolean OTEL_AVAILABLE;
+
+    static {
+        boolean available;
+        try {
+            Class.forName("io.opentelemetry.api.GlobalOpenTelemetry", false,
+                    JdkAuthFactory.class.getClassLoader());
+            available = true;
+        } catch (ClassNotFoundException e) {
+            available = false;
+        }
+        OTEL_AVAILABLE = available;
+    }
+
     private JdkAuthFactory() {
         // Prevent instantiation
     }
@@ -70,11 +84,18 @@ public class JdkAuthFactory {
      * @param clientId      the OAuth2 client ID
      * @param clientSecret  the OAuth2 client secret
      * @param scope         the OAuth2 scope (optional, can be null)
+     * @param otelEnabled   whether to inject OpenTelemetry trace context into token requests
      * @return a TokenProvider that supplies valid access tokens
      */
     public static TokenProvider buildOAuth2TokenProvider(HttpClient httpClient, String tokenEndpoint,
+                                                         String clientId, String clientSecret, String scope,
+                                                         boolean otelEnabled) {
+        return new OAuth2TokenProvider(httpClient, tokenEndpoint, clientId, clientSecret, scope, otelEnabled);
+    }
+
+    public static TokenProvider buildOAuth2TokenProvider(HttpClient httpClient, String tokenEndpoint,
                                                          String clientId, String clientSecret, String scope) {
-        return new OAuth2TokenProvider(httpClient, tokenEndpoint, clientId, clientSecret, scope);
+        return buildOAuth2TokenProvider(httpClient, tokenEndpoint, clientId, clientSecret, scope, false);
     }
 
     /**
@@ -105,18 +126,21 @@ public class JdkAuthFactory {
         private final String clientId;
         private final String clientSecret;
         private final String scope;
+        private final boolean otelEnabled;
 
         private final ReentrantLock lock = new ReentrantLock();
         private volatile String cachedToken;
         private volatile Instant tokenExpiry;
 
         public OAuth2TokenProvider(HttpClient httpClient, String tokenEndpoint,
-                                   String clientId, String clientSecret, String scope) {
+                                   String clientId, String clientSecret, String scope,
+                                   boolean otelEnabled) {
             this.httpClient = httpClient;
             this.tokenEndpoint = tokenEndpoint;
             this.clientId = clientId;
             this.clientSecret = clientSecret;
             this.scope = scope;
+            this.otelEnabled = otelEnabled;
         }
 
         @Override
@@ -148,12 +172,18 @@ public class JdkAuthFactory {
                 body.append("&scope=").append(urlEncode(scope));
             }
 
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(tokenEndpoint))
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .timeout(Duration.ofSeconds(30))
-                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                    .build();
+                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()));
+
+            // Inject OTel trace context if available and enabled
+            if (otelEnabled && OTEL_AVAILABLE) {
+                injectTraceContext(requestBuilder);
+            }
+
+            HttpRequest request = requestBuilder.build();
 
             try {
                 HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -196,6 +226,81 @@ public class JdkAuthFactory {
             } catch (java.io.UnsupportedEncodingException e) {
                 // UTF-8 is always supported
                 throw new RuntimeException(e);
+            }
+        }
+
+        private static final java.lang.reflect.Method GET_PROPAGATORS;
+        private static final java.lang.reflect.Method GET_TEXT_MAP_PROPAGATOR;
+        private static final java.lang.reflect.Method CONTEXT_CURRENT;
+        private static final java.lang.reflect.Method INJECT_METHOD;
+        private static final Class<?> TEXT_MAP_SETTER_CLASS;
+        private static final Class<?> CONTEXT_CLASS;
+        private static volatile boolean otelReflectionFailed = false;
+
+        static {
+            java.lang.reflect.Method getPropagators = null;
+            java.lang.reflect.Method getTextMapPropagator = null;
+            java.lang.reflect.Method contextCurrent = null;
+            java.lang.reflect.Method injectMethod = null;
+            Class<?> setterClass = null;
+            Class<?> ctxClass = null;
+            if (OTEL_AVAILABLE) {
+                try {
+                    Class<?> globalOTel = Class.forName("io.opentelemetry.api.GlobalOpenTelemetry");
+                    getPropagators = globalOTel.getMethod("getPropagators");
+                    Class<?> propagatorsClass = Class.forName(
+                            "io.opentelemetry.context.propagation.ContextPropagators");
+                    getTextMapPropagator = propagatorsClass.getMethod("getTextMapPropagator");
+                    ctxClass = Class.forName("io.opentelemetry.context.Context");
+                    contextCurrent = ctxClass.getMethod("current");
+                    setterClass = Class.forName(
+                            "io.opentelemetry.context.propagation.TextMapSetter");
+                    Class<?> propagatorClass = Class.forName(
+                            "io.opentelemetry.context.propagation.TextMapPropagator");
+                    injectMethod = propagatorClass.getMethod("inject", ctxClass,
+                            Object.class, setterClass);
+                } catch (ReflectiveOperationException e) {
+                    log.log(Level.WARNING,
+                            "OTel API is on classpath but reflection setup failed; "
+                                    + "OAuth2 token requests will not include trace context", e);
+                    otelReflectionFailed = true;
+                }
+            }
+            GET_PROPAGATORS = getPropagators;
+            GET_TEXT_MAP_PROPAGATOR = getTextMapPropagator;
+            CONTEXT_CURRENT = contextCurrent;
+            INJECT_METHOD = injectMethod;
+            TEXT_MAP_SETTER_CLASS = setterClass;
+            CONTEXT_CLASS = ctxClass;
+        }
+
+        private static void injectTraceContext(HttpRequest.Builder requestBuilder) {
+            if (otelReflectionFailed || INJECT_METHOD == null) {
+                return;
+            }
+            try {
+                Object propagators = GET_PROPAGATORS.invoke(null);
+                Object textMapPropagator = GET_TEXT_MAP_PROPAGATOR.invoke(propagators);
+                Object currentContext = CONTEXT_CURRENT.invoke(null);
+
+                Object setter = java.lang.reflect.Proxy.newProxyInstance(
+                        TEXT_MAP_SETTER_CLASS.getClassLoader(),
+                        new Class<?>[]{TEXT_MAP_SETTER_CLASS},
+                        (proxy, method, args) -> {
+                            if ("set".equals(method.getName()) && args != null && args.length == 3) {
+                                requestBuilder.header((String) args[1], (String) args[2]);
+                            }
+                            return null;
+                        });
+
+                INJECT_METHOD.invoke(textMapPropagator, currentContext, requestBuilder, setter);
+            } catch (ReflectiveOperationException e) {
+                if (!otelReflectionFailed) {
+                    otelReflectionFailed = true;
+                    log.log(Level.WARNING,
+                            "Failed to inject OTel trace context into OAuth2 token request; "
+                                    + "will not retry on subsequent calls", e);
+                }
             }
         }
     }

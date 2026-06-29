@@ -2,9 +2,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="operator-config-reference_{context}"]
 = {operator} configuration reference
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter provides a complete reference for configuring {registry} instances using the `ApicurioRegistry3`
+You can use the following reference information to configure {registry} instances by using the `ApicurioRegistry3`
 custom resource.
 
 * xref:operator-cr-structure_{context}[]
@@ -16,9 +17,12 @@ custom resource.
 
 //INCLUDES
 
+// ref-operator-cr-structure
 [id="operator-cr-structure_{context}"]
 == ApicurioRegistry3 custom resource structure
+:_mod-docs-content-type: REFERENCE
 
+[role="_abstract"]
 The `ApicurioRegistry3` custom resource defines the desired state of a {registry} instance. The resource is
 organized into two main sections under `spec`:
 
@@ -35,12 +39,15 @@ spec:
     # Configuration for the {registry-ui}.
 ----
 
+// ref-operator-app-spec-reference
 [id="operator-app-spec-reference_{context}"]
 == {registry-app} configuration reference
+:_mod-docs-content-type: REFERENCE
 
+[role="_abstract"]
 The `spec.app` section configures the backend component, which provides the REST API.
 
-=== Common component fields
+.Common component fields
 
 The following fields are available for both `spec.app` and `spec.ui` components:
 
@@ -87,7 +94,7 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |`""`
 |===
 
-=== Application-specific fields
+.Application-specific fields
 
 The following fields are specific to `spec.app`:
 
@@ -119,7 +126,7 @@ The following fields are specific to `spec.app`:
 |See below
 |===
 
-=== AppFeaturesSpec
+.AppFeaturesSpec
 
 Configure optional features for {registry}:
 
@@ -152,7 +159,7 @@ spec:
       versionMutabilityEnabled: true
 ----
 
-=== TLSSpec
+.TLSSpec
 
 Configure TLS certificates for the application:
 
@@ -188,12 +195,15 @@ spec:
         key: keystore.password
 ----
 
+// ref-operator-ui-spec-reference
 [id="operator-ui-spec-reference_{context}"]
 == UI component configuration reference
+:_mod-docs-content-type: REFERENCE
 
+[role="_abstract"]
 The `spec.ui` section configures the {registry} web console component.
 
-=== UI-specific fields
+.UI-specific fields
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -225,12 +235,15 @@ spec:
       host: registry-ui.example.com
 ----
 
+// ref-operator-storage-reference
 [id="operator-storage-reference_{context}"]
 == Storage configuration reference
+:_mod-docs-content-type: REFERENCE
 
+[role="_abstract"]
 The `spec.app.storage` section configures the storage backend for {registry}.
 
-=== StorageSpec
+.StorageSpec
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -262,7 +275,7 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 
 IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Specify a storage type for production use.
 
-=== SqlSpec
+.SqlSpec
 
 Configure SQL database storage (PostgreSQL or MySQL):
 
@@ -277,7 +290,7 @@ Configure SQL database storage (PostgreSQL or MySQL):
 |<<DataSourceSpec>>
 |===
 
-=== DataSourceSpec
+.DataSourceSpec
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -334,7 +347,7 @@ spec:
             key: password
 ----
 
-=== KafkaSqlSpec
+.KafkaSqlSpec
 
 Configure KafkaSQL storage:
 
@@ -388,7 +401,7 @@ spec:
         kafkaAccessSecretName: my-kafka-access
 ----
 
-=== KafkaSqlTLSSpec
+.KafkaSqlTLSSpec
 
 Configure TLS for KafkaSQL storage:
 
@@ -442,7 +455,7 @@ spec:
 
 NOTE: Default keys match the secret structure produced by the {kafka-streams} Operator, so you typically only need to specify the secret `name`.
 
-=== KafkaSqlAuthSpec
+.KafkaSqlAuthSpec
 
 Configure SASL OAuth authentication for KafkaSQL storage:
 
@@ -506,9 +519,9 @@ spec:
           loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ----
 
-NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication via the `auth` field. For other SASL mechanisms such as SCRAM-SHA-512, the recommended approach is to use the Strimzi Kafka Access Operator via the `kafkaAccessSecretName` field (available starting with {registry} version 3.2.0). Alternatively, you can use custom environment variables via the `spec.app.env` field to configure the Kafka client properties directly. See the xref:getting-started/assembly-config-reference.adoc[] for available `apicurio.kafkasql.*` configuration properties.
+NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication through the `auth` field. For other SASL mechanisms such as SCRAM-SHA-512, the recommended approach is to use the Strimzi Kafka Access Operator through the `kafkaAccessSecretName` field (available starting with {registry} version 3.2.0). Alternatively, you can use custom environment variables through the `spec.app.env` field to configure the Kafka client properties directly. See the xref:getting-started/assembly-config-reference.adoc[] for available `apicurio.kafkasql.*` configuration properties.
 
-=== KubernetesOpsSpec
+.KubernetesOpsSpec
 
 Configure KubernetesOps storage (read-only, experimental). Loads registry data from Kubernetes ConfigMaps:
 
@@ -581,12 +594,15 @@ spec:
 
 NOTE: KubernetesOps storage is read-only. All changes must be made by creating or updating ConfigMaps. For more details on ConfigMap format and RBAC requirements, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[].
 
+// ref-operator-auth-reference
 [id="operator-auth-reference_{context}"]
 == Authentication and authorization configuration reference
+:_mod-docs-content-type: REFERENCE
 
+[role="_abstract"]
 The `spec.app.auth` section configures OIDC authentication and role-based authorization.
 
-=== AuthSpec
+.AuthSpec
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -661,7 +677,7 @@ spec:
       anonymousReadsEnabled: false
 ----
 
-=== AuthzSpec
+.AuthzSpec
 
 Configure role-based authorization:
 
@@ -721,7 +737,7 @@ spec:
           readOnly: sr-readonly
 ----
 
-=== AuthzRolesSpec
+.AuthzRolesSpec
 
 Configure authorization roles:
 
@@ -753,7 +769,7 @@ Configure authorization roles:
 |None
 |===
 
-=== AdminOverrideSpec
+.AdminOverrideSpec
 
 Configure admin override functionality:
 
@@ -826,7 +842,7 @@ spec:
           claimValue: "true"
 ----
 
-=== BasicAuthSpec
+.BasicAuthSpec
 
 Configure basic authentication for client credentials:
 
@@ -859,7 +875,7 @@ spec:
         cacheExpiration: 25m
 ----
 
-=== AuthTLSSpec
+.AuthTLSSpec
 
 Configure TLS for OIDC connections:
 
@@ -902,12 +918,15 @@ spec:
           key: ca.password
 ----
 
+// ref-operator-ingress-reference
 [id="operator-ingress-reference_{context}"]
 == Ingress configuration reference
+:_mod-docs-content-type: REFERENCE
 
+[role="_abstract"]
 The `ingress` section is available for both `spec.app` and `spec.ui` components.
 
-=== IngressSpec
+.IngressSpec
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -955,7 +974,7 @@ spec:
         nginx.org/proxy-connect-timeout: "30s"
 ----
 
-=== SecretKeyRef
+.SecretKeyRef
 
 Many configuration fields use `SecretKeyRef` to reference Kubernetes Secrets:
 
@@ -985,8 +1004,12 @@ password:
   key: db-password
 ----
 
+// ref-operator-for-developers
+[id="operator-for-developers_{context}"]
 == For Developers
+:_mod-docs-content-type: REFERENCE
 
+[role="_abstract"]
 Java model classes for the `ApicurioRegistry3` custom resource are available as a Maven artifact:
 
 [source,xml,subs="attributes+"]

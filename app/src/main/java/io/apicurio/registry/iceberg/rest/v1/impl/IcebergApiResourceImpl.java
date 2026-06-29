@@ -254,7 +254,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(groupId));
         ArtifactSearchResultsDto artifacts = storage.searchArtifacts(filters, OrderBy.artifactId,
-                OrderDirection.asc, 0, 1);
+                OrderDirection.asc, 0, 1, false);
 
         if (artifacts.getCount() > 0) {
             throw new GroupNotEmptyException(groupId, artifacts.getCount());
@@ -339,7 +339,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         filters.add(SearchFilter.ofArtifactType(ArtifactType.ICEBERG_TABLE));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
-                OrderDirection.asc, offset, limit);
+                OrderDirection.asc, offset, limit, false);
 
         List<TableIdentifier> identifiers = results.getArtifacts().stream()
                 .map(a -> {
@@ -732,7 +732,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         filters.add(SearchFilter.ofArtifactType(ArtifactType.ICEBERG_VIEW));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
-                OrderDirection.asc, offset, limit);
+                OrderDirection.asc, offset, limit, false);
 
         List<TableIdentifier> identifiers = results.getArtifacts().stream()
                 .map(a -> {

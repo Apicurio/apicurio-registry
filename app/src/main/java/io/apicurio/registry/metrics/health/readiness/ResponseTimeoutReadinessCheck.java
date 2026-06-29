@@ -59,7 +59,7 @@ public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthChe
      * If set to a positive value, reset the readiness status after this time window passes without any
      * further errors.
      */
-    @ConfigProperty(name = "apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds", defaultValue = "300")
+    @ConfigProperty(name = "apicurio.metrics.response-timeout-readiness-check.status-reset-window-duration.seconds", defaultValue = "300")
     @Info(category = CATEGORY_HEALTH, description = "Status reset window duration of response readiness check", availableSince = "1.0.2.Final")
     Instance<Integer> configStatusResetWindowDurationSec;
 

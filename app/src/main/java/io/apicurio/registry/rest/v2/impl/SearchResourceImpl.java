@@ -127,7 +127,7 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), false);
         return V2ApiUtil.dtoToSearchResults(results);
     }
 
@@ -178,7 +178,7 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), false);
         return V2ApiUtil.dtoToSearchResults(results);
     }
 

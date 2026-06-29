@@ -20,7 +20,7 @@
 #
 #   6. Start Registry in dev mode:
 #      pushd ../../..
-#      mvn clean install -Dfast -pl app -am -DskipTests
+#      mvn clean install -Dlocal -pl app -am -DskipTests
 #      cd app
 #      mvn quarkus:dev \
 #        -Dapicurio.storage.kind=gitops \

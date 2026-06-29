@@ -10,9 +10,7 @@ public class KafkasqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("apicurio.storage.kind", "kafkasql",
-                "quarkus.datasource.h2.active", "true",
-                "quarkus.datasource.postgresql.active", "false");
+        return Map.of("apicurio.storage.kind", "kafkasql");
     }
 
     @Override

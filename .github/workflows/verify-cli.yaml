@@ -8,6 +8,9 @@ on:
         required: true
         description: 'Build artifact identifier (commit SHA)'
 
+permissions:
+  contents: read
+
 jobs:
   cli-verify:
     name: CLI (${{ matrix.os-name }})
@@ -27,12 +30,12 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
       # forward-compatibility issues with GraalVM/native-image early in PRs.
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1
         with:
           java-version: '25'
           distribution: 'graalvm-community'
@@ -40,7 +43,7 @@ jobs:
           native-image-job-reports: 'true'
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .
@@ -76,6 +79,7 @@ jobs:
             --no-transfer-progress \
             -Dquarkus.native.container-build=false \
             ${{ matrix.test-args }} \
+            -Dmaven.javadoc.skip=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 

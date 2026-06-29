@@ -474,31 +474,31 @@ The following {registry} configuration options are available for each component 
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence liveness check
+|`apicurio.metrics.persistence-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of persistence readiness check
 |`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
 |`integer`
 |`5`
 |`1.0.2.Final`
 |Error threshold of persistence readiness check
+|`apicurio.metrics.persistence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence readiness check
 |`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
 |`integer`
 |`15`
 |`1.0.2.Final`
 |Timeout of persistence readiness check
-|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
-|`integer`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of persistence readiness check
-|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
-|`integer`
-|`60`
-|`1.0.2.Final`
-|Counter reset window duration of response liveness check
 |`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
-|Counter reset window duration of persistence readiness check
+|Counter reset window duration of response liveness check
 |`apicurio.metrics.response-error-liveness-check.disabled`
 |`boolean`
 |`false`
@@ -524,16 +524,16 @@ The following {registry} configuration options are available for each component 
 |`1`
 |`1.0.2.Final`
 |Error threshold of response readiness check
+|`apicurio.metrics.response-timeout-readiness-check.status-reset-window-duration.seconds`
+|`instance<integer>`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response readiness check
 |`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
 |`instance<integer>`
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check
-|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
-|`instance<integer>`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of response readiness check
 |`apicurio.storage.metrics.cache.check-period.ms`
 |`long`
 |`30000`
@@ -606,6 +606,21 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Temporary work directory to use when importing data.
+|`apicurio.import.zip.max-entry-count`
+|`int`
+|`10000`
+|`3.0.7`
+|Maximum number of ZIP entries allowed during import. Defaults to 10,000.
+|`apicurio.import.zip.max-entry-size`
+|`long`
+|`10485760`
+|`3.0.7`
+|Maximum decompressed size in bytes allowed for a single ZIP entry during import. Defaults to 10 MiB.
+|`apicurio.import.zip.max-total-size`
+|`long`
+|`104857600`
+|`3.0.7`
+|Maximum total decompressed size in bytes allowed across all ZIP entries during import. Defaults to 100 MiB.
 |===
 
 == kubernetesops
@@ -1398,6 +1413,11 @@ The following {registry} configuration options are available for each component 
 |`/tmp/apicurio-registry-artifact-types.json`
 |`3.1.0`
 |Path to a configuration file containing a list of supported artifact types.
+|`apicurio.compat.json-schema.use-apitomy`
+|`boolean`
+|`false`
+|`3.3.1`
+|Use the Apitomy Data Models JSON Schema compatibility checker instead of the everit-based one. _(experimental)_
 |===
 
 == ui

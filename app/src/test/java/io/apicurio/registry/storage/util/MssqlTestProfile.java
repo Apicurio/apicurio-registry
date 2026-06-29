@@ -11,9 +11,7 @@ public class MssqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("apicurio.storage.sql.kind", "mssql",
-                "quarkus.datasource.h2.active", "false",
-                "quarkus.datasource.mssql.active", "true");
+        return Map.of("apicurio.storage.sql.kind", "mssql");
     }
 
     @Override

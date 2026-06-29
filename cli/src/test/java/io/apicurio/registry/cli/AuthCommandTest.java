@@ -1,13 +1,18 @@
 package io.apicurio.registry.cli;
 
+import io.apicurio.registry.cli.auth.CredentialProvider;
 import io.apicurio.registry.cli.config.ConfigModel;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
 public class AuthCommandTest extends AbstractCLITest {
+
+    @Inject
+    CredentialProvider credentialProvider;
 
     private static final String TOKEN_PATH = "/token";
     private static final String TEST_CONTEXT = "test";
@@ -189,6 +194,137 @@ public class AuthCommandTest extends AbstractCLITest {
 
         var context = getTestContext();
         assertThat(context.getUsername()).isEqualTo("user2");
+    }
+
+    // -- Unsafe credential storage --
+
+    @Test
+    public void testLoginBasicWithUnsafeFlagKeychainAvailable() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+                "--allow-unsafe-credential-storage");
+        assertThat(out.toString())
+                .as(withCliOutput("Should login without warning when keychain works"))
+                .contains("Logged in to context")
+                .doesNotContain("not recommended for production");
+
+        var context = getTestContext();
+        assertThat(context.isUnsafeCredentialStorage())
+                .as("Should be false — keychain succeeded, fallback not used")
+                .isFalse();
+    }
+
+    @Test
+    public void testLoginOAuth2WithUnsafeFlagKeychainAvailable() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("login", "--token-endpoint", tokenEndpoint(),
+                "--client-id", TEST_CLIENT_ID, "--client-secret", TEST_CLIENT_SECRET,
+                "--allow-unsafe-credential-storage");
+        assertThat(out.toString())
+                .as(withCliOutput("Should login without warning when keychain works"))
+                .contains("Logged in to context")
+                .doesNotContain("not recommended for production");
+
+        var context = getTestContext();
+        assertThat(context.isUnsafeCredentialStorage())
+                .as("Should be false — keychain succeeded, fallback not used")
+                .isFalse();
+    }
+
+    @Test
+    public void testLogoutClearsUnsafeFlag() {
+        executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+                "--allow-unsafe-credential-storage");
+
+        executeAndAssertSuccess("logout");
+
+        var context = getTestContext();
+        assertThat(context.isUnsafeCredentialStorage())
+                .as("Logout should clear unsafeCredentialStorage flag")
+                .isFalse();
+    }
+
+    @Test
+    public void testLoginFallsBackToFileWhenKeychainFails() {
+        final var testProvider = (TestCredentialProvider) credentialProvider;
+        try {
+            testProvider.setFailOnStore(true);
+
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+                    "--allow-unsafe-credential-storage");
+            assertThat(out.toString())
+                    .as(withCliOutput("Should warn about file storage"))
+                    .contains("not recommended for production");
+
+            var context = getTestContext();
+            assertThat(context.isUnsafeCredentialStorage())
+                    .as("Should be true — file fallback was used")
+                    .isTrue();
+        } finally {
+            testProvider.setFailOnStore(false);
+        }
+    }
+
+    @Test
+    public void testLoginOAuth2FallsBackToFileWhenKeychainFails() {
+        final var testProvider = (TestCredentialProvider) credentialProvider;
+        try {
+            testProvider.setFailOnStore(true);
+
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("login", "--token-endpoint", tokenEndpoint(),
+                    "--client-id", TEST_CLIENT_ID, "--client-secret", TEST_CLIENT_SECRET,
+                    "--allow-unsafe-credential-storage");
+            assertThat(out.toString())
+                    .as(withCliOutput("Should warn about file storage"))
+                    .contains("not recommended for production");
+
+            var context = getTestContext();
+            assertThat(context.isUnsafeCredentialStorage())
+                    .as("Should be true — file fallback was used")
+                    .isTrue();
+        } finally {
+            testProvider.setFailOnStore(false);
+        }
+    }
+
+    @Test
+    public void testLoginFailsWithoutFlagWhenKeychainFails() {
+        final var testProvider = (TestCredentialProvider) credentialProvider;
+        try {
+            testProvider.setFailOnStore(true);
+
+            out.getBuffer().setLength(0);
+            executeAndAssertFailure("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD);
+            assertThat(err.toString())
+                    .as(withCliOutput("Should suggest --allow-unsafe-credential-storage"))
+                    .contains("allow-unsafe-credential-storage");
+        } finally {
+            testProvider.setFailOnStore(false);
+        }
+    }
+
+    @Test
+    public void testReloginHonorsSavedUnsafePreference() {
+        final var testProvider = (TestCredentialProvider) credentialProvider;
+        try {
+            testProvider.setFailOnStore(true);
+
+            // First login — file fallback used, preference saved
+            executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+                    "--allow-unsafe-credential-storage");
+            assertThat(getTestContext().isUnsafeCredentialStorage()).isTrue();
+
+            // Re-login without flag — should succeed via saved preference
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD);
+            assertThat(out.toString())
+                    .as(withCliOutput("Re-login should succeed without flag"))
+                    .contains("Logged in to context");
+        } finally {
+            testProvider.setFailOnStore(false);
+        }
     }
 
     // -- Helpers --

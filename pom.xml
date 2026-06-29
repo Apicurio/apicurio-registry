@@ -1303,7 +1303,7 @@
       <id>non-essential</id>
       <activation>
         <property>
-          <name>!fast</name>
+          <name>!local</name>
         </property>
       </activation>
       <modules>
@@ -1324,6 +1324,20 @@
         <module>serdes/nats/avro-serde</module>
         <module>serdes/pulsar/avro-serde</module>
       </modules>
+    </profile>
+    <profile>
+      <id>local</id>
+      <activation>
+        <property>
+          <name>local</name>
+        </property>
+      </activation>
+      <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <assembly.skipAssembly>true</assembly.skipAssembly>
+      </properties>
     </profile>
     <profile>
       <id>full</id>

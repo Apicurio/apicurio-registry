@@ -2,10 +2,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="managing-registry-artifacts-ui_{context}"]
 = Managing {registry} content using the web console
-//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can manage schema and API artifacts stored in {registry} by using the {registry} web console. This includes uploading and browsing {registry} content, configuring optional rules for content, and generating client sdk code:
+You can manage schema and API artifacts stored in {registry} by using the {registry} web console.
 
 * xref:configuring-registry-ui_{context}[]
 * xref:browsing-artifacts-using-console_{context}[]
@@ -16,49 +16,31 @@ You can manage schema and API artifacts stored in {registry} by using the {regis
 * xref:configuring-settings-using-console_{context}[]
 * xref:exporting-importing-using-web-console_{context}[]
 
-//INCLUDES
-
 
 
 
 [id="configuring-registry-ui_{context}"]
 == Configuring the {registry} web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
+You can set optional environment variables to configure the {registry} web console for your deployment environment or to customize its behavior.
 
 .Prerequisites
-* You have already installed {registry}.
-
-[discrete]
-=== Configuring the web console deployment environment
-
-When you access the {registry} web console in your browser, some initial configuration settings are loaded. The following configuration settings are required:
-
-* URL for core {registry} server REST API v3
-
-Typically the {operator} will automatically configure the UI component with the REST API v3 URL.  However, you can override this value by configuring the appropriate environment variable in the UI component deployment configuration.
+* You have installed {registry}.
 
 .Procedure
-Configure the following environment variables to override the default URL:
+. To override the default REST API v3 URL, set the following environment variable in the UI component deployment configuration:
++
+`REGISTRY_API_URL`: URL for the core {registry} server REST API v3. For example, `\https://registry-api.my-domain.com/apis/registry/v3`
++
+NOTE: The {operator} automatically configures the UI component with the REST API v3 URL by default. Set this variable only to override the default value.
 
-* `REGISTRY_API_URL`: Specifies the URL for the core {registry} server REST API v3. For example, `\https://registry-api.my-domain.com/apis/registry/v3`
-
-[discrete]
-=== Configuring the web console in read-only mode
-
-You can configure the {registry} web console in read-only mode as an optional feature. This mode disables all features in the {registry} web console that allow users to make changes to registered artifacts. For example, this includes the following:
-
-* Creating a group
-* Creating an artifact
-* Uploading a new artifact version
-* Updating artifact metadata
-* Deleting an artifact
-
-.Procedure
-Configure the following environment variable:
-
-* `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
+. Optional: To enable read-only mode, set the following environment variable:
++
+`REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
++
+NOTE: Read-only mode disables all write operations in the {registry} web console. When enabled, users cannot create groups, create artifacts, upload new artifact versions, update artifact metadata, or delete artifacts.
 
 
 
@@ -67,9 +49,10 @@ Configure the following environment variable:
 
 [id="browsing-artifacts-using-console_{context}"]
 == Viewing artifacts using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can use the {registry} web console to browse the schema and API artifacts stored in {registry}. This section shows a simple example of viewing {registry} groups, artifacts, versions, and rules.
+You can use the {registry} web console to browse the schema and API artifacts stored in {registry}.
 
 .Prerequisites
 
@@ -89,23 +72,23 @@ image::images/getting-started/registry-web-console.png[Artifacts in Registry web
 . Click an artifact to view the following details:
 
 ** *Overview*: Displays artifact metadata such as artifact ID, name, description, labels, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
-** *Versions*: Displays a list of all artifact versions.  This will be empty unless you chose to upload a first version when you created the artifact.
-** *Branches*: Displays a list of branches for the artifact. This will display at least the `latest` branch, but might display other generated branches depending on your configuration.
+** *Versions*: Displays a list of all artifact versions. The tab is empty unless you uploaded a version when you created the artifact.
+** *Branches*: Displays a list of branches for the artifact. The tab displays at least the `latest` branch and might display other generated branches depending on your configuration.
 +
 .Artifact details in {registry} web console
 image::images/getting-started/registry-web-console-artifact.png[Artifacts in Registry web console]
 +
-. Click the *Versions* tab to view a list of all artifact versions.  Then click one of the versions in the list, or choose *View Version* from the Action menu for a version in the list.  You will then see the following artifact version details:
+. Click the *Versions* tab to view a list of all artifact versions. Then click one of the versions in the list, or click *View Version* from the Action menu for a version. You can then view the following artifact version details:
 
 ** *Overview*: Displays artifact version metadata such as version name, description, global ID, content ID, labels, and so on. Also displays any comments created for the artifact version.
-** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically-generated REST API documentation.
+** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact version content. For JSON content, you can click *JSON* or *YAML* to display your preferred format.
 ** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*.
 +
 .Artifact version details in {registry} web console
 image::images/getting-started/registry-web-console-artifact-version.png[Artifacts in Registry web console]
 
-. To save the artifact contents to a local file, for example, `my-openapi.json` or `my-protobuf-schema.proto`, and click *Download*.
+. Click *Download* to save the artifact contents to a local file.
 
 [role="_additional-resources"]
 .Additional resources
@@ -117,9 +100,10 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 
 [id="adding-artifacts-using-console_{context}"]
 == Adding artifacts using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can use the {registry} web console to upload schema and API artifacts to {registry}. This section shows simple examples of creating {registry} artifacts and adding new artifact versions.
+You can use the {registry} web console to upload schema and API artifacts to {registry}.
 
 .Prerequisites
 
@@ -134,8 +118,8 @@ You can use the {registry} web console to upload schema and API artifacts to {re
 +
 [NOTE]
 ====
-You can create a placeholder artifact without content, but you must specify the artifact type, as {registry} cannot automatically detect the content type.
-Creating a placeholder allows you create rules first and add content later.
+You can create a placeholder artifact without content, but you must specify the artifact type, because {registry} cannot automatically detect the content type.
+You can create rules first and add content later.
 ====
 
 .. Specify the *Artifact Coordinates* and click *Next*:
@@ -165,17 +149,15 @@ Creating a placeholder allows you create rules first and add content later.
 . Click *Create* and view the artifact details:
 +
 ** *Overview*: Displays artifact metadata such as artifact ID, name, description, labels, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
-** *Versions*: Displays a list of all artifact versions.  This will be empty unless you chose to upload a first version when you created the artifact.
-** *Branches*: Displays a list of branches for the artifact. This will display at least the `latest` branch, but might display other generated branches depending on your configuration.
-+
-The following example shows an example Apache Avro artifact:
+** *Versions*: Displays a list of all artifact versions. The tab is empty unless you uploaded a version when you created the artifact.
+** *Branches*: Displays a list of branches for the artifact. The tab displays at least the `latest` branch and might display other generated branches depending on your configuration.
 +
 .Artifact details in {registry} web console
 image::images/getting-started/registry-web-console-artifact.png[Artifact details in Registry web console]
 
 . On the *Overview* tab, click the *Edit* pencil icon to edit artifact metadata such as name or description.
 +
-You can also add zero or more labels (name + value) for categorizing and searching purposes. To add labels, perform the following steps:
+You can also add zero or more labels (name + value) for categorizing and searching purposes. To add labels:
 +
 .. Click *Add label*.
 .. Enter the key name and the value (optional).
@@ -189,7 +171,7 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 .. *Content*: Specify the content using either of the following options:
 ... *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
 ... *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
-.. Now you can click the *Create* button to create the new version.
+.. Click *Create* to create the new version.
 . To delete a group, artifact, or artifact version, see xref:deleting-artifacts-using-console_{context}[].
 
 [role="_additional-resources"]
@@ -203,11 +185,12 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 
 [id="deleting-artifacts-using-console_{context}"]
 == Deleting groups, artifacts, and artifact versions using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can use the {registry} web console to delete groups, artifacts, and artifact versions stored in {registry}. You can delete an entire group, which removes all artifacts in that group. Deleting the complete artifact removes every version of that artifact. You can also delete a specific artifact version.
+You can use the {registry} web console to delete groups, artifacts, and artifact versions stored in {registry}. You can delete an entire group, which removes all artifacts in that group. Deleting an artifact removes every version of that artifact. You can also delete a specific artifact version.
 
-IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by default in the {registry} web console. You must enable deletion in the {registry} web console *Settings* before you can delete groups, artifacts, or artifact versions.
+IMPORTANT: The {registry} web console disables deletion of groups, artifacts, and artifact versions by default. You must enable deletion in the {registry} web console *Settings* before you can delete groups, artifacts, or artifact versions.
 
 .Prerequisites
 
@@ -217,14 +200,23 @@ IMPORTANT: Deletion of groups, artifacts, and artifact versions is disabled by d
 `{registry-url}`
 * Artifacts have been added to {registry}.
 
+.Procedure
+. xref:enabling-deletion-using-console_{context}[Enable deletion] in the {registry} web console *Settings* before you delete any content.
+. Follow the relevant procedure:
++
+** xref:deleting-group-using-console_{context}[Delete a group]
+** xref:deleting-artifact-using-console_{context}[Delete an artifact]
+** xref:deleting-artifact-version-using-console_{context}[Delete an artifact version]
+
 
 [id="enabling-deletion-using-console_{context}"]
 === Enabling deletion of groups, artifacts, and artifact versions
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Before you can delete groups, artifacts, or artifact versions, you must enable the deletion settings in the {registry} web console.
 
-WARNING: Enabling deletion allows users to permanently remove groups, artifacts, and artifact versions. Deleting a group removes all of its artifacts and their versions. Deleting an artifact removes all of its versions. These operations cannot be undone.
+WARNING: When you enable deletion, users can permanently remove groups, artifacts, and artifact versions. Deleting a group removes all of its artifacts and their versions. Deleting an artifact removes all of its versions. These operations cannot be undone.
 
 .Procedure
 
@@ -236,22 +228,24 @@ WARNING: Enabling deletion allows users to permanently remove groups, artifacts,
 ** *Delete artifact version*: Select this option to enable deletion of artifact versions.
 +
 NOTE: All three settings are disabled by default. You can enable any combination of these settings depending on your requirements.
-
 ifndef::service-registry-downstream[]
-TIP: Alternatively, if you are deploying {registry} on Kubernetes using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference].
++
+TIP: Alternatively, if you are deploying {registry} on Kubernetes by using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference].
 endif::[]
 ifdef::service-registry-downstream[]
-TIP: Alternatively, if you are deploying {registry} on OpenShift using the {operator}, you can enable deletion by setting `resourceDeleteEnabled` to `true` in the `ApicurioRegistry3` custom resource.
++
+TIP: Alternatively, if you are deploying {registry} on OpenShift by using the {operator}, you can enable deletion by setting `resourceDeleteEnabled` to `true` in the `ApicurioRegistry3` custom resource.
 endif::[]
 
 
 [id="deleting-group-using-console_{context}"]
 === Deleting a group
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can delete a group from {registry} using the web console.
+You can delete a group from {registry} by using the web console.
 
-WARNING: Deleting a group deletes the group and all of its artifacts, including all versions of those artifacts. This operation cannot be undone.
+WARNING: Deleting a group permanently removes the group and all of its artifacts, including all versions. The operation cannot be undone.
 
 .Procedure
 
@@ -263,11 +257,12 @@ WARNING: Deleting a group deletes the group and all of its artifacts, including 
 
 [id="deleting-artifact-using-console_{context}"]
 === Deleting an artifact
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can delete an artifact from {registry} using the web console.
+You can delete an artifact from {registry} by using the web console.
 
-WARNING: Deleting an artifact deletes the artifact and all of its versions, and this operation cannot be undone.
+WARNING: Deleting an artifact permanently removes the artifact and all of its versions.
 
 .Procedure
 
@@ -279,11 +274,12 @@ WARNING: Deleting an artifact deletes the artifact and all of its versions, and 
 
 [id="deleting-artifact-version-using-console_{context}"]
 === Deleting an artifact version
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can delete a specific artifact version from {registry} using the web console.
+You can delete a specific artifact version from {registry} by using the web console.
 
-WARNING: Deleting an artifact version is permanent and cannot be undone. If you delete the only remaining version of an artifact, the entire artifact is also deleted.
+WARNING: Deleting an artifact version is permanent and cannot be undone. If you delete the only remaining version, {registry} also deletes the artifact.
 
 .Procedure
 
@@ -301,9 +297,10 @@ WARNING: Deleting an artifact version is permanent and cannot be undone. If you 
 
 [id="configuring-rules-using-console_{context}"]
 == Configuring content rules using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can use the {registry} web console to configure optional rules to prevent invalid or incompatible content from being added to {registry}. All configured artifact-specific, group-specific, or global rules must pass before a new artifact version can be uploaded to {registry}. Configured artifact-specific rules override any configured group-specific rules, which in turn override any global rules. This section shows a simple example of configuring global, group-specific, and artifact-specific rules.
+You can use the {registry} web console to configure optional rules to prevent invalid or incompatible content from being added to {registry}. All configured artifact-specific, group-specific, or global rules must pass before {registry} accepts a new artifact version. Artifact-specific rules override group-specific rules, which in turn override global rules.
 
 .Prerequisites
 
@@ -314,36 +311,35 @@ You can use the {registry} web console to configure optional rules to prevent in
 * Artifacts have been added to {registry} using the web console, command line, Maven plug-in, or a Java client application.
 * When role-based authorization is enabled, you have administrator access for global rules configuration.
 
-.Procedure (group-specific rules)
-. On the *Explore* tab, browse the list of groups in {registry} by selecting *Groups* from the "Search for" menu.
+.Procedure
+
+. To configure group-specific rules:
 +
-. Click a group to view its details and content rules.
-+
-. In *Group-specific rules*, click *Enable* to configure a validity, compatibility, or integrity rule for all artifact content in the group, and select the appropriate rule configuration from the list. For example, for *Validity rule*, select *Full*.
+.. On the *Explore* tab, browse the list of groups in {registry} by selecting *Groups* from the "Search for" menu.
+.. Click a group to view its details and content rules.
+.. In *Group-specific rules*, click *Enable* to configure a validity, compatibility, or integrity rule for all artifact content in the group, and select the appropriate rule configuration from the list. For example, for *Validity rule*, select *Full*.
 +
 .Group-specific rules in {registry} web console
 image::images/getting-started/registry-web-console-group-rules.png[Configure group-specific rules in Registry web console]
 
-
-.Procedure (artifact-specific rules)
-. On the *Explore* tab, browse the list of artifacts in {registry} by selecting *Artifacts* from the "Search for" menu.
+. To configure artifact-specific rules:
 +
-. Click an artifact from the list to view its details and content rules.
-+
-. In *Artifact-specific rules*, click *Enable* to configure a validity, compatibility, or integrity rule for artifact content, and select the appropriate rule configuration from the list. For example, for *Validity rule*, select *Full*.
+.. On the *Explore* tab, browse the list of artifacts in {registry} by selecting *Artifacts* from the "Search for" menu.
+.. Click an artifact from the list to view its details and content rules.
+.. In *Artifact-specific rules*, click *Enable* to configure a validity, compatibility, or integrity rule for artifact content, and select the appropriate rule configuration from the list. For example, for *Validity rule*, select *Full*.
 +
 .Artifact content rules in {registry} web console
 image::images/getting-started/registry-web-console-artifact-rules.png[Configure rules in Registry web console]
 
-
-.Procedure (global rules)
-. To access global rules, click the *Global rules* tab.
-. Click *Enable* to configure global validity, compatibility, or integrity rules for all artifact content, and select the appropriate rule configuration from the list.
+. To configure global rules:
++
+.. Click the *Global rules* tab.
+.. Click *Enable* to configure global validity, compatibility, or integrity rules for all artifact content, and select the appropriate rule configuration from the list.
 +
 .Artifact content rules in {registry} web console
 image::images/getting-started/registry-web-console-global-rules.png[Configure rules in Registry web console]
-
-NOTE: To disable an artifact-specific, group-specific, or global rule, click the trash icon next to the rule.  If you do this, and the rule is configured at a higher level (e.g. Global), then the higher level rule configuration will once again be applied.
++
+NOTE: To disable a rule, click the trash icon next to the rule. If you do this and the rule is configured at a higher level, for example Global, {registry} applies the higher-level rule configuration again.
 
 [role="_additional-resources"]
 .Additional resources
@@ -357,16 +353,17 @@ NOTE: To disable an artifact-specific, group-specific, or global rule, click the
 
 [id="changing-artifact-owner-using-console_{context}"]
 == Changing an artifact owner using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-As an administrator or as an owner of a schema or API artifact, you can use the {registry} web console to change the artifact owner to another user account.
+As an administrator or as an artifact owner, you can use the {registry} web console to change the artifact owner to another user account.
 
-For example, this feature is useful if the *Artifact owner-only authorization* option is set for the {registry} on the *Settings* tab so that only owners or administrators can modify artifacts. You might need to change owner if the owner user leaves the organization or the owner account is deleted.  Or if you simply need to transition modification authorization to a new user.
+If the *Artifact owner-only authorization* option is enabled on the *Settings* tab, only artifact owners or administrators can modify artifacts. You might need to change the owner if the owner user leaves the organization, the owner account no longer exists, or you need to transfer modification access to another user.
 
-NOTE: The *Artifact owner-only authorization* setting and the artifact *Owner* field are displayed _only if_ authentication was enabled when the {registry} was deployed. For more details, see
+NOTE: {registry} displays the *Artifact owner-only authorization* setting and the artifact *Owner* field only when authentication was enabled during deployment. For more information, see
 
 ifdef::apicurio-registry[]
-xref:../getting-started/assembly-configuring-the-registry.adoc[].
+xref:getting-started/assembly-configuring-the-registry.adoc[].
 endif::[] 
 ifdef::rh-service-registry[]
 link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}].
@@ -374,7 +371,7 @@ endif::[]
 
 .Prerequisites
 
-* The {registry} is deployed and the artifact is created.
+* {registry} is running and the artifact exists.
 * You are logged in to the {registry} web console as the artifact's current owner or as an administrator:
 +
 `{registry-url}`
@@ -396,7 +393,7 @@ endif::[]
 [role="_additional-resources"]
 .Additional resources
 ifdef::apicurio-registry[]
-* xref:../getting-started/assembly-configuring-the-registry.adoc[]
+* xref:getting-started/assembly-configuring-the-registry.adoc[]
 endif::[] 
 ifdef::rh-service-registry[]
 * link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
@@ -408,18 +405,17 @@ endif::[]
 
 [id="configuring-settings-using-console_{context}"]
 == Configuring {registry} settings using the web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 As an administrator, you can use the {registry} web console to configure dynamic settings for {registry} at runtime. You can manage configuration options for features such as authentication, authorization, and API compatibility.
 
-//This section shows how to configure..
-
-NOTE: Authentication and authorization settings are only displayed in the web console if authentication was already enabled when the {registry} was deployed. For more details, see
-xref:../getting-started/assembly-configuring-the-registry.adoc[].
+NOTE: {registry} displays authentication and authorization settings in the web console only when authentication was already enabled during deployment. For more information, see
+xref:getting-started/assembly-configuring-the-registry.adoc[].
 
 .Prerequisites
 
-* The {registry} is already deployed.
+* {registry} is running.
 * You are logged in to the {registry} web console with administrator access:
 +
 `{registry-url}`
@@ -447,7 +443,7 @@ Not selected by default.
 |Setting
 |Description
 | *Anonymous read access*
-|Displayed only when authentication is already enabled. When selected, {registry} grants read-only access to requests from anonymous users without any credentials. This setting is useful if you want to use {registry} to publish schemas or APIs externally. Not selected by default.
+|Displayed only when authentication is already enabled. When selected, {registry} grants read-only access to requests from anonymous users without any credentials. Use this setting to publish schemas or APIs externally. Not selected by default.
 | *Artifact owner-only authorization*
 |Displayed only when authentication is already enabled. When selected, only the user who created an artifact can modify that artifact. Not selected by default.
 | *Artifact group owner-only authorization*
@@ -465,8 +461,8 @@ Not selected by default.
 | When selected, the Schema Registry compatibility API uses the canonical hash instead of the regular hash of the content.
 | *Legacy ID mode (compatibility API)*
 | When selected, the Confluent Schema Registry compatibility API uses `globalId` instead of `contentId` as an artifact identifier.
-| *Maximum number of Subjects returned (compatibility API)*
-| Determines the maximum number of Subjects that will be returned by the Confluent Schema Registry compatibility API (for the `/subjects` endpoint).
+| *Maximum number of subjects returned (compatibility API)*
+| Sets the maximum number of subjects that the Confluent Schema Registry compatibility API returns (for the `/subjects` endpoint).
 |===
 +
 .Web console settings
@@ -495,19 +491,19 @@ Not selected by default.
 |Setting
 |Description
 | *Delete artifact*
-| When selected, users are permitted to delete artifacts in {registry} by using the Core Registry API. Not selected by default.
+| When selected, users can delete artifacts in {registry} by using the Core Registry API. Not selected by default.
 | *Delete artifact version*
-| When selected, users are permitted to delete artifact versions in {registry} by using the Core Registry API. Not selected by default.
+| When selected, users can delete artifact versions in {registry} by using the Core Registry API. Not selected by default.
 | *Delete group*
-| When selected, users are permitted to delete groups in {registry} by using the Core Registry API. Not selected by default.
+| When selected, users can delete groups in {registry} by using the Core Registry API. Not selected by default.
 | *Storage read-only mode*
-| When selected, Registry will return an error for operations that write to the storage (this property excepted).  Not enabled by default.
+| When selected, {registry} returns an error for operations that write to the storage (this property excepted). Not enabled by default.
 |===
 
 
 [role="_additional-resources"]
 .Additional resources
-* xref:../getting-started/assembly-configuring-the-registry.adoc[]
+* xref:getting-started/assembly-configuring-the-registry.adoc[]
 
 
 
@@ -516,18 +512,19 @@ Not selected by default.
 
 [id="exporting-importing-using-web-console_{context}"]
 == Exporting and importing data using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-As an administrator, you can use the {registry} web console to export data from one {registry} instance, and import this data into another {registry} instance. You can use this feature to easily migrate data between different instances.
+As an administrator, you can use the {registry} web console to export data from one {registry} instance and import it into another {registry} instance. You can use this to migrate data between {registry} instances.
 
-The following example shows how to export and import existing data in a `.zip` file from one {registry} instance to another instance. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
+You export all artifact data from a source {registry} instance to a `.zip` file, then import the file into a target instance.
 
 .Prerequisites
 
-* {registry} instances have been created as follows:
+* You have set up the following {registry} instances:
 ** The source instance that you are exporting from contains at least one schema or API artifact
 ** The target instance that you are importing into is empty to preserve unique IDs
-* You are logged into the {registry} web console with administrator access:
+* You are logged in to the {registry} web console with administrator access:
 +
 `{registry-url}`
 
@@ -543,7 +540,7 @@ The following example shows how to export and import existing data in a `.zip` f
 
 . Drag and drop or browse to the `.zip` download file that you exported earlier.
 
-. Click *Import* and wait for the data to be imported.
+. Click *Import* and wait for {registry} to import the data.
 
 //[role="_additional-resources"]
 //.Additional resources

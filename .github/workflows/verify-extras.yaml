@@ -224,4 +224,4 @@ jobs:
 
       - name: Build Apicurio Registry with Examples
         run: |
-          mvn install -DskipTests -Pexamples -Dassembly.skipAssembly=true --no-transfer-progress
+          mvn install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true --no-transfer-progress

@@ -32,7 +32,14 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
 
       - name: Build Application (skip tests for speed)
         env:
@@ -84,6 +91,13 @@ jobs:
             common/target/
             schema-util/common/target/
           retention-days: 1
+
+      - name: Save Maven cache
+        if: github.event_name == 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
 
   build-ui:
     name: Build UI Application

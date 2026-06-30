@@ -21,32 +21,43 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.TracerProvider;
 import io.opentelemetry.context.Scope;
 
 public class SerDesTracer {
 
     private static final String INSTRUMENTATION_NAME = "io.apicurio.registry.serde";
 
-    private Tracer tracer() {
-        return GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+    private boolean isTracingEnabled() {
+        return GlobalOpenTelemetry.getTracerProvider() != TracerProvider.noop();
     }
 
     public <T> T traceSerialize(String topic, SerDesOperation<T> operation) {
+        if (!isTracingEnabled()) {
+            return operation.execute(Span.getInvalid());
+        }
         return trace("serde.serialize", topic, "serialize", operation);
     }
 
     public <T> T traceDeserialize(String topic, SerDesOperation<T> operation) {
+        if (!isTracingEnabled()) {
+            return operation.execute(Span.getInvalid());
+        }
         return trace("serde.deserialize", topic, "deserialize", operation);
     }
 
     public <T> T traceSchemaResolve(String topic, String operationType,
             SerDesOperation<T> operation) {
+        if (!isTracingEnabled()) {
+            return operation.execute(Span.getInvalid());
+        }
         return trace("serde.resolve_schema", topic, operationType, operation);
     }
 
     private <T> T trace(String spanName, String topic, String operationType,
             SerDesOperation<T> operation) {
-        Span span = tracer().spanBuilder(spanName)
+        Tracer tracer = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+        Span span = tracer.spanBuilder(spanName)
                 .setSpanKind(SpanKind.INTERNAL)
                 .setAttribute(SerDesAttributes.TOPIC, topic)
                 .setAttribute(SerDesAttributes.OPERATION, operationType)

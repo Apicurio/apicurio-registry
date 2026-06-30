@@ -205,6 +205,7 @@
     <!-- Flaky test retry: 0 locally, CI sets higher values -->
     <surefire.rerunFailingTestsCount>0</surefire.rerunFailingTestsCount>
     <failsafe.rerunFailingTestsCount>0</failsafe.rerunFailingTestsCount>
+    <surefire.forkCount>1</surefire.forkCount>
 
     <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
     <apitomy-data-models.version>3.1.1</apitomy-data-models.version>
@@ -1047,6 +1048,8 @@
           <version>${version.surefire.plugin}</version>
           <configuration>
             <rerunFailingTestsCount>${surefire.rerunFailingTestsCount}</rerunFailingTestsCount>
+            <forkCount>${surefire.forkCount}</forkCount>
+            <reuseForks>true</reuseForks>
           </configuration>
         </plugin>
         <plugin>

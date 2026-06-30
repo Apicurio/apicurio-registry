@@ -165,7 +165,7 @@
 
     <!-- Quarkus BOM overrides (CVE fixes) -->
     <netty.version>4.1.135.Final</netty.version>
-    <postgresql-jdbc.version>42.7.11</postgresql-jdbc.version>
+    <postgresql-jdbc.version>42.7.12</postgresql-jdbc.version>
 
     <!-- Jandex -->
     <jandex.version>3.5.3</jandex.version>

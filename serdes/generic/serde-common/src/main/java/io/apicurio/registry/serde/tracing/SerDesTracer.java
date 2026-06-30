@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.serde.tracing;
 
+import io.apicurio.registry.resolver.SchemaLookupResult;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
@@ -73,6 +74,27 @@ public class SerDesTracer {
             throw e;
         } finally {
             span.end();
+        }
+    }
+
+    public static void setSchemaAttributes(Span span, SchemaLookupResult<?> schema, boolean cacheHit) {
+        if (schema != null && span.isRecording()) {
+            span.setAttribute(SerDesAttributes.CACHE_HIT, cacheHit);
+            if (schema.getGroupId() != null) {
+                span.setAttribute(
+                        io.apicurio.registry.observability.OTelAttributes.ATTR_GROUP_ID,
+                        schema.getGroupId());
+            }
+            if (schema.getArtifactId() != null) {
+                span.setAttribute(
+                        io.apicurio.registry.observability.OTelAttributes.ATTR_ARTIFACT_ID,
+                        schema.getArtifactId());
+            }
+            if (schema.getVersion() != null) {
+                span.setAttribute(
+                        io.apicurio.registry.observability.OTelAttributes.ATTR_VERSION,
+                        schema.getVersion());
+            }
         }
     }
 

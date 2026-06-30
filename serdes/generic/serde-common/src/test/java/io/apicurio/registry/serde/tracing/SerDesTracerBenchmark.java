@@ -25,24 +25,51 @@ import org.junit.jupiter.api.Test;
 
 class SerDesTracerBenchmark {
 
+    private static final int WARMUP = 50_000;
     private static final int ITERATIONS = 1_000_000;
     private static final byte[] PAYLOAD = new byte[128];
+
+    private byte[] simulateWork() {
+        byte[] result = new byte[PAYLOAD.length];
+        System.arraycopy(PAYLOAD, 0, result, 0, PAYLOAD.length);
+        return result;
+    }
+
+    @Test
+    void benchmarkBaseline() {
+        for (int i = 0; i < WARMUP; i++) {
+            simulateWork();
+        }
+
+        long start = System.nanoTime();
+        for (int i = 0; i < ITERATIONS; i++) {
+            simulateWork();
+        }
+        long elapsed = System.nanoTime() - start;
+
+        double nsPerOp = (double) elapsed / ITERATIONS;
+        System.out.printf("Baseline (no tracer): %,d ops in %.2fs (%.1f ns/op)%n",
+                ITERATIONS, elapsed / 1_000_000_000.0, nsPerOp);
+    }
 
     @Test
     void benchmarkNoOpTracer() {
         GlobalOpenTelemetry.resetForTest();
         SerDesTracer tracer = new SerDesTracer();
 
+        for (int i = 0; i < WARMUP; i++) {
+            tracer.traceSerialize("warmup", span -> simulateWork());
+        }
+
         long start = System.nanoTime();
         for (int i = 0; i < ITERATIONS; i++) {
-            tracer.traceSerialize("benchmark-topic", span -> PAYLOAD);
+            tracer.traceSerialize("benchmark-topic", span -> simulateWork());
         }
         long elapsed = System.nanoTime() - start;
 
-        double opsPerSec = ITERATIONS / (elapsed / 1_000_000_000.0);
         double nsPerOp = (double) elapsed / ITERATIONS;
-        System.out.printf("No-op tracer: %,d ops in %.2fs = %.0f ops/sec (%.1f ns/op)%n",
-                ITERATIONS, elapsed / 1_000_000_000.0, opsPerSec, nsPerOp);
+        System.out.printf("No-op tracer: %,d ops in %.2fs (%.1f ns/op)%n",
+                ITERATIONS, elapsed / 1_000_000_000.0, nsPerOp);
     }
 
     @Test
@@ -58,32 +85,22 @@ class SerDesTracerBenchmark {
 
         SerDesTracer tracer = new SerDesTracer();
 
+        for (int i = 0; i < WARMUP; i++) {
+            tracer.traceSerialize("warmup", span -> simulateWork());
+        }
+        exporter.reset();
+
         long start = System.nanoTime();
         for (int i = 0; i < ITERATIONS; i++) {
-            tracer.traceSerialize("benchmark-topic", span -> PAYLOAD);
+            tracer.traceSerialize("benchmark-topic", span -> simulateWork());
         }
         long elapsed = System.nanoTime() - start;
 
-        double opsPerSec = ITERATIONS / (elapsed / 1_000_000_000.0);
         double nsPerOp = (double) elapsed / ITERATIONS;
-        System.out.printf("Active tracer: %,d ops in %.2fs = %.0f ops/sec (%.1f ns/op) [%d spans]%n",
-                ITERATIONS, elapsed / 1_000_000_000.0, opsPerSec, nsPerOp,
+        System.out.printf("Active tracer: %,d ops in %.2fs (%.1f ns/op) [%d spans]%n",
+                ITERATIONS, elapsed / 1_000_000_000.0, nsPerOp,
                 exporter.getFinishedSpanItems().size());
 
         GlobalOpenTelemetry.resetForTest();
-    }
-
-    @Test
-    void benchmarkBaseline() {
-        long start = System.nanoTime();
-        for (int i = 0; i < ITERATIONS; i++) {
-            byte[] result = PAYLOAD;
-        }
-        long elapsed = System.nanoTime() - start;
-
-        double opsPerSec = ITERATIONS / (elapsed / 1_000_000_000.0);
-        double nsPerOp = (double) elapsed / ITERATIONS;
-        System.out.printf("Baseline (no tracer): %,d ops in %.2fs = %.0f ops/sec (%.1f ns/op)%n",
-                ITERATIONS, elapsed / 1_000_000_000.0, opsPerSec, nsPerOp);
     }
 }

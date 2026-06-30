@@ -11,8 +11,6 @@ public class EventsTestProfile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.of("apicurio.storage.sql.kind", "postgresql",
-                "quarkus.datasource.h2.active", "false",
-                "quarkus.datasource.postgresql.active", "true",
                 "apicurio.rest.deletion.artifact.enabled", "true",
                 "apicurio.rest.deletion.artifact-version.enabled", "true",
                 "apicurio.rest.deletion.group.enabled", "true");

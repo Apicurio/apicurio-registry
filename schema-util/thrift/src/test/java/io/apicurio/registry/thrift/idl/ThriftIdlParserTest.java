@@ -134,6 +134,35 @@ public class ThriftIdlParserTest {
         Assertions.assertEquals("i64", doc.getTypedefs().get(0).getType());
     }
 
+    @Test
+    public void testTypedefWithGenericType() throws ThriftIdlParseException {
+        String content = "typedef map<string, string> Headers\n"
+                + "typedef map<string, list<i32>> ComplexType";
+        ThriftDocument doc = ThriftIdlParser.parse(content);
+        Assertions.assertEquals(2, doc.getTypedefs().size());
+        Assertions.assertEquals("Headers", doc.getTypedefs().get(0).getName());
+        Assertions.assertEquals("map<string, string>", doc.getTypedefs().get(0).getType());
+        Assertions.assertEquals("ComplexType", doc.getTypedefs().get(1).getName());
+        Assertions.assertEquals("map<string, list<i32>>", doc.getTypedefs().get(1).getType());
+    }
+
+    @Test
+    public void testConstWithGenericType() throws ThriftIdlParseException {
+        String content = "const map<string, string> MAPCONSTANT = {'hello': 'world'}";
+        ThriftDocument doc = ThriftIdlParser.parse(content);
+        Assertions.assertEquals(1, doc.getConstants().size());
+        Assertions.assertEquals("MAPCONSTANT", doc.getConstants().get(0).getName());
+        Assertions.assertEquals("map<string, string>", doc.getConstants().get(0).getType());
+    }
+
+    @Test
+    public void testSenumParsing() throws ThriftIdlParseException {
+        String content = "senum Colors {\n  \"RED\",\n  \"GREEN\",\n  \"BLUE\"\n}";
+        ThriftDocument doc = ThriftIdlParser.parse(content);
+        Assertions.assertEquals(1, doc.getEnums().size());
+        Assertions.assertEquals("Colors", doc.getEnums().get(0));
+    }
+
     private String loadResource(String name) {
         try (InputStream is = getClass().getResourceAsStream(name)) {
             Assertions.assertNotNull(is, "Resource not found: " + name);

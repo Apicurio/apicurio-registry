@@ -12,10 +12,11 @@ public class ThriftIdlParser {
     private static final Pattern INCLUDE_PATTERN = Pattern.compile("^\\s*include\\s+\"([^\"]+)\"");
     private static final Pattern CPP_INCLUDE_PATTERN = Pattern.compile("^\\s*cpp_include\\s+\"([^\"]+)\"");
     private static final Pattern CONST_PATTERN = Pattern
-            .compile("^\\s*const\\s+(\\S+)\\s+(\\w+)\\s*=");
+            .compile("^\\s*const\\s+(.+)\\s+(\\w+)\\s*=");
     private static final Pattern TYPEDEF_PATTERN = Pattern
-            .compile("^\\s*typedef\\s+(\\S+)\\s+(\\w+)");
+            .compile("^\\s*typedef\\s+(.+)\\s+(\\w+)\\s*$");
     private static final Pattern ENUM_PATTERN = Pattern.compile("^\\s*enum\\s+(\\w+)\\s*\\{");
+    private static final Pattern SENUM_PATTERN = Pattern.compile("^\\s*senum\\s+(\\w+)\\s*\\{");
     private static final Pattern STRUCT_PATTERN = Pattern.compile("^\\s*struct\\s+(\\w+)\\s*\\{");
     private static final Pattern UNION_PATTERN = Pattern.compile("^\\s*union\\s+(\\w+)\\s*\\{");
     private static final Pattern EXCEPTION_PATTERN = Pattern.compile("^\\s*exception\\s+(\\w+)\\s*\\{");
@@ -84,13 +85,13 @@ public class ThriftIdlParser {
 
         m = CONST_PATTERN.matcher(line);
         if (m.find()) {
-            document.addConstant(m.group(2), m.group(1));
+            document.addConstant(m.group(2), m.group(1).trim());
             return new ParseResult(index + 1, true);
         }
 
         m = TYPEDEF_PATTERN.matcher(line);
         if (m.find()) {
-            document.addTypedef(m.group(2), m.group(1));
+            document.addTypedef(m.group(2), m.group(1).trim());
             return new ParseResult(index + 1, true);
         }
 
@@ -111,6 +112,12 @@ public class ThriftIdlParser {
         Matcher m;
 
         m = ENUM_PATTERN.matcher(line);
+        if (m.find()) {
+            document.addEnum(m.group(1));
+            return new ParseResult(skipBlock(lines, index), true);
+        }
+
+        m = SENUM_PATTERN.matcher(line);
         if (m.find()) {
             document.addEnum(m.group(1));
             return new ParseResult(skipBlock(lines, index), true);

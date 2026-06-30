@@ -104,7 +104,7 @@ public class ContentCanonicalizerTest extends AbstractRegistryTestBase {
         ContentCanonicalizer canonicalizer = getContentCanonicalizer(ArtifactType.THRIFT);
 
         String before = "// A comment\nnamespace java com.example\n\n\nstruct Foo {\n  1: string bar\n}\n";
-        String expected = "namespace java com.example\n\nstruct Foo {\n  1: string bar\n}\n";
+        String expected = "namespace java com.example\n\nstruct Foo {\n1: string bar\n}\n";
 
         TypedContent content = toTypedContent(before, ContentTypes.APPLICATION_THRIFT);
         String actual = canonicalizer.canonicalize(content, Collections.emptyMap()).getContent().content();

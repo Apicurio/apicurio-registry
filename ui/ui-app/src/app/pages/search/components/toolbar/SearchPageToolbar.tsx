@@ -1,4 +1,4 @@
-import { FunctionComponent } from "react";
+import { FunctionComponent, useEffect, useMemo, useState } from "react";
 import "./SearchPageToolbar.css";
 import {
     Button,
@@ -13,16 +13,17 @@ import { SyncAltIcon } from "@patternfly/react-icons";
 import { SortOrderToggle } from "@app/components";
 import {
     ChipFilterCriteria,
-    ChipFilterInput,
     ChipFilterType,
     FilterChips,
     ObjectSelect
 } from "@apicurio/common-ui-components";
+import { FilterInput, EnhancedFilterType } from "./FilterInput";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { plural } from "pluralize";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter } from "@services/useSearchService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
+import { useArtifactTypesService, ArtifactTypeInfo } from "@services/useArtifactTypesService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
@@ -56,6 +57,7 @@ const ARTIFACT_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.groupId, label: "Group", testId: "artifact-filter-typegroup" },
     { value: FilterBy.description, label: "Description", testId: "artifact-filter-typedescription" },
     { value: FilterBy.labels, label: "Labels", testId: "artifact-filter-typelabels" },
+    { value: FilterBy.artifactType, label: "Type", testId: "artifact-filter-type-type" },
     { value: FilterBy.globalId, label: "Global Id", testId: "artifact-filter-typeglobal-id" },
     { value: FilterBy.contentId, label: "Content Id", testId: "artifact-filter-typecontent-id" },
 ];
@@ -79,15 +81,33 @@ const VERSION_FILTER_TYPES: ChipFilterType[] = [
     { value: FilterBy.version, label: "Version", testId: "version-filter-typegroup" },
 ];
 const FILTER_TYPE_LOOKUP: any = {};
-VERSION_FILTER_TYPES.forEach(filterType => {
+[...ARTIFACT_FILTER_TYPES, ...GROUP_FILTER_TYPES, ...VERSION_FILTER_TYPES].forEach(filterType => {
     FILTER_TYPE_LOOKUP[filterType.value] = filterType;
 });
+
+const STATE_OPTIONS: { value: string; label: string }[] = [
+    { value: "ENABLED", label: "Enabled" },
+    { value: "DISABLED", label: "Disabled" },
+    { value: "DEPRECATED", label: "Deprecated" },
+    { value: "DRAFT", label: "Draft" },
+];
 
 /**
  * Models the toolbar for the Search page.
  */
 export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (props: SearchPageToolbarProps) => {
     const config = useConfigService();
+    const atService = useArtifactTypesService();
+
+    const [artifactTypeOptions, setArtifactTypeOptions] = useState<{ value: string; label: string }[]>([]);
+
+    useEffect(() => {
+        atService.allTypesWithLabels().then(types => {
+            setArtifactTypeOptions(types.map((t: ArtifactTypeInfo) => ({ value: t.id, label: t.label })));
+        }).catch(error => {
+            console.error("[SearchPageToolbar] Failed to load artifact types for filter dropdown:", error);
+        });
+    }, [atService]);
 
     const filterCriteria: ChipFilterCriteria[] = props.filters.map(c => {
         return {
@@ -96,20 +116,21 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
         };
     });
 
-    let filterTypes: ChipFilterType[];
+    let baseFilterTypes: ChipFilterType[];
     let sortItems: (VersionSortBy | GroupSortBy | ArtifactSortBy)[];
     switch (props.searchType) {
         case SearchType.ARTIFACT:
-            filterTypes = ARTIFACT_FILTER_TYPES;
+            baseFilterTypes = ARTIFACT_FILTER_TYPES;
             sortItems = [
                 ArtifactSortByObject.ArtifactId,
                 ArtifactSortByObject.GroupId,
                 ArtifactSortByObject.Name,
+                ArtifactSortByObject.ArtifactType,
                 ArtifactSortByObject.ModifiedOn
             ];
             break;
         case SearchType.GROUP:
-            filterTypes = GROUP_FILTER_TYPES;
+            baseFilterTypes = GROUP_FILTER_TYPES;
             sortItems = [
                 GroupSortByObject.GroupId,
                 GroupSortByObject.ModifiedOn,
@@ -117,7 +138,7 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
             ];
             break;
         case SearchType.VERSION:
-            filterTypes = config.featureSearchIndex()
+            baseFilterTypes = config.featureSearchIndex()
                 ? VERSION_FILTER_TYPES
                 : VERSION_FILTER_TYPES.filter(ft => ft.value !== FilterBy.content && ft.value !== FilterBy.structure);
             sortItems = [
@@ -131,6 +152,28 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
             ];
             break;
     }
+
+    const enhancedFilterTypes: EnhancedFilterType[] = useMemo(() => {
+        return baseFilterTypes.map(ft => {
+            if (ft.value === FilterBy.artifactType && artifactTypeOptions.length > 0) {
+                return {
+                    ...ft,
+                    type: "select" as const,
+                    options: artifactTypeOptions,
+                    noSelectionLabel: "Select a type"
+                };
+            }
+            if (ft.value === FilterBy.state) {
+                return {
+                    ...ft,
+                    type: "select" as const,
+                    options: STATE_OPTIONS,
+                    noSelectionLabel: "Select a state"
+                };
+            }
+            return { ...ft, type: "text" as const };
+        });
+    }, [baseFilterTypes, artifactTypeOptions]);
 
     const totalCount = (): number => {
         return props.results.count!;
@@ -245,8 +288,8 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
                             filter by
                         </ToolbarItem>
                         <ToolbarItem className="filter-item">
-                            <ChipFilterInput
-                                filterTypes={filterTypes}
+                            <FilterInput
+                                filterTypes={enhancedFilterTypes}
                                 onAddCriteria={onAddFilterCriteria} />
                             <Button
                                 variant="control" aria-label="Refresh"

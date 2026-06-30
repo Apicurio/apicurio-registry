@@ -41,6 +41,9 @@ jobs:
           restore-keys: |
             maven-
 
+      - name: Clean stale lock files
+        run: find ~/.m2/repository -name '*.lock' -delete 2>/dev/null || true
+
       - name: Build Application (skip tests for speed)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.

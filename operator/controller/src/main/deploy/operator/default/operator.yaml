@@ -81,5 +81,6 @@ spec:
               memory: 500Mi
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 100Mi
       serviceAccountName: apicurio-registry-operator

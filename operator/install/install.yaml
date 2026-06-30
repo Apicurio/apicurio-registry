@@ -7528,5 +7528,6 @@ spec:
           type: RuntimeDefault
       serviceAccountName: apicurio-registry-operator
       volumes:
-      - emptyDir: {}
+      - emptyDir:
+          sizeLimit: 100Mi
         name: tmp

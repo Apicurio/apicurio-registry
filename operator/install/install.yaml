@@ -7452,6 +7452,7 @@ spec:
         app.kubernetes.io/part-of: apicurio-registry
         app.kubernetes.io/version: 3.3.1-SNAPSHOT
     spec:
+      automountServiceAccountToken: true
       containers:
       - env:
         - name: POD_NAME
@@ -7504,6 +7505,12 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
         startupProbe:
           failureThreshold: 14
           httpGet:
@@ -7512,4 +7519,15 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: apicurio-registry-operator
+      volumes:
+      - emptyDir:
+          sizeLimit: 100Mi
+        name: tmp

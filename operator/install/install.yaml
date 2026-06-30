@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.0-SNAPSHOT
+    app.kubernetes.io/version: 3.3.1-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -198,6 +198,35 @@ spec:
                           Apicurio Registry UI clientId used for OIDC authentication.
                           In Identity providers like Keycloak, this is the client id used for the frontend React application
                         type: string
+                    type: object
+                  autoscaling:
+                    description: Configuration of a HorizontalPodAutoscaler for the
+                      component.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether a HorizontalPodAutoscaler should be managed by the operator. Defaults to 'false'.
+
+                          When enabled, the operator creates an HPA targeting the component's Deployment. The static 'replicas' field is ignored when autoscaling is enabled.
+                        type: boolean
+                      maxReplicas:
+                        description: Maximum number of replicas for the HorizontalPodAutoscaler.
+                          Required when autoscaling is enabled.
+                        type: integer
+                      minReplicas:
+                        description: Minimum number of replicas for the HorizontalPodAutoscaler.
+                          Defaults to 1.
+                        type: integer
+                      targetCPUUtilizationPercentage:
+                        description: Target average CPU utilization percentage across
+                          all pods. Defaults to 80. The HPA will scale the number
+                          of replicas to maintain this target.
+                        type: integer
+                      targetMemoryUtilizationPercentage:
+                        description: Target average memory utilization percentage
+                          across all pods. If not set, memory-based scaling is not
+                          configured.
+                        type: integer
                     type: object
                   env:
                     description: Configure a list of environment variables that will
@@ -3531,6 +3560,122 @@ spec:
                     description: |
                       Configure storage for Apicurio Registry backend (app).
                     properties:
+                      gitops:
+                        description: Configure GitOps storage type (read-only, experimental).
+                          Loads registry data from a Git repository via a sync sidecar
+                          container.
+                        properties:
+                          mode:
+                            description: GitOps sync mode. `pull` (default) periodically
+                              fetches from remote repositories. `push` starts an SSH
+                              server that accepts git push. In push mode, the operator
+                              creates an additional service for SSH access on port
+                              2222.
+                            enum:
+                            - pull
+                            - push
+                            type: string
+                          pull:
+                            description: Configure SSH secrets for pull mode (authenticating
+                              to remote Git servers).
+                            properties:
+                              knownHosts:
+                                description: Reference to a Secret containing a known_hosts
+                                  file for verifying remote Git server host keys.
+                                  The key defaults to `known_hosts`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              sshKeys:
+                                description: Reference to a Secret containing the
+                                  SSH private key for authenticating to remote Git
+                                  servers. The key defaults to `id_ed25519`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                            type: object
+                          push:
+                            description: Configure SSH secrets for push mode (SSH
+                              server accepting pushes).
+                            properties:
+                              authorizedKeys:
+                                description: Reference to a Secret containing the
+                                  authorized_keys file that controls which SSH public
+                                  keys are allowed to push. The key defaults to `authorized_keys`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                              hostKey:
+                                description: Reference to a Secret containing a persistent
+                                  SSH host key for the sidecar's SSH server. Ensures
+                                  a stable host fingerprint across pod restarts. The
+                                  key defaults to `ssh_host_key`.
+                                properties:
+                                  key:
+                                    description: Name of the key in the referenced
+                                      Secret that contain the target data. This field
+                                      might be optional if a default value has been
+                                      defined.
+                                    type: string
+                                  name:
+                                    description: Name of a Secret that is being referenced.
+                                    type: string
+                                type: object
+                            type: object
+                          registryId:
+                            description: Registry instance identifier. Only data files
+                              with a matching registry ID will be loaded. Defaults
+                              to `default`.
+                            type: string
+                          repos:
+                            description: List of Git repositories to sync from. Each
+                              entry configures a repository URL, optional branch,
+                              and directory name. For single-repo setups, provide
+                              a list with one entry.
+                            items:
+                              properties:
+                                branch:
+                                  description: Branch to track in the remote Git repository.
+                                    Defaults to `main`.
+                                  type: string
+                                dir:
+                                  description: Directory name under the workspace
+                                    where this repository is cloned. Defaults to `default`
+                                    for single-repo setups. Required when configuring
+                                    multiple repos to distinguish their clones.
+                                  type: string
+                                url:
+                                  description: URL of the remote Git repository to
+                                    sync from. Supports HTTPS and SSH URLs (e.g.,
+                                    `https://github.com/my-org/my-schemas.git`).
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
                       kafkasql:
                         description: Configure KafkaSQL storage type.
                         properties:
@@ -3738,9 +3883,11 @@ spec:
                             * `mysql` - MySQL storage type, must be further configured using the `app.storage.sql` field.
                             * `kafkasql` - KafkaSQL storage type, must be further configured using the `app.storage.kafkasql` field.
                             * `kubernetesops` - KubernetesOps storage type (read-only, experimental), must be further configured using the `app.storage.kubernetesops` field.
+                            * `gitops` - GitOps storage type (read-only, experimental), must be further configured using the `app.storage.gitops` field.
 
                           IMPORTANT: Defaults to the in-memory storage, which is not suitable for production.
                         enum:
+                        - gitops
                         - kafkasql
                         - kubernetesops
                         - mysql
@@ -3817,6 +3964,35 @@ spec:
                 description: |
                   Configure Apicurio Registry UI component.
                 properties:
+                  autoscaling:
+                    description: Configuration of a HorizontalPodAutoscaler for the
+                      component.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether a HorizontalPodAutoscaler should be managed by the operator. Defaults to 'false'.
+
+                          When enabled, the operator creates an HPA targeting the component's Deployment. The static 'replicas' field is ignored when autoscaling is enabled.
+                        type: boolean
+                      maxReplicas:
+                        description: Maximum number of replicas for the HorizontalPodAutoscaler.
+                          Required when autoscaling is enabled.
+                        type: integer
+                      minReplicas:
+                        description: Minimum number of replicas for the HorizontalPodAutoscaler.
+                          Defaults to 1.
+                        type: integer
+                      targetCPUUtilizationPercentage:
+                        description: Target average CPU utilization percentage across
+                          all pods. Defaults to 80. The HPA will scale the number
+                          of replicas to maintain this target.
+                        type: integer
+                      targetMemoryUtilizationPercentage:
+                        description: Target average memory utilization percentage
+                          across all pods. If not set, memory-based scaling is not
+                          configured.
+                        type: integer
+                    type: object
                   enabled:
                     description: |
                       Indicates whether the operator should deploy the UI component.  Defaults to `true`.
@@ -7092,7 +7268,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.0-SNAPSHOT
+    app.kubernetes.io/version: 3.3.1-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -7104,7 +7280,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.0-SNAPSHOT
+    app.kubernetes.io/version: 3.3.1-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -7113,35 +7289,54 @@ rules:
   - apicurioregistries3
   - apicurioregistries3/status
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - apps
   resources:
   - deployments
   verbs:
-  - '*'
-- apiGroups:
-  - events.k8s.io
-  resources:
-  - events
-  verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
   - configmaps
+  - events
   - pods
   - services
   - serviceaccounts
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - roles
   - rolebindings
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - apiextensions.k8s.io
   resourceNames:
@@ -7156,13 +7351,37 @@ rules:
   - ingresses
   - networkpolicies
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - policy
   resources:
   - poddisruptionbudgets
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -7170,7 +7389,6 @@ rules:
   verbs:
   - create
   - get
-  - list
 - apiGroups:
   - coordination.k8s.io
   resources:
@@ -7191,7 +7409,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.0-SNAPSHOT
+    app.kubernetes.io/version: 3.3.1-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -7211,8 +7429,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.0-SNAPSHOT
-  name: apicurio-registry-operator-v3.3.0-snapshot
+    app.kubernetes.io/version: 3.3.1-SNAPSHOT
+  name: apicurio-registry-operator-v3.3.1-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -7223,7 +7441,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.3.0-SNAPSHOT
+      app.kubernetes.io/version: 3.3.1-SNAPSHOT
   template:
     metadata:
       labels:
@@ -7232,7 +7450,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.3.0-SNAPSHOT
+        app.kubernetes.io/version: 3.3.1-SNAPSHOT
     spec:
       containers:
       - env:
@@ -7254,6 +7472,8 @@ spec:
           value: quay.io/apicurio/apicurio-registry:latest-snapshot
         - name: REGISTRY_UI_IMAGE
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+        - name: REGISTRY_GITOPS_SYNC_IMAGE
+          value: quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot
         image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:

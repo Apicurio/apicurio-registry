@@ -326,6 +326,42 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
         syncRequested = true;
     }
 
+    /**
+     * Performs a dry-run validation by loading data from a poll result into the inactive storage without
+     * triggering a blue-green swap. Returns the processing result with success/failure and counts.
+     *
+     * <p>Acquires the refresh lock to prevent concurrent access with normal sync operations.
+     * If a normal sync is pending (READY_TO_SWITCH) or the lock can't be acquired, throws
+     * immediately so the caller can retry later.
+     */
+    public PollingProcessingResult dryRunValidate(PollingResult<MARKER> pollResult) {
+        if (state != State.READY_TO_WRITE) {
+            throw new io.apicurio.registry.storage.error.StorageBusyException(
+                    "Cannot run dry-run validation while a normal sync is pending.");
+        }
+
+        if (!refreshLock.tryLock()) {
+            throw new io.apicurio.registry.storage.error.StorageBusyException(
+                    "Cannot run dry-run validation while a normal sync is in progress.");
+        }
+        try {
+            // Re-check after acquiring the lock
+            if (state != State.READY_TO_WRITE) {
+                throw new io.apicurio.registry.storage.error.StorageBusyException(
+                        "Cannot run dry-run validation while a normal sync is pending.");
+            }
+            inactive.deleteAllUserData();
+            return pollingDataSourceManager.process(inactive, pollResult);
+        } catch (RegistryStorageException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Dry-run validation failed: {}", e.getMessage(), e);
+            throw new RegistryStorageException("Dry-run validation failed: " + e.getMessage(), e);
+        } finally {
+            refreshLock.unlock();
+        }
+    }
+
     @Override
     public boolean isReady() {
         return isReady;
@@ -363,14 +399,18 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
 
     @Override
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-                                                    OrderDirection orderDirection, int offset, int limit) {
-        return proxy(storage -> storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit));
+                                                    OrderDirection orderDirection, int offset, int limit,
+                                                    boolean skipCount) {
+        return proxy(
+                storage -> storage.searchArtifacts(filters, orderBy, orderDirection, offset, limit, skipCount));
     }
 
     @Override
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-                                                  OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
-        return proxy(storage -> storage.searchVersions(filters, orderBy, orderDirection, offset, limit));
+                                                  OrderDirection orderDirection, int offset, int limit,
+                                                  boolean skipCount) throws RegistryStorageException {
+        return proxy(
+                storage -> storage.searchVersions(filters, orderBy, orderDirection, offset, limit, skipCount));
     }
 
     @Override

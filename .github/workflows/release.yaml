@@ -6,7 +6,7 @@ on:
         description: Version being released
         required: true
       branch:
-        description: Branch to release from
+        description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
       no-more-minor-releases:
@@ -16,6 +16,9 @@ on:
       notice:
         type: boolean
         description: I will notify jsenko if the operator release workflow fails!
+
+permissions:
+  contents: read
 
 jobs:
   # Phase 1: Bump version, commit, push. Fast job that gates all parallel builds.
@@ -49,15 +52,15 @@ jobs:
 
       # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 20
+          node-version: 24.18.0
 
       - name: Set up json CLI
         run: npm install -g json
@@ -189,12 +192,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -212,7 +215,7 @@ jobs:
             -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Upload Release Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-artifacts
           path: |
@@ -231,14 +234,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 20
+          node-version: 24.18.0
 
       - name: Build Registry UI
         working-directory: ui
@@ -265,12 +268,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1
         with:
           java-version: '23'
           distribution: 'graalvm-community'
@@ -290,7 +293,7 @@ jobs:
             -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Upload CLI ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: cli-${{ matrix.os-name }}
           path: cli/target/apicurio-registry-cli-${{ github.event.inputs.release-version }}-*.zip
@@ -306,13 +309,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: release-artifacts
           path: artifacts/
 
       - name: Download CLI ZIPs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: cli-*
           path: cli-zips/
@@ -332,7 +335,7 @@ jobs:
           done
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           name: ${{ github.event.inputs.release-version }}
           tag_name: ${{ github.event.inputs.release-version }}
@@ -357,9 +360,9 @@ jobs:
           echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: 20
+          node-version: 24.18.0
 
       - name: Set up json CLI
         run: npm install -g json
@@ -413,6 +416,29 @@ jobs:
           pushd typescript-sdk
           npm version ${{ env.SNAPSHOT_UI_VERSION }} --allow-same-version
           popd
+
+      - name: Create maintenance branch for previous minor
+        if: github.event.inputs.branch == 'main'
+        run: |
+          cd registry
+          RELEASE_VERSION="${{ github.event.inputs.release-version }}"
+          MAJOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $1}')
+          MINOR=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $2}')
+          PATCH=$(echo "$RELEASE_VERSION" | awk -F '[.-]' '{print $3}')
+
+          if [ "$PATCH" = "0" ] && [ "$MINOR" -gt "0" ]; then
+            PREV_MINOR=$((MINOR - 1))
+            MAINT_BRANCH="${MAJOR}.${PREV_MINOR}.x"
+            # Find the latest tag for the previous minor
+            PREV_TAG=$(git tag -l "${MAJOR}.${PREV_MINOR}.*" --sort=-v:refname | head -1)
+            if [ -n "$PREV_TAG" ] && ! git ls-remote --exit-code origin "refs/heads/$MAINT_BRANCH" > /dev/null 2>&1; then
+              echo "Creating maintenance branch $MAINT_BRANCH from tag $PREV_TAG"
+              git branch "$MAINT_BRANCH" "$PREV_TAG"
+              git push origin "$MAINT_BRANCH"
+            else
+              echo "Maintenance branch $MAINT_BRANCH already exists or no previous tag found, skipping"
+            fi
+          fi
 
       - name: Commit Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |

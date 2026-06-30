@@ -1,7 +1,9 @@
 package io.apicurio.registry.cli.services;
 
+import io.apicurio.registry.cli.auth.CredentialStore;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.config.ConfigModel;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -24,6 +26,9 @@ public class Client {
     @Inject
     Config config;
 
+    @Inject
+    CredentialStore credentialStore;
+
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
@@ -41,9 +46,10 @@ public class Client {
                     if (uri.getPath() == null) {
                         uri = uri.resolve("/apis/registry/v3");
                     }
-                    registryClient = RegistryClientFactory.create(
-                            RegistryClientOptions.create(uri.toString(), vertx)
-                    );
+                    final var options = RegistryClientOptions.create(uri.toString(), vertx);
+                    final var context = currentContext.getContext().get(currentContext.getCurrentContext());
+                    configureAuth(options, context, currentContext.getCurrentContext());
+                    registryClient = RegistryClientFactory.create(options);
                 } catch (Exception ex) {
                     throw new CliException("Could not create Registry client: " + ex.getMessage(),
                             APPLICATION_ERROR_RETURN_CODE);
@@ -63,6 +69,33 @@ public class Client {
             }
         }
         return httpClient;
+    }
+
+    private void configureAuth(final RegistryClientOptions options,
+                               final ConfigModel.Context context,
+                               final String contextName) {
+        if (ConfigModel.AUTH_TYPE_BASIC.equals(context.getAuthType())) {
+            final var password = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD,
+                    context.isUnsafeCredentialStorage());
+            options.basicAuth(context.getUsername(), password);
+        } else if (ConfigModel.AUTH_TYPE_OAUTH2.equals(context.getAuthType())) {
+            final var clientSecret = requireCredential(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET,
+                    context.isUnsafeCredentialStorage());
+            options.oauth2(context.getTokenEndpoint(), context.getClientId(), clientSecret, context.getScope());
+        } else if (!isBlank(context.getAuthType())) {
+            throw new CliException("Unsupported auth type '" + context.getAuthType()
+                    + "'. Run 'acr login' to reconfigure authentication.", APPLICATION_ERROR_RETURN_CODE);
+        }
+    }
+
+    private String requireCredential(final String contextName, final String key,
+                                     final boolean unsafeStorage) {
+        final var value = credentialStore.retrieve(contextName, key, unsafeStorage);
+        if (isBlank(value)) {
+            throw new CliException("Credentials not found for context '" + contextName
+                    + "'. Run 'acr login' to authenticate.", APPLICATION_ERROR_RETURN_CODE);
+        }
+        return value;
     }
 
     /**

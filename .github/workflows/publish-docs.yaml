@@ -6,6 +6,9 @@ on:
       - 'docs/**'
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   publish-docs:
     if: github.repository_owner == 'Apicurio'

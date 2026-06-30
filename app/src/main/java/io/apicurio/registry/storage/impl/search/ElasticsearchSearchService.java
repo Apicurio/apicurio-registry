@@ -107,7 +107,7 @@ public class ElasticsearchSearchService {
      * @throws IOException if an error occurs during search
      */
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws IOException {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) throws IOException {
 
         Query query = buildEsQuery(filters);
         List<SortOptions> sortOptions = buildSort(orderBy, orderDirection);
@@ -117,7 +117,7 @@ public class ElasticsearchSearchService {
                     .query(query)
                     .from(offset)
                     .size(limit)
-                    .trackTotalHits(t -> t.enabled(true));
+                    .trackTotalHits(t -> t.enabled(!skipCount));
 
             for (SortOptions sortOption : sortOptions) {
                 s.sort(sortOption);
@@ -126,8 +126,8 @@ public class ElasticsearchSearchService {
             return s;
         }, Map.class);
 
-        long totalCount = response.hits().total() != null
-                ? response.hits().total().value() : 0;
+        long totalCount = skipCount ? 0
+                : (response.hits().total() != null ? response.hits().total().value() : 0);
 
         List<SearchedVersionDto> versions = new ArrayList<>();
         for (Hit<Map> hit : response.hits().hits()) {
@@ -197,11 +197,10 @@ public class ElasticsearchSearchService {
         case groupId:
             String groupValue = filter.getStringValue() == null ? "default"
                     : filter.getStringValue();
-            return Query.of(q -> q.term(t -> t.field("groupId").value(groupValue)));
+            return buildTermOrWildcardQuery("groupId", groupValue);
 
         case artifactId:
-            return Query.of(q -> q.term(t -> t
-                    .field("artifactId").value(filter.getStringValue())));
+            return buildTermOrWildcardQuery("artifactId", filter.getStringValue());
 
         case version:
             return Query.of(q -> q.term(t -> t
@@ -247,6 +246,16 @@ public class ElasticsearchSearchService {
             log.warn("Unknown filter type: {}", filter.getType());
             return null;
         }
+    }
+
+    /**
+     * Builds a term query for exact match, or a wildcard query if the value contains '*'.
+     */
+    private Query buildTermOrWildcardQuery(String field, String value) {
+        if (value != null && value.contains("*")) {
+            return Query.of(q -> q.wildcard(w -> w.field(field).value(value)));
+        }
+        return Query.of(q -> q.term(t -> t.field(field).value(value)));
     }
 
     /**
@@ -322,23 +331,18 @@ public class ElasticsearchSearchService {
         String labelValue = labelPair.getRight();
 
         if (labelValue == null || labelValue.isBlank()) {
-            // Key-only filter
             return Query.of(q -> q.nested(n -> n
                     .path("labels")
                     .scoreMode(ChildScoreMode.None)
-                    .query(Query.of(nq -> nq.match(m -> m
-                            .field("labels.key").query(key))))));
+                    .query(buildTermOrWildcardQuery("labels.key", key))));
         }
 
-        // Key + value filter
         return Query.of(q -> q.nested(n -> n
                 .path("labels")
                 .scoreMode(ChildScoreMode.None)
                 .query(Query.of(nq -> nq.bool(b -> b
-                        .must(Query.of(mq -> mq.match(m -> m
-                                .field("labels.key").query(key))))
-                        .must(Query.of(mq -> mq.match(m -> m
-                                .field("labels.value").query(labelValue)))))))));
+                        .must(buildTermOrWildcardQuery("labels.key", key))
+                        .must(buildTermOrWildcardQuery("labels.value", labelValue)))))));
     }
 
     /**

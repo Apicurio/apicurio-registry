@@ -2,20 +2,19 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.apicurio.registry.operator.utils.OperatorTestContext;
+import io.apicurio.registry.operator.utils.OperatorTestExtension;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.NamespaceableResource;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,19 +27,35 @@ import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-public abstract class OLMITBase {
+@ExtendWith(OperatorTestExtension.class)
+public abstract class OLMITBase implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(OLMITBase.class);
 
-    public static final String PROJECT_VERSION_PROP = "registry.version";
-    public static final String PROJECT_ROOT_PROP = "test.operator.project-root";
-    public static final String CATALOG_IMAGE_PROP = "test.operator.catalog-image";
-    public static final String OML_VERSION = "test.operator.olm-version";
+    public static final String PROJECT_VERSION_PROP = OLMTestUtils.PROJECT_VERSION_PROP;
+    public static final String PROJECT_ROOT_PROP = OLMTestUtils.PROJECT_ROOT_PROP;
+    public static final String CATALOG_IMAGE_PROP = OLMTestUtils.CATALOG_IMAGE_PROP;
+    public static final String OML_VERSION = OLMTestUtils.OLM_VERSION_PROP;
 
     protected static KubernetesClient client;
     protected static String namespace;
     protected static IngressManager ingressManager;
     protected static boolean cleanup;
+
+    @Override
+    public KubernetesClient getClient() {
+        return client;
+    }
+
+    @Override
+    public String getNamespace() {
+        return namespace;
+    }
+
+    @Override
+    public boolean isOLMTest() {
+        return true;
+    }
 
     @BeforeAll
     public static void beforeAll() throws Exception {
@@ -81,11 +96,19 @@ public abstract class OLMITBase {
                 log.warn("When using OLM v1, ApicurioRegistry3 CRD must be created when installing the bundle. Deleting the existing CRD before we can continue.");
 
                 await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-                    client.resources(ApicurioRegistry3.class).list().getItems().forEach(ar -> {
-                        log.warn("Deleting ApicurioRegistry3 CR: {}", ResourceID.fromResource(ar));
-                        client.resource(ar).delete();
-                    });
-                    assertThat(client.resources(ApicurioRegistry3.class).list().getItems()).isEmpty();
+                    try {
+                        client.resources(ApicurioRegistry3.class).list().getItems().forEach(ar -> {
+                            log.warn("Deleting ApicurioRegistry3 CR: {}", ResourceID.fromResource(ar));
+                            client.resource(ar).delete();
+                        });
+                        assertThat(client.resources(ApicurioRegistry3.class).list().getItems()).isEmpty();
+                    } catch (io.fabric8.kubernetes.client.KubernetesClientException e) {
+                        if (e.getCode() == 404) {
+                            log.debug("CRD already removed, no CRs to delete.");
+                        } else {
+                            throw e;
+                        }
+                    }
                 });
 
                 await().atMost(MEDIUM_DURATION).ignoreExceptions().until(() -> {
@@ -138,31 +161,24 @@ public abstract class OLMITBase {
     }
 
     private static void createResource(String path) throws IOException {
-        loadResource(path).create();
+        OLMTestUtils.createResource(client, namespace, path);
     }
 
     private static void deleteResource(String path) throws IOException {
-        loadResource(path).delete();
+        var raw = OLMTestUtils.loadRawResource(path);
+        client.resource(OLMTestUtils.replaceVars(raw, namespace)).delete();
     }
 
-    private static NamespaceableResource<? extends HasMetadata> loadResource(String path) throws IOException {
-        var projectRoot = ConfigProvider.getConfig().getValue(PROJECT_ROOT_PROP, String.class);
-        var testDeployDir = Paths.get(projectRoot, "operator/olm-tests/src/test/deploy");
-        var resourceRaw = Files.readString(testDeployDir.resolve(path));
-        return client.resource(replaceVars(resourceRaw));
+    protected static String deriveChannel(String version) {
+        return OLMTestUtils.deriveMinorChannel(version);
     }
 
-    private static String replaceVars(String rawResource) {
-        var projectVersion = ConfigProvider.getConfig().getValue(PROJECT_VERSION_PROP, String.class);
-        var catalogImage = ConfigProvider.getConfig().getValue(CATALOG_IMAGE_PROP, String.class);
-        rawResource = rawResource.replace("${PLACEHOLDER_NAMESPACE}", namespace);
-        rawResource = rawResource.replace("${PLACEHOLDER_CATALOG_NAMESPACE}", namespace);
-        rawResource = rawResource.replace("${PLACEHOLDER_CATALOG_IMAGE}", catalogImage);
-        rawResource = rawResource.replace("${PLACEHOLDER_PACKAGE_NAME}", "apicurio-registry-3");
-        rawResource = rawResource.replace("${PLACEHOLDER_PACKAGE}", "apicurio-registry-3.v" + projectVersion.toLowerCase());
-        rawResource = rawResource.replace("${PLACEHOLDER_VERSION}", projectVersion);
-        rawResource = rawResource.replace("${PLACEHOLDER_LC_VERSION}", projectVersion.toLowerCase());
-        return rawResource;
+    protected static String deriveMajorChannel(String version) {
+        return OLMTestUtils.deriveRollingChannel(version);
+    }
+
+    protected static String getProjectVersion() {
+        return OLMTestUtils.getProjectVersion();
     }
 
     @AfterEach

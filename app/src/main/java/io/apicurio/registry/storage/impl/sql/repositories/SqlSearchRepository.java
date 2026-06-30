@@ -51,7 +51,7 @@ public class SqlSearchRepository {
      * Search for artifacts based on filters.
      */
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
@@ -133,18 +133,12 @@ public class SqlSearchRepository {
                         }
                         break;
                     case groupId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.groupId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
-                        });
+                        buildWildcardClause(where, "a.groupId",
+                                normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
                     case artifactId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.artifactId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
+                        buildWildcardClause(where, "a.artifactId",
+                                filter.getStringValue(), filter.isNot(), binders);
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
@@ -174,22 +168,15 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        // Note: convert search to lowercase when searching for labels (case-insensitivity
-                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append(
-                                "EXISTS(SELECT l.* FROM artifact_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
+                        where.append("EXISTS(SELECT l.* FROM artifact_labels l WHERE ");
+                        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
-                            });
+                            where.append(" AND ");
+                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                                    binders);
                         }
                         where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
                         break;
@@ -256,15 +243,20 @@ public class SqlSearchRepository {
                     where.toString(), orderByQuery.toString());
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
 
-            String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts", "a",
-                    where.toString());
-            Query countQuery = handle.createQuery(countQuerySql);
+            Query countQuery = null;
+            if (!skipCount) {
+                String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts",
+                        "a", where.toString());
+                countQuery = handle.createQuery(countQuerySql);
+            }
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(artifactsQuery, idx);
-                binder.bind(countQuery, idx);
+                if (countQuery != null) {
+                    binder.bind(countQuery, idx);
+                }
                 idx++;
             }
             if ("mssql".equals(sqlStatements.dbType())) {
@@ -279,7 +271,7 @@ public class SqlSearchRepository {
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
             limitReturnedLabelsInArtifacts(artifacts);
             // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+            int count = countQuery != null ? countQuery.mapTo(Integer.class).one() : 0;
 
             ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
             results.setArtifacts(artifacts);
@@ -292,7 +284,8 @@ public class SqlSearchRepository {
      * Search for versions based on filters.
      */
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
+            throws RegistryStorageException {
 
         log.debug("Searching for versions");
         return handles.withHandleNoException(handle -> {
@@ -314,11 +307,8 @@ public class SqlSearchRepository {
                 where.append(" AND (");
                 switch (filter.getType()) {
                     case groupId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("a.groupId " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(filter.getStringValue()));
-                        });
+                        buildWildcardClause(where, "a.groupId",
+                                normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
@@ -328,6 +318,9 @@ public class SqlSearchRepository {
                         });
                         break;
                     case artifactId:
+                        buildWildcardClause(where, "v.artifactId",
+                                filter.getStringValue(), filter.isNot(), binders);
+                        break;
                     case contentId:
                     case globalId:
                     case state:
@@ -355,21 +348,15 @@ public class SqlSearchRepository {
                         });
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        // Note: convert search to lowercase when searching for labels (case-insensitivity
-                        // support).
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
+                        where.append("EXISTS(SELECT l.* FROM version_labels l WHERE ");
+                        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
-                            });
+                            where.append(" AND ");
+                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                                    binders);
                         }
                         where.append(" AND l.globalId = v.globalId)");
                         break;
@@ -430,15 +417,20 @@ public class SqlSearchRepository {
                     .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
             Query versionsQuery = handle.createQuery(versionsQuerySql);
             // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(v.globalId)");
-            Query countQuery = handle.createQuery(countQuerySql);
+            Query countQuery = null;
+            if (!skipCount) {
+                String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                        .replace("{{selectColumns}}", "count(v.globalId)");
+                countQuery = handle.createQuery(countQuerySql);
+            }
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(versionsQuery, idx);
-                binder.bind(countQuery, idx);
+                if (countQuery != null) {
+                    binder.bind(countQuery, idx);
+                }
                 idx++;
             }
 
@@ -454,13 +446,31 @@ public class SqlSearchRepository {
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
             limitReturnedLabelsInVersions(versions);
             // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+            int count = countQuery != null ? countQuery.mapTo(Integer.class).one() : 0;
 
             VersionSearchResultsDto results = new VersionSearchResultsDto();
             results.setVersions(versions);
             results.setCount(count);
             return results;
         });
+    }
+
+    private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,
+            List<SqlStatementVariableBinder> binders) {
+        if (value.contains("*")) {
+            String op = not ? "NOT LIKE" : "LIKE";
+            where.append(column).append(" ").append(op).append(" ?");
+            String pattern = value.replace('*', '%');
+            binders.add((query, idx) -> {
+                query.bind(idx, pattern);
+            });
+        } else {
+            String op = not ? "!=" : "=";
+            where.append(column).append(" ").append(op).append(" ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, value);
+            });
+        }
     }
 
     /**

@@ -29,6 +29,7 @@ OPERAND_IMAGE_TAG ?= latest-snapshot
 
 REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:$(OPERAND_IMAGE_TAG)
 REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:$(OPERAND_IMAGE_TAG)
+REGISTRY_GITOPS_SYNC_IMAGE ?= quay.io/apicurio/apicurio-registry-gitops-sync:$(OPERAND_IMAGE_TAG)
 
 NAMESPACE ?= default
 
@@ -37,11 +38,27 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.2.4
+PREVIOUS_PACKAGE_VERSION ?= 3.3.0
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
-CHANNELS ?= 3.x
-DEFAULT_CHANNEL ?= $(CHANNELS)
+# Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
+CHANNEL ?= $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+PREVIOUS_CHANNEL ?= $(shell echo "$(PREVIOUS_PACKAGE_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+# The minor channel from the version before this release. Passed by CI when a cross-minor
+# release happens (e.g., OLD_PREVIOUS_CHANNEL=3.2.x when releasing 3.3.0 after 3.2.x).
+# Used by release-catalog-template-update to finalize the old minor channel.
+OLD_PREVIOUS_CHANNEL ?=
+
+# Pass ROLLING_CHANNEL=3.x from CI when releasing from main to include the rolling channel.
+# Maintenance branch releases omit it, so the bundle only goes in the minor channel.
+ROLLING_CHANNEL ?=
+ifdef ROLLING_CHANNEL
+  CHANNELS ?= $(ROLLING_CHANNEL),$(CHANNEL)
+  DEFAULT_CHANNEL ?= $(ROLLING_CHANNEL)
+else
+  CHANNELS ?= $(CHANNEL)
+  DEFAULT_CHANNEL ?= $(CHANNEL)
+endif
 
 BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --version $(LC_VERSION) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
 BUNDLE_DIR ?= target/bundle/$(PACKAGE_NAME)/$(LC_VERSION)
@@ -99,6 +116,7 @@ export PLACEHOLDER_LC_VERSION := $(LC_VERSION)
 export PLACEHOLDER_IMAGE := $(IMAGE)
 export PLACEHOLDER_REGISTRY_APP_IMAGE := $(REGISTRY_APP_IMAGE)
 export PLACEHOLDER_REGISTRY_UI_IMAGE := $(REGISTRY_UI_IMAGE)
+export PLACEHOLDER_REGISTRY_GITOPS_SYNC_IMAGE := $(REGISTRY_GITOPS_SYNC_IMAGE)
 
 export PLACEHOLDER_DATE := $(DATE)
 
@@ -110,6 +128,8 @@ export PLACEHOLDER_BUNDLE_IMAGE := $(BUNDLE_IMAGE)
 
 export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
 export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
+
+export PLACEHOLDER_CHANNEL := $(DEFAULT_CHANNEL)
 
 
 ########## Help
@@ -145,9 +165,12 @@ endif
 	@echo "$(CC_CYAN)Operand$(CC_END)"
 	@echo "REGISTRY_APP_IMAGE=$(REGISTRY_APP_IMAGE)"
 	@echo "REGISTRY_UI_IMAGE=$(REGISTRY_UI_IMAGE)"
+	@echo "REGISTRY_GITOPS_SYNC_IMAGE=$(REGISTRY_GITOPS_SYNC_IMAGE)"
 	@echo ""
 	@echo "$(CC_CYAN)Bundle$(CC_END)"
 	@echo "PACKAGE_NAME=$(PACKAGE_NAME)"
+	@echo "CHANNEL=$(CHANNEL)"
+	@echo "PREVIOUS_CHANNEL=$(PREVIOUS_CHANNEL)"
 	@echo "CHANNELS=$(CHANNELS)"
 	@echo "DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)"
 	@echo "BUNDLE_IMAGE=$(BUNDLE_IMAGE)"
@@ -480,8 +503,28 @@ endif
 
 .PHONY: release-catalog-template-update
 release-catalog-template-update: install-yq
+	# Update 3.x rolling channel: replace placeholder with released version, add new placeholder
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
 	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+	# Finalize old minor channel if this is a cross-minor release.
+	# OLD_PREVIOUS_CHANNEL is passed by CI when the previous release was on a different minor.
+ifdef OLD_PREVIOUS_CHANNEL
+	@echo "Finalizing old $(OLD_PREVIOUS_CHANNEL) channel: replacing placeholder with last entry"
+	$(YQ) 'del(.entries[] | select(.schema == "olm.channel") | select(.name == "$(OLD_PREVIOUS_CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}"))' -i $(CATALOG_DIR)/catalog.template.yaml
+endif
+	# Update minor-version channel (CHANNEL and PREVIOUS_CHANNEL are always the same minor here)
+	@if $(YQ) -e '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)"))' $(CATALOG_DIR)/catalog.template.yaml > /dev/null 2>&1; then \
+		echo "Updating existing $(CHANNEL) channel: replacing placeholder with $(PREVIOUS_PACKAGE)"; \
+		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml; \
+		echo "Adding new placeholder to $(CHANNEL) channel"; \
+		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	else \
+		echo "Creating new $(CHANNEL) channel with $(PREVIOUS_PACKAGE)"; \
+		$(YQ) '.entries |= . + [{"schema": "olm.channel", "package": "$${PLACEHOLDER_PACKAGE_NAME}", "name": "$(CHANNEL)", "entries": [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}, {"name": "$(PREVIOUS_PACKAGE)"}]}]' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	fi
+	# Update defaultChannel to the current channel
+	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
+	# Add bundle image for the released version
 	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(PREVIOUS_BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 
 

@@ -43,6 +43,34 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
             use the indexed apicurio.gitops.repos.N.branch properties instead.""", availableSince = "3.2.0")
     Optional<String> repoBranch;
 
+    @ConfigProperty(name = "apicurio.gitops.validate.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Enable the dry-run validation endpoints and the sidecar validation watch loop. \
+            When disabled, validation endpoints return HTTP 503.""", availableSince = "3.3.0")
+    @Getter
+    boolean validateEnabled;
+
+    @ConfigProperty(name = "apicurio.gitops.validate.task.ttl.seconds", defaultValue = "3600")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Time-to-live for dry-run validation tasks in seconds. \
+            Tasks are automatically removed after this period.""", availableSince = "3.3.0")
+    @Getter
+    int validateTaskTtlSeconds;
+
+    @ConfigProperty(name = "apicurio.gitops.validate.max-tasks", defaultValue = "5")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Maximum number of validation tasks with disk resources (submitted, fetching, \
+            validating, or awaiting cleanup) before new requests are queued. Prevents disk \
+            exhaustion from too many concurrent checkouts.""", availableSince = "3.3.0")
+    @Getter
+    int validateMaxTasks;
+
+    @ConfigProperty(name = "apicurio.gitops.validate.fetch.timeout.seconds", defaultValue = "120")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Timeout for the sidecar to fetch a git ref during dry-run validation, in seconds.""", availableSince = "3.3.0")
+    @Getter
+    int validateFetchTimeoutSeconds;
+
     private volatile List<GitRepoConfig> repos;
 
     /**

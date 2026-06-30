@@ -13,6 +13,7 @@ export * from "./settings";
 export * from "./roles";
 export * from "./root";
 export * from "./rules";
+export * from "./contractRules";
 export * from "./PageDataLoader";
 export * from "./PageError";
 export * from "./PageErrorHandler";

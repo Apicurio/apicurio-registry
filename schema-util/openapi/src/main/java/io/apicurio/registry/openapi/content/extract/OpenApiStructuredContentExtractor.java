@@ -1,9 +1,9 @@
 package io.apicurio.registry.openapi.content.extract;
 
-import io.apicurio.datamodels.Library;
-import io.apicurio.datamodels.TraverserDirection;
-import io.apicurio.datamodels.models.Document;
-import io.apicurio.datamodels.models.openapi.OpenApiDocument;
+import io.apitomy.datamodels.Library;
+import io.apitomy.datamodels.TraverserDirection;
+import io.apitomy.datamodels.models.Document;
+import io.apitomy.datamodels.models.openapi.OpenApiDocument;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;

@@ -8,7 +8,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the {registry} MCP server container. The MCP server acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 ifdef::service-registry-downstream[]
-WARNING: The AI agent integration features described in this section are available as a Technology Preview. Technology Preview features are not supported with Red Hat production service level agreements (SLAs) and might not be functionally complete. Red Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process. For more information about the support scope of Technology Preview features, see link:https://access.redhat.com/support/offerings/techpreview[Technology Preview Features Support Scope].
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope].
 endif::[]
 
 NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance. For information about storing MCP tool definitions as artifacts in {registry}, see xref:getting-started/assembly-mcp-tool-features.adoc[].
@@ -65,7 +65,7 @@ NOTE: You can substitute `podman` for `docker` in all commands.
 docker pull quay.io/apicurio/apicurio-registry-mcp-server:latest
 ----
 +
-NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `3.2.4`.
+NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `{registry-release}`.
 +
 Alternatively, to build the MCP server from source, clone the {registry} repository and run the following Maven command:
 +

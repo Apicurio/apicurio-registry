@@ -297,28 +297,19 @@ public class SqlGroupRepository {
                         });
                         break;
                     case groupId:
-                        op = filter.isNot() ? "!=" : "=";
-                        where.append("g.groupId ");
-                        where.append(op);
-                        where.append(" ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
+                        buildWildcardClause(where, "g.groupId",
+                                filter.getStringValue(), filter.isNot(), binders);
                         break;
                     case labels:
-                        op = filter.isNot() ? "!=" : "=";
                         Pair<String, String> label = filter.getLabelFilterValue();
                         String labelKey = label.getKey().toLowerCase();
-                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE l.labelKey " + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, labelKey);
-                        });
+                        where.append("EXISTS(SELECT l.* FROM group_labels l WHERE ");
+                        buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
                             String labelValue = label.getValue().toLowerCase();
-                            where.append(" AND l.labelValue " + op + " ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, labelValue);
-                            });
+                            where.append(" AND ");
+                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                                    binders);
                         }
                         where.append(" AND l.groupId = g.groupId)");
                         break;
@@ -425,6 +416,24 @@ public class SqlGroupRepository {
 
             return null;
         });
+    }
+
+    private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,
+            List<SqlStatementVariableBinder> binders) {
+        if (value.contains("*")) {
+            String op = not ? "NOT LIKE" : "LIKE";
+            where.append(column).append(" ").append(op).append(" ?");
+            String pattern = value.replace('*', '%');
+            binders.add((query, idx) -> {
+                query.bind(idx, pattern);
+            });
+        } else {
+            String op = not ? "!=" : "=";
+            where.append(column).append(" ").append(op).append(" ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, value);
+            });
+        }
     }
 
     /**

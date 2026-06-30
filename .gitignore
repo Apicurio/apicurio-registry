@@ -65,3 +65,4 @@ claudedocs
 .vale.ini
 .vale/
 
+.claude/scheduled_tasks.lock

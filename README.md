@@ -6,6 +6,26 @@
 
 An API/Schema registry - stores and retrieves APIs and Schemas.
 
+## Versioning & Support Policy
+
+Apicurio Registry follows [Semantic Versioning](https://semver.org/):
+
+- **Minor releases** (3.3.0, 3.4.0, ...): new features, enhancements, and bug fixes.
+- **Patch releases** (3.3.1, 3.3.2, ...): CVE and security fixes only. No new features, no bug fixes.
+
+**Support window:** the two most recent minor versions (latest and latest-1) receive patch releases for security issues. Older minors are end-of-life.
+
+**Docker image tags:**
+
+| Tag | Description |
+|-----|-------------|
+| `3.3.0` | Pinned to an exact release |
+| `3.3` | Floating tag — always points to the latest patch in the 3.3.x series |
+| `latest` / `latest-release` | Always points to the most recent stable release |
+| `latest-snapshot` | Most recent build from the `main` branch (unstable) |
+
+**OLM channels (Kubernetes operator):** each minor version has its own OLM channel (e.g., `3.3.x`). Subscribe to a channel to receive only patch updates within that minor. A rolling `3.x` channel is also available for users who always want the latest minor.
+
 ## Build Configuration
 
 This project supports several build configuration options that affect the produced executables.
@@ -38,7 +58,7 @@ Additionally, there are 2 main configuration profiles:
 ### Getting started (APIs)
 
  ```
- ./mvnw clean install -Dfast -DskipTests
+ ./mvnw clean install -Dlocal -DskipTests
  cd app/
  ../mvnw quarkus:dev
  ```
@@ -67,15 +87,15 @@ For more information on the UI, see the UI module's [README.md](ui/README.md).
 
 The project uses a three-tier build system to allow developers to build only what they need:
 
-| Tier        | Flag     | What's included                                         | Use case                           |
-|-------------|----------|---------------------------------------------------------|------------------------------------|
-| **Fast**    | `-Dfast` | Core server, Java SDK, schema utilities                 | Quick server development iteration |
-| **Default** | *(none)* | Fast + serializers, CLI, docs, distribution             | Normal development                 |
-| **Full**    | `-Dfull` | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
+| Tier        | Flag      | What's included                                         | Use case                           |
+|-------------|-----------|--------------------------------------------------------|------------------------------------|
+| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
+| **Default** | *(none)*  | Local + serializers, CLI, docs, distribution            | Normal development                 |
+| **Full**    | `-Dfull`  | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
 
 ```bash
-# Fast: core server only (~3 min)
-./mvnw clean install -Dfast -DskipTests
+# Local: core server only, skip non-essential plugins (~3 min)
+./mvnw clean install -Dlocal -DskipTests
 
 # Default: normal development
 ./mvnw clean install -DskipTests
@@ -171,13 +191,8 @@ variables (The command line parameters are for the `java` executable and at the 
 pass them into the container).  Each docker image will support the environment variable configuration options
 documented above for their respective storage type.
 
-There are a variety of docker image tags to choose from when running the registry docker images.  Each
-release of the project has a specific tag associated with it.  So release `1.2.0.Final` has an equivalent
-docker tag specific to that release.  We also support the following moving tags:
-
-* `latest-snapshot` : represents the most recent docker image produced whenever the `main` branch is updated
-* `latest` : represents the latest stable (released) build of Apicurio Registry
-* `latest-release` : represents the latest stable (released) build of Apicurio Registry (alias for `latest` with clearer semantics)
+See [Versioning & Support Policy](#versioning--support-policy) above for the full list of available
+Docker image tags, including version-pinned, minor-series floating, and latest tags.
 
 Note that if you want to have access to the UI for Registry, you must **also** run the UI container image:
 
@@ -303,6 +318,17 @@ to ignore the usage of **maven-dependency-plugin**.
 * Now go back into **Maven->Lifecycle Mappings** -> **Maven->Lifecycle Mappings** and click
 the **Reload workspace lifecycle mappings metadata** button.
 * If you've already imported the Apicurio projects, select all of them and choose **Maven->Update Project**.
+
+## Community
+
+Apicurio Registry is a [Cloud Native Computing Foundation](https://cncf.io) Sandbox project.
+
+We abide by the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+Copyright Apicurio Registry a Series of LF Projects, LLC.
+For web site terms of use, trademark policy and other project policies please see https://lfprojects.org/policies/.
 
 ### Prevent Eclipse from aggressively cleaning generated classes
 

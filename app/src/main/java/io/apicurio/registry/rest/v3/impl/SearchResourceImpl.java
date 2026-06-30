@@ -8,6 +8,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GroupId;
@@ -62,6 +63,9 @@ public class SearchResourceImpl implements SearchResource {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    OTelMetricsProvider otelMetrics;
+
     @Context
     HttpServletRequest request;
 
@@ -72,7 +76,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
             SortOrder order, ArtifactSortBy orderby, List<String> labels, String description, String groupId,
-            Long globalId, Long contentId, String artifactId, String artifactType) {
+            Long globalId, Long contentId, String artifactId, String artifactType, Boolean skipCount) {
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
         }
@@ -134,7 +138,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), skipCount != null && skipCount);
+        otelMetrics.recordSearchRequest("artifacts");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -142,7 +147,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifactsByContent(Boolean canonical, String artifactType,
             String groupId, BigInteger offset, BigInteger limit, SortOrder order, ArtifactSortBy orderby,
-            InputStream data) {
+            Boolean skipCount, InputStream data) {
 
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
@@ -183,7 +188,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), skipCount != null && skipCount);
+        otelMetrics.recordSearchRequest("artifactsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -240,6 +246,7 @@ public class SearchResourceImpl implements SearchResource {
 
         GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
                 limit.intValue());
+        otelMetrics.recordSearchRequest("groups");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -248,7 +255,7 @@ public class SearchResourceImpl implements SearchResource {
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
             Long globalId, Long contentId, String artifactId, String name, VersionState state,
-            String artifactType, String content, String structure) {
+            String artifactType, String content, String structure, Boolean skipCount) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -323,7 +330,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), skipCount != null && skipCount);
+        otelMetrics.recordSearchRequest("versions");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -331,7 +339,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType,
             BigInteger offset, BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId,
-            String artifactId, InputStream data) {
+            String artifactId, Boolean skipCount, InputStream data) {
 
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
@@ -377,7 +385,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+                limit.intValue(), skipCount != null && skipCount);
+        otelMetrics.recordSearchRequest("versionsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -388,6 +397,7 @@ public class SearchResourceImpl implements SearchResource {
             throw new MissingRequiredParameterException("tag");
         }
         List<ContractRuleWithCoordinatesDto> results = storage.getContractRulesByTag(tag);
+        otelMetrics.recordSearchRequest("contractRules");
         return results.stream()
                 .map(this::toContractRuleSearchResult)
                 .collect(Collectors.toList());
@@ -466,7 +476,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
-                offset.intValue(), limit.intValue());
+                offset.intValue(), limit.intValue(), false);
+        otelMetrics.recordSearchRequest("contracts");
         return V3ApiUtil.dtoToSearchResults(results);
     }
 

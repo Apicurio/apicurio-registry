@@ -15,6 +15,8 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
+import io.apicurio.registry.operator.utils.OperatorTestContext;
+import io.apicurio.registry.operator.utils.OperatorTestExtension;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +57,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
 
-public abstract class ITBase {
+@ExtendWith(OperatorTestExtension.class)
+public abstract class ITBase implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(ITBase.class);
 
@@ -68,11 +72,12 @@ public abstract class ITBase {
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
 
     public static final Duration POLL_INTERVAL_DURATION = ofSeconds(3);
-    public static final Duration SHORT_DURATION = ofSeconds(30);
-    // NOTE: When running remote tests, some extra time might be needed to pull an image before the pod can be run.
-    // TODO: Consider changing the duration based on test type or the situation.
-    public static final Duration MEDIUM_DURATION = ofSeconds(75);
-    public static final Duration LONG_DURATION = ofSeconds(300);
+    public static final Duration SHORT_DURATION = ofSeconds(
+            Integer.getInteger("test.operator.timeout.short", 30));
+    public static final Duration MEDIUM_DURATION = ofSeconds(
+            Integer.getInteger("test.operator.timeout.medium", 120));
+    public static final Duration LONG_DURATION = ofSeconds(
+            Integer.getInteger("test.operator.timeout.long", 420));
 
     public enum OperatorDeployment {
         local, remote
@@ -90,6 +95,16 @@ public abstract class ITBase {
     private static App app;
     protected static JobManager jobManager;
     protected static HostAliasManager hostAliasManager;
+
+    @Override
+    public KubernetesClient getClient() {
+        return client;
+    }
+
+    @Override
+    public String getNamespace() {
+        return namespace;
+    }
 
     @BeforeAll
     public static void before() throws Exception {

@@ -33,6 +33,8 @@ import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.CreateRule;
 import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.GitOpsStatus;
+import io.apicurio.registry.rest.v3.beans.GitOpsValidateRequest;
+import io.apicurio.registry.rest.v3.beans.GitOpsValidateTask;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
@@ -58,6 +60,7 @@ import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
+import io.apicurio.registry.storage.impl.gitops.GitOpsValidationTaskManager;
 import io.apicurio.registry.storage.impl.polling.PollingStorageStatus;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.RuleType;
@@ -151,6 +154,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     Instance<GitOpsRegistryStorage> gitOpsStorage;
+
+    @Inject
+    Instance<GitOpsValidationTaskManager> validationTaskManager;
 
     @Context
     HttpServletRequest request;
@@ -333,7 +339,8 @@ public class AdminResourceImpl implements AdminResource {
         try {
             tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
                     "apicurio-import_");
-            IoUtil.unpackToDisk(zip, tempDirectory);
+            IoUtil.unpackToDisk(zip, tempDirectory, importExportProps.zipMaxEntrySize,
+                    importExportProps.zipMaxTotalSize, importExportProps.zipMaxEntryCount);
             zip.close();
         } catch (IOException e) {
             throw new BadRequestException("Error importing data: " + e.getMessage(), e);
@@ -642,6 +649,55 @@ public class AdminResourceImpl implements AdminResource {
     public void triggerGitOpsSync() {
         var gitOps = requireGitOpsStorage();
         gitOps.requestSync();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public GitOpsValidateTask createGitOpsValidateTask(GitOpsValidateRequest data) {
+        requireGitOpsStorage();
+        return requireValidationTaskManager().createTask(data);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public List<GitOpsValidateTask> listGitOpsValidateTasks() {
+        requireGitOpsStorage();
+        return requireValidationTaskManager().listTasks();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public GitOpsValidateTask getGitOpsValidateTask(String taskId) {
+        requireGitOpsStorage();
+        var task = requireValidationTaskManager().getTask(taskId);
+        if (task == null) {
+            throw new jakarta.ws.rs.NotFoundException("Validation task not found: " + taskId);
+        }
+        return task;
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void deleteGitOpsValidateTask(String taskId) {
+        requireGitOpsStorage();
+        if (!requireValidationTaskManager().deleteTask(taskId)) {
+            throw new jakarta.ws.rs.NotFoundException("Validation task not found: " + taskId);
+        }
+    }
+
+    private GitOpsValidationTaskManager requireValidationTaskManager() {
+        if (validationTaskManager.isUnsatisfied()) {
+            throw new ConflictException(
+                    "Validation task manager is not available. "
+                    + "GitOps storage must be enabled.");
+        }
+        var manager = validationTaskManager.get();
+        if (!manager.isEnabled()) {
+            throw new jakarta.ws.rs.ServiceUnavailableException(
+                    "GitOps dry-run validation is disabled. "
+                    + "Set apicurio.gitops.validate.enabled=true to enable.");
+        }
+        return manager;
     }
 
     private GitOpsRegistryStorage requireGitOpsStorage() {

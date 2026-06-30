@@ -68,6 +68,7 @@ jobs:
       - name: Run Integration Tests
         run: |
           ./mvnw verify -am --no-transfer-progress \
+            -s .github/ci-settings.xml \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \

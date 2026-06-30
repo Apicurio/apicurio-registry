@@ -77,6 +77,7 @@ jobs:
         run: |
           ./mvnw verify -pl cli \
             --no-transfer-progress \
+            -s .github/ci-settings.xml \
             -Dquarkus.native.container-build=false \
             ${{ matrix.test-args }} \
             -Dmaven.javadoc.skip=true \

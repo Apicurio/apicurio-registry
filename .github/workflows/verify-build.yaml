@@ -39,6 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         run: |
           ./mvnw clean package -T 0.5C --no-transfer-progress \
+            -s .github/ci-settings.xml \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \

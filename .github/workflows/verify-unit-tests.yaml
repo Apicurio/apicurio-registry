@@ -79,6 +79,7 @@ jobs:
         run: |
           ./mvnw verify \
             --no-transfer-progress \
+            -s .github/ci-settings.xml \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \

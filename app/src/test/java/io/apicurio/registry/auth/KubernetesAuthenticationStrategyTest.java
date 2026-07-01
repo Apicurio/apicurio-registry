@@ -265,6 +265,22 @@ class KubernetesAuthenticationStrategyTest {
     }
 
     @Test
+    void testCachesApiExceptionToPreventRetryStorm() {
+        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer error-token-cached");
+        when(kubernetesClient.tokenReviews()).thenThrow(
+                new RuntimeException("Connection refused"));
+
+        // First call — hits K8s API and fails
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+
+        // Second call with same token — should use cached failure, not retry K8s API
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+
+        // K8s API should only be called once; second call served from cache
+        verify(kubernetesClient, org.mockito.Mockito.times(1)).tokenReviews();
+    }
+
+    @Test
     void testBearerPrefixIsCaseInsensitive() {
         when(httpRequest.getHeader("Authorization")).thenReturn("bearer lowercase-token");
 

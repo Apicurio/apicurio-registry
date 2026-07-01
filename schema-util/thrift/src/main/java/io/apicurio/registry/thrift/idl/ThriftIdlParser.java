@@ -11,10 +11,8 @@ public class ThriftIdlParser {
             .compile("^\\s*namespace\\s+(\\w+)\\s+([\\w.]+)");
     private static final Pattern INCLUDE_PATTERN = Pattern.compile("^\\s*include\\s+\"([^\"]+)\"");
     private static final Pattern CPP_INCLUDE_PATTERN = Pattern.compile("^\\s*cpp_include\\s+\"([^\"]+)\"");
-    private static final Pattern CONST_PATTERN = Pattern
-            .compile("^\\s*const\\s+(.+)\\s+(\\w+)\\s*=");
-    private static final Pattern TYPEDEF_PATTERN = Pattern
-            .compile("^\\s*typedef\\s+(.+)\\s+(\\w+)\\s*$");
+    private static final Pattern CONST_PATTERN = Pattern.compile("^\\s*const\\s+([^=]+)=");
+    private static final Pattern TYPEDEF_PATTERN = Pattern.compile("^\\s*typedef\\s+(\\S.*)$");
     private static final Pattern ENUM_PATTERN = Pattern.compile("^\\s*enum\\s+(\\w+)\\s*\\{");
     private static final Pattern SENUM_PATTERN = Pattern.compile("^\\s*senum\\s+(\\w+)\\s*\\{");
     private static final Pattern STRUCT_PATTERN = Pattern.compile("^\\s*struct\\s+(\\w+)\\s*\\{");
@@ -85,14 +83,20 @@ public class ThriftIdlParser {
 
         m = CONST_PATTERN.matcher(line);
         if (m.find()) {
-            document.addConstant(m.group(2), m.group(1).trim());
-            return new ParseResult(index + 1, true);
+            String[] typeAndName = splitTypeAndName(m.group(1));
+            if (typeAndName != null) {
+                document.addConstant(typeAndName[1], typeAndName[0]);
+                return new ParseResult(index + 1, true);
+            }
         }
 
         m = TYPEDEF_PATTERN.matcher(line);
         if (m.find()) {
-            document.addTypedef(m.group(2), m.group(1).trim());
-            return new ParseResult(index + 1, true);
+            String[] typeAndName = splitTypeAndName(m.group(1));
+            if (typeAndName != null) {
+                document.addTypedef(typeAndName[1], typeAndName[0]);
+                return new ParseResult(index + 1, true);
+            }
         }
 
         ParseResult blockResult = parseBlockConstruct(line, lines, index, document);
@@ -105,6 +109,22 @@ public class ThriftIdlParser {
         }
 
         return new ParseResult(index + 1, false);
+    }
+
+    private static String[] splitTypeAndName(String declaration) {
+        String trimmed = declaration.trim();
+        int lastSpace = trimmed.lastIndexOf(' ');
+        int lastTab = trimmed.lastIndexOf('\t');
+        int split = Math.max(lastSpace, lastTab);
+        if (split < 0) {
+            return null;
+        }
+        String type = trimmed.substring(0, split).trim();
+        String name = trimmed.substring(split + 1).trim();
+        if (type.isEmpty() || name.isEmpty()) {
+            return null;
+        }
+        return new String[] { type, name };
     }
 
     private static ParseResult parseBlockConstruct(String line, List<String> lines, int index,

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 public class ThriftContentValidatorTest extends ArtifactUtilProviderTestBase {
 
@@ -24,16 +25,23 @@ public class ThriftContentValidatorTest extends ArtifactUtilProviderTestBase {
         TypedContent content = resourceToTypedContentHandle("thrift-valid.thrift");
         ThriftDocument doc = ThriftIdlParser.parse(content.getContent().content());
 
-        Assertions.assertEquals(2, doc.getNamespaces().size());
-        Assertions.assertEquals(1, doc.getTypedefs().size());
-        Assertions.assertEquals(2, doc.getConstants().size());
-        Assertions.assertTrue(doc.getConstants().stream()
-                .anyMatch(c -> "MAPCONSTANT".equals(c.getName())
-                        && "map<string, string>".equals(c.getType())));
-        Assertions.assertEquals(1, doc.getEnums().size());
-        Assertions.assertEquals(1, doc.getStructs().size());
-        Assertions.assertEquals(1, doc.getExceptions().size());
-        Assertions.assertEquals(1, doc.getServices().size());
+        List<String> namespaces = doc.getNamespaces().stream()
+                .map(n -> n.getLanguage() + " " + n.getName()).toList();
+        Assertions.assertEquals(List.of("java com.example.tutorial", "py tutorial"), namespaces);
+
+        List<String> typedefs = doc.getTypedefs().stream()
+                .map(t -> t.getName() + ":" + t.getType()).toList();
+        Assertions.assertEquals(List.of("MyInteger:i32"), typedefs);
+
+        List<String> constants = doc.getConstants().stream()
+                .map(c -> c.getName() + ":" + c.getType()).toList();
+        Assertions.assertEquals(
+                List.of("INT32CONSTANT:i32", "MAPCONSTANT:map<string, string>"), constants);
+
+        Assertions.assertEquals(List.of("Operation"), doc.getEnums());
+        Assertions.assertEquals(List.of("Work"), doc.getStructs());
+        Assertions.assertEquals(List.of("InvalidOperation"), doc.getExceptions());
+        Assertions.assertEquals(List.of("Calculator"), doc.getServices());
     }
 
     @Test

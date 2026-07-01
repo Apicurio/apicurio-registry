@@ -42,6 +42,7 @@ public class ArtifactVersionMetaDataDtoMapper implements RowMapper<ArtifactVersi
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn").getTime());
+        dto.setEpoch(rs.getLong("epoch"));
         return dto;
     }
 

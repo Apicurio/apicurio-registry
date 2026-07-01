@@ -1585,4 +1585,21 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String deleteAllContractAuditEntries() {
         return "DELETE FROM contract_audit_log";
     }
+
+    // -- xRegistry data model extensions --
+
+    @Override
+    public String updateGroupEpoch() {
+        return "UPDATE " + groupsTable() + " SET epoch = epoch + 1 WHERE groupId = ?";
+    }
+
+    @Override
+    public String updateArtifactEpoch() {
+        return "UPDATE artifacts SET epoch = epoch + 1 WHERE groupId = ? AND artifactId = ?";
+    }
+
+    @Override
+    public String updateVersionEpochByGAV() {
+        return "UPDATE versions SET epoch = epoch + 1 WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
 }

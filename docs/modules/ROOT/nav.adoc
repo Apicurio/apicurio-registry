@@ -20,7 +20,6 @@
 * Configuration
 ** xref:getting-started/assembly-configuring-registry-security.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
-** xref:getting-started/assembly-registry-events.adoc[]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]

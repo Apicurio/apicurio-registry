@@ -215,6 +215,11 @@ public class SqlArtifactRepository {
                 if (rowCount == 0) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
                 } else {
+                    handle.createUpdate(sqlStatements.updateArtifactEpoch())
+                            .bind(0, normalizeGroupId(groupId))
+                            .bind(1, artifactId)
+                            .execute();
+
                     outboxEvent.fire(
                             SqlOutboxEvent.of(ArtifactMetadataUpdated.of(groupId, artifactId, metaData)));
                 }

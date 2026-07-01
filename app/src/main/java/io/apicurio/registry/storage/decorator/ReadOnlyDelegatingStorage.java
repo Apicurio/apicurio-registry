@@ -524,4 +524,5 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
                                                                   String version) {
         return delegate.getDeprecationReadiness(groupId, artifactId, version);
     }
+
 }

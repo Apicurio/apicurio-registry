@@ -1,4 +1,10 @@
+import { useMemo, useRef } from "react";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
+
+export interface ArtifactTypeInfo {
+    id: string;
+    label: string;
+}
 
 export class ArtifactTypes {
     public static AVRO = "AVRO";
@@ -181,7 +187,7 @@ const allTypes = async (admin: AdminService): Promise<string[]> => {
     return Promise.resolve(ALL_TYPES);
 };
 
-const allTypesWithLabels = async (admin: AdminService): Promise<any[]> => {
+const allTypesWithLabels = async (admin: AdminService): Promise<ArtifactTypeInfo[]> => {
     return allTypes(admin).then(types => {
         return types.map(t => { return { id: t, label: ArtifactTypes.getLabel(t) }; });
     });
@@ -190,18 +196,20 @@ const allTypesWithLabels = async (admin: AdminService): Promise<any[]> => {
 
 export interface ArtifactTypesService {
     allTypes(): Promise<string[]>;
-    allTypesWithLabels(): Promise<any[]>;
+    allTypesWithLabels(): Promise<ArtifactTypeInfo[]>;
 }
 
 export const useArtifactTypesService: () => ArtifactTypesService = (): ArtifactTypesService => {
     const admin: AdminService = useAdminService();
+    const adminRef = useRef(admin);
+    adminRef.current = admin;
 
-    return {
+    return useMemo(() => ({
         allTypes(): Promise<string[]> {
-            return allTypes(admin);
+            return allTypes(adminRef.current);
         },
-        allTypesWithLabels(): Promise<any[]> {
-            return allTypesWithLabels(admin);
+        allTypesWithLabels(): Promise<ArtifactTypeInfo[]> {
+            return allTypesWithLabels(adminRef.current);
         }
-    };
+    }), []);
 };

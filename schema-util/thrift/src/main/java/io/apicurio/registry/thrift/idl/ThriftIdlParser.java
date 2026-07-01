@@ -11,7 +11,7 @@ public class ThriftIdlParser {
             .compile("^\\s*namespace\\s+(\\w+)\\s+([\\w.]+)");
     private static final Pattern INCLUDE_PATTERN = Pattern.compile("^\\s*include\\s+\"([^\"]+)\"");
     private static final Pattern CPP_INCLUDE_PATTERN = Pattern.compile("^\\s*cpp_include\\s+\"([^\"]+)\"");
-    private static final Pattern CONST_PATTERN = Pattern.compile("^\\s*const\\s+([^=]+)=");
+    private static final Pattern CONST_PATTERN = Pattern.compile("^\\s*const\\s+([^=]++)=");
     private static final Pattern TYPEDEF_PATTERN = Pattern.compile("^\\s*typedef\\s+(\\S.*)$");
     private static final Pattern ENUM_PATTERN = Pattern.compile("^\\s*enum\\s+(\\w+)\\s*\\{");
     private static final Pattern SENUM_PATTERN = Pattern.compile("^\\s*senum\\s+(\\w+)\\s*\\{");
@@ -84,7 +84,7 @@ public class ThriftIdlParser {
         m = CONST_PATTERN.matcher(line);
         if (m.find()) {
             String[] typeAndName = splitTypeAndName(m.group(1));
-            if (typeAndName != null) {
+            if (typeAndName.length == 2) {
                 document.addConstant(typeAndName[1], typeAndName[0]);
                 return new ParseResult(index + 1, true);
             }
@@ -93,7 +93,7 @@ public class ThriftIdlParser {
         m = TYPEDEF_PATTERN.matcher(line);
         if (m.find()) {
             String[] typeAndName = splitTypeAndName(m.group(1));
-            if (typeAndName != null) {
+            if (typeAndName.length == 2) {
                 document.addTypedef(typeAndName[1], typeAndName[0]);
                 return new ParseResult(index + 1, true);
             }
@@ -117,12 +117,12 @@ public class ThriftIdlParser {
         int lastTab = trimmed.lastIndexOf('\t');
         int split = Math.max(lastSpace, lastTab);
         if (split < 0) {
-            return null;
+            return new String[0];
         }
         String type = trimmed.substring(0, split).trim();
         String name = trimmed.substring(split + 1).trim();
         if (type.isEmpty() || name.isEmpty()) {
-            return null;
+            return new String[0];
         }
         return new String[] { type, name };
     }

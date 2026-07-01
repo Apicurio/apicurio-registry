@@ -57,6 +57,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -155,6 +156,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
                 filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+        warnIfTruncated(results);
 
         // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
         List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -235,12 +237,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
 
-        int safeOffset = Math.max(0, request.getOffset());
-        int safeLimit = Math.max(1, Math.min(request.getLimit(), 500));
+        int safeOffset = request.getOffset();
+        int safeLimit = request.getLimit();
 
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
                     filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+            warnIfTruncated(results);
 
             // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
             List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -372,6 +375,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
                     filters, OrderBy.createdOn, OrderDirection.desc,
                     0, MAX_VISIBILITY_FILTER_RESULTS, false);
+            warnIfTruncated(results);
 
             List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
 
@@ -620,6 +624,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return authConfig.isOidcAuthEnabled() || authConfig.isBasicAuthEnabled();
     }
 
+    private void warnIfTruncated(ArtifactSearchResultsDto results) {
+        if (results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
+            log.warn("Agent visibility filtering may be incomplete: total agent count ({}) "
+                    + "reached the in-memory limit of {}. Results beyond this limit are not included.",
+                    results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);
+        }
+    }
+
     private String getSchemaResourcePath(String type, String version) {
         // Only allow known schema types and versions
         if ("prompt-template".equals(type) && "v1".equals(version)) {
@@ -663,14 +675,20 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 result.add(artifact);
             } else if (!isAuthenticated) {
                 continue;
+            } else if ("entitled".equals(visibility)) {
+                result.add(artifact);
             } else if ("private".equals(visibility)) {
                 String owner = artifact.getOwner();
                 if (isAdmin || (owner != null && owner.equals(currentUser))) {
                     result.add(artifact);
                 }
             } else {
-                // "entitled" or any unrecognized value — visible to authenticated users
-                result.add(artifact);
+                log.warn("Unrecognized visibility '{}' for artifact {}/{}, treating as private",
+                        visibility, artifact.getGroupId(), artifact.getArtifactId());
+                String owner = artifact.getOwner();
+                if (isAdmin || (owner != null && owner.equals(currentUser))) {
+                    result.add(artifact);
+                }
             }
         }
         return result;
@@ -684,10 +702,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
         if (labels != null) {
             String explicit = labels.get("apicurio.agent.visibility");
             if (explicit != null) {
-                return explicit;
+                return explicit.toLowerCase(Locale.ROOT);
             }
         }
-        return a2aConfig.getDefaultVisibility();
+        return a2aConfig.getDefaultVisibility().toLowerCase(Locale.ROOT);
     }
 
     private String getBaseUrl() {

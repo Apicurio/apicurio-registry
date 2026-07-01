@@ -167,6 +167,65 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     @RetryTest
+    void testChannelSwitchAtChannelHeadIsNoop() throws Exception {
+        setUp();
+
+        var projectVersion = getProjectVersion();
+        var rollingChannel = deriveRollingChannel(projectVersion);
+        var currentMinorChannel = deriveMinorChannel(projectVersion);
+
+        log.info("Testing noop channel switch: install {} on {}, then switch to {} where it's also the head",
+                projectVersion, rollingChannel, currentMinorChannel);
+
+        deployCatalogAndSubscribe(rollingChannel, projectVersion);
+        waitForOperatorVersion(projectVersion);
+        log.info("Operator {} deployed on {} channel", projectVersion, rollingChannel);
+
+        var podBefore = client.pods().inNamespace(namespace).list().getItems().stream()
+                .filter(p -> p.getMetadata().getName().contains("apicurio-registry-operator"))
+                .filter(p -> "Running".equals(p.getStatus().getPhase()))
+                .map(p -> p.getMetadata().getUid())
+                .findFirst().orElseThrow(() -> new IllegalStateException("No operator pod found"));
+        log.info("Operator pod UID before switch: {}", podBefore);
+
+        patchSubscriptionChannel(currentMinorChannel);
+        log.info("Switched subscription to {} channel, verifying operator stays at same version...",
+                currentMinorChannel);
+
+        // OLM may re-evaluate and restart the pod on a channel switch, even if the
+        // version is the same. Wait for any restarts to settle, then verify the
+        // version hasn't changed and the operator is healthy.
+        Thread.sleep(30_000);
+
+        // Verify the deployment still exists at the same version and is healthy
+        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+            var deployment = client.apps().deployments().inNamespace(namespace)
+                    .withName("apicurio-registry-operator-v" + projectVersion.toLowerCase()).get();
+            assertThat(deployment)
+                    .as("Operator deployment at " + projectVersion + " should still exist after channel switch")
+                    .isNotNull();
+            assertThat(deployment.getStatus().getReadyReplicas())
+                    .as("Operator should have 1 ready replica after channel switch")
+                    .isEqualTo(1);
+        });
+
+        var podAfter = client.pods().inNamespace(namespace).list().getItems().stream()
+                .filter(p -> p.getMetadata().getName().contains("apicurio-registry-operator"))
+                .filter(p -> "Running".equals(p.getStatus().getPhase()))
+                .map(p -> p.getMetadata().getUid())
+                .findFirst().orElseThrow(() -> new IllegalStateException("No operator pod found after switch"));
+
+        if (podAfter.equals(podBefore)) {
+            log.info("Channel switch was a true noop: same pod UID {}", podAfter);
+        } else {
+            log.info("OLM restarted the pod on channel switch (old: {}, new: {}), but version is unchanged",
+                    podBefore, podAfter);
+        }
+
+        log.info("Channel switch at channel head verified: operator at {} is healthy", projectVersion);
+    }
+
+    @RetryTest
     void testMinorChannelIsolation() throws Exception {
         setUp();
 

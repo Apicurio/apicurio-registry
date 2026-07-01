@@ -7,8 +7,12 @@ import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
 import io.apicurio.registry.a2a.rest.beans.AgentInterface;
+import io.apicurio.registry.a2a.rest.beans.AgentSearchFilters;
+import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
+import io.apicurio.registry.auth.AdminOverride;
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -36,6 +40,9 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.StringUtil;
+import io.quarkus.security.identity.SecurityIdentity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -50,6 +57,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -63,6 +72,11 @@ import java.util.Set;
 @Logged
 public class WellKnownResourceImpl implements WellKnownResource {
 
+    private static final Logger log = LoggerFactory.getLogger(WellKnownResourceImpl.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    private static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
+
     @Inject
     A2AConfig a2aConfig;
 
@@ -75,6 +89,15 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    SecurityIdentity securityIdentity;
+
+    @Inject
+    AdminOverride adminOverride;
+
+    @Inject
+    AuthConfig authConfig;
 
     @Context
     HttpServletRequest request;
@@ -94,6 +117,165 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public AgentCard getAgentCardV1() {
         return getAgentCard();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public AgentSearchResults getPublicAgents(Integer offset, Integer limit) {
+        if (!a2aConfig.isEnabled() || !a2aConfig.isPublicDiscoveryEnabled()) {
+            throw new NotFoundException("Public agent discovery is disabled");
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
+        filters.add(SearchFilter.ofLabel("apicurio.agent.visibility", "public"));
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit, false);
+
+        List<AgentSearchResult> agents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            agents.add(convertToAgentSearchResult(artifact));
+        }
+
+        return AgentSearchResults.builder()
+                .count(results.getCount())
+                .agents(agents)
+                .build();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public AgentSearchResults getEntitledAgents(Integer offset, Integer limit) {
+        if (!a2aConfig.isEnabled() || !a2aConfig.isEntitlementsEnabled()) {
+            throw new NotFoundException("Agent entitlements endpoint is disabled");
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+        warnIfTruncated(results);
+
+        // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
+        List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+
+        int total = visible.size();
+        int safeOffset = Math.max(0, Math.min(offset, total));
+        int safeLimit = Math.max(0, limit);
+        int toIndex = Math.min(safeOffset + safeLimit, total);
+        List<SearchedArtifactDto> page = visible.subList(safeOffset, toIndex);
+
+        List<AgentSearchResult> agents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : page) {
+            agents.add(convertToAgentSearchResult(artifact));
+        }
+
+        return AgentSearchResults.builder()
+                .count((long) total)
+                .agents(agents)
+                .build();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public AgentSearchResults searchAgentsAdvanced(AgentSearchRequest request) {
+        if (!a2aConfig.isEnabled()) {
+            throw new NotFoundException("A2A support is disabled");
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
+
+        // Query matches artifact metadata name and artifactId (not Agent Card JSON content).
+        // Full-text content search is tracked in #7230.
+        if (!StringUtil.isEmpty(request.getQuery())) {
+            String q = request.getQuery().trim();
+            if (!q.contains("*")) {
+                q = "*" + q + "*";
+            }
+            filters.add(SearchFilter.ofName(q));
+        }
+
+        AgentSearchFilters f = request.getFilters();
+        if (f != null) {
+            if (f.getSkills() != null) {
+                for (String skill : f.getSkills()) {
+                    filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
+                }
+            }
+            if (f.getCapabilities() != null) {
+                for (Map.Entry<String, Boolean> entry : f.getCapabilities().entrySet()) {
+                    SearchFilter filter = SearchFilter.ofStructure(
+                            "agent_card:capability:" + entry.getKey());
+                    if (!Boolean.TRUE.equals(entry.getValue())) {
+                        filter = filter.negated();
+                    }
+                    filters.add(filter);
+                }
+            }
+            if (f.getLabels() != null) {
+                for (Map.Entry<String, String> entry : f.getLabels().entrySet()) {
+                    filters.add(SearchFilter.ofLabel(entry.getKey(), entry.getValue()));
+                }
+            }
+            if (f.getInputModes() != null) {
+                for (String mode : f.getInputModes()) {
+                    filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
+                }
+            }
+            if (f.getOutputModes() != null) {
+                for (String mode : f.getOutputModes()) {
+                    filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
+                }
+            }
+            if (f.getProtocolBindings() != null) {
+                for (String binding : f.getProtocolBindings()) {
+                    filters.add(SearchFilter.ofStructure("agent_card:protocolbinding:" + binding));
+                }
+            }
+        }
+
+        int safeOffset = request.getOffset();
+        int safeLimit = request.getLimit();
+
+        if (a2aConfig.isEntitlementsEnabled()) {
+            ArtifactSearchResultsDto results = storage.searchArtifacts(
+                    filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+            warnIfTruncated(results);
+
+            // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
+            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+
+            int total = visible.size();
+            int fromIndex = Math.min(safeOffset, total);
+            int toIndex = Math.min(fromIndex + safeLimit, total);
+            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+
+            List<AgentSearchResult> agents = new ArrayList<>();
+            for (SearchedArtifactDto artifact : page) {
+                agents.add(convertToAgentSearchResult(artifact));
+            }
+
+            return AgentSearchResults.builder()
+                    .count((long) total)
+                    .agents(agents)
+                    .build();
+        }
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
+
+        List<AgentSearchResult> agents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            agents.add(convertToAgentSearchResult(artifact));
+        }
+
+        return AgentSearchResults.builder()
+                .count(results.getCount())
+                .agents(agents)
+                .build();
     }
 
     @Override
@@ -186,11 +368,36 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
 
-        // Execute search
-        ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit, false);
+        int safeOffset = Math.max(0, offset);
+        int safeLimit = Math.max(1, Math.min(limit, 500));
 
-        // Convert to agent search results
+        if (isAuthEnabled() && a2aConfig.isEntitlementsEnabled()) {
+            ArtifactSearchResultsDto results = storage.searchArtifacts(
+                    filters, OrderBy.createdOn, OrderDirection.desc,
+                    0, MAX_VISIBILITY_FILTER_RESULTS, false);
+            warnIfTruncated(results);
+
+            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+
+            int total = visible.size();
+            int fromIndex = Math.min(safeOffset, total);
+            int toIndex = Math.min(fromIndex + safeLimit, total);
+            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+
+            List<AgentSearchResult> agents = new ArrayList<>();
+            for (SearchedArtifactDto artifact : page) {
+                agents.add(convertToAgentSearchResult(artifact));
+            }
+
+            return AgentSearchResults.builder()
+                    .count((long) total)
+                    .agents(agents)
+                    .build();
+        }
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
+
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
             agents.add(convertToAgentSearchResult(artifact));
@@ -221,7 +428,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
                     gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-            ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(stored.getContent().content());
 
             // Extract skills
@@ -254,7 +460,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 pushNotifications = capabilitiesNode.path("pushNotifications").asBoolean(false);
             }
         } catch (Exception e) {
-            // If content parsing fails, return result with empty skills/capabilities
+            log.warn("Failed to parse Agent Card content for {}/{}: {}",
+                    artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
         }
 
         return AgentSearchResult.builder()
@@ -357,7 +564,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
                     gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-            ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(stored.getContent().content());
 
             // Extract title
@@ -374,7 +580,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
         } catch (Exception e) {
-            // If content parsing fails, return result with empty metadata
+            log.warn("Failed to parse MCP tool content for {}/{}: {}",
+                    artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
         }
 
         return McpToolSearchResult.builder()
@@ -413,6 +620,18 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
     }
 
+    private boolean isAuthEnabled() {
+        return authConfig.isOidcAuthEnabled() || authConfig.isBasicAuthEnabled();
+    }
+
+    private void warnIfTruncated(ArtifactSearchResultsDto results) {
+        if (results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
+            log.warn("Agent visibility filtering may be incomplete: total agent count ({}) "
+                    + "reached the in-memory limit of {}. Results beyond this limit are not included.",
+                    results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);
+        }
+    }
+
     private String getSchemaResourcePath(String type, String version) {
         // Only allow known schema types and versions
         if ("prompt-template".equals(type) && "v1".equals(version)) {
@@ -432,6 +651,61 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
+    }
+
+    /**
+     * Filters artifact DTOs by visibility rules without performing expensive content conversion.
+     * When no auth is enabled, all artifacts are returned. Otherwise, visibility is determined
+     * by the {@code apicurio.agent.visibility} label (falling back to the configured default).
+     */
+    private List<SearchedArtifactDto> filterDtosByVisibility(List<SearchedArtifactDto> artifacts) {
+        if (!isAuthEnabled()) {
+            return new ArrayList<>(artifacts);
+        }
+
+        boolean isAuthenticated = !securityIdentity.isAnonymous();
+        boolean isAdmin = isAuthenticated && adminOverride.isAdmin();
+        String currentUser = isAuthenticated
+                ? securityIdentity.getPrincipal().getName() : null;
+
+        List<SearchedArtifactDto> result = new ArrayList<>();
+        for (SearchedArtifactDto artifact : artifacts) {
+            String visibility = resolveVisibility(artifact.getLabels());
+            if ("public".equals(visibility)) {
+                result.add(artifact);
+            } else if (!isAuthenticated) {
+                continue;
+            } else if ("entitled".equals(visibility)) {
+                result.add(artifact);
+            } else if ("private".equals(visibility)) {
+                String owner = artifact.getOwner();
+                if (isAdmin || (owner != null && owner.equals(currentUser))) {
+                    result.add(artifact);
+                }
+            } else {
+                log.warn("Unrecognized visibility '{}' for artifact {}/{}, treating as private",
+                        visibility, artifact.getGroupId(), artifact.getArtifactId());
+                String owner = artifact.getOwner();
+                if (isAdmin || (owner != null && owner.equals(currentUser))) {
+                    result.add(artifact);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Returns the effective visibility for an artifact. If the {@code apicurio.agent.visibility}
+     * label is not set, falls back to the configured default visibility.
+     */
+    private String resolveVisibility(Map<String, String> labels) {
+        if (labels != null) {
+            String explicit = labels.get("apicurio.agent.visibility");
+            if (explicit != null) {
+                return explicit.toLowerCase(Locale.ROOT);
+            }
+        }
+        return a2aConfig.getDefaultVisibility().toLowerCase(Locale.ROOT);
     }
 
     private String getBaseUrl() {

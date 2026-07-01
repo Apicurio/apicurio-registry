@@ -177,6 +177,22 @@
               <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
             </configuration>
           </execution>
+          <execution>
+            <id>assembly-zip</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <skipAssembly>${skip.zip.assembly}</skipAssembly>
+              <appendAssemblyId>false</appendAssemblyId>
+              <attach>true</attach>
+              <descriptors>
+                <descriptor>src/main/assembly/exportConfluent-zip.xml</descriptor>
+              </descriptors>
+              <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>

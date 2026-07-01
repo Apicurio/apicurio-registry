@@ -188,6 +188,25 @@
               <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
             </configuration>
           </execution>
+          <execution>
+            <id>assembly-zip</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <skipAssembly>${skip.zip.assembly}</skipAssembly>
+              <finalName>${project.artifactId}-${project.version}</finalName>
+              <attach>true</attach>
+              <descriptors>
+                <descriptor>src/main/assembly/assembly-zip.xml</descriptor>
+              </descriptors>
+              <archiverConfig>
+                <defaultDirectoryMode>0755</defaultDirectoryMode>
+              </archiverConfig>
+              <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 

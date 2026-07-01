@@ -32,13 +32,20 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
 
       - name: Build Application (skip tests for speed)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         run: |
-          ./mvnw clean package -T 0.5C --no-transfer-progress \
+          ./mvnw clean package --no-transfer-progress \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
@@ -84,6 +91,13 @@ jobs:
             common/target/
             schema-util/common/target/
           retention-days: 1
+
+      - name: Save Maven cache
+        if: github.event_name == 'push'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
 
   build-ui:
     name: Build UI Application

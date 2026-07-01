@@ -2,9 +2,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="data-contracts_{context}"]
 = {registry} data contracts
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter introduces the Data Contracts framework in {registry}, which uses the Open Data Contract Standard (ODCS) v3.1 as the native contract format for managing schema contracts between data producers and consumers.
+You can use {registry} data contracts to define, enforce, and track formal schema agreements between data producers and consumers by using the Open Data Contract Standard (ODCS) v3.1.
+
+This assembly includes the following topics:
 
 * xref:data-contracts-overview_{context}[]
 * xref:data-contracts-odcs_{context}[]
@@ -21,34 +24,64 @@ This chapter introduces the Data Contracts framework in {registry}, which uses t
 
 [id="data-contracts-overview_{context}"]
 == Overview
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The Data Contracts framework enables teams to define, enforce, and track formal agreements about schema structure, ownership, and quality using the industry-standard ODCS format.
+The Data Contracts framework enables you to define, enforce, and track formal agreements about schema structure, ownership, and quality by using the industry-standard ODCS format.
 
-A data contract in {registry} combines:
+A data contract in {registry} combines the following components:
 
-* *ODCS format* - Contracts are submitted as ODCS v3.1 YAML documents and projected onto schema artifacts
-* *Metadata* - Ownership, classification, SLA, and support information projected as labels
-* *Lifecycle* - Status tracking (DRAFT, STABLE, DEPRECATED) and promotion stages (DEV, STAGE, PROD)
-* *Quality rules* - Accuracy and completeness rules from ODCS projected as CEL contract rules
-* *Field tags* - PII and classification annotations stored as version labels, with automatic extraction from Avro, JSON Schema, and Protobuf schemas
-* *Multi-contract support* - Multiple contracts can reference the same schema artifact without overwriting each other
+.Data contract components
+[cols="2,4", options="header"]
+|===
+|Component |Description
+
+|ODCS format
+|Contracts are submitted as ODCS v3.1 YAML documents and projected onto schema artifacts
+
+|Metadata
+|Ownership, classification, SLA, and support information projected as labels
+
+|Lifecycle
+|Status tracking (DRAFT, STABLE, DEPRECATED) and promotion stages (DEV, STAGE, PROD)
+
+|Quality rules
+|Accuracy and completeness rules from ODCS projected as CEL contract rules
+
+|Field tags
+|PII and classification annotations stored as version labels, with automatic extraction from Avro, JSON Schema, and Protobuf schemas
+
+|Multi-contract support
+|Multiple contracts can reference the same schema artifact without overwriting each other
+|===
 
 NOTE: Data contracts are always available. No special configuration is required — submitting a contract is an explicit opt-in action.
 
 [id="data-contracts-odcs_{context}"]
 == ODCS native format
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-{registry} uses the Open Data Contract Standard (ODCS) v3.1 as its native contract format. ODCS is a Linux Foundation standard maintained by the Bitol project. When an ODCS contract is submitted, its contents are *projected* onto the referenced schema artifacts.
+{registry} natively supports the Open Data Contract Standard (ODCS) v3.1, enabling you to manage data contracts by using a vendor-neutral, industry-standard format that is compatible with external tooling such as `datacontract-cli`. ODCS is a Linux Foundation standard maintained by the Bitol project.
 
-=== Why ODCS
+**ODCS advantages**
 
-* *Industry standard* - ODCS is the Linux Foundation standard for data contracts, with ecosystem tooling such as `datacontract-cli`
-* *Vendor neutral* - {registry} is the first schema registry to natively support ODCS
-* *Interoperable* - ODCS contracts can be imported/exported and used with external tools without translation
+.Advantages of using ODCS
+[cols="2,4", options="header"]
+|===
+|Advantage |Description
 
-=== Projection model
+|Industry standard
+|ODCS is the Linux Foundation standard for data contracts, with ecosystem tooling such as `datacontract-cli`
+
+|Vendor neutral
+|{registry} is the first schema registry to natively support ODCS
+
+|Interoperable
+|ODCS contracts can be imported, exported, and used with external tools without translation
+|===
+
+**Projection model**
 
 When you submit an ODCS contract, {registry} parses the YAML, stores it as an `ODCS_CONTRACT` artifact, and projects its contents onto the referenced schema artifacts. Each projection is namespaced by the contract ID, so multiple contracts can coexist on the same schema.
 
@@ -82,18 +115,16 @@ When you submit an ODCS contract, {registry} parses the YAML, stores it as an `O
 |`contract.{contractId}.sla.*` labels (stored, not enforced by registry)
 |===
 
-=== Multi-contract support
+**Multi-contract support**
 
-Multiple ODCS contracts can reference the same schema artifact. Each contract's projections are namespaced by contract ID, so they do not interfere:
+Multiple ODCS contracts can reference the same schema artifact. Each contract's projections are namespaced by contract ID, so they do not interfere. For example:
 
-----
-Contract "orders-contract" → contract.orders-contract.owner.team = orders-team
-Contract "billing-contract" → contract.billing-contract.owner.team = billing-team
-----
+* Contract `orders-contract` sets `contract.orders-contract.owner.team = orders-team`
+* Contract `billing-contract` sets `contract.billing-contract.owner.team = billing-team`
 
 Updating or deleting a contract only affects its own namespaced labels, rules, and tags.
 
-=== ODCS contract example
+**ODCS contract example**
 
 .ODCS v3.1 contract
 [source,yaml]
@@ -145,59 +176,86 @@ serviceLevel:
     p99: PT1S
 ----
 
-When submitted, this contract:
+When you submit this example contract, {registry}:
 
-1. Creates an `ODCS_CONTRACT` artifact storing the YAML
-2. Sets namespaced labels on the `orders/OrderEvent` artifact: `contract.orders-contract.status=STABLE`, `contract.orders-contract.owner.team=orders-team`, `contract.orders-contract.classification=CONFIDENTIAL`
-3. Creates two CEL contract rules (`odcs:orders-contract:positive-amount` with onFailure=ERROR, `odcs:orders-contract:valid-email` with onFailure=DLQ)
-4. Stores completeness thresholds as labels (`contract.orders-contract.quality.completeness.orderId=1.0`)
-5. Sets field tags: `field-tag.orders-contract:customerEmail|PII=EXTERNAL`, `field-tag.orders-contract:customerEmail|EMAIL=EXTERNAL`
-6. Stores SLA labels for external monitoring tools
+* Creates an `ODCS_CONTRACT` artifact storing the YAML
+* Sets namespaced labels on the `orders/OrderEvent` artifact: `contract.orders-contract.status=STABLE`, `contract.orders-contract.owner.team=orders-team`, `contract.orders-contract.classification=CONFIDENTIAL`
+* Creates two CEL contract rules (`odcs:orders-contract:positive-amount` with onFailure=ERROR, `odcs:orders-contract:valid-email` with onFailure=DLQ)
+* Stores completeness thresholds as labels (`contract.orders-contract.quality.completeness.orderId=1.0`)
+* Sets field tags: `field-tag.orders-contract:customerEmail|PII=EXTERNAL`, `field-tag.orders-contract:customerEmail|EMAIL=EXTERNAL`
+* Stores SLA labels for external monitoring tools
 
-=== Quality rule threshold mapping
+**Quality rule threshold mapping**
 
 ODCS accuracy rule thresholds determine what happens when a rule fails:
 
-* *1.0 (100%)* -> `ERROR` - Zero tolerance, reject non-compliant data
-* *0.95-0.99* -> `DLQ` - Near-100%, route violations to dead letter queue
-* *Below 0.95* -> `NONE` - Soft constraint, log only
+.Quality rule threshold to action mapping
+[cols="2,1,3", options="header"]
+|===
+|Threshold |Action |Behavior
 
-=== Manual rules are preserved
+|1.0 (100%)
+|ERROR
+|Zero tolerance — reject non-compliant data
 
-When you update an ODCS contract, only rules prefixed with `odcs:{contractId}:` are replaced. Rules added manually through the contract ruleset API are preserved.
+|0.95–0.99
+|DLQ
+|Near-100% — route violations to a dead letter queue
 
-=== Schema location format
+|Below 0.95
+|NONE
+|Soft constraint — log only
+|===
 
-The `schemas[].location` field references an artifact in the registry:
+**Manual rule preservation**
 
-----
-groupId/artifactId:version
-----
+When you update an ODCS contract, {registry} replaces only rules prefixed with `odcs:{contractId}:`. Rules that you added manually through the contract ruleset API remain intact.
 
-Examples:
+**Schema location format**
 
-* `orders/OrderEvent:3` - group "orders", artifact "OrderEvent", version "3"
-* `OrderEvent:latest` - default group, artifact "OrderEvent", latest version
-* `OrderEvent` - default group, artifact "OrderEvent", latest version
+The `schemas[].location` field references an artifact in the registry by using the format `groupId/artifactId:version`.
+
+.Schema location format examples
+[cols="2,3", options="header"]
+|===
+|Format |Description
+
+|`orders/OrderEvent:3`
+|Group `orders`, artifact `OrderEvent`, version `3`
+
+|`OrderEvent:latest`
+|Default group, artifact `OrderEvent`, latest version
+
+|`OrderEvent`
+|Default group, artifact `OrderEvent`, latest version (shorthand)
+|===
 
 [id="data-contracts-field-tags_{context}"]
 == Field-level tags
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data and apply tag-based governance.
 
-=== Tag sources
+**Tag sources**
 
-Tags come from two sources:
+.Tag sources
+[cols="1,3", options="header"]
+|===
+|Source |Description
 
-* *Inline tags* - Extracted automatically from schema content during registration by tag extractors
-* *External tags* - Projected from ODCS contracts or set manually via the version labels API
+|Inline tags
+|Extracted automatically from schema content during registration by tag extractors
 
-=== Supported schema formats
+|External tags
+|Projected from ODCS contracts or set manually through the version labels API
+|===
+
+**Supported schema formats**
 
 Tag extractors are available for the following formats:
 
-==== Avro
+**Avro**
 
 Tags are extracted from `tags` and `confluent:tags` field properties:
 
@@ -214,7 +272,7 @@ Tags are extracted from `tags` and `confluent:tags` field properties:
 }
 ----
 
-==== JSON Schema
+**JSON Schema**
 
 Tags are extracted from `x-tags` and `x-confluent-tags` extension properties:
 
@@ -233,9 +291,9 @@ Tags are extracted from `x-tags` and `x-confluent-tags` extension properties:
 
 Supports nested objects, arrays, `additionalProperties`, and `allOf`/`oneOf`/`anyOf` compositions.
 
-==== Protobuf
+**Protobuf**
 
-Tags are extracted from documentation comments using the `@tag:` annotation:
+Tags are extracted from documentation comments by using the `@tag:` annotation:
 
 [source,protobuf]
 ----
@@ -247,86 +305,163 @@ message User {
 
 Also supports Confluent `confluent.field_meta` field options.
 
-=== Common tags
+**Common tags**
 
-* `PII` - Personally Identifiable Information
-* `SENSITIVE` - Sensitive data requiring special handling
-* `EMAIL` - Email address fields
-* `PHONE` - Phone number fields
-* `FINANCIAL` - Financial data
-* `HEALTH` - Health-related data (PHI)
+.Common field tag values
+[cols="1,3", options="header"]
+|===
+|Tag |Description
+
+|`PII`
+|Personally Identifiable Information
+
+|`SENSITIVE`
+|Sensitive data requiring special handling
+
+|`EMAIL`
+|Email address fields
+
+|`PHONE`
+|Phone number fields
+
+|`FINANCIAL`
+|Financial data
+
+|`HEALTH`
+|Health-related data (PHI)
+|===
 
 [id="data-contracts-rules_{context}"]
 == Contract rules
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Contract rules define validation and transformation logic associated with artifacts or specific versions. Rules are organized into *domain rules* (business logic) and *migration rules* (schema evolution).
+Contract rules define the validation and transformation logic that {registry} applies to data records. You can use domain rules to enforce business data quality standards and migration rules to transform data between schema versions.
 
 When you submit an ODCS contract, its `quality.accuracy` rules are automatically projected as CEL domain rules on the referenced schema artifact.
 
-Contract rules are enforced both server-side (via the rule execution REST endpoint) and client-side (via Java Kafka SerDes integration). See xref:data-contracts-serdes_{context}[] for SerDes configuration.
+Contract rules are enforced both server-side (through the rule execution REST endpoint) and client-side (through the Java Kafka SerDes integration). See xref:data-contracts-serdes_{context}[] for SerDes configuration.
 
-=== Rule kinds
+**Rule kinds**
 
-* *CONDITION* - Validates a condition, passes or fails
-* *TRANSFORM* - Modifies data
+.Rule kinds
+[cols="1,3", options="header"]
+|===
+|Kind |Description
 
-=== Rule modes
+|CONDITION
+|Validates a condition, passes or fails
 
-* *WRITE* - Execute on serialize (producer-side)
-* *READ* - Execute on deserialize (consumer-side)
-* *WRITEREAD* - Execute on both
-* *UPGRADE* / *DOWNGRADE* - Execute during schema migration
+|TRANSFORM
+|Modifies data
+|===
 
-=== Rule types
+**Rule modes**
 
-* *CEL* - Common Expression Language for validation conditions and simple transforms. Supports full CEL spec including `has()`, `size()`, `contains()`, `startsWith()`, parenthesized grouping, and ternary expressions.
-* *JSONATA* - JSONata expressions for data transformation. Supports both CONDITION (truthy check) and TRANSFORM (returns transformed data) kinds. Useful for schema migration transforms.
+.Rule modes
+[cols="1,3", options="header"]
+|===
+|Mode |Description
 
-=== Rule actions
+|WRITE
+|Executes on serialize (producer-side)
 
-* *NONE* - Continue processing (log only)
-* *ERROR* - Throw an exception and reject the operation
-* *DLQ* - Route the message to a dead letter queue
+|READ
+|Executes on deserialize (consumer-side)
+
+|WRITEREAD
+|Executes on both serialize and deserialize
+
+|UPGRADE / DOWNGRADE
+|Executes during schema migration
+|===
+
+**Rule types**
+
+.Rule types
+[cols="1,4", options="header"]
+|===
+|Type |Description
+
+|CEL
+|Common Expression Language for validation conditions and simple transforms. Supports the full CEL specification including `has()`, `size()`, `contains()`, `startsWith()`, parenthesized grouping, and ternary expressions.
+
+|JSONATA
+|JSONata expressions for data transformation. Supports both CONDITION (truthy check) and TRANSFORM (returns transformed data) kinds. Useful for schema migration transforms.
+|===
+
+**Rule actions**
+
+.Rule actions
+[cols="1,3", options="header"]
+|===
+|Action |Description
+
+|NONE
+|Continue processing (log only)
+
+|ERROR
+|Throw an exception and reject the operation
+
+|DLQ
+|Route the message to a dead letter queue
+|===
 
 [id="data-contracts-lifecycle_{context}"]
 == Contract lifecycle
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The contract lifecycle tracks the maturity of a schema through defined status transitions.
+The contract lifecycle tracks the maturity of a data contract through defined status transitions, enabling you to communicate whether a schema is ready for production use and coordinate its promotion across deployment environments.
 
-=== Statuses
+**Contract statuses**
 
-* *DRAFT* - The schema is being developed and is not ready for production
-* *STABLE* - The schema is production-ready
-* *DEPRECATED* - The schema is being phased out
+.Contract statuses
+[cols="1,3", options="header"]
+|===
+|Status |Description
 
-=== Status transitions
+|DRAFT
+|The schema is being developed and is not ready for production
 
-----
-DRAFT ──────► STABLE ──────► DEPRECATED
-   │                              ▲
-   └──────────────────────────────┘
-         (skip stable)
-----
+|STABLE
+|The schema is production-ready
 
-NOTE: Reverse transitions are not allowed.
+|DEPRECATED
+|The schema is being phased out
+|===
 
-=== Promotion stages
+**Status transitions**
 
-----
-DEV ──────► STAGE ──────► PROD
-----
+Allowed transitions move forward only. Reverse transitions are not allowed.
 
-Promotion is enforced via the `POST /groups/{g}/artifacts/{a}/contract/promote` endpoint, which validates that the target stage follows the allowed progression. The promotion stage can also be set directly via the contract metadata API.
+.Allowed status transitions
+[cols="1,2", options="header"]
+|===
+|From status |Allowed next statuses
+
+|DRAFT
+|STABLE or DEPRECATED
+
+|STABLE
+|DEPRECATED
+
+|DEPRECATED
+|None
+|===
+
+**Promotion stages**
+
+Contracts progress through deployment stages in order: DEV, STAGE, PROD. The `POST /groups/{g}/artifacts/{a}/contract/promote` endpoint enforces this progression by validating that the target stage follows the allowed order. You can also set the promotion stage directly through the contract metadata API.
 
 [id="data-contracts-migration_{context}"]
 == Schema migration
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Schema migration allows you to transform data records between different schema versions using migration rules.
+Schema migration enables you to transform data records between different schema versions by using migration rules.
 
-=== Migration rules
+**Migration rules**
 
 Migration rules use the UPGRADE or DOWNGRADE mode and are typically JSONata TRANSFORM rules that reshape data from one version to another:
 
@@ -349,7 +484,7 @@ Migration rules use the UPGRADE or DOWNGRADE mode and are typically JSONata TRAN
 }
 ----
 
-=== Migration endpoint
+**Migration endpoint**
 
 The migration endpoint chains transforms across multiple versions:
 
@@ -367,9 +502,9 @@ curl -X POST \
 
 The service determines the direction (upgrade or downgrade), loads migration rules for each intermediate version, and chains the transforms sequentially.
 
-=== Compatibility groups
+**Compatibility groups**
 
-Compatibility groups partition the version history for compatibility checking. Versions in different groups are not compared against each other during compatibility validation.
+Compatibility groups partition the version history for compatibility checking. The validation process does not compare versions from different groups.
 
 [source,bash]
 ----
@@ -385,11 +520,12 @@ curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifac
 
 [id="data-contracts-serdes_{context}"]
 == Kafka SerDes integration
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Contract rules can be enforced during normal Kafka serialization and deserialization using the Apicurio Registry SerDes libraries. Rules are executed transparently — no code changes are required beyond configuration.
+You can enforce contract rules during normal Kafka serialization and deserialization by using the {registry} SerDes libraries. The libraries execute rules transparently — you do not need to change your code beyond the initial configuration.
 
-=== Configuration
+**Configuration**
 
 Enable contract rule enforcement by setting these properties on your Kafka producer or consumer:
 
@@ -407,13 +543,13 @@ Enable contract rule enforcement by setting these properties on your Kafka produ
 |When `true`, rule violations throw a `RuntimeException`. When `false`, violations are logged but serialization proceeds (for DLQ routing by the application)
 |===
 
-=== How it works
+**Rule execution model**
 
 * *Producer (serializer):* After schema resolution and before serialization, the serializer calls the server-side rule execution endpoint with mode `WRITE`. If any CONDITION rule with `onFailure=ERROR` fails, serialization is rejected.
 * *Consumer (deserializer):* After deserialization, the deserializer calls the rule execution endpoint with mode `READ`. This enables read-side validation rules.
 * *DLQ pattern:* Set `fail-on-error=false` to allow serialization to proceed even when rules fail. Your application can inspect the violations and route the message to a dead letter queue.
 
-=== Example: Producer with contract rules
+**Example: Producer with contract rules**
 
 [source,java]
 ----
@@ -431,18 +567,19 @@ KafkaProducer<String, GenericRecord> producer = new KafkaProducer<>(props);
 
 [id="data-contracts-audit_{context}"]
 == Audit log
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The contract audit log records all contract operations for compliance and debugging.
+The contract audit log records all data contract operations, giving you a complete audit trail for compliance review and operational debugging.
 
-=== Audited operations
+**Audited operations**
 
 * Metadata updates (owner, classification, status changes)
 * Ruleset configuration (create, update, delete)
 * Status transitions (DRAFT → STABLE → DEPRECATED)
 * Contract submission and re-projection
 
-=== Querying the audit log
+**Audit log endpoint**
 
 [source,bash]
 ----
@@ -470,11 +607,12 @@ curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifac
 
 [id="data-contracts-search_{context}"]
 == Contract search
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Search for contracts across the registry using metadata filters.
+You can search for contracts across the {registry} by using metadata filters.
 
-=== Search parameters
+**Search parameters**
 
 .Contract search query parameters
 [cols="2,3", options="header"]
@@ -503,7 +641,7 @@ Search for contracts across the registry using metadata filters.
 |Sort by field and direction
 |===
 
-=== Example
+**Example**
 
 [source,bash]
 ----
@@ -512,21 +650,34 @@ curl "http://localhost:8080/apis/registry/v3/search/contracts?status=STABLE&owne
 
 [id="data-contracts-global-rules_{context}"]
 == Global contract rules
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Global contract rulesets provide a baseline set of rules applied to all artifacts. Artifact-level and version-level rules override global rules by name.
+Global contract rulesets define a baseline set of contract rules that apply to all artifacts in the registry. You can use global rules to enforce organization-wide data quality standards without configuring each artifact individually.
 
-=== Rule precedence
+**Rule precedence**
 
-When rules are executed, they are merged from three scopes:
+When rules are executed, {registry} merges them from three scopes. The most specific scope wins when a rule with the same name exists at multiple levels.
 
-1. *Global rules* — apply to all artifacts (set via `/admin/contracts/ruleset`)
-2. *Artifact rules* — apply to a specific artifact (set via `/groups/{g}/artifacts/{a}/contract/ruleset`)
-3. *Version rules* — apply to a specific version (set via `.../versions/{v}/contract/ruleset`)
+.Rule precedence scopes (lowest to highest)
+[cols="1,2,3", options="header"]
+|===
+|Precedence |Scope |Set through
 
-If a rule with the same name exists at multiple levels, the most specific scope wins.
+|1 (lowest)
+|Global rules — apply to all artifacts
+|`/admin/contracts/ruleset`
 
-=== Managing global rules
+|2
+|Artifact rules — apply to a specific artifact
+|`/groups/{g}/artifacts/{a}/contract/ruleset`
+
+|3 (highest)
+|Version rules — apply to a specific version
+|`.../versions/{v}/contract/ruleset`
+|===
+
+**Global rule management**
 
 [source,bash]
 ----
@@ -556,11 +707,12 @@ curl -X DELETE http://localhost:8080/apis/registry/v3/admin/contracts/ruleset
 
 [id="data-contracts-api_{context}"]
 == REST API
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The Data Contracts REST API provides endpoints for managing ODCS contracts, contract metadata, and contract rulesets.
+You can use the Data Contracts REST API to manage ODCS contracts, contract metadata, rulesets, lifecycle status, and data quality operations.
 
-=== ODCS contract endpoints
+**ODCS contract endpoints**
 
 .ODCS contract REST API endpoints
 [cols="1,4,3", options="header"]
@@ -592,7 +744,7 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Export an artifact's contract data as ODCS YAML
 |===
 
-=== Contract metadata endpoints
+**Contract metadata endpoints**
 
 .Contract metadata REST API endpoints
 [cols="1,4,3", options="header"]
@@ -608,7 +760,7 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Create or update contract metadata
 |===
 
-=== Contract ruleset endpoints
+**Contract ruleset endpoints**
 
 .Contract ruleset REST API endpoints
 [cols="1,4,3", options="header"]
@@ -630,7 +782,7 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 
 Version-level rulesets are also available at `.../versions/{version}/contract/ruleset`.
 
-=== Contract status transition endpoint
+**Contract status transition endpoint**
 
 .Contract status transition endpoint
 [cols="1,4,3", options="header"]
@@ -642,7 +794,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Change lifecycle status with transition validation
 |===
 
-=== Governance and quality endpoints
+**Governance and quality endpoints**
 
 .Governance REST API endpoints
 [cols="1,4,3", options="header"]
@@ -658,7 +810,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Get quality score (overall, completeness, compliance, stability)
 |===
 
-=== Rule execution and migration endpoints
+**Rule execution and migration endpoints**
 
 .Rule execution REST API endpoints
 [cols="1,4,3", options="header"]
@@ -674,7 +826,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Migrate a record between versions. Body: `{"sourceVersion": "1", "targetVersion": "3", "record": {...}}`
 |===
 
-=== Audit log endpoint
+**Audit log endpoint**
 
 .Contract audit log REST API endpoint
 [cols="1,4,3", options="header"]
@@ -686,7 +838,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Get contract audit log entries for an artifact
 |===
 
-=== Compatibility group endpoints
+**Compatibility group endpoints**
 
 .Compatibility group REST API endpoints
 [cols="1,4,3", options="header"]
@@ -702,7 +854,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Set the compatibility group for an artifact
 |===
 
-=== Contract search endpoint
+**Contract search endpoint**
 
 .Contract search REST API endpoint
 [cols="1,4,3", options="header"]
@@ -714,7 +866,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Search contracts across the registry
 |===
 
-=== Global contract ruleset endpoints
+**Global contract ruleset endpoints**
 
 .Global contract ruleset REST API endpoints
 [cols="1,4,3", options="header"]
@@ -734,9 +886,9 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Delete the global contract ruleset
 |===
 
-Uses real CEL (Common Expression Language) via the `cel-standalone` library. Full CEL spec support including parenthesized grouping, ternary expressions, string functions, `has()`, `size()`. JSONata is also supported for data transformation rules.
+The CEL implementation uses the `cel-standalone` library and supports the full CEL specification, including parenthesized grouping, ternary expressions, and string functions. JSONata is also supported for data transformation rules.
 
-=== Example: Submitting an ODCS contract
+**Example: Submitting an ODCS contract**
 
 [source,bash]
 ----
@@ -761,14 +913,14 @@ curl -X POST \
 }
 ----
 
-=== Example: Listing contracts
+**Example: Listing contracts**
 
 [source,bash]
 ----
 curl "http://localhost:8080/apis/registry/v3/groups/my-group/contracts?limit=10&offset=0"
 ----
 
-=== Example: Exporting as ODCS
+**Example: Exporting as ODCS**
 
 [source,bash]
 ----
@@ -777,7 +929,7 @@ curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifac
 
 Returns the reconstructed ODCS v3.1 YAML from the artifact's current contract labels, rules, and field tags.
 
-=== Example: Promoting a contract
+**Example: Promoting a contract**
 
 [source,bash]
 ----
@@ -787,7 +939,7 @@ curl -X POST \
   -d '{"contractId": "orders-contract", "targetStage": "STAGE"}'
 ----
 
-=== Example: Getting quality score
+**Example: Getting quality score**
 
 [source,bash]
 ----
@@ -800,7 +952,7 @@ curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifa
 {"overall": 0.85, "completeness": 0.83, "compliance": 1.0, "stability": 0.67}
 ----
 
-=== Example: Executing contract rules
+**Example: Executing contract rules**
 
 [source,bash]
 ----
@@ -816,7 +968,7 @@ curl -X POST \
 {"passed": true, "violations": [], "executedRules": 2, "failedRules": 0}
 ----
 
-=== Example: Setting contract metadata directly
+**Example: Setting contract metadata directly**
 
 [source,bash]
 ----
@@ -833,7 +985,7 @@ curl -X PUT \
   }'
 ----
 
-=== Example: Transitioning contract status
+**Example: Transitioning contract status**
 
 [source,bash]
 ----
@@ -845,11 +997,12 @@ curl -X POST \
 
 [id="data-contracts-configuration_{context}"]
 == Configuration
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Data contracts are always available — no special configuration is required. Submitting a contract is an explicit opt-in action that does not affect existing registry functionality.
+Data contracts are always available and require no special configuration. Submitting a contract is an explicit opt-in action that does not affect existing registry functionality.
 
-=== SerDes configuration
+**SerDes configuration**
 
 .SerDes contract rule properties
 [cols="3,1,3", options="header"]
@@ -865,7 +1018,7 @@ Data contracts are always available — no special configuration is required. Su
 |When `true`, rule violations throw `RuntimeException`. When `false`, violations are logged but serialization proceeds
 |===
 
-=== Storage compatibility
+**Storage compatibility**
 
 Data contracts work across all storage variants:
 

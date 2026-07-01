@@ -27,6 +27,7 @@ import io.quarkus.security.identity.request.AuthenticationRequest;
 import io.quarkus.vertx.http.runtime.security.ChallengeData;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.vertx.ext.web.RoutingContext;
 import org.slf4j.Logger;
 
@@ -37,14 +38,18 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class KubernetesAuthenticationStrategy implements AuthenticationStrategy {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final int MAX_CACHE_SIZE = 10_000;
+    private static final Duration API_ERROR_CACHE_DURATION = Duration.ofSeconds(30);
 
     private final KubernetesClient kubernetesClient;
     private final AuthConfig authConfig;
@@ -92,6 +97,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
         }
 
         return Uni.createFrom().item(() -> performTokenReview(token, tokenHash))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
                 .onItem().ifNull().switchTo(Uni.createFrom()::nullItem)
                 .onItem().ifNotNull().transformToUni(result ->
                         identityProviderManager.authenticate(
@@ -117,7 +123,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
             TokenReviewStatus status = response.getStatus();
             if (status == null || !Boolean.TRUE.equals(status.getAuthenticated())) {
                 log.debug("Kubernetes TokenReview: authentication failed");
-                cache.put(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(),
+                cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(),
                         new TokenReviewResult(false, null, null, Collections.emptySet())));
                 return null;
             }
@@ -133,12 +139,31 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
             log.debug("Kubernetes TokenReview: authenticated user '{}'", username);
 
             TokenReviewResult result = new TokenReviewResult(true, username, uid, groups);
-            cache.put(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(), result));
+            cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(), result));
             return result;
 
         } catch (Exception e) {
             log.warn("Kubernetes TokenReview API call failed: {}", e.getMessage());
+            cachePut(tokenHash, new WrappedValue<>(API_ERROR_CACHE_DURATION, Instant.now(),
+                    new TokenReviewResult(false, null, null, Collections.emptySet())));
             return null;
+        }
+    }
+
+    private void cachePut(String key, WrappedValue<TokenReviewResult> value) {
+        evictExpiredEntries();
+        if (cache.size() >= MAX_CACHE_SIZE) {
+            return;
+        }
+        cache.put(key, value);
+    }
+
+    private void evictExpiredEntries() {
+        Iterator<Map.Entry<String, WrappedValue<TokenReviewResult>>> it = cache.entrySet().iterator();
+        while (it.hasNext()) {
+            if (it.next().getValue().isExpired()) {
+                it.remove();
+            }
         }
     }
 

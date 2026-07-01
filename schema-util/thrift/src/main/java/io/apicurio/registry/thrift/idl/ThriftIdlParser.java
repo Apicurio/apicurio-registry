@@ -11,7 +11,7 @@ public class ThriftIdlParser {
             .compile("^\\s*namespace\\s+(\\w+)\\s+([\\w.]+)");
     private static final Pattern INCLUDE_PATTERN = Pattern.compile("^\\s*include\\s+\"([^\"]+)\"");
     private static final Pattern CPP_INCLUDE_PATTERN = Pattern.compile("^\\s*cpp_include\\s+\"([^\"]+)\"");
-    private static final Pattern CONST_PATTERN = Pattern.compile("^\\s*const\\s+([^=]++)=");
+    private static final Pattern CONST_PATTERN = Pattern.compile("^\\s*const\\s++([^=]++)=");
     private static final Pattern TYPEDEF_PATTERN = Pattern.compile("^\\s*typedef\\s+(\\S.*)$");
     private static final Pattern ENUM_PATTERN = Pattern.compile("^\\s*enum\\s+(\\w+)\\s*\\{");
     private static final Pattern SENUM_PATTERN = Pattern.compile("^\\s*senum\\s+(\\w+)\\s*\\{");

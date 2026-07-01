@@ -59,7 +59,14 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -79,6 +86,7 @@ jobs:
         run: |
           ./mvnw verify \
             --no-transfer-progress \
+            -Daether.syncContext.named.factory=noop \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \

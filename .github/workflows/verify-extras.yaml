@@ -30,7 +30,14 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: temurin
-          cache: maven
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
@@ -41,7 +48,7 @@ jobs:
 
       - name: Run Extra Tests
         run: |
-          ./mvnw verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
+          ./mvnw verify --no-transfer-progress -Daether.syncContext.named.factory=noop -Dfull -pl utils/extra-tests -am \
             -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -Dmaven.javadoc.skip=true
@@ -132,7 +139,14 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
@@ -145,9 +159,9 @@ jobs:
         run: |
           echo "Starting Registry App (In Memory)"
           docker run -it -p 8181:8080 -e apicurio.rest.deletion.artifact.enabled=true -d apicurio/apicurio-registry:${{ inputs.image-tag }}
-          ./mvnw -Pintegration-tests clean install -DskipTests -Dmaven.javadoc.skip=true -DcliSkipNative
+          ./mvnw -Daether.syncContext.named.factory=noop -Pintegration-tests clean install -DskipTests -Dmaven.javadoc.skip=true -DcliSkipNative
           cd integration-tests
-          ../mvnw verify -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
+          ../mvnw -Daether.syncContext.named.factory=noop verify -Dmaven.javadoc.skip=true -Dquarkus.http.test-host=localhost -Dquarkus.http.test-port=8181
 
       - name: Collect logs
         if: failure()
@@ -196,7 +210,14 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8

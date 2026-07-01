@@ -62,6 +62,9 @@ jobs:
           restore-keys: |
             maven-
 
+      - name: Clean Maven resolver locks
+        run: rm -rf ~/.m2/repository/.locks
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2

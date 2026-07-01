@@ -39,6 +39,9 @@ jobs:
           restore-keys: |
             maven-
 
+      - name: Clean Maven resolver locks
+        run: rm -rf ~/.m2/repository/.locks
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
@@ -148,6 +151,9 @@ jobs:
           restore-keys: |
             maven-
 
+      - name: Clean Maven resolver locks
+        run: rm -rf ~/.m2/repository/.locks
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -218,6 +224,9 @@ jobs:
           key: maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             maven-
+
+      - name: Clean Maven resolver locks
+        run: rm -rf ~/.m2/repository/.locks
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8

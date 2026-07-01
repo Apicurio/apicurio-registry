@@ -41,6 +41,9 @@ jobs:
           restore-keys: |
             maven-
 
+      - name: Clean Maven resolver locks
+        run: rm -rf ~/.m2/repository/.locks
+
       - name: Build Application (skip tests for speed)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
@@ -91,6 +94,10 @@ jobs:
             common/target/
             schema-util/common/target/
           retention-days: 1
+
+      - name: Clean locks before cache save
+        if: github.event_name == 'push'
+        run: rm -rf ~/.m2/repository/.locks
 
       - name: Save Maven cache
         if: github.event_name == 'push'

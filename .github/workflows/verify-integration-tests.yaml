@@ -67,6 +67,11 @@ jobs:
 
       - name: Run Integration Tests
         run: |
+          # -Pintegration-tests + -P<remote-profile>: select storage backend (remote-mem, remote-sql, remote-kafka, etc.)
+          # -Dgroups: JUnit 5 test tags filtering (e.g., auth, migration, debezium)
+          # -Dregistry-image: Docker image built by the Build job, loaded into Minikube
+          # -Dfailsafe.rerunFailingTestsCount=2: automatically retry flaky integration tests up to 2 times
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify -am --no-transfer-progress \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \

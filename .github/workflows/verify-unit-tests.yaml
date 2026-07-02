@@ -85,6 +85,7 @@ jobs:
             -DskipCommitIdPlugin=true \
             -Dcheckstyle.skip=true \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5 \
             -Dsurefire.rerunFailingTestsCount=2

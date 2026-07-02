@@ -44,7 +44,8 @@ jobs:
           ./mvnw verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
             -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
-            -Dmaven.javadoc.skip=true
+            -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop
 
       - name: Run examples/http-caching tests
         working-directory: examples/http-caching/test
@@ -224,4 +225,4 @@ jobs:
 
       - name: Build Apicurio Registry with Examples
         run: |
-          mvn install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true --no-transfer-progress
+          mvn install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress

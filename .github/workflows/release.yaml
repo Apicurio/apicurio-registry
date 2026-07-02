@@ -211,6 +211,7 @@ jobs:
             -Pprod -Dfull -pl '!cli' \
             -DskipTests \
             -DskipCommitIdPlugin=false \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
@@ -289,6 +290,7 @@ jobs:
             -pl cli -am \
             -DskipTests \
             -Dquarkus.native.container-build=false \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 

@@ -13,6 +13,7 @@ TYPE_MAP[ContentTypes.APPLICATION_XML] = "xml";
 TYPE_MAP[ContentTypes.APPLICATION_JSON] = "json";
 TYPE_MAP[ContentTypes.APPLICATION_YAML] = "yaml";
 TYPE_MAP[ContentTypes.APPLICATION_GRAPHQL] = "graphqlschema";
+TYPE_MAP[ContentTypes.APPLICATION_THRIFT] = "plaintext";
 
 
 const getEditorMode = (artifactType: string, content: string): string => {

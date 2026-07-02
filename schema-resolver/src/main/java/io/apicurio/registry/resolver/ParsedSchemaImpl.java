@@ -6,6 +6,7 @@ public class ParsedSchemaImpl<T> implements ParsedSchema<T> {
 
     private T parsedSchema;
     private byte[] rawSchema;
+    private byte[] referencelessRawSchema;
     private List<ParsedSchema<T>> schemaReferences;
     private String referenceName;
 
@@ -57,6 +58,16 @@ public class ParsedSchemaImpl<T> implements ParsedSchema<T> {
      */
     public ParsedSchemaImpl<T> setSchemaReferences(List<ParsedSchema<T>> schemaReferences) {
         this.schemaReferences = schemaReferences;
+        return this;
+    }
+
+    @Override
+    public byte[] getReferencelessRawSchema() {
+        return referencelessRawSchema != null ? referencelessRawSchema : rawSchema;
+    }
+
+    public ParsedSchemaImpl<T> setReferencelessRawSchema(byte[] referencelessRawSchema) {
+        this.referencelessRawSchema = referencelessRawSchema;
         return this;
     }
 

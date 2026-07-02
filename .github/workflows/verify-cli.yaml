@@ -81,7 +81,6 @@ jobs:
           # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
           ./mvnw verify -pl cli \
             --no-transfer-progress \
-            -Dscalpel.enabled=false \
             -Dquarkus.native.container-build=false \
             ${{ matrix.test-args }} \
             -Dmaven.javadoc.skip=true \

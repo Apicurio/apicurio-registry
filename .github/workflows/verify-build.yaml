@@ -45,7 +45,6 @@ jobs:
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
           ./mvnw clean package -T 0.5C --no-transfer-progress \
-            -Dscalpel.enabled=false \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \

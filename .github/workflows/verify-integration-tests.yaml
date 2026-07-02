@@ -73,6 +73,7 @@ jobs:
           # -Dfailsafe.rerunFailingTestsCount=2: automatically retry flaky integration tests up to 2 times
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify -am --no-transfer-progress \
+            -Dscalpel.enabled=false \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \

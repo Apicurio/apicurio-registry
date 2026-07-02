@@ -10,6 +10,10 @@ on:
         type: string
         required: true
         description: 'Build artifact identifier (commit SHA)'
+      scalpel-disabled:
+        type: string
+        default: 'false'
+        description: 'Set to true to disable Scalpel affected-module detection'
 
 permissions:
   contents: read
@@ -53,6 +57,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
@@ -84,6 +90,7 @@ jobs:
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
             --no-transfer-progress \
+            ${{ inputs.scalpel-disabled == 'true' && '-Dscalpel.enabled=false' || '' }} \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \

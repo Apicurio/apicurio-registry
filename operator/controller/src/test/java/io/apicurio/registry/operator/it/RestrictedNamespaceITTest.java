@@ -31,7 +31,7 @@ public class RestrictedNamespaceITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(RestrictedNamespaceITTest.class);
 
-    private static ApicurioRegistry3 createRegistry(String namespace) {
+    private ApicurioRegistry3 createRegistry(String namespace) {
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml", ApicurioRegistry3.class);
         registry.getMetadata().setNamespace(namespace);
         registry.getSpec().getApp().getIngress().setHost(ingressManager.getIngressHost(namespace, "app"));
@@ -51,7 +51,7 @@ public class RestrictedNamespaceITTest extends ITBase {
             return;
         }
 
-        var operatorDeployment = k8sCell(client, ITBase::getOperatorDeployment);
+        var operatorDeployment = k8sCell(client, this::getOperatorDeployment);
 
         var namespace1 = calculateNamespace();
         var namespace2 = calculateNamespace();

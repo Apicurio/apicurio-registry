@@ -22,7 +22,7 @@ public class KafkaSqlOAuthITTest extends BaseAuthITTest {
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlOAuthITTest.class);
 
     @BeforeAll
-    public static void beforeAll() throws Exception {
+    public void beforeAll() throws Exception {
         if (!strimziInstalled) {
             applyStrimziResources();
         }

@@ -22,7 +22,7 @@ public class KafkaSqlTLSITTest extends ITBase {
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlTLSITTest.class);
 
     @BeforeAll
-    public static void beforeAll() throws Exception {
+    public void beforeAll() throws Exception {
         if (!strimziInstalled) {
             applyStrimziResources();
         }

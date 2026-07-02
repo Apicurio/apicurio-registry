@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @ExtendWith(OperatorTestExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class OLMITBase implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(OLMITBase.class);
@@ -37,10 +39,10 @@ public abstract class OLMITBase implements OperatorTestContext {
     public static final String CATALOG_IMAGE_PROP = OLMTestUtils.CATALOG_IMAGE_PROP;
     public static final String OML_VERSION = OLMTestUtils.OLM_VERSION_PROP;
 
-    protected static KubernetesClient client;
-    protected static String namespace;
-    protected static IngressManager ingressManager;
-    protected static boolean cleanup;
+    protected KubernetesClient client;
+    protected String namespace;
+    protected IngressManager ingressManager;
+    protected boolean cleanup;
 
     @Override
     public KubernetesClient getClient() {
@@ -58,7 +60,7 @@ public abstract class OLMITBase implements OperatorTestContext {
     }
 
     @BeforeAll
-    public static void beforeAll() throws Exception {
+    public void beforeAll() throws Exception {
         setDefaultAwaitilityTimings();
         namespace = ITBase.calculateNamespace();
         client = ITBase.createK8sClient(namespace);
@@ -160,24 +162,24 @@ public abstract class OLMITBase implements OperatorTestContext {
         }
     }
 
-    private static void createResource(String path) throws IOException {
+    private void createResource(String path) throws IOException {
         OLMTestUtils.createResource(client, namespace, path);
     }
 
-    private static void deleteResource(String path) throws IOException {
+    private void deleteResource(String path) throws IOException {
         var raw = OLMTestUtils.loadRawResource(path);
         client.resource(OLMTestUtils.replaceVars(raw, namespace)).delete();
     }
 
-    protected static String deriveChannel(String version) {
+    protected String deriveChannel(String version) {
         return OLMTestUtils.deriveMinorChannel(version);
     }
 
-    protected static String deriveMajorChannel(String version) {
+    protected String deriveMajorChannel(String version) {
         return OLMTestUtils.deriveRollingChannel(version);
     }
 
-    protected static String getProjectVersion() {
+    protected String getProjectVersion() {
         return OLMTestUtils.getProjectVersion();
     }
 
@@ -196,7 +198,7 @@ public abstract class OLMITBase implements OperatorTestContext {
     }
 
     @AfterAll
-    public static void afterAll() throws IOException {
+    public void afterAll() throws IOException {
         if (cleanup) {
             int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
             if (olmVersion == 0) {

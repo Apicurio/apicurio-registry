@@ -45,10 +45,10 @@ public class KafkaSqlAccessITTest extends ITBase {
             "050-Deployment.yaml"
     };
 
-    private static boolean kafkaAccessOperatorInstalled = false;
+    private boolean kafkaAccessOperatorInstalled = false;
 
     @BeforeAll
-    public static void beforeAll() throws Exception {
+    public void beforeAll() throws Exception {
         if (!strimziInstalled) {
             applyStrimziResources();
         }
@@ -57,7 +57,7 @@ public class KafkaSqlAccessITTest extends ITBase {
         }
     }
 
-    private static void installKafkaAccessOperator() throws IOException {
+    private void installKafkaAccessOperator() throws IOException {
         List<HasMetadata> allResources = new ArrayList<>();
         for (String fileName : KAFKA_ACCESS_INSTALL_FILES) {
             var url = new URL(KAFKA_ACCESS_OPERATOR_RAW_BASE + fileName);

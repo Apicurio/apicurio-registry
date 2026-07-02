@@ -11,7 +11,8 @@ LC_VERSION_SUFFIX ?= $(shell echo "$(LC_VERSION)" | sed -n 's/[^-]*\(-.*\)/\1/p'
 
 BUILD_OPTS_EXT += $(BUILD_OPTS)
 
-BUILD_OPTS_EXT += -pl controller -am
+# -T1 overrides the inherited -T 1C from .mvn/maven.config — operator @QuarkusTest tests require single-threaded execution
+BUILD_OPTS_EXT += -T1 -pl controller -am
 
 SKIP_TESTS ?= false
 ifneq ($(SKIP_TESTS),true)

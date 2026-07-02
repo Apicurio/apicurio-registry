@@ -35,6 +35,7 @@ jobs:
       run-cli: ${{ steps.decide.outputs.run-cli }}
       run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
       run-operator: ${{ steps.decide.outputs.run-operator }}
+      scalpel-disabled: ${{ steps.decide.outputs.scalpel-disabled }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -115,9 +116,10 @@ jobs:
               LABEL='${{ github.event.label.name }}'
               if [[ "$LABEL" != lifecycle/* ]]; then
                 echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator; do
+                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
+                echo "scalpel-disabled=false" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
             fi
@@ -136,6 +138,7 @@ jobs:
               for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
+              echo "scalpel-disabled=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
@@ -199,6 +202,13 @@ jobs:
           decide run-cli         "$run_full"  "$CLI"
           decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
           decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
+
+          # Scalpel (affected-module detection) can be disabled via PR label
+          if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then
+            echo "scalpel-disabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "scalpel-disabled=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Save decision summary
         if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
@@ -281,6 +291,7 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
+      scalpel-disabled: ${{ needs.decide.outputs.scalpel-disabled }}
 
   # ============================================================================
   # CLI Verification

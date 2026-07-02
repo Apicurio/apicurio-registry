@@ -12,6 +12,7 @@ public final class Columns {
     public static final String OWNER = "Owner";
     public static final String MODIFIED_ON = "Modified On";
     public static final String MODIFIED_BY = "Modified By";
+    public static final String LABEL = "Label";
     public static final String LABELS = "Labels";
 
     public static final String FIELD = "Field";

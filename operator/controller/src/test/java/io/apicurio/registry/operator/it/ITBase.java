@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +59,7 @@ import static org.awaitility.Awaitility.await;
 import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
 
 @ExtendWith(OperatorTestExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class ITBase implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(ITBase.class);
@@ -83,18 +85,18 @@ public abstract class ITBase implements OperatorTestContext {
         local, remote
     }
 
-    protected static OperatorDeployment operatorDeployment;
-    protected static KubernetesClient client;
-    protected static PodLogManager podLogManager;
-    protected static PortForwardManager portForwardManager;
-    protected static IngressManager ingressManager;
-    protected static String deploymentTarget;
-    protected static String namespace;
-    protected static boolean cleanup;
-    protected static boolean strimziInstalled = false;
-    private static App app;
-    protected static JobManager jobManager;
-    protected static HostAliasManager hostAliasManager;
+    protected OperatorDeployment operatorDeployment;
+    protected KubernetesClient client;
+    protected PodLogManager podLogManager;
+    protected PortForwardManager portForwardManager;
+    protected IngressManager ingressManager;
+    protected String deploymentTarget;
+    protected String namespace;
+    protected boolean cleanup;
+    protected boolean strimziInstalled = false;
+    private App app;
+    protected JobManager jobManager;
+    protected HostAliasManager hostAliasManager;
 
     @Override
     public KubernetesClient getClient() {
@@ -107,7 +109,7 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     @BeforeAll
-    public static void before() throws Exception {
+    public void before() throws Exception {
         operatorDeployment = getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
                 OperatorDeployment.class);
         deploymentTarget = getConfig().getValue(DEPLOYMENT_TARGET, String.class);
@@ -148,7 +150,7 @@ public abstract class ITBase implements OperatorTestContext {
                 deploymentTarget);
     }
 
-    protected static void startOperatorPodLog() {
+    protected void startOperatorPodLog() {
         if (operatorDeployment == OperatorDeployment.remote) {
             var operatorPod = waitOnOperatorPodReady();
             if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
@@ -163,7 +165,7 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
+    protected void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
         await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -172,7 +174,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
+    protected void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
         Runnable check = () -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -183,7 +185,7 @@ public abstract class ITBase implements OperatorTestContext {
         check.run();
     }
 
-    protected static void checkServiceExists(ApicurioRegistry3 primary, String component) {
+    protected void checkServiceExists(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -192,7 +194,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
+    protected void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
         Runnable check = () -> {
             assertThat(client.services()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -202,7 +204,7 @@ public abstract class ITBase implements OperatorTestContext {
         check.run();
     }
 
-    protected static void checkIngressExists(ApicurioRegistry3 primary, String component) {
+    protected void checkIngressExists(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -211,7 +213,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
+    protected void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
         Runnable check = () -> {
             assertThat(client.network().v1().ingresses()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -221,7 +223,7 @@ public abstract class ITBase implements OperatorTestContext {
         check.run();
     }
 
-    protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
+    protected PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
                                                                         String component) {
         final Cell<PodDisruptionBudget> rval = cell();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
@@ -235,7 +237,7 @@ public abstract class ITBase implements OperatorTestContext {
         return rval.get();
     }
 
-    protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
+    protected NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
         final Cell<NetworkPolicy> rval = cell();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
@@ -247,7 +249,7 @@ public abstract class ITBase implements OperatorTestContext {
         return rval.get();
     }
 
-    private static void configureRestAssured() {
+    private void configureRestAssured() {
         RestAssured.config = RestAssured.config()
                 .httpClient(HttpClientConfig.httpClientConfig()
                         // Helps with port-forwarded connection issues.
@@ -262,7 +264,7 @@ public abstract class ITBase implements OperatorTestContext {
                 .build();
     }
 
-    private static List<HasMetadata> loadTestResources() throws IOException {
+    private List<HasMetadata> loadTestResources() throws IOException {
         var installFilePath = Path
                 .of(getConfig().getValue(REMOTE_TESTS_INSTALL_FILE, String.class));
         try {
@@ -277,7 +279,7 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    private static void createTestResources() throws Exception {
+    private void createTestResources() throws Exception {
         log.info("Creating generated resources into Namespace {}", namespace);
         loadTestResources().forEach(r -> {
             log.info("Creating resource kind {} with name {} in namespace {}", r.getKind(), r.getMetadata().getName(), namespace);
@@ -293,7 +295,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static Deployment getOperatorDeployment() {
+    protected Deployment getOperatorDeployment() {
         List<Deployment> operatorDeployments = new ArrayList<>();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             operatorDeployments.clear();
@@ -307,7 +309,7 @@ public abstract class ITBase implements OperatorTestContext {
         return operatorDeployments.get(0);
     }
 
-    protected static Pod waitOnOperatorPodReady() {
+    protected Pod waitOnOperatorPodReady() {
         Cell<Pod> pod = cell();
         // Wait until the operator pod name remains stable, we're occasionally having timeout when trying to access pod logs.
         // TODO: Handle pod restarts/redeployments.
@@ -332,7 +334,7 @@ public abstract class ITBase implements OperatorTestContext {
         return pod.get();
     }
 
-    private static void cleanTestResources() throws Exception {
+    private void cleanTestResources() throws Exception {
         if (cleanup) {
             log.info("Deleting generated resources from Namespace {}", namespace);
             loadTestResources().forEach(r -> {
@@ -341,7 +343,7 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    private static void createCRDs() {
+    private void createCRDs() {
         log.info("Creating CRDs");
         try {
             var crd = client.load(new FileInputStream(CRD_FILE));
@@ -355,7 +357,7 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    private static void startOperator() {
+    private void startOperator() {
         app = CDI.current().select(App.class).get();
         app.start(configOverride -> {
             configOverride.withKubernetesClient(client);
@@ -363,7 +365,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    static void applyStrimziResources() throws IOException {
+    void applyStrimziResources() throws IOException {
         // Use Strimzi 0.47.0 which supports both KRaft mode and Kafka 3.9.x
         // Note: Strimzi 0.48+ removed support for Kafka 3.9.x, so we pin to 0.47.0
         var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.47.0/strimzi-cluster-operator-0.47.0.yaml");
@@ -404,7 +406,7 @@ public abstract class ITBase implements OperatorTestContext {
         Awaitility.setDefaultTimeout(LONG_DURATION);
     }
 
-    static void createResources(List<HasMetadata> resources, String resourceType) {
+    void createResources(List<HasMetadata> resources, String resourceType) {
         resources.forEach(r -> {
             log.info("Creating {} resource kind {} in namespace {}", resourceType, r.getKind(), namespace);
             client.resource(r).inNamespace(namespace).createOrReplace();
@@ -433,7 +435,7 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     @AfterAll
-    static void afterAll() throws Exception {
+    void afterAll() throws Exception {
         portForwardManager.close();
         if (operatorDeployment == OperatorDeployment.local) {
             app.stop();

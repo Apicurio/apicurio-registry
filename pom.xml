@@ -189,7 +189,7 @@
     <picocli.version>4.7.7</picocli.version>
 
     <!-- Logging -->
-    <log4j.version>2.26.0</log4j.version>
+    <log4j.version>2.26.1</log4j.version>
 
     <!-- Confluent API / client -->
     <confluent.version>8.0.0</confluent.version>

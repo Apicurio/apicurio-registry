@@ -80,6 +80,7 @@ jobs:
             -Dquarkus.native.container-build=false \
             ${{ matrix.test-args }} \
             -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 

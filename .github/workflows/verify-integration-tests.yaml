@@ -74,6 +74,7 @@ jobs:
             -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -pl integration-tests \
             -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
             -Dfailsafe.rerunFailingTestsCount=2
 
       - name: Collect logs

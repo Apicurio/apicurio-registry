@@ -116,6 +116,7 @@ jobs:
         working-directory: registry
         run: |
           ./mvnw clean package -am --no-transfer-progress -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Build Registry UI

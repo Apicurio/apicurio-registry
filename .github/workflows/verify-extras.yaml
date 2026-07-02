@@ -45,6 +45,7 @@ jobs:
             -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -Dmaven.javadoc.skip=true \
+            -Dskip.zip.assembly=true \
             -Daether.syncContext.named.factory=noop
 
       - name: Run examples/http-caching tests

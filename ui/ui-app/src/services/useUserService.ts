@@ -1,31 +1,15 @@
+import React, { createContext, FunctionComponent, ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { AuthService, useAuth } from "@apicurio/common-ui-components";
 import { getRegistryClient } from "@utils/rest.utils.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { UserInfo } from "@sdk/lib/generated-client/models";
 
-let currentUserInfo: UserInfo = {
+const DEFAULT_USER_INFO: UserInfo = {
     username: "",
     displayName: "",
     admin: false,
     developer: false,
     viewer: false
-};
-
-
-const currentUser = (): UserInfo => {
-    return currentUserInfo;
-};
-
-const updateCurrentUser = async (config: ConfigService, auth: AuthService): Promise<UserInfo> => {
-    const isAuthenticated: boolean = await auth.isAuthenticated();
-    if (isAuthenticated) {
-        return getRegistryClient(config, auth).users.me.get().then(userInfo => {
-            currentUserInfo = userInfo!;
-            return userInfo!;
-        });
-    } else {
-        return Promise.resolve(currentUserInfo);
-    }
 };
 
 const isRbacEnabled = (config: ConfigService): boolean => {
@@ -36,37 +20,37 @@ const isObacEnabled = (config: ConfigService): boolean => {
     return config.authObacEnabled();
 };
 
-const isUserAdmin = (config: ConfigService, auth: AuthService): boolean => {
+const isUserAdmin = (config: ConfigService, auth: AuthService, currentUserInfo: UserInfo): boolean => {
     if (!auth.isOidcAuthEnabled() && !auth.isBasicAuthEnabled()) {
         return true;
     }
     if (!isRbacEnabled(config) && !isObacEnabled(config)) {
         return true;
     }
-    return currentUser().admin || false;
+    return currentUserInfo.admin || false;
 };
 
-const isUserDeveloper = (config: ConfigService, auth: AuthService, resourceOwner?: string): boolean => {
+const isUserDeveloper = (config: ConfigService, auth: AuthService, currentUserInfo: UserInfo, resourceOwner?: string): boolean => {
     if (!auth.isOidcAuthEnabled() && !auth.isBasicAuthEnabled()) {
         return true;
     }
     if (!isRbacEnabled(config) && !isObacEnabled(config)) {
         return true;
     }
-    if (isUserAdmin(config, auth)) {
+    if (isUserAdmin(config, auth, currentUserInfo)) {
         return true;
     }
-    if (isRbacEnabled(config) && !currentUser().developer) {
+    if (isRbacEnabled(config) && !currentUserInfo.developer) {
         return false;
     }
-    if (isObacEnabled(config) && resourceOwner && currentUser().username !== resourceOwner) {
+    if (isObacEnabled(config) && resourceOwner && currentUserInfo.username !== resourceOwner) {
         return false;
     }
     return true;
 };
 
-const isUserId = (userId: string): boolean => {
-    return currentUser().username === userId;
+const isUserId = (currentUserInfo: UserInfo, userId: string): boolean => {
+    return currentUserInfo.username === userId;
 };
 
 
@@ -78,24 +62,56 @@ export interface UserService {
     isUserId(userId: string): boolean;
 }
 
+const UserContext = createContext<UserService | null>(null);
 
-export const useUserService: () => UserService = (): UserService => {
+export type UserProviderProps = {
+    children?: ReactNode;
+};
+
+export const UserProvider: FunctionComponent<UserProviderProps> = (props: UserProviderProps) => {
     const auth: AuthService = useAuth();
     const config: ConfigService = useConfigService();
+    const [currentUserInfo, setCurrentUserInfo] = useState<UserInfo>(DEFAULT_USER_INFO);
 
-    return {
-        currentUser,
+    const updateCurrentUser = useCallback(async (): Promise<UserInfo> => {
+        const isAuthenticated: boolean = await auth.isAuthenticated();
+        if (isAuthenticated) {
+            const userInfo = await getRegistryClient(config, auth).users.me.get();
+            setCurrentUserInfo(userInfo!);
+            return userInfo!;
+        }
+        return DEFAULT_USER_INFO;
+    }, [auth, config]);
+
+    const userService: UserService = useMemo(() => ({
+        currentUser(): UserInfo {
+            return currentUserInfo;
+        },
         updateCurrentUser(): Promise<UserInfo> {
-            return updateCurrentUser(config, auth);
+            return updateCurrentUser();
         },
         isUserId(userId: string): boolean {
-            return isUserId(userId);
+            return isUserId(currentUserInfo, userId);
         },
         isUserAdmin(): boolean {
-            return isUserAdmin(config, auth);
+            return isUserAdmin(config, auth, currentUserInfo);
         },
         isUserDeveloper(resourceOwner?: string): boolean {
-            return isUserDeveloper(config, auth, resourceOwner);
+            return isUserDeveloper(config, auth, currentUserInfo, resourceOwner);
         }
-    };
+    }), [auth, config, currentUserInfo, updateCurrentUser]);
+
+    return React.createElement(
+        UserContext.Provider,
+        { value: userService },
+        props.children
+    );
+};
+
+export const useUserService: () => UserService = (): UserService => {
+    const userService = useContext(UserContext);
+    if (!userService) {
+        throw new Error("useUserService must be used within a UserProvider");
+    }
+    return userService;
 };

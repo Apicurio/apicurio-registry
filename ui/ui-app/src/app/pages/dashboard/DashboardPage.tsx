@@ -13,7 +13,7 @@ import {
     CodeBranchIcon,
     FolderOpenIcon
 } from "@patternfly/react-icons";
-import { DASHBOARD_PAGE_IDX, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
+import { DASHBOARD_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import { CreateArtifactModal, RootPageHeader } from "@app/components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { SearchService, useSearchService } from "@services/useSearchService.ts";
@@ -41,7 +41,7 @@ interface RegistryStats {
  */
 export const DashboardPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [stats, setStats] = useState<RegistryStats>({
         groupCount: 0,
         artifactCount: 0,
@@ -58,7 +58,6 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
     const usage: UsageService = useUsageService();
 
     const loadStats = async (): Promise<void> => {
-        setIsLoading(true);
         try {
             const [groupsResult, artifactsResult, versionsResult] = await Promise.all([
                 search.searchGroups([], GroupSortByObject.GroupId, SortOrderObject.Asc, { page: 1, pageSize: 1 }),
@@ -74,8 +73,6 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
         } catch (error) {
             console.error("Error loading stats:", error);
             setPageError(toPageError(error, "Error loading registry statistics."));
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -100,10 +97,16 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
         setUsageSummary(summary);
     };
 
+    const createLoaders = (): Promise<any> => {
+        return Promise.all([
+            loadStats(),
+            loadRecentArtifacts(),
+            loadUsageSummary()
+        ]);
+    };
+
     useEffect(() => {
-        loadStats();
-        loadRecentArtifacts();
-        loadUsageSummary();
+        setLoaders(createLoaders());
     }, []);
 
     const handleCreateArtifact = (): void => {
@@ -141,84 +144,86 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
 
     return (
         <PageErrorHandler error={pageError}>
-            <PageSection hasBodyWrapper={false} className="ps_dashboard-header"  padding={{ default: "noPadding" }}>
-                <RootPageHeader tabKey={DASHBOARD_PAGE_IDX} />
-            </PageSection>
-            <PageSection hasBodyWrapper={false} className="ps_dashboard-description" >
-                <Flex direction={{ default: "column" }}>
-                    <FlexItem>
-                        <Title headingLevel="h1">Registry Dashboard</Title>
-                    </FlexItem>
-                    <FlexItem>
-                        <p className="dashboard-description">
-                            Welcome to Apicurio Registry. Manage your schemas and API definitions in one central location.
-                        </p>
-                    </FlexItem>
-                </Flex>
-            </PageSection>
-            <PageSection hasBodyWrapper={false} isFilled={true} className="ps_dashboard-content">
-                <Grid hasGutter>
-                    <GridItem span={12}>
-                        <Flex spaceItems={{ default: "spaceItemsLg" }}>
-                            <FlexItem>
-                                <StatsCard
-                                    title="Groups"
-                                    value={stats.groupCount}
-                                    icon={<FolderOpenIcon />}
-                                    isLoading={isLoading}
-                                    onClick={() => handleStatsClick("/search?for=groups")}
-                                />
-                            </FlexItem>
-                            <FlexItem>
-                                <StatsCard
-                                    title="Artifacts"
-                                    value={stats.artifactCount}
-                                    icon={<CubesIcon />}
-                                    isLoading={isLoading}
-                                    onClick={() => handleStatsClick("/search?for=artifacts")}
-                                />
-                            </FlexItem>
-                            <FlexItem>
-                                <StatsCard
-                                    title="Versions"
-                                    value={stats.versionCount}
-                                    icon={<CodeBranchIcon />}
-                                    isLoading={isLoading}
-                                    onClick={() => handleStatsClick("/search?for=versions")}
-                                />
-                            </FlexItem>
-                            {usageSummary && (
+            <PageDataLoader loaders={loaders}>
+                <PageSection hasBodyWrapper={false} className="ps_dashboard-header"  padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={DASHBOARD_PAGE_IDX} />
+                </PageSection>
+                <PageSection hasBodyWrapper={false} className="ps_dashboard-description" >
+                    <Flex direction={{ default: "column" }}>
+                        <FlexItem>
+                            <Title headingLevel="h1">Registry Dashboard</Title>
+                        </FlexItem>
+                        <FlexItem>
+                            <p className="dashboard-description">
+                                Welcome to Apicurio Registry. Manage your schemas and API definitions in one central location.
+                            </p>
+                        </FlexItem>
+                    </Flex>
+                </PageSection>
+                <PageSection hasBodyWrapper={false} isFilled={true} className="ps_dashboard-content">
+                    <Grid hasGutter>
+                        <GridItem span={12}>
+                            <Flex spaceItems={{ default: "spaceItemsLg" }}>
                                 <FlexItem>
-                                    <UsageSummaryCard
-                                        data={usageSummary}
-                                        isLoading={isLoading}
+                                    <StatsCard
+                                        title="Groups"
+                                        value={stats.groupCount}
+                                        icon={<FolderOpenIcon />}
+                                        isLoading={false}
+                                        onClick={() => handleStatsClick("/search?for=groups")}
                                     />
                                 </FlexItem>
-                            )}
-                        </Flex>
-                    </GridItem>
-                    <GridItem span={8}>
-                        <RecentArtifacts
-                            artifacts={recentArtifacts}
-                            isLoading={isLoading}
-                            error={recentArtifactsError}
-                        />
-                    </GridItem>
-                    <GridItem span={4}>
-                        <QuickActions
-                            onCreateArtifact={handleCreateArtifact}
-                            onSearch={handleSearch}
-                            onExplore={handleExplore}
-                            onSettings={handleSettings}
-                        />
-                    </GridItem>
-                </Grid>
-            </PageSection>
-            <CreateArtifactModal
-                isOpen={isCreateArtifactModalOpen}
-                onClose={() => setIsCreateArtifactModalOpen(false)}
-                onCreate={doCreateArtifact}
-            />
+                                <FlexItem>
+                                    <StatsCard
+                                        title="Artifacts"
+                                        value={stats.artifactCount}
+                                        icon={<CubesIcon />}
+                                        isLoading={false}
+                                        onClick={() => handleStatsClick("/search?for=artifacts")}
+                                    />
+                                </FlexItem>
+                                <FlexItem>
+                                    <StatsCard
+                                        title="Versions"
+                                        value={stats.versionCount}
+                                        icon={<CodeBranchIcon />}
+                                        isLoading={false}
+                                        onClick={() => handleStatsClick("/search?for=versions")}
+                                    />
+                                </FlexItem>
+                                {usageSummary && (
+                                    <FlexItem>
+                                        <UsageSummaryCard
+                                            data={usageSummary}
+                                            isLoading={false}
+                                        />
+                                    </FlexItem>
+                                )}
+                            </Flex>
+                        </GridItem>
+                        <GridItem span={8}>
+                            <RecentArtifacts
+                                artifacts={recentArtifacts}
+                                isLoading={false}
+                                error={recentArtifactsError}
+                            />
+                        </GridItem>
+                        <GridItem span={4}>
+                            <QuickActions
+                                onCreateArtifact={handleCreateArtifact}
+                                onSearch={handleSearch}
+                                onExplore={handleExplore}
+                                onSettings={handleSettings}
+                            />
+                        </GridItem>
+                    </Grid>
+                </PageSection>
+                <CreateArtifactModal
+                    isOpen={isCreateArtifactModalOpen}
+                    onClose={() => setIsCreateArtifactModalOpen(false)}
+                    onCreate={doCreateArtifact}
+                />
+            </PageDataLoader>
         </PageErrorHandler>
     );
 };

@@ -22,6 +22,7 @@ import { RolesPage, SettingsPage } from "./pages";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { UserProvider } from "@services/useUserService.ts";
 
 export type MainPageWithAuthProps = object;
 
@@ -55,88 +56,90 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
     return (
         <AuthConfigContext.Provider value={authConfig}>
             <ApplicationAuth>
-                <Page
-                    className="pf-m-redhat-font"
-                    isManagedSidebar={false}
-                    masthead={<AppHeader />}
-                    isContentFilled={true}
-                >
-                    <Routes>
-                        <Route path="/" element={ <RootRedirectPage /> } />
-                        <Route path="/dashboard" element={ <DashboardPage /> } />
-                        <Route path="/rules" element={ <RulesPage /> } />
-                        <Route path="/contract-rules" element={ <GlobalContractRulesPage /> } />
-                        <Route path="/roles" element={ <RolesPage /> } />
-                        <Route path="/settings" element={ <SettingsPage /> } />
-                        <Route path="/search" element={ <SearchPage /> } />
-                        <Route path="/drafts" element={ <DraftsPage /> } />
-                        <Route path="/explore" element={ <ExplorePage /> } />
-                        <Route path="/agents" element={ <AgentsPage /> } />
+                <UserProvider>
+                    <Page
+                        className="pf-m-redhat-font"
+                        isManagedSidebar={false}
+                        masthead={<AppHeader />}
+                        isContentFilled={true}
+                    >
+                        <Routes>
+                            <Route path="/" element={ <RootRedirectPage /> } />
+                            <Route path="/dashboard" element={ <DashboardPage /> } />
+                            <Route path="/rules" element={ <RulesPage /> } />
+                            <Route path="/contract-rules" element={ <GlobalContractRulesPage /> } />
+                            <Route path="/roles" element={ <RolesPage /> } />
+                            <Route path="/settings" element={ <SettingsPage /> } />
+                            <Route path="/search" element={ <SearchPage /> } />
+                            <Route path="/drafts" element={ <DraftsPage /> } />
+                            <Route path="/explore" element={ <ExplorePage /> } />
+                            <Route path="/agents" element={ <AgentsPage /> } />
 
-                        <Route
-                            path="/explore/:groupId"
-                            element={ <GroupPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/rules"
-                            element={ <GroupPage /> }
-                        />
+                            <Route
+                                path="/explore/:groupId"
+                                element={ <GroupPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/rules"
+                                element={ <GroupPage /> }
+                            />
 
-                        <Route
-                            path="/explore/:groupId/:artifactId"
-                            element={ <ArtifactPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/rules"
-                            element={ <ArtifactPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/branches"
-                            element={ <ArtifactPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/contract"
-                            element={ <ArtifactPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/usage"
-                            element={ <ArtifactPage /> }
-                        />
+                            <Route
+                                path="/explore/:groupId/:artifactId"
+                                element={ <ArtifactPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/rules"
+                                element={ <ArtifactPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/branches"
+                                element={ <ArtifactPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/contract"
+                                element={ <ArtifactPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/usage"
+                                element={ <ArtifactPage /> }
+                            />
 
-                        <Route
-                            path="/explore/:groupId/:artifactId/versions/:version"
-                            element={ <VersionPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/versions/:version/:editor"
-                            element={ <EditorPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/versions/:version/content"
-                            element={ <VersionPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/versions/:version/documentation"
-                            element={ <VersionPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/versions/:version/references"
-                            element={ <VersionPage /> }
-                        />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version"
+                                element={ <VersionPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/:editor"
+                                element={ <EditorPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/content"
+                                element={ <VersionPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/documentation"
+                                element={ <VersionPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/versions/:version/references"
+                                element={ <VersionPage /> }
+                            />
 
-                        <Route
-                            path="/explore/:groupId/:artifactId/branches/:branchId"
-                            element={ <BranchPage /> }
-                        />
-                        <Route
-                            path="/explore/:groupId/:artifactId/branches/:branchId/versions"
-                            element={ <BranchPage /> }
-                        />
+                            <Route
+                                path="/explore/:groupId/:artifactId/branches/:branchId"
+                                element={ <BranchPage /> }
+                            />
+                            <Route
+                                path="/explore/:groupId/:artifactId/branches/:branchId/versions"
+                                element={ <BranchPage /> }
+                            />
 
 
-                        <Route element={ <NotFoundPage /> } />
-                    </Routes>
-                </Page>
+                            <Route element={ <NotFoundPage /> } />
+                        </Routes>
+                    </Page>
+                </UserProvider>
             </ApplicationAuth>
         </AuthConfigContext.Provider>
     );

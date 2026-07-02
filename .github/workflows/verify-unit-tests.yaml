@@ -85,7 +85,7 @@ jobs:
         run: |
           ./mvnw verify \
             --no-transfer-progress \
-            ${{ inputs.scalpel-disabled == 'true' && '-Dscalpel.enabled=false' || '' }} \
+            ${{ inputs.scalpel-disabled != 'true' && '-Dscalpel.enabled=true' || '' }} \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \

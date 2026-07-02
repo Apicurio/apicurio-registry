@@ -68,7 +68,6 @@ jobs:
       - name: Run Integration Tests
         run: |
           ./mvnw verify -am --no-transfer-progress \
-            -Dscalpel.enabled=false \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \

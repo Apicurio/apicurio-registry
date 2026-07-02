@@ -38,6 +38,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         run: |
+          # -T 0.5C: half a thread per CPU core (overrides .mvn/maven.config's -T 1C for memory-heavy packaging)
+          # -Pprod -Dfull: production profile with all optional modules (CLI, serdes, distro, etc.)
+          # -DskipCommitIdPlugin=false: generate git commit metadata (needed for the Docker image)
+          # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
           ./mvnw clean package -T 0.5C --no-transfer-progress \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \

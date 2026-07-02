@@ -21,13 +21,14 @@ import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigFeatures;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigUi;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.ui.UserInterfaceConfigProperties;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 
 import java.io.InputStream;
@@ -60,8 +61,11 @@ public class SystemResourceImpl implements SystemResource {
     @Inject
     RegistryStorageContentUtils contentUtils;
 
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
     @Context
-    HttpServletRequest request;
+    HttpHeaders httpHeaders;
 
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
@@ -84,7 +88,10 @@ public class SystemResourceImpl implements SystemResource {
         if (content.bytes().length == 0) {
             throw new BadRequestException("Empty content is not allowed.");
         }
-        String ct = request.getContentType();
+        if (!factory.getAllArtifactTypes().contains(artifactType)) {
+            throw new BadRequestException("Unknown artifact type: " + artifactType);
+        }
+        String ct = httpHeaders.getMediaType() != null ? httpHeaders.getMediaType().toString() : null;
         TypedContent typedContent = TypedContent.create(content, ct);
         TypedContent canonicalized = contentUtils.canonicalizeContent(artifactType, typedContent,
                 Map.of());

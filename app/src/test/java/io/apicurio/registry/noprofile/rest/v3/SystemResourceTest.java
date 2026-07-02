@@ -4,6 +4,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -33,7 +34,7 @@ public class SystemResourceTest extends AbstractResourceTestBase {
                 .post("/registry/v3/system/canonicalize")
                 .then().statusCode(200)
                 .extract().body().asString();
-        org.junit.jupiter.api.Assertions.assertEquals(expected, actual);
+        Assertions.assertEquals(expected, actual);
     }
 
     @Test
@@ -41,14 +42,16 @@ public class SystemResourceTest extends AbstractResourceTestBase {
         String content = "{\n  \"openapi\": \"3.0.2\",\n  \"info\": {\n    \"title\": \"Empty API\","
                 + "\n    \"version\": \"1.0.0\"\n  },\n  \"paths\": {\n    \"/\": {}\n  },"
                 + "\n  \"components\": {}\n}";
+        String expected = "{\"components\":{},\"info\":{\"title\":\"Empty API\",\"version\":\"1.0.0\"},"
+                + "\"openapi\":\"3.0.2\",\"paths\":{\"/\":{}}}";
 
-        given().when().contentType(CT_JSON)
+        String actual = given().when().contentType(CT_JSON)
                 .queryParam("artifactType", ArtifactType.OPENAPI)
                 .body(content)
                 .post("/registry/v3/system/canonicalize")
                 .then().statusCode(200)
-                .body("components", notNullValue())
-                .body("openapi", equalTo("3.0.2"));
+                .extract().body().asString();
+        Assertions.assertEquals(expected, actual);
     }
 
     @Test
@@ -56,14 +59,16 @@ public class SystemResourceTest extends AbstractResourceTestBase {
         String content = "{\n  \"type\": \"record\",\n  \"namespace\": \"com.example\","
                 + "\n  \"name\": \"FullName\",\n  \"fields\": [\n"
                 + "    { \"name\": \"first\", \"type\": \"string\" }\n  ]\n}";
+        String expected = "{\"type\":\"record\",\"name\":\"FullName\",\"namespace\":\"com.example\","
+                + "\"doc\":\"\",\"fields\":[{\"name\":\"first\",\"type\":\"string\",\"doc\":\"\"}]}";
 
-        given().when().contentType(CT_JSON)
+        String actual = given().when().contentType(CT_JSON)
                 .queryParam("artifactType", ArtifactType.AVRO)
                 .body(content)
                 .post("/registry/v3/system/canonicalize")
                 .then().statusCode(200)
-                .body("type", equalTo("record"))
-                .body("name", equalTo("FullName"));
+                .extract().body().asString();
+        Assertions.assertEquals(expected, actual);
     }
 
     @Test
@@ -71,6 +76,15 @@ public class SystemResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON)
                 .queryParam("artifactType", ArtifactType.JSON)
                 .body("")
+                .post("/registry/v3/system/canonicalize")
+                .then().statusCode(400);
+    }
+
+    @Test
+    public void testCanonicalizeUnknownArtifactType() {
+        given().when().contentType(CT_JSON)
+                .queryParam("artifactType", "GARBAGE")
+                .body("{\"key\": \"value\"}")
                 .post("/registry/v3/system/canonicalize")
                 .then().statusCode(400);
     }
@@ -91,7 +105,7 @@ public class SystemResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200)
                 .extract().body().asString();
-        org.junit.jupiter.api.Assertions.assertEquals(expected, actual);
+        Assertions.assertEquals(expected, actual);
     }
 
     @Test
@@ -108,7 +122,27 @@ public class SystemResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200)
                 .extract().body().asString();
-        org.junit.jupiter.api.Assertions.assertEquals(content, actual);
+        Assertions.assertEquals(content, actual);
+    }
+
+    @Test
+    public void testCanonicalizeWithReferencesPreserveAndCanonical() throws Exception {
+        String groupId = "testCanonicalizeWithReferences";
+        String artifactId = "testCanonicalizeWithReferences/JsonSchema";
+        String content = "{\"z\": 1, \"a\": 2, \"m\": 3}";
+        String expected = "{\"a\":2,\"m\":3,\"z\":1}";
+
+        createArtifact(groupId, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+
+        String actual = given().when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .queryParam("references", "PRESERVE")
+                .queryParam("canonical", true)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .extract().body().asString();
+        Assertions.assertEquals(expected, actual);
     }
 
 }

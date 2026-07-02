@@ -478,6 +478,65 @@ public class AvroSchemaParserDuplicateReferencesTest {
                 "Expected cached instance for dereferenced call");
     }
 
+    /**
+     * Test that getReferencelessRawSchema() contains the full nested record definition
+     * instead of just the record name reference. This reproduces issue #3602 where
+     * content-based schema lookup fails because nested records are serialized as
+     * name-only references.
+     */
+    @Test
+    public void testReferencelessRawSchemaContainsFullNestedDefinition() {
+        Schema.Parser schemaParser = new Schema.Parser();
+
+        String schemaJson = """
+            {
+              "type": "record",
+              "name": "TestAvro",
+              "namespace": "test.avro",
+              "fields": [
+                {"name": "field1", "type": "string"},
+                {"name": "field2", "type": "string"},
+                {
+                  "name": "record1",
+                  "type": {
+                    "type": "record",
+                    "name": "record1Avro",
+                    "fields": [
+                      {"name": "subfield1", "type": "string"},
+                      {"name": "subfield2", "type": ["null", "string"], "default": null}
+                    ]
+                  }
+                }
+              ]
+            }
+            """;
+        Schema schema = schemaParser.parse(schemaJson);
+
+        GenericRecord nested = new GenericData.Record(
+                schema.getField("record1").schema());
+        nested.put("subfield1", "value1");
+        nested.put("subfield2", "value2");
+
+        GenericRecord main = new GenericData.Record(schema);
+        main.put("field1", "a");
+        main.put("field2", "b");
+        main.put("record1", nested);
+
+        ParsedSchema<Schema> parsedSchema = parser.getSchemaFromData(createRecord(main));
+
+        // The rawSchema (with references) should have replaced the nested record with its name
+        String rawSchema = new String(parsedSchema.getRawSchema());
+        Assertions.assertFalse(rawSchema.contains("subfield1"),
+                "rawSchema should NOT contain nested record fields (they should be replaced by name reference)");
+
+        // The referencelessRawSchema should contain the full nested record definition
+        String referencelessRawSchema = new String(parsedSchema.getReferencelessRawSchema());
+        Assertions.assertTrue(referencelessRawSchema.contains("subfield1"),
+                "referencelessRawSchema should contain the full nested record definition");
+        Assertions.assertTrue(referencelessRawSchema.contains("record1Avro"),
+                "referencelessRawSchema should contain the nested record name");
+    }
+
     private Record<GenericRecord> createRecord(GenericRecord genericRecord) {
         return new Record<GenericRecord>() {
             @Override

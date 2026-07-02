@@ -9,12 +9,6 @@ type SystemRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// Canonicalize canonicalize content
-// returns a *CanonicalizeRequestBuilder when successful
-func (m *SystemRequestBuilder) Canonicalize() *CanonicalizeRequestBuilder {
-	return NewCanonicalizeRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
-}
-
 // NewSystemRequestBuilderInternal instantiates a new SystemRequestBuilder and sets the default values.
 func NewSystemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *SystemRequestBuilder {
 	m := &SystemRequestBuilder{

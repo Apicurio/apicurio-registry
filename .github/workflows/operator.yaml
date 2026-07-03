@@ -60,12 +60,20 @@ jobs:
       - name: Build and push OLM bundle
         working-directory: operator
         run: |
-          make ROLLING_CHANNEL=3.x bundle
+          ROLLING_CHANNEL_ARG=""
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make $ROLLING_CHANNEL_ARG bundle
 
       - name: Build and push OLM catalog
         working-directory: operator
         run: |
-          make ROLLING_CHANNEL=3.x catalog
+          ROLLING_CHANNEL_ARG=""
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make $ROLLING_CHANNEL_ARG catalog
 
       - name: Generate install file for tests
         working-directory: operator

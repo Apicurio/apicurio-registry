@@ -8,6 +8,7 @@ More information, see:
 - [Introduction to MCP](https://modelcontextprotocol.io/introduction)
 - [Quarkus MCP server extension](https://docs.quarkiverse.io/quarkus-mcp-server/dev/index.html)
 - [Quarkus MCP server examples](https://github.com/quarkiverse/quarkus-mcp-servers)
+- [MCP + Keycloak example](../examples/mcp-keycloak/README.md) (stdio and HTTP/OAuth modes)
 
 ## Quickstart
 
@@ -54,8 +55,12 @@ More information, see:
    directory):
 
    ```shell
-   mvn clean install -f ../pom.xml -pl mcp -am -DskipTests
+   ./mvnw install -Pfull -pl mcp -am -DskipTests
    ```
+
+   NOTE: HTTP transport is compiled in at build time (`quarkus.mcp.server.http.enabled=true` in
+   `application.properties`). Rebuild the image/JAR if you change that property. At runtime, `/mcp`
+   is only reachable when `APICURIO_MCP_HTTP_ENABLED=true` with OIDC configured.
 
 2. Update the configuration file as follows:
 
@@ -94,6 +99,9 @@ The following configuration properties can be provided in the `args` list:
 | apicurio.mcp.safe-mode          | `true`           | Prevent some operations from being performed, or filter which operations can be performed, for safety reasons.                                                                                                                   |
 | apicurio.mcp.paging.limit       | `200`            | Claude does not do well with paging, therefore we use a high limit parameter when paged results are returned. Increase the limit if your server contains large amount of objects, and you do not mind the higher operation cost. |
 | apicurio.mcp.paging.limit-error | `true`           | Fail the operation when there number of result exceeds the paging limit. This is guard against inaccurate results, e.g. counting.                                                                                                |
+| apicurio.mcp.auth.enabled       | `false`          | Enable OAuth2 client credentials for stdio mode connections to Registry (`apicurio.mcp.auth.token-endpoint`, `client-id`, `client-secret`).                                                                                      |
+| apicurio.mcp.http.enabled       | `false`          | Enable HTTP mode for MCP clients that connect over the network. Requires Quarkus MCP HTTP + OIDC at runtime (see integration guide).                                                                                           |
+| apicurio.mcp.http.forward-token | `true`           | When HTTP mode is enabled, forward the caller's bearer token to Registry REST calls (same RBAC as UI). Stdio mode continues to use `apicurio.mcp.auth.*`.                                                                      |
 
 ## Usage
 

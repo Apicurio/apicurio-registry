@@ -34,6 +34,26 @@ public interface McpConfig {
      */
     Tls tls();
 
+    /**
+     * HTTP transport configuration.
+     */
+    Http http();
+
+    interface Http {
+        /**
+         * Enable HTTP transport with inbound OIDC authentication.
+         */
+        @WithDefault("false")
+        boolean enabled();
+
+        /**
+         * Forward the inbound caller's bearer token to Registry REST API calls.
+         */
+        @WithName("forward-token")
+        @WithDefault("true")
+        boolean forwardToken();
+    }
+
     interface Paging {
         /**
          * Maximum number of items to return in a single page.

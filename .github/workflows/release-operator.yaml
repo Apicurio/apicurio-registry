@@ -414,19 +414,40 @@ jobs:
           # Copy the versioned install file
           cp /tmp/install-file.yaml "$INSTALL_FILE"
 
-          # Reuse the same make targets as the post-release steps
-          cd operator
-          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
-          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          CATALOG_ARGS=""
-          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
-            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL"
-          fi
-          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-          make $CATALOG_ARGS release-catalog-template-update
+          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
 
-          cd ..
+          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
+            # Same minor as main — full catalog update (same-minor patch from a branch)
+            cd operator
+            OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+            OLD_CH=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            NEW_CH=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            CATALOG_ARGS=""
+            if [ "$OLD_CH" != "$NEW_CH" ]; then
+              CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CH"
+            fi
+            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+            make $CATALOG_ARGS release-catalog-template-update
+            cd ..
+          else
+            # Maintenance release from an older minor — only update its channel
+            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
+            # the rolling channel, or other minor channels on main.
+            cd operator
+            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
+            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
+            BUNDLE_IMAGE="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$(echo $PACKAGE_VERSION | tr A-Z a-z)"
+
+            # Add the new version to the minor channel
+            $(make VAR=YQ variable-get) -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$(make VAR=PACKAGE_NAME variable-get).v$PACKAGE_VERSION\", \"replaces\": \"$(make VAR=PREVIOUS_PACKAGE variable-get)\"}] + ." "$CATALOG_FILE"
+
+            # Add the bundle image
+            $(make VAR=YQ variable-get) -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMAGE\"}]" "$CATALOG_FILE"
+
+            cd ..
+          fi
+
           git add .
           git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
           git rebase origin/main

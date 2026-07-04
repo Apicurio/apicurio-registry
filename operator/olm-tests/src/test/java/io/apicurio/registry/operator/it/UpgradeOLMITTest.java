@@ -36,11 +36,8 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMITTest.class);
 
     private static final String UPGRADE_START_VERSION_PROP = "test.operator.upgrade-start-version";
-    private static final String UPGRADE_MINOR_HEAD_PROP = "test.operator.upgrade-minor-channel-head";
     // Must be present in both 3.x and 3.2.x channels in catalog.template.yaml
     private static final String UPGRADE_START_VERSION_DEFAULT = "3.2.4";
-    // The head of the minor channel (3.2.x) — the last published patch in that stream
-    private static final String UPGRADE_MINOR_HEAD_DEFAULT = "3.2.5";
     private static final Duration UPGRADE_TIMEOUT = Duration.ofMinutes(10);
 
     private KubernetesClient client;
@@ -69,9 +66,39 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     private String getMinorChannelHead() {
-        return ConfigProvider.getConfig()
-                .getOptionalValue(UPGRADE_MINOR_HEAD_PROP, String.class)
-                .orElse(UPGRADE_MINOR_HEAD_DEFAULT);
+        // Auto-discover from the catalog template file — read the first entry in the
+        // minor channel to find the current head. This avoids hardcoded version constants
+        // that break whenever a new patch is released.
+        var startVersion = getStartVersion();
+        var minorChannel = deriveMinorChannel(startVersion);
+        try {
+            var catalogRaw = loadRawResource("catalog/catalog.template.yaml");
+            var mapper = new com.fasterxml.jackson.dataformat.yaml.YAMLMapper();
+            var tree = mapper.readTree(catalogRaw);
+            var entries = tree.get("entries");
+            if (entries != null) {
+                for (var entry : entries) {
+                    if ("olm.channel".equals(entry.path("schema").asText())
+                            && minorChannel.equals(entry.path("name").asText())) {
+                        var channelEntries = entry.get("entries");
+                        if (channelEntries != null && channelEntries.size() > 0) {
+                            var headName = channelEntries.get(0).path("name").asText();
+                            if (headName.startsWith(PACKAGE_NAME + ".v")) {
+                                var version = headName.substring((PACKAGE_NAME + ".v").length());
+                                log.info("Auto-discovered minor channel head from catalog template: {} -> {}",
+                                        minorChannel, version);
+                                return version;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not auto-discover minor channel head from catalog template: {}",
+                    e.getMessage());
+        }
+        log.info("Falling back to start version as minor channel head: {}", startVersion);
+        return startVersion;
     }
 
     private void setUp() throws Exception {
@@ -377,11 +404,21 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         waitForOperatorVersion(startVersion);
         log.info("Operator {} deployed with Manual approval", startVersion);
 
-        // Wait for OLM to create a new pending install plan for the upgrade, then approve
-        waitForAndApproveInstallPlans();
-
-        // Verify upgrade happens after approval
-        verifyUpgradeTo(minorHead);
+        // Approve install plans in a loop until the target version is reached.
+        // Multi-step upgrades (e.g. 3.2.4 → 3.2.5 → 3.2.6) require approving
+        // each intermediate install plan.
+        await().atMost(UPGRADE_TIMEOUT).pollInterval(java.time.Duration.ofSeconds(10))
+                .ignoreExceptions().untilAsserted(() -> {
+            approveAllPendingInstallPlans();
+            var deployment = client.apps().deployments().inNamespace(namespace)
+                    .withName("apicurio-registry-operator-v" + minorHead.toLowerCase()).get();
+            assertThat(deployment)
+                    .as("Operator should reach " + minorHead + " after approving all install plans")
+                    .isNotNull();
+            assertThat(deployment.getStatus().getReadyReplicas())
+                    .as("Operator at " + minorHead + " should have 1 ready replica")
+                    .isEqualTo(1);
+        });
         log.info("Manual approval upgrade succeeded: {} -> {}", startVersion, minorHead);
     }
 

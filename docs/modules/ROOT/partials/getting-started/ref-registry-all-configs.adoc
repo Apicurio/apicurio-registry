@@ -208,17 +208,17 @@ The following {registry} configuration options are available for each component 
 |`optional<string>`
 |
 |`3.3.0`
-|Comma-separated Kubernetes groups that map to sr-admin role
+|Comma-separated Kubernetes groups that map to sr-admin role _(experimental)_
 |`apicurio.auth.role-source.kubernetes.group-mapping.developer`
 |`optional<string>`
 |
 |`3.3.0`
-|Comma-separated Kubernetes groups that map to sr-developer role
+|Comma-separated Kubernetes groups that map to sr-developer role _(experimental)_
 |`apicurio.auth.role-source.kubernetes.group-mapping.readonly`
 |`optional<string>`
 |
 |`3.3.0`
-|Comma-separated Kubernetes groups that map to sr-readonly role
+|Comma-separated Kubernetes groups that map to sr-readonly role _(experimental)_
 |`apicurio.auth.roles.admin`
 |`string`
 |`sr-admin`
@@ -263,17 +263,17 @@ The following {registry} configuration options are available for each component 
 |`optional<string>`
 |
 |`3.3.0`
-|Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated.
+|Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated. _(experimental)_
 |`apicurio.authn.kubernetes.cache-expiration`
 |`int`
 |`5`
 |`3.3.0`
-|TokenReview result cache expiration in minutes
+|TokenReview result cache expiration in minutes _(experimental)_
 |`apicurio.authn.kubernetes.enabled`
 |`boolean`
 |`false`
 |`3.3.0`
-|Enable Kubernetes TokenReview authentication
+|Enable Kubernetes TokenReview authentication _(experimental)_
 |`apicurio.authn.mechanism.priority`
 |`string`
 |`basic,proxy-header,oidc`

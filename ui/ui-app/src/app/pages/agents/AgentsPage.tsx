@@ -38,7 +38,10 @@ import {
 } from "@services/useAgentService";
 import { Paging } from "@models/Paging.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
-import { FromNow } from "@apicurio/common-ui-components";
+import { FromNow, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { CreateAgentModal, ImportAgentModal } from "@app/pages/agents/components";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { CreateArtifact } from "@sdk/lib/generated-client/models";
 
 const EMPTY_RESULTS: AgentSearchResults = {
     agents: [],
@@ -70,8 +73,13 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const [skillFilter, setSkillFilter] = useState<string>("");
     const [capabilitySelectOpen, setCapabilitySelectOpen] = useState(false);
 
+    const [isCreateAgentModalOpen, setIsCreateAgentModalOpen] = useState(false);
+    const [isImportAgentModalOpen, setIsImportAgentModalOpen] = useState(false);
+    const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
+
     const agentSvc = useAgentService();
     const appNav = useAppNavigation();
+    const groups: GroupsService = useGroupsService();
 
     const createFilters = (): AgentSearchFilters => {
         return {
@@ -137,7 +145,35 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const navigateToAgent = (agent: AgentSearchResult): void => {
         const gid = encodeURIComponent(agent.groupId || "default");
         const aid = encodeURIComponent(agent.artifactId);
-        appNav.navigateTo(`/explore/${gid}/${aid}`);
+        appNav.navigateTo(`/agents/${gid}/${aid}`);
+    };
+
+    const doCreateAgent = (groupId: string, data: CreateArtifact): void => {
+        setIsCreateAgentModalOpen(false);
+        setIsPleaseWaitModalOpen(true);
+        groups.createArtifact(groupId || null, data).then(response => {
+            const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
+            const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
+            setIsPleaseWaitModalOpen(false);
+            appNav.navigateTo(`/agents/${gid}/${aid}`);
+        }).catch(error => {
+            setIsPleaseWaitModalOpen(false);
+            setPageError(toPageError(error, "Error creating agent."));
+        });
+    };
+
+    const doImportAgent = (groupId: string, data: CreateArtifact): void => {
+        setIsImportAgentModalOpen(false);
+        setIsPleaseWaitModalOpen(true);
+        groups.createArtifact(groupId || null, data).then(response => {
+            const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
+            const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
+            setIsPleaseWaitModalOpen(false);
+            appNav.navigateTo(`/agents/${gid}/${aid}`);
+        }).catch(error => {
+            setIsPleaseWaitModalOpen(false);
+            setPageError(toPageError(error, "Error importing agent."));
+        });
     };
 
     useEffect(() => {
@@ -309,6 +345,16 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             Search
                         </Button>
                     </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
+                            Create Agent
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
+                            Import Agent
+                        </Button>
+                    </ToolbarItem>
                     <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
                         <Pagination
                             itemCount={results.count}
@@ -365,6 +411,20 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                     )}
                 </PageSection>
             </PageDataLoader>
+            <CreateAgentModal
+                isOpen={isCreateAgentModalOpen}
+                onClose={() => setIsCreateAgentModalOpen(false)}
+                onCreate={doCreateAgent}
+            />
+            <ImportAgentModal
+                isOpen={isImportAgentModalOpen}
+                onClose={() => setIsImportAgentModalOpen(false)}
+                onImport={doImportAgent}
+            />
+            <PleaseWaitModal
+                message="Creating agent card, please wait..."
+                isOpen={isPleaseWaitModalOpen}
+            />
         </PageErrorHandler>
     );
 };

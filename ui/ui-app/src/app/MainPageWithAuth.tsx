@@ -3,6 +3,7 @@ import { Page } from "@patternfly/react-core";
 import { AppHeader } from "@app/components";
 import { Route, Routes } from "react-router";
 import {
+    AgentDetailPage,
     AgentsPage,
     ArtifactPage,
     BranchPage,
@@ -72,6 +73,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                         <Route path="/drafts" element={ <DraftsPage /> } />
                         <Route path="/explore" element={ <ExplorePage /> } />
                         <Route path="/agents" element={ <AgentsPage /> } />
+                        <Route path="/agents/:groupId/:artifactId" element={ <AgentDetailPage /> } />
 
                         <Route
                             path="/explore/:groupId"

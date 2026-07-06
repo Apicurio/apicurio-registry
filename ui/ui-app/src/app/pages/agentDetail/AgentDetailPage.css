@@ -1,0 +1,11 @@
+.ps_agent-detail-header {
+    padding-bottom: 0;
+}
+
+.ps_agent-detail-content {
+    padding-top: 16px;
+}
+
+.ps_agent-detail-content .agent-card-viewer {
+    max-width: 900px;
+}

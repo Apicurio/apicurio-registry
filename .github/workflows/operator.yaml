@@ -123,12 +123,37 @@ jobs:
           distribution: temurin
           cache: maven
 
+      - name: Download Docker images
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: operator-test-images
+          path: /tmp/
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
           olm-enable: 'false'
           olm-v1-enable: 'false'
+
+      - name: Start local registry
+        run: |
+          docker run -d -p 5000:5000 --restart=always ghcr.io/distribution/distribution:3.0
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:5000/v2/ >/dev/null 2>&1 && break
+            echo "Waiting for registry... ($i/20)"
+            sleep 0.5
+          done
+          curl -sf http://localhost:5000/v2/ || (echo "Registry not ready after 10s"; exit 1)
+
+      - name: Load and push images to local registry
+        run: |
+          docker load -i /tmp/operator-test-operator.tar
+          docker load -i /tmp/operator-test-registry-app.tar
+          docker load -i /tmp/operator-test-gitops-sync.tar
+          docker push "$REGISTRY_APP_IMAGE"
+          docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
+          docker push "$IMAGE"
 
       - name: Build and run local tests on Minikube
         working-directory: operator
@@ -317,6 +342,7 @@ jobs:
       - name: Build
         working-directory: operator
         run: |
+          unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" SKIP_TESTS=true build
 
       - name: Login to quay.io registry
@@ -327,16 +353,19 @@ jobs:
       - name: Build and publish operator image
         working-directory: operator
         run: |
+          unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make image-build image-push
 
       - name: Build and publish operator bundle
         working-directory: operator
         run: |
+          unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make bundle
 
       - name: Build and publish operator catalog
         working-directory: operator
         run: |
+          unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make catalog
 
   # Slack notification using reusable workflow

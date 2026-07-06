@@ -32,7 +32,7 @@ jobs:
       # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
       # forward-compatibility issues with GraalVM/native-image early in PRs.
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1
+        uses: graalvm/setup-graalvm@cabbb10818fabc989d6dbd508e4846596d20dd2d # v1
         with:
           java-version: '25'
           distribution: 'graalvm-community'

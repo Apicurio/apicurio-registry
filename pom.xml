@@ -246,7 +246,7 @@
     <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
-    <connect.version>3.9.2</connect.version>
+    <connect.version>4.3.1</connect.version>
 
     <!-- Specifications -->
     <annotation-api.version>3.0.0</annotation-api.version>

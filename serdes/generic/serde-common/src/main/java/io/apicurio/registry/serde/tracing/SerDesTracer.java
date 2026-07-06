@@ -27,6 +27,7 @@ import io.opentelemetry.context.Scope;
 public class SerDesTracer {
 
     private static final String INSTRUMENTATION_NAME = "io.apicurio.registry.serde";
+    private static final String INSTRUMENTATION_VERSION = "3.x";
 
     private boolean isTracingEnabled() {
         return GlobalOpenTelemetry.getTracerProvider() != TracerProvider.noop();
@@ -56,7 +57,7 @@ public class SerDesTracer {
 
     private <T> T trace(String spanName, String topic, String operationType,
             SerDesOperation<T> operation) {
-        Tracer tracer = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+        Tracer tracer = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
         Span span = tracer.spanBuilder(spanName)
                 .setSpanKind(SpanKind.INTERNAL)
                 .setAttribute(SerDesAttributes.TOPIC, topic)
@@ -67,10 +68,13 @@ public class SerDesTracer {
             T result = operation.execute(span);
             span.setStatus(StatusCode.OK);
             return result;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             span.setStatus(StatusCode.ERROR, e.getMessage());
             span.recordException(e);
-            throw e;
+            if (e instanceof RuntimeException re) {
+                throw re;
+            }
+            throw new RuntimeException(e);
         } finally {
             span.end();
         }

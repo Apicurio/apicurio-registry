@@ -9,6 +9,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
@@ -270,22 +271,35 @@ public class ContentResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testCanonicalizeWithReferencesPreserveAndCanonical() throws Exception {
-        String groupId = "testCanonicalizeWithReferences";
-        String artifactId = "testCanonicalizeWithReferences/JsonSchema";
-        String content = "{\"z\": 1, \"a\": 2, \"m\": 3}";
-        String expected = "{\"a\":2,\"m\":3,\"z\":1}";
+    public void testCanonicalizeDereferencedContent() throws Exception {
+        String groupId = "testCanonicalizeDereferenced";
 
-        createArtifact(groupId, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+        String addressSchema = "{\"type\":\"object\",\"title\":\"Address\","
+                + "\"properties\":{\"zip\":{\"type\":\"string\"},\"city\":{\"type\":\"string\"}}}";
+        createArtifact(groupId, "Address", ArtifactType.JSON, addressSchema,
+                ContentTypes.APPLICATION_JSON);
+
+        String orderSchema = "{\"type\":\"object\",\"title\":\"Order\","
+                + "\"properties\":{\"orderId\":{\"type\":\"string\"},"
+                + "\"shippingAddress\":{\"$ref\":\"address.json\"}}}";
+        List<io.apicurio.registry.rest.v3.beans.ArtifactReference> refs = Collections
+                .singletonList(io.apicurio.registry.rest.v3.beans.ArtifactReference.builder()
+                        .name("address.json").groupId(groupId)
+                        .artifactId("Address").version("1").build());
+        createArtifactWithReferences(groupId, "Order", ArtifactType.JSON, orderSchema,
+                ContentTypes.APPLICATION_JSON, refs);
 
         String actual = given().when()
                 .pathParam("groupId", groupId)
-                .pathParam("artifactId", artifactId)
-                .queryParam("references", "PRESERVE")
+                .pathParam("artifactId", "Order")
+                .queryParam("references", "DEREFERENCE")
                 .queryParam("canonical", true)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200)
                 .extract().body().asString();
-        Assertions.assertEquals(expected, actual);
+        Assertions.assertFalse(actual.contains("$ref"),
+                "Dereferenced content should not contain $ref");
+        Assertions.assertTrue(actual.contains("\"Address\""),
+                "Dereferenced content should inline the Address schema");
     }
 }

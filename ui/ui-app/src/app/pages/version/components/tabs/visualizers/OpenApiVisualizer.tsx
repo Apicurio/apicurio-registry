@@ -42,9 +42,20 @@ export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (pro
         sendSpecToIframe(props.spec);
     };
 
+    // Listen for "ready" signal from the iframe and send the spec in response.
+    // This handles the race where the iframe's onLoad fires before the iframe's
+    // message listener is set up, causing the initial postMessage to be lost.
+    useEffect(() => {
+        const handler = (evt: MessageEvent): void => {
+            if (evt.data?.type === "apicurio-docs-ready" && props.spec && Object.keys(props.spec).length > 0) {
+                sendSpecToIframe(props.spec);
+            }
+        };
+        window.addEventListener("message", handler);
+        return () => window.removeEventListener("message", handler);
+    }, [props.spec]);
+
     // Re-send the spec when it changes after the iframe has already loaded.
-    // This handles the race condition where the parent fetches content asynchronously
-    // and the iframe onLoad fires before the spec is available.
     useEffect(() => {
         if (iframeLoaded.current && props.spec && Object.keys(props.spec).length > 0) {
             sendSpecToIframe(props.spec);
@@ -54,7 +65,7 @@ export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (pro
     return (
         <iframe id="openapi-editor-frame"
             ref={ ref }
-            style={{ width: "100%", height: "100%" }}
+            style={{ width: "100%", flex: 1, minHeight: 0, border: "none" }}
             className={ props.className ? props.className : "openapi-docs-container" }
             onLoad={ onIframeLoaded }
             src={ oaiDocsUrl() } />

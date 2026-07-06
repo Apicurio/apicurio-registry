@@ -20,9 +20,11 @@ public class KubernetesAuth {
         env.put(EnvironmentVariables.APICURIO_AUTHN_KUBERNETES_ENABLED,
                 createEnvVar(EnvironmentVariables.APICURIO_AUTHN_KUBERNETES_ENABLED, "true"));
 
-        env.put(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY,
-                createEnvVar(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY,
-                        "kubernetes,basic,proxy-header,oidc"));
+        if (!env.containsKey(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY)) {
+            env.put(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY,
+                    createEnvVar(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY,
+                            "kubernetes,basic,proxy-header,oidc"));
+        }
 
         putIfNotBlank(env, EnvironmentVariables.APICURIO_AUTHN_KUBERNETES_API_AUDIENCES,
                 spec.getApiAudiences());

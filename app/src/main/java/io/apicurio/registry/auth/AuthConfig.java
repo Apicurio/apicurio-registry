@@ -171,27 +171,27 @@ public class AuthConfig {
     boolean proxyHeaderTrustProxyAuthorization;
 
     @ConfigProperty(name = "apicurio.authn.kubernetes.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable Kubernetes TokenReview authentication", availableSince = "3.3.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable Kubernetes TokenReview authentication", availableSince = "3.3.0", experimental = true)
     boolean kubernetesAuthEnabled;
 
     @ConfigProperty(name = "apicurio.authn.kubernetes.api-audiences")
-    @Info(category = CATEGORY_AUTH, description = "Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated.", availableSince = "3.3.0")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated.", availableSince = "3.3.0", experimental = true)
     Optional<String> kubernetesApiAudiences;
 
     @ConfigProperty(name = "apicurio.authn.kubernetes.cache-expiration", defaultValue = "5")
-    @Info(category = CATEGORY_AUTH, description = "TokenReview result cache expiration in minutes", availableSince = "3.3.0")
+    @Info(category = CATEGORY_AUTH, description = "TokenReview result cache expiration in minutes", availableSince = "3.3.0", experimental = true)
     int kubernetesTokenCacheExpiration;
 
     @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.admin")
-    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-admin role", availableSince = "3.3.0")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-admin role", availableSince = "3.3.0", experimental = true)
     Optional<String> kubernetesAdminGroups;
 
     @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.developer")
-    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-developer role", availableSince = "3.3.0")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-developer role", availableSince = "3.3.0", experimental = true)
     Optional<String> kubernetesDeveloperGroups;
 
     @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.readonly")
-    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-readonly role", availableSince = "3.3.0")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-readonly role", availableSince = "3.3.0", experimental = true)
     Optional<String> kubernetesReadOnlyGroups;
 
     @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")

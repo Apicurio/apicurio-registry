@@ -113,6 +113,12 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
      * @return an unmodifiable, ordered list of enabled authentication strategies
      */
     List<AuthenticationStrategy> buildAuthChain() {
+        if (authConfig.oidcAuthEnabled && authConfig.kubernetesAuthEnabled) {
+            throw new IllegalStateException(
+                    "Cannot enable both OIDC and Kubernetes authentication simultaneously. "
+                            + "Both use Bearer tokens and would conflict.");
+        }
+
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
         strategyFactories.put("basic", () -> authConfig.basicAuthEnabled
                 ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)

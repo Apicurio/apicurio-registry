@@ -294,6 +294,23 @@ jobs:
       scalpel-disabled: ${{ needs.decide.outputs.scalpel-disabled }}
 
   # ============================================================================
+  # Unit Tests — Scalpel Shadow (evaluation mode)
+  #
+  # Runs the same unit test shards with Scalpel ENABLED to compare results
+  # against the control group (unit-tests). Not in the Verification Gate —
+  # failures here don't block PRs. Remove this once the team is confident
+  # in Scalpel's accuracy and switches over.
+  # ============================================================================
+  unit-tests-scalpel:
+    name: Unit Tests (Scalpel)
+    needs: [decide, build]
+    if: needs.decide.outputs.run-unit-tests == 'true'
+    uses: ./.github/workflows/verify-unit-tests.yaml
+    with:
+      image-tag: ${{ github.sha }}
+      scalpel-disabled: 'false'
+
+  # ============================================================================
   # CLI Verification
   # ============================================================================
   cli-verify:

@@ -270,10 +270,10 @@ public class SqlVersionRepository {
                         .bind(1, artifactId)
                         .bind(2, version)
                         .execute();
-            }
 
-            outboxEvent.fire(SqlOutboxEvent
-                    .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
+                outboxEvent.fire(SqlOutboxEvent
+                        .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
+            }
 
             return null;
         });

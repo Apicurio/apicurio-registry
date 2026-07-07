@@ -20,8 +20,14 @@ public final class XRegistryMetaLabels {
         builder.compatibility(labels.get(P + "compatibility"));
         builder.compatibilityAuthority(labels.get(P + "compatibilityauthority"));
         builder.defaultVersionId(labels.get(P + "defaultversionid"));
-        builder.defaultVersionSticky("true".equals(labels.get(P + "defaultversionsticky")));
-        builder.readonly("true".equals(labels.get(P + "readonly")));
+        String sticky = labels.get(P + "defaultversionsticky");
+        if (sticky != null) {
+            builder.defaultVersionSticky(Boolean.valueOf(sticky));
+        }
+        String ro = labels.get(P + "readonly");
+        if (ro != null) {
+            builder.readonly(Boolean.valueOf(ro));
+        }
         builder.xref(labels.get(P + "xref"));
 
         String depEffective = labels.get(P + "deprecated.effective");
@@ -30,8 +36,8 @@ public final class XRegistryMetaLabels {
         String depDoc = labels.get(P + "deprecated.documentation");
         if (depEffective != null || depRemoval != null || depAlt != null || depDoc != null) {
             builder.deprecated(DeprecationInfoDto.builder()
-                    .effective(depEffective != null ? Long.parseLong(depEffective) : 0)
-                    .removal(depRemoval != null ? Long.parseLong(depRemoval) : 0)
+                    .effective(depEffective != null ? Long.valueOf(depEffective) : null)
+                    .removal(depRemoval != null ? Long.valueOf(depRemoval) : null)
                     .alternative(depAlt)
                     .documentation(depDoc)
                     .build());
@@ -61,10 +67,10 @@ public final class XRegistryMetaLabels {
         }
         if (dto.getDeprecated() != null) {
             DeprecationInfoDto dep = dto.getDeprecated();
-            if (dep.getEffective() != 0) {
+            if (dep.getEffective() != null) {
                 labels.put(P + "deprecated.effective", String.valueOf(dep.getEffective()));
             }
-            if (dep.getRemoval() != 0) {
+            if (dep.getRemoval() != null) {
                 labels.put(P + "deprecated.removal", String.valueOf(dep.getRemoval()));
             }
             if (dep.getAlternative() != null) {

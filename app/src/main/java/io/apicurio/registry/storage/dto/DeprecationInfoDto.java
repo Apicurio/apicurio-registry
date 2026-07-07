@@ -19,8 +19,8 @@ import lombok.ToString;
 @RegisterForReflection
 public class DeprecationInfoDto {
 
-    private long effective;
-    private long removal;
+    private Long effective;
+    private Long removal;
     private String alternative;
     private String documentation;
 }

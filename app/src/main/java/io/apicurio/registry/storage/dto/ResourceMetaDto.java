@@ -24,8 +24,8 @@ public class ResourceMetaDto {
     private String compatibility;
     private String compatibilityAuthority;
     private String defaultVersionId;
-    private boolean defaultVersionSticky;
-    private boolean readonly;
+    private Boolean defaultVersionSticky;
+    private Boolean readonly;
     private String xref;
     private DeprecationInfoDto deprecated;
     private long epoch;

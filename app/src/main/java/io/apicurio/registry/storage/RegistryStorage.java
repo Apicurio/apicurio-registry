@@ -23,11 +23,11 @@ import io.apicurio.registry.storage.dto.EditableResourceMetaDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
-import io.apicurio.registry.storage.dto.ResourceMetaDto;
-import io.apicurio.registry.storage.dto.XRegistryMetaLabels;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.ResourceMetaDto;
+import io.apicurio.registry.storage.dto.XRegistryMetaLabels;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
@@ -71,6 +71,7 @@ import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1320,7 +1321,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     default void deleteResourceMeta(String groupId, String artifactId)
             throws ArtifactNotFoundException, RegistryStorageException {
         mergeArtifactLabels(groupId, artifactId, XREGISTRY_META_PREFIX,
-                java.util.Collections.emptyMap());
+                Collections.emptyMap());
     }
 
     /**

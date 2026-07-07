@@ -174,8 +174,8 @@ public class XRegistryDataModelTest extends AbstractResourceTestBase {
         meta = storage.getResourceMeta(groupId, artifactId);
         Assertions.assertEquals("backward", meta.getCompatibility());
         Assertions.assertEquals("server", meta.getCompatibilityAuthority());
-        Assertions.assertTrue(meta.isDefaultVersionSticky());
-        Assertions.assertFalse(meta.isReadonly());
+        Assertions.assertEquals(Boolean.TRUE, meta.getDefaultVersionSticky());
+        Assertions.assertEquals(Boolean.FALSE, meta.getReadonly());
 
         storage.deleteResourceMeta(groupId, artifactId);
 
@@ -214,6 +214,8 @@ public class XRegistryDataModelTest extends AbstractResourceTestBase {
 
         ResourceMetaDto meta = storage.getResourceMeta(groupId, artifactId);
         Assertions.assertNotNull(meta.getDeprecated());
+        Assertions.assertEquals(effectiveTime, meta.getDeprecated().getEffective());
+        Assertions.assertEquals(removalTime, meta.getDeprecated().getRemoval());
         Assertions.assertEquals("some-other-artifact", meta.getDeprecated().getAlternative());
         Assertions.assertEquals("https://example.com/migration", meta.getDeprecated().getDocumentation());
 

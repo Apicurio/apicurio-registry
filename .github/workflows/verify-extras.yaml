@@ -231,5 +231,5 @@ jobs:
           # -T 1: single-threaded (overrides .mvn/maven.config's -T 1C to prevent module ordering issues with examples)
           # -Pexamples: activates the examples profile (builds example applications)
           # -Dassembly.skipAssembly=true: skip archive generation (not needed for example compilation)
-          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           mvn install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress

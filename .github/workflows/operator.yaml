@@ -37,7 +37,7 @@ jobs:
           distribution: temurin
           cache: maven
 
-      # Build operand (app + docker) and operator OLM tests. Changes in the current PR must be reflected.
+      # Build operand (app + docker) and operator OLM tests, so downstream tests reflect changes in the current PR.
       # -Dfull: include all optional modules needed for the Docker image
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build
@@ -158,7 +158,7 @@ jobs:
           docker push "$IMAGE"
 
       # Makefile enforces -T1 (single-threaded) because operator @QuarkusTest tests require sequential execution.
-      # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks
+      # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build and run local tests on Minikube
         working-directory: operator
         run: |

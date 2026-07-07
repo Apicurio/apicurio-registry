@@ -1,0 +1,2248 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "xRegistry API",
+    "description": "xRegistry API. See spec sections (e.g. 'Registry Capabilities', 'Retrieving the Registry Model', 'Doc', etc.) for details.",
+    "version": "1.0-rc3"
+  },
+  "servers": [],
+  "security": [
+    {
+      "api_key": []
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "getRootDocument",
+        "tags": [
+          "Root"
+        ],
+        "description": "Gets the root registry document. Query parameters 'inline', 'filter', 'doc', and 'specversion' modify the view. (See spec: Retrieving the Registry, Inline, Filter, and Doc)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/inline"
+          },
+          {
+            "$ref": "#/components/parameters/filter"
+          },
+          {
+            "$ref": "#/components/parameters/doc"
+          },
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The root registry document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryEntity"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "upsertDocument",
+        "tags": [
+          "Root"
+        ],
+        "description": "Uploads a registry document and upserts its contents into the registry. (See spec: Creating or Updating Entities, Registry Entity)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/inline"
+          },
+          {
+            "$ref": "#/components/parameters/filter"
+          },
+          {
+            "$ref": "#/components/parameters/doc"
+          },
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "requestBody": {
+          "description": "A registry document in JSON format.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistryEntity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The resulting registry document after upsert.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryEntity"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchDocument",
+        "tags": [
+          "Root"
+        ],
+        "description": "Edits a registry document. (See spec: Creating or Updating Entities, Registry Entity)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/inline"
+          },
+          {
+            "$ref": "#/components/parameters/filter"
+          },
+          {
+            "$ref": "#/components/parameters/doc"
+          },
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "requestBody": {
+          "description": "A registry document in JSON format.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistryEntity"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The resulting registry document after upsert.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryEntity"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/capabilities": {
+      "get": {
+        "operationId": "getCapabilities",
+        "tags": [
+          "Capabilities"
+        ],
+        "description": "Retrieves the registry capabilities. Query parameter 'offered' may be used to return the offered values. (See spec: Registry Capabilities)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offered",
+            "description": "If true, returns the offered values (enumeration, min, max, etc.) for each capability.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The registry capabilities map.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryCapabilities"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateCapabilities",
+        "tags": [
+          "Capabilities"
+        ],
+        "description": "Updates the registry capabilities. (See spec: Registry Capabilities, Updating the Capabilities of a Server)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "requestBody": {
+          "description": "The full capabilities map to update.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistryCapabilities"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated capabilities map.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryCapabilities"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchCapabilities",
+        "tags": [
+          "Capabilities"
+        ],
+        "description": "Patches one or more capabilities. (See spec: Updating the Capabilities of a Server)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "requestBody": {
+          "description": "A partial capabilities map.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistryCapabilities"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The patched capabilities map.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryCapabilities"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/model": {
+      "get": {
+        "operationId": "getRegistryModel",
+        "tags": [
+          "Model"
+        ],
+        "description": "Retrieves the full registry model. Query parameter 'schema' may be used to request a specific model schema format. (See spec: Retrieving the Registry Model)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "schema",
+            "description": "The model schema format (e.g. xRegistry-json/1.0-rc3).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The registry model.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putRegistryModel",
+        "tags": [
+          "Model"
+        ],
+        "description": "Updates the registry model. (See spec: Updating the Registry Model)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "requestBody": {
+          "description": "The complete updated registry model.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated registry model.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchRegistryModel",
+        "tags": [
+          "Model"
+        ],
+        "description": "Patches the registry model. (PATCH is only supported on the /model endpoint.) (See spec: Updating the Registry Model)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "requestBody": {
+          "description": "The partial registry model update.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The patched registry model.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/export": {
+      "get": {
+        "operationId": "exportRegistry",
+        "tags": [
+          "Export"
+        ],
+        "description": "Exports the entire registry as a single document (alias for GET /?doc&inline=*,model,capabilities). (See spec: Exporting)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/doc"
+          },
+          {
+            "$ref": "#/components/parameters/inline"
+          },
+          {
+            "$ref": "#/components/parameters/filter"
+          },
+          {
+            "$ref": "#/components/parameters/specversion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The exported registry document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryEntity"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/schemagroups/{groupid}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/groupid"
+        },
+        {
+          "$ref": "#/components/parameters/specversion"
+        },
+        {
+          "$ref": "#/components/parameters/inline"
+        },
+        {
+          "$ref": "#/components/parameters/filter"
+        },
+        {
+          "$ref": "#/components/parameters/doc"
+        }
+      ],
+      "get": {
+        "operationId": "getSchemagroup",
+        "tags": [
+          "ResourceGroup"
+        ],
+        "description": "Gets a single resource group. (See spec: Groups)",
+        "responses": {
+          "200": {
+            "description": "The resource group.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemagroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putSchemagroup",
+        "tags": [
+          "ResourceGroup"
+        ],
+        "description": "Creates or updates a resource group. Supports query parameters for epoch checking and response configuration. (See spec: Creating or Updating Entities and Deleting Entities in a Registry Collection)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "epoch",
+            "description": "The current epoch of the group for optimistic concurrency (see spec: Mismatched Epoch).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The group to create or update.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/schemagroup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated resource group.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schemagroup"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSchemagroup",
+        "tags": [
+          "ResourceGroup"
+        ],
+        "description": "Deletes a resource group. Requires the current epoch. (See spec: Deleting Entities in a Registry Collection)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "epoch",
+            "description": "The current epoch of the group.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Group deleted successfully."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/schemagroups/{groupid}/schemas": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/groupid"
+        },
+        {
+          "$ref": "#/components/parameters/specversion"
+        }
+      ],
+      "get": {
+        "operationId": "getSchemagroupSchemasAll",
+        "tags": [
+          "ResourceCollection"
+        ],
+        "description": "Gets an optionally filtered collection of resources in a group. Supports query parameters 'inline', 'skip', 'top', 'filter', and 'doc'. (See spec: Registry Collections, Inline, Filter, and Resource Metadata vs Resource Document)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/inline"
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of resources to skip (pagination).",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "description": "The number of resources to return (pagination).",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/filter"
+          },
+          {
+            "$ref": "#/components/parameters/doc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection of resources (optionally filtered).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/schema"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/schemagroups/{groupid}/schemas/{resourceid}/meta": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/groupid"
+        },
+        {
+          "$ref": "#/components/parameters/resourceid"
+        },
+        {
+          "$ref": "#/components/parameters/specversion"
+        },
+        {
+          "$ref": "#/components/parameters/inline"
+        },
+        {
+          "$ref": "#/components/parameters/filter"
+        },
+        {
+          "$ref": "#/components/parameters/doc"
+        },
+        {
+          "in": "query",
+          "name": "epoch",
+          "description": "The current epoch of the resource metadata (meta sub-object). (See spec: Resource Attributes)",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getSchemagroupSchemaMeta",
+        "tags": [
+          "ResourceMeta"
+        ],
+        "description": "Gets the meta sub-object of a resource. (See spec: Resource Attributes)",
+        "responses": {
+          "200": {
+            "description": "The meta sub-object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putSchemagroupSchemaMeta",
+        "tags": [
+          "ResourceMeta"
+        ],
+        "description": "Updates the meta sub-object of a resource. (See spec: Resource Attributes and Updating the Registry Entity)",
+        "requestBody": {
+          "description": "The new meta object for the resource.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Meta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated meta sub-object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchSchemagroupSchemaMeta",
+        "tags": [
+          "ResourceMeta"
+        ],
+        "description": "Patches the meta sub-object of a resource. (See spec: Resource Attributes)",
+        "requestBody": {
+          "description": "A partial meta object.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Meta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The patched meta sub-object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/schemagroups/{groupid}/schemas/{resourceid}$details": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/groupid"
+        },
+        {
+          "$ref": "#/components/parameters/resourceid"
+        },
+        {
+          "$ref": "#/components/parameters/specversion"
+        },
+        {
+          "$ref": "#/components/parameters/inline"
+        },
+        {
+          "$ref": "#/components/parameters/filter"
+        },
+        {
+          "$ref": "#/components/parameters/doc"
+        }
+      ],
+      "get": {
+        "operationId": "getSchemagroupSchemaDetails",
+        "tags": [
+          "Resource"
+        ],
+        "description": "Gets the resource metadata view (the $details view). (See spec: Retrieving a Resource as Metadata and Doc)",
+        "responses": {
+          "200": {
+            "description": "The resource metadata document.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/schemagroups/{groupid}/schemas/{resourceid}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/groupid"
+        },
+        {
+          "$ref": "#/components/parameters/resourceid"
+        },
+        {
+          "$ref": "#/components/parameters/specversion"
+        },
+        {
+          "in": "query",
+          "name": "meta",
+          "description": "If true, operate on the resource metadata sub-object (see spec: Resource Metadata vs Resource Document).",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "noepoch",
+          "description": "If true, epoch validation is ignored. (See spec: Creating or Updating Entities)",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "nodefaultversionid",
+          "description": "If true, any provided defaultversionid is ignored. (See spec: Default Version of a Resource)",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "nodefaultversionsticky",
+          "description": "If true, any provided defaultversionsticky value is ignored. (See spec: Default Version of a Resource)",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "noreadonly",
+          "description": "If true, attempts to update readonly attributes are silently ignored. (See spec: Resource Attributes)",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "setdefaultversionid",
+          "description": "Specifies the versionid to be set as the default version. (See spec: Default Version of a Resource)",
+          "required": false,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/inline"
+        },
+        {
+          "$ref": "#/components/parameters/filter"
+        },
+        {
+          "$ref": "#/components/parameters/doc"
+        }
+      ],
+      "get": {
+        "operationId": "getSchemagroupSchema",
+        "tags": [
+          "Resource"
+        ],
+        "description": "Gets the resource (default version). Supports $details view via the 'doc' query parameter. (See spec: Retrieving a Resource and Retrieving a Resource as Metadata)",
+        "responses": {
+          "200": {
+            "description": "The resource (or a redirect if a RESOURCEurl is set).",
+            "headers": {
+              "resource-id": {
+                "$ref": "#/components/headers/resource-id"
+              },
+              "resource-version": {
+                "$ref": "#/components/headers/resource-version"
+              },
+              "resource-name": {
+                "$ref": "#/components/headers/resource-name"
+              },
+              "resource-self": {
+                "$ref": "#/components/headers/resource-self"
+              },
+              "resource-description": {
+                "$ref": "#/components/headers/resource-description"
+              },
+              "resource-documentation": {
+                "$ref": "#/components/headers/resource-documentation"
+              },
+              "resource-labels": {
+                "$ref": "#/components/headers/resource-labels"
+              },
+              "resource-createdat": {
+                "$ref": "#/components/headers/resource-createdat"
+              },
+              "resource-modifiedat": {
+                "$ref": "#/components/headers/resource-modifiedat"
+              },
+              "Content-Location": {
+                "description": "Permalink location of the returned version.",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "putSchemagroupSchema",
+        "tags": [
+          "Resource"
+        ],
+        "description": "Creates or updates a resource. Accepts either the raw document (when $details is not used) or a full xRegistry metadata serialization (when $details is used). (See spec: Creating or Updating Resources and Versions, Resource Metadata vs Resource Document)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "epoch",
+            "description": "The current epoch value for concurrency control. (See spec: Mismatched Epoch)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The resource document or xRegistry metadata (depending on URL suffix $details).",
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/schema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "summary": "Post new resource version",
+        "description": "Creates a new version of the resource. If the resource does not exist, it is created at version 1; if it exists, the new version is created (default version may be updated using setdefaultversionid). (See spec: Creating or Updating Resources and Versions, Default Version of a Resource)",
+        "operationId": "postSchemagroupSchema",
+        "tags": [
+          "Resource"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/resource-description"
+          },
+          {
+            "$ref": "#/components/parameters/resource-documentation"
+          },
+          {
+            "$ref": "#/components/parameters/resource-labels"
+          }
+        ],
+        "requestBody": {
+          "description": "The new resource version document or xRegistry metadata.",
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/schema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created resource version.",
+            "headers": {
+              "resource-id": {
+                "$ref": "#/components/headers/resource-id"
+              },
+              "resource-version": {
+                "$ref": "#/components/headers/resource-version"
+              },
+              "resource-name": {
+                "$ref": "#/components/headers/resource-name"
+              },
+              "resource-self": {
+                "$ref": "#/components/headers/resource-self"
+              },
+              "resource-description": {
+                "$ref": "#/components/headers/resource-description"
+              },
+              "resource-documentation": {
+                "$ref": "#/components/headers/resource-documentation"
+              },
+              "resource-labels": {
+                "$ref": "#/components/headers/resource-labels"
+              },
+              "resource-createdat": {
+                "$ref": "#/components/headers/resource-createdat"
+              },
+              "resource-modifiedat": {
+                "$ref": "#/components/headers/resource-modifiedat"
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete resource",
+        "description": "Deletes the resource and all of its versions. Requires the current epoch. (See spec: Deleting Resources)",
+        "operationId": "deleteSchemagroupSchema",
+        "tags": [
+          "Resource"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "epoch",
+            "description": "The current epoch of the resource.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Resource deleted successfully."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/schemagroups/{groupid}/schemas/{resourceid}/versions": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/groupid"
+        },
+        {
+          "$ref": "#/components/parameters/resourceid"
+        },
+        {
+          "$ref": "#/components/parameters/specversion"
+        },
+        {
+          "$ref": "#/components/parameters/inline"
+        },
+        {
+          "$ref": "#/components/parameters/filter"
+        },
+        {
+          "$ref": "#/components/parameters/doc"
+        }
+      ],
+      "get": {
+        "operationId": "getSchemagroupSchemaVersionsAll",
+        "tags": [
+          "ResourceVersionCollection"
+        ],
+        "description": "Gets an optionally filtered collection of versions for a resource. Supports pagination ('skip', 'top') and filtering. (See spec: Retrieving all Versions)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "The number of versions to skip.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "top",
+            "description": "The maximum number of versions to return.",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection of versions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postSchemagroupSchemaVersions",
+        "tags": [
+          "ResourceVersion"
+        ],
+        "description": "Creates or updates one or more versions of a resource. Query parameter 'setdefaultversionid' may be used to designate the new default version. (See spec: Creating or Updating Versions)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "setdefaultversionid",
+            "description": "Specifies the versionid for the default version. Use 'null' to reset to newest-default. (See spec: Default Version of a Resource)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "A map of version definitions keyed by versionid.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/schema"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated versions collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/schema"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/schemagroups/{groupid}/schemas/{resourceid}/versions/{versionid}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/groupid"
+        },
+        {
+          "$ref": "#/components/parameters/resourceid"
+        },
+        {
+          "$ref": "#/components/parameters/versionid"
+        },
+        {
+          "in": "query",
+          "name": "meta",
+          "description": "If true, operate on version metadata view ($details).",
+          "required": false,
+          "allowEmptyValue": true,
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "$ref": "#/components/parameters/specversion"
+        },
+        {
+          "$ref": "#/components/parameters/inline"
+        },
+        {
+          "$ref": "#/components/parameters/filter"
+        },
+        {
+          "$ref": "#/components/parameters/doc"
+        }
+      ],
+      "get": {
+        "operationId": "getSchemagroupSchemaVersion",
+        "tags": [
+          "ResourceVersion"
+        ],
+        "description": "Gets a specific version of a resource. Returns either the document (if not $details) or the metadata view. (See spec: Retrieving a Version and Retrieving a Version as Metadata)",
+        "responses": {
+          "200": {
+            "description": "The resource version.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/schema"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSchemagroupSchemaVersion",
+        "tags": [
+          "ResourceVersion"
+        ],
+        "description": "Deletes a specific version of a resource. Requires the current epoch. (See spec: Deleting a Version)",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "epoch",
+            "description": "The current epoch of the version.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Version deleted successfully."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "x-codegen-contextRoot": "/apis/xregistry/v1"
+  },
+  "components": {
+    "securitySchemes": {
+      "api_key": {
+        "type": "apiKey",
+        "name": "code",
+        "in": "query"
+      }
+    },
+    "parameters": {
+      "groupid": {
+        "name": "groupid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The unique identifier of the group."
+      },
+      "resourceid": {
+        "name": "resourceid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The unique identifier of the resource."
+      },
+      "versionid": {
+        "name": "versionid",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The unique identifier of the resource version."
+      },
+      "resource-description": {
+        "name": "resource-description",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The description attribute for a resource."
+      },
+      "resource-documentation": {
+        "name": "resource-documentation",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        },
+        "description": "The documentation URL for a resource."
+      },
+      "resource-labels": {
+        "name": "resource-labels",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The labels attribute for a resource."
+      },
+      "specversion": {
+        "name": "specversion",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "description": "The xRegistry spec version to use."
+      },
+      "inline": {
+        "name": "inline",
+        "in": "query",
+        "required": false,
+        "allowEmptyValue": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Comma-separated list of nested paths to inline (e.g. endpoints, endpoints.messages). See spec: Inline."
+      },
+      "filter": {
+        "name": "filter",
+        "in": "query",
+        "required": false,
+        "explode": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": "Filter criterion(s) (see spec: Filter)."
+      },
+      "doc": {
+        "name": "doc",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "boolean"
+        },
+        "description": "If true, returns the document view (with relative URLs and default version data removed). See spec: Doc."
+      }
+    },
+    "headers": {
+      "resource-id": {
+        "description": "The resource identifier. MUST be percent-encoded per xRegistry specifications (i.e. all non-printable ASCII characters, spaces, quotes, and percent signs must be encoded).",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "resource-version": {
+        "description": "The resource version identifier. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "resource-name": {
+        "description": "The resource name. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "resource-self": {
+        "description": "The self URL of the resource. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "resource-description": {
+        "description": "The resource description. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "resource-documentation": {
+        "description": "The resource documentation URL. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "resource-labels": {
+        "description": "Serialized resource labels. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "resource-createdat": {
+        "description": "The resource creation timestamp. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "resource-modifiedat": {
+        "description": "The resource modification timestamp. MUST be percent-encoded per xRegistry specifications.",
+        "schema": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad Request - constraint failure.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized - API key missing or invalid, or authorization failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflict - epoch not greater.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal Server Error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ProblemDetails": {
+        "type": "object",
+        "required": [
+          "type",
+          "instance",
+          "title"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri",
+            "description": "A URI reference that identifies the problem type."
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri",
+            "description": "A URI reference that identifies the specific occurrence of the problem."
+          },
+          "title": {
+            "type": "string",
+            "description": "A short, human-readable summary of the problem type."
+          },
+          "detail": {
+            "type": "string",
+            "description": "A human-readable explanation specific to this occurrence of the problem."
+          }
+        }
+      },
+      "RegistryCapabilities": {
+        "type": "object",
+        "properties": {
+          "enforcecompatibility": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indicates whether the server will enforce the compatibility rules."
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A flag value. Values are case insensitive and may include extension values."
+            },
+            "default": [],
+            "description": "List of supported flags (query parameters)."
+          },
+          "ignore": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "An ignore flag value. Values are case insensitive and may include extension values."
+            },
+            "default": [],
+            "description": "List of supported ignore flag values."
+          },
+          "mutable": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?i:(capabilities|entities|model))$",
+              "description": "Supported mutable items are 'capabilities', 'entities', or 'model'."
+            },
+            "default": [],
+            "description": "List of Registry items that can be edited by the client."
+          },
+          "pagination": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indicates whether the server supports pagination."
+          },
+          "schemas": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A schema document format name, e.g. 'jsonSchema/2020-12' or 'xRegistry-json/1.0-rc3'."
+            },
+            "default": [
+              "xRegistry-json/1.0-rc3"
+            ],
+            "description": "List of schema formats supported by the server."
+          },
+          "shortself": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indicates whether the 'shortself' attribute must be included in the server serialization."
+          },
+          "specversions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "A supported xRegistry specification version."
+            },
+            "default": [
+              "1.0-rc3"
+            ],
+            "description": "List of xRegistry specification versions supported by the server."
+          },
+          "sticky": {
+            "type": "boolean",
+            "default": true,
+            "description": "Indicates whether the server supports clients choosing which version is the default."
+          }
+        },
+        "additionalProperties": true
+      },
+      "RegistryEntity": {
+        "type": "object",
+        "required": [
+          "specversion",
+          "registryid",
+          "self",
+          "xid",
+          "epoch",
+          "createdat",
+          "modifiedat"
+        ],
+        "properties": {
+          "specversion": {
+            "type": "string",
+            "description": "The version of the xRegistry specification that this document adheres to."
+          },
+          "registryid": {
+            "type": "string",
+            "description": "An immutable unique identifier of the Registry."
+          },
+          "self": {
+            "type": "string",
+            "format": "uri",
+            "description": "The unique URL referencing the Registry entity."
+          },
+          "shortself": {
+            "type": "string",
+            "format": "uri",
+            "description": "A shorter alternative URL for the Registry entity.",
+            "nullable": true
+          },
+          "xid": {
+            "type": "string",
+            "description": "The unique xid (relative URL) of the Registry."
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "A numeric value representing the entity update version."
+          },
+          "name": {
+            "type": "string",
+            "description": "A human readable name for the Registry.",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "A human readable summary of the Registry.",
+            "nullable": true
+          },
+          "documentation": {
+            "type": "string",
+            "format": "uri",
+            "description": "A URL to additional documentation for the Registry.",
+            "nullable": true
+          },
+          "labels": {
+            "type": "object",
+            "description": "A map of label key/value pairs.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "createdat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp for when the Registry was created."
+          },
+          "modifiedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp for when the Registry was last modified."
+          },
+          "capabilities": {
+            "type": "object",
+            "description": "Registry capabilities (only if inlined).",
+            "nullable": true
+          },
+          "model": {
+            "type": "object",
+            "description": "Registry model definitions (only if inlined).",
+            "nullable": true
+          },
+          "modelsource": {
+            "type": "object",
+            "description": "User provided Registry model definitions (only if inlined).",
+            "nullable": true
+          },
+          "schemagroupsurl": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL for retrieving the schemagroups (e.g. endpointsurl)."
+          },
+          "schemagroupscount": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The count of schemagroups in the registry."
+          },
+          "schemagroups": {
+            "type": "object",
+            "description": "A map of schemagroups in the registry, keyed by schemagroup identifier. Present only if inlined.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/schemagroup"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "Meta": {
+        "type": "object",
+        "required": [
+          "self",
+          "xid",
+          "epoch",
+          "createdat",
+          "modifiedat"
+        ],
+        "properties": {
+          "RESOURCEid": {
+            "type": "string",
+            "description": "The resource identifier for the meta sub-object; usually the same as the resource id."
+          },
+          "self": {
+            "type": "string",
+            "format": "uri",
+            "description": "The absolute URL of the meta sub-object."
+          },
+          "shortself": {
+            "type": "string",
+            "format": "uri",
+            "description": "A shorter alternative URL for the meta sub-object.",
+            "nullable": true
+          },
+          "xid": {
+            "type": "string",
+            "description": "The relative URL (xid) for the meta sub-object."
+          },
+          "xref": {
+            "type": "string",
+            "format": "uri",
+            "description": "A pointer to a linked resource, if applicable.",
+            "nullable": true
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The epoch value for the meta sub-object."
+          },
+          "labels": {
+            "type": "object",
+            "description": "A map of label key/value pairs.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "createdat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The creation timestamp for the meta sub-object."
+          },
+          "modifiedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The last modification timestamp for the meta sub-object."
+          },
+          "readonly": {
+            "type": "boolean",
+            "description": "Indicates whether the resource is readonly.",
+            "default": false
+          },
+          "compatibility": {
+            "type": "string",
+            "description": "The compatibility level of the resource.",
+            "default": "none"
+          },
+          "defaultversionid": {
+            "type": "string",
+            "description": "The version id of the default version of the resource."
+          },
+          "defaultversionurl": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL of the default version of the resource."
+          },
+          "defaultversionsticky": {
+            "type": "boolean",
+            "description": "Indicates whether the default version is sticky.",
+            "default": false
+          }
+        }
+      },
+      "document": {
+        "type": "object",
+        "properties": {
+          "schemagroups": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/schemagroup"
+            }
+          }
+        }
+      },
+      "schemaVersion": {
+        "type": "object",
+        "properties": {
+          "versionid": {
+            "type": "string",
+            "description": "ID of the schema version"
+          },
+          "schemaid": {
+            "type": "string",
+            "description": "ID of the schema object"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the object"
+          },
+          "epoch": {
+            "type": "integer",
+            "description": "Epoch time of the object creation"
+          },
+          "self": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the object"
+          },
+          "xid": {
+            "type": "string",
+            "format": "xid",
+            "description": "Relative URL of the object"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the object"
+          },
+          "documentation": {
+            "type": "string",
+            "format": "uri",
+            "description": "URI of the documentation of the object"
+          },
+          "labels": {
+            "type": "object",
+            "description": "Labels for the object"
+          },
+          "createdat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time of the object creation"
+          },
+          "modifiedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time of the object modification"
+          },
+          "format": {
+            "type": "string"
+          }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "schema": {
+                "description": "Embedded schema object",
+                "oneOf": [
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "schema"
+            ]
+          },
+          {
+            "properties": {
+              "schemabase64": {
+                "description": "Embedded schema object as binary data",
+                "type": "string",
+                "format": "base64"
+              }
+            },
+            "required": [
+              "schemabase64"
+            ]
+          },
+          {
+            "properties": {
+              "schemaurl": {
+                "description": "Linked schema object",
+                "type": "string",
+                "format": "uri"
+              }
+            },
+            "required": [
+              "schemaurl"
+            ]
+          }
+        ],
+        "required": [
+          "format"
+        ]
+      },
+      "schema": {
+        "type": "object",
+        "properties": {
+          "schemaid": {
+            "type": "string",
+            "description": "ID of the schema object"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the object"
+          },
+          "epoch": {
+            "type": "integer",
+            "description": "Epoch time of the object creation"
+          },
+          "self": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the object"
+          },
+          "xid": {
+            "type": "string",
+            "format": "xid",
+            "description": "Relative URL of the object"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the object"
+          },
+          "documentation": {
+            "type": "string",
+            "format": "uri",
+            "description": "URI of the documentation of the object"
+          },
+          "labels": {
+            "type": "object",
+            "description": "Labels for the object"
+          },
+          "createdat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time of the object creation"
+          },
+          "modifiedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time of the object modification"
+          }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "versionsurl": {
+                "type": "string"
+              },
+              "versionscount": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "versionsurl"
+            ]
+          },
+          {
+            "properties": {
+              "versions": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/schemaVersion"
+                }
+              }
+            },
+            "required": [
+              "versions"
+            ]
+          }
+        ]
+      },
+      "schemagroup": {
+        "type": "object",
+        "properties": {
+          "schemagroupid": {
+            "type": "string",
+            "description": "ID of the schemagroup object"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the object"
+          },
+          "epoch": {
+            "type": "integer",
+            "description": "Epoch time of the object creation"
+          },
+          "self": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the object"
+          },
+          "xid": {
+            "type": "string",
+            "format": "xid",
+            "description": "Relative URL of the object"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the object"
+          },
+          "documentation": {
+            "type": "string",
+            "format": "uri",
+            "description": "URI of the documentation of the object"
+          },
+          "labels": {
+            "type": "object",
+            "description": "Labels for the object"
+          },
+          "createdat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time of the object creation"
+          },
+          "modifiedat": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Time of the object modification"
+          },
+          "format": {
+            "type": "string"
+          },
+          "schemas": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/schema"
+            }
+          }
+        }
+      }
+    }
+  }
+}

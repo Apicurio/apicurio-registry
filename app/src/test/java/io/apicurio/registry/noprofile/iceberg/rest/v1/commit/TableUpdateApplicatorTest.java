@@ -285,6 +285,60 @@ public class TableUpdateApplicatorTest {
     }
 
     @Test
+    public void testAddSchemaWithNestedStruct() {
+        Map<String, Object> metadata = buildMetadata();
+        Map<String, Object> newSchema = new HashMap<>();
+        newSchema.put("type", "struct");
+        newSchema.put("schema-id", 1);
+        newSchema.put("fields", List.of(
+                Map.of("id", 1, "name", "id", "type", "long", "required", true),
+                Map.of("id", 2, "name", "address", "required", false,
+                        "type", Map.of(
+                                "type", "struct",
+                                "fields", List.of(
+                                        Map.of("id", 3, "name", "street", "type", "string",
+                                                "required", false),
+                                        Map.of("id", 4, "name", "city", "type", "string",
+                                                "required", false),
+                                        Map.of("id", 5, "name", "zip", "type", "string",
+                                                "required", false))))));
+
+        List<Map<String, Object>> updates = List.of(Map.of("action", "add-schema", "schema", newSchema));
+        TableUpdateApplicator.apply(updates, metadata);
+
+        assertEquals(5, metadata.get("last-column-id"));
+    }
+
+    @Test
+    public void testAddSchemaWithListAndMapTypes() {
+        Map<String, Object> metadata = buildMetadata();
+        Map<String, Object> newSchema = new HashMap<>();
+        newSchema.put("type", "struct");
+        newSchema.put("schema-id", 1);
+        newSchema.put("fields", List.of(
+                Map.of("id", 1, "name", "id", "type", "long", "required", true),
+                Map.of("id", 2, "name", "tags", "required", false,
+                        "type", Map.of(
+                                "type", "list",
+                                "element-id", 3,
+                                "element", "string",
+                                "element-required", false)),
+                Map.of("id", 4, "name", "props", "required", false,
+                        "type", Map.of(
+                                "type", "map",
+                                "key-id", 5,
+                                "key", "string",
+                                "value-id", 6,
+                                "value", "string",
+                                "value-required", false))));
+
+        List<Map<String, Object>> updates = List.of(Map.of("action", "add-schema", "schema", newSchema));
+        TableUpdateApplicator.apply(updates, metadata);
+
+        assertEquals(6, metadata.get("last-column-id"));
+    }
+
+    @Test
     public void testLastUpdatedMsAlwaysSet() {
         Map<String, Object> metadata = buildMetadata();
         long before = System.currentTimeMillis();

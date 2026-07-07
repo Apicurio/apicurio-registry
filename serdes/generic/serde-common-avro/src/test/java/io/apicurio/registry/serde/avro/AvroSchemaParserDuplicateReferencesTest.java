@@ -537,6 +537,173 @@ public class AvroSchemaParserDuplicateReferencesTest {
                 "referencelessRawSchema should contain the nested record name");
     }
 
+    /**
+     * Test that getReferencelessRawSchema() falls back to getRawSchema() when the schema
+     * has no nested records (no references extracted).
+     */
+    @Test
+    public void testReferencelessRawSchemaFallsBackForFlatSchemas() {
+        Schema.Parser schemaParser = new Schema.Parser();
+
+        String schemaJson = """
+            {
+              "type": "record",
+              "name": "FlatRecord",
+              "namespace": "test.avro",
+              "fields": [
+                {"name": "id", "type": "int"},
+                {"name": "name", "type": "string"},
+                {"name": "active", "type": "boolean"}
+              ]
+            }
+            """;
+        Schema schema = schemaParser.parse(schemaJson);
+
+        GenericRecord record = new GenericData.Record(schema);
+        record.put("id", 1);
+        record.put("name", "test");
+        record.put("active", true);
+
+        ParsedSchema<Schema> parsedSchema = parser.getSchemaFromData(createRecord(record));
+
+        Assertions.assertArrayEquals(parsedSchema.getRawSchema(),
+                parsedSchema.getReferencelessRawSchema(),
+                "For schemas without references, getReferencelessRawSchema() should equal getRawSchema()");
+        Assertions.assertFalse(parsedSchema.hasReferences(),
+                "Flat schema should have no references");
+    }
+
+    /**
+     * Test that getReferencelessRawSchema() contains the full nested record definition
+     * when the nested record is wrapped in a union (e.g. ["null", {record}]).
+     * The issue reporter confirmed this case already worked, so this is a regression guard.
+     */
+    @Test
+    public void testReferencelessRawSchemaWithUnionWrappedNestedRecord() {
+        Schema.Parser schemaParser = new Schema.Parser();
+
+        String schemaJson = """
+            {
+              "type": "record",
+              "name": "WithOptionalNested",
+              "namespace": "test.avro",
+              "fields": [
+                {"name": "id", "type": "int"},
+                {
+                  "name": "optionalRecord",
+                  "type": [
+                    "null",
+                    {
+                      "type": "record",
+                      "name": "NestedInUnion",
+                      "fields": [
+                        {"name": "value", "type": "string"}
+                      ]
+                    }
+                  ],
+                  "default": null
+                }
+              ]
+            }
+            """;
+        Schema schema = schemaParser.parse(schemaJson);
+
+        Schema nestedSchema = schema.getField("optionalRecord").schema().getTypes().get(1);
+        GenericRecord nested = new GenericData.Record(nestedSchema);
+        nested.put("value", "hello");
+
+        GenericRecord main = new GenericData.Record(schema);
+        main.put("id", 1);
+        main.put("optionalRecord", nested);
+
+        ParsedSchema<Schema> parsedSchema = parser.getSchemaFromData(createRecord(main));
+
+        String referencelessRawSchema = new String(parsedSchema.getReferencelessRawSchema());
+        Assertions.assertTrue(referencelessRawSchema.contains("NestedInUnion"),
+                "referencelessRawSchema should contain the union-wrapped nested record name");
+        Assertions.assertTrue(referencelessRawSchema.contains("\"value\""),
+                "referencelessRawSchema should contain the union-wrapped nested record fields");
+    }
+
+    /**
+     * Test that getReferencelessRawSchema() contains full definitions for deeply nested
+     * records (record -> record -> record).
+     */
+    @Test
+    public void testReferencelessRawSchemaWithDeeplyNestedRecords() {
+        Schema.Parser schemaParser = new Schema.Parser();
+
+        String schemaJson = """
+            {
+              "type": "record",
+              "name": "Level0",
+              "namespace": "test.avro",
+              "fields": [
+                {"name": "name", "type": "string"},
+                {
+                  "name": "level1",
+                  "type": {
+                    "type": "record",
+                    "name": "Level1",
+                    "fields": [
+                      {"name": "mid", "type": "int"},
+                      {
+                        "name": "level2",
+                        "type": {
+                          "type": "record",
+                          "name": "Level2",
+                          "fields": [
+                            {"name": "deep", "type": "string"}
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+            """;
+        Schema schema = schemaParser.parse(schemaJson);
+
+        Schema level1Schema = schema.getField("level1").schema();
+        Schema level2Schema = level1Schema.getField("level2").schema();
+
+        GenericRecord level2 = new GenericData.Record(level2Schema);
+        level2.put("deep", "bottom");
+
+        GenericRecord level1 = new GenericData.Record(level1Schema);
+        level1.put("mid", 42);
+        level1.put("level2", level2);
+
+        GenericRecord level0 = new GenericData.Record(schema);
+        level0.put("name", "top");
+        level0.put("level1", level1);
+
+        ParsedSchema<Schema> parsedSchema = parser.getSchemaFromData(createRecord(level0));
+
+        // rawSchema should have replaced nested records with name references
+        String rawSchema = new String(parsedSchema.getRawSchema());
+        Assertions.assertFalse(rawSchema.contains("\"deep\""),
+                "rawSchema should NOT contain deeply nested record fields");
+
+        // referencelessRawSchema should contain ALL nested definitions
+        String referencelessRawSchema = new String(parsedSchema.getReferencelessRawSchema());
+        Assertions.assertTrue(referencelessRawSchema.contains("Level1"),
+                "referencelessRawSchema should contain Level1 definition");
+        Assertions.assertTrue(referencelessRawSchema.contains("Level2"),
+                "referencelessRawSchema should contain Level2 definition");
+        Assertions.assertTrue(referencelessRawSchema.contains("\"deep\""),
+                "referencelessRawSchema should contain the deepest nested field");
+        Assertions.assertTrue(referencelessRawSchema.contains("\"mid\""),
+                "referencelessRawSchema should contain mid-level nested field");
+
+        // Verify it's a valid parseable schema
+        Schema reparsed = new Schema.Parser().parse(referencelessRawSchema);
+        Assertions.assertEquals("test.avro.Level0", reparsed.getFullName());
+        Assertions.assertNotNull(reparsed.getField("level1").schema().getField("level2"),
+                "Reparsed schema should preserve the full nesting structure");
+    }
+
     private Record<GenericRecord> createRecord(GenericRecord genericRecord) {
         return new Record<GenericRecord>() {
             @Override

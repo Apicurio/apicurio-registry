@@ -216,6 +216,18 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.deleteGlobalContractRuleset();
     }
 
+    public void updateResourceMeta(String groupId, String artifactId, EditableResourceMetaDto dto)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        checkReadOnly();
+        delegate.updateResourceMeta(groupId, artifactId, dto);
+    }
+
+    public void deleteResourceMeta(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        checkReadOnly();
+        delegate.deleteResourceMeta(groupId, artifactId);
+    }
+
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, RegistryStorageException {
         checkReadOnly();

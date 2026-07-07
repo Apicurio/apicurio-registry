@@ -1097,21 +1097,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         } else {
             schemaMap = objectMapper.convertValue(schema, Map.class);
         }
-        List<Map<String, Object>> fields = (List<Map<String, Object>>) schemaMap.get("fields");
-        if (fields == null || fields.isEmpty()) {
-            return 0;
-        }
-        int maxId = 0;
-        for (Map<String, Object> field : fields) {
-            Object idObj = field.get("id");
-            if (idObj instanceof Number) {
-                int id = ((Number) idObj).intValue();
-                if (id > maxId) {
-                    maxId = id;
-                }
-            }
-        }
-        return maxId;
+        return IcebergSchemaUtil.computeMaxFieldId(schemaMap);
     }
 
     private String getCurrentUser() {

@@ -261,7 +261,13 @@ public class ReadOnlyRegistryStorageTest {
                 entry("setGlobalContractRuleset1",
                         new State(true, s -> s.setGlobalContractRuleset(null))),
                 entry("deleteGlobalContractRuleset0",
-                        new State(true, s -> s.deleteGlobalContractRuleset())));
+                        new State(true, s -> s.deleteGlobalContractRuleset())),
+                entry("getResourceMeta2",
+                        new State(false, s -> s.getResourceMeta(null, null))),
+                entry("updateResourceMeta3",
+                        new State(true, s -> s.updateResourceMeta(null, null, null))),
+                entry("deleteResourceMeta2",
+                        new State(true, s -> s.deleteResourceMeta(null, null))));
 
         CURRENT_METHODS = Arrays.stream(RegistryStorage.class.getMethods())
                 .map(m -> m.getName() + m.getParameterCount()).collect(Collectors.toSet());

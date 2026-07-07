@@ -16,6 +16,9 @@ public class RoleBasedAccessController extends AbstractAccessController {
     @Inject
     HeaderRoleProvider headerRoleProvider;
 
+    @Inject
+    KubernetesRoleProvider kubernetesRoleProvider;
+
     /**
      * @see io.apicurio.registry.auth.IAccessController#isAuthorized(jakarta.interceptor.InvocationContext)
      */
@@ -68,6 +71,8 @@ public class RoleBasedAccessController extends AbstractAccessController {
             return storageRoleProvider;
         } else if ("header".equals(authConfig.roleSource)) {
             return headerRoleProvider;
+        } else if ("kubernetes".equals(authConfig.roleSource)) {
+            return kubernetesRoleProvider;
         } else {
             throw new RuntimeException("Unsupported RBAC role source: " + authConfig.roleSource);
         }

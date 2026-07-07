@@ -204,6 +204,21 @@ The following {registry} configuration options are available for each component 
 |
 |`2.4.3.Final`
 |Header authorization name
+|`apicurio.auth.role-source.kubernetes.group-mapping.admin`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated Kubernetes groups that map to sr-admin role _(experimental)_
+|`apicurio.auth.role-source.kubernetes.group-mapping.developer`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated Kubernetes groups that map to sr-developer role _(experimental)_
+|`apicurio.auth.role-source.kubernetes.group-mapping.readonly`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated Kubernetes groups that map to sr-readonly role _(experimental)_
 |`apicurio.auth.roles.admin`
 |`string`
 |`sr-admin`
@@ -244,11 +259,26 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`apicurio.authn.kubernetes.api-audiences`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated. _(experimental)_
+|`apicurio.authn.kubernetes.cache-expiration`
+|`int`
+|`5`
+|`3.3.0`
+|TokenReview result cache expiration in minutes _(experimental)_
+|`apicurio.authn.kubernetes.enabled`
+|`boolean`
+|`false`
+|`3.3.0`
+|Enable Kubernetes TokenReview authentication _(experimental)_
 |`apicurio.authn.mechanism.priority`
 |`string`
 |`basic,proxy-header,oidc`
 |`3.2.3`
-|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.
+|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc, kubernetes.
 |`apicurio.authn.proxy-header.email`
 |`string`
 |`X-Forwarded-Email`

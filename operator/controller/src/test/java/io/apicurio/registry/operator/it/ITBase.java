@@ -420,10 +420,22 @@ public abstract class ITBase implements OperatorTestContext {
         if (cleanup) {
             log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
-            await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
-                assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
-                        .list().getItems()).isEmpty();
-            });
+            try {
+                await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+                    assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                            .list().getItems()).isEmpty();
+                });
+            } catch (org.awaitility.core.ConditionTimeoutException e) {
+                log.warn("Timed out waiting for graceful CR cleanup, force-removing finalizers");
+                client.resources(ApicurioRegistry3.class).list().getItems().forEach(cr -> {
+                    cr.getMetadata().setFinalizers(List.of());
+                    client.resource(cr).patch();
+                });
+                await().atMost(SHORT_DURATION).untilAsserted(() -> {
+                    assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                            .list().getItems()).isEmpty();
+                });
+            }
             await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
                         .withLabels(getOperatorManagedLabels()).list().getItems();

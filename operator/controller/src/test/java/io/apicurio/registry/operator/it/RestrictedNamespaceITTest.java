@@ -51,7 +51,7 @@ public class RestrictedNamespaceITTest extends ITBase {
             return;
         }
 
-        var operatorDeployment = k8sCell(client, this::getOperatorDeployment);
+        var operatorDeploymentCell = k8sCell(client, this::getOperatorDeployment);
 
         var namespace1 = calculateNamespace();
         var namespace2 = calculateNamespace();
@@ -65,7 +65,7 @@ public class RestrictedNamespaceITTest extends ITBase {
             createNamespace(client, namespace2);
             createNamespace(client, namespace3);
 
-            operatorDeployment.update(r -> {
+            operatorDeploymentCell.update(r -> {
                 var e = getWatchedNamespacesEnvVar(r.getSpec().getTemplate().getSpec());
                 // Save the original
                 originalEnvVar.set(copy(e));
@@ -95,7 +95,7 @@ public class RestrictedNamespaceITTest extends ITBase {
             checkDeploymentDoesNotExist(registry3, COMPONENT_UI);
 
             // Restore the original env. var
-            operatorDeployment.update(r -> {
+            operatorDeploymentCell.update(r -> {
                 var e = getWatchedNamespacesEnvVar(r.getSpec().getTemplate().getSpec());
                 e.setValue(originalEnvVar.get().getValue());
                 e.setValueFrom(originalEnvVar.get().getValueFrom());
@@ -124,7 +124,7 @@ public class RestrictedNamespaceITTest extends ITBase {
             // otherwise it will mess up other tests.
             // Should we do this always or only if cleanup is enabled?
             if (originalEnvVar.isSet()) {
-                operatorDeployment.update(r -> {
+                operatorDeploymentCell.update(r -> {
                     var e = getWatchedNamespacesEnvVar(r.getSpec().getTemplate().getSpec());
                     e.setValue(originalEnvVar.get().getValue());
                     e.setValueFrom(originalEnvVar.get().getValueFrom());

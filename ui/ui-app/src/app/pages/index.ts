@@ -1,5 +1,4 @@
 export * from "./404";
-export * from "./agentDetail";
 export * from "./agents";
 export * from "./artifact";
 export * from "./branch";

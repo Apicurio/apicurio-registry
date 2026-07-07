@@ -47,6 +47,8 @@ import {
     FinalizeDryRunSuccessModal,
     NewDraftFromModal
 } from "@app/pages/drafts/components/modals";
+import { EditAgentModal } from "@app/pages/agents/components";
+import { AgentCard } from "@app/components/agentCard";
 
 
 /**
@@ -70,6 +72,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
     const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
+    const [isEditAgentCardModalOpen, setIsEditAgentCardModalOpen] = useState(false);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -157,6 +160,42 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
 
     const onDeleteVersion = (): void => {
         setIsDeleteModalOpen(true);
+    };
+
+    const doSaveAgentCard = (updatedCard: AgentCard): void => {
+        setIsEditAgentCardModalOpen(false);
+        setPleaseWaitMessage("Saving agent card as new version, please wait...");
+        setIsPleaseWaitModalOpen(true);
+        let gid: string | null = groupId as string;
+        if (gid === "default") {
+            gid = null;
+        }
+        groups.createArtifactVersion(gid, artifactId as string, {
+            content: {
+                content: JSON.stringify(updatedCard, null, 2),
+                contentType: "application/json"
+            }
+        }).then(vmd => {
+            setIsPleaseWaitModalOpen(false);
+            const gidEnc = encodeURIComponent(groupId as string);
+            const aidEnc = encodeURIComponent(artifactId as string);
+            const ver = encodeURIComponent(vmd.version!);
+            appNavigation.navigateTo(`/explore/${gidEnc}/${aidEnc}/versions/${ver}`);
+        }).catch(error => {
+            setIsPleaseWaitModalOpen(false);
+            setPageError(toPageError(error, "Error saving agent card."));
+        });
+    };
+
+    const getAgentCardFromContent = (): AgentCard | undefined => {
+        if (!versionContent || artifact?.artifactType !== "AGENT_CARD") {
+            return undefined;
+        }
+        try {
+            return JSON.parse(versionContent) as AgentCard;
+        } catch {
+            return undefined;
+        }
     };
 
     const showDocumentationTab = (): boolean => {
@@ -444,6 +483,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <VersionPageHeader
                         onEdit={onEditDraft}
+                        onEditAgentCard={() => setIsEditAgentCardModalOpen(true)}
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
                         onFinalizeDraft={() => {
@@ -515,6 +555,14 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 onClose={onChangeStateModalClose}
                 onChangeState={doChangeState}
             />
+            {getAgentCardFromContent() && (
+                <EditAgentModal
+                    isOpen={isEditAgentCardModalOpen}
+                    agentCard={getAgentCardFromContent()!}
+                    onClose={() => setIsEditAgentCardModalOpen(false)}
+                    onSave={doSaveAgentCard}
+                />
+            )}
             <PleaseWaitModal
                 message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />

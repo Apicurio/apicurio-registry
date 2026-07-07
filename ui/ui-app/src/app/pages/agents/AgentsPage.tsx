@@ -145,7 +145,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const navigateToAgent = (agent: AgentSearchResult): void => {
         const gid = encodeURIComponent(agent.groupId || "default");
         const aid = encodeURIComponent(agent.artifactId);
-        appNav.navigateTo(`/agents/${gid}/${aid}`);
+        appNav.navigateTo(`/explore/${gid}/${aid}`);
     };
 
     const doCreateAgent = (groupId: string, data: CreateArtifact): void => {
@@ -155,7 +155,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
             const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
             const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
             setIsPleaseWaitModalOpen(false);
-            appNav.navigateTo(`/agents/${gid}/${aid}`);
+            appNav.navigateTo(`/explore/${gid}/${aid}`);
         }).catch(error => {
             setIsPleaseWaitModalOpen(false);
             setPageError(toPageError(error, "Error creating agent."));
@@ -169,7 +169,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
             const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
             const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
             setIsPleaseWaitModalOpen(false);
-            appNav.navigateTo(`/agents/${gid}/${aid}`);
+            appNav.navigateTo(`/explore/${gid}/${aid}`);
         }).catch(error => {
             setIsPleaseWaitModalOpen(false);
             setPageError(toPageError(error, "Error importing agent."));

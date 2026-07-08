@@ -5,6 +5,9 @@ import io.vertx.ext.web.Router;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.util.regex.Pattern;
 
 /**
  * Blocks MCP HTTP endpoints unless {@code apicurio.mcp.http.enabled} is true.
@@ -21,8 +24,12 @@ public class McpHttpGateFilter {
     @Inject
     Router router;
 
+    @ConfigProperty(name = "quarkus.mcp.server.http.root-path", defaultValue = "/mcp")
+    String mcpRootPath;
+
     void register(@Observes StartupEvent event) {
-        router.routeWithRegex("/mcp/?.*")
+        String escapedRootPath = Pattern.quote(mcpRootPath);
+        router.routeWithRegex(escapedRootPath + "/?.*")
                 .order(Integer.MIN_VALUE)
                 .handler(ctx -> blockUnlessEnabled(ctx));
         router.route("/.well-known/oauth-protected-resource")

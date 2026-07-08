@@ -82,7 +82,9 @@ public class AuthTestContainersManager implements QuarkusTestResourceLifecycleMa
         log.info("Registry started at: {}", registryUrl);
 
         Map<String, String> props = buildMcpProperties(registryUrl, tokenEndpoint, keycloakExternalRealmUrl);
-        log.info("MCP test configuration: {}", props);
+        Map<String, String> safeProps = new HashMap<>(props);
+        safeProps.replace("apicurio.mcp.auth.client-secret", "***");
+        log.info("MCP test configuration: {}", safeProps);
         return props;
     }
 

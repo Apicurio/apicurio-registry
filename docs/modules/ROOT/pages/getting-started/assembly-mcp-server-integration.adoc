@@ -545,8 +545,8 @@ QUARKUS_MCP_SERVER_STDIO_ENABLED=false
 QUARKUS_OIDC_TENANT_ENABLED=true
 QUARKUS_OIDC_APPLICATION_TYPE=service
 QUARKUS_OIDC_AUTH_SERVER_URL=http://keycloak:8080/realms/registry
-QUARKUS_HTTP_AUTH_PERMISSION_MCP_ENDPOINTS_PATHS=/mcp/*
-QUARKUS_HTTP_AUTH_PERMISSION_MCP_ENDPOINTS_POLICY=authenticated
+QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_PATHS=/mcp
+QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_POLICY=authenticated
 ----
 +
 NOTE: In HTTP mode with token forwarding, you do not need `APICURIO_MCP_AUTH_*` client credentials. Stdio mode continues to use `apicurio.mcp.auth.*` when {registry} is secured.

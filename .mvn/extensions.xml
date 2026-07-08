@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Core extensions load in ALL Maven invocations (local dev, CI, releases).
-     Scalpel is disabled by default in maven.config; only CI unit test shards
-     enable it. When disabled, Scalpel initializes but performs no reactor changes.
-     This is standard practice — Quarkus loads 7 extensions the same way. -->
+<!-- Scalpel: affected-module detection for CI. Disabled by default
+     in maven.config; CI unit test shards opt in via -Dscalpel.enabled=true. -->
 <extensions>
     <extension>
         <groupId>eu.maveniverse.maven.scalpel</groupId>

@@ -12,6 +12,9 @@ import io.apicurio.registry.operator.resource.app.AppRoleResource;
 import io.apicurio.registry.operator.resource.app.AppServiceAccountResource;
 import io.apicurio.registry.operator.resource.app.AppServiceResource;
 import io.apicurio.registry.operator.resource.app.GitOpsSshServiceResource;
+import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginCRResource;
+import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginDeploymentResource;
+import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
@@ -48,6 +51,9 @@ import static io.apicurio.registry.operator.resource.ActivationConditions.Kubern
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIHorizontalPodAutoscalerActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIIngressActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UINetworkPolicyActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.ConsolePluginCRActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.ConsolePluginDeploymentActivationCondition;
+import static io.apicurio.registry.operator.resource.ActivationConditions.ConsolePluginServiceActivationCondition;
 import static io.apicurio.registry.operator.resource.ActivationConditions.UIPodDisruptionBudgetActivationCondition;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_DEPLOYMENT_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.APP_HORIZONTAL_POD_AUTOSCALER_ID;
@@ -64,6 +70,9 @@ import static io.apicurio.registry.operator.resource.ResourceKey.UI_HORIZONTAL_P
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_INGRESS_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_NETWORK_POLICY_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_POD_DISRUPTION_BUDGET_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.CONSOLE_PLUGIN_CR_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.CONSOLE_PLUGIN_DEPLOYMENT_ID;
+import static io.apicurio.registry.operator.resource.ResourceKey.CONSOLE_PLUGIN_SERVICE_ID;
 import static io.apicurio.registry.operator.resource.ResourceKey.UI_SERVICE_ID;
 import static io.apicurio.registry.operator.status.OperatorErrorConditionManager.shouldIgnoreException;
 import static io.apicurio.registry.operator.utils.Mapper.copy;
@@ -162,6 +171,24 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
                         name = UI_HORIZONTAL_POD_AUTOSCALER_ID,
                         dependsOn = {UI_DEPLOYMENT_ID},
                         activationCondition = UIHorizontalPodAutoscalerActivationCondition.class
+                ),
+                // ===== Console Plugin
+                @Dependent(
+                        type = ConsolePluginDeploymentResource.class,
+                        name = CONSOLE_PLUGIN_DEPLOYMENT_ID,
+                        activationCondition = ConsolePluginDeploymentActivationCondition.class
+                ),
+                @Dependent(
+                        type = ConsolePluginServiceResource.class,
+                        name = CONSOLE_PLUGIN_SERVICE_ID,
+                        dependsOn = {CONSOLE_PLUGIN_DEPLOYMENT_ID},
+                        activationCondition = ConsolePluginServiceActivationCondition.class
+                ),
+                @Dependent(
+                        type = ConsolePluginCRResource.class,
+                        name = CONSOLE_PLUGIN_CR_ID,
+                        dependsOn = {CONSOLE_PLUGIN_SERVICE_ID},
+                        activationCondition = ConsolePluginCRActivationCondition.class
                 )
         }
 )

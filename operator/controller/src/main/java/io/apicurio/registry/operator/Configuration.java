@@ -24,6 +24,12 @@ public class Configuration {
                 .orElseThrow(() -> new OperatorException("Required configuration option 'registry.ui.image' is not set."));
     }
 
+    public static String getConsolePluginImage() {
+        return config.getOptionalValue("registry.console-plugin.image", String.class)
+                .or(() -> config.getOptionalValue("related.image.registry.console-plugin.image", String.class))
+                .orElseThrow(() -> new OperatorException("Required configuration option 'registry.console-plugin.image' is not set."));
+    }
+
     public static String getGitOpsSyncImage() {
         return config.getOptionalValue("registry.gitops-sync.image", String.class)
                 .or(() -> config.getOptionalValue("related.image.registry.gitops-sync.image", String.class))

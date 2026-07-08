@@ -1,0 +1,58 @@
+{
+  "name": "apicurio-registry-console-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenShift Console dynamic plugin for Apicurio Registry",
+  "license": "Apache-2.0",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "yarn clean && NODE_ENV=production webpack",
+    "dev": "webpack serve",
+    "start": "yarn dev",
+    "start-console": "./start-console.sh",
+    "lint": "eslint src/ --ext .ts,.tsx",
+    "lint:fix": "eslint src/ --ext .ts,.tsx --fix",
+    "i18n": "i18next 'src/**/*.{js,jsx,ts,tsx}' [-oc] -c i18next-parser.config.js"
+  },
+  "devDependencies": {
+    "@openshift-console/dynamic-plugin-sdk": "1.7.0",
+    "@openshift-console/dynamic-plugin-sdk-webpack": "1.4.0",
+    "@patternfly/react-core": "~5.4.0",
+    "@patternfly/react-table": "~5.4.0",
+    "@swc/core": "~1.10.0",
+    "@types/react": "~18.3.0",
+    "@types/react-dom": "~18.3.0",
+    "@types/react-router-dom": "~5.3.0",
+    "css-loader": "~7.1.0",
+    "eslint": "~9.17.0",
+    "i18next-parser": "~9.0.0",
+    "react": "~18.3.0",
+    "react-dom": "~18.3.0",
+    "react-i18next": "~15.4.0",
+    "react-router-dom": "~5.3.0",
+    "style-loader": "~4.0.0",
+    "swc-loader": "~0.2.0",
+    "typescript": "~5.7.0",
+    "webpack": "~5.97.0",
+    "webpack-cli": "~5.1.0",
+    "webpack-dev-server": "~5.2.0"
+  },
+  "peerDependencies": {
+    "react": "~18.3.0",
+    "react-dom": "~18.3.0",
+    "react-router-dom": "~5.3.0"
+  },
+  "consolePlugin": {
+    "name": "apicurio-registry-console-plugin",
+    "version": "1.0.0",
+    "displayName": "Apicurio Registry",
+    "description": "OpenShift Console plugin for managing Apicurio Registry instances",
+    "exposedModules": {
+      "RegistryListPage": "./components/RegistryListPage",
+      "RegistryDetailPage": "./components/RegistryDetailPage"
+    },
+    "dependencies": {
+      "@console/pluginAPI": "*"
+    }
+  }
+}

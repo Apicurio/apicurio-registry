@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.ConsolePluginSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import lombok.*;
 
@@ -12,7 +13,7 @@ import static com.fasterxml.jackson.annotation.Nulls.SKIP;
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({"app", "ui"})
+@JsonPropertyOrder({"app", "ui", "consolePlugin"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -42,6 +43,16 @@ public class ApicurioRegistry3Spec {
     @JsonSetter(nulls = SKIP)
     private UiSpec ui;
 
+    /**
+     * Configure the OpenShift Console plugin component.
+     */
+    @JsonProperty("consolePlugin")
+    @JsonPropertyDescription("""
+            Configure the OpenShift Console plugin component.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private ConsolePluginSpec consolePlugin;
+
     public AppSpec withApp() {
         if (app == null) {
             app = new AppSpec();
@@ -54,5 +65,12 @@ public class ApicurioRegistry3Spec {
             ui = new UiSpec();
         }
         return ui;
+    }
+
+    public ConsolePluginSpec withConsolePlugin() {
+        if (consolePlugin == null) {
+            consolePlugin = new ConsolePluginSpec();
+        }
+        return consolePlugin;
     }
 }

@@ -17,7 +17,10 @@ import lombok.ToString;
 
 import java.util.function.Function;
 
+import io.apicurio.registry.operator.api.v1.ConsolePlugin;
+
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_CONSOLE_PLUGIN;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 
 @AllArgsConstructor
@@ -45,6 +48,10 @@ public class ResourceKey<R> {
     public static final String UI_POD_DISRUPTION_BUDGET_ID = "UIPodDisruptionBudgetResource";
     public static final String UI_HORIZONTAL_POD_AUTOSCALER_ID = "UIHorizontalPodAutoscalerResource";
     public static final String UI_NETWORK_POLICY_ID = "UINetworkPolicyResource";
+
+    public static final String CONSOLE_PLUGIN_DEPLOYMENT_ID = "ConsolePluginDeploymentResource";
+    public static final String CONSOLE_PLUGIN_SERVICE_ID = "ConsolePluginServiceResource";
+    public static final String CONSOLE_PLUGIN_CR_ID = "ConsolePluginCRResource";
 
     public static final ResourceKey<ApicurioRegistry3> REGISTRY_KEY = new ResourceKey<>(REGISTRY_ID, ApicurioRegistry3.class, null, null);
 
@@ -81,6 +88,14 @@ public class ResourceKey<R> {
     public static final ResourceKey<PodDisruptionBudget> UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIPodDisruptionBudget);
 
     public static final ResourceKey<HorizontalPodAutoscaler> UI_HORIZONTAL_POD_AUTOSCALER_KEY = new ResourceKey<>(UI_HORIZONTAL_POD_AUTOSCALER_ID, HorizontalPodAutoscaler.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIHorizontalPodAutoscaler);
+
+    // ===== Console Plugin
+
+    public static final ResourceKey<Deployment> CONSOLE_PLUGIN_DEPLOYMENT_KEY = new ResourceKey<>(CONSOLE_PLUGIN_DEPLOYMENT_ID, Deployment.class, COMPONENT_CONSOLE_PLUGIN, ResourceFactory.INSTANCE::getDefaultConsolePluginDeployment);
+
+    public static final ResourceKey<Service> CONSOLE_PLUGIN_SERVICE_KEY = new ResourceKey<>(CONSOLE_PLUGIN_SERVICE_ID, Service.class, COMPONENT_CONSOLE_PLUGIN, ResourceFactory.INSTANCE::getDefaultConsolePluginService);
+
+    public static final ResourceKey<ConsolePlugin> CONSOLE_PLUGIN_CR_KEY = new ResourceKey<>(CONSOLE_PLUGIN_CR_ID, ConsolePlugin.class, COMPONENT_CONSOLE_PLUGIN, null);
 
     @EqualsAndHashCode.Include
     @ToString.Include

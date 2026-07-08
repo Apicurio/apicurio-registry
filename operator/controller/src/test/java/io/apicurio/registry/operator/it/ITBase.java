@@ -98,7 +98,8 @@ public abstract class ITBase implements OperatorTestContext {
     protected String deploymentTarget;
     protected String namespace;
     protected boolean cleanup;
-    protected boolean strimziInstalled = false;
+    // Intentionally static: shared across test class instances so Strimzi is installed once per JVM
+    protected static boolean strimziInstalled = false;
     private App app;
     protected JobManager jobManager;
     protected HostAliasManager hostAliasManager;

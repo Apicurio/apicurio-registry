@@ -223,7 +223,8 @@ jobs:
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
             "run-cli": "${{ steps.decide.outputs.run-cli }}",
             "run-operator": "${{ steps.decide.outputs.run-operator }}",
-            "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}"
+            "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}",
+            "scalpel-disabled": "${{ steps.decide.outputs.scalpel-disabled }}"
           }
           ARTIFACT_EOF
           cat > /tmp/verify-changes.json << 'ARTIFACT_EOF'
@@ -291,7 +292,7 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
-      scalpel-disabled: ${{ needs.decide.outputs.scalpel-disabled }}
+      scalpel-enabled: 'false'
 
   # ============================================================================
   # Unit Tests — Scalpel Shadow (evaluation mode)
@@ -300,15 +301,17 @@ jobs:
   # against the control group (unit-tests). Not in the Verification Gate —
   # failures here don't block PRs. Remove this once the team is confident
   # in Scalpel's accuracy and switches over.
+  # PR-only: on push-to-main Scalpel is a no-op (no GITHUB_BASE_REF), so
+  # running both groups would just double CI cost with identical results.
   # ============================================================================
   unit-tests-scalpel:
     name: Unit Tests (Scalpel)
     needs: [decide, build]
-    if: needs.decide.outputs.run-unit-tests == 'true'
+    if: needs.decide.outputs.run-unit-tests == 'true' && github.event_name == 'pull_request'
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
-      scalpel-disabled: 'false'
+      scalpel-enabled: ${{ needs.decide.outputs.scalpel-disabled != 'true' && 'true' || 'false' }}
 
   # ============================================================================
   # CLI Verification

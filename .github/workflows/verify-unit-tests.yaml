@@ -10,10 +10,10 @@ on:
         type: string
         required: true
         description: 'Build artifact identifier (commit SHA)'
-      scalpel-disabled:
+      scalpel-enabled:
         type: string
         default: 'false'
-        description: 'Set to true to disable Scalpel affected-module detection'
+        description: 'Set to true to enable Scalpel affected-module detection'
 
 permissions:
   contents: read
@@ -91,7 +91,7 @@ jobs:
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
             --no-transfer-progress \
-            ${{ inputs.scalpel-disabled != 'true' && '-Dscalpel.enabled=true' || '' }} \
+            ${{ inputs.scalpel-enabled == 'true' && '-Dscalpel.enabled=true' || '' }} \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \

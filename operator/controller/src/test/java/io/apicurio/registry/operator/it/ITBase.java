@@ -392,6 +392,7 @@ public abstract class ITBase implements OperatorTestContext {
                 });
             });
         }
+        strimziInstalled = true;
     }
 
     /**

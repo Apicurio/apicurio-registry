@@ -41,6 +41,9 @@ jobs:
 
       - name: Run Extra Tests
         run: |
+          # -Pextra-tests: activates the extra-tests profile (additional validation beyond unit/integration)
+          # -Dregistry3-image: Docker image to test against (built by the Build job)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
             -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
@@ -225,4 +228,8 @@ jobs:
 
       - name: Build Apicurio Registry with Examples
         run: |
+          # -T 1: single-threaded (overrides .mvn/maven.config's -T 1C to prevent module ordering issues with examples)
+          # -Pexamples: activates the examples profile (builds example applications)
+          # -Dassembly.skipAssembly=true: skip archive generation (not needed for example compilation)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           mvn install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress

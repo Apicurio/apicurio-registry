@@ -75,6 +75,10 @@ jobs:
 
       - name: Build and Test CLI
         run: |
+          # -Dquarkus.native.container-build=false: use locally installed GraalVM (not Docker-based native build)
+          # matrix.test-args: per-OS test config (Linux uses Docker-based tests, macOS skips them)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
           ./mvnw verify -pl cli \
             --no-transfer-progress \
             -Dquarkus.native.container-build=false \

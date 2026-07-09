@@ -23,9 +23,7 @@ public class KafkaSqlOAuthITTest extends BaseAuthITTest {
 
     @BeforeAll
     public void beforeAll() throws Exception {
-        if (!strimziInstalled) {
-            applyStrimziResources();
-        }
+        applyStrimziResources();
     }
 
     @Test

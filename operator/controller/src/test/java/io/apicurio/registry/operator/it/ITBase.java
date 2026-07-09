@@ -45,6 +45,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
 import java.util.UUID;
 
@@ -98,8 +99,9 @@ public abstract class ITBase implements OperatorTestContext {
     protected String deploymentTarget;
     protected String namespace;
     protected boolean cleanup;
-    // Intentionally static: shared across test class instances so Strimzi is installed once per JVM
-    protected static boolean strimziInstalled = false;
+    // Intentionally static: shared across test class instances so Strimzi is installed once per JVM.
+    // AtomicBoolean for thread-safety if parallel test execution is ever enabled.
+    protected static final AtomicBoolean strimziInstalled = new AtomicBoolean(false);
     private App app;
     protected JobManager jobManager;
     protected HostAliasManager hostAliasManager;
@@ -372,6 +374,9 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     void applyStrimziResources() throws IOException {
+        if (!strimziInstalled.compareAndSet(false, true)) {
+            return;
+        }
         // Use Strimzi 0.47.0 which supports both KRaft mode and Kafka 3.9.x
         // Note: Strimzi 0.48+ removed support for Kafka 3.9.x, so we pin to 0.47.0
         var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.47.0/strimzi-cluster-operator-0.47.0.yaml");
@@ -393,7 +398,6 @@ public abstract class ITBase implements OperatorTestContext {
                 });
             });
         }
-        strimziInstalled = true;
     }
 
     /**

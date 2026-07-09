@@ -49,9 +49,7 @@ public class KafkaSqlAccessITTest extends ITBase {
 
     @BeforeAll
     public void beforeAll() throws Exception {
-        if (!strimziInstalled) {
-            applyStrimziResources();
-        }
+        applyStrimziResources();
         if (!kafkaAccessOperatorInstalled) {
             installKafkaAccessOperator();
         }

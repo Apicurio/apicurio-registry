@@ -21,9 +21,7 @@ public class KafkaSqlITTest extends ITBase {
 
     @BeforeAll
     public void beforeAll() throws Exception {
-        if (!strimziInstalled) {
-            applyStrimziResources();
-        }
+        applyStrimziResources();
     }
 
     @Test

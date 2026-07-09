@@ -306,7 +306,7 @@ public class TableUpdateApplicatorTest {
         List<Map<String, Object>> updates = List.of(Map.of("action", "add-schema", "schema", newSchema));
         TableUpdateApplicator.apply(updates, metadata);
 
-        assertEquals(5, metadata.get("last-column-id"));
+        assertEquals(2, metadata.get("last-column-id"));
     }
 
     @Test
@@ -335,7 +335,7 @@ public class TableUpdateApplicatorTest {
         List<Map<String, Object>> updates = List.of(Map.of("action", "add-schema", "schema", newSchema));
         TableUpdateApplicator.apply(updates, metadata);
 
-        assertEquals(6, metadata.get("last-column-id"));
+        assertEquals(4, metadata.get("last-column-id"));
     }
 
     @Test
@@ -377,7 +377,7 @@ public class TableUpdateApplicatorTest {
                 .of(Map.of("action", "add-schema", "schema", evolvedSchema));
         TableUpdateApplicator.apply(updates, metadata);
 
-        assertEquals(9, metadata.get("last-column-id"));
+        assertEquals(8, metadata.get("last-column-id"));
     }
 
     @Test

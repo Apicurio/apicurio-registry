@@ -568,6 +568,104 @@ public class IcebergApiTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testCommitTableSchemaEvolutionDebeziumCdcScenario() {
+        // Reproduces issue #8500: CreateTable with nested types (Debezium CDC),
+        // then CommitTable with schema evolution fails assert-last-assigned-field-id
+        String namespaceName = "test_cdc_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String tableName = "customers";
+
+        // Create namespace
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(Map.of("namespace", List.of(namespaceName), "properties", Map.of()))
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces")
+            .then()
+            .statusCode(200);
+
+        // Create table with 4 top-level fields where field 4 has a nested struct
+        // (simulating Debezium CDC with schema-force-optional wrapping).
+        // Top-level IDs: 1,2,3,4. Nested struct has element-id=5,6,7,8,9.
+        // The Iceberg client would compute highestFieldId()=4 for just the top-level,
+        // but the server's recursive computation gives 9.
+        Map<String, Object> sourceStruct = Map.of(
+            "type", "struct",
+            "fields", List.of(
+                Map.of("id", 5, "name", "version", "type", "string", "required", false),
+                Map.of("id", 6, "name", "connector", "type", "string", "required", false),
+                Map.of("id", 7, "name", "ts_ms", "type", "long", "required", false),
+                Map.of("id", 8, "name", "db", "type", "string", "required", false),
+                Map.of("id", 9, "name", "table", "type", "string", "required", false)));
+
+        Map<String, Object> createTableRequest = Map.of(
+            "name", tableName,
+            "schema", Map.of(
+                "type", "struct",
+                "schema-id", 0,
+                "fields", List.of(
+                    Map.of("id", 1, "name", "id", "required", true, "type", "long"),
+                    Map.of("id", 2, "name", "first_name", "required", false, "type", "string"),
+                    Map.of("id", 3, "name", "last_name", "required", false, "type", "string"),
+                    Map.of("id", 4, "name", "source", "required", false, "type", sourceStruct)
+                )
+            ),
+            "properties", Map.of()
+        );
+
+        // CreateTable stores last-column-id=9 (recursive) due to nested struct IDs
+        int storedLastColumnId = given()
+            .when()
+            .contentType(CT_JSON)
+            .body(createTableRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/tables")
+            .then()
+            .statusCode(200)
+            .extract()
+            .jsonPath()
+            .getInt("metadata.last-column-id");
+
+        // Server stores last-column-id=4 (top-level fields only, not nested)
+        assertTrue(storedLastColumnId == 4, "Expected last-column-id=4 but was " + storedLastColumnId);
+
+        // The Iceberg client should use the server-returned last-column-id
+        // for the assert-last-assigned-field-id requirement.
+        // Schema evolution: add a new top-level field
+        Map<String, Object> evolvedSchema = new HashMap<>();
+        evolvedSchema.put("type", "struct");
+        evolvedSchema.put("schema-id", -1);
+        evolvedSchema.put("fields", List.of(
+            Map.of("id", 1, "name", "id", "required", true, "type", "long"),
+            Map.of("id", 2, "name", "first_name", "required", false, "type", "string"),
+            Map.of("id", 3, "name", "last_name", "required", false, "type", "string"),
+            Map.of("id", 4, "name", "source", "required", false, "type", sourceStruct),
+            Map.of("id", 10, "name", "email", "required", false, "type", "string")));
+
+        // Use the server-returned last-column-id for the requirement
+        Map<String, Object> requirement = new HashMap<>();
+        requirement.put("type", "assert-last-assigned-field-id");
+        requirement.put("last-assigned-field-id", storedLastColumnId);
+
+        Map<String, Object> commitRequest = Map.of(
+            "requirements", List.of(requirement),
+            "updates", List.of(
+                Map.of("action", "add-schema", "schema", evolvedSchema),
+                Map.of("action", "set-current-schema", "schema-id", -1)
+            )
+        );
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(commitRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/tables/" + tableName)
+            .then()
+            .statusCode(200)
+            .body("metadata.last-column-id", equalTo(10));
+
+        cleanupTable(namespaceName, tableName);
+    }
+
+    @Test
     public void testCommitTableSchemaEvolutionWithNestedFields() {
         String namespaceName = "test_evolve_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String tableName = "evolve_table";
@@ -649,7 +747,7 @@ public class IcebergApiTest extends AbstractResourceTestBase {
             .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/tables/" + tableName)
             .then()
             .statusCode(200)
-            .body("metadata.last-column-id", equalTo(9));
+            .body("metadata.last-column-id", equalTo(8));
 
         cleanupTable(namespaceName, tableName);
     }

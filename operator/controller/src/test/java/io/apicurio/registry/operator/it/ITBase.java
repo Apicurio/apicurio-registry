@@ -8,6 +8,7 @@ import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
@@ -78,6 +79,8 @@ public abstract class ITBase implements OperatorTestContext {
             Integer.getInteger("test.operator.timeout.medium", 120));
     public static final Duration LONG_DURATION = ofSeconds(
             Integer.getInteger("test.operator.timeout.long", 420));
+    public static final Duration KAFKA_BROKER_READY_TIMEOUT = Duration.ofMinutes(10);
+    public static final Duration KAFKA_REGISTRY_READY_TIMEOUT = Duration.ofMinutes(8);
 
     public enum OperatorDeployment {
         local, remote
@@ -385,6 +388,38 @@ public abstract class ITBase implements OperatorTestContext {
                 });
             });
         }
+    }
+
+    /**
+     * Waits for a Kafka broker pod (deployed by Strimzi in KRaft mode) to become ready.
+     * Pod naming follows the KafkaNodePool convention: {@code <cluster>-<nodepool>-<id>}.
+     */
+    static void waitForKafkaBrokerReady(String clusterName) {
+        await().atMost(KAFKA_BROKER_READY_TIMEOUT).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0")
+                        .get().getStatus().getConditions())
+                        .filteredOn(c -> "Ready".equals(c.getType()))
+                        .map(PodCondition::getStatus)
+                        .containsOnly("True"));
+    }
+
+    /**
+     * Waits for a KafkaSQL-backed registry deployment to have one ready replica and to log
+     * the expected storage message.
+     */
+    static void waitForKafkaSqlRegistryReady(ApicurioRegistry3 registry) {
+        var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+        await().atMost(KAFKA_REGISTRY_READY_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+            var readyReplicas = client.apps().deployments().inNamespace(namespace)
+                    .withName(deploymentName).get().getStatus().getReadyReplicas();
+            assertThat(readyReplicas).isNotNull().isEqualTo(1);
+            var podName = client.pods().inNamespace(namespace).list().getItems().stream()
+                    .map(pod -> pod.getMetadata().getName())
+                    .filter(name -> name.startsWith(deploymentName))
+                    .findFirst().get();
+            assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
+                    .contains("Using Kafka-SQL artifactStore");
+        });
     }
 
     static void createNamespace(KubernetesClient client, String namespace) {

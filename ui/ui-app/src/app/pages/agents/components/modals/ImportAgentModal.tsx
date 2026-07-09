@@ -80,7 +80,7 @@ export const ImportAgentModal: FunctionComponent<ImportAgentModalProps> = (props
         props.onClose();
     };
 
-    const handleUrlChange = (value: string | undefined, _url: string | undefined): void => {
+    const handleUrlChange = (value: string | undefined): void => {
         setFetchError(undefined);
         if (!value) {
             setFetchedContent("");

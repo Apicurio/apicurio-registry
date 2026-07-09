@@ -568,6 +568,93 @@ public class IcebergApiTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testCommitTableSchemaEvolutionWithNestedFields() {
+        String namespaceName = "test_evolve_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String tableName = "evolve_table";
+
+        // Create namespace
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(Map.of("namespace", List.of(namespaceName), "properties", Map.of()))
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces")
+            .then()
+            .statusCode(200);
+
+        // Create table with 4 flat fields
+        Map<String, Object> createTableRequest = Map.of(
+            "name", tableName,
+            "schema", Map.of(
+                "type", "struct",
+                "schema-id", 0,
+                "fields", List.of(
+                    Map.of("id", 1, "name", "id", "required", true, "type", "long"),
+                    Map.of("id", 2, "name", "first_name", "required", false, "type", "string"),
+                    Map.of("id", 3, "name", "last_name", "required", false, "type", "string"),
+                    Map.of("id", 4, "name", "email", "required", false, "type", "string")
+                )
+            ),
+            "properties", Map.of()
+        );
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(createTableRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/tables")
+            .then()
+            .statusCode(200)
+            .body("metadata.last-column-id", equalTo(4));
+
+        // Evolve schema: add nested struct and list fields (IDs 5-9)
+        Map<String, Object> nestedStruct = Map.of(
+            "type", "struct",
+            "fields", List.of(
+                Map.of("id", 6, "name", "street", "type", "string", "required", false),
+                Map.of("id", 7, "name", "city", "type", "string", "required", false)));
+        Map<String, Object> listType = Map.of(
+            "type", "list",
+            "element-id", 9,
+            "element", "string",
+            "element-required", false);
+
+        Map<String, Object> evolvedSchema = new HashMap<>();
+        evolvedSchema.put("type", "struct");
+        evolvedSchema.put("schema-id", -1);
+        evolvedSchema.put("fields", List.of(
+            Map.of("id", 1, "name", "id", "required", true, "type", "long"),
+            Map.of("id", 2, "name", "first_name", "required", false, "type", "string"),
+            Map.of("id", 3, "name", "last_name", "required", false, "type", "string"),
+            Map.of("id", 4, "name", "email", "required", false, "type", "string"),
+            Map.of("id", 5, "name", "address", "required", false, "type", nestedStruct),
+            Map.of("id", 8, "name", "aliases", "required", false, "type", listType)));
+
+        // Commit with assert-last-assigned-field-id=4 (current stored value)
+        Map<String, Object> requirement = new HashMap<>();
+        requirement.put("type", "assert-last-assigned-field-id");
+        requirement.put("last-assigned-field-id", 4);
+
+        Map<String, Object> commitRequest = Map.of(
+            "requirements", List.of(requirement),
+            "updates", List.of(
+                Map.of("action", "add-schema", "schema", evolvedSchema),
+                Map.of("action", "set-current-schema", "schema-id", -1)
+            )
+        );
+
+        given()
+            .when()
+            .contentType(CT_JSON)
+            .body(commitRequest)
+            .post(ICEBERG_API_BASE + "/iceberg/v1/default/namespaces/" + namespaceName + "/tables/" + tableName)
+            .then()
+            .statusCode(200)
+            .body("metadata.last-column-id", equalTo(9));
+
+        cleanupTable(namespaceName, tableName);
+    }
+
+    @Test
     public void testCommitTableSetAndRemoveProperties() {
         String namespaceName = "test_props_ns_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String tableName = "props_table";

@@ -35,7 +35,7 @@ jobs:
       run-cli: ${{ steps.decide.outputs.run-cli }}
       run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
       run-operator: ${{ steps.decide.outputs.run-operator }}
-      scalpel-disabled: ${{ steps.decide.outputs.scalpel-disabled }}
+      scalpel-enabled: ${{ steps.decide.outputs.scalpel-enabled }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -119,7 +119,7 @@ jobs:
                 for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
-                echo "scalpel-disabled=false" >> "$GITHUB_OUTPUT"
+                echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
             fi
@@ -138,7 +138,7 @@ jobs:
               for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
-              echo "scalpel-disabled=false" >> "$GITHUB_OUTPUT"
+              echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
@@ -205,9 +205,9 @@ jobs:
 
           # Scalpel (affected-module detection) can be disabled via PR label
           if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then
-            echo "scalpel-disabled=true" >> "$GITHUB_OUTPUT"
+            echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
           else
-            echo "scalpel-disabled=false" >> "$GITHUB_OUTPUT"
+            echo "scalpel-enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Save decision summary
@@ -224,7 +224,7 @@ jobs:
             "run-cli": "${{ steps.decide.outputs.run-cli }}",
             "run-operator": "${{ steps.decide.outputs.run-operator }}",
             "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}",
-            "scalpel-disabled": "${{ steps.decide.outputs.scalpel-disabled }}"
+            "scalpel-enabled": "${{ steps.decide.outputs.scalpel-enabled }}"
           }
           ARTIFACT_EOF
           cat > /tmp/verify-changes.json << 'ARTIFACT_EOF'
@@ -311,7 +311,7 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
-      scalpel-enabled: ${{ needs.decide.outputs.scalpel-disabled != 'true' && 'true' || 'false' }}
+      scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
 
   # ============================================================================
   # CLI Verification

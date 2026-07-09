@@ -58,8 +58,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          # Full history required for Scalpel to compute git diff against base branch
-          fetch-depth: 0
+          # Full history only needed when Scalpel is enabled (git diff against base branch)
+          fetch-depth: ${{ inputs.scalpel-enabled == 'true' && 0 || 1 }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5

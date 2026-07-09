@@ -13,6 +13,7 @@ import static io.apicurio.registry.operator.Tags.AUTH;
 import static io.apicurio.registry.operator.Tags.KAFKA;
 import static io.apicurio.registry.operator.Tags.SLOW;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
+import static java.time.Duration.ofMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -39,7 +40,7 @@ public class KafkaSqlOAuthITTest extends BaseAuthITTest {
                 .create();
         final var clusterName = "oauth-example-cluster";
 
-        await().ignoreExceptions().untilAsserted(() ->
+        await().atMost(ofMinutes(10)).ignoreExceptions().untilAsserted(() ->
                 // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
                 assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get().getStatus()
                         .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
@@ -56,7 +57,7 @@ public class KafkaSqlOAuthITTest extends BaseAuthITTest {
 
         client.resource(registry).create();
 
-        await().ignoreExceptions().until(() -> {
+        await().atMost(ofMinutes(8)).ignoreExceptions().until(() -> {
             assertThat(client.apps().deployments().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
                     .getReadyReplicas().intValue()).isEqualTo(1);

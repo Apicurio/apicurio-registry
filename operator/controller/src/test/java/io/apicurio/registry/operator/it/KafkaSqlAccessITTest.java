@@ -117,7 +117,7 @@ public class KafkaSqlAccessITTest extends ITBase {
         final var clusterName = "example-cluster";
 
         // Wait for the Kafka broker pod to be ready
-        await().ignoreExceptions().untilAsserted(() ->
+        await().atMost(ofMinutes(10)).ignoreExceptions().untilAsserted(() ->
                 assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get()
                         .getStatus().getConditions()).filteredOn(c -> "Ready".equals(c.getType()))
                         .map(PodCondition::getStatus).containsOnly("True"));

@@ -29,6 +29,10 @@ public final class SerDesAttributes {
     public static final AttributeKey<Long> DATA_SIZE = longKey("apicurio.registry.serde.data_size");
     public static final AttributeKey<Boolean> CACHE_HIT = booleanKey("apicurio.registry.serde.cache_hit");
 
+    public static final AttributeKey<String> GROUP_ID = stringKey("apicurio.registry.group_id");
+    public static final AttributeKey<String> ARTIFACT_ID = stringKey("apicurio.registry.artifact_id");
+    public static final AttributeKey<String> VERSION = stringKey("apicurio.registry.version");
+
     private SerDesAttributes() {
     }
 }

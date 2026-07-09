@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.serde.tracing;
 
-import io.apicurio.registry.observability.OTelAttributes;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.StatusCode;
@@ -97,7 +96,7 @@ class SerDesTracerTest {
     @Test
     void traceSchemaResolveCreatesSpanWithOperationType() {
         Object result = tracer.traceSchemaResolve("my-topic", "serialize", span -> {
-            span.setAttribute(OTelAttributes.ATTR_ARTIFACT_ID, "my-schema");
+            span.setAttribute(SerDesAttributes.ARTIFACT_ID, "my-schema");
             span.setAttribute(SerDesAttributes.CACHE_HIT, true);
             return "schema-result";
         });
@@ -110,7 +109,7 @@ class SerDesTracerTest {
         SpanData spanData = spans.get(0);
         assertEquals("serde.resolve_schema", spanData.getName());
         assertEquals("serialize", spanData.getAttributes().get(SerDesAttributes.OPERATION));
-        assertEquals("my-schema", spanData.getAttributes().get(OTelAttributes.ATTR_ARTIFACT_ID));
+        assertEquals("my-schema", spanData.getAttributes().get(SerDesAttributes.ARTIFACT_ID));
         assertEquals(true, spanData.getAttributes().get(SerDesAttributes.CACHE_HIT));
     }
 
@@ -144,7 +143,7 @@ class SerDesTracerTest {
     void traceCreatesNestedSpans() {
         tracer.traceSerialize("my-topic", outerSpan -> {
             tracer.traceSchemaResolve("my-topic", "serialize", innerSpan -> {
-                innerSpan.setAttribute(OTelAttributes.ATTR_ARTIFACT_ID, "nested-schema");
+                innerSpan.setAttribute(SerDesAttributes.ARTIFACT_ID, "nested-schema");
                 return "resolved";
             });
             return new byte[0];

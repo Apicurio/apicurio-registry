@@ -20,11 +20,7 @@ public class CustomMetricsConfiguration {
 
     private static final Logger log = LoggerFactory.getLogger(CustomMetricsConfiguration.class);
 
-    /**
-     * Conversion factor from seconds to nanoseconds for SLO boundaries.
-     * Micrometer Timer records values in nanoseconds, so SLO boundaries
-     * expressed in seconds must be multiplied by this factor.
-     */
+    // Micrometer Timer records values in nanoseconds.
     private static final double SECONDS_TO_NANOSECONDS = 1_000_000_000.0;
 
     @Info(description = """
@@ -62,10 +58,14 @@ public class CustomMetricsConfiguration {
             defaultValue = "0.1,0.25,0.5,1.0,2.0,5.0,10.0")
     List<Double> slo;
 
+    /**
+     * Produces a MeterFilter that configures the distribution statistics for REST request metrics.
+     * The returned filter captures immutable snapshots of the config values, making it thread-safe.
+     */
     @Produces
     @Singleton
-    public MeterFilter enableHistogram() {
-        String type = distributionType != null ? distributionType.toLowerCase(Locale.ROOT) : "histogram";
+    public MeterFilter configureDistribution() {
+        String type = distributionType.toLowerCase(Locale.ROOT);
         double[] percentilesArray = toDoubleArray(percentiles);
         double[] sloNanosArray = toSloNanosArray(slo);
 
@@ -89,14 +89,14 @@ public class CustomMetricsConfiguration {
     }
 
     private static double[] toDoubleArray(List<Double> values) {
-        if (values == null || values.isEmpty()) {
+        if (values.isEmpty()) {
             return new double[0];
         }
         return values.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
     private static double[] toSloNanosArray(List<Double> sloSeconds) {
-        if (sloSeconds == null || sloSeconds.isEmpty()) {
+        if (sloSeconds.isEmpty()) {
             return new double[0];
         }
         return sloSeconds.stream()

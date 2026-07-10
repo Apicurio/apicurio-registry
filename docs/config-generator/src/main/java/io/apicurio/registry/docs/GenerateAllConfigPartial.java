@@ -226,7 +226,7 @@ public class GenerateAllConfigPartial {
 
                     var variant = (String) info.get().value("category").value();
                     var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
-                    var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
+                    var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString().replaceAll("\\s+", " ").trim()).orElse("");
 
                     var availableSince = Optional.ofNullable(info.get().value("availableSince"))
                             .map(v -> v.value().toString())
@@ -274,7 +274,7 @@ public class GenerateAllConfigPartial {
 
             var variant = (String) info.get().value("category").value();
             var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
-            var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
+            var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString().replaceAll("\\s+", " ").trim()).orElse("");
 
             var availableSince = Optional.ofNullable(info.get().value("availableSince"))
                     .map(v -> v.value().toString())

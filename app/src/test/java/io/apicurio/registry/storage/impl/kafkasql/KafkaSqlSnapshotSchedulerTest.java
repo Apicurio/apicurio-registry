@@ -15,7 +15,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class KafkaSqlSnapshotSchedulerTest {
+class KafkaSqlSnapshotSchedulerTest {
 
     private KafkaSqlSnapshotScheduler newScheduler(RegistryStorage storage) {
         KafkaSqlSnapshotScheduler scheduler = new KafkaSqlSnapshotScheduler();
@@ -25,7 +25,7 @@ public class KafkaSqlSnapshotSchedulerTest {
     }
 
     @Test
-    public void testTriggersSnapshotWhenReadyAndWritable() {
+    void testTriggersSnapshotWhenReadyAndWritable() {
         RegistryStorage storage = mock(RegistryStorage.class);
         when(storage.isReady()).thenReturn(true);
         when(storage.isReadOnly()).thenReturn(false);
@@ -42,7 +42,7 @@ public class KafkaSqlSnapshotSchedulerTest {
 
     @ParameterizedTest(name = "skips snapshot creation when {0}")
     @MethodSource("skipScenarios")
-    public void testSkipsWhenGuardConditionFails(String scenario, boolean ready, boolean readOnly) {
+    void testSkipsWhenGuardConditionFails(String scenario, boolean ready, boolean readOnly) {
         RegistryStorage storage = mock(RegistryStorage.class);
         when(storage.isReady()).thenReturn(ready);
         when(storage.isReadOnly()).thenReturn(readOnly);
@@ -53,7 +53,7 @@ public class KafkaSqlSnapshotSchedulerTest {
     }
 
     @Test
-    public void testExceptionDuringSnapshotCreationIsHandled() {
+    void testExceptionDuringSnapshotCreationIsHandled() {
         RegistryStorage storage = mock(RegistryStorage.class);
         when(storage.isReady()).thenReturn(true);
         when(storage.isReadOnly()).thenReturn(false);

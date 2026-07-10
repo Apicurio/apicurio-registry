@@ -40,7 +40,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
      * Pre-sized to avoid array resizing for typical message sizes.
      */
     private static final int DEFAULT_BUFFER_SIZE = 1024;
-    private final SerDesTracer tracer = new SerDesTracer();
+    private static final SerDesTracer tracer = new SerDesTracer();
 
     /**
      * Maximum number of entries in the fast-path cache.

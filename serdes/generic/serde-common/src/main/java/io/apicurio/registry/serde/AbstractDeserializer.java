@@ -33,7 +33,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger(
             AbstractDeserializer.class.getName());
-    private final SerDesTracer tracer = new SerDesTracer();
+    private static final SerDesTracer tracer = new SerDesTracer();
 
     /**
      * Cache key that distinguishes between contentId and globalId to avoid collisions.
@@ -138,8 +138,11 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             ByteBuffer buffer = getByteBuffer(data);
             ArtifactReference artifactReference = baseSerde.getIdHandler().readId(buffer);
 
+            SchemaCacheKey cacheKey = getCacheKey(artifactReference);
+            boolean cacheHit = cacheKey != null && fastPathCache.containsKey(cacheKey);
+
             SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
-            SerDesTracer.setSchemaAttributes(span, schema, false);
+            SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
 
             int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
             int start = buffer.position() + buffer.arrayOffset();

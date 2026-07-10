@@ -33,18 +33,22 @@ public class KafkaSqlSnapshotScheduler {
     @Scheduled(delay = 60, concurrentExecution = SKIP, every = "{apicurio.kafkasql.snapshot.every.seconds}")
     void run() {
         try {
-            if (storage.isReady()) {
-                if (!storage.isReadOnly()) {
-                    log.debug("Running scheduled KafkaSQL snapshot creation at {}", Instant.now());
-                    storage.triggerSnapshotCreation();
-                } else {
-                    log.debug("Skipping scheduled KafkaSQL snapshot creation because the storage is in read-only mode.");
-                }
-            } else {
-                log.debug("Skipping scheduled KafkaSQL snapshot creation because the storage is not ready.");
-            }
+            triggerIfWritable();
         } catch (Exception ex) {
             log.error("Exception thrown when running scheduled KafkaSQL snapshot creation", ex);
         }
+    }
+
+    private void triggerIfWritable() {
+        if (!storage.isReady()) {
+            log.debug("Skipping scheduled KafkaSQL snapshot creation because the storage is not ready.");
+            return;
+        }
+        if (storage.isReadOnly()) {
+            log.debug("Skipping scheduled KafkaSQL snapshot creation because the storage is in read-only mode.");
+            return;
+        }
+        log.debug("Running scheduled KafkaSQL snapshot creation at {}", Instant.now());
+        storage.triggerSnapshotCreation();
     }
 }

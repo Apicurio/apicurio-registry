@@ -816,6 +816,24 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.metrics.rest.distribution.percentiles`
+|`list<double>`
+|`0.5,0.95,0.99,0.9995`
+|`3.3.1`
+|        Comma-separated list of percentile values to pre-compute         for REST API request metrics.         Each value must be between 0.0 and 1.0 (e.g. 0.5 for the median,         0.95 for the 95th percentile).         These percentiles are computed client-side and exported as individual gauge metrics.
+
+|`apicurio.metrics.rest.distribution.slo`
+|`list<double>`
+|`0.1,0.25,0.5,1.0,2.0,5.0,10.0`
+|`3.3.1`
+|        Comma-separated list of service level objective (SLO) boundary values         in seconds for REST API request histogram buckets.         Only used when the distribution type is `histogram`.         Each value defines a histogram bucket boundary.         Adjust these boundaries to match your monitoring system's expectations         for accurate percentile computation from histogram data.
+
+|`apicurio.metrics.rest.distribution.type`
+|`string`
+|`histogram`
+|`3.3.1`
+|        The distribution type for REST API request metrics.         Use `histogram` (default) for explicit bucket histogram with SLO boundaries         and pre-computed percentiles.         Use `summary` for pre-computed percentiles only, without histogram buckets.         Datadog users should use `summary` for accurate latency percentiles,         since Datadog re-computes percentiles from histogram buckets         and the default bucket boundaries may not provide sufficient granularity.
+
 |`apicurio.metrics.rest.enabled`
 |`boolean`
 |`true`

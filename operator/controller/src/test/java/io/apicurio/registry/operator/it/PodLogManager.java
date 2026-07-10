@@ -23,6 +23,7 @@ public class PodLogManager {
     private final KubernetesClient k8sClient;
 
     private final Map<ResourceID, AtomicBoolean> activePodLogMap = new ConcurrentHashMap<>();
+    private final Map<ResourceID, LogWatch> activeLogWatchMap = new ConcurrentHashMap<>();
 
     public PodLogManager(KubernetesClient k8sClient) {
         this.k8sClient = k8sClient;
@@ -41,6 +42,7 @@ public class PodLogManager {
                     LogWatch logWatch = k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).watchLog();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(logWatch.getOutput()))
             ) {
+                activeLogWatchMap.put(podID, logWatch);
                 AtomicBoolean stop = new AtomicBoolean(false);
                 log.debug("START LOG of pod {}/{}", getNamespace(podID), podID.getName());
                 activePodLogMap.put(podID, stop);
@@ -66,6 +68,7 @@ public class PodLogManager {
                     log.debug("LOG of pod {}/{}:\n{}", getNamespace(podID), podID.getName(), chunk);
                 }
                 log.debug("END LOG of pod {}/{}", getNamespace(podID), podID.getName());
+                activeLogWatchMap.remove(podID);
                 activePodLogMap.remove(podID);
             }
         }).start();
@@ -77,6 +80,13 @@ public class PodLogManager {
 
     public void stopAndWait() {
         activePodLogMap.values().forEach(stop -> stop.set(true));
-        await().until(activePodLogMap::isEmpty);
+        activeLogWatchMap.values().forEach(logWatch -> {
+            try {
+                logWatch.close();
+            } catch (Exception e) {
+                // Ignore
+            }
+        });
+        await().atMost(Duration.ofSeconds(30)).until(activePodLogMap::isEmpty);
     }
 }

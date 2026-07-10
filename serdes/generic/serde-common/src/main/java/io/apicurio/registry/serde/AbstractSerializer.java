@@ -16,6 +16,8 @@ import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.resolver.DefaultSchemaResolver;
 import io.apicurio.registry.serde.data.SerdeMetadata;
 import io.apicurio.registry.serde.data.SerdeRecord;
+import io.apicurio.registry.serde.tracing.SerDesAttributes;
+import io.apicurio.registry.serde.tracing.SerDesTracer;
 import io.apicurio.registry.serde.utils.BoundedCacheFactory;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +40,7 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
      * Pre-sized to avoid array resizing for typical message sizes.
      */
     private static final int DEFAULT_BUFFER_SIZE = 1024;
+    private final SerDesTracer tracer = new SerDesTracer();
 
     /**
      * Maximum number of entries in the fast-path cache.
@@ -133,52 +136,55 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
     }
 
     public byte[] serializeData(String topic, U data) {
-        // just return null
         if (data == null) {
             return null;
         }
-        try {
-            SchemaLookupResult<T> schema = null;
-            SchemaCacheKey cacheKey = null;
+        return tracer.traceSerialize(topic, span -> {
+            try {
+                SchemaLookupResult<T> schema = null;
+                SchemaCacheKey cacheKey = null;
 
-            // Fast path: use cache if we have a valid schema cache key
-            Object schemaKey = getSchemaCacheKey(data);
-            if (schemaKey != null) {
-                cacheKey = new SchemaCacheKey(topic, schemaKey);
-                schema = fastPathCache.get(cacheKey);
-            }
-
-            if (schema == null) {
-                // Slow path: full resolution
-                DefaultSchemaResolver.currentOperation.set("SERIALIZE");
-                try {
-                    SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
-                    schema = baseSerde.getSchemaResolver()
-                            .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
-                } finally {
-                    DefaultSchemaResolver.currentOperation.remove();
+                Object schemaKey = getSchemaCacheKey(data);
+                if (schemaKey != null) {
+                    cacheKey = new SchemaCacheKey(topic, schemaKey);
+                    schema = fastPathCache.get(cacheKey);
                 }
 
-                // Cache result if we have a valid cache key
-                if (cacheKey != null) {
-                    fastPathCache.put(cacheKey, schema);
+                boolean cacheHit = schema != null;
+
+                if (schema == null) {
+                    DefaultSchemaResolver.currentOperation.set("SERIALIZE");
+                    try {
+                        SerdeMetadata resolverMetadata = new SerdeMetadata(topic, baseSerde.isKey());
+                        schema = baseSerde.getSchemaResolver()
+                                .resolveSchema(new SerdeRecord<>(resolverMetadata, data));
+                    } finally {
+                        DefaultSchemaResolver.currentOperation.remove();
+                    }
+
+                    if (cacheKey != null) {
+                        fastPathCache.put(cacheKey, schema);
+                    }
                 }
+
+                SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
+
+                if (contractRulesEnabled) {
+                    executeContractRulesForWrite(schema, data);
+                }
+
+                ByteArrayOutputStream out = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
+                out.write(MAGIC_BYTE);
+                baseSerde.getIdHandler().writeId(schema.toArtifactReference(), out);
+                this.serializeData(schema.getParsedSchema(), data, out);
+
+                byte[] result = out.toByteArray();
+                span.setAttribute(SerDesAttributes.DATA_SIZE, (long) result.length);
+                return result;
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
-
-            if (contractRulesEnabled) {
-                executeContractRulesForWrite(schema, data);
-            }
-
-            // Pre-size buffer to avoid array resizing for typical messages
-            ByteArrayOutputStream out = new ByteArrayOutputStream(DEFAULT_BUFFER_SIZE);
-            out.write(MAGIC_BYTE);
-            baseSerde.getIdHandler().writeId(schema.toArtifactReference(), out);
-            this.serializeData(schema.getParsedSchema(), data, out);
-
-            return out.toByteArray();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        });
     }
 
     public BaseSerde<T, U> getSerdeConfigurer() {

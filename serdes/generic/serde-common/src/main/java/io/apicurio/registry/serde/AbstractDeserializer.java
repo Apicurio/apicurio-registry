@@ -19,6 +19,8 @@ import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
+import io.apicurio.registry.serde.tracing.SerDesAttributes;
+import io.apicurio.registry.serde.tracing.SerDesTracer;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -31,6 +33,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     private static final java.util.logging.Logger LOG = java.util.logging.Logger.getLogger(
             AbstractDeserializer.class.getName());
+    private final SerDesTracer tracer = new SerDesTracer();
 
     /**
      * Cache key that distinguishes between contentId and globalId to avoid collisions.
@@ -129,23 +132,26 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         if (data == null) {
             return null;
         }
+        return tracer.traceDeserialize(topic, span -> {
+            span.setAttribute(SerDesAttributes.DATA_SIZE, (long) data.length);
 
-        ByteBuffer buffer = getByteBuffer(data);
-        ArtifactReference artifactReference = baseSerde.getIdHandler().readId(buffer);
+            ByteBuffer buffer = getByteBuffer(data);
+            ArtifactReference artifactReference = baseSerde.getIdHandler().readId(buffer);
 
-        SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+            SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+            SerDesTracer.setSchemaAttributes(span, schema, false);
 
-        // Could this be replaced by buffer.limit() - buffer.position(); ?
-        int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
-        int start = buffer.position() + buffer.arrayOffset();
+            int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
+            int start = buffer.position() + buffer.arrayOffset();
 
-        U result = readData(schema.getParsedSchema(), buffer, start, length);
+            U result = readData(schema.getParsedSchema(), buffer, start, length);
 
-        if (contractRulesEnabled) {
-            executeContractRulesForRead(schema, result);
-        }
+            if (contractRulesEnabled) {
+                executeContractRulesForRead(schema, result);
+            }
 
-        return result;
+            return result;
+        });
     }
 
     protected abstract U readData(ParsedSchema<T> schema, ByteBuffer buffer, int start, int length);

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 
 /**
  * Repository handling search operations in the SQL storage layer.
@@ -212,6 +213,47 @@ public class SqlSearchRepository {
                         break;
                     case content:
                         // Content search is handled by the search index only; skip in SQL
+                        break;
+                    case structure:
+                        // Structured content filter, e.g. "agent_card:skill:translation". Elements are
+                        // stored lowercased in artifact_structured_content as elementType
+                        // ("<artifactType>:<kind>") + elementValue ("<name>").
+                        String structureValue = asLowerCase(filter.getStringValue());
+                        if (structureValue == null || structureValue.isBlank()) {
+                            where.append("1 = 1");
+                            break;
+                        }
+                        String[] structureParts = structureValue.trim().split(":", 3);
+                        op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(op);
+                        where.append(
+                                "(SELECT sc.* FROM artifact_structured_content sc WHERE sc.groupId = a.groupId AND sc.artifactId = a.artifactId AND ");
+                        if (structureParts.length == 3) {
+                            // Full format: "artifactType:kind:name" - exact match
+                            where.append("sc.elementType = ? AND sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[0] + ":" + structureParts[1]);
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[2]);
+                            });
+                        } else if (structureParts.length == 2) {
+                            // Partial format: "kind:name" - match the kind for any artifact type
+                            where.append("sc.elementType LIKE ? AND sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%:" + structureParts[0]);
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[1]);
+                            });
+                        } else {
+                            // Plain name: match the element value for any kind
+                            where.append("sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[0]);
+                            });
+                        }
+                        where.append(")");
                         break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());

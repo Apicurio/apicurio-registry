@@ -298,6 +298,16 @@ public interface SqlStatements {
     public String deleteArtifactLabelsByPrefix();
 
     /**
+     * A statement to delete all rows in the artifact_structured_content table for a given artifact.
+     */
+    public String deleteArtifactStructuredContent();
+
+    /**
+     * A statement to insert a row into the artifact_structured_content table.
+     */
+    public String insertArtifactStructuredContent();
+
+    /**
      * A statement to delete version labels matching a key prefix.
      */
     public String deleteVersionLabelsByPrefix();

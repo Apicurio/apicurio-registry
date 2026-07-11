@@ -466,6 +466,22 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM artifact_labels WHERE groupId = ? AND artifactId = ? AND labelKey LIKE ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactStructuredContent()
+     */
+    @Override
+    public String deleteArtifactStructuredContent() {
+        return "DELETE FROM artifact_structured_content WHERE groupId = ? AND artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifactStructuredContent()
+     */
+    @Override
+    public String insertArtifactStructuredContent() {
+        return "INSERT INTO artifact_structured_content (groupId, artifactId, elementType, elementValue) VALUES (?, ?, ?, ?)";
+    }
+
     @Override
     public String deleteVersionLabelsByPrefix() {
         return "DELETE FROM version_labels WHERE globalId = ? AND labelKey LIKE ?";

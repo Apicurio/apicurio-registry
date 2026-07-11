@@ -152,7 +152,7 @@ To see additional options, visit:
 `./mvnw clean install -Pprod -DskipTests` builds the application artifact.
 The newly built runner can be found in `/app/target`
 ```
-java Dapicurio.storage.kind=kafkasql -jar apicurio-registry-app-<version>-SNAPSHOT-runner.jar
+java -Dapicurio.storage.kind=kafkasql -jar apicurio-registry-app-<version>-SNAPSHOT-runner.jar
 ```
 For using Kafka as the persistent storage for the server information the only required configuration is to set the property *apicurio.storage.kind*.
 
@@ -241,9 +241,9 @@ services:
 
 You can enable authentication for both the application REST APIs and the user interface using a server based
 on OpenID Connect (OIDC). The same server and users are federated across the user interface and the
-REST APIs using Open ID Connect so that you only require one set of credentials.
+REST APIs using OpenID Connect so that you only require one set of credentials.
 
-In order no enable this integration, you will need to set the following environment variables.
+In order to enable this integration, you will need to set the following environment variables.
 
 ### REST API Environment Variables
 

@@ -35,33 +35,54 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+
+import com.github.benmanes.caffeine.cache.AsyncCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 
 public class KubernetesAuthenticationStrategy implements AuthenticationStrategy {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final int MAX_CACHE_SIZE = 10_000;
-    private static final Duration API_ERROR_CACHE_DURATION = Duration.ofSeconds(30);
 
     private final KubernetesClient kubernetesClient;
     private final AuthConfig authConfig;
     private final Logger log;
-    private final ConcurrentHashMap<String, WrappedValue<TokenReviewResult>> cache =
-            new ConcurrentHashMap<>();
+    private final AsyncCache<String, TokenReviewResult> cache;
 
     public KubernetesAuthenticationStrategy(KubernetesClient kubernetesClient,
             AuthConfig authConfig, Logger log) {
         this.kubernetesClient = kubernetesClient;
         this.authConfig = authConfig;
         this.log = log;
+        this.cache = Caffeine.newBuilder()
+                .maximumSize(MAX_CACHE_SIZE)
+                .expireAfter(new Expiry<String, TokenReviewResult>() {
+                    @Override
+                    public long expireAfterCreate(String key, TokenReviewResult value, long currentTime) {
+                        if (value.isApiError) {
+                            return Duration.ofSeconds(30).toNanos();
+                        }
+                        return Duration.ofMinutes(authConfig.kubernetesTokenCacheExpiration).toNanos();
+                    }
+
+                    @Override
+                    public long expireAfterUpdate(String key, TokenReviewResult value, long currentTime, long currentDuration) {
+                        return currentDuration;
+                    }
+
+                    @Override
+                    public long expireAfterRead(String key, TokenReviewResult value, long currentTime, long currentDuration) {
+                        return currentDuration;
+                    }
+                })
+                .buildAsync();
     }
 
     @Override
@@ -86,27 +107,23 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
 
         String tokenHash = sha256(token);
 
-        WrappedValue<TokenReviewResult> cached = cache.get(tokenHash);
-        if (cached != null && !cached.isExpired()) {
-            TokenReviewResult result = cached.getValue();
-            if (!result.authenticated) {
-                return Uni.createFrom().nullItem();
-            }
-            return identityProviderManager.authenticate(
-                    new KubernetesAuthenticationRequest(result.username, result.uid, result.groups));
-        }
+        CompletableFuture<TokenReviewResult> future = cache.get(tokenHash, (k, executor) -> 
+                CompletableFuture.supplyAsync(() -> performTokenReview(token, k), Infrastructure.getDefaultWorkerPool())
+        );
 
-        return Uni.createFrom().item(() -> performTokenReview(token, tokenHash))
-                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())
+        return Uni.createFrom().completionStage(future)
                 .onItem().ifNull().switchTo(Uni.createFrom()::nullItem)
-                .onItem().ifNotNull().transformToUni(result ->
-                        identityProviderManager.authenticate(
-                                new KubernetesAuthenticationRequest(
-                                        result.username, result.uid, result.groups)));
+                .onItem().transformToUni(result -> {
+                    if (!result.authenticated) {
+                        return Uni.createFrom().nullItem();
+                    }
+                    return identityProviderManager.authenticate(
+                            new KubernetesAuthenticationRequest(
+                                    result.username, result.uid, result.groups));
+                });
     }
 
     private TokenReviewResult performTokenReview(String token, String tokenHash) {
-        Duration cacheDuration = Duration.ofMinutes(authConfig.kubernetesTokenCacheExpiration);
         try {
             TokenReviewSpec spec = new TokenReviewSpec();
             spec.setToken(token);
@@ -123,9 +140,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
             TokenReviewStatus status = response.getStatus();
             if (status == null || !Boolean.TRUE.equals(status.getAuthenticated())) {
                 log.debug("Kubernetes TokenReview: authentication failed");
-                cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(),
-                        new TokenReviewResult(false, null, null, Collections.emptySet())));
-                return null;
+                return new TokenReviewResult(false, null, null, Collections.emptySet());
             }
 
             UserInfo user = status.getUser();
@@ -138,32 +153,11 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
 
             log.debug("Kubernetes TokenReview: authenticated user '{}'", username);
 
-            TokenReviewResult result = new TokenReviewResult(true, username, uid, groups);
-            cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(), result));
-            return result;
+            return new TokenReviewResult(true, username, uid, groups);
 
         } catch (Exception e) {
             log.warn("Kubernetes TokenReview API call failed: {}", e.getMessage());
-            cachePut(tokenHash, new WrappedValue<>(API_ERROR_CACHE_DURATION, Instant.now(),
-                    new TokenReviewResult(false, null, null, Collections.emptySet())));
-            return null;
-        }
-    }
-
-    private void cachePut(String key, WrappedValue<TokenReviewResult> value) {
-        evictExpiredEntries();
-        if (cache.size() >= MAX_CACHE_SIZE) {
-            return;
-        }
-        cache.put(key, value);
-    }
-
-    private void evictExpiredEntries() {
-        Iterator<Map.Entry<String, WrappedValue<TokenReviewResult>>> it = cache.entrySet().iterator();
-        while (it.hasNext()) {
-            if (it.next().getValue().isExpired()) {
-                it.remove();
-            }
+            return new TokenReviewResult(false, null, null, Collections.emptySet(), true);
         }
     }
 
@@ -203,12 +197,18 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
         final String username;
         final String uid;
         final Set<String> groups;
+        final boolean isApiError;
 
         TokenReviewResult(boolean authenticated, String username, String uid, Set<String> groups) {
+            this(authenticated, username, uid, groups, false);
+        }
+
+        TokenReviewResult(boolean authenticated, String username, String uid, Set<String> groups, boolean isApiError) {
             this.authenticated = authenticated;
             this.username = username;
             this.uid = uid;
             this.groups = groups;
+            this.isApiError = isApiError;
         }
     }
 }

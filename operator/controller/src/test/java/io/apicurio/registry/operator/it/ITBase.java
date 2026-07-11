@@ -79,8 +79,10 @@ public abstract class ITBase implements OperatorTestContext {
             Integer.getInteger("test.operator.timeout.medium", 120));
     public static final Duration LONG_DURATION = ofSeconds(
             Integer.getInteger("test.operator.timeout.long", 420));
-    public static final Duration KAFKA_BROKER_READY_TIMEOUT = Duration.ofMinutes(10);
-    public static final Duration KAFKA_REGISTRY_READY_TIMEOUT = Duration.ofMinutes(8);
+    public static final Duration KAFKA_BROKER_READY_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.kafka-broker", 600));
+    public static final Duration KAFKA_REGISTRY_READY_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.kafka-registry", 480));
 
     public enum OperatorDeployment {
         local, remote

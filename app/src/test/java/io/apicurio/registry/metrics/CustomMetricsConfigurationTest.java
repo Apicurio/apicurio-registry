@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link CustomMetricsConfiguration}.
@@ -123,19 +125,45 @@ class CustomMetricsConfigurationTest {
     }
 
     @Test
-    void testUnknownTypeTreatedAsSummary() {
+    void testUnknownTypeThrowsException() {
         CustomMetricsConfiguration config = createConfig(
                 "foobar",
                 List.of(0.5, 0.95),
                 List.of(0.1)
         );
 
-        MeterFilter filter = config.configureDistribution();
-        DistributionStatisticConfig result = applyFilter(filter, MetricsConstants.REST_REQUESTS);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::configureDistribution);
+        assertTrue(ex.getMessage().contains("foobar"));
+        assertTrue(ex.getMessage().contains("histogram, summary"));
+    }
 
-        assertNotNull(result.getPercentiles(), "Percentiles should still be set for unknown type");
-        assertNull(result.getServiceLevelObjectiveBoundaries(),
-                "Unknown type should not produce SLO boundaries (only histogram does)");
+    @Test
+    void testInvalidPercentileThrowsException() {
+        CustomMetricsConfiguration config = createConfig(
+                "histogram",
+                List.of(0.5, 95.0),
+                List.of(0.1)
+        );
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::configureDistribution);
+        assertTrue(ex.getMessage().contains("95.0"));
+        assertTrue(ex.getMessage().contains("0.0 and 1.0"));
+    }
+
+    @Test
+    void testNegativeSloThrowsException() {
+        CustomMetricsConfiguration config = createConfig(
+                "histogram",
+                List.of(0.5),
+                List.of(-1.0, 0.5)
+        );
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::configureDistribution);
+        assertTrue(ex.getMessage().contains("-1.0"));
+        assertTrue(ex.getMessage().contains("positive"));
     }
 
     @Test

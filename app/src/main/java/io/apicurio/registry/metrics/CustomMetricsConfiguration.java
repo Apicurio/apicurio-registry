@@ -66,6 +66,24 @@ public class CustomMetricsConfiguration {
     @Singleton
     public MeterFilter configureDistribution() {
         String type = distributionType.toLowerCase(Locale.ROOT);
+        if (!"histogram".equals(type) && !"summary".equals(type)) {
+            throw new IllegalArgumentException(
+                    "Invalid value for 'apicurio.metrics.rest.distribution.type': '"
+                            + distributionType + "'. Valid values are: histogram, summary");
+        }
+        percentiles.stream().filter(p -> p < 0.0 || p > 1.0).findFirst().ifPresent(p -> {
+            throw new IllegalArgumentException(
+                    "Invalid percentile value " + p
+                            + " in 'apicurio.metrics.rest.distribution.percentiles'. "
+                            + "Each value must be between 0.0 and 1.0.");
+        });
+        slo.stream().filter(s -> s <= 0.0).findFirst().ifPresent(s -> {
+            throw new IllegalArgumentException(
+                    "Invalid SLO boundary value " + s
+                            + " in 'apicurio.metrics.rest.distribution.slo'. "
+                            + "Each value must be a positive number representing seconds.");
+        });
+
         double[] percentilesArray = toDoubleArray(percentiles);
         double[] sloNanosArray = toSloNanosArray(slo);
 

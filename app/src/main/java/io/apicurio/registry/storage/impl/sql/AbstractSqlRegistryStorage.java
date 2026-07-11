@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredElement;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.model.BranchId;
@@ -37,6 +39,7 @@ import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
 import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
@@ -62,6 +65,7 @@ import org.slf4j.Logger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -115,6 +119,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     RestConfig restConfig;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory typeProviderFactory;
 
     @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
     @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", availableSince = "3.0.6")
@@ -557,6 +564,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches, versionIsDraft);
+                    updateStructuredContentRaw(handle, groupId, artifactId, artifactType, versionContent);
 
                     pair = ImmutablePair.of(amdDto, vmdDto);
                 } else {
@@ -572,6 +580,42 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
             }
             throw ex;
+        }
+    }
+
+    /**
+     * Extracts structured elements (e.g. Agent Card skills, MCP tool parameters) from the given content
+     * and replaces the artifact's rows in the artifact_structured_content table. Only artifact types
+     * with a structured content extractor produce rows. Extraction failures are logged and ignored so
+     * they never fail the enclosing artifact operation.
+     */
+    private void updateStructuredContentRaw(Handle handle, String groupId, String artifactId,
+            String artifactType, ContentWrapperDto content) {
+        if (artifactType == null || content == null || content.getContent() == null) {
+            return;
+        }
+        try {
+            StructuredContentExtractor extractor = typeProviderFactory.getArtifactTypeProvider(artifactType)
+                    .getStructuredContentExtractor();
+            if (extractor == null) {
+                return;
+            }
+            handle.createUpdate(sqlStatements.deleteArtifactStructuredContent())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+            List<StructuredElement> elements = extractor.extract(content.getContent());
+            Set<String> seen = new HashSet<>();
+            for (StructuredElement element : elements) {
+                String elementType = limitStr(asLowerCase(artifactType + ":" + element.kind()), 64);
+                String elementValue = limitStr(asLowerCase(element.name()), 512);
+                if (seen.add(elementType + ":" + elementValue)) {
+                    handle.createUpdate(sqlStatements.insertArtifactStructuredContent())
+                            .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, elementType)
+                            .bind(3, elementValue).execute();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update structured content for {}/{}: {}", groupId, artifactId,
+                    e.getMessage());
         }
     }
 
@@ -628,6 +672,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner,
                         createdOn, contentId, branches, isDraft);
+                updateStructuredContentRaw(handle, groupId, artifactId, artifactType, content);
                 return versionDto;
             });
         } catch (Exception ex) {
@@ -670,6 +715,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
                         owner, createdOn, contentId, branches, isDraft);
+                updateStructuredContentRaw(handle, groupId, artifactId, artifactType, content);
 
                 // Atomically update artifact-level metadata in the same transaction
                 if (artifactMetaData != null && artifactMetaData.getLabels() != null) {
@@ -1047,6 +1093,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         long contentId = ensureContentAndGetId(artifactType, content, true);
 
         versionRepository.updateArtifactVersionContent(groupId, artifactId, version, contentId);
+
+        handles.withHandleNoException(handle -> {
+            updateStructuredContentRaw(handle, groupId, artifactId, artifactType, content);
+            return null;
+        });
     }
 
     @Override

@@ -24,6 +24,9 @@ import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
+import { LocalStorageService, useLocalStorageService } from "@services/useLocalStorageService.ts";
+
+const EXPLORE_SORT_KEY = "explore.ascending";
 
 /**
  * Properties
@@ -48,10 +51,22 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [isPleaseWaitModalOpen, setPleaseWaitModalOpen] = useState<boolean>(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+
+    const localStorage: LocalStorageService = useLocalStorageService();
+
+    // Read the user's last saved sort preference from localStorage, defaulting to ascending.
+    const getInitialAscending = (): boolean => {
+        const stored = localStorage.getConfigProperty(EXPLORE_SORT_KEY, undefined);
+        if (stored === "false") {
+            return false;
+        }
+        return true;
+    };
+
     const [criteria, setCriteria] = useState<ExplorePageToolbarFilterCriteria>({
         filterBy: FilterBy.name,
         filterValue: "",
-        ascending: true
+        ascending: getInitialAscending()
     });
     const [isSearching, setSearching] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
@@ -83,6 +98,8 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
 
     const onFilterCriteriaChange = (newCriteria: ExplorePageToolbarFilterCriteria): void => {
         setCriteria(newCriteria);
+        // Persist the user's sort-order preference so it survives page navigation and reloads.
+        localStorage.setConfigProperty(EXPLORE_SORT_KEY, String(newCriteria.ascending));
         const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
         setPaging(resetPaging);
         search(newCriteria, resetPaging);

@@ -4,6 +4,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.v2.beans.AuthError;
+import io.apicurio.registry.rest.v2.beans.CompatibilityFixSuggestion;
 import io.apicurio.registry.rest.v2.beans.Error;
 import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
 import io.apicurio.registry.rest.v2.beans.RuleViolationError;
@@ -123,6 +124,16 @@ public class CoreV2RegistryExceptionMapperService {
             RuleViolationCause cause = new RuleViolationCause();
             cause.setContext(violation.getContext());
             cause.setDescription(violation.getDescription());
+            cause.setType(violation.getType());
+            if (violation.hasSuggestions()) {
+                cause.setSuggestions(violation.getSuggestions().stream().map(suggestion -> {
+                    CompatibilityFixSuggestion bean = new CompatibilityFixSuggestion();
+                    bean.setTier(suggestion.getTier().name());
+                    bean.setDescription(suggestion.getDescription());
+                    bean.setExample(suggestion.getExample());
+                    return bean;
+                }).collect(Collectors.toList()));
+            }
             return cause;
         }).collect(Collectors.toList());
     }

@@ -6348,11 +6348,54 @@
           },
           "context": {
             "type": "string"
+          },
+          "type": {
+            "description": "Machine-readable incompatibility type when available (for example Avro READER_FIELD_MISSING_DEFAULT_VALUE).",
+            "type": "string"
+          },
+          "suggestions": {
+            "description": "Optional structured suggestions for how to resolve this rule violation.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompatibilityFixSuggestion"
+            }
           }
         },
         "example": {
-          "description": "External documentation URL is not valid (it must be formatted as a URL).",
-          "context": "/info/externalDocs[url]"
+          "description": "New field 'email' has no default value. Old messages don't contain this field.",
+          "context": "/fields/1",
+          "type": "READER_FIELD_MISSING_DEFAULT_VALUE",
+          "suggestions": [
+            {
+              "tier": "RECOMMENDED",
+              "description": "Add a default value for 'email'",
+              "example": "{\"name\": \"email\", \"type\": \"string\", \"default\": \"\"}"
+            }
+          ]
+        }
+      },
+      "CompatibilityFixSuggestion": {
+        "title": "Root Type for CompatibilityFixSuggestion",
+        "description": "A concrete suggestion for resolving a compatibility (or other rule) violation.",
+        "type": "object",
+        "properties": {
+          "tier": {
+            "description": "Quality tier of the suggestion: RECOMMENDED, ACCEPTABLE, WORKAROUND, or INFORMATIONAL.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Human-readable explanation of the suggested fix.",
+            "type": "string"
+          },
+          "example": {
+            "description": "Optional example snippet illustrating the fix.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "tier": "RECOMMENDED",
+          "description": "Add a default value",
+          "example": "{\"name\": \"email\", \"type\": \"string\", \"default\": \"\"}"
         }
       },
       "IfArtifactExists": {

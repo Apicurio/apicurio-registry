@@ -3,7 +3,6 @@ package io.apicurio.registry.avro.rules.compatibility;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
-import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaCompatibility;
@@ -54,6 +53,6 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
 
     @Override
     protected CompatibilityDifference transform(Incompatibility original) {
-        return new SimpleCompatibilityDifference(original.getMessage(), original.getLocation());
+        return new AvroCompatibilityDifference(original);
     }
 }

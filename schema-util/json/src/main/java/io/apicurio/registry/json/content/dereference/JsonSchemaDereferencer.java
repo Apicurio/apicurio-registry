@@ -36,7 +36,7 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaDereferencer.class);
     private static final String idKey = "$id";
     private static final String schemaKey = "$schema";
-    private static final String commentKey = "$comment";
+    private static final String COMMENT_KEY = "$comment";
 
     static {
         objectMapper = new ObjectMapper();
@@ -106,8 +106,8 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
                 // via $comment (JSON Schema draft-07+ non-functional metadata). Vert.x JsonRef strips
                 // $id/$schema during resolve but leaves $comment intact.
                 buildOriginalRefComment(referenceName).ifPresent(comment -> {
-                    if (!resolvedSchema.containsKey(commentKey)) {
-                        resolvedSchema.put(commentKey, comment);
+                    if (!resolvedSchema.containsKey(COMMENT_KEY)) {
+                        resolvedSchema.put(COMMENT_KEY, comment);
                     }
                 });
                 return JsonSchema.of(resolvedSchema);

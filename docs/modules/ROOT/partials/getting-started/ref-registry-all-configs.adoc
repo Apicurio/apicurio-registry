@@ -304,6 +304,16 @@ The following {registry} configuration options are available for each component 
 |`X-Forwarded-User`
 |`3.1.7`
 |Header name for username
+|`apicurio.authn.token-review.circuit-breaker.threshold`
+|`int`
+|`5`
+|`3.4.0`
+|Number of consecutive Kubernetes TokenReview API failures after which the circuit breaker opens and TokenReview calls are temporarily skipped. _(experimental)_
+|`apicurio.authn.token-review.circuit-breaker.timeout-seconds`
+|`int`
+|`30`
+|`3.4.0`
+|Number of seconds the Kubernetes TokenReview circuit breaker stays open before allowing a probe request to check whether the API has recovered. _(experimental)_
 |`quarkus.http.auth.basic`
 |`boolean`
 |`false`

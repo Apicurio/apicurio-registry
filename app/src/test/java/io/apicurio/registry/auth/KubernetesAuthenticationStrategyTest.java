@@ -78,6 +78,8 @@ class KubernetesAuthenticationStrategyTest {
         authConfig.kubernetesAuthEnabled = true;
         authConfig.kubernetesApiAudiences = Optional.empty();
         authConfig.kubernetesTokenCacheExpiration = 5;
+        authConfig.kubernetesCircuitBreakerThreshold = 5;
+        authConfig.kubernetesCircuitBreakerTimeoutSeconds = 30;
         strategy = new KubernetesAuthenticationStrategy(kubernetesClient, authConfig,
                 LoggerFactory.getLogger(KubernetesAuthenticationStrategyTest.class));
         when(routingContext.request()).thenReturn(httpRequest);
@@ -265,19 +267,138 @@ class KubernetesAuthenticationStrategyTest {
     }
 
     @Test
-    void testCachesApiExceptionToPreventRetryStorm() {
-        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer error-token-cached");
+    void testCircuitBreakerOpensAfterConsecutiveFailures() {
+        authConfig.kubernetesCircuitBreakerThreshold = 2;
+        strategy = new KubernetesAuthenticationStrategy(kubernetesClient, authConfig,
+                LoggerFactory.getLogger(KubernetesAuthenticationStrategyTest.class));
+
+        when(httpRequest.getHeader("Authorization"))
+                .thenReturn("Bearer token-a", "Bearer token-b", "Bearer token-c");
         when(kubernetesClient.tokenReviews()).thenThrow(
                 new RuntimeException("Connection refused"));
 
-        // First call — hits K8s API and fails
+        // Two failures reach the threshold and open the circuit; the third call is skipped.
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
         strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
 
-        // Second call with same token — should use cached failure, not retry K8s API
+        verify(kubernetesClient, org.mockito.Mockito.times(2)).tokenReviews();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testSingleApiFailureDoesNotBlockOtherTokens() {
+        // Threshold 5 (default): a single API failure must not penalize other tokens.
+        when(httpRequest.getHeader("Authorization"))
+                .thenReturn("Bearer token-a", "Bearer token-b", "Bearer token-a");
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setUsername("user-b");
+        userInfo.setUid("uid-b");
+        userInfo.setGroups(Collections.emptyList());
+        TokenReview response = new TokenReviewBuilder()
+                .withNewStatus()
+                .withAuthenticated(true)
+                .withUser(userInfo)
+                .endStatus()
+                .build();
+
+        // First tokenReviews() call throws (token A); subsequent calls succeed (token B, A retry).
+        when(kubernetesClient.tokenReviews())
+                .thenThrow(new RuntimeException("blip"))
+                .thenReturn(tokenReviewsOp);
+        when(tokenReviewsOp.create(any(TokenReview.class))).thenReturn(response);
+
+        SecurityIdentity mockIdentity = QuarkusSecurityIdentity.builder()
+                .setPrincipal(() -> "user-b")
+                .build();
+        when(identityProviderManager.authenticate(any(KubernetesAuthenticationRequest.class)))
+                .thenReturn(Uni.createFrom().item(mockIdentity));
+
+        // Token A fails once...
+        SecurityIdentity aFirst = strategy.authenticate(routingContext, identityProviderManager)
+                .await().indefinitely();
+        // ...token B still authenticates, not penalized by A's failure...
+        SecurityIdentity bResult = strategy.authenticate(routingContext, identityProviderManager)
+                .await().indefinitely();
+        // ...and token A retried still reaches the API (no negative caching of API errors).
         strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
 
-        // K8s API should only be called once; second call served from cache
-        verify(kubernetesClient, org.mockito.Mockito.times(1)).tokenReviews();
+        assertNull(aFirst);
+        assertNotNull(bResult);
+        verify(kubernetesClient, org.mockito.Mockito.times(3)).tokenReviews();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testUnauthenticatedResponseDoesNotTripCircuitBreaker() {
+        authConfig.kubernetesCircuitBreakerThreshold = 2;
+        strategy = new KubernetesAuthenticationStrategy(kubernetesClient, authConfig,
+                LoggerFactory.getLogger(KubernetesAuthenticationStrategyTest.class));
+
+        // An authenticated=false response is a healthy API reply, not a circuit failure.
+        when(httpRequest.getHeader("Authorization"))
+                .thenReturn("Bearer unauth-1", "Bearer unauth-2", "Bearer unauth-3");
+        TokenReview response = new TokenReviewBuilder()
+                .withNewStatus()
+                .withAuthenticated(false)
+                .endStatus()
+                .build();
+        when(kubernetesClient.tokenReviews()).thenReturn(tokenReviewsOp);
+        when(tokenReviewsOp.create(any(TokenReview.class))).thenReturn(response);
+
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+
+        // The circuit never opened, so the API is called for all three distinct tokens.
+        verify(kubernetesClient, org.mockito.Mockito.times(3)).tokenReviews();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void testCircuitBreakerRecovers() {
+        authConfig.kubernetesCircuitBreakerThreshold = 1;
+        authConfig.kubernetesCircuitBreakerTimeoutSeconds = 0;
+        strategy = new KubernetesAuthenticationStrategy(kubernetesClient, authConfig,
+                LoggerFactory.getLogger(KubernetesAuthenticationStrategyTest.class));
+
+        when(httpRequest.getHeader("Authorization"))
+                .thenReturn("Bearer recover-fail", "Bearer recover-ok");
+
+        UserInfo userInfo = new UserInfo();
+        userInfo.setUsername("recovered-user");
+        userInfo.setUid("uid-r");
+        userInfo.setGroups(Collections.emptyList());
+        TokenReview response = new TokenReviewBuilder()
+                .withNewStatus()
+                .withAuthenticated(true)
+                .withUser(userInfo)
+                .endStatus()
+                .build();
+
+        // First call fails and opens the circuit (threshold 1); with a 0s timeout the next call
+        // is immediately allowed as the probe, and the now-healthy API closes the circuit.
+        when(kubernetesClient.tokenReviews())
+                .thenThrow(new RuntimeException("down"))
+                .thenReturn(tokenReviewsOp);
+        when(tokenReviewsOp.create(any(TokenReview.class))).thenReturn(response);
+
+        SecurityIdentity mockIdentity = QuarkusSecurityIdentity.builder()
+                .setPrincipal(() -> "recovered-user")
+                .build();
+        when(identityProviderManager.authenticate(any(KubernetesAuthenticationRequest.class)))
+                .thenReturn(Uni.createFrom().item(mockIdentity));
+
+        SecurityIdentity firstResult = strategy.authenticate(routingContext, identityProviderManager)
+                .await().indefinitely();
+        SecurityIdentity secondResult = strategy.authenticate(routingContext, identityProviderManager)
+                .await().indefinitely();
+
+        assertNull(firstResult);
+        assertNotNull(secondResult);
+        assertEquals("recovered-user", secondResult.getPrincipal().getName());
+        verify(kubernetesClient, org.mockito.Mockito.times(2)).tokenReviews();
     }
 
     @Test

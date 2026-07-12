@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -49,11 +50,11 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final int MAX_CACHE_SIZE = 10_000;
-    private static final Duration API_ERROR_CACHE_DURATION = Duration.ofSeconds(30);
 
     private final KubernetesClient kubernetesClient;
     private final AuthConfig authConfig;
     private final Logger log;
+    private final TokenReviewCircuitBreaker circuitBreaker;
     private final ConcurrentHashMap<String, WrappedValue<TokenReviewResult>> cache =
             new ConcurrentHashMap<>();
 
@@ -62,6 +63,10 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
         this.kubernetesClient = kubernetesClient;
         this.authConfig = authConfig;
         this.log = log;
+        this.circuitBreaker = new TokenReviewCircuitBreaker(
+                authConfig.kubernetesCircuitBreakerThreshold,
+                Duration.ofSeconds(authConfig.kubernetesCircuitBreakerTimeoutSeconds),
+                Clock.systemUTC(), log);
     }
 
     @Override
@@ -107,6 +112,12 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
 
     private TokenReviewResult performTokenReview(String token, String tokenHash) {
         Duration cacheDuration = Duration.ofMinutes(authConfig.kubernetesTokenCacheExpiration);
+
+        if (!circuitBreaker.allowRequest()) {
+            log.warn("Kubernetes TokenReview call skipped: circuit breaker is open (K8s API unavailable)");
+            return null;
+        }
+
         try {
             TokenReviewSpec spec = new TokenReviewSpec();
             spec.setToken(token);
@@ -119,6 +130,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
             TokenReview review = new TokenReview();
             review.setSpec(spec);
             TokenReview response = kubernetesClient.tokenReviews().create(review);
+            circuitBreaker.recordSuccess();
 
             TokenReviewStatus status = response.getStatus();
             if (status == null || !Boolean.TRUE.equals(status.getAuthenticated())) {
@@ -144,8 +156,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
 
         } catch (Exception e) {
             log.warn("Kubernetes TokenReview API call failed: {}", e.getMessage());
-            cachePut(tokenHash, new WrappedValue<>(API_ERROR_CACHE_DURATION, Instant.now(),
-                    new TokenReviewResult(false, null, null, Collections.emptySet())));
+            circuitBreaker.recordFailure();
             return null;
         }
     }

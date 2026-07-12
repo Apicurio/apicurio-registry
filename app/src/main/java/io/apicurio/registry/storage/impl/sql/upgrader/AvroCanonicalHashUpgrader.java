@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 
@@ -46,18 +47,31 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                     + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.type = ?";
 
-        int successCount = handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
-                .map(new ContentWithTypeRowMapper()).stream().mapToInt(entity -> {
+        AtomicInteger processedCount = new AtomicInteger();
+        AtomicInteger updatedCount = new AtomicInteger();
+        AtomicInteger skippedCount = new AtomicInteger();
+        AtomicInteger failedCount = new AtomicInteger();
+
+        handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
+                .map(new ContentWithTypeRowMapper()).stream().forEach(entity -> {
+                    processedCount.incrementAndGet();
                     try {
-                        return updateEntity(handle, entity);
+                        int result = updateEntity(handle, entity);
+                        if (result > 0) {
+                            updatedCount.incrementAndGet();
+                        } else {
+                            skippedCount.incrementAndGet();
+                        }
                     } catch (Exception ex) {
+                        failedCount.incrementAndGet();
                         log.warn("Failed to update canonical hash for contentId {}.",
                                 entity.contentEntity.contentId, ex);
-                        return 0;
                     }
-                }).sum();
+                });
 
-        log.info("Successfully updated {} Avro canonical content hashes.", successCount);
+        log.info(
+                "Avro canonical hash upgrade complete: processed={}, updated={}, skipped={}, failed={}.",
+                processedCount.get(), updatedCount.get(), skippedCount.get(), failedCount.get());
     }
 
     private int updateEntity(Handle handle, ContentWithType entity) {
@@ -78,7 +92,8 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                     .bind(0, newCanonicalHash).bind(1, entity.contentEntity.contentId).execute();
             if (rowCount == 0) {
                 log.warn("Database row not found for contentId {}.", entity.contentEntity.contentId);
-                return 0;
+                throw new IllegalStateException(
+                        "Database row not found for contentId " + entity.contentEntity.contentId);
             }
             return 1;
         }

@@ -287,6 +287,87 @@
         }
       ]
     },
+    "/rules/types": {
+      "summary": "Discover the rule types supported by the registry and their valid configuration values.",
+      "get": {
+        "tags": [
+          "Rules"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuleType"
+                  }
+                }
+              }
+            },
+            "description": "The list of available rule types."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "listRuleTypes",
+        "summary": "List rule types",
+        "description": "Gets the list of rule types supported by this registry (for example VALIDITY, COMPATIBILITY, INTEGRITY).\n\nThis is a discovery endpoint for clients and UIs. It returns the catalog of rule types, not the rules currently configured on artifacts or globally.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
+    "/rules/types/{ruleType}/values": {
+      "summary": "List the valid configuration values for a given rule type.",
+      "get": {
+        "tags": [
+          "Rules"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleTypeValues"
+                }
+              }
+            },
+            "description": "The valid configuration values for the rule type."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "listRuleTypeValues",
+        "summary": "List rule type configuration values",
+        "description": "Gets the list of valid configuration values for a rule type (for example compatibility levels for COMPATIBILITY).\n\nThis operation can fail for the following reasons:\n\n* The rule type is unknown (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "ruleType",
+          "description": "The unique name/type of a rule.",
+          "schema": {
+            "$ref": "#/components/schemas/RuleType"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/system/info": {
       "summary": "Retrieve system information",
       "get": {
@@ -6288,6 +6369,38 @@
           "name": "AVRO"
         }
       },
+      "RuleTypeValues": {
+        "description": "Valid configuration values for a given rule type.",
+        "required": [
+          "ruleType",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "ruleType": {
+            "$ref": "#/components/schemas/RuleType"
+          },
+          "values": {
+            "description": "The allowed configuration values for the rule type.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "example": {
+          "ruleType": "COMPATIBILITY",
+          "values": [
+            "NONE",
+            "BACKWARD",
+            "BACKWARD_TRANSITIVE",
+            "FORWARD",
+            "FORWARD_TRANSITIVE",
+            "FULL",
+            "FULL_TRANSITIVE"
+          ]
+        }
+      },
       "ArtifactSearchResults": {
         "description": "Describes the response received when searching for artifacts.",
         "required": [
@@ -9240,6 +9353,10 @@
     {
       "name": "Global rules",
       "description": "Global rules can be configured in the registry to govern how artifact content can \nevolve over time (as artifact content is **updated**). Global rules are applied \nwhenever an artifact is added to the registry, and also whenever an artifact's \ncontent is updated (only if that artifact does not have its own specific rules \nconfigured). This section describes the operations used to manage the global rules."
+    },
+    {
+      "name": "Rules",
+      "description": "Discovery endpoints for the catalog of rule types and their valid configuration values. These endpoints do not manage configured rules; use the global, group, or artifact rules APIs for that."
     },
     {
       "name": "Search",

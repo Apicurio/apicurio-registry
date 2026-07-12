@@ -15,10 +15,13 @@ Run a full build
 `npm run build`
 
 Initialize config.js
-`./init-dev.sh`
 
-Note: the init-dev.sh script just copies an appropriate file from config/config-*.js to the right place.  You can 
-either specify `local` or `3scale` (for example) as the argument to the script.  The choice depends on how you are 
+* Linux / macOS / Git Bash: `./init-dev.sh`
+* Windows PowerShell: `.\init-dev.ps1`
+* Windows Command Prompt: `init-dev.cmd`
+
+Note: the init scripts copy `configs/version.js` and an appropriate `configs/config-*.js` file into place.  You can
+specify `local` or `3scale` (for example) as an argument to the script.  The choice depends on how you are
 running the back-end component.
 
 Start the development server

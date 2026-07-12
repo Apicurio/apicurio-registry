@@ -69,6 +69,7 @@ This should result in Quarkus and the in-memory registry starting up, with the R
 
 ### Getting started (UI)
 
+**Linux / macOS / Git Bash:**
 ```
 cd ui
 npm install
@@ -76,6 +77,27 @@ cd ui-app
 ./init-dev.sh
 npm run dev
 ```
+
+**Windows (PowerShell):**
+```
+cd ui
+npm install
+cd ui-app
+.\init-dev.ps1
+npm run dev
+```
+
+**Windows (Command Prompt):**
+```
+cd ui
+npm install
+cd ui-app
+init-dev.cmd
+npm run dev
+```
+
+The init scripts copy `configs/version.js` and `configs/config-local.js` into place (required for dev mode).
+You can pass a config type as an argument, e.g. `./init-dev.sh 3scale` or `.\init-dev.ps1 3scale`.
 
 This will start up the UI in development mode, hosted on port 8888 of your localhost:
 

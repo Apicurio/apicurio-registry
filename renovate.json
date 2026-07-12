@@ -12,7 +12,8 @@
     "npm",
     "maven",
     "github-actions",
-    "dockerfile"
+    "dockerfile",
+    "custom.regex"
   ],
   "dependencyDashboard": true,
   "rangeStrategy": "bump",
@@ -31,6 +32,18 @@
   ],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 10,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^\\.mvn/extensions\\.xml$"
+      ],
+      "matchStrings": [
+        "<groupId>\\s*(?<depGroup>[^<\\s]+)\\s*</groupId>\\s*<artifactId>\\s*(?<depName>[^<\\s]+)\\s*</artifactId>\\s*<version>\\s*(?<currentValue>[^<\\s]+)\\s*</version>"
+      ],
+      "datasourceTemplate": "maven"
+    }
+  ],
   "packageRules": [
     {
       "groupName": "Dependencies: Maven App: All",

@@ -12,6 +12,14 @@ import lombok.Setter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * One schema entry from an ODCS contract ({@code schemas[]}).
+ * <p>
+ * Each entry is independent: field metadata (PII, tags, classification) is projected only onto the
+ * artifact named in {@link #location}. Cross-artifact references inside the schema content are not
+ * resolved during projection. To govern a nested/shared type that lives in another artifact, add a
+ * separate {@code schemas[]} entry for that artifact or give it its own contract.
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,6 +29,7 @@ import java.util.Map;
 public class OdcsSchema {
     private String name;
     private String type;
+    /** Registry location in the form {@code groupId/artifactId:version} (version optional). */
     private String location;
     private Map<String, OdcsFieldMetadata> fields;
 

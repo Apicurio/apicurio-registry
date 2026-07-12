@@ -17,9 +17,10 @@ public abstract class AbstractRegistryInfra {
     private static final Logger log = LoggerFactory.getLogger(AbstractRegistryInfra.class);
 
     // KafkaSQL bootstrap involves sequential Kafka consumer polls at 5s intervals
-    // plus SQL initialization. 75s provides margin over observed ~49s worst case
-    // under CI load without masking genuinely hung containers.
-    private static final Duration KAFKASQL_STARTUP_TIMEOUT = Duration.ofSeconds(75);
+    // plus SQL initialization. 120s provides headroom over the observed ~49s
+    // worst case, accounting for heavy CI load across 13 sequential test runs.
+    // Raised from 75s to match operator test timeout increases.
+    private static final Duration KAFKASQL_STARTUP_TIMEOUT = Duration.ofSeconds(120);
 
     private final String name;
 

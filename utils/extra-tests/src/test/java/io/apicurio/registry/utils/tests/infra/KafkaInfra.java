@@ -7,6 +7,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,11 +44,16 @@ public class KafkaInfra implements AutoCloseable {
     private KafkaInfra() {
     }
 
+    // 120 s gives ample headroom on resource-constrained CI runners where the
+    // default Testcontainers timeout can be exceeded under heavy parallel load.
+    private static final Duration KAFKA_STARTUP_TIMEOUT = Duration.ofSeconds(120);
+
     public void start() {
         if (!isRunning()) {
             kafkaCluster = new StrimziKafkaClusterBuilder()
                     .withNumberOfBrokers(1) // required
                     .withSharedNetwork()
+                    .withContainerCustomizer(c -> c.withStartupTimeout(KAFKA_STARTUP_TIMEOUT))
                     .build();
             kafkaCluster.start();
         }

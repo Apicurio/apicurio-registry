@@ -86,6 +86,11 @@
                     <plugin>
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <configuration>
+                            <!--
+                                rerunFailingTestsCount is defined in the parent pom (../../pom.xml)
+                                as failsafe.rerunFailingTestsCount (default 0; CI overrides to a higher value).
+                            -->
+                            <rerunFailingTestsCount>${failsafe.rerunFailingTestsCount}</rerunFailingTestsCount>
                             <systemPropertyVariables>
                                 <java.util.logging.manager>java.util.logging.LogManager</java.util.logging.manager>
                             </systemPropertyVariables>

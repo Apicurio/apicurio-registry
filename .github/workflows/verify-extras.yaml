@@ -44,11 +44,15 @@ jobs:
           # -Pextra-tests: activates the extra-tests profile (additional validation beyond unit/integration)
           # -Dregistry3-image: Docker image to test against (built by the Build job)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dfailsafe.rerunFailingTestsCount=2: automatically retry flaky extra-tests up to 2 times
+          #   (safe to use here: extra-tests are plain JUnit 5 + Testcontainers, no Quarkus @TestProfile
+          #    or test resources that would trigger quarkusio/quarkus#46048)
           ./mvnw verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
             -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -Dmaven.javadoc.skip=true \
-            -Daether.syncContext.named.factory=noop
+            -Daether.syncContext.named.factory=noop \
+            -Dfailsafe.rerunFailingTestsCount=2
 
       - name: Run examples/http-caching tests
         working-directory: examples/http-caching/test

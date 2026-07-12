@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
@@ -35,6 +36,7 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaDereferencer.class);
     private static final String idKey = "$id";
     private static final String schemaKey = "$schema";
+    private static final String commentKey = "$comment";
 
     static {
         objectMapper = new ObjectMapper();
@@ -100,9 +102,48 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
             lookups.computeIfAbsent(externalRef.getResource(), (key) -> {
                 JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(schema.getContent().content()),
                         lookups);
+                // When refs were rewritten to GAV coordinates, keep provenance on the inlined schema
+                // via $comment (JSON Schema draft-07+ non-functional metadata). Vert.x JsonRef strips
+                // $id/$schema during resolve but leaves $comment intact.
+                buildOriginalRefComment(referenceName).ifPresent(comment -> {
+                    if (!resolvedSchema.containsKey(commentKey)) {
+                        resolvedSchema.put(commentKey, comment);
+                    }
+                });
                 return JsonSchema.of(resolvedSchema);
             });
         });
+    }
+
+    /**
+     * Builds a provenance comment when the resolved reference key uses registry GAV coordinates:
+     * {@code groupId:artifactId:version:referenceName}.
+     * <p>
+     * Format: {@code referenceName:groupId/artifactId:version}
+     * <p>
+     * Plain logical names (e.g. {@code customer.json}) return empty so existing unit fixtures stay stable.
+     */
+    static Optional<String> buildOriginalRefComment(String referenceKey) {
+        if (referenceKey == null || referenceKey.isBlank()) {
+            return Optional.empty();
+        }
+        JsonPointerExternalReference externalRef = new JsonPointerExternalReference(referenceKey);
+        String resource = externalRef.getResource();
+        if (resource == null) {
+            return Optional.empty();
+        }
+        String[] parts = resource.split(":", 4);
+        if (parts.length < 4) {
+            return Optional.empty();
+        }
+        String groupId = parts[0];
+        String artifactId = parts[1];
+        String version = parts[2];
+        String name = parts[3];
+        if (groupId.isBlank() || artifactId.isBlank() || version.isBlank() || name.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.of(name + ":" + groupId + "/" + artifactId + ":" + version);
     }
 
     /**

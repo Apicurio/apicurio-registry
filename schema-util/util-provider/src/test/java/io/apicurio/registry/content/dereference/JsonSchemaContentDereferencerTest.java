@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.apicurio.registry.utils.tests.TestUtils.normalizeMultiLineString;
@@ -165,6 +166,45 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         Set<ExternalReference> externalReferences = finder.findExternalReferences(modifiedContent);
         Assertions.assertTrue(externalReferences
                 .contains(new JsonPointerExternalReference("https://www.example.org/schemas/customer.json")));
+    }
+
+    /**
+     * When resolved refs use registry GAV coordinates (as after rewrite-with-context),
+     * dereferencing should keep provenance in $comment on the inlined schema.
+     */
+    @Test
+    public void testDereferencePreservesOriginalRefComment() throws Exception {
+        TypedContent content = TypedContent.create(resourceToContentHandle("order.json"),
+                ContentTypes.APPLICATION_JSON);
+        JsonSchemaDereferencer dereferencer = new JsonSchemaDereferencer();
+
+        String gavRef = "orders:Customer:1:customer.json";
+        TypedContent rewritten = dereferencer.rewriteReferences(content, Map.of("customer.json", gavRef));
+
+        Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+        resolvedReferences.put(gavRef, TypedContent.create(resourceToContentHandle("customer.json"),
+                ContentTypes.APPLICATION_JSON));
+
+        TypedContent modifiedContent = dereferencer.dereference(rewritten, resolvedReferences);
+        String dereferenced = modifiedContent.getContent().content();
+
+        Assertions.assertTrue(dereferenced.contains("\"$comment\""),
+                "expected $comment provenance on inlined schema");
+        Assertions.assertTrue(dereferenced.contains("customer.json:orders/Customer:1"),
+                "expected GAV provenance in $comment, got: " + dereferenced);
+        // original $ref should be gone
+        Assertions.assertFalse(dereferenced.contains("\"$ref\""));
+    }
+
+    @Test
+    public void testBuildOriginalRefComment() {
+        Assertions.assertEquals(Optional.of("customer.json:orders/Customer:1"),
+                JsonSchemaDereferencer.buildOriginalRefComment("orders:Customer:1:customer.json"));
+        Assertions.assertEquals(Optional.of("types/all-types.json:default/City:2"),
+                JsonSchemaDereferencer
+                        .buildOriginalRefComment("default:City:2:types/all-types.json#/definitions/City"));
+        Assertions.assertTrue(JsonSchemaDereferencer.buildOriginalRefComment("customer.json").isEmpty());
+        Assertions.assertTrue(JsonSchemaDereferencer.buildOriginalRefComment(null).isEmpty());
     }
 
     /**

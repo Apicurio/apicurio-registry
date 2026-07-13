@@ -80,18 +80,17 @@ jobs:
           name: build-artifacts-${{ github.sha }}
           path: |
             app/target/
+            cli/target/
             common/target/
             contracts-rules/target/
             schema-resolver/target/
             config-index/*/target/
+            distro/*/target/
+            java-sdk/*/target/
             schema-util/*/target/
             schema-validation/*/target/
-            java-sdk/*/target/
-            utils/*/target/
             serdes/*/*/target/
-            distro/docker/target/
-            distro/connect-converter/target/
-            cli/target/
+            utils/*/target/
             mcp/target/docker/
           retention-days: 1
 

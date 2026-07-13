@@ -38,7 +38,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -74,7 +73,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
 
                     @Override
                     public long expireAfterUpdate(String key, TokenReviewResult value, long currentTime, long currentDuration) {
-                        return currentDuration;
+                        return expireAfterCreate(key, value, currentTime);
                     }
 
                     @Override
@@ -108,11 +107,10 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
         String tokenHash = sha256(token);
 
         CompletableFuture<TokenReviewResult> future = cache.get(tokenHash, (k, executor) -> 
-                CompletableFuture.supplyAsync(() -> performTokenReview(token, k), Infrastructure.getDefaultWorkerPool())
+                CompletableFuture.supplyAsync(() -> performTokenReview(token), Infrastructure.getDefaultWorkerPool())
         );
 
         return Uni.createFrom().completionStage(future)
-                .onItem().ifNull().switchTo(Uni.createFrom()::nullItem)
                 .onItem().transformToUni(result -> {
                     if (!result.authenticated) {
                         return Uni.createFrom().nullItem();
@@ -123,7 +121,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
                 });
     }
 
-    private TokenReviewResult performTokenReview(String token, String tokenHash) {
+    private TokenReviewResult performTokenReview(String token) {
         try {
             TokenReviewSpec spec = new TokenReviewSpec();
             spec.setToken(token);
@@ -184,7 +182,11 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
             byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
             StringBuilder hex = new StringBuilder(hash.length * 2);
             for (byte b : hash) {
-                hex.append(String.format(Locale.ROOT, "%02x", b));
+                int val = b & 0xff;
+                if (val < 16) {
+                    hex.append('0');
+                }
+                hex.append(Integer.toHexString(val));
             }
             return hex.toString();
         } catch (NoSuchAlgorithmException e) {

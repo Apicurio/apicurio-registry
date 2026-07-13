@@ -237,31 +237,27 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
     }
 
-    /**
-     * Waits for the Apicurio Registry to be ready by checking the REST API health endpoint.
-     * Uses the external LoadBalancer service to check readiness via localhost.
-     */
     static void waitForRegistryReady() {
         LOGGER.info("Waiting for Apicurio Registry to be accessible via LoadBalancer ##################################################");
 
         try {
-            // In minikube with tunnel, the service should be accessible via localhost
-            // Let's wait a bit and then try to connect
-            Thread.sleep(10000); // Give minikube tunnel time to set up the route
+            Thread.sleep(10000);
 
-            // Try to connect to the Registry REST API
             String registryUrl = "http://" + System.getProperty("quarkus.http.test-host") + ":9000/health/ready";
             LOGGER.info("Checking Registry readiness at: {}", registryUrl);
 
             int maxAttempts = 30;
             int attempt = 0;
             boolean ready = false;
+            int connectionRefusedCount = 0;
+            int httpResponseCount = 0;
+            int lastStatusCode = -1;
 
             while (attempt < maxAttempts && !ready) {
+                java.net.HttpURLConnection conn = null;
                 try {
-                    // Simple HTTP GET to check if service is responding
                     java.net.URL url = new java.net.URL(registryUrl);
-                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn = (java.net.HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("GET");
                     conn.setConnectTimeout(2000);
                     conn.setReadTimeout(2000);
@@ -271,20 +267,41 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                         ready = true;
                         LOGGER.info("Apicurio Registry is ready!");
                     } else {
-                        LOGGER.debug("Registry returned status code: {}", responseCode);
+                        httpResponseCount++;
+                        lastStatusCode = responseCode;
+                        LOGGER.info("Attempt {}/{}: Apicurio Registry starting up (HTTP {})",
+                                attempt + 1, maxAttempts, responseCode);
                     }
-                    conn.disconnect();
                 } catch (Exception e) {
-                    LOGGER.debug("Attempt {}/{}: Registry not ready yet: {}",
+                    LOGGER.info("Attempt {}/{}: Apicurio Registry not reachable ({})",
                             attempt + 1, maxAttempts, e.getMessage());
+                    connectionRefusedCount++;
+                } finally {
+                    if (conn != null) {
+                        conn.disconnect();
+                    }
+                }
+                if (!ready) {
                     Thread.sleep(2000);
                 }
                 attempt++;
             }
 
             if (!ready) {
-                throw new RuntimeException("Apicurio Registry did not become ready after " + maxAttempts + " attempts. " +
-                        "Make sure 'minikube tunnel' is running and LoadBalancer services are accessible.");
+                String diagnosis;
+                if (httpResponseCount == 0) {
+                    diagnosis = "All " + maxAttempts + " attempts got Connection refused — " +
+                            "this is a routing issue, not a startup timeout. Check minikube tunnel status.";
+                } else if (connectionRefusedCount == 0) {
+                    diagnosis = "All attempts reached the server but never got HTTP 200 (last status: " +
+                            lastStatusCode + ") — startup is too slow or the service is unhealthy.";
+                } else {
+                    diagnosis = "Mixed signals: " + connectionRefusedCount + " Connection refused, " +
+                            httpResponseCount + " HTTP responses (last status: " + lastStatusCode +
+                            "). Service was intermittently reachable.";
+                }
+                LOGGER.error("Apicurio Registry readiness check failed. Diagnosis: {}", diagnosis);
+                throw new RuntimeException("Apicurio Registry did not become ready after " + maxAttempts + " attempts. " + diagnosis);
             }
 
         } catch (InterruptedException e) {

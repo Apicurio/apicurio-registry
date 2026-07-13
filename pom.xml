@@ -286,7 +286,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
-    <kiota.community.version>0.0.36</kiota.community.version>
+    <kiota.community.version>0.0.37</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->

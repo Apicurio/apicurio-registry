@@ -6194,6 +6194,157 @@
           }
         }
       }
+    },
+    "/search/federated": {
+      "get": {
+        "summary": "Federated Search for AI agents across peer registries.",
+        "description": "Searches for AI agent cards (Artifacts) across the local registry and all configured peer registries.",
+        "operationId": "searchFederated",
+        "tags": [
+          "Search",
+          "Artifacts",
+          "Federation"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Filter by artifact name.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "The number of artifacts to skip before starting to collect the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The number of artifacts to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "order",
+            "description": "Sort order, ascending (`asc`) or descending (`desc`).",
+            "schema": {
+              "$ref": "#/components/schemas/SortOrder"
+            },
+            "in": "query"
+          },
+          {
+            "name": "orderby",
+            "description": "The field to sort by.  Can be one of:\n\n* `name`\n* `createdOn`\n",
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactSortBy"
+            },
+            "in": "query"
+          },
+          {
+            "name": "labels",
+            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "description",
+            "description": "Filter by description.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "groupId",
+            "description": "Filter by artifact group.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "globalId",
+            "description": "Filter by globalId.",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "contentId",
+            "description": "Filter by contentId.",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "artifactId",
+            "description": "Filter by artifactId.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "artifactType",
+            "description": "Filter by artifact type (`AVRO`, `JSON`, etc).",
+            "schema": {
+              "$ref": "#/components/schemas/ArtifactType"
+            },
+            "in": "query"
+          },
+          {
+            "name": "skipCount",
+            "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactSearchResults"
+                }
+              }
+            },
+            "description": "On a successful response, returns a result set of artifacts - one for each artifact\nin the registry that matches the criteria."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
     }
   },
   "components": {

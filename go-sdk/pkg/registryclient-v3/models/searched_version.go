@@ -1,494 +1,460 @@
 package models
 
 import (
-	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
-	i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e "time"
+    i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e "time"
+    i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
 // SearchedVersion models a single artifact from the result set returned when searching for artifacts.
 type SearchedVersion struct {
-	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-	additionalData map[string]any
-	// The ID of a single artifact.
-	artifactId *string
-	// The artifactType property
-	artifactType *string
-	// The contentId property
-	contentId *int64
-	// The createdOn property
-	createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	// The description property
-	description *string
-	// The globalId property
-	globalId *int64
-	// An ID of a single artifact group.
-	groupId *string
-	// User-defined name-value pairs. Name and value must be strings.
-	labels Labelsable
-	// The modifiedBy property
-	modifiedBy *string
-	// The modifiedOn property
-	modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	// The name property
-	name *string
-	// The owner property
-	owner *string
-	// Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
-	state *VersionState
-	// A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
-	version *string
+    // Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+    additionalData map[string]any
+    // The ID of a single artifact.
+    artifactId *string
+    // The artifactType property
+    artifactType *string
+    // The contentId property
+    contentId *int64
+    // The createdOn property
+    createdOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+    // The description property
+    description *string
+    // The globalId property
+    globalId *int64
+    // An ID of a single artifact group.
+    groupId *string
+    // User-defined name-value pairs. Name and value must be strings.
+    labels Labelsable
+    // The modifiedBy property
+    modifiedBy *string
+    // The modifiedOn property
+    modifiedOn *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
+    // The name property
+    name *string
+    // The owner property
+    owner *string
+    // Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
+    state *VersionState
+    // A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
+    version *string
 }
-
 // NewSearchedVersion instantiates a new SearchedVersion and sets the default values.
-func NewSearchedVersion() *SearchedVersion {
-	m := &SearchedVersion{}
-	m.SetAdditionalData(make(map[string]any))
-	return m
+func NewSearchedVersion()(*SearchedVersion) {
+    m := &SearchedVersion{
+    }
+    m.SetAdditionalData(make(map[string]any))
+    return m
 }
-
 // CreateSearchedVersionFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
 // returns a Parsable when successful
-func CreateSearchedVersionFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
-	return NewSearchedVersion(), nil
+func CreateSearchedVersionFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
+    return NewSearchedVersion(), nil
 }
-
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 // returns a map[string]any when successful
-func (m *SearchedVersion) GetAdditionalData() map[string]any {
-	return m.additionalData
+func (m *SearchedVersion) GetAdditionalData()(map[string]any) {
+    return m.additionalData
 }
-
 // GetArtifactId gets the artifactId property value. The ID of a single artifact.
 // returns a *string when successful
-func (m *SearchedVersion) GetArtifactId() *string {
-	return m.artifactId
+func (m *SearchedVersion) GetArtifactId()(*string) {
+    return m.artifactId
 }
-
 // GetArtifactType gets the artifactType property value. The artifactType property
 // returns a *string when successful
-func (m *SearchedVersion) GetArtifactType() *string {
-	return m.artifactType
+func (m *SearchedVersion) GetArtifactType()(*string) {
+    return m.artifactType
 }
-
 // GetContentId gets the contentId property value. The contentId property
 // returns a *int64 when successful
-func (m *SearchedVersion) GetContentId() *int64 {
-	return m.contentId
+func (m *SearchedVersion) GetContentId()(*int64) {
+    return m.contentId
 }
-
 // GetCreatedOn gets the createdOn property value. The createdOn property
 // returns a *Time when successful
-func (m *SearchedVersion) GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
-	return m.createdOn
+func (m *SearchedVersion) GetCreatedOn()(*i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
+    return m.createdOn
 }
-
 // GetDescription gets the description property value. The description property
 // returns a *string when successful
-func (m *SearchedVersion) GetDescription() *string {
-	return m.description
+func (m *SearchedVersion) GetDescription()(*string) {
+    return m.description
 }
-
 // GetFieldDeserializers the deserialization information for the current model
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
-func (m *SearchedVersion) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
-	res["artifactId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetArtifactId(val)
-		}
-		return nil
-	}
-	res["artifactType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetArtifactType(val)
-		}
-		return nil
-	}
-	res["contentId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetInt64Value()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetContentId(val)
-		}
-		return nil
-	}
-	res["createdOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetTimeValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetCreatedOn(val)
-		}
-		return nil
-	}
-	res["description"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetDescription(val)
-		}
-		return nil
-	}
-	res["globalId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetInt64Value()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetGlobalId(val)
-		}
-		return nil
-	}
-	res["groupId"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetGroupId(val)
-		}
-		return nil
-	}
-	res["labels"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetLabels(val.(Labelsable))
-		}
-		return nil
-	}
-	res["modifiedBy"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetModifiedBy(val)
-		}
-		return nil
-	}
-	res["modifiedOn"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetTimeValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetModifiedOn(val)
-		}
-		return nil
-	}
-	res["name"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetName(val)
-		}
-		return nil
-	}
-	res["owner"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetOwner(val)
-		}
-		return nil
-	}
-	res["state"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetEnumValue(ParseVersionState)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetState(val.(*VersionState))
-		}
-		return nil
-	}
-	res["version"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetVersion(val)
-		}
-		return nil
-	}
-	return res
+func (m *SearchedVersion) GetFieldDeserializers()(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error)) {
+    res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error))
+    res["artifactId"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetArtifactId(val)
+        }
+        return nil
+    }
+    res["artifactType"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetArtifactType(val)
+        }
+        return nil
+    }
+    res["contentId"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetInt64Value()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetContentId(val)
+        }
+        return nil
+    }
+    res["createdOn"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetTimeValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetCreatedOn(val)
+        }
+        return nil
+    }
+    res["description"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetDescription(val)
+        }
+        return nil
+    }
+    res["globalId"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetInt64Value()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetGlobalId(val)
+        }
+        return nil
+    }
+    res["groupId"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetGroupId(val)
+        }
+        return nil
+    }
+    res["labels"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetObjectValue(CreateLabelsFromDiscriminatorValue)
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetLabels(val.(Labelsable))
+        }
+        return nil
+    }
+    res["modifiedBy"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetModifiedBy(val)
+        }
+        return nil
+    }
+    res["modifiedOn"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetTimeValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetModifiedOn(val)
+        }
+        return nil
+    }
+    res["name"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetName(val)
+        }
+        return nil
+    }
+    res["owner"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetOwner(val)
+        }
+        return nil
+    }
+    res["state"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetEnumValue(ParseVersionState)
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetState(val.(*VersionState))
+        }
+        return nil
+    }
+    res["version"] = func (n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+        val, err := n.GetStringValue()
+        if err != nil {
+            return err
+        }
+        if val != nil {
+            m.SetVersion(val)
+        }
+        return nil
+    }
+    return res
 }
-
 // GetGlobalId gets the globalId property value. The globalId property
 // returns a *int64 when successful
-func (m *SearchedVersion) GetGlobalId() *int64 {
-	return m.globalId
+func (m *SearchedVersion) GetGlobalId()(*int64) {
+    return m.globalId
 }
-
 // GetGroupId gets the groupId property value. An ID of a single artifact group.
 // returns a *string when successful
-func (m *SearchedVersion) GetGroupId() *string {
-	return m.groupId
+func (m *SearchedVersion) GetGroupId()(*string) {
+    return m.groupId
 }
-
 // GetLabels gets the labels property value. User-defined name-value pairs. Name and value must be strings.
 // returns a Labelsable when successful
-func (m *SearchedVersion) GetLabels() Labelsable {
-	return m.labels
+func (m *SearchedVersion) GetLabels()(Labelsable) {
+    return m.labels
 }
-
 // GetModifiedBy gets the modifiedBy property value. The modifiedBy property
 // returns a *string when successful
-func (m *SearchedVersion) GetModifiedBy() *string {
-	return m.modifiedBy
+func (m *SearchedVersion) GetModifiedBy()(*string) {
+    return m.modifiedBy
 }
-
 // GetModifiedOn gets the modifiedOn property value. The modifiedOn property
 // returns a *Time when successful
-func (m *SearchedVersion) GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time {
-	return m.modifiedOn
+func (m *SearchedVersion) GetModifiedOn()(*i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
+    return m.modifiedOn
 }
-
 // GetName gets the name property value. The name property
 // returns a *string when successful
-func (m *SearchedVersion) GetName() *string {
-	return m.name
+func (m *SearchedVersion) GetName()(*string) {
+    return m.name
 }
-
 // GetOwner gets the owner property value. The owner property
 // returns a *string when successful
-func (m *SearchedVersion) GetOwner() *string {
-	return m.owner
+func (m *SearchedVersion) GetOwner()(*string) {
+    return m.owner
 }
-
 // GetState gets the state property value. Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
 // returns a *VersionState when successful
-func (m *SearchedVersion) GetState() *VersionState {
-	return m.state
+func (m *SearchedVersion) GetState()(*VersionState) {
+    return m.state
 }
-
 // GetVersion gets the version property value. A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
 // returns a *string when successful
-func (m *SearchedVersion) GetVersion() *string {
-	return m.version
+func (m *SearchedVersion) GetVersion()(*string) {
+    return m.version
 }
-
 // Serialize serializes information the current object
-func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
-	{
-		err := writer.WriteStringValue("artifactId", m.GetArtifactId())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("artifactType", m.GetArtifactType())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteInt64Value("contentId", m.GetContentId())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("description", m.GetDescription())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteInt64Value("globalId", m.GetGlobalId())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("groupId", m.GetGroupId())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteObjectValue("labels", m.GetLabels())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("modifiedBy", m.GetModifiedBy())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteTimeValue("modifiedOn", m.GetModifiedOn())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("name", m.GetName())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("owner", m.GetOwner())
-		if err != nil {
-			return err
-		}
-	}
-	if m.GetState() != nil {
-		cast := (*m.GetState()).String()
-		err := writer.WriteStringValue("state", &cast)
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("version", m.GetVersion())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteAdditionalData(m.GetAdditionalData())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (m *SearchedVersion) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter)(error) {
+    {
+        err := writer.WriteStringValue("artifactId", m.GetArtifactId())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteStringValue("artifactType", m.GetArtifactType())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteInt64Value("contentId", m.GetContentId())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteTimeValue("createdOn", m.GetCreatedOn())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteStringValue("description", m.GetDescription())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteInt64Value("globalId", m.GetGlobalId())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteStringValue("groupId", m.GetGroupId())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteObjectValue("labels", m.GetLabels())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteStringValue("modifiedBy", m.GetModifiedBy())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteTimeValue("modifiedOn", m.GetModifiedOn())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteStringValue("name", m.GetName())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteStringValue("owner", m.GetOwner())
+        if err != nil {
+            return err
+        }
+    }
+    if m.GetState() != nil {
+        cast := (*m.GetState()).String()
+        err := writer.WriteStringValue("state", &cast)
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteStringValue("version", m.GetVersion())
+        if err != nil {
+            return err
+        }
+    }
+    {
+        err := writer.WriteAdditionalData(m.GetAdditionalData())
+        if err != nil {
+            return err
+        }
+    }
+    return nil
 }
-
 // SetAdditionalData sets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-func (m *SearchedVersion) SetAdditionalData(value map[string]any) {
-	m.additionalData = value
+func (m *SearchedVersion) SetAdditionalData(value map[string]any)() {
+    m.additionalData = value
 }
-
 // SetArtifactId sets the artifactId property value. The ID of a single artifact.
-func (m *SearchedVersion) SetArtifactId(value *string) {
-	m.artifactId = value
+func (m *SearchedVersion) SetArtifactId(value *string)() {
+    m.artifactId = value
 }
-
 // SetArtifactType sets the artifactType property value. The artifactType property
-func (m *SearchedVersion) SetArtifactType(value *string) {
-	m.artifactType = value
+func (m *SearchedVersion) SetArtifactType(value *string)() {
+    m.artifactType = value
 }
-
 // SetContentId sets the contentId property value. The contentId property
-func (m *SearchedVersion) SetContentId(value *int64) {
-	m.contentId = value
+func (m *SearchedVersion) SetContentId(value *int64)() {
+    m.contentId = value
 }
-
 // SetCreatedOn sets the createdOn property value. The createdOn property
-func (m *SearchedVersion) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
-	m.createdOn = value
+func (m *SearchedVersion) SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)() {
+    m.createdOn = value
 }
-
 // SetDescription sets the description property value. The description property
-func (m *SearchedVersion) SetDescription(value *string) {
-	m.description = value
+func (m *SearchedVersion) SetDescription(value *string)() {
+    m.description = value
 }
-
 // SetGlobalId sets the globalId property value. The globalId property
-func (m *SearchedVersion) SetGlobalId(value *int64) {
-	m.globalId = value
+func (m *SearchedVersion) SetGlobalId(value *int64)() {
+    m.globalId = value
 }
-
 // SetGroupId sets the groupId property value. An ID of a single artifact group.
-func (m *SearchedVersion) SetGroupId(value *string) {
-	m.groupId = value
+func (m *SearchedVersion) SetGroupId(value *string)() {
+    m.groupId = value
 }
-
 // SetLabels sets the labels property value. User-defined name-value pairs. Name and value must be strings.
-func (m *SearchedVersion) SetLabels(value Labelsable) {
-	m.labels = value
+func (m *SearchedVersion) SetLabels(value Labelsable)() {
+    m.labels = value
 }
-
 // SetModifiedBy sets the modifiedBy property value. The modifiedBy property
-func (m *SearchedVersion) SetModifiedBy(value *string) {
-	m.modifiedBy = value
+func (m *SearchedVersion) SetModifiedBy(value *string)() {
+    m.modifiedBy = value
 }
-
 // SetModifiedOn sets the modifiedOn property value. The modifiedOn property
-func (m *SearchedVersion) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time) {
-	m.modifiedOn = value
+func (m *SearchedVersion) SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)() {
+    m.modifiedOn = value
 }
-
 // SetName sets the name property value. The name property
-func (m *SearchedVersion) SetName(value *string) {
-	m.name = value
+func (m *SearchedVersion) SetName(value *string)() {
+    m.name = value
 }
-
 // SetOwner sets the owner property value. The owner property
-func (m *SearchedVersion) SetOwner(value *string) {
-	m.owner = value
+func (m *SearchedVersion) SetOwner(value *string)() {
+    m.owner = value
 }
-
 // SetState sets the state property value. Describes the state of an artifact or artifact version.* ENABLED* DISABLED* DEPRECATED* DRAFT* SUNSET — Signals that a migration deadline has passed and the version will be removed. Requires transitioning through DEPRECATED first. Added in 3.3.0.
-func (m *SearchedVersion) SetState(value *VersionState) {
-	m.state = value
+func (m *SearchedVersion) SetState(value *VersionState)() {
+    m.state = value
 }
-
 // SetVersion sets the version property value. A single version of an artifact.  Can be provided by the client when creating a new version,or it can be server-generated.  The value can be any string unique to the artifact, but it isrecommended to use a simple integer or a semver value.
-func (m *SearchedVersion) SetVersion(value *string) {
-	m.version = value
+func (m *SearchedVersion) SetVersion(value *string)() {
+    m.version = value
 }
-
 type SearchedVersionable interface {
-	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
-	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
-	GetArtifactId() *string
-	GetArtifactType() *string
-	GetContentId() *int64
-	GetCreatedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	GetDescription() *string
-	GetGlobalId() *int64
-	GetGroupId() *string
-	GetLabels() Labelsable
-	GetModifiedBy() *string
-	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
-	GetName() *string
-	GetOwner() *string
-	GetState() *VersionState
-	GetVersion() *string
-	SetArtifactId(value *string)
-	SetArtifactType(value *string)
-	SetContentId(value *int64)
-	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
-	SetDescription(value *string)
-	SetGlobalId(value *int64)
-	SetGroupId(value *string)
-	SetLabels(value Labelsable)
-	SetModifiedBy(value *string)
-	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
-	SetName(value *string)
-	SetOwner(value *string)
-	SetState(value *VersionState)
-	SetVersion(value *string)
+    i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
+    i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+    GetArtifactId()(*string)
+    GetArtifactType()(*string)
+    GetContentId()(*int64)
+    GetCreatedOn()(*i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
+    GetDescription()(*string)
+    GetGlobalId()(*int64)
+    GetGroupId()(*string)
+    GetLabels()(Labelsable)
+    GetModifiedBy()(*string)
+    GetModifiedOn()(*i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
+    GetName()(*string)
+    GetOwner()(*string)
+    GetState()(*VersionState)
+    GetVersion()(*string)
+    SetArtifactId(value *string)()
+    SetArtifactType(value *string)()
+    SetContentId(value *int64)()
+    SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)()
+    SetDescription(value *string)()
+    SetGlobalId(value *int64)()
+    SetGroupId(value *string)()
+    SetLabels(value Labelsable)()
+    SetModifiedBy(value *string)()
+    SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)()
+    SetName(value *string)()
+    SetOwner(value *string)()
+    SetState(value *VersionState)()
+    SetVersion(value *string)()
 }

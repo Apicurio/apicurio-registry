@@ -64,6 +64,9 @@ public class SearchResourceImpl implements SearchResource {
     RegistryStorage storage;
 
     @Inject
+    io.apicurio.registry.services.FederatedSearchService federatedSearchService;
+
+    @Inject
     OTelMetricsProvider otelMetrics;
 
     @Context
@@ -141,6 +144,22 @@ public class SearchResourceImpl implements SearchResource {
                 limit.intValue(), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifacts");
         return V3ApiUtil.dtoToSearchResults(results);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public ArtifactSearchResults searchFederated(String name, BigInteger offset, BigInteger limit,
+            SortOrder order, ArtifactSortBy orderby, List<String> labels, String description, String groupId,
+            Long globalId, Long contentId, String artifactId, String artifactType, Boolean skipCount) {
+        
+        // 1. Fetch local results
+        ArtifactSearchResults localResults = searchArtifacts(name, offset, limit, order, orderby, labels, description, groupId, globalId, contentId, artifactId, artifactType, skipCount);
+        
+        // 2. Federate query to peers and merge
+        ArtifactSearchResults federatedResults = federatedSearchService.federateSearch(localResults, name, description, labels);
+        
+        otelMetrics.recordSearchRequest("artifacts_federated");
+        return federatedResults;
     }
 
     @Override

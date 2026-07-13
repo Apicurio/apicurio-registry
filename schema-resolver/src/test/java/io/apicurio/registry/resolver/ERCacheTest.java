@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.cache.ERCache;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
@@ -117,6 +118,46 @@ public class ERCacheTest {
         assertThrows(RuntimeException.class, () -> {
             cache.getByContentHash(contentHashKey, staticValueLoader);
         });
+    }
+
+    /**
+     * Regression for #5236: Registry/client failures must surface as the original exception
+     * (not wrapped in a generic cache RuntimeException that hides the Registry response).
+     */
+    @Test
+    void testPreservesOriginalLoadException() {
+        String contentHashKey = "preserve-original-error";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureRetryCount(0);
+
+        IllegalStateException original = new IllegalStateException(
+                "Registry rejected schema: validity rule failed");
+        Function<String, String> failingLoader = (key) -> {
+            throw original;
+        };
+
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> cache.getByContentHash(contentHashKey, failingLoader));
+
+        assertEquals(original, thrown);
+        assertEquals("Registry rejected schema: validity rule failed", thrown.getMessage());
+    }
+
+    @Test
+    void testDescribeRegistryErrorIncludesHttpStatusFromApiException() {
+        ApiException apiException = new TestApiException(409,
+                "RuleViolationProblemDetails: BACKWARD incompatible");
+
+        String description = ERCache.describeRegistryError(apiException);
+        assertTrue(description.contains("409"));
+        assertTrue(description.contains("BACKWARD incompatible"));
+    }
+
+    private static class TestApiException extends ApiException {
+        TestApiException(int statusCode, String message) {
+            super(message);
+            setResponseStatusCode(statusCode);
+        }
     }
 
     @Test

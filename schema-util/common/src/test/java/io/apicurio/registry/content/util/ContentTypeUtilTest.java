@@ -45,4 +45,22 @@ public class ContentTypeUtilTest {
         ContentHandle content = ContentHandle.create(billionLaughs);
         Assertions.assertFalse(ContentTypeUtil.isParsableXml(content));
     }
+
+    @Test
+    public void testIsParsableGraphQL() {
+        ContentHandle content = ContentHandle.create("type Query { hello: String }");
+        Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(content));
+        
+        ContentHandle content2 = ContentHandle.create("schema { query: Query }");
+        Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(content2));
+
+        ContentHandle notGraphql = ContentHandle.create("message Hello { string msg = 1; }");
+        Assertions.assertFalse(ContentTypeUtil.isParsableGraphQL(notGraphql));
+    }
+
+    @Test
+    public void testDetermineContentType_GraphQL() {
+        ContentHandle content = ContentHandle.create("type Query { hello: String }");
+        Assertions.assertEquals(io.apicurio.registry.types.ContentTypes.APPLICATION_GRAPHQL, ContentTypeUtil.determineContentType(content));
+    }
 }

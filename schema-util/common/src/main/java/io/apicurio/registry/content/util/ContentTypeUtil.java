@@ -174,10 +174,34 @@ public final class ContentTypeUtil {
         return node;
     }
 
-    // FIXME this doesn't work for GraphQL
+    /**
+     * Returns true if the content is likely a GraphQL schema.
+     */
+    public static boolean isParsableGraphQL(ContentHandle content) {
+        try {
+            String text = content.content().trim();
+            if (text.startsWith("{") || text.startsWith("<")) {
+                return false;
+            }
+            // Basic heuristics to differentiate GraphQL from Protobuf
+            return text.contains("type ") || 
+                   text.contains("interface ") || 
+                   text.contains("scalar ") || 
+                   text.contains("union ") ||
+                   text.contains("input ") ||
+                   text.contains("schema {") ||
+                   text.contains("directive @");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static String determineContentType(ContentHandle content) {
         if (isParsableJson(content)) {
             return CT_APPLICATION_JSON;
+        }
+        if (isParsableGraphQL(content)) {
+            return ContentTypes.APPLICATION_GRAPHQL;
         }
         if (isParsableYaml(content)) {
             return CT_APPLICATION_YAML;

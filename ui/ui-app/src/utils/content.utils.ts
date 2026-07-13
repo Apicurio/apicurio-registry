@@ -163,25 +163,46 @@ export const draftContentToLanguage = (content: DraftContent): string => {
     return "json";
 };
 
+/**
+ * Maps a content type string to the appropriate file extension.
+ * @param contentType the content type (e.g. "application/json", "application/x-yaml")
+ * @returns the file extension without the leading dot (e.g. "json", "yaml")
+ */
+export function fileExtensionForContentType(contentType: string): string {
+    if (contentType === ContentTypes.APPLICATION_JSON) {
+        return "json";
+    }
+    if (contentType === ContentTypes.APPLICATION_YAML) {
+        return "yaml";
+    }
+    if (contentType === ContentTypes.APPLICATION_XML || contentType === ContentTypes.TEXT_XML) {
+        return "xml";
+    }
+    if (contentType === ContentTypes.APPLICATION_WSDL) {
+        return "wsdl";
+    }
+    if (contentType === ContentTypes.APPLICATION_PROTOBUF) {
+        return "proto";
+    }
+    if (contentType === ContentTypes.APPLICATION_GRAPHQL) {
+        return "graphql";
+    }
+    if (contentType === ContentTypes.APPLICATION_THRIFT) {
+        return "thrift";
+    }
+    return "txt";
+}
+
 export function fileExtensionForDraft(draft: Draft, content: DraftContent): string {
     if (draft.type === ArtifactTypes.PROTOBUF) {
         return "proto";
     }
 
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_JSON) {
-        return "json";
-    }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_YAML) {
-        return "yaml";
-    }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_XML) {
-        return "xml";
-    }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_WSDL) {
-        return "wsdl";
-    }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_GRAPHQL) {
-        return "graphql";
+    if (content.contentType) {
+        const ext: string = fileExtensionForContentType(content.contentType);
+        if (ext !== "txt") {
+            return ext;
+        }
     }
 
     return "txt";

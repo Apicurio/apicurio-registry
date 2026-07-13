@@ -25,7 +25,7 @@ import {
     MetaData,
     RootPageHeader
 } from "@app/components";
-import { ContentTypes } from "@models/ContentTypes.ts";
+import { detectContentType, fileExtensionForContentType } from "@utils/content.utils.ts";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
@@ -176,31 +176,15 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const doDownloadVersion = (): void => {
         const content: string = versionContent;
 
-        let contentType: string = ContentTypes.APPLICATION_JSON;
-        let fext: string = "json";
-        if (artifact?.artifactType === ArtifactTypes.PROTOBUF) {
-            contentType = ContentTypes.APPLICATION_PROTOBUF;
-            fext = "proto";
-        }
+        const contentType: string = detectContentType(artifact?.artifactType, content);
+
+        let fext: string;
         if (artifact?.artifactType === ArtifactTypes.WSDL) {
-            contentType = ContentTypes.APPLICATION_XML;
             fext = "wsdl";
-        }
-        if (artifact?.artifactType === ArtifactTypes.XSD) {
-            contentType = ContentTypes.APPLICATION_XML;
+        } else if (artifact?.artifactType === ArtifactTypes.XSD) {
             fext = "xsd";
-        }
-        if (artifact?.artifactType === ArtifactTypes.XML) {
-            contentType = ContentTypes.APPLICATION_XML;
-            fext = "xml";
-        }
-        if (artifact?.artifactType === ArtifactTypes.GRAPHQL) {
-            contentType = ContentTypes.APPLICATION_JSON;
-            fext = "graphql";
-        }
-        if (artifact?.artifactType === ArtifactTypes.THRIFT) {
-            contentType = ContentTypes.APPLICATION_THRIFT;
-            fext = "thrift";
+        } else {
+            fext = fileExtensionForContentType(contentType);
         }
 
         const fname: string = nameOrId() + "." + fext;

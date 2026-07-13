@@ -200,6 +200,9 @@ public final class ContentTypeUtil {
     }
 
     public static String determineContentType(ContentHandle content) {
+        // Ensure content is fully materialized once, so multiple parse attempts
+        // don't depend on stream re-use.
+        content.bytes();
         if (isParsableJson(content)) {
             return CT_APPLICATION_JSON;
         }

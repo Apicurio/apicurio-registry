@@ -51,8 +51,11 @@ public class ContentTypeUtilTest {
         ContentHandle content = ContentHandle.create("type Query { hello: String }");
         Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(content));
         
-        ContentHandle content2 = ContentHandle.create("schema { query: Query }");
+        ContentHandle content2 = ContentHandle.create("schema{ query: Query }");
         Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(content2));
+
+        ContentHandle content3 = ContentHandle.create("type\tQuery { hello: String }");
+        Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(content3));
 
         ContentHandle notGraphql = ContentHandle.create("message Hello { string msg = 1; }");
         Assertions.assertFalse(ContentTypeUtil.isParsableGraphQL(notGraphql));

@@ -299,7 +299,9 @@ public class SqlSearchRepository {
 
             // Formulate the SELECT clause for the query
             selectTemplate.append(
-                    "SELECT {{selectColumns}} FROM versions v JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId");
+                    "SELECT {{selectColumns}} FROM versions v "
+                            + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                            + "JOIN content c ON v.contentId = c.contentId");
 
             // Formulate the WHERE clause for both queries
             where.append(" WHERE (1 = 1)");
@@ -414,7 +416,7 @@ public class SqlSearchRepository {
 
             // Query for the versions
             String versionsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type, c.refs");
             Query versionsQuery = handle.createQuery(versionsQuerySql);
             // Query for the total row count
             Query countQuery = null;

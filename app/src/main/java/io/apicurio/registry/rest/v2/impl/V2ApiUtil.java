@@ -25,11 +25,13 @@ import io.apicurio.registry.types.ArtifactState;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class V2ApiUtil {
 
@@ -294,6 +296,12 @@ public final class V2ApiUtil {
             sv.setState(ArtifactState.fromValue(version.getState().name()));
             sv.setType(version.getArtifactType());
             sv.setVersion(version.getVersion());
+            if (version.getReferences() != null) {
+                sv.setReferences(version.getReferences().stream()
+                        .map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList()));
+            } else {
+                sv.setReferences(Collections.emptyList());
+            }
             results.getVersions().add(sv);
         });
         return results;

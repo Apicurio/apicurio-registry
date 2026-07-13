@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
@@ -7,6 +8,8 @@ import io.apicurio.registry.types.VersionState;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
 
 public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
 
@@ -39,7 +42,17 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
         dto.setDescription(rs.getString("description"));
         dto.setArtifactType(rs.getString("type"));
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
+        dto.setReferences(readReferences(rs));
         return dto;
+    }
+
+    private static List<ArtifactReferenceDto> readReferences(ResultSet rs) throws SQLException {
+        try {
+            return RegistryContentUtils.deserializeReferences(rs.getString("refs"));
+        } catch (SQLException e) {
+            // Query did not select content.refs (e.g. count-only paths should not hit this mapper).
+            return Collections.emptyList();
+        }
     }
 
 }

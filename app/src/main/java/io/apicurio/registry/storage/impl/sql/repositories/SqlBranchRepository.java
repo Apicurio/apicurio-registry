@@ -330,7 +330,8 @@ public class SqlBranchRepository {
 
             selectTemplate.append("SELECT {{selectColumns}} FROM branch_versions bv "
                     + "JOIN versions v ON bv.groupId = v.groupId AND bv.artifactId = v.artifactId AND bv.version = v.version "
-                    + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId ");
+                    + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
+                    + "JOIN content c ON v.contentId = c.contentId ");
 
             where.append(" WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ?");
             binders.add((query, idx) -> query.bind(idx, ga.getRawGroupId()));
@@ -346,7 +347,7 @@ public class SqlBranchRepository {
             }
 
             String versionsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
-                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
+                    .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type, c.refs");
             Query versionsQuery = handle.createQuery(versionsQuerySql);
 
             String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()

@@ -10,6 +10,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 @NoArgsConstructor
@@ -36,5 +37,6 @@ public class SearchedVersionDto {
     private long contentId;
     private int versionOrder;
     private Map<String, String> labels;
+    private List<ArtifactReferenceDto> references;
 
 }

@@ -230,4 +230,36 @@ public class LegacyV2ApiTest extends AbstractResourceTestBase {
                         equalTo("Second version"));
     }
 
+    @Test
+    public void testVersionListIncludesReferences() throws Exception {
+        // Regression for #5224 — v2 version list must return references (OpenAPI requires the field).
+        String referencedContent = getRandomValidJsonSchemaContent();
+        var referenced = createArtifactExtendedRaw(GROUP, "testVersionListIncludesReferences-ref",
+                ArtifactType.JSON, referencedContent, ContentTypes.APPLICATION_JSON, List.of()).getVersion();
+
+        String referencingContent = getRandomValidJsonSchemaContent();
+        List<io.apicurio.registry.rest.v3.beans.ArtifactReference> references = List.of(
+                io.apicurio.registry.rest.v3.beans.ArtifactReference.builder()
+                        .groupId(referenced.getGroupId())
+                        .artifactId(referenced.getArtifactId())
+                        .version(referenced.getVersion())
+                        .name("foo")
+                        .build());
+
+        var referencing = createArtifactExtendedRaw(GROUP, "testVersionListIncludesReferences",
+                ArtifactType.JSON, referencingContent, ContentTypes.APPLICATION_JSON, references)
+                .getVersion();
+
+        given().when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", referencing.getArtifactId())
+                .get("/registry/v2/groups/{groupId}/artifacts/{artifactId}/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("versions[0].references.size()", equalTo(1))
+                .body("versions[0].references[0].name", equalTo("foo"))
+                .body("versions[0].references[0].artifactId", equalTo(referenced.getArtifactId()));
+    }
+
 }

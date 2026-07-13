@@ -17,8 +17,8 @@ Run a full build
 Initialize config.js
 `./init-dev.sh`
 
-Note: the init-dev.sh script just copies an appropriate file from configs/config-*.js to the right place.  You can 
-either specify `local` or `3scale` (for example) as the argument to the script.  The choice depends on how you are 
+Note: the init-dev.sh script copies configs/version.js and an appropriate configs/config-*.js into place.
+You can either specify `local` or `3scale` (for example) as the argument to the script.  The choice depends on how you are
 running the back-end component.
 
 Start the development server

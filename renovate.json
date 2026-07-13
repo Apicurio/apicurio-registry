@@ -41,6 +41,8 @@
       "matchStrings": [
         "<groupId>\\s*(?<depGroup>[^<\\s]+)\\s*</groupId>\\s*<artifactId>\\s*(?<depName>[^<\\s]+)\\s*</artifactId>\\s*<version>\\s*(?<currentValue>[^<\\s]+)\\s*</version>"
       ],
+      "depNameTemplate": "{{depGroup}}:{{depName}}",
+      "packageNameTemplate": "{{depGroup}}:{{depName}}",
       "datasourceTemplate": "maven"
     }
   ],

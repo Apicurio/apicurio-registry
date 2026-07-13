@@ -1269,19 +1269,22 @@
           "snapshots": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": true
             }
           },
           "snapshot-log": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": true
             }
           },
           "metadata-log": {
             "type": "array",
             "items": {
-              "type": "object"
+              "type": "object",
+              "additionalProperties": true
             }
           },
           "refs": {

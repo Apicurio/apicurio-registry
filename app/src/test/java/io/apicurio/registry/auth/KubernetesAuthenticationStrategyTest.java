@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -250,7 +251,7 @@ class KubernetesAuthenticationStrategyTest {
         // TokenReview API should only be called once
         verify(tokenReviewsOp).create(any(TokenReview.class));
         // Identity provider should be called twice (once per authenticate)
-        verify(identityProviderManager, org.mockito.Mockito.times(2))
+        verify(identityProviderManager, times(2))
                 .authenticate(any(KubernetesAuthenticationRequest.class));
     }
 
@@ -282,7 +283,7 @@ class KubernetesAuthenticationStrategyTest {
         strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
         strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
 
-        verify(kubernetesClient, org.mockito.Mockito.times(2)).tokenReviews();
+        verify(kubernetesClient, times(2)).tokenReviews();
     }
 
     @SuppressWarnings("unchecked")
@@ -326,7 +327,7 @@ class KubernetesAuthenticationStrategyTest {
 
         assertNull(aFirst);
         assertNotNull(bResult);
-        verify(kubernetesClient, org.mockito.Mockito.times(3)).tokenReviews();
+        verify(kubernetesClient, times(3)).tokenReviews();
     }
 
     @SuppressWarnings("unchecked")
@@ -352,7 +353,7 @@ class KubernetesAuthenticationStrategyTest {
         strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
 
         // The circuit never opened, so the API is called for all three distinct tokens.
-        verify(kubernetesClient, org.mockito.Mockito.times(3)).tokenReviews();
+        verify(kubernetesClient, times(3)).tokenReviews();
     }
 
     @SuppressWarnings("unchecked")
@@ -398,7 +399,7 @@ class KubernetesAuthenticationStrategyTest {
         assertNull(firstResult);
         assertNotNull(secondResult);
         assertEquals("recovered-user", secondResult.getPrincipal().getName());
-        verify(kubernetesClient, org.mockito.Mockito.times(2)).tokenReviews();
+        verify(kubernetesClient, times(2)).tokenReviews();
     }
 
     @Test

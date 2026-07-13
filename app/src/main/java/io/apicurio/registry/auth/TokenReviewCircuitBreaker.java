@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * A small, thread-safe circuit breaker guarding the Kubernetes TokenReview API.
@@ -47,10 +48,10 @@ class TokenReviewCircuitBreaker {
     private Instant openedAt;
 
     TokenReviewCircuitBreaker(int threshold, Duration openDuration, Clock clock, Logger log) {
-        this.threshold = threshold;
-        this.openDuration = openDuration;
-        this.clock = clock;
-        this.log = log;
+        this.threshold = Math.max(1, threshold);
+        this.openDuration = Objects.requireNonNull(openDuration, "openDuration");
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.log = Objects.requireNonNull(log, "log");
     }
 
     /**

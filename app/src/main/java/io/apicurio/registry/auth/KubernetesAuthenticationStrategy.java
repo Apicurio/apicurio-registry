@@ -114,7 +114,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
         Duration cacheDuration = Duration.ofMinutes(authConfig.kubernetesTokenCacheExpiration);
 
         if (!circuitBreaker.allowRequest()) {
-            log.warn("Kubernetes TokenReview call skipped: circuit breaker is open (K8s API unavailable)");
+            log.debug("Kubernetes TokenReview call skipped: circuit breaker is open (K8s API unavailable)");
             return null;
         }
 
@@ -130,6 +130,10 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
             TokenReview review = new TokenReview();
             review.setSpec(spec);
             TokenReview response = kubernetesClient.tokenReviews().create(review);
+            if (response == null) {
+                circuitBreaker.recordFailure();
+                return null;
+            }
             circuitBreaker.recordSuccess();
 
             TokenReviewStatus status = response.getStatus();

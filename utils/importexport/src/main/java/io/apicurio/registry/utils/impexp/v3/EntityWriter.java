@@ -8,6 +8,8 @@ import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -148,23 +150,25 @@ public class EntityWriter {
 
     private ZipEntry createZipEntry(EntityType type, String groupId, String artifactId, String fileName,
             String fileExt) {
-        // TODO encode groupId, artifactId, and filename as path elements
+        groupId = encode(groupOrDefault(groupId));
+        artifactId = encode(artifactId);
+        fileName = encode(fileName);
         String path = null;
         switch (type) {
             case ArtifactRule:
-                path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId),
+                path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupId,
                         artifactId, fileName, type.name(), fileExt);
                 break;
             case Artifact:
-                path = String.format("groups/%s/artifacts/%s/%s.%s.%s", groupOrDefault(groupId), artifactId,
+                path = String.format("groups/%s/artifacts/%s/%s.%s.%s", groupId, artifactId,
                         fileName, type.name(), fileExt);
                 break;
             case Branch:
-                path = String.format("groups/%s/artifacts/%s/branches/%s.%s.%s", groupOrDefault(groupId),
+                path = String.format("groups/%s/artifacts/%s/branches/%s.%s.%s", groupId,
                         artifactId, fileName, type.name(), fileExt);
                 break;
             case ArtifactVersion:
-                path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupOrDefault(groupId),
+                path = String.format("groups/%s/artifacts/%s/versions/%s.%s.%s", groupId,
                         artifactId, fileName, type.name(), fileExt);
                 break;
             case Content:
@@ -177,7 +181,7 @@ public class EntityWriter {
                 path = String.format("groups/%s.%s.%s", fileName, type.name(), fileExt);
                 break;
             case GroupRule:
-                path = String.format("groups/%s/rules/%s.%s.%s", groupOrDefault(groupId), fileName,
+                path = String.format("groups/%s/rules/%s.%s.%s", groupId, fileName,
                         type.name(), fileExt);
                 break;
             case Comment:
@@ -194,6 +198,13 @@ public class EntityWriter {
 
     private String groupOrDefault(String groupId) {
         return groupId == null ? "default" : groupId;
+    }
+
+    private String encode(String value) {
+        if (value == null) {
+            return null;
+        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private void write(ZipEntry entry, Entity entity, Class<?> entityClass) throws IOException {

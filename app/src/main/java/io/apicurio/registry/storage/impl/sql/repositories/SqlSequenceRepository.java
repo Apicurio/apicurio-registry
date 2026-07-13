@@ -15,7 +15,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  *
  * Note: H2 uses in-memory atomic counters for sequences instead of database
- * sequences, which is why this repository maintains static counters.
+ * sequences. Counters are instance-scoped so multiple storage instances in the
+ * same JVM (e.g. blue/green) do not share or overwrite each other's IDs.
  */
 public class SqlSequenceRepository {
 
@@ -24,12 +25,7 @@ public class SqlSequenceRepository {
     public static final String COMMENT_ID_SEQUENCE = "commentId";
 
     // Sequence counters - only used for H2 in-memory (and as a result KafkaSQL)
-    private static final Map<String, AtomicLong> sequenceCounters = new HashMap<>();
-    static {
-        sequenceCounters.put(GLOBAL_ID_SEQUENCE, new AtomicLong(0));
-        sequenceCounters.put(CONTENT_ID_SEQUENCE, new AtomicLong(0));
-        sequenceCounters.put(COMMENT_ID_SEQUENCE, new AtomicLong(0));
-    }
+    private final Map<String, AtomicLong> sequenceCounters = new HashMap<>();
 
     private final Logger log;
 
@@ -41,6 +37,9 @@ public class SqlSequenceRepository {
         this.handles = handles;
         this.sqlStatements = sqlStatements;
         this.log = log;
+        sequenceCounters.put(GLOBAL_ID_SEQUENCE, new AtomicLong(0));
+        sequenceCounters.put(CONTENT_ID_SEQUENCE, new AtomicLong(0));
+        sequenceCounters.put(COMMENT_ID_SEQUENCE, new AtomicLong(0));
     }
 
     /**

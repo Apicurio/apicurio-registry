@@ -13,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
-import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
+
 import static io.apicurio.registry.rest.client.models.VersionState.ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -68,40 +68,6 @@ class RegistryClientFacadeImplTest {
         });
     }
 
-    @Test
-    void should_return_empty_coordinates_when_version_is_disabled() {
-        // Given
-
-        ArtifactReference reference = ArtifactReference.builder().artifactId("artifactTestId").groupId("test.group.id").build();
-        VersionSearchResults response = createVersionSearchResults(createSearchedVersion(DISABLED, "1"));
-
-        doReturn(response).when(requestAdapter).send(any(), any(), any());
-
-        // When / Then
-        assertThat(schemaByContentResolverClient.searchVersionsByContent(SCHEMA_CONTENT, "AVRO", reference, true)).isEmpty();
-    }
-
-    @Test
-    void should_to_fetch_version_when_one_artifact_is_not_disabled_in_search_results() {
-        // Given
-
-        ArtifactReference reference = ArtifactReference.builder().artifactId("artifactTestId").groupId("test.group.id").build();
-        VersionSearchResults response =
-                createVersionSearchResults(
-                        createSearchedVersion(ENABLED, "2"),
-                        createSearchedVersion(DISABLED, "1")
-                );
-
-        doReturn(response).when(requestAdapter).send(any(), any(), any());
-
-        // When / Then
-        // When
-        var coordinates = schemaByContentResolverClient.searchVersionsByContent(SCHEMA_CONTENT, "AVRO", reference, true);
-
-        // Then
-        assertThat(coordinates).singleElement()
-                .satisfies( artifact -> assertThat(artifact.getVersion()).isEqualTo("2"));
-    }
 
     private static VersionSearchResults createVersionSearchResults(SearchedVersion... versions) {
         VersionSearchResults results = new VersionSearchResults();

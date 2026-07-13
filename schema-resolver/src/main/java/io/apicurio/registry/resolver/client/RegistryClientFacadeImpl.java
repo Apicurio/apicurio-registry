@@ -26,7 +26,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.rest.client.models.VersionState.DISABLED;
+import static io.apicurio.registry.rest.client.models.VersionState.ENABLED;
 
 /**
  * An implementation of @{@link RegistryClientFacade} that uses version 3 of the
@@ -141,11 +141,11 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
             config.queryParameters.orderby = VersionSortBy.GlobalId;
             config.queryParameters.order = SortOrder.Desc;
             config.queryParameters.limit = 100;
+            config.queryParameters.state = ENABLED;
         });
 
         // FIXME consider moving the "filter by state" logic to the server as another query parameter
         return results.getVersions().stream()
-                .filter(version -> DISABLED != version.getState())
                 .map(v ->
                 RegistryVersionCoordinates.create(v.getGlobalId(), v.getContentId(), v.getGroupId(), v.getArtifactId(), v.getVersion())).toList();
     }

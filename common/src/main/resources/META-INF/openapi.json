@@ -3974,6 +3974,14 @@
             "in": "query"
           },
           {
+            "name": "state",
+            "description": "Filter by version state.",
+            "schema": {
+              "$ref": "#/components/schemas/VersionState"
+            },
+            "in": "query"
+          },
+          {
             "name": "skipCount",
             "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
             "schema": {

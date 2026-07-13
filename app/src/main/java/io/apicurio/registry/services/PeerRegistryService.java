@@ -17,7 +17,7 @@ public class PeerRegistryService {
     Optional<List<String>> enabledPeers;
 
     public List<String> getEnabledPeers() {
-        if (enabledPeers == null || enabledPeers.isEmpty() || enabledPeers.get().isEmpty()) {
+        if (enabledPeers.isEmpty() || enabledPeers.get().isEmpty()) {
             return List.of();
         }
         return enabledPeers.get().stream()

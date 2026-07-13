@@ -12,7 +12,7 @@ import org.mockito.Mockito;
 import java.util.Collections;
 
 @QuarkusTest
-public class FederatedSearchServiceTest {
+class FederatedSearchServiceTest {
 
     @Inject
     FederatedSearchService federatedSearchService;
@@ -21,7 +21,7 @@ public class FederatedSearchServiceTest {
     PeerRegistryService peerRegistryService;
 
     @Test
-    public void testFederatedSearchNoPeers() {
+    void testFederatedSearchNoPeers() {
         Mockito.when(peerRegistryService.getEnabledPeers()).thenReturn(Collections.emptyList());
 
         ArtifactSearchResults local = new ArtifactSearchResults();

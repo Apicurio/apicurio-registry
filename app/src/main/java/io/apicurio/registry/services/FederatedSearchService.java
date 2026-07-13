@@ -69,7 +69,7 @@ public class FederatedSearchService {
         for (String peerUrl : peers) {
             CompletableFuture<ArtifactSearchResults> future = searchPeer(peerUrl, name, description, labels)
                     .exceptionally(ex -> {
-                        log.warn("Failed to fetch from peer: " + peerUrl, ex);
+                        log.warn("Failed to fetch from peer: {}", peerUrl, ex);
                         ArtifactSearchResults empty = new ArtifactSearchResults();
                         empty.setCount(0);
                         empty.setArtifacts(new ArrayList<>());

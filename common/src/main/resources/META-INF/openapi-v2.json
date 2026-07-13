@@ -3762,8 +3762,9 @@
         "properties": {
           "tier": {
             "description": "Quality tier of the suggestion: RECOMMENDED, ACCEPTABLE, WORKAROUND, or INFORMATIONAL.",
-            "type": "string"
-          },
+            "type": "string",
+            "enum": ["RECOMMENDED", "ACCEPTABLE", "WORKAROUND", "INFORMATIONAL"]
+          }
           "description": {
             "description": "Human-readable explanation of the suggested fix.",
             "type": "string"

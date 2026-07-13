@@ -1,5 +1,7 @@
 package io.apicurio.registry.content.dereference;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
@@ -186,14 +188,24 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
                 ContentTypes.APPLICATION_JSON));
 
         TypedContent modifiedContent = dereferencer.dereference(rewritten, resolvedReferences);
-        String dereferenced = modifiedContent.getContent().content();
+        JsonNode root = new ObjectMapper().readTree(modifiedContent.getContent().content());
 
-        Assertions.assertTrue(dereferenced.contains("\"$comment\""),
-                "expected $comment provenance on inlined schema");
-        Assertions.assertTrue(dereferenced.contains("customer.json:orders/Customer:1"),
-                "expected GAV provenance in $comment, got: " + dereferenced);
-        // original $ref should be gone
-        Assertions.assertFalse(dereferenced.contains("\"$ref\""));
+        String expectedComment = "customer.json:orders/Customer:1";
+        assertInlinedSchemaHasComment(root.path("allOf").path(0), expectedComment);
+        assertInlinedSchemaHasComment(root.path("anyOf").path(0), expectedComment);
+        assertInlinedSchemaHasComment(root.path("oneOf").path(0), expectedComment);
+
+        // original $ref should be gone from those inlined nodes
+        Assertions.assertFalse(root.path("allOf").path(0).has("$ref"));
+        Assertions.assertFalse(root.path("anyOf").path(0).has("$ref"));
+        Assertions.assertFalse(root.path("oneOf").path(0).has("$ref"));
+    }
+
+    private static void assertInlinedSchemaHasComment(JsonNode inlined, String expectedComment) {
+        Assertions.assertFalse(inlined.isMissingNode() || inlined.isNull(),
+                "expected inlined schema node to be present");
+        Assertions.assertEquals(expectedComment, inlined.path("$comment").asText(null),
+                "expected $comment provenance on inlined schema, got: " + inlined);
     }
 
     @Test

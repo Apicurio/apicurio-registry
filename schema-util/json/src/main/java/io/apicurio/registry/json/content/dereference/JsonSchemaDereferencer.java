@@ -123,7 +123,7 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
      * <p>
      * Plain logical names (e.g. {@code customer.json}) return empty so existing unit fixtures stay stable.
      */
-    static Optional<String> buildOriginalRefComment(String referenceKey) {
+    public static Optional<String> buildOriginalRefComment(String referenceKey) {
         if (referenceKey == null || referenceKey.isBlank()) {
             return Optional.empty();
         }

@@ -106,6 +106,10 @@ public abstract class ITBase implements OperatorTestContext {
         return namespace;
     }
 
+    static boolean isLocalDeployment() {
+        return getConfig().getValue(OPERATOR_DEPLOYMENT_PROP, OperatorDeployment.class) == OperatorDeployment.local;
+    }
+
     @BeforeAll
     public static void before() throws Exception {
         operatorDeployment = getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,

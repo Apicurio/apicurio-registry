@@ -1,57 +1,51 @@
 package groups
 
 import (
-	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
+    i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 )
 
 type ItemArtifactsItemContractMigratePostResponse_transformedRecord struct {
-	// Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-	additionalData map[string]any
+    // Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
+    additionalData map[string]any
 }
-
 // NewItemArtifactsItemContractMigratePostResponse_transformedRecord instantiates a new ItemArtifactsItemContractMigratePostResponse_transformedRecord and sets the default values.
-func NewItemArtifactsItemContractMigratePostResponse_transformedRecord() *ItemArtifactsItemContractMigratePostResponse_transformedRecord {
-	m := &ItemArtifactsItemContractMigratePostResponse_transformedRecord{}
-	m.SetAdditionalData(make(map[string]any))
-	return m
+func NewItemArtifactsItemContractMigratePostResponse_transformedRecord()(*ItemArtifactsItemContractMigratePostResponse_transformedRecord) {
+    m := &ItemArtifactsItemContractMigratePostResponse_transformedRecord{
+    }
+    m.SetAdditionalData(make(map[string]any))
+    return m
 }
-
 // CreateItemArtifactsItemContractMigratePostResponse_transformedRecordFromDiscriminatorValue creates a new instance of the appropriate class based on discriminator value
 // returns a Parsable when successful
-func CreateItemArtifactsItemContractMigratePostResponse_transformedRecordFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) (i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
-	return NewItemArtifactsItemContractMigratePostResponse_transformedRecord(), nil
+func CreateItemArtifactsItemContractMigratePostResponse_transformedRecordFromDiscriminatorValue(parseNode i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable, error) {
+    return NewItemArtifactsItemContractMigratePostResponse_transformedRecord(), nil
 }
-
 // GetAdditionalData gets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
 // returns a map[string]any when successful
-func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) GetAdditionalData() map[string]any {
-	return m.additionalData
+func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) GetAdditionalData()(map[string]any) {
+    return m.additionalData
 }
-
 // GetFieldDeserializers the deserialization information for the current model
 // returns a map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error) when successful
-func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) GetFieldDeserializers() map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-	res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error)
-	return res
+func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) GetFieldDeserializers()(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error)) {
+    res := make(map[string]func(i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode)(error))
+    return res
 }
-
 // Serialize serializes information the current object
-func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter) error {
-	{
-		err := writer.WriteAdditionalData(m.GetAdditionalData())
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.SerializationWriter)(error) {
+    {
+        err := writer.WriteAdditionalData(m.GetAdditionalData())
+        if err != nil {
+            return err
+        }
+    }
+    return nil
 }
-
 // SetAdditionalData sets the AdditionalData property value. Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.
-func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) SetAdditionalData(value map[string]any) {
-	m.additionalData = value
+func (m *ItemArtifactsItemContractMigratePostResponse_transformedRecord) SetAdditionalData(value map[string]any)() {
+    m.additionalData = value
 }
-
 type ItemArtifactsItemContractMigratePostResponse_transformedRecordable interface {
-	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
-	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
+    i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
+    i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 }

@@ -66,6 +66,14 @@ class RegistryClientFacadeImplTest {
             assertThat(artifact.getGroupId()).isEqualTo("test.group.id");
             assertThat(artifact.getVersion()).isEqualTo("1");
         });
+
+        org.mockito.ArgumentCaptor<com.microsoft.kiota.RequestInformation> requestCaptor = org.mockito.ArgumentCaptor.forClass(com.microsoft.kiota.RequestInformation.class);
+        org.mockito.Mockito.verify(requestAdapter).send(requestCaptor.capture(), any(), any());
+        try {
+            assertThat(requestCaptor.getValue().getUri().getQuery()).contains("state=ENABLED");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 

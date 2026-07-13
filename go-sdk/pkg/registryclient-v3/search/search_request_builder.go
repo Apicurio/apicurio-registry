@@ -1,55 +1,48 @@
 package search
 
 import (
-	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
+    i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 )
 
 // SearchRequestBuilder builds and executes requests for operations under \search
 type SearchRequestBuilder struct {
-	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
+    i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
-
 // Artifacts search for artifacts in the registry.
 // returns a *ArtifactsRequestBuilder when successful
-func (m *SearchRequestBuilder) Artifacts() *ArtifactsRequestBuilder {
-	return NewArtifactsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *SearchRequestBuilder) Artifacts()(*ArtifactsRequestBuilder) {
+    return NewArtifactsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
-
 // NewSearchRequestBuilderInternal instantiates a new SearchRequestBuilder and sets the default values.
-func NewSearchRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *SearchRequestBuilder {
-	m := &SearchRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search", pathParameters),
-	}
-	return m
+func NewSearchRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter)(*SearchRequestBuilder) {
+    m := &SearchRequestBuilder{
+        BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search", pathParameters),
+    }
+    return m
 }
-
 // NewSearchRequestBuilder instantiates a new SearchRequestBuilder and sets the default values.
-func NewSearchRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *SearchRequestBuilder {
-	urlParams := make(map[string]string)
-	urlParams["request-raw-url"] = rawUrl
-	return NewSearchRequestBuilderInternal(urlParams, requestAdapter)
+func NewSearchRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter)(*SearchRequestBuilder) {
+    urlParams := make(map[string]string)
+    urlParams["request-raw-url"] = rawUrl
+    return NewSearchRequestBuilderInternal(urlParams, requestAdapter)
 }
-
 // Contract the contract property
 // returns a *ContractRequestBuilder when successful
-func (m *SearchRequestBuilder) Contract() *ContractRequestBuilder {
-	return NewContractRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *SearchRequestBuilder) Contract()(*ContractRequestBuilder) {
+    return NewContractRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
-
 // Contracts search for contracts.
 // returns a *ContractsRequestBuilder when successful
-func (m *SearchRequestBuilder) Contracts() *ContractsRequestBuilder {
-	return NewContractsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *SearchRequestBuilder) Contracts()(*ContractsRequestBuilder) {
+    return NewContractsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
-
 // Groups search for groups in the registry.
 // returns a *GroupsRequestBuilder when successful
-func (m *SearchRequestBuilder) Groups() *GroupsRequestBuilder {
-	return NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *SearchRequestBuilder) Groups()(*GroupsRequestBuilder) {
+    return NewGroupsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
-
 // Versions search for versions in the registry.
 // returns a *VersionsRequestBuilder when successful
-func (m *SearchRequestBuilder) Versions() *VersionsRequestBuilder {
-	return NewVersionsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+func (m *SearchRequestBuilder) Versions()(*VersionsRequestBuilder) {
+    return NewVersionsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

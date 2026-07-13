@@ -144,7 +144,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
             config.queryParameters.state = ENABLED;
         });
 
-        // FIXME consider moving the "filter by state" logic to the server as another query parameter
+        // Version state filtering is handled server-side via the 'state' query parameter.
         return results.getVersions().stream()
                 .map(v ->
                 RegistryVersionCoordinates.create(v.getGlobalId(), v.getContentId(), v.getGroupId(), v.getArtifactId(), v.getVersion())).toList();

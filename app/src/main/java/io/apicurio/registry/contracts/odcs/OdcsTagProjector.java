@@ -89,49 +89,10 @@ public class OdcsTagProjector {
         if (schema == null) {
             return false;
         }
-        String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
+        String[] parsed = OdcsSchemaLocations.parse(schema.getLocation(), groupId);
         return parsed != null
                 && Objects.equals(groupId, parsed[0])
                 && Objects.equals(artifactId, parsed[1]);
-    }
-
-    /**
-     * Parses {@code location} the same way as contract projection:
-     * {@code [groupId/]artifactId[:version]}, with optional group (defaults to {@code defaultGroupId})
-     * and optional version/expression.
-     *
-     * @return {@code [groupId, artifactId]} or {@code null} if invalid
-     */
-    static String[] parseSchemaLocation(String location, String defaultGroupId) {
-        if (location == null || location.isBlank()) {
-            return null;
-        }
-        String withoutVersion = location.contains(":")
-                ? location.substring(0, location.indexOf(':'))
-                : location;
-        if (withoutVersion.isBlank()) {
-            return null;
-        }
-
-        String schemaGroupId;
-        String schemaArtifactId;
-        int slashIdx = withoutVersion.indexOf('/');
-        if (slashIdx >= 0) {
-            schemaGroupId = withoutVersion.substring(0, slashIdx);
-            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
-            if (schemaArtifactId.contains("/")) {
-                return null;
-            }
-        } else {
-            schemaGroupId = defaultGroupId;
-            schemaArtifactId = withoutVersion;
-        }
-
-        if (schemaGroupId == null || schemaGroupId.isBlank()
-                || schemaArtifactId.isBlank()) {
-            return null;
-        }
-        return new String[] { schemaGroupId, schemaArtifactId };
     }
 
     private String resolveTargetVersion(OdcsSchema schema, String groupId, String artifactId) {

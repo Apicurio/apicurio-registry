@@ -17,17 +17,17 @@ public class OdcsTagProjectorTest {
 
     @Test
     void parseSchemaLocationAllowsOptionalGroupAndVersion() {
-        assertEquals("orders", OdcsTagProjector.parseSchemaLocation("orders/OrderEvent:3", "default")[0]);
-        assertEquals("OrderEvent", OdcsTagProjector.parseSchemaLocation("orders/OrderEvent:3", "default")[1]);
+        assertEquals("orders", OdcsSchemaLocations.parse("orders/OrderEvent:3", "default")[0]);
+        assertEquals("OrderEvent", OdcsSchemaLocations.parse("orders/OrderEvent:3", "default")[1]);
 
-        assertEquals("default", OdcsTagProjector.parseSchemaLocation("OrderEvent:latest", "default")[0]);
-        assertEquals("OrderEvent", OdcsTagProjector.parseSchemaLocation("OrderEvent:latest", "default")[1]);
+        assertEquals("default", OdcsSchemaLocations.parse("OrderEvent:latest", "default")[0]);
+        assertEquals("OrderEvent", OdcsSchemaLocations.parse("OrderEvent:latest", "default")[1]);
 
-        assertEquals("default", OdcsTagProjector.parseSchemaLocation("OrderEvent", "default")[0]);
-        assertEquals("OrderEvent", OdcsTagProjector.parseSchemaLocation("OrderEvent", "default")[1]);
+        assertEquals("default", OdcsSchemaLocations.parse("OrderEvent", "default")[0]);
+        assertEquals("OrderEvent", OdcsSchemaLocations.parse("OrderEvent", "default")[1]);
 
-        assertNull(OdcsTagProjector.parseSchemaLocation(null, "default"));
-        assertNull(OdcsTagProjector.parseSchemaLocation("  ", "default"));
+        assertNull(OdcsSchemaLocations.parse(null, "default"));
+        assertNull(OdcsSchemaLocations.parse("  ", "default"));
     }
 
     @Test

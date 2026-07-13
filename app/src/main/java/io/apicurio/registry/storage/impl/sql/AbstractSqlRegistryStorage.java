@@ -615,7 +615,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
         } catch (Exception e) {
             log.warn("Failed to update structured content for {}/{}: {}", groupId, artifactId,
-                    e.getMessage());
+                    e.getMessage(), e);
         }
     }
 

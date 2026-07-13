@@ -90,7 +90,7 @@ public class OdcsTagProjector {
             return false;
         }
         String[] parsed = OdcsSchemaLocations.parse(schema.getLocation(), groupId);
-        return parsed != null
+        return OdcsSchemaLocations.isValid(parsed)
                 && Objects.equals(groupId, parsed[0])
                 && Objects.equals(artifactId, parsed[1]);
     }

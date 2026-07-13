@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Ensures field-tag projection only uses the {@code schemas[]} entry for the target artifact (#8104 / PR review).
  */
-public class OdcsTagProjectorTest {
+class OdcsTagProjectorTest {
 
     @Test
     void parseSchemaLocationAllowsOptionalGroupAndVersion() {
@@ -26,8 +26,8 @@ public class OdcsTagProjectorTest {
         assertEquals("default", OdcsSchemaLocations.parse("OrderEvent", "default")[0]);
         assertEquals("OrderEvent", OdcsSchemaLocations.parse("OrderEvent", "default")[1]);
 
-        assertNull(OdcsSchemaLocations.parse(null, "default"));
-        assertNull(OdcsSchemaLocations.parse("  ", "default"));
+        assertFalse(OdcsSchemaLocations.isValid(OdcsSchemaLocations.parse(null, "default")));
+        assertFalse(OdcsSchemaLocations.isValid(OdcsSchemaLocations.parse("  ", "default")));
     }
 
     @Test

@@ -2426,7 +2426,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
 
             String[] parsed = OdcsSchemaLocations.parse(schema.getLocation(), groupId);
-            if (parsed == null) {
+            if (!OdcsSchemaLocations.isValid(parsed)) {
                 combined.addWarning("Invalid schema location: " + schema.getLocation());
                 continue;
             }

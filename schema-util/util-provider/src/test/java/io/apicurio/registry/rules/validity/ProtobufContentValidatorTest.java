@@ -775,4 +775,56 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
         });
     }
 
+    /**
+     * Regression for #4877: well-known google/protobuf imports must not require registry
+     * mappings under ALL_REFS_MAPPED / validateReferences.
+     */
+    @Test
+    public void testValidateReferencesIgnoresGoogleProtobufImports() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package sample;
+                import "google/protobuf/descriptor.proto";
+                import "google/protobuf/timestamp.proto";
+                extend google.protobuf.FileOptions {
+                  string version = 99999;
+                }
+                message Event {
+                  google.protobuf.Timestamp created_at = 1;
+                }
+                """;
+        TypedContent content = TypedContent.create(ContentHandle.create(schema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+
+        // Empty mappings must succeed — google/protobuf/* are runtime-provided.
+        validator.validateReferences(content, List.of());
+    }
+
+    @Test
+    public void testValidateReferencesStillRequiresCustomImportsWithGoogleOnes() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package sample;
+                import "google/protobuf/timestamp.proto";
+                import "message2.proto";
+                message Wrapper {
+                  google.protobuf.Timestamp created_at = 1;
+                }
+                """;
+        TypedContent content = TypedContent.create(ContentHandle.create(schema),
+                ContentTypes.APPLICATION_PROTOBUF);
+        ProtobufContentValidator validator = new ProtobufContentValidator();
+
+        // Custom import still must be mapped.
+        Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validateReferences(content, List.of()));
+
+        // Mapping only the custom import is enough (google import ignored).
+        List<ArtifactReference> references = new ArrayList<>();
+        references.add(ArtifactReference.builder().groupId("default").artifactId("message2.proto")
+                .version("1.0").name("message2.proto").build());
+        validator.validateReferences(content, references);
+    }
+
 }

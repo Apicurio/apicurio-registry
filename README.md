@@ -96,8 +96,8 @@ init-dev.cmd
 npm run dev
 ```
 
-The init scripts copy `configs/version.js` and `configs/config-local.js` into place (required for dev mode).
-You can pass a config type as an argument, e.g. `./init-dev.sh 3scale` or `.\init-dev.ps1 3scale`.
+The init scripts copy `configs/version.js` and `configs/config-<type>.js` into place (required for dev mode).
+By default `<type>` is `local`; you can pass a config type as an argument, e.g. `./init-dev.sh 3scale`, `.\init-dev.ps1 3scale`, or `init-dev.cmd 3scale`.
 
 This will start up the UI in development mode, hosted on port 8888 of your localhost:
 

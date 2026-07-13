@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 @ApplicationScoped
 public class OdcsTagProjector {
@@ -34,7 +35,12 @@ public class OdcsTagProjector {
             return 0;
         }
         try {
-            String targetVersion = resolveTargetVersion(contract, groupId, artifactId);
+            OdcsSchema matchingSchema = findMatchingSchema(contract.getSchemas(), groupId, artifactId);
+            if (matchingSchema == null) {
+                return 0;
+            }
+
+            String targetVersion = resolveTargetVersion(matchingSchema, groupId, artifactId);
             if (targetVersion == null) {
                 warnings.add("No versions found for " + groupId + "/" + artifactId);
                 return 0;
@@ -44,11 +50,8 @@ public class OdcsTagProjector {
 
             var labels = new LinkedHashMap<String, String>();
             int count = 0;
-            for (OdcsSchema schema : contract.getSchemas()) {
-                if (schema.getFields() == null) {
-                    continue;
-                }
-                for (var entry : schema.getFields().entrySet()) {
+            if (matchingSchema.getFields() != null) {
+                for (var entry : matchingSchema.getFields().entrySet()) {
                     count += addTags(labels, tagPrefix, entry.getKey(),
                             entry.getValue(), warnings);
                 }
@@ -66,14 +69,76 @@ public class OdcsTagProjector {
         }
     }
 
-    private String resolveTargetVersion(OdcsContract contract, String groupId,
-            String artifactId) {
-        String versionExpression = null;
-        if (contract.getSchemas() != null && !contract.getSchemas().isEmpty()) {
-            String location = contract.getSchemas().get(0).getLocation();
-            if (location != null && location.contains(":")) {
-                versionExpression = location.substring(location.indexOf(':') + 1);
+    /**
+     * Returns the {@code schemas[]} entry whose {@code location} resolves to the target artifact.
+     * Group may be omitted in {@code location} (defaults to {@code groupId}).
+     */
+    static OdcsSchema findMatchingSchema(List<OdcsSchema> schemas, String groupId, String artifactId) {
+        if (schemas == null) {
+            return null;
+        }
+        for (OdcsSchema schema : schemas) {
+            if (matchesTarget(schema, groupId, artifactId)) {
+                return schema;
             }
+        }
+        return null;
+    }
+
+    static boolean matchesTarget(OdcsSchema schema, String groupId, String artifactId) {
+        if (schema == null) {
+            return false;
+        }
+        String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
+        return parsed != null
+                && Objects.equals(groupId, parsed[0])
+                && Objects.equals(artifactId, parsed[1]);
+    }
+
+    /**
+     * Parses {@code location} the same way as contract projection:
+     * {@code [groupId/]artifactId[:version]}, with optional group (defaults to {@code defaultGroupId})
+     * and optional version/expression.
+     *
+     * @return {@code [groupId, artifactId]} or {@code null} if invalid
+     */
+    static String[] parseSchemaLocation(String location, String defaultGroupId) {
+        if (location == null || location.isBlank()) {
+            return null;
+        }
+        String withoutVersion = location.contains(":")
+                ? location.substring(0, location.indexOf(':'))
+                : location;
+        if (withoutVersion.isBlank()) {
+            return null;
+        }
+
+        String schemaGroupId;
+        String schemaArtifactId;
+        int slashIdx = withoutVersion.indexOf('/');
+        if (slashIdx >= 0) {
+            schemaGroupId = withoutVersion.substring(0, slashIdx);
+            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
+            if (schemaArtifactId.contains("/")) {
+                return null;
+            }
+        } else {
+            schemaGroupId = defaultGroupId;
+            schemaArtifactId = withoutVersion;
+        }
+
+        if (schemaGroupId == null || schemaGroupId.isBlank()
+                || schemaArtifactId.isBlank()) {
+            return null;
+        }
+        return new String[] { schemaGroupId, schemaArtifactId };
+    }
+
+    private String resolveTargetVersion(OdcsSchema schema, String groupId, String artifactId) {
+        String versionExpression = null;
+        String location = schema.getLocation();
+        if (location != null && location.contains(":")) {
+            versionExpression = location.substring(location.indexOf(':') + 1);
         }
 
         if (versionExpression != null && !versionExpression.isBlank()) {

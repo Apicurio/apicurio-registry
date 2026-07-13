@@ -15,7 +15,7 @@ team:
   domain: commerce
   contact: orders-team@example.com
 schemas:
-  # each schemas[] entry is independent — field pii/tags apply only to this artifact.
+  # each schemas[] entry is independent — field PII/tags apply only to this artifact.
   # nested types stored as separate registry artifacts need their own entry (or contract).
   - name: OrderEvent
     type: avro

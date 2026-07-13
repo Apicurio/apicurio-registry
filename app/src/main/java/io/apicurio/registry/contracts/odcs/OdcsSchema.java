@@ -29,7 +29,11 @@ import java.util.Map;
 public class OdcsSchema {
     private String name;
     private String type;
-    /** Registry location in the form {@code groupId/artifactId:version} (version optional). */
+    /**
+     * Registry location in the form {@code [groupId/]artifactId[:versionOrBranch]}.
+     * Group may be omitted (defaults to the contract's group). Version/branch expression is optional
+     * (defaults to the latest version).
+     */
     private String location;
     private Map<String, OdcsFieldMetadata> fields;
 

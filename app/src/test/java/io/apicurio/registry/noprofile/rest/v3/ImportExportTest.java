@@ -67,6 +67,8 @@ public class ImportExportTest extends AbstractResourceTestBase {
          */
 
         String groupId = "PrimaryTestGroup";
+        String complexGroupId = "Group/With\"And Spaces";
+        String complexArtifactId = "Artifact/With\"And Spaces";
 
         // Create the group
         CreateGroup createGroup = new CreateGroup();
@@ -103,6 +105,13 @@ public class ImportExportTest extends AbstractResourceTestBase {
             String artifactId = "TestArtifact-" + idx;
             createArtifact(groupId, artifactId, ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
         }
+
+        // Add an artifact with complex ID to test URL encoding of zip paths
+        CreateGroup createComplexGroup = new CreateGroup();
+        createComplexGroup.setGroupId(complexGroupId);
+        createComplexGroup.setDescription("A group with a complex ID.");
+        clientV3.groups().post(createComplexGroup);
+        createArtifact(complexGroupId, complexArtifactId, ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
 
         // Set artifact metadata
         for (int idx = 1; idx <= 10; idx++) {
@@ -258,6 +267,11 @@ public class ImportExportTest extends AbstractResourceTestBase {
             Assertions.assertEquals(Map.of("artifact-number", "" + idx), amd.getLabels().getAdditionalData());
             Assertions.assertEquals(ArtifactType.JSON, amd.getArtifactType());
         }
+
+        // Assert complex artifact
+        amd = clientV3.groups().byGroupId(complexGroupId).artifacts().byArtifactId(complexArtifactId).get();
+        Assertions.assertEquals(complexGroupId, amd.getGroupId());
+        Assertions.assertEquals(complexArtifactId, amd.getArtifactId());
 
         // Assert versions
         for (int idx = 1; idx <= 10; idx++) {

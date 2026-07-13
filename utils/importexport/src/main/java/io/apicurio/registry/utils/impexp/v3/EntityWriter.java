@@ -204,7 +204,10 @@ public class EntityWriter {
         if (value == null) {
             return null;
         }
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        // URLEncoder is x-www-form-urlencoded; normalize to percent-encoding suitable for path segments.
+        return URLEncoder.encode(value, StandardCharsets.UTF_8)
+                .replace("+", "%20")
+                .replace("*", "%2A");
     }
 
     private void write(ZipEntry entry, Entity entity, Class<?> entityClass) throws IOException {

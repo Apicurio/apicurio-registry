@@ -1,12 +1,21 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaAdminClient;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaSqlVerificationJournalConsumer;
 import io.apicurio.registry.storage.impl.util.KafkaAdminUtil;
 import jakarta.enterprise.inject.Instance;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.Config;
+import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.config.ConfigResource;
+import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +44,9 @@ public class KafkaAdminUtilTest {
 
     private KafkaAdminUtil kafkaAdminUtil;
     private KafkaConsumer<Bytes, Bytes> consumer;
+    private KafkaSqlConfiguration config;
+    @SuppressWarnings("unchecked")
+    private Instance<KafkaSqlConfiguration> configInstance;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -47,11 +59,11 @@ public class KafkaAdminUtilTest {
         Instance<KafkaSqlVerificationJournalConsumer> verificationInstance = mock(Instance.class);
         when(verificationInstance.get()).thenReturn(verificationResource);
 
-        KafkaSqlConfiguration config = mock(KafkaSqlConfiguration.class);
+        config = mock(KafkaSqlConfiguration.class);
         when(config.getPollTimeout()).thenReturn(Duration.ofMillis(100));
         when(config.getTopic()).thenReturn(TEST_TOPIC);
 
-        Instance<KafkaSqlConfiguration> configInstance = mock(Instance.class);
+        configInstance = mock(Instance.class);
         when(configInstance.get()).thenReturn(config);
 
         kafkaAdminUtil = new KafkaAdminUtil();
@@ -150,6 +162,42 @@ public class KafkaAdminUtilTest {
 
         // 2 polls: assignment + one empty poll in the loop
         verify(consumer, times(2)).poll(any(Duration.class));
+    }
+
+    /**
+     * Verifies that topic configuration verification retries on UnknownTopicOrPartitionException,
+     * which can occur when Kafka topic metadata has not yet propagated to all brokers after topic creation.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testVerifyTopicConfigurationRetriesOnUnknownTopicOrPartition() throws Exception {
+        Admin admin = mock(Admin.class);
+        KafkaAdminClient adminClientResource = new KafkaAdminClient(() -> admin);
+        Instance<KafkaAdminClient> adminClientInstance = mock(Instance.class);
+        when(adminClientInstance.get()).thenReturn(adminClientResource);
+        setField("adminClient", adminClientInstance);
+
+        when(config.getEventsTopic()).thenReturn("events-topic");
+
+        ConfigResource key = new ConfigResource(ConfigResource.Type.TOPIC, TEST_TOPIC);
+        List<ConfigEntry> entries = List.of(
+                new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, "delete"),
+                new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "-1"),
+                new ConfigEntry(TopicConfig.RETENTION_BYTES_CONFIG, "-1"));
+        Config topicConfig = new Config(entries);
+        Map<ConfigResource, Config> configs = Map.of(key, topicConfig);
+
+        DescribeConfigsResult failResult = mock(DescribeConfigsResult.class);
+        when(failResult.all()).thenThrow(new UnknownTopicOrPartitionException("test"));
+
+        DescribeConfigsResult successResult = mock(DescribeConfigsResult.class);
+        when(successResult.all()).thenReturn(KafkaFuture.completedFuture(configs));
+
+        when(admin.describeConfigs(any(), any())).thenReturn(failResult).thenReturn(successResult);
+
+        kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC);
+
+        verify(admin, times(2)).describeConfigs(any(), any());
     }
 
     private ConsumerRecords<Bytes, Bytes> createRecords(long startOffset, int count) {

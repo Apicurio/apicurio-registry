@@ -404,7 +404,7 @@ public abstract class ITBase implements OperatorTestContext {
      * Waits for a Kafka broker pod (deployed by Strimzi in KRaft mode) to become ready.
      * Pod naming follows the KafkaNodePool convention: {@code <cluster>-<nodepool>-<id>}.
      */
-    static void waitForKafkaBrokerReady(String clusterName) {
+    void waitForKafkaBrokerReady(String clusterName) {
         await().atMost(KAFKA_BROKER_READY_TIMEOUT).ignoreExceptions().untilAsserted(() ->
                 assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0")
                         .get().getStatus().getConditions())
@@ -417,7 +417,7 @@ public abstract class ITBase implements OperatorTestContext {
      * Waits for a KafkaSQL-backed registry deployment to have one ready replica and to log
      * the expected storage message.
      */
-    static void waitForKafkaSqlRegistryReady(ApicurioRegistry3 registry) {
+    void waitForKafkaSqlRegistryReady(ApicurioRegistry3 registry) {
         var deploymentName = registry.getMetadata().getName() + "-app-deployment";
         await().atMost(KAFKA_REGISTRY_READY_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
             var readyReplicas = client.apps().deployments().inNamespace(namespace)

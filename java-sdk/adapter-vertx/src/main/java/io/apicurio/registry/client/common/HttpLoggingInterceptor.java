@@ -9,16 +9,15 @@ import io.vertx.ext.web.client.impl.HttpContext;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * A Vert.x {@link io.vertx.ext.web.client.WebClient} interceptor that logs raw HTTP request and
  * response details (method, URL, headers, and body) for outgoing Registry calls.
  *
- * <p>Details are logged to the {@code io.apicurio.registry.client.http} logger at {@link Level#FINE},
- * so nothing is emitted unless that logger is configured to log {@code FINE} messages. Sensitive
- * headers such as {@code Authorization} are redacted.</p>
+ * <p>Details are logged to the {@code io.apicurio.registry.client.http} logger at {@code FINE}
+ * level, so nothing is emitted unless that logger is configured to log {@code FINE} messages.
+ * Sensitive headers such as {@code Authorization} are redacted.</p>
  */
 class HttpLoggingInterceptor implements Handler<HttpContext<?>> {
 
@@ -33,12 +32,11 @@ class HttpLoggingInterceptor implements Handler<HttpContext<?>> {
 
     @Override
     public void handle(HttpContext<?> context) {
-        if (log.isLoggable(Level.FINE)) {
-            switch (context.phase()) {
-                case SEND_REQUEST -> logRequest(context);
-                case DISPATCH_RESPONSE -> logResponse(context);
-                default -> {
-                }
+        switch (context.phase()) {
+            case SEND_REQUEST -> logRequest(context);
+            case DISPATCH_RESPONSE -> logResponse(context);
+            default -> {
+                // Only the request-send and response-dispatch phases are logged.
             }
         }
         context.next();
@@ -49,11 +47,15 @@ class HttpLoggingInterceptor implements Handler<HttpContext<?>> {
         if (request == null) {
             return;
         }
-        var sb = new StringBuilder("--> ")
-                .append(request.getMethod()).append(' ').append(request.absoluteURI()).append('\n');
-        appendHeaders(sb, request.headers());
-        appendBody(sb, context.body());
-        log.fine(sb.toString());
+        // Supplier form defers the (potentially expensive) message building until it is known
+        // that the logger will actually emit at FINE.
+        log.fine(() -> {
+            var sb = new StringBuilder("--> ")
+                    .append(request.getMethod()).append(' ').append(request.absoluteURI()).append('\n');
+            appendHeaders(sb, request.headers());
+            appendBody(sb, context.body());
+            return sb.toString();
+        });
     }
 
     private static void logResponse(HttpContext<?> context) {
@@ -61,11 +63,13 @@ class HttpLoggingInterceptor implements Handler<HttpContext<?>> {
         if (response == null) {
             return;
         }
-        var sb = new StringBuilder("<-- ")
-                .append(response.statusCode()).append(' ').append(response.statusMessage()).append('\n');
-        appendHeaders(sb, response.headers());
-        appendBody(sb, safeBody(response));
-        log.fine(sb.toString());
+        log.fine(() -> {
+            var sb = new StringBuilder("<-- ")
+                    .append(response.statusCode()).append(' ').append(response.statusMessage()).append('\n');
+            appendHeaders(sb, response.headers());
+            appendBody(sb, safeBody(response));
+            return sb.toString();
+        });
     }
 
     private static void appendHeaders(StringBuilder sb, MultiMap headers) {

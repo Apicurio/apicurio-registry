@@ -22,32 +22,7 @@ public class VerboseLoggingCommandTest extends AbstractCLITest {
 
     @Test
     public void testVerboseLogsRequestAndResponse() {
-        var httpLogger = Logger.getLogger(HTTP_LOGGER);
-        var previousLevel = httpLogger.getLevel();
-        var records = new CopyOnWriteArrayList<String>();
-        var handler = new Handler() {
-            @Override
-            public void publish(LogRecord record) {
-                records.add(record.getMessage());
-            }
-
-            @Override
-            public void flush() {
-            }
-
-            @Override
-            public void close() {
-            }
-        };
-        handler.setLevel(Level.ALL);
-        httpLogger.setLevel(Level.FINE);
-        httpLogger.addHandler(handler);
-        try {
-            executeAndAssertSuccess("group", "--verbose", "--output-type", "json");
-        } finally {
-            httpLogger.removeHandler(handler);
-            httpLogger.setLevel(previousLevel);
-        }
+        var records = captureHttpLogs("group", "--verbose", "--output-type", "json");
 
         assertThat(records)
                 .as("Verbose mode should log the outgoing request line")
@@ -59,35 +34,52 @@ public class VerboseLoggingCommandTest extends AbstractCLITest {
 
     @Test
     public void testWithoutVerboseNoHttpLogs() {
-        var httpLogger = Logger.getLogger(HTTP_LOGGER);
-        var previousLevel = httpLogger.getLevel();
-        List<String> records = new CopyOnWriteArrayList<>();
-        var handler = new Handler() {
-            @Override
-            public void publish(LogRecord record) {
-                records.add(record.getMessage());
-            }
-
-            @Override
-            public void flush() {
-            }
-
-            @Override
-            public void close() {
-            }
-        };
-        handler.setLevel(Level.ALL);
-        httpLogger.setLevel(Level.FINE);
-        httpLogger.addHandler(handler);
-        try {
-            executeAndAssertSuccess("group", "--output-type", "json");
-        } finally {
-            httpLogger.removeHandler(handler);
-            httpLogger.setLevel(previousLevel);
-        }
+        var records = captureHttpLogs("group", "--output-type", "json");
 
         assertThat(records)
                 .as("Without --verbose no HTTP wire logging should be produced")
                 .isEmpty();
+    }
+
+    /**
+     * Runs the given command while capturing everything logged to the HTTP wire logger at FINE.
+     */
+    private List<String> captureHttpLogs(String... command) {
+        var httpLogger = Logger.getLogger(HTTP_LOGGER);
+        var previousLevel = httpLogger.getLevel();
+        var handler = new CapturingHandler();
+        handler.setLevel(Level.ALL);
+        httpLogger.setLevel(Level.FINE);
+        httpLogger.addHandler(handler);
+        try {
+            executeAndAssertSuccess(command);
+        } finally {
+            httpLogger.removeHandler(handler);
+            httpLogger.setLevel(previousLevel);
+        }
+        return handler.messages;
+    }
+
+    /**
+     * A log handler that collects logged messages in memory for later assertions.
+     */
+    private static final class CapturingHandler extends Handler {
+
+        private final List<String> messages = new CopyOnWriteArrayList<>();
+
+        @Override
+        public void publish(LogRecord logRecord) {
+            messages.add(logRecord.getMessage());
+        }
+
+        @Override
+        public void flush() {
+            // No-op: messages are kept in memory, there is nothing to flush.
+        }
+
+        @Override
+        public void close() {
+            // No-op: messages are kept in memory, there is nothing to close.
+        }
     }
 }

@@ -107,6 +107,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
             for (var handler : rootLogger.getHandlers()) {
                 handler.setLevel(java.util.logging.Level.FINE);
             }
+            // Enable raw HTTP request/response logging on the Registry client.
+            client.setVerbose(true);
             log.debug("Verbose logging enabled.");
         }
     }

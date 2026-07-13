@@ -451,7 +451,7 @@ All filters are optional and can be combined. Additional filters include `--desc
 
 These options work with most commands:
 
-- `--verbose, -v` - Enable verbose output for debugging
+- `--verbose, -v` - Enable verbose output for debugging (includes raw HTTP request/response details for registry calls; sensitive headers are redacted)
 - `--help, -h` - Show help information
 - `--output-type, -o` - Set output format (table or json)
 

@@ -123,6 +123,8 @@ public class RegistryClientOptions {
     private HttpAdapterType httpAdapterType = HttpAdapterType.AUTO;
     // OpenTelemetry config
     private boolean otelEnabled = false;
+    // HTTP wire logging config
+    private boolean httpLoggingEnabled = false;
 
     private RegistryClientOptions() {
     }
@@ -269,6 +271,10 @@ public class RegistryClientOptions {
 
     public boolean isOtelEnabled() {
         return otelEnabled;
+    }
+
+    public boolean isHttpLoggingEnabled() {
+        return httpLoggingEnabled;
     }
 
     /**
@@ -827,6 +833,22 @@ public class RegistryClientOptions {
      */
     public RegistryClientOptions enableOpenTelemetry() {
         this.otelEnabled = true;
+        return this;
+    }
+
+    /**
+     * Enables logging of raw HTTP request and response details (method, URL, headers, and body)
+     * for outgoing Registry calls. This is intended for debugging and is only supported by the
+     * Vert.x HTTP adapter. Sensitive headers (e.g. {@code Authorization}) are redacted.
+     *
+     * <p>Details are written to the {@code io.apicurio.registry.client.http} logger at
+     * {@code FINE} level, so the logger must be configured to emit {@code FINE} messages for
+     * the output to appear.</p>
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions enableHttpLogging() {
+        this.httpLoggingEnabled = true;
         return this;
     }
 }

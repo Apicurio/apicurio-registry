@@ -33,6 +33,12 @@ public class Client {
 
     private HttpClient httpClient;
 
+    private boolean verbose;
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
+    }
+
     public RegistryClient getRegistryClient() {
         var currentContext = config.read();
         if (isBlank(currentContext.getCurrentContext())) {
@@ -47,6 +53,9 @@ public class Client {
                         uri = uri.resolve("/apis/registry/v3");
                     }
                     final var options = RegistryClientOptions.create(uri.toString(), vertx);
+                    if (verbose) {
+                        options.enableHttpLogging();
+                    }
                     final var context = currentContext.getContext().get(currentContext.getCurrentContext());
                     configureAuth(options, context, currentContext.getCurrentContext());
                     registryClient = RegistryClientFactory.create(options);
@@ -104,5 +113,6 @@ public class Client {
     public void reset() {
         registryClient = null;
         httpClient = null;
+        verbose = false;
     }
 }

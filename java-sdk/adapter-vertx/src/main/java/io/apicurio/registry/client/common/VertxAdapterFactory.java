@@ -44,18 +44,39 @@ public final class VertxAdapterFactory {
         Vertx vertxToUse = getVertx(options);
         WebClientOptions webClientOptions = buildWebClientOptions(options);
 
+        WebClient webClient;
         switch (options.getAuthType()) {
             case ANONYMOUS:
-                return createVertxAnonymous(vertxToUse, webClientOptions);
+                webClient = createVertxAnonymous(vertxToUse, webClientOptions);
+                break;
             case BASIC:
-                return createVertxBasicAuth(options.getUsername(), options.getPassword(), vertxToUse, webClientOptions);
+                webClient = createVertxBasicAuth(options.getUsername(), options.getPassword(), vertxToUse, webClientOptions);
+                break;
             case OAUTH2:
-                return createVertxOAuth2(options.getTokenEndpoint(), options.getClientId(),
+                webClient = createVertxOAuth2(options.getTokenEndpoint(), options.getClientId(),
                         options.getClientSecret(), options.getScope(), vertxToUse, webClientOptions);
+                break;
             case CUSTOM_WEBCLIENT:
-                return createVertxCustomWebClient(options);
+                webClient = createVertxCustomWebClient(options);
+                break;
             default:
                 throw new IllegalArgumentException("Unsupported authentication type: " + options.getAuthType());
+        }
+
+        applyHttpLogging(webClient, options);
+        return new VertXRequestAdapter(webClient);
+    }
+
+    /**
+     * Registers the HTTP wire-logging interceptor on the given WebClient when logging is enabled.
+     * All Vert.x WebClient variants (including the session- and OAuth2-aware wrappers) extend
+     * {@code WebClientBase}, which implements {@code WebClientInternal}, so a single cast covers
+     * every authentication type.
+     */
+    private static void applyHttpLogging(WebClient webClient, RegistryClientOptions options) {
+        if (options.isHttpLoggingEnabled()
+                && webClient instanceof io.vertx.ext.web.client.impl.WebClientInternal internal) {
+            internal.addInterceptor(new HttpLoggingInterceptor());
         }
     }
 
@@ -91,28 +112,25 @@ public final class VertxAdapterFactory {
         return DefaultVertxInstance.get();
     }
 
-    private static RequestAdapter createVertxAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
-        return new VertXRequestAdapter(webClient);
+    private static WebClient createVertxAnonymous(Vertx vertx, WebClientOptions webClientOptions) {
+        return webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
     }
 
-    private static RequestAdapter createVertxBasicAuth(String username, String password, Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = VertXAuthFactory.buildSimpleAuthWebClient(vertx, webClientOptions, username, password);
-        return new VertXRequestAdapter(webClient);
+    private static WebClient createVertxBasicAuth(String username, String password, Vertx vertx, WebClientOptions webClientOptions) {
+        return VertXAuthFactory.buildSimpleAuthWebClient(vertx, webClientOptions, username, password);
     }
 
-    private static RequestAdapter createVertxOAuth2(String tokenEndpoint,
+    private static WebClient createVertxOAuth2(String tokenEndpoint,
                                                      String clientId, String clientSecret, String scope, Vertx vertx, WebClientOptions webClientOptions) {
-        WebClient webClient = VertXAuthFactory.buildOIDCWebClient(vertx, webClientOptions, tokenEndpoint, clientId, clientSecret, scope);
-        return new VertXRequestAdapter(webClient);
+        return VertXAuthFactory.buildOIDCWebClient(vertx, webClientOptions, tokenEndpoint, clientId, clientSecret, scope);
     }
 
-    private static RequestAdapter createVertxCustomWebClient(RegistryClientOptions options) {
+    private static WebClient createVertxCustomWebClient(RegistryClientOptions options) {
         WebClient webClient = options.getWebClient();
         if (webClient == null) {
             throw new IllegalArgumentException("WebClient cannot be null");
         }
-        return new VertXRequestAdapter(webClient);
+        return webClient;
     }
 
     private static WebClientOptions buildWebClientOptions(RegistryClientOptions options) {

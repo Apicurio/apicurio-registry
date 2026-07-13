@@ -305,7 +305,7 @@ The following options are available for most CLI commands:
 | Description
 
 | `--verbose`, `-v`
-| Enable verbose output for debugging.
+| Enable verbose output for debugging. This includes the raw HTTP request and response details (method, URL, headers, and body) for each call to the registry. Sensitive headers such as `Authorization` are redacted.
 
 | `--help`, `-h`
 | Display help information for the command.

@@ -183,14 +183,17 @@ public final class ContentTypeUtil {
             if (text.startsWith("{") || text.startsWith("<")) {
                 return false;
             }
+            // Normalize whitespace so keyword checks work across tabs/newlines and formatting differences.
+            String normalized = text.replaceAll("\\s+", " ");
             // Basic heuristics to differentiate GraphQL from Protobuf
-            return text.contains("type ") || 
-                   text.contains("interface ") || 
-                   text.contains("scalar ") || 
-                   text.contains("union ") ||
-                   text.contains("input ") ||
-                   text.contains("schema {") ||
-                   text.contains("directive @");
+            return normalized.contains("type ")
+                    || normalized.contains("interface ")
+                    || normalized.contains("scalar ")
+                    || normalized.contains("union ")
+                    || normalized.contains("input ")
+                    || normalized.contains("schema{")
+                    || normalized.contains("schema {")
+                    || normalized.contains("directive @");
         } catch (Exception e) {
             return false;
         }

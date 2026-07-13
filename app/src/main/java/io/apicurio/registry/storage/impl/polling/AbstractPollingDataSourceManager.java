@@ -431,8 +431,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             // Determine artifact type from content if not specified
             String resolvedArtifactType = utils.determineArtifactType(typedContent, artifactType);
 
-            // Calculate content hash for deduplication
-            String contentHash = utils.getContentHash(typedContent, null);
+            // Build references before hashing so gitops/kubernetesops match SQL storage
+            // (both contentHash and canonicalHash include serialized references when present).
+            List<ArtifactReferenceDto> references = extractReferences(contentMetadata);
+
+            // Calculate content hash for deduplication (must include references when present)
+            String contentHash = utils.getContentHash(typedContent, references);
 
             // Check if this content was already imported (deduplication)
             Long existingContentId = state.getContentHashToId().get(contentHash);
@@ -456,21 +460,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             e.contentId = contentId;
             e.contentHash = contentHash;
             e.contentBytes = data.bytes();
-            e.canonicalHash = utils.getCanonicalContentHash(typedContent, resolvedArtifactType, null, null);
+            e.canonicalHash = computeCanonicalHash(typedContent, resolvedArtifactType, references, state);
             e.artifactType = resolvedArtifactType;
             e.contentType = contentType;
 
-            if (contentMetadata != null && contentMetadata.getReferences() != null
-                    && !contentMetadata.getReferences().isEmpty()) {
-                List<ArtifactReferenceDto> refs = contentMetadata.getReferences().stream()
-                        .map(ref -> ArtifactReferenceDto.builder()
-                                .groupId(ref.getGroupId())
-                                .artifactId(ref.getArtifactId())
-                                .version(ref.getVersion())
-                                .name(ref.getName())
-                                .build())
-                        .collect(Collectors.toList());
-                e.serializedReferences = RegistryContentUtils.serializeReferences(refs);
+            if (references != null && !references.isEmpty()) {
+                e.serializedReferences = RegistryContentUtils.serializeReferences(references);
             }
 
             log.trace("Importing content from {}",dataFile.getPath());
@@ -482,6 +477,35 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             state.recordError(dataFile, "Could not import content: %s", ex.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Maps content-metadata references into DTOs used for hashing and storage.
+     * Returns {@code null} when there are no references so hash helpers match the SQL path.
+     */
+    static List<ArtifactReferenceDto> extractReferences(Content contentMetadata) {
+        if (contentMetadata == null || contentMetadata.getReferences() == null
+                || contentMetadata.getReferences().isEmpty()) {
+            return null;
+        }
+        return contentMetadata.getReferences().stream()
+                .map(ref -> ArtifactReferenceDto.builder()
+                        .groupId(ref.getGroupId())
+                        .artifactId(ref.getArtifactId())
+                        .version(ref.getVersion())
+                        .name(ref.getName())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private String computeCanonicalHash(TypedContent typedContent, String artifactType,
+            List<ArtifactReferenceDto> references, ProcessingState state) {
+        if (references == null || references.isEmpty()) {
+            return utils.getCanonicalContentHash(typedContent, artifactType, null, null);
+        }
+        return utils.getCanonicalContentHash(typedContent, artifactType, references,
+                refs -> RegistryContentUtils.recursivelyResolveReferences(refs,
+                        state.getStorage()::getContentByReference));
     }
 
     private PollingDataFile findFileByPathRef(ProcessingState state, PollingDataFile base, String ref) {

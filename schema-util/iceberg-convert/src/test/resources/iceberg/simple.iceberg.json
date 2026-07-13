@@ -1,0 +1,29 @@
+{
+  "type": "struct",
+  "schema-id": 0,
+  "fields": [
+    { "id": 1, "name": "id", "required": true, "type": "long" },
+    { "id": 2, "name": "name", "required": false, "type": "string" },
+    { "id": 3, "name": "amount", "required": false, "type": "decimal(10, 2)" },
+    { "id": 4, "name": "created", "required": false, "type": "timestamptz" },
+    {
+      "id": 5,
+      "name": "tags",
+      "required": false,
+      "type": { "type": "list", "element-id": 6, "element-required": true, "element": "string" }
+    },
+    {
+      "id": 7,
+      "name": "props",
+      "required": false,
+      "type": {
+        "type": "map",
+        "key-id": 8,
+        "key": "string",
+        "value-id": 9,
+        "value-required": false,
+        "value": "long"
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "LogicalTypes",
+  "fields": [
+    { "name": "theDate", "type": { "type": "int", "logicalType": "date" } },
+    { "name": "theTimestamp", "type": { "type": "long", "logicalType": "timestamp-millis" } },
+    { "name": "theDecimal", "type": { "type": "bytes", "logicalType": "decimal", "precision": 10, "scale": 2 } }
+  ]
+}

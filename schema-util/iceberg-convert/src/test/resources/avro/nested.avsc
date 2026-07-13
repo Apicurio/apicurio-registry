@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "Nested",
+  "fields": [
+    { "name": "id", "type": "long" },
+    {
+      "name": "address",
+      "type": {
+        "type": "record",
+        "name": "Address",
+        "fields": [
+          { "name": "street", "type": "string" },
+          { "name": "zip", "type": "int" }
+        ]
+      }
+    },
+    { "name": "tags", "type": { "type": "array", "items": "string" } },
+    { "name": "attributes", "type": { "type": "map", "values": "long" } }
+  ]
+}

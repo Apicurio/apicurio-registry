@@ -99,6 +99,7 @@
     <module>schema-util/common</module>
     <module>schema-util/graphql</module>
     <module>schema-util/iceberg</module>
+    <module>schema-util/iceberg-convert</module>
     <module>schema-util/json</module>
     <module>schema-util/kconnect</module>
     <module>schema-util/openapi</module>

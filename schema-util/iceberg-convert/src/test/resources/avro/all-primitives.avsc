@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "AllPrimitives",
+  "fields": [
+    { "name": "s", "type": "string" },
+    { "name": "i", "type": "int" },
+    { "name": "l", "type": "long" },
+    { "name": "f", "type": "float" },
+    { "name": "d", "type": "double" },
+    { "name": "b", "type": "boolean" },
+    { "name": "by", "type": "bytes" }
+  ]
+}

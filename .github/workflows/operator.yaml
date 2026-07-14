@@ -352,6 +352,12 @@ jobs:
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" SKIP_TESTS=true build
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
       - name: Login to quay.io registry
         run: |
           docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
@@ -361,7 +367,7 @@ jobs:
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
-          make image-build image-push
+          make image-buildx-push
 
       - name: Build and publish operator bundle
         working-directory: operator

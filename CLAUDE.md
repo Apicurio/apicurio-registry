@@ -78,6 +78,36 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 - Profiles: `local-tests`, `remote-mem`, `remote-sql`, `remote-kafka`
 - Storage-touching features must work across all variants
 
+## Contributor Checklist
+
+Before opening a PR, verify every item. PRs that skip these get sent back.
+
+### Before writing code
+- [ ] The linked issue has **maintainer approval** (comment from carlesarnal, EricWittmann, or jsenko). Implementing an unapproved feature request wastes everyone's time.
+- [ ] Check for **overlapping PRs** — search open PRs for your issue number and keywords. Duplicate work gets the later PR closed.
+
+### Code
+- [ ] Custom config properties use the `apicurio.` prefix — never `quarkus.*` directly. See `.claude/rules/config-properties.md`.
+- [ ] Config properties in the `app` module have `@Info` annotation. Run the config doc generator after adding properties.
+- [ ] Never expose internal state in error messages — no usernames, no stack traces, no class names. Use generic messages.
+- [ ] Never hand-roll what Quarkus or MicroProfile already provides (circuit breakers, retry, fault tolerance, health checks). Check existing dependencies first.
+- [ ] Storage-layer changes must work across **all 4 variants** (sql, kafkasql, gitops, kubernetesops).
+- [ ] Auth changes require tests for both **positive** (authorized → succeeds) and **negative** (unauthorized → 403) cases.
+- [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.
+
+### Tests
+- [ ] Every new code path has tests. Missing tests = automatic rejection.
+- [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
+- [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
+
+### Submission
+- [ ] `./mvnw test-compile -pl <module> -am -DskipTests` compiles cleanly (use `test-compile`, not `compile`, when touching test files).
+- [ ] `./mvnw checkstyle:check -pl <module>` passes.
+- [ ] All commits have DCO sign-off (`Signed-off-by: Name <email>`).
+- [ ] Commit messages use Conventional Commits: `type(scope): description`.
+- [ ] PR contains no unrelated changes (no whitespace fixes, no import reordering in untouched files).
+- [ ] PR description explains **what** and **why**, not just "fixes #NNN".
+
 ## Watch Out For
 
 - Protobuf-generated classes live in `target/` — don't edit them

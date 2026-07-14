@@ -11,6 +11,8 @@ import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static java.util.Optional.ofNullable;
 
 @Command(
@@ -35,6 +37,14 @@ public class GroupDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (isDefaultGroup(groupId)) {
+            throw new CliException(
+                    "The '" + DEFAULT_GROUP + "' group is implicit and cannot be deleted. "
+                            + "Delete the artifacts it contains instead.",
+                    VALIDATION_ERROR_RETURN_CODE
+            );
+        }
+
         // Check if the group exists
         client.getRegistryClient().groups().byGroupId(groupId).get();
 

@@ -179,14 +179,18 @@ public final class Conversions {
     }
 
     public static String convertToString(OffsetDateTime ts) {
-        return ts.atZoneSameInstant(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        return ofNullable(ts)
+                .map(t -> t.atZoneSameInstant(ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                .orElse("");
     }
 
     public static String convertToString(Date ts) {
-        return ts.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        return ofNullable(ts)
+                .map(t -> t.toInstant()
+                        .atZone(ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                .orElse("");
     }
 
     public static Date convert(OffsetDateTime ts) {
@@ -201,9 +205,11 @@ public final class Conversions {
     }
 
     public static String convertToString(Map<String, ?> labels) {
-        return labels.entrySet().stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .collect(Collectors.joining(","));
+        return ofNullable(labels)
+                .map(l -> l.entrySet().stream()
+                        .map(e -> e.getKey() + "=" + e.getValue())
+                        .collect(Collectors.joining(",")))
+                .orElse("");
     }
 
     public static io.apicurio.registry.types.VersionState convertState(

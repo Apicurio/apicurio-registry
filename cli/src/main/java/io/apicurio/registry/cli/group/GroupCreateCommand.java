@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -12,6 +13,9 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Parameters;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static io.apicurio.registry.cli.group.GroupGetCommand.printGroup;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -47,6 +51,13 @@ public class GroupCreateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (isDefaultGroup(groupId)) {
+            throw new CliException(
+                    "The '" + DEFAULT_GROUP + "' group is implicit and cannot be created. "
+                            + "Artifacts can be added to it without creating it first.",
+                    VALIDATION_ERROR_RETURN_CODE
+            );
+        }
         var newGroup = new CreateGroup();
         newGroup.setGroupId(groupId);
         if (!isBlank(description)) {

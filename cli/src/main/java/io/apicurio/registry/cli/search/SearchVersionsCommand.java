@@ -17,6 +17,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CONTENT_ID;
@@ -168,7 +169,7 @@ public class SearchVersionsCommand extends AbstractCommand {
                             STATE, GLOBAL_ID, CONTENT_ID, DESCRIPTION, CREATED_ON, OWNER);
                     Optional.ofNullable(results.getVersions()).orElse(List.of()).forEach(v -> {
                         table.addRow(
-                                v.getGroupId(),
+                                displayGroupId(v.getGroupId()),
                                 v.getArtifactId(),
                                 v.getVersion(),
                                 v.getName(),

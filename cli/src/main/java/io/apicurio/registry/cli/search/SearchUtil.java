@@ -9,6 +9,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import java.util.List;
 import java.util.Optional;
 
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
@@ -42,7 +43,7 @@ final class SearchUtil {
                             CREATED_ON, OWNER, MODIFIED_ON, MODIFIED_BY, LABELS);
                     Optional.ofNullable(results.getArtifacts()).orElse(List.of()).forEach(a -> {
                         table.addRow(
-                                a.getGroupId(),
+                                displayGroupId(a.getGroupId()),
                                 a.getArtifactId(),
                                 a.getName(),
                                 a.getArtifactType(),

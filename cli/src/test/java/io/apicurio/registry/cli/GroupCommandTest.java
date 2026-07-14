@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
@@ -145,5 +146,88 @@ public class GroupCommandTest extends AbstractCLITest {
                 .hasSize(2);
 
         // TODO: Test `--force` when we have a way to create artifacts via the CLI.
+    }
+
+    /**
+     * Issue #8025: the default group is implicit — the server reserves the name, never stores a row for it,
+     * and reports it as a null group ID. The CLI must present it as "default" instead of leaking a
+     * GroupNotFoundException, an NPE, or a raw "reserved" error from the server.
+     */
+    @Test
+    @Order(4)
+    public void testGroupGetDefault() throws JsonProcessingException {
+        // When
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "default", "--output-type", "json");
+        var group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+
+        // Then
+        assertThat(group.getGroupId())
+                .as(withCliOutput("`group get default` should succeed and report the group ID as 'default'."))
+                .isEqualTo("default");
+    }
+
+    @Test
+    @Order(5)
+    public void testGroupGetDefaultTableOutput() {
+        // When
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "default");
+
+        // Then
+        assertThat(out.toString())
+                .as(withCliOutput("The default group's table output should render, with empty metadata fields."))
+                .contains("default");
+    }
+
+    @Test
+    @Order(6)
+    public void testGroupGetEmptyGroupIdIsTreatedAsDefault() throws JsonProcessingException {
+        // When
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "", "--output-type", "json");
+        var group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+
+        // Then
+        assertThat(group.getGroupId())
+                .as(withCliOutput("`group get \"\"` should resolve to the default group, not throw an NPE."))
+                .isEqualTo("default");
+    }
+
+    @Test
+    @Order(7)
+    public void testGroupCreateDefaultFailsGracefully() {
+        // When
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "create", "default");
+
+        // Then
+        assertThat(err.toString())
+                .as(withCliOutput("Creating the default group should fail with a clear CLI message."))
+                .contains("implicit")
+                .doesNotContain("BadRequestException");
+    }
+
+    @Test
+    @Order(8)
+    public void testGroupDeleteDefaultFailsGracefully() {
+        // When
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "delete", "default");
+
+        // Then
+        assertThat(err.toString())
+                .as(withCliOutput("Deleting the default group should fail with a clear CLI message."))
+                .contains("implicit")
+                .doesNotContain("GroupNotFoundException");
+    }
+
+    @Test
+    @Order(9)
+    public void testDisplayGroupIdHandlesNullFromServer() {
+        // The server returns a null group ID for the default group in search results; show "default".
+        assertThat(IdUtil.displayGroupId(null)).isEqualTo("default");
+        assertThat(IdUtil.displayGroupId("")).isEqualTo("default");
+        assertThat(IdUtil.displayGroupId("myGroup")).isEqualTo("myGroup");
     }
 }

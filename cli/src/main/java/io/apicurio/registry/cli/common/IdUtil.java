@@ -11,9 +11,20 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
  */
 public final class IdUtil {
 
-    private static final String DEFAULT_GROUP = "default";
+    public static final String DEFAULT_GROUP = "default";
 
     private IdUtil() {
+    }
+
+    // The default group is implicit on the server side: the server reserves the name, never stores a row
+    // for it, and returns artifacts belonging to it with a null (blank) group ID. So both the literal
+    // "default" and a blank group ID coming back from the server refer to the same implicit group.
+    public static boolean isDefaultGroup(final String groupId) {
+        return isBlank(groupId) || DEFAULT_GROUP.equals(groupId);
+    }
+
+    public static String displayGroupId(final String groupId) {
+        return isBlank(groupId) ? DEFAULT_GROUP : groupId;
     }
 
     public static String resolveGroupId(final String groupId, final Config config) {
@@ -49,7 +60,7 @@ public final class IdUtil {
 
     // Validates the group exists. Skips validation for the "default" group as it is implicit.
     public static void validateGroup(final RegistryClient client, final String groupId) {
-        if (!DEFAULT_GROUP.equals(groupId)) {
+        if (!isDefaultGroup(groupId)) {
             client.groups().byGroupId(groupId).get();
         }
     }

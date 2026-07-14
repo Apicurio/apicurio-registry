@@ -12,6 +12,8 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
 
+import static io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
 import static io.apicurio.registry.cli.utils.Columns.DESCRIPTION;
 import static io.apicurio.registry.cli.utils.Columns.FIELD;
@@ -45,10 +47,22 @@ public class GroupGetCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (isDefaultGroup(groupId)) {
+            printGroup(output, defaultGroup(), outputType);
+            return;
+        }
         //noinspection ConstantConditions
         var group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
         // TODO: Should we include the `default` group in the list?
         printGroup(output, group, outputType);
+    }
+
+    // The server never stores a row for the implicit default group, so it cannot be fetched. This builds
+    // the minimal metadata the server would imply: just the group ID, with the rest left empty.
+    private static GroupMetaData defaultGroup() {
+        var group = new GroupMetaData();
+        group.setGroupId(DEFAULT_GROUP);
+        return group;
     }
 
     static void printGroup(OutputBuffer output, GroupMetaData group, OutputTypeMixin outputType) throws JsonProcessingException {

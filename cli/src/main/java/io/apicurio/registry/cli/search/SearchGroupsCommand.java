@@ -11,6 +11,7 @@ import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.search.groups.GroupsRequestBuilder;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import java.util.List;
+import java.util.Optional;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -96,7 +97,7 @@ public class SearchGroupsCommand extends AbstractCommand {
                 case table -> {
                     final var table = new TableBuilder();
                     table.addColumns(GROUP_ID, DESCRIPTION, CREATED_ON, OWNER, MODIFIED_ON, MODIFIED_BY, LABELS);
-                    results.getGroups().forEach(g -> {
+                    Optional.ofNullable(results.getGroups()).orElse(List.of()).forEach(g -> {
                         table.addRow(
                                 g.getGroupId(),
                                 g.getDescription(),

@@ -68,6 +68,9 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |`PROTOBUF`
 |Google protocol buffers schema
 |`proto2`, `proto3`
+|`THRIFT`
+|Apache Thrift interface definition language
+|*
 |`WSDL`
 |Web Services Definition Language
 |http://schemas.xmlsoap.org/wsdl/

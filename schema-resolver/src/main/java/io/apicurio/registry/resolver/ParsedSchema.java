@@ -33,4 +33,12 @@ public interface ParsedSchema<T> {
      * set the name to be used when referencing this schema
      */
     public ParsedSchemaImpl<T> setReferenceName(String referenceName);
+
+    /**
+     * @return the rawSchema with all references fully expanded inline (no name-only references).
+     * Defaults to {@link #getRawSchema()} when not explicitly set.
+     */
+    default byte[] getReferencelessRawSchema() {
+        return getRawSchema();
+    }
 }

@@ -77,6 +77,9 @@ public abstract class AbstractRegistryTestBase {
         if (resourceName.toLowerCase().endsWith("graphql")) {
             ct = ContentTypes.APPLICATION_GRAPHQL;
         }
+        if (resourceName.toLowerCase().endsWith("thrift")) {
+            ct = ContentTypes.APPLICATION_THRIFT;
+        }
         return TypedContent.create(resourceToContentHandle(resourceName), ct);
     }
 

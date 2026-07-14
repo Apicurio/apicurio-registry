@@ -1,8 +1,37 @@
 :root {
   --myApp-global--spacer--md: 30px;
+  --registry-page-canvas-bg: var(--pf-v5-global--BackgroundColor--200, #f0f0f0);
 }
 
 .pf-c-page {
   width: 100%;
   height: 100vh;
+}
+
+/* Apicurio#8310: use a single canvas background in filled detail pages so nested
+   tab panels and content wrappers do not create gray/white/gray/white banding. */
+.artifact-details-main,
+.branch-details-main {
+  background-color: var(--registry-page-canvas-bg);
+}
+
+.artifact-details-main .pf-c-tab-content,
+.branch-details-main .pf-c-tab-content,
+.artifact-details-main .pf-v6-c-tab-content,
+.branch-details-main .pf-v6-c-tab-content,
+#pf-tab-section-content-artifact-page-tabs,
+#pf-tab-section-content-group-page-tabs,
+#pf-tab-section-content-branch-page-tabs {
+  background-color: var(--registry-page-canvas-bg);
+}
+
+/* Secondary cards inside detail tabs add a redundant gray frame on the canvas. */
+.artifact-details-main [class*="-tab-content"] .pf-v6-c-card.pf-m-secondary,
+.branch-details-main [class*="-tab-content"] .pf-v6-c-card.pf-m-secondary,
+.artifact-details-main [class*="-tab-content"] .pf-c-card.pf-m-secondary,
+.branch-details-main [class*="-tab-content"] .pf-c-card.pf-m-secondary {
+  --pf-v6-c-card--BackgroundColor: transparent;
+  --pf-c-card--BackgroundColor: transparent;
+  border: none;
+  box-shadow: none;
 }

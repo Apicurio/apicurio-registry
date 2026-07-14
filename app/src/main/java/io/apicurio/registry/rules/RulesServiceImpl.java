@@ -1,6 +1,7 @@
 package io.apicurio.registry.rules;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.LazyContentList;
@@ -35,6 +36,9 @@ public class RulesServiceImpl implements RulesService {
 
     @Inject
     RulesProperties rulesProperties;
+
+    @Inject
+    OTelMetricsProvider otelMetrics;
 
     @Inject
     ArtifactTypeUtilProviderFactory providerFactory;
@@ -111,10 +115,11 @@ public class RulesServiceImpl implements RulesService {
             }
         });
 
-        // Apply rules
+        // Apply rules (metrics are recorded per-rule in applyRule)
         for (RuleType ruleType : allRules.keySet()) {
             applyRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
-                    ruleType, allRules.get(ruleType).getConfiguration(), references, resolvedReferences);
+                    ruleType, allRules.get(ruleType).getConfiguration(), references,
+                    resolvedReferences);
         }
     }
 
@@ -132,6 +137,8 @@ public class RulesServiceImpl implements RulesService {
                 ruleConfiguration, references, resolvedReferences);
     }
 
+    // Metrics are recorded here even during dry-run requests because rule evaluation genuinely
+    // executes during dry-run — only artifact/version creation metrics are suppressed.
     private void applyRule(RegistryStorage storageToUse, String groupId, String artifactId,
             String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
             RuleType ruleType, String ruleConfiguration, List<ArtifactReference> references,
@@ -141,7 +148,19 @@ public class RulesServiceImpl implements RulesService {
                 .artifactType(artifactType).currentContent(currentContent).updatedContent(updatedContent)
                 .configuration(ruleConfiguration).references(references)
                 .resolvedReferences(resolvedReferences).storage(storageToUse).build();
-        executor.execute(context);
+        try {
+            executor.execute(context);
+            otelMetrics.recordRuleEvaluation(ruleType.value(), true);
+            if (ruleType == RuleType.VALIDITY) {
+                otelMetrics.recordSchemaValidation(artifactType, true);
+            }
+        } catch (Exception e) {
+            otelMetrics.recordRuleEvaluation(ruleType.value(), false);
+            if (ruleType == RuleType.VALIDITY) {
+                otelMetrics.recordSchemaValidation(artifactType, false);
+            }
+            throw e;
+        }
     }
 
     @Override

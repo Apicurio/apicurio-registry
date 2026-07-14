@@ -107,7 +107,7 @@ public class ElasticsearchSearchService {
      * @throws IOException if an error occurs during search
      */
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws IOException {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) throws IOException {
 
         Query query = buildEsQuery(filters);
         List<SortOptions> sortOptions = buildSort(orderBy, orderDirection);
@@ -117,7 +117,7 @@ public class ElasticsearchSearchService {
                     .query(query)
                     .from(offset)
                     .size(limit)
-                    .trackTotalHits(t -> t.enabled(true));
+                    .trackTotalHits(t -> t.enabled(!skipCount));
 
             for (SortOptions sortOption : sortOptions) {
                 s.sort(sortOption);
@@ -126,8 +126,8 @@ public class ElasticsearchSearchService {
             return s;
         }, Map.class);
 
-        long totalCount = response.hits().total() != null
-                ? response.hits().total().value() : 0;
+        long totalCount = skipCount ? 0
+                : (response.hits().total() != null ? response.hits().total().value() : 0);
 
         List<SearchedVersionDto> versions = new ArrayList<>();
         for (Hit<Map> hit : response.hits().hits()) {

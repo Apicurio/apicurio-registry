@@ -13,12 +13,15 @@ on:
   release:
     types: [ released ]
 
+permissions:
+  contents: read
+
 jobs:
 
   release-build:
     name: Build & Publish
     if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
       release-version: ${{ steps.config.outputs.release-version }}
@@ -50,9 +53,15 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
           # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
           if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
-            RESOLVED=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ' | head -1)
+            # Prefer non-main branches to avoid resolving maintenance releases to main
+            # (the SHA may exist on both after post-release sync)
+            ALL_BRANCHES=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ')
+            RESOLVED=$(echo "$ALL_BRANCHES" | grep -v '^main$' | head -1)
+            if [ -z "$RESOLVED" ]; then
+              RESOLVED=$(echo "$ALL_BRANCHES" | head -1)
+            fi
             if [ -n "$RESOLVED" ]; then
-              echo "Resolved branch SHA $BRANCH to $RESOLVED"
+              echo "Resolved branch SHA $BRANCH to $RESOLVED (candidates: $(echo $ALL_BRANCHES | tr '\n' ', '))"
               echo "BRANCH=$RESOLVED" >> $GITHUB_ENV
             else
               echo "ERROR: Could not resolve commit $BRANCH to a branch name"
@@ -85,7 +94,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION config-show
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -117,7 +126,11 @@ jobs:
       - name: Build operator bundle
         working-directory: registry/operator
         run: |
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION bundle
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle
 
       - name: Build operator catalog
         working-directory: registry/operator
@@ -130,7 +143,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: operator-test-artifacts
           path: |
@@ -140,7 +153,7 @@ jobs:
           retention-days: 1
 
       - name: Upload bundle artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: operator-bundle-artifacts
           path: |
@@ -151,7 +164,7 @@ jobs:
     name: Test (${{ matrix.name }})
     needs: release-build
     if: needs.release-build.outputs.run-tests == 'true'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -207,19 +220,19 @@ jobs:
           cd registry && git checkout "${{ needs.release-build.outputs.release-version }}"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
 
       - name: Download test artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: operator-test-artifacts
           path: registry/operator/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -241,7 +254,7 @@ jobs:
     name: Post-Release
     needs: [release-build, release-test]
     if: always() && needs.release-build.result == 'success' && (needs.release-test.result == 'success' || needs.release-test.result == 'skipped')
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
@@ -262,7 +275,7 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -274,7 +287,7 @@ jobs:
           make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build
 
       - name: Download bundle artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: operator-bundle-artifacts
           path: registry/operator/target/bundle/
@@ -335,7 +348,71 @@ jobs:
           git checkout -b "$RELEASE_BRANCH"
           TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
           BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/main/docs/pull_request_template.md)"
+
+          # Copy the bundle directory
           cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
+
+          # Update FBC catalog templates if FBC is enabled
+          PKG_NAME="apicurio-registry-3"
+          FBC_ENABLED=$(cd "operators/$PKG_NAME" && cat ci.yaml | grep -c "fbc:" || true)
+          if [ "$FBC_ENABLED" -gt 0 ]; then
+            echo "FBC is enabled — updating catalog templates"
+            MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
+            BUNDLE_IMG="quay.io/apicurio/apicurio-registry-3-operator-bundle:$PACKAGE_VERSION"
+
+            # Determine which channels to update
+            if [ "$BRANCH" = "main" ]; then
+              CHANNELS="3.x $MINOR_CHANNEL"
+            else
+              CHANNELS="$MINOR_CHANNEL"
+            fi
+
+            cd "operators/$PKG_NAME"
+
+            # Download yq if not present
+            if [ ! -f ../../bin/yq ]; then
+              mkdir -p ../../bin
+              curl -sLo ../../bin/yq "https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64"
+              chmod +x ../../bin/yq
+            fi
+            YQ="../../bin/yq"
+
+            # Find the current head of each channel to set as 'replaces'
+            SAMPLE_TPL=$(ls catalog-templates/v4.16.yaml 2>/dev/null || ls catalog-templates/v4.*.yaml | head -1)
+
+            for tpl in catalog-templates/v4.*.yaml; do
+              echo "  Updating $tpl"
+              for CH in $CHANNELS; do
+                # Check if channel exists in the template
+                CH_EXISTS=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .name" "$tpl" 2>/dev/null || true)
+                CH_HEAD=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries[0].name" "$tpl" 2>/dev/null || true)
+
+                if [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
+                  # Channel doesn't exist — create it (new minor release)
+                  echo "    Creating new channel $CH"
+                  $YQ -i ".entries |= . + [{\"schema\": \"olm.channel\", \"package\": \"$PKG_NAME\", \"name\": \"$CH\", \"entries\": [{\"name\": \"$CSV_NAME\"}]}]" "$tpl"
+                elif [ -n "$CH_HEAD" ] && [ "$CH_HEAD" != "null" ]; then
+                  # Channel exists with entries — prepend new version
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\", \"replaces\": \"$CH_HEAD\"}] + ." "$tpl"
+                else
+                  # Channel exists but empty — add first entry
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\"}]" "$tpl"
+                fi
+              done
+              # Add bundle image reference
+              $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$tpl"
+            done
+
+            # Regenerate and validate catalogs
+            make catalogs
+            make validate-catalogs
+            echo "FBC catalog update complete"
+            cd ../..
+          else
+            echo "FBC is not enabled — submitting bundle only"
+          fi
+
           git add .
           git commit -s -m "$TITLE"
           git push -f source "$RELEASE_BRANCH"
@@ -358,13 +435,23 @@ jobs:
       - name: Update Makefile
         working-directory: registry/operator
         run: |
+          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
+            echo "OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL" >> $GITHUB_ENV
+          fi
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
           git add Makefile
 
       - name: Update catalog template
         working-directory: registry/operator
         run: |
-          make release-catalog-template-update
+          CATALOG_ARGS=""
+          if [ -n "${OLD_PREVIOUS_CHANNEL:-}" ]; then
+            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_PREVIOUS_CHANNEL"
+          fi
+          make $CATALOG_ARGS release-catalog-template-update
           git add "$(make VAR=CATALOG_DIR variable-get)"
 
       - name: Update install file
@@ -397,10 +484,41 @@ jobs:
           # Copy the versioned install file
           cp /tmp/install-file.yaml "$INSTALL_FILE"
 
-          # Reuse the same make targets as the post-release steps
+          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
+
           cd operator
-          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-          make release-catalog-template-update
+          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
+            # Same minor as main — full catalog update
+            OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+            OLD_CH=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            NEW_CH=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            CATALOG_ARGS=""
+            if [ "$OLD_CH" != "$NEW_CH" ]; then
+              CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CH"
+            fi
+            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+            make $CATALOG_ARGS release-catalog-template-update
+          else
+            # Maintenance release from an older minor — only update its channel
+            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
+            # the rolling channel, or other minor channels on main.
+            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
+            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
+            PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
+            LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
+            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
+            BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            YQ=$(make VAR=YQ variable-get)
+
+            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
+
+            # Add the new version to its minor channel
+            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
+
+            # Add the bundle image
+            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
+          fi
 
           cd ..
           git add .
@@ -428,6 +546,6 @@ jobs:
 
       - name: Setup tmate session on failure
         if: failure()
-        uses: mxschmitt/action-tmate@v3
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
         with:
           limit-access-to-actor: true

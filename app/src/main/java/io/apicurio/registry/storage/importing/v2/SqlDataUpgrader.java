@@ -44,6 +44,7 @@ import static io.apicurio.registry.types.ArtifactType.GRAPHQL;
 import static io.apicurio.registry.types.ArtifactType.JSON;
 import static io.apicurio.registry.types.ArtifactType.OPENAPI;
 import static io.apicurio.registry.types.ArtifactType.PROTOBUF;
+import static io.apicurio.registry.types.ArtifactType.THRIFT;
 import static io.apicurio.registry.types.ArtifactType.WSDL;
 import static io.apicurio.registry.types.ArtifactType.XML;
 import static io.apicurio.registry.types.ArtifactType.XSD;
@@ -353,6 +354,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                     return ContentTypes.APPLICATION_PROTOBUF;
                 case GRAPHQL:
                     return ContentTypes.APPLICATION_GRAPHQL;
+                case THRIFT:
+                    return ContentTypes.APPLICATION_THRIFT;
                 case XML:
                 case XSD:
                 case WSDL:

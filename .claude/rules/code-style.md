@@ -9,7 +9,6 @@ paths:
 # Java Code Style
 
 - Follow `.checkstyle/checkstyle.xml` strictly
-- Apache 2.0 license header required (see `.checkstyle/java.header`)
 - No star imports — use explicit imports
 - No unused or redundant imports
 - Constants: `UPPER_SNAKE_CASE` (exception: logger field named `log`)

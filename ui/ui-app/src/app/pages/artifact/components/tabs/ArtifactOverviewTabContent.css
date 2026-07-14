@@ -1,7 +1,7 @@
 
 .artifact-overview-tab-content {
     padding: 22px;
-    background-color: rgb(240,240,240);
+    flex-grow: 1;
 }
 
 .artifact-overview-tab-content .__drawer-head {

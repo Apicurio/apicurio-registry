@@ -150,6 +150,44 @@ spec:
                           Enable Apicurio Registry Authentication.
                           In Identity providers like Keycloak, this is the client id used for the Quarkus backend application
                         type: boolean
+                      kubernetesAuth:
+                        description: |-
+                          Kubernetes-native authentication configuration. When enabled, Bearer tokens in
+                          incoming requests are validated via the Kubernetes TokenReview API.
+                        properties:
+                          apiAudiences:
+                            description: |-
+                              Comma-separated list of API audiences for TokenReview validation.
+                              If empty, audience is not validated.
+                            type: string
+                          cacheExpiration:
+                            description: TokenReview result cache expiration in minutes.
+                              Defaults to 5.
+                            type: integer
+                          enabled:
+                            description: |-
+                              Enable Kubernetes TokenReview authentication. When enabled, Bearer tokens in
+                              incoming requests are validated via the Kubernetes TokenReview API, eliminating
+                              the need for an external OIDC provider.
+                            type: boolean
+                          groupMapping:
+                            description: Mapping of Kubernetes groups to Apicurio
+                              Registry roles.
+                            properties:
+                              adminGroups:
+                                description: Comma-separated Kubernetes groups that
+                                  map to the sr-admin role.
+                                type: string
+                              developerGroups:
+                                description: Comma-separated Kubernetes groups that
+                                  map to the sr-developer role.
+                                type: string
+                              readOnlyGroups:
+                                description: Comma-separated Kubernetes groups that
+                                  map to the sr-readonly role.
+                                type: string
+                            type: object
+                        type: object
                       logoutUrl:
                         description: Apicurio Registry UI redirect URI used for redirection
                           after logout.
@@ -7289,35 +7327,54 @@ rules:
   - apicurioregistries3
   - apicurioregistries3/status
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - apps
   resources:
   - deployments
   verbs:
-  - '*'
-- apiGroups:
-  - events.k8s.io
-  resources:
-  - events
-  verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
   - configmaps
+  - events
   - pods
   - services
   - serviceaccounts
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - roles
   - rolebindings
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - apiextensions.k8s.io
   resourceNames:
@@ -7332,13 +7389,25 @@ rules:
   - ingresses
   - networkpolicies
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - policy
   resources:
   - poddisruptionbudgets
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - autoscaling
   resources:
@@ -7358,7 +7427,6 @@ rules:
   verbs:
   - create
   - get
-  - list
 - apiGroups:
   - coordination.k8s.io
   resources:
@@ -7422,6 +7490,7 @@ spec:
         app.kubernetes.io/part-of: apicurio-registry
         app.kubernetes.io/version: 3.3.1-SNAPSHOT
     spec:
+      automountServiceAccountToken: true
       containers:
       - env:
         - name: POD_NAME
@@ -7474,6 +7543,12 @@ spec:
           requests:
             cpu: 100m
             memory: 100Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
         startupProbe:
           failureThreshold: 14
           httpGet:
@@ -7482,4 +7557,15 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: apicurio-registry-operator
+      volumes:
+      - emptyDir:
+          sizeLimit: 100Mi
+        name: tmp

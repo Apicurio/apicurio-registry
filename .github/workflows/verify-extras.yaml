@@ -14,22 +14,25 @@ on:
         required: true
         description: 'Docker image tag to test'
 
+permissions:
+  contents: read
+
 jobs:
   extra-tests:
     name: Extra Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: temurin
           cache: maven
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
           image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
@@ -38,10 +41,14 @@ jobs:
 
       - name: Run Extra Tests
         run: |
+          # -Pextra-tests: activates the extra-tests profile (additional validation beyond unit/integration)
+          # -Dregistry3-image: Docker image to test against (built by the Build job)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
             -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
-            -Dmaven.javadoc.skip=true
+            -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop
 
       - name: Run examples/http-caching tests
         working-directory: examples/http-caching/test
@@ -54,7 +61,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: tests-logs-extra
           path: artifacts
@@ -64,23 +71,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-ui-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-ui-${{ inputs.image-tag }}.tar'
@@ -108,7 +115,7 @@ jobs:
           npm run test
 
       - name: Upload Test Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:
           name: playwright-report
@@ -120,18 +127,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Registry 2.6
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           ref: 2.6.x
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -152,7 +159,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: tests-logs-legacy-v2
           path: artifacts
@@ -162,9 +169,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -186,17 +193,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .
@@ -208,7 +215,7 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -221,4 +228,8 @@ jobs:
 
       - name: Build Apicurio Registry with Examples
         run: |
-          mvn install -DskipTests -Pexamples -Dassembly.skipAssembly=true --no-transfer-progress
+          # -T 1: single-threaded (overrides .mvn/maven.config's -T 1C to prevent module ordering issues with examples)
+          # -Pexamples: activates the examples profile (builds example applications)
+          # -Dassembly.skipAssembly=true: skip archive generation (not needed for example compilation)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          mvn install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress

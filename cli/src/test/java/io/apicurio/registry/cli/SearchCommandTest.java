@@ -10,6 +10,9 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -44,6 +47,7 @@ public class SearchCommandTest extends AbstractCLITest {
         testHelpCommand("search");
         testHelpCommand("search", "group");
         testHelpCommand("search", "artifact");
+        testHelpCommand("search", "content");
         testHelpCommand("search", "version");
     }
 
@@ -330,5 +334,102 @@ public class SearchCommandTest extends AbstractCLITest {
     @Order(26)
     public void testSearchVersionsInvalidState() {
         executeAndAssertFailure("search", "versions", "--state", "INVALID");
+    }
+
+    // -- Search by content --
+
+    @Test
+    @Order(27)
+    public void testSearchByContent() throws Exception {
+        final Path tempFile = Files.createTempFile("search-content", ".json");
+        Files.writeString(tempFile, "{\"type\": \"string\"}");
+        try {
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("search", "content", "--output-type", "json",
+                    "-f", tempFile.toString());
+            ArtifactSearchResults results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
+
+            assertThat(results.getArtifacts())
+                    .as(withCliOutput("Search by content should find the test artifact"))
+                    .isNotEmpty();
+            assertThat(results.getArtifacts())
+                    .anyMatch(a -> TEST_ARTIFACT.equals(a.getArtifactId()));
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
+    @Test
+    @Order(28)
+    public void testSearchByContentWithGroup() throws Exception {
+        final Path tempFile = Files.createTempFile("search-content", ".json");
+        Files.writeString(tempFile, "{\"type\": \"string\"}");
+        try {
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("search", "content", "--output-type", "json",
+                    "-f", tempFile.toString(), "-g", TEST_GROUP);
+            ArtifactSearchResults results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
+
+            assertThat(results.getArtifacts())
+                    .as(withCliOutput("Search by content with group filter should find the test artifact"))
+                    .isNotEmpty();
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
+    @Test
+    @Order(29)
+    public void testSearchByContentNoMatch() throws Exception {
+        final Path tempFile = Files.createTempFile("search-content", ".json");
+        Files.writeString(tempFile, "{\"type\": \"nonexistent-content-that-wont-match\"}");
+        try {
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("search", "content", "--output-type", "json",
+                    "-f", tempFile.toString());
+            ArtifactSearchResults results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
+
+            assertThat(results.getArtifacts())
+                    .as(withCliOutput("Search by content with no match should return empty"))
+                    .isEmpty();
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
+    @Test
+    @Order(30)
+    public void testSearchByContentMissingFile() {
+        executeAndAssertFailure("search", "content");
+    }
+
+    @Test
+    @Order(31)
+    public void testSearchByContentStdin() throws Exception {
+        final InputStream originalIn = System.in;
+        try {
+            System.setIn(new ByteArrayInputStream(
+                    "{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("search", "content", "-o", "json", "-f", "-");
+            var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
+            assertThat(results.getArtifacts())
+                    .as(withCliOutput("Stdin search should find the test artifact"))
+                    .isNotEmpty();
+        } finally {
+            System.setIn(originalIn);
+        }
+    }
+
+    @Test
+    @Order(32)
+    public void testSearchByContentCanonicalWithoutType() throws Exception {
+        final Path tempFile = Files.createTempFile("search-content", ".json");
+        Files.writeString(tempFile, "{\"type\": \"string\"}");
+        try {
+            executeAndAssertFailure("search", "content", "-f", tempFile.toString(), "--canonical");
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
     }
 }

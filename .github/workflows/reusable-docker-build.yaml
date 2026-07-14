@@ -64,7 +64,7 @@ on:
         description: 'Maven arguments for build'
         required: false
         type: string
-        default: 'clean package -Pprod -DskipTests --no-transfer-progress'
+        default: 'clean package -Pprod -DskipTests --no-transfer-progress -Daether.syncContext.named.factory=noop'
       npm-build:
         description: 'Run npm build before Docker build'
         required: false
@@ -90,6 +90,9 @@ on:
       QUAY_PASSWORD:
         required: false
 
+permissions:
+  contents: read
+
 jobs:
   docker-build:
     name: Build and Push Docker Image
@@ -97,18 +100,18 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Download Build Artifact
         if: inputs.download-artifact != ''
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: ${{ inputs.download-artifact }}
           path: ${{ inputs.artifact-path }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         if: inputs.maven-build
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -120,7 +123,7 @@ jobs:
 
       - name: Set up Node.js ${{ inputs.node-version }}
         if: inputs.npm-build
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
@@ -142,10 +145,10 @@ jobs:
         run: npm run package
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Login to DockerHub Registry
         if: inputs.push-to-dockerhub
@@ -189,7 +192,7 @@ jobs:
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and Push Multi-arch Image
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
         env:
           DOCKER_TAGS: ${{ steps.tags.outputs.tags }}
         with:

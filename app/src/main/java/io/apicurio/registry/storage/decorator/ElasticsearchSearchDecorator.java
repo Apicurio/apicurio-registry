@@ -48,7 +48,7 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
      * through to the underlying SQL-based storage.
      */
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit)
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
             throws RegistryStorageException {
         if (searchService.requiresSearchIndex(filters)) {
             if (!startupIndexer.isReady()) {
@@ -58,12 +58,12 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
             }
             try {
                 return searchService.searchVersions(filters, orderBy, orderDirection,
-                        offset, limit);
+                        offset, limit, skipCount);
             } catch (IOException e) {
                 throw new RegistryStorageException(
                         "Elasticsearch search failed for index-only filters.", e);
             }
         }
-        return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit);
+        return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit, skipCount);
     }
 }

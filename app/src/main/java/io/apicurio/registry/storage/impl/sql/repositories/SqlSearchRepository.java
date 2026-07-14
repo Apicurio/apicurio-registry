@@ -51,7 +51,7 @@ public class SqlSearchRepository {
      * Search for artifacts based on filters.
      */
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) {
         return handles.withHandleNoException(handle -> {
             List<SqlStatementVariableBinder> binders = new LinkedList<>();
 
@@ -79,58 +79,8 @@ public class SqlSearchRepository {
                         });
                         break;
                     case name:
-                        String nameValue = filter.getStringValue();
-                        boolean startsWithWildcard = nameValue.startsWith("*");
-                        boolean endsWithWildcard = nameValue.endsWith("*");
-
-                        // Remove wildcards from the value
-                        String searchValue = nameValue;
-                        if (startsWithWildcard) {
-                            searchValue = searchValue.substring(1);
-                        }
-                        if (endsWithWildcard) {
-                            searchValue = searchValue.substring(0, searchValue.length() - 1);
-                        }
-
-                        // Determine operator based on wildcards
-                        if (startsWithWildcard || endsWithWildcard) {
-                            op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                            where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
-
-                            // Add wildcards to SQL pattern based on user input
-                            String finalSearchValue = searchValue;
-                            binders.add((query, idx) -> {
-                                String pattern = finalSearchValue;
-                                if (startsWithWildcard) {
-                                    pattern = "%" + pattern;
-                                }
-                                if (endsWithWildcard) {
-                                    pattern = pattern + "%";
-                                }
-                                query.bind(idx, pattern);
-                            });
-                            binders.add((query, idx) -> {
-                                String pattern = finalSearchValue;
-                                if (startsWithWildcard) {
-                                    pattern = "%" + pattern;
-                                }
-                                if (endsWithWildcard) {
-                                    pattern = pattern + "%";
-                                }
-                                query.bind(idx, pattern);
-                            });
-                        } else {
-                            // Exact match - no wildcards
-                            op = filter.isNot() ? "!=" : "=";
-                            where.append("(a.name " + op + " ? OR a.artifactId " + op + " ?)");
-                            String finalSearchValue = searchValue;
-                            binders.add((query, idx) -> {
-                                query.bind(idx, finalSearchValue);
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, finalSearchValue);
-                            });
-                        }
+                        buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
+                                filter.isNot(), binders);
                         break;
                     case groupId:
                         buildWildcardClause(where, "a.groupId",
@@ -243,15 +193,20 @@ public class SqlSearchRepository {
                     where.toString(), orderByQuery.toString());
             Query artifactsQuery = handle.createQuery(artifactsQuerySql);
 
-            String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts", "a",
-                    where.toString());
-            Query countQuery = handle.createQuery(countQuerySql);
+            Query countQuery = null;
+            if (!skipCount) {
+                String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts",
+                        "a", where.toString());
+                countQuery = handle.createQuery(countQuerySql);
+            }
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(artifactsQuery, idx);
-                binder.bind(countQuery, idx);
+                if (countQuery != null) {
+                    binder.bind(countQuery, idx);
+                }
                 idx++;
             }
             if ("mssql".equals(sqlStatements.dbType())) {
@@ -266,7 +221,7 @@ public class SqlSearchRepository {
             List<SearchedArtifactDto> artifacts = artifactsQuery.map(SearchedArtifactMapper.instance).list();
             limitReturnedLabelsInArtifacts(artifacts);
             // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+            int count = countQuery != null ? countQuery.mapTo(Integer.class).one() : 0;
 
             ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
             results.setArtifacts(artifacts);
@@ -279,7 +234,8 @@ public class SqlSearchRepository {
      * Search for versions based on filters.
      */
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
-            OrderDirection orderDirection, int offset, int limit) throws RegistryStorageException {
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
+            throws RegistryStorageException {
 
         log.debug("Searching for versions");
         return handles.withHandleNoException(handle -> {
@@ -330,11 +286,12 @@ public class SqlSearchRepository {
                         });
                         break;
                     case name:
+                        buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
+                                filter.isNot(), binders);
+                        break;
                     case description:
                         op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                        where.append("v.");
-                        where.append(filter.getType().name());
-                        where.append(" ");
+                        where.append("v.description ");
                         where.append(op);
                         where.append(" ?");
                         binders.add((query, idx) -> {
@@ -411,15 +368,20 @@ public class SqlSearchRepository {
                     .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");
             Query versionsQuery = handle.createQuery(versionsQuerySql);
             // Query for the total row count
-            String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
-                    .replace("{{selectColumns}}", "count(v.globalId)");
-            Query countQuery = handle.createQuery(countQuerySql);
+            Query countQuery = null;
+            if (!skipCount) {
+                String countQuerySql = new StringBuilder(selectTemplate).append(where).toString()
+                        .replace("{{selectColumns}}", "count(v.globalId)");
+                countQuery = handle.createQuery(countQuerySql);
+            }
 
             // Bind all query parameters
             int idx = 0;
             for (SqlStatementVariableBinder binder : binders) {
                 binder.bind(versionsQuery, idx);
-                binder.bind(countQuery, idx);
+                if (countQuery != null) {
+                    binder.bind(countQuery, idx);
+                }
                 idx++;
             }
 
@@ -435,7 +397,7 @@ public class SqlSearchRepository {
             List<SearchedVersionDto> versions = versionsQuery.map(SearchedVersionMapper.instance).list();
             limitReturnedLabelsInVersions(versions);
             // Execute count query
-            Integer count = countQuery.mapTo(Integer.class).one();
+            int count = countQuery != null ? countQuery.mapTo(Integer.class).one() : 0;
 
             VersionSearchResultsDto results = new VersionSearchResultsDto();
             results.setVersions(versions);
@@ -460,6 +422,53 @@ public class SqlSearchRepository {
                 query.bind(idx, value);
             });
         }
+    }
+
+    /**
+     * Builds a WHERE clause for a "name" filter, matched against both the name column and the
+     * artifact ID column. A leading and/or trailing {@code *} is treated as a wildcard and
+     * translated to a SQL {@code LIKE} pattern; without wildcards the match is exact. This keeps
+     * artifact and version name searches consistent, mirroring the artifact name search behavior
+     * introduced in #6298 (see #8002).
+     */
+    private void buildNameClause(StringBuilder where, String nameColumn, String artifactIdColumn,
+            String value, boolean not, List<SqlStatementVariableBinder> binders) {
+        boolean startsWithWildcard = value.startsWith("*");
+        boolean endsWithWildcard = value.endsWith("*");
+        boolean wildcard = startsWithWildcard || endsWithWildcard;
+
+        // Strip the wildcard markers to obtain the literal search value. The emptiness guards keep a
+        // value that is only wildcards (e.g. "*" or "**") from over-stripping into a substring error.
+        String searchValue = value;
+        if (startsWithWildcard && !searchValue.isEmpty()) {
+            searchValue = searchValue.substring(1);
+        }
+        if (endsWithWildcard && !searchValue.isEmpty()) {
+            searchValue = searchValue.substring(0, searchValue.length() - 1);
+        }
+
+        String op;
+        if (wildcard) {
+            op = not ? "NOT LIKE" : "LIKE";
+        } else {
+            op = not ? "!=" : "=";
+        }
+        where.append("(").append(nameColumn).append(" ").append(op).append(" ? OR ")
+                .append(artifactIdColumn).append(" ").append(op).append(" ?)");
+
+        // Translate leading/trailing '*' into SQL '%' wildcards, else bind the literal for exact match
+        String bound;
+        if (wildcard) {
+            bound = (startsWithWildcard ? "%" : "") + searchValue + (endsWithWildcard ? "%" : "");
+        } else {
+            bound = searchValue;
+        }
+        binders.add((query, idx) -> {
+            query.bind(idx, bound);
+        });
+        binders.add((query, idx) -> {
+            query.bind(idx, bound);
+        });
     }
 
     /**

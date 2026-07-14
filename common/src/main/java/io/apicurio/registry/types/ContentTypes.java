@@ -8,6 +8,7 @@ public class ContentTypes {
     public static final String APPLICATION_PROTOBUF = "application/x-protobuf";
     public static final String APPLICATION_GRAPHQL = "application/graphql";
     public static final String TEXT_PROMPT_TEMPLATE = "text/x-prompt-template";
+    public static final String APPLICATION_THRIFT = "application/x-thrift";
     public static final String APPLICATION_EMPTY = "application/vnd.apicurio.empty";
 
     public static boolean isEmptyContentType(String contentType) {

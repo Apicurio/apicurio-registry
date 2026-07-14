@@ -14,6 +14,9 @@ on:
         description: 'Docker image tag (commit SHA)'
         value: ${{ jobs.build-java.outputs.image-tag }}
 
+permissions:
+  contents: read
+
 jobs:
   build-java:
     name: Build Java Application (no tests)
@@ -22,10 +25,10 @@ jobs:
       image-tag: ${{ github.sha }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -35,8 +38,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         run: |
+          # -T 0.5C: half a thread per CPU core (overrides .mvn/maven.config's -T 1C for memory-heavy packaging)
+          # -Pprod -Dfull: production profile with all optional modules (CLI, serdes, distro, etc.)
+          # -DskipCommitIdPlugin=false: generate git commit metadata (needed for the Docker image)
+          # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
           ./mvnw clean package -T 0.5C --no-transfer-progress \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+            -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
@@ -56,29 +67,31 @@ jobs:
             ./distro/docker/target/docker
 
       - name: Save Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           image-name: apicurio/apicurio-registry
           tag: '${{ github.sha }}'
           output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
-      - name: Upload Build Artifacts for Publish
-        uses: actions/upload-artifact@v4
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
             app/target/
-            distro/docker/target/
-            mcp/target/docker/
-            java-sdk/common/target/
-            java-sdk/adapter-vertx/target/
-            java-sdk/adapter-jdk/target/
-            java-sdk/client/target/
-            java-sdk/client-v2/target/
-            config-index/definitions/target/
+            cli/target/
             common/target/
-            schema-util/common/target/
+            contracts-rules/target/
+            schema-resolver/target/
+            config-index/*/target/
+            distro/*/target/
+            java-sdk/*/target/
+            schema-util/*/target/
+            schema-validation/*/target/
+            serdes/*/*/target/
+            utils/*/target/
+            mcp/target/docker/
           retention-days: 1
 
   build-ui:
@@ -86,10 +99,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
@@ -125,7 +138,7 @@ jobs:
           docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
 
       - name: Save UI Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           image-name: apicurio/apicurio-registry-ui
           tag: '${{ github.sha }}'

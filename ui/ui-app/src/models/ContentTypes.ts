@@ -5,6 +5,7 @@ export class ContentTypes {
     public static APPLICATION_XML: string = "application/xml";
     public static APPLICATION_PROTOBUF: string = "application/x-protobuf";
     public static APPLICATION_GRAPHQL: string = "application/graphql";
+    public static APPLICATION_THRIFT: string = "application/x-thrift";
     public static APPLICATION_OCTET_STREAM: string = "application/octet-stream";
     public static APPLICATION_WSDL: string = "application/wsdl+xml";
     public static TEXT_XML: string = "text/xml";

@@ -346,9 +346,11 @@ public class SqlSearchRepository {
                 case name:
                     orderByQuery.append(" ORDER BY coalesce(v.name, v.version)");
                     break;
+                case version:
+                    orderByQuery.append(" ORDER BY v.versionSortKey");
+                    break;
                 case groupId:
                 case artifactId:
-                case version:
                 case globalId:
                 case createdOn:
                 case modifiedOn:

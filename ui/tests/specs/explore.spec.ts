@@ -7,6 +7,24 @@ const OPENAPI_DATA_V2_STR: string = JSON.stringify(OPENAPI_DATA_V2, null, 4);
 
 const REGISTRY_UI_URL: string = process.env["REGISTRY_UI_URL"] || "http://localhost:8888";
 
+test("Explore - Sort order persistence", async ({ page }) => {
+    await page.goto(`${REGISTRY_UI_URL}/explore`);
+    await expect(page).toHaveTitle(/Apicurio Registry/);
+
+    // 1. Click sort button to change it to descending (false)
+    await page.getByTestId("artifact-filter-sort").click();
+
+    // Verify localStorage has the value
+    let sortOrder = await page.evaluate(() => localStorage.getItem("apicurio-registry.config.explore.ascending"));
+    expect(sortOrder).toBe("false");
+
+    // 2. Reload the page to test persistence
+    await page.reload();
+
+    // 3. Verify UI state was properly restored directly on the component.
+    await expect(page.getByTestId("artifact-filter-sort")).toHaveAttribute("aria-label", "sort descending");
+});
+
 test("Explore - Create group", async ({ page }) => {
     await page.goto(`${REGISTRY_UI_URL}/explore`);
     await expect(page).toHaveTitle(/Apicurio Registry/);

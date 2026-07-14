@@ -56,18 +56,23 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
 
     // Read the user's last saved sort preference from localStorage, defaulting to ascending.
     const getInitialAscending = (): boolean => {
-        const stored = localStorage.getConfigProperty(EXPLORE_SORT_KEY, undefined);
-        if (stored === "false") {
-            return false;
+        try {
+            const stored = localStorage.getConfigProperty(EXPLORE_SORT_KEY, undefined);
+            if (stored === "false") {
+                return false;
+            }
+            return true;
+        } catch (err) {
+            console.warn("[ExplorePage] Failed to restore explore sort preference.", err);
+            return true;
         }
-        return true;
     };
 
-    const [criteria, setCriteria] = useState<ExplorePageToolbarFilterCriteria>({
+    const [criteria, setCriteria] = useState<ExplorePageToolbarFilterCriteria>(() => ({
         filterBy: FilterBy.name,
         filterValue: "",
         ascending: getInitialAscending()
-    });
+    }));
     const [isSearching, setSearching] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [results, setResults] = useState<GroupSearchResults>(EMPTY_RESULTS);
@@ -99,7 +104,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const onFilterCriteriaChange = (newCriteria: ExplorePageToolbarFilterCriteria): void => {
         setCriteria(newCriteria);
         // Persist the user's sort-order preference so it survives page navigation and reloads.
-        localStorage.setConfigProperty(EXPLORE_SORT_KEY, String(newCriteria.ascending));
+        if (newCriteria.ascending !== criteria.ascending) {
+            localStorage.setConfigProperty(EXPLORE_SORT_KEY, String(newCriteria.ascending));
+        }
         const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
         setPaging(resetPaging);
         search(newCriteria, resetPaging);

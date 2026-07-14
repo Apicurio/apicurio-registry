@@ -49,8 +49,8 @@ Which storage variant will be used is determined by the following configuration:
 For this property, there are four possible values:
 - *sql* - for the SQL storage variant.
 - *kafkasql* - for the KafkaSQL storage variant.
-- *gitops* - for the Gitops storage variant.
-- *kubernetesops* - for the Kubernetes ConfigMap storage variant (experimental).
+- *gitops* - for the GitOps storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
+- *kubernetesops* - for the Kubernetes ConfigMap storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
 
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and

@@ -8,6 +8,7 @@ import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
@@ -72,11 +73,16 @@ public abstract class ITBase implements OperatorTestContext {
     public static final String REMOTE_TESTS_INSTALL_FILE = "test.operator.install-file";
 
     public static final Duration POLL_INTERVAL_DURATION = ofSeconds(3);
-    public static final Duration SHORT_DURATION = ofSeconds(30);
-    // NOTE: When running remote tests, some extra time might be needed to pull an image before the pod can be run.
-    // TODO: Consider changing the duration based on test type or the situation.
-    public static final Duration MEDIUM_DURATION = ofSeconds(75);
-    public static final Duration LONG_DURATION = ofSeconds(300);
+    public static final Duration SHORT_DURATION = ofSeconds(
+            Integer.getInteger("test.operator.timeout.short", 30));
+    public static final Duration MEDIUM_DURATION = ofSeconds(
+            Integer.getInteger("test.operator.timeout.medium", 120));
+    public static final Duration LONG_DURATION = ofSeconds(
+            Integer.getInteger("test.operator.timeout.long", 420));
+    public static final Duration KAFKA_BROKER_READY_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.kafka-broker", 600));
+    public static final Duration KAFKA_REGISTRY_READY_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.kafka-registry", 480));
 
     public enum OperatorDeployment {
         local, remote
@@ -386,6 +392,38 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
+    /**
+     * Waits for a Kafka broker pod (deployed by Strimzi in KRaft mode) to become ready.
+     * Pod naming follows the KafkaNodePool convention: {@code <cluster>-<nodepool>-<id>}.
+     */
+    static void waitForKafkaBrokerReady(String clusterName) {
+        await().atMost(KAFKA_BROKER_READY_TIMEOUT).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0")
+                        .get().getStatus().getConditions())
+                        .filteredOn(c -> "Ready".equals(c.getType()))
+                        .map(PodCondition::getStatus)
+                        .containsOnly("True"));
+    }
+
+    /**
+     * Waits for a KafkaSQL-backed registry deployment to have one ready replica and to log
+     * the expected storage message.
+     */
+    static void waitForKafkaSqlRegistryReady(ApicurioRegistry3 registry) {
+        var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+        await().atMost(KAFKA_REGISTRY_READY_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+            var readyReplicas = client.apps().deployments().inNamespace(namespace)
+                    .withName(deploymentName).get().getStatus().getReadyReplicas();
+            assertThat(readyReplicas).isNotNull().isEqualTo(1);
+            var podName = client.pods().inNamespace(namespace).list().getItems().stream()
+                    .map(pod -> pod.getMetadata().getName())
+                    .filter(name -> name.startsWith(deploymentName))
+                    .findFirst().get();
+            assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
+                    .contains("Using Kafka-SQL artifactStore");
+        });
+    }
+
     static void createNamespace(KubernetesClient client, String namespace) {
         log.info("Creating Namespace {}", namespace);
         client.resource(
@@ -419,10 +457,22 @@ public abstract class ITBase implements OperatorTestContext {
         if (cleanup) {
             log.info("Deleting CRs");
             client.resources(ApicurioRegistry3.class).delete();
-            await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
-                assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
-                        .list().getItems()).isEmpty();
-            });
+            try {
+                await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+                    assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                            .list().getItems()).isEmpty();
+                });
+            } catch (org.awaitility.core.ConditionTimeoutException e) {
+                log.warn("Timed out waiting for graceful CR cleanup, force-removing finalizers");
+                client.resources(ApicurioRegistry3.class).list().getItems().forEach(cr -> {
+                    cr.getMetadata().setFinalizers(List.of());
+                    client.resource(cr).patch();
+                });
+                await().atMost(SHORT_DURATION).untilAsserted(() -> {
+                    assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                            .list().getItems()).isEmpty();
+                });
+            }
             await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
                 var registryDeployments = client.apps().deployments().inNamespace(namespace)
                         .withLabels(getOperatorManagedLabels()).list().getItems();

@@ -1,7 +1,6 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
-import io.fabric8.kubernetes.api.model.PodCondition;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -35,12 +34,7 @@ public class KafkaSqlTLSITTest extends ITBase {
                 .create();
         final var clusterName = "example-cluster";
 
-        await().ignoreExceptions().untilAsserted(() ->
-                // Strimzi uses StrimziPodSet instead of ReplicaSet, so we have to check pods
-                // KRaft mode uses KafkaNodePool, so pod naming is <cluster>-<nodepool>-<id>
-                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get().getStatus()
-                        .getConditions()).filteredOn(c -> "Ready".equals(c.getType())).map(PodCondition::getStatus)
-                        .containsOnly("True"));
+        waitForKafkaBrokerReady(clusterName);
 
         client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/tls/apicurio.kafkauser.yaml"))
                 .inNamespace(namespace).create();
@@ -61,17 +55,6 @@ public class KafkaSqlTLSITTest extends ITBase {
 
         client.resource(registry).create();
 
-        await().ignoreExceptions().until(() -> {
-            assertThat(client.apps().deployments().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
-                    .getReadyReplicas().intValue()).isEqualTo(1);
-            var podName = client.pods().inNamespace(namespace).list().getItems().stream()
-                    .map(pod -> pod.getMetadata().getName())
-                    .filter(podN -> podN.startsWith(registry.getMetadata().getName() + "-app-deployment"))
-                    .findFirst().get();
-            assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
-                    .contains("Using Kafka-SQL artifactStore");
-            return true;
-        });
+        waitForKafkaSqlRegistryReady(registry);
     }
 }

@@ -35,7 +35,7 @@ jobs:
       # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
       # forward-compatibility issues with GraalVM/native-image early in PRs.
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1
+        uses: graalvm/setup-graalvm@0def53c0fd8534bc13416c9469f5be45265824fd # v1
         with:
           java-version: '25'
           distribution: 'graalvm-community'
@@ -75,11 +75,16 @@ jobs:
 
       - name: Build and Test CLI
         run: |
+          # -Dquarkus.native.container-build=false: use locally installed GraalVM (not Docker-based native build)
+          # matrix.test-args: per-OS test config (Linux uses Docker-based tests, macOS skips them)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
           ./mvnw verify -pl cli \
             --no-transfer-progress \
             -Dquarkus.native.container-build=false \
             ${{ matrix.test-args }} \
             -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 

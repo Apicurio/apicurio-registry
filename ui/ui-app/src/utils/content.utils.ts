@@ -112,6 +112,8 @@ export function detectContentType(artifactType: string | undefined | null, conte
             return ContentTypes.APPLICATION_XML;
         case "GRAPHQL":
             return ContentTypes.APPLICATION_GRAPHQL;
+        case "THRIFT":
+            return ContentTypes.APPLICATION_THRIFT;
     }
     if (content === undefined) {
         return ContentTypes.APPLICATION_OCTET_STREAM;

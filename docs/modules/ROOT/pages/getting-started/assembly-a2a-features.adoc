@@ -14,6 +14,8 @@ endif::[]
 * xref:a2a-overview_{context}[]
 * xref:a2a-configuration_{context}[]
 * xref:a2a-well-known-endpoints_{context}[]
+* xref:a2a-discovery-endpoints_{context}[]
+* xref:a2a-visibility-model_{context}[]
 * xref:a2a-agent-card-artifact-type_{context}[]
 * xref:a2a-validation-rules_{context}[]
 * xref:a2a-compatibility-checking_{context}[]
@@ -236,6 +238,131 @@ Retrieves a specific registered Agent Card.
 
 Response: Agent Card JSON document
 
+// ref-a2a-discovery-endpoints
+:_mod-docs-content-type: REFERENCE
+[id="a2a-discovery-endpoints_{context}"]
+== Agent discovery and entitlement endpoints
+
+[role="_abstract"]
+{registry} provides a three-tier agent discovery model for enterprise agent catalogs, based on the link:https://github.com/a2aproject/A2A/discussions/741[A2A community proposal].
+
+.GET /.well-known/agents/public
+Returns agents explicitly marked as public. No authentication required.
+
+Only Agent Card artifacts labeled with `apicurio.agent.visibility=public` are returned.
+
+.Query parameters
+* `offset` (integer) - Pagination offset (default: 0)
+* `limit` (integer) - Pagination limit (default: 20)
+
+.Example request
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/agents/public"
+----
+
+.GET /.well-known/agents/entitled
+Returns agents the authenticated caller is entitled to access, filtered by visibility:
+
+* `public` agents are always included
+* `entitled` agents (default) are included for any authenticated user
+* `private` agents are included only for the artifact owner or admins
+
+.Query parameters
+* `offset` (integer) - Pagination offset (default: 0)
+* `limit` (integer) - Pagination limit (default: 20)
+
+.Example request
+[source,bash]
+----
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:8080/.well-known/agents/entitled"
+----
+
+.POST /.well-known/agents/search
+Advanced agent search with combined text query and structured filters. Respects the caller's entitlements when entitlement filtering is enabled.
+
+.Example request body
+[source,json]
+----
+{
+  "query": "customer support",
+  "filters": {
+    "capabilities": { "streaming": true },
+    "skills": ["ticket-creation"],
+    "labels": { "department": "engineering" },
+    "inputModes": ["text"],
+    "outputModes": ["text"],
+    "protocolBindings": ["http+json"]
+  },
+  "limit": 20,
+  "offset": 0
+}
+----
+
+All filter fields are optional. When multiple filters are specified, results must match all of them.
+
+NOTE: The `query` field matches artifact metadata name and artifact ID, not Agent Card JSON content. Full-text content search is planned for a future release.
+
+// ref-a2a-visibility-model
+:_mod-docs-content-type: REFERENCE
+[id="a2a-visibility-model_{context}"]
+== Agent visibility model
+
+[role="_abstract"]
+Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label.
+
+.Agent visibility levels
+[cols="1,3"]
+|===
+|Visibility |Behavior
+
+|`public`
+|Visible to everyone, including unauthenticated clients via `/.well-known/agents/public`
+
+|`entitled`
+|Visible to any authenticated user (this is the default)
+
+|`private`
+|Visible only to the artifact owner and registry admins
+|===
+
+.Setting visibility
+[source,bash]
+----
+curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/my-agent" \
+  -H "Content-Type: application/json" \
+  -d '{"labels": {"apicurio.agent.visibility": "public"}}'
+----
+
+.How entitlements work
+{registry} maps the A2A community entitlement concept to its existing RBAC model:
+
+* *Groups* act as organizational namespaces
+* *Entitling a client* = granting read access to the group containing the Agent Card artifacts
+* *Client authentication* is delegated to the external IdP (Keycloak, OIDC)
+* No new authorization primitives are required
+
+.Discovery and entitlement configuration properties
+[cols="2,1,3"]
+|===
+|Property |Default |Description
+
+|`apicurio.a2a.public-discovery.enabled`
+|`true`
+|Enable the public (unauthenticated) agent discovery endpoint
+
+|`apicurio.a2a.entitlements.enabled`
+|`true`
+|Enable entitlement-based agent filtering
+
+|`apicurio.a2a.default-visibility`
+|`entitled`
+|Default visibility for new Agent Card artifacts (`public`, `entitled`, or `private`)
+|===
+
+NOTE: When authentication is not configured, visibility filtering is skipped and all agents are visible to all users.
+
 // ref-a2a-agent-card-artifact-type
 :_mod-docs-content-type: REFERENCE
 [id="a2a-agent-card-artifact-type_{context}"]
@@ -417,7 +544,7 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 |Skill ID |Description
 
 |`schema-validation`
-|Validate schemas against format specifications (Avro, JSON Schema, Protobuf, OpenAPI, AsyncAPI, GraphQL, WSDL, XSD)
+|Validate schemas against format specifications (Avro, JSON Schema, Protobuf, OpenAPI, AsyncAPI, GraphQL, Thrift, WSDL, XSD)
 
 |`schema-search`
 |Search for schemas and APIs in the registry by name, labels, or content

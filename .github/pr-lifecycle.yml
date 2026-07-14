@@ -6,9 +6,12 @@ maintainers:
   - jsenko
   - paoloantinori
   - vandanayadav7
+  - eameh
 
 auto_accept:
   - renovate[bot]
+
+max_contributor_prs: 1
 
 merge:
   strategy: rebase

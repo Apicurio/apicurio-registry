@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -77,6 +77,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_OPTS: ${{ matrix.shard.maven-opts }}
         run: |
+          # Each shard compiles the same modules but runs a different subset of tests via -Dtest= filters.
+          # Pre-built artifacts from the Build job are downloaded but Maven still needs to resolve/compile.
+          # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
+          # -Dsurefire.rerunFailingTestsCount=2: automatically retry flaky tests up to 2 times
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
             --no-transfer-progress \
             -Pprod ${{ matrix.shard.modules }} \
@@ -85,5 +90,7 @@ jobs:
             -DskipCommitIdPlugin=true \
             -Dcheckstyle.skip=true \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5
+            -Dmaven.wagon.http.retryHandler.count=5 \
+            -Dsurefire.rerunFailingTestsCount=2

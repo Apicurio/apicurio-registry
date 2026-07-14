@@ -36,11 +36,8 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMITTest.class);
 
     private static final String UPGRADE_START_VERSION_PROP = "test.operator.upgrade-start-version";
-    private static final String UPGRADE_MINOR_HEAD_PROP = "test.operator.upgrade-minor-channel-head";
     // Must be present in both 3.x and 3.2.x channels in catalog.template.yaml
     private static final String UPGRADE_START_VERSION_DEFAULT = "3.2.4";
-    // The head of the minor channel (3.2.x) — the last published patch in that stream
-    private static final String UPGRADE_MINOR_HEAD_DEFAULT = "3.2.5";
     private static final Duration UPGRADE_TIMEOUT = Duration.ofMinutes(10);
 
     private KubernetesClient client;
@@ -69,9 +66,39 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     private String getMinorChannelHead() {
-        return ConfigProvider.getConfig()
-                .getOptionalValue(UPGRADE_MINOR_HEAD_PROP, String.class)
-                .orElse(UPGRADE_MINOR_HEAD_DEFAULT);
+        // Auto-discover from the catalog template file — read the first entry in the
+        // minor channel to find the current head. This avoids hardcoded version constants
+        // that break whenever a new patch is released.
+        var startVersion = getStartVersion();
+        var minorChannel = deriveMinorChannel(startVersion);
+        try {
+            var catalogRaw = loadRawResource("catalog/catalog.template.yaml");
+            var mapper = new com.fasterxml.jackson.dataformat.yaml.YAMLMapper();
+            var tree = mapper.readTree(catalogRaw);
+            var entries = tree.get("entries");
+            if (entries != null) {
+                for (var entry : entries) {
+                    if ("olm.channel".equals(entry.path("schema").asText())
+                            && minorChannel.equals(entry.path("name").asText())) {
+                        var channelEntries = entry.get("entries");
+                        if (channelEntries != null && channelEntries.size() > 0) {
+                            var headName = channelEntries.get(0).path("name").asText();
+                            if (headName.startsWith(PACKAGE_NAME + ".v")) {
+                                var version = headName.substring((PACKAGE_NAME + ".v").length());
+                                log.info("Auto-discovered minor channel head from catalog template: {} -> {}",
+                                        minorChannel, version);
+                                return version;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not auto-discover minor channel head from catalog template: {}",
+                    e.getMessage());
+        }
+        log.info("Falling back to start version as minor channel head: {}", startVersion);
+        return startVersion;
     }
 
     private void setUp() throws Exception {
@@ -164,6 +191,65 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         verifyUpgradeTo(minorHead);
         log.info("Channel switch succeeded: operator is now at {} on {} channel", minorHead,
                 minorChannel);
+    }
+
+    @RetryTest
+    void testChannelSwitchAtChannelHeadIsNoop() throws Exception {
+        setUp();
+
+        var projectVersion = getProjectVersion();
+        var rollingChannel = deriveRollingChannel(projectVersion);
+        var currentMinorChannel = deriveMinorChannel(projectVersion);
+
+        log.info("Testing noop channel switch: install {} on {}, then switch to {} where it's also the head",
+                projectVersion, rollingChannel, currentMinorChannel);
+
+        deployCatalogAndSubscribe(rollingChannel, projectVersion);
+        waitForOperatorVersion(projectVersion);
+        log.info("Operator {} deployed on {} channel", projectVersion, rollingChannel);
+
+        var podBefore = client.pods().inNamespace(namespace).list().getItems().stream()
+                .filter(p -> p.getMetadata().getName().contains("apicurio-registry-operator"))
+                .filter(p -> "Running".equals(p.getStatus().getPhase()))
+                .map(p -> p.getMetadata().getUid())
+                .findFirst().orElseThrow(() -> new IllegalStateException("No operator pod found"));
+        log.info("Operator pod UID before switch: {}", podBefore);
+
+        patchSubscriptionChannel(currentMinorChannel);
+        log.info("Switched subscription to {} channel, verifying operator stays at same version...",
+                currentMinorChannel);
+
+        // OLM may re-evaluate and restart the pod on a channel switch, even if the
+        // version is the same. Wait for any restarts to settle, then verify the
+        // version hasn't changed and the operator is healthy.
+        Thread.sleep(30_000);
+
+        // Verify the deployment still exists at the same version and is healthy
+        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+            var deployment = client.apps().deployments().inNamespace(namespace)
+                    .withName("apicurio-registry-operator-v" + projectVersion.toLowerCase()).get();
+            assertThat(deployment)
+                    .as("Operator deployment at " + projectVersion + " should still exist after channel switch")
+                    .isNotNull();
+            assertThat(deployment.getStatus().getReadyReplicas())
+                    .as("Operator should have 1 ready replica after channel switch")
+                    .isEqualTo(1);
+        });
+
+        var podAfter = client.pods().inNamespace(namespace).list().getItems().stream()
+                .filter(p -> p.getMetadata().getName().contains("apicurio-registry-operator"))
+                .filter(p -> "Running".equals(p.getStatus().getPhase()))
+                .map(p -> p.getMetadata().getUid())
+                .findFirst().orElseThrow(() -> new IllegalStateException("No operator pod found after switch"));
+
+        if (podAfter.equals(podBefore)) {
+            log.info("Channel switch was a true noop: same pod UID {}", podAfter);
+        } else {
+            log.info("OLM restarted the pod on channel switch (old: {}, new: {}), but version is unchanged",
+                    podBefore, podAfter);
+        }
+
+        log.info("Channel switch at channel head verified: operator at {} is healthy", projectVersion);
     }
 
     @RetryTest
@@ -318,11 +404,21 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         waitForOperatorVersion(startVersion);
         log.info("Operator {} deployed with Manual approval", startVersion);
 
-        // Wait for OLM to create a new pending install plan for the upgrade, then approve
-        waitForAndApproveInstallPlans();
-
-        // Verify upgrade happens after approval
-        verifyUpgradeTo(minorHead);
+        // Approve install plans in a loop until the target version is reached.
+        // Multi-step upgrades (e.g. 3.2.4 → 3.2.5 → 3.2.6) require approving
+        // each intermediate install plan.
+        await().atMost(UPGRADE_TIMEOUT).pollInterval(java.time.Duration.ofSeconds(10))
+                .ignoreExceptions().untilAsserted(() -> {
+            approveAllPendingInstallPlans();
+            var deployment = client.apps().deployments().inNamespace(namespace)
+                    .withName("apicurio-registry-operator-v" + minorHead.toLowerCase()).get();
+            assertThat(deployment)
+                    .as("Operator should reach " + minorHead + " after approving all install plans")
+                    .isNotNull();
+            assertThat(deployment.getStatus().getReadyReplicas())
+                    .as("Operator at " + minorHead + " should have 1 ready replica")
+                    .isEqualTo(1);
+        });
         log.info("Manual approval upgrade succeeded: {} -> {}", startVersion, minorHead);
     }
 

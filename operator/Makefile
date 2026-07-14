@@ -26,6 +26,8 @@ IMAGE_TAG ?= $(LC_VERSION)
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
+IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+
 OPERAND_IMAGE_TAG ?= latest-snapshot
 
 REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:$(OPERAND_IMAGE_TAG)
@@ -310,6 +312,15 @@ ifneq ($(ADDITIONAL_IMAGE_TAG),)
 	docker push $(ADDITIONAL_IMAGE)
 endif
 endif
+
+
+.PHONY: image-buildx-push
+image-buildx-push: ## Build and push a multi-arch operator image
+	docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
+		--platform $(IMAGE_PLATFORMS) \
+		-t $(IMAGE) \
+		$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
+		controller/target
 
 
 .PHONY: image

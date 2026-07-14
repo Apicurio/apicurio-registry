@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = Confluent Schema Registry compatibility API
 
 [role="_abstract"]
-{registry} provides a compatibility API layer so that applications that use Confluent Schema Registry clients can work with {registry}. Review the supported features, behavioral differences, unsupported features, and migration considerations:
+{registry} provides a compatibility API layer so that applications with Confluent Schema Registry clients can work with {registry}. Review the supported features, behavioral differences, unsupported features, and migration considerations:
 
 * xref:ccompat-overview_{context}[]
 * xref:ccompat-supported-features_{context}[]
@@ -65,10 +65,10 @@ schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 |Full support for schema management including `GET /schemas`, `GET /schemas/ids/{id}`, `GET /schemas/types`, `GET /schemas/ids/{id}/subjects`, `GET /schemas/ids/{id}/versions`, and `GET /schemas/ids/{id}/schema`. Includes pagination with `offset` and `limit` parameters.
 
 |*Subjects API*
-|Complete CRUD operations for subjects including listing, registration, lookup by content (`POST /subjects/{subject}`), lookup by version (`POST /subjects/{subject}/versions/{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
+|Complete create, retrieve, update, and delete operations for subjects including listing, registration, lookup by content (`POST /subjects/{subject}`), lookup by version (`POST /subjects/{subject}/versions/{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
 
 |*Compatibility API*
-|Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. Defaults to `BACKWARD` compatibility when no explicit rule is configured, matching the Confluent behavior.
+|Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. Defaults to `BACKWARD` compatibility when you do not configure an explicit rule, matching the Confluent behavior.
 
 |*Config API*
 |Global and subject-level compatibility configuration. Supports `GET`, `PUT`, and `DELETE` operations, including `defaultToGlobal` parameter for subject config. The `PUT` response includes `compatibility` and `normalize` fields.
@@ -103,7 +103,7 @@ schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 |Description
 
 |*X-Confluent-Accept-Unknown-Properties header*
-|When set to `true`, the API ignores unknown JSON properties in request bodies. This provides forward compatibility for clients sending newer API requests.
+|When set to `true`, the API ignores unknown JSON properties in request bodies. This provides forward compatibility for clients that send newer API requests.
 
 |*Enhanced pagination*
 |Full pagination support on schemas and subjects endpoints.
@@ -160,7 +160,7 @@ For most use cases, use the default content ID mode, because it matches the Conf
 
 |`apicurio.ccompat.group-concat.separator`
 |`:`
-|Separator character used when group concatenation is enabled.
+|Separator character used when you enable group concatenation.
 |===
 
 :_mod-docs-content-type: REFERENCE
@@ -175,15 +175,15 @@ Although the ccompat API provides broad compatibility, some behavioral differenc
 
 The ccompat API normalizes returned Avro schemas to compact single-line JSON, matching the Confluent behavior. This normalization has the following effects:
 
-* Pretty-printed Avro schemas submitted during registration are returned in compact form.
-* Avro primitive type wrappers are simplified (for example, `{"type": "string"}` becomes `"string"`).
+* The API returns pretty-printed Avro schemas submitted during registration in compact form.
+* The API simplifies Avro primitive type wrappers (for example, `{"type": "string"}` becomes `"string"`).
 * Field ordering follows the Avro canonical form.
 
 This normalization applies only to ccompat API responses (`/apis/ccompat/*`). The native {registry} v3 API returns schemas in their original submitted format.
 
 **Default compatibility level**
 
-When no explicit compatibility rule is configured at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/{subject}/versions/{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
+When you do not configure an explicit compatibility rule at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/{subject}/versions/{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
 
 NOTE: This default only applies to the compatibility _check_ endpoint. Schema registration does not enforce this default unless you explicitly configure a compatibility rule by using `PUT /config` or `PUT /config/{subject}`.
 
@@ -199,7 +199,7 @@ The `PUT /config` and `PUT /config/{subject}` endpoints return a response with t
 }
 ----
 
-The `GET /config` endpoint returns:
+The `GET /config` endpoint returns the following response:
 
 [source,json]
 ----
@@ -286,7 +286,7 @@ List endpoints (`GET /subjects`, `GET /schemas/ids/{id}/subjects`, `GET /schemas
 |Use {registry} system API for registry information.
 
 |*Data Contracts - Rules Enforcement*
-|`metadata` and `ruleSet` fields are accepted in requests but not enforced or stored through the ccompat API. Schema rules are not executed.
+|The ccompat API accepts `metadata` and `ruleSet` fields in requests but does not enforce or store them. The API does not execute schema rules.
 |Use {registry} native Data Contracts feature (`apicurio.contracts.enabled=true`) for contract metadata and rulesets. See xref:getting-started/assembly-data-contracts.adoc[Data Contracts].
 |===
 
@@ -297,22 +297,22 @@ Confluent Schema Linking uses schema exporters to replicate schemas between Sche
 {registry} provides alternative approaches for schema replication:
 
 * *Import/Export API*: Use the {registry} admin API to export all registry content to a ZIP file and import it into another instance.
-* *Kafka-based storage*: When you use Kafka storage, schemas are stored in a Kafka topic that you can replicate by using the native replication features of Kafka.
+* *Kafka-based storage*: Use Kafka storage to store schemas in a Kafka topic that you can replicate by using the native replication features of Kafka.
 * *GitOps workflows*: Store schemas in Git and use CI/CD pipelines to synchronize across environments.
 
 **Data Contracts**
 
-Confluent Data Contracts provide governance features including:
+Confluent Data Contracts provide the following governance features:
 
 * *Metadata*: Key-value pairs attached to schemas (owner, email, tags)
-* *RuleSets*: Validation and transformation rules using CEL or JSONata
+* *RuleSets*: Validation and transformation rules that use Common Expression Language (CEL) or JSONata
 
 {registry} accepts these fields in ccompat API requests for client compatibility but does not process or store them through the ccompat layer. Instead, {registry} provides its own native Data Contracts feature with more capabilities:
 
 * *Contract Metadata*: Standardized metadata (status, owner, domain, classification, stage) managed through the `contract/metadata` REST API
 * *Contract Rulesets*: Domain and migration rules at both artifact and version level, managed through the `contract/ruleset` REST API
-* *Content Rules*: Configure validity, compatibility, and integrity rules
-* *Groups*: Organize artifacts by group for governance
+* *Content Rules*: Validity, compatibility, and integrity rule configuration
+* *Groups*: Artifact organization by group for governance
 
 See xref:getting-started/assembly-data-contracts.adoc[Data Contracts] for full documentation about the native data contracts feature.
 
@@ -337,22 +337,22 @@ When you migrate from Confluent Schema Registry to {registry}, consider the foll
 |Update `schema.registry.url` to point to the {registry} ccompat endpoint.
 
 |*Schema types*
-|Avro, JSON Schema, and Protobuf are fully supported.
+|{registry} fully supports Avro, JSON Schema, and Protobuf.
 
 |*Schema IDs*
-|{registry} uses `contentId` by default (same schema content = same ID across subjects). Set `apicurio.ccompat.legacy-id-mode.enabled=true` if your application depends on unique IDs per registration.
+|{registry} uses `contentId` by default (the same schema content produces the same ID across subjects). Set `apicurio.ccompat.legacy-id-mode.enabled=true` if your application depends on unique IDs per registration.
 
 |*Avro schema formatting*
 |Avro schemas are returned in compact JSON through ccompat endpoints. If your application compares schema strings directly, be aware of formatting differences.
 
 |*Default compatibility*
-|The compatibility check endpoint defaults to `BACKWARD` when no rule is configured, matching Confluent. Set an explicit global compatibility level by using `PUT /config` if you need a different default.
+|The compatibility check endpoint defaults to `BACKWARD` when you do not configure a rule, matching Confluent. Set an explicit global compatibility level by using `PUT /config` if you need a different default.
 
 |*Config response parsing*
 |The `PUT /config` response uses the field name `compatibility` (not `compatibilityLevel`). Update client code that parses this response.
 
 |*Authentication*
-|{registry} supports OIDC authentication. Update client security configuration as needed.
+|{registry} supports OpenID Connect (OIDC) authentication. Update client security configuration as needed.
 
 |*Exporters / Schema Linking*
 |Not supported. Use {registry} import/export API or Kafka topic replication.

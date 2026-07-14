@@ -293,7 +293,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
     private SchemaLookupResult<S> handleResolveSchemaByContent(ParsedSchema<S> parsedSchema,
                                                                final ArtifactReference artifactReference) {
 
-        String rawSchemaString = IoUtil.toString(parsedSchema.getRawSchema());
+        String rawSchemaString = IoUtil.toString(parsedSchema.getReferencelessRawSchema());
 
         return schemaCache.getByContent(ContentWithReferences.builder().content(rawSchemaString).build(), contentKey -> {
             logger.info(String.format("Retrieving schema content using string: %s", rawSchemaString));

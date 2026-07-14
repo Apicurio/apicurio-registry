@@ -112,6 +112,13 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         Assertions.assertEquals(ArtifactType.GRAPHQL, type);
     }
 
+    @Test
+    void testDiscoverType_Thrift() {
+        TypedContent content = resourceToTypedContentHandle("example.thrift");
+        String type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
+        Assertions.assertEquals(ArtifactType.THRIFT, type);
+    }
+
     /**
      * Test method for
      * {@link io.apicurio.registry.util.ArtifactTypeUtil#determineArtifactType(TypedContent, String, ArtifactTypeUtilProviderFactory)}.

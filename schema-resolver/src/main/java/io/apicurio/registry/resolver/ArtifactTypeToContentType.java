@@ -28,6 +28,8 @@ public class ArtifactTypeToContentType {
             return ContentTypes.APPLICATION_GRAPHQL;
         } else if (ArtifactType.OPENRPC.equals(artifactType)) {
             return ContentTypes.APPLICATION_JSON;
+        } else if (ArtifactType.THRIFT.equals(artifactType)) {
+            return ContentTypes.APPLICATION_THRIFT;
         }
         throw new IllegalArgumentException("Artifact type not supported: " + artifactType);
     }

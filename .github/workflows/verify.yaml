@@ -55,6 +55,8 @@ jobs:
               - 'java-sdk/**'
               - 'mcp/**'
               - 'distro/**'
+              - 'integration-tests/src/**'
+              - 'integration-tests/pom.xml'
               - 'pom.xml'
             ui:
               - 'ui/**'
@@ -85,6 +87,8 @@ jobs:
               - 'operator/**'
             ci:
               - '.github/workflows/**'
+            ci-operator:
+              - '.github/workflows/operator.yaml'
 
       - name: Evaluate scope and decide
         id: decide
@@ -123,6 +127,18 @@ jobs:
             LABELS=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '[.labels[].name]')
             has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
 
+            # Orchestrator-initiated branch update for merge — skip all tests.
+            # Only honour for bot-triggered syncs to prevent skipping tests
+            # if a human pushes while the label is still set.
+            SENDER='${{ github.event.sender.login }}'
+            if has_label "orchestrator/merge-rebase" && [ "$SENDER" = "github-actions[bot]" ]; then
+              echo "lifecycle-ready=true" >> "$GITHUB_OUTPUT"
+              for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
+                echo "$out=false" >> "$GITHUB_OUTPUT"
+              done
+              exit 0
+            fi
+
             if has_label "orchestrator/disabled"; then
               if has_label "DO NOT MERGE"; then
                 run_smoke=false; run_full=false
@@ -154,6 +170,7 @@ jobs:
           OPERATOR='${{ steps.filter.outputs.operator }}'
           GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
+          CI_OPERATOR='${{ steps.filter.outputs.ci-operator }}'
 
           # ── Phase 3: Combine scope + changes into per-phase decisions ─
           # decide <output-name> <scope-flag> <change-flags...>
@@ -180,7 +197,7 @@ jobs:
           decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
-          decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI"
+          decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
           decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
       - name: Save decision summary
@@ -311,9 +328,9 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
-          go-version: '1.26.4'
+          go-version: '1.26.5'
 
       - name: Regenerate Go SDK
         run: |

@@ -7,7 +7,8 @@ div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs
     flex-direction: column;
 }
 
-.artifact-details-main .pf-c-tab-content {
+.artifact-details-main .pf-c-tab-content,
+.artifact-details-main .pf-v6-c-tab-content {
     flex-grow: 1;
     display: flex;
     flex-direction: column;

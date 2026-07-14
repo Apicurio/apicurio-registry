@@ -198,6 +198,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             contentType = ContentTypes.APPLICATION_JSON;
             fext = "graphql";
         }
+        if (artifact?.artifactType === ArtifactTypes.THRIFT) {
+            contentType = ContentTypes.APPLICATION_THRIFT;
+            fext = "thrift";
+        }
 
         const fname: string = nameOrId() + "." + fext;
         download.downloadToFS(content, contentType, fname).catch(error => {

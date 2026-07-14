@@ -9,10 +9,6 @@ on:
         description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
-      no-more-minor-releases:
-        type: boolean
-        description: "I understand that releasing from main prevents further patch releases from older minor branches (e.g., 3.2.x)"
-        default: false
       notice:
         type: boolean
         description: I will notify jsenko if the operator release workflow fails!
@@ -52,15 +48,15 @@ jobs:
 
       # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
-        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.17.0
+          node-version: 24.18.0
 
       - name: Set up json CLI
         run: npm install -g json
@@ -78,34 +74,10 @@ jobs:
           git branch --set-upstream-to=origin/${{ github.event.inputs.branch }}
           git pull
 
-      - name: Verify OLM channel linearity
-        working-directory: registry
-        run: |
-          BRANCH="${{ github.event.inputs.branch }}"
-          OUR_PREV_VERSION=$(cd operator && make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
-
-          if [ "$BRANCH" = "main" ]; then
-            # Releasing from main cuts off minor branch releases. Require acknowledgement.
-            if [ "${{ github.event.inputs.no-more-minor-releases }}" != "true" ]; then
-              echo "ERROR: Releasing from main prevents further patch releases from older minor branches."
-              echo "Check the 'no-more-minor-releases' parameter to acknowledge this and retry."
-              exit 1
-            fi
-          else
-            # Releasing from a minor branch — verify main hasn't released ahead.
-            # If main's PREVIOUS_PACKAGE_VERSION differs from ours, main already
-            # released a newer version and the OLM chain would fork.
-            MAIN_PREV_VERSION=$(git show origin/main:operator/Makefile | grep '^PREVIOUS_PACKAGE_VERSION' | sed 's/.*?=\s*//' | tr -d ' ')
-            echo "Branch PREVIOUS_PACKAGE_VERSION: $OUR_PREV_VERSION"
-            echo "Main PREVIOUS_PACKAGE_VERSION:   $MAIN_PREV_VERSION"
-            if [ "$OUR_PREV_VERSION" != "$MAIN_PREV_VERSION" ]; then
-              echo "ERROR: OLM channel linearity violation!"
-              echo "Main has PREVIOUS_PACKAGE_VERSION=$MAIN_PREV_VERSION but this branch has $OUR_PREV_VERSION."
-              echo "A release from main (or another branch) has already advanced the OLM channel."
-              echo "No more patch releases can be made from this branch."
-              exit 1
-            fi
-          fi
+      # Note: The OLM channel linearity check was removed. With multi-channel
+      # OLM support, each branch releases to its own channel (main → 3.x + minor,
+      # maintenance → minor only), so PREVIOUS_PACKAGE_VERSION divergence between
+      # branches is expected and correct. See operator/RELEASING.md for details.
 
       - name: Update Release Version ${{ github.event.inputs.release-version}}
         run: |
@@ -197,7 +169,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -211,6 +183,7 @@ jobs:
             -Pprod -Dfull -pl '!cli' \
             -DskipTests \
             -DskipCommitIdPlugin=false \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
@@ -239,9 +212,9 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.17.0
+          node-version: 24.18.0
 
       - name: Build Registry UI
         working-directory: ui
@@ -273,7 +246,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@6f3fa030c4b8f77c1f554a860f593a654538fa38 # v1
+        uses: graalvm/setup-graalvm@0def53c0fd8534bc13416c9469f5be45265824fd # v1
         with:
           java-version: '23'
           distribution: 'graalvm-community'
@@ -289,6 +262,7 @@ jobs:
             -pl cli -am \
             -DskipTests \
             -Dquarkus.native.container-build=false \
+            -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
@@ -360,9 +334,9 @@ jobs:
           echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.17.0
+          node-version: 24.18.0
 
       - name: Set up json CLI
         run: npm install -g json

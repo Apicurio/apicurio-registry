@@ -11,7 +11,8 @@ LC_VERSION_SUFFIX ?= $(shell echo "$(LC_VERSION)" | sed -n 's/[^-]*\(-.*\)/\1/p'
 
 BUILD_OPTS_EXT += $(BUILD_OPTS)
 
-BUILD_OPTS_EXT += -pl controller -am
+# -T1 overrides the inherited -T 1C from .mvn/maven.config — operator @QuarkusTest tests require single-threaded execution
+BUILD_OPTS_EXT += -T1 -pl controller -am
 
 SKIP_TESTS ?= false
 ifneq ($(SKIP_TESTS),true)
@@ -38,7 +39,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.3.0
+PREVIOUS_PACKAGE_VERSION ?= 3.2.6
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 # Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)

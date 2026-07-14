@@ -67,6 +67,18 @@ public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
         validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
     }
 
+    /**
+     * Test for issue #8505 - OpenAPI 3.1 with server variables fails to validate.
+     * Before the fix in apitomy-data-models, this would throw a ClassCastException because
+     * OasServerVarNotFoundInTemplateRule casts to OpenApi30Server instead of OpenApiServer.
+     */
+    @Test
+    public void testValidateOpenApi31WithServerVariables() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-3.1-server-variables.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
     @Test
     public void testValidateRefs() throws Exception {
         TypedContent content = resourceToTypedContentHandle("openapi-valid-with-refs.json");

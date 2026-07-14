@@ -7,10 +7,21 @@ spec:
   replicas: 1
   template:
     spec:
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: apicurio-registry-operator
           image: PLACEHOLDER_IMAGE
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: POD_NAME
               valueFrom:
@@ -58,6 +69,9 @@ spec:
             periodSeconds: 10
             failureThreshold: 3
             timeoutSeconds: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources: # TODO
             requests:
               cpu: 100m
@@ -65,4 +79,8 @@ spec:
             limits:
               cpu: 200m
               memory: 500Mi
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
       serviceAccountName: apicurio-registry-operator

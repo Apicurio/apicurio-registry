@@ -165,6 +165,7 @@ Supported artifact types include:
 * `ASYNCAPI`: AsyncAPI specification
 * `GRAPHQL`: GraphQL schema definition
 * `KCONNECT`: Apache Kafka Connect schema
+* `THRIFT`: Apache Thrift interface definition language
 * `WSDL`: Web Services Description Language definition
 * `XSD`: XML Schema Definition
 * `XML`: XML document

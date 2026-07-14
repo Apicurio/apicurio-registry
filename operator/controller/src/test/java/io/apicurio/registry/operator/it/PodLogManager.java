@@ -23,6 +23,7 @@ public class PodLogManager {
     private final KubernetesClient k8sClient;
 
     private final Map<ResourceID, AtomicBoolean> activePodLogMap = new ConcurrentHashMap<>();
+    private final Map<ResourceID, LogWatch> activeLogWatchMap = new ConcurrentHashMap<>();
 
     public PodLogManager(KubernetesClient k8sClient) {
         this.k8sClient = k8sClient;
@@ -41,22 +42,27 @@ public class PodLogManager {
                     LogWatch logWatch = k8sClient.pods().inNamespace(getNamespace(podID)).withName(podID.getName()).watchLog();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(logWatch.getOutput()))
             ) {
+                activeLogWatchMap.put(podID, logWatch);
                 AtomicBoolean stop = new AtomicBoolean(false);
                 log.debug("START LOG of pod {}/{}", getNamespace(podID), podID.getName());
                 activePodLogMap.put(podID, stop);
                 var lastWriteAt = Instant.now();
                 while (!stop.get()) {
-                    var line = reader.readLine();
-                    if (line != null) {
-                        chunk.append(getNamespace(podID)).append("/").append(podID.getName()).append(" >>> ")
-                                .append(line).append("\n");
+                    if (reader.ready()) {
+                        var line = reader.readLine();
+                        if (line == null) {
+                            break;
+                        }
+                        chunk.append(getNamespace(podID)).append("/").append(podID.getName())
+                                .append(" >>> ").append(line).append("\n");
                         if (lastWriteAt.plus(Duration.ofSeconds(5)).isBefore(Instant.now())) {
-                            log.debug("LOG of pod {}/{}:\n{}", getNamespace(podID), podID.getName(), chunk);
+                            log.debug("LOG of pod {}/{}:\n{}", getNamespace(podID), podID.getName(),
+                                    chunk);
                             chunk.setLength(0);
                             lastWriteAt = Instant.now();
                         }
                     } else {
-                        stop.set(true);
+                        Thread.sleep(100);
                     }
                 }
             } catch (Exception ex) {
@@ -66,6 +72,7 @@ public class PodLogManager {
                     log.debug("LOG of pod {}/{}:\n{}", getNamespace(podID), podID.getName(), chunk);
                 }
                 log.debug("END LOG of pod {}/{}", getNamespace(podID), podID.getName());
+                activeLogWatchMap.remove(podID);
                 activePodLogMap.remove(podID);
             }
         }).start();
@@ -77,6 +84,13 @@ public class PodLogManager {
 
     public void stopAndWait() {
         activePodLogMap.values().forEach(stop -> stop.set(true));
-        await().until(activePodLogMap::isEmpty);
+        activeLogWatchMap.values().forEach(logWatch -> {
+            try {
+                logWatch.close();
+            } catch (Exception e) {
+                // Ignore
+            }
+        });
+        await().atMost(Duration.ofSeconds(30)).until(activePodLogMap::isEmpty);
     }
 }

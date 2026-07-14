@@ -22,7 +22,7 @@ import static lombok.AccessLevel.PRIVATE;
 @JsonDeserialize(using = JsonDeserializer.None.class)
 @JsonInclude(NON_NULL)
 @JsonPropertyOrder({ "enabled", "appClientId", "uiClientId", "redirectUri", "authServerUrl", "logoutUrl",
-        "anonymousReadsEnabled", "basicAuth", "tls", "authz" })
+        "anonymousReadsEnabled", "basicAuth", "kubernetesAuth", "tls", "authz" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -82,6 +82,13 @@ public class AuthSpec {
             Client credentials basic auth configuration.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private BasicAuthSpec basicAuth;
+
+    @JsonProperty("kubernetesAuth")
+    @JsonPropertyDescription("""
+            Kubernetes-native authentication configuration. When enabled, Bearer tokens in
+            incoming requests are validated via the Kubernetes TokenReview API.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private KubernetesAuthSpec kubernetesAuth;
 
     @JsonProperty("tls")
     @JsonPropertyDescription("""

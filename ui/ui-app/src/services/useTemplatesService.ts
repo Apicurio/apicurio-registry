@@ -4,7 +4,8 @@ import {
     AVRO_TEMPLATES,
     JSON_TEMPLATES,
     OPENAPI_3_TEMPLATES,
-    PROTOBUF_TEMPLATES
+    PROTOBUF_TEMPLATES,
+    THRIFT_TEMPLATES
 } from "./_templates";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 
@@ -24,6 +25,9 @@ async function getTemplatesFor(type: string, version?: string): Promise<Template
     }
     if (type === ArtifactTypes.OPENAPI) {
         return Promise.resolve(OPENAPI_3_TEMPLATES);
+    }
+    if (type === ArtifactTypes.THRIFT) {
+        return Promise.resolve(THRIFT_TEMPLATES);
     }
     return Promise.reject(`No templates found for type ${type} and version ${version}.`);
 }

@@ -11,9 +11,7 @@ public class MysqlTestProfile implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
-        return Map.of("apicurio.storage.sql.kind", "mysql",
-                "quarkus.datasource.h2.active", "false",
-                "quarkus.datasource.mysql.active", "true");
+        return Map.of("apicurio.storage.sql.kind", "mysql");
     }
 
     @Override

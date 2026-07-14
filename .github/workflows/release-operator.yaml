@@ -53,9 +53,15 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
           # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
           if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
-            RESOLVED=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ' | head -1)
+            # Prefer non-main branches to avoid resolving maintenance releases to main
+            # (the SHA may exist on both after post-release sync)
+            ALL_BRANCHES=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ')
+            RESOLVED=$(echo "$ALL_BRANCHES" | grep -v '^main$' | head -1)
+            if [ -z "$RESOLVED" ]; then
+              RESOLVED=$(echo "$ALL_BRANCHES" | head -1)
+            fi
             if [ -n "$RESOLVED" ]; then
-              echo "Resolved branch SHA $BRANCH to $RESOLVED"
+              echo "Resolved branch SHA $BRANCH to $RESOLVED (candidates: $(echo $ALL_BRANCHES | tr '\n' ', '))"
               echo "BRANCH=$RESOLVED" >> $GITHUB_ENV
             else
               echo "ERROR: Could not resolve commit $BRANCH to a branch name"
@@ -88,7 +94,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION config-show
 
       - name: Set up JDK 21
-        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -214,7 +220,7 @@ jobs:
           cd registry && git checkout "${{ needs.release-build.outputs.release-version }}"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -269,7 +275,7 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@ad2b38190b15e4d6bdf0c97fb4fca8412226d287 # v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -342,7 +348,71 @@ jobs:
           git checkout -b "$RELEASE_BRANCH"
           TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
           BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/main/docs/pull_request_template.md)"
+
+          # Copy the bundle directory
           cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
+
+          # Update FBC catalog templates if FBC is enabled
+          PKG_NAME="apicurio-registry-3"
+          FBC_ENABLED=$(cd "operators/$PKG_NAME" && cat ci.yaml | grep -c "fbc:" || true)
+          if [ "$FBC_ENABLED" -gt 0 ]; then
+            echo "FBC is enabled — updating catalog templates"
+            MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
+            BUNDLE_IMG="quay.io/apicurio/apicurio-registry-3-operator-bundle:$PACKAGE_VERSION"
+
+            # Determine which channels to update
+            if [ "$BRANCH" = "main" ]; then
+              CHANNELS="3.x $MINOR_CHANNEL"
+            else
+              CHANNELS="$MINOR_CHANNEL"
+            fi
+
+            cd "operators/$PKG_NAME"
+
+            # Download yq if not present
+            if [ ! -f ../../bin/yq ]; then
+              mkdir -p ../../bin
+              curl -sLo ../../bin/yq "https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64"
+              chmod +x ../../bin/yq
+            fi
+            YQ="../../bin/yq"
+
+            # Find the current head of each channel to set as 'replaces'
+            SAMPLE_TPL=$(ls catalog-templates/v4.16.yaml 2>/dev/null || ls catalog-templates/v4.*.yaml | head -1)
+
+            for tpl in catalog-templates/v4.*.yaml; do
+              echo "  Updating $tpl"
+              for CH in $CHANNELS; do
+                # Check if channel exists in the template
+                CH_EXISTS=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .name" "$tpl" 2>/dev/null || true)
+                CH_HEAD=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries[0].name" "$tpl" 2>/dev/null || true)
+
+                if [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
+                  # Channel doesn't exist — create it (new minor release)
+                  echo "    Creating new channel $CH"
+                  $YQ -i ".entries |= . + [{\"schema\": \"olm.channel\", \"package\": \"$PKG_NAME\", \"name\": \"$CH\", \"entries\": [{\"name\": \"$CSV_NAME\"}]}]" "$tpl"
+                elif [ -n "$CH_HEAD" ] && [ "$CH_HEAD" != "null" ]; then
+                  # Channel exists with entries — prepend new version
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\", \"replaces\": \"$CH_HEAD\"}] + ." "$tpl"
+                else
+                  # Channel exists but empty — add first entry
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\"}]" "$tpl"
+                fi
+              done
+              # Add bundle image reference
+              $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$tpl"
+            done
+
+            # Regenerate and validate catalogs
+            make catalogs
+            make validate-catalogs
+            echo "FBC catalog update complete"
+            cd ../..
+          else
+            echo "FBC is not enabled — submitting bundle only"
+          fi
+
           git add .
           git commit -s -m "$TITLE"
           git push -f source "$RELEASE_BRANCH"
@@ -414,17 +484,41 @@ jobs:
           # Copy the versioned install file
           cp /tmp/install-file.yaml "$INSTALL_FILE"
 
-          # Reuse the same make targets as the post-release steps
+          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
+
           cd operator
-          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
-          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          CATALOG_ARGS=""
-          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
-            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL"
+          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
+            # Same minor as main — full catalog update
+            OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
+            OLD_CH=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            NEW_CH=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+            CATALOG_ARGS=""
+            if [ "$OLD_CH" != "$NEW_CH" ]; then
+              CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CH"
+            fi
+            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+            make $CATALOG_ARGS release-catalog-template-update
+          else
+            # Maintenance release from an older minor — only update its channel
+            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
+            # the rolling channel, or other minor channels on main.
+            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
+            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
+            PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
+            LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
+            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
+            BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            YQ=$(make VAR=YQ variable-get)
+
+            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
+
+            # Add the new version to its minor channel
+            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
+
+            # Add the bundle image
+            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
           fi
-          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-          make $CATALOG_ARGS release-catalog-template-update
 
           cd ..
           git add .

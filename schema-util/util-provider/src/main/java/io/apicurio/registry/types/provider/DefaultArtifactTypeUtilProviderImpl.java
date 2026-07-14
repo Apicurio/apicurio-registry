@@ -22,7 +22,8 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
                     new OpenRpcArtifactTypeUtilProvider(),
                     new ModelSchemaArtifactTypeUtilProvider(),
                     new PromptTemplateArtifactTypeUtilProvider(),
-                    new OdcsContractArtifactTypeUtilProvider()));
+                    new OdcsContractArtifactTypeUtilProvider(),
+                    new ThriftArtifactTypeUtilProvider()));
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 

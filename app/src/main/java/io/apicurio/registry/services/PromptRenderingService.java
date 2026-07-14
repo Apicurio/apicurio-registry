@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
+import io.apicurio.registry.storage.error.InvalidContentException;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.ws.rs.BadRequestException;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -39,6 +39,9 @@ public class PromptRenderingService {
                                         String groupId, String artifactId, String version) {
         // Parse the template content (could be YAML or JSON)
         JsonNode templateNode = parseContent(content);
+        if (templateNode == null || !templateNode.isObject()) {
+            throw new InvalidContentException("Prompt template content must be a JSON or YAML object");
+        }
 
         // Extract template field and variables schema
         String templateText = extractTemplateText(templateNode);
@@ -73,7 +76,7 @@ public class PromptRenderingService {
             try {
                 return MAPPER.readTree(text);
             } catch (Exception ex) {
-                throw new BadRequestException("Prompt template content is not valid YAML or JSON");
+                throw new InvalidContentException("Prompt template content is not valid YAML or JSON");
             }
         }
     }
@@ -84,7 +87,7 @@ public class PromptRenderingService {
     private String extractTemplateText(JsonNode templateNode) {
         JsonNode templateField = templateNode.path("template");
         if (templateField.isMissingNode()) {
-            throw new BadRequestException("Prompt template is missing 'template' field");
+            throw new InvalidContentException("Prompt template is missing 'template' field");
         }
         return templateField.asText();
     }

@@ -301,4 +301,29 @@ public class PromptRenderTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(400);
     }
+
+    @Test
+    public void testRenderTemplateWithEmptyDocumentContent() throws Exception {
+        String group = "empty-document-" + UUID.randomUUID().toString();
+        String artifactId = "comment-only-content";
+
+        // A YAML comment parses to an empty document (null node), which must be a 400, not a 500.
+        String content = "# just a comment";
+
+        createArtifact(group, artifactId, PROMPT_TEMPLATE, content, ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> request = Map.of(
+                "variables", Map.of()
+        );
+
+        given().when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "branch=latest")
+                .body(request)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render")
+                .then()
+                .statusCode(400);
+    }
 }

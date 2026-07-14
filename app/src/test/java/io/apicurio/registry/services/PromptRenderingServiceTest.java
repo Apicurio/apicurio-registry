@@ -19,9 +19,9 @@ package io.apicurio.registry.services;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
+import io.apicurio.registry.storage.error.InvalidContentException;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -539,7 +539,7 @@ public class PromptRenderingServiceTest {
         ContentHandle content = ContentHandle.create(yamlContent);
         Map<String, Object> variables = Map.of("name", "Test");
 
-        Assertions.assertThrows(BadRequestException.class, () -> {
+        Assertions.assertThrows(InvalidContentException.class, () -> {
             renderingService.render(content, variables, "default", "no-template", "1.0");
         });
     }
@@ -551,7 +551,7 @@ public class PromptRenderingServiceTest {
         ContentHandle content = ContentHandle.create(invalidContent);
         Map<String, Object> variables = Map.of();
 
-        Assertions.assertThrows(BadRequestException.class, () -> {
+        Assertions.assertThrows(InvalidContentException.class, () -> {
             renderingService.render(content, variables, "default", "invalid", "1.0");
         });
     }
@@ -561,7 +561,7 @@ public class PromptRenderingServiceTest {
         ContentHandle content = ContentHandle.create("");
         Map<String, Object> variables = Map.of();
 
-        Assertions.assertThrows(BadRequestException.class, () -> {
+        Assertions.assertThrows(InvalidContentException.class, () -> {
             renderingService.render(content, variables, "default", "empty", "1.0");
         });
     }
@@ -571,8 +571,30 @@ public class PromptRenderingServiceTest {
         ContentHandle content = ContentHandle.create("just a plain string");
         Map<String, Object> variables = Map.of();
 
-        Assertions.assertThrows(BadRequestException.class, () -> {
+        Assertions.assertThrows(InvalidContentException.class, () -> {
             renderingService.render(content, variables, "default", "plain", "1.0");
+        });
+    }
+
+    @Test
+    public void testWhitespaceOnlyContent() {
+        // Whitespace parses as an empty YAML document, so readTree returns null.
+        ContentHandle content = ContentHandle.create("   ");
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "whitespace", "1.0");
+        });
+    }
+
+    @Test
+    public void testCommentOnlyContent() {
+        // A YAML comment is a valid but empty document, so readTree returns null.
+        ContentHandle content = ContentHandle.create("# just a comment");
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "comment", "1.0");
         });
     }
 }

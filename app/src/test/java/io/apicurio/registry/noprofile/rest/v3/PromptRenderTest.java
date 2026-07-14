@@ -245,4 +245,60 @@ public class PromptRenderTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(404);
     }
+
+    @Test
+    public void testRenderTemplateMissingTemplateField() throws Exception {
+        String group = "missing-template-field-" + UUID.randomUUID().toString();
+        String artifactId = "no-template-field";
+
+        // Valid JSON, but not a usable prompt template. Content is only validated on creation when a
+        // VALIDITY rule is enabled, so this is storable.
+        String content = """
+            {
+              "templateId": "no-template",
+              "name": "No Template"
+            }
+            """;
+
+        createArtifact(group, artifactId, PROMPT_TEMPLATE, content, ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> request = Map.of(
+                "variables", Map.of("name", "test")
+        );
+
+        // Bad stored content is a client error, not a 500 (a 500 would be reported to the liveness check).
+        given().when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "branch=latest")
+                .body(request)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    public void testRenderTemplateWithUnparseableContent() throws Exception {
+        String group = "unparseable-template-" + UUID.randomUUID().toString();
+        String artifactId = "unparseable-content";
+
+        String content = "{{{{not valid yaml or json}}}}";
+
+        createArtifact(group, artifactId, PROMPT_TEMPLATE, content, ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> request = Map.of(
+                "variables", Map.of()
+        );
+
+        given().when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", group)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "branch=latest")
+                .body(request)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render")
+                .then()
+                .statusCode(400);
+    }
 }

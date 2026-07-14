@@ -27,7 +27,7 @@ export const App: FunctionComponent<object> = () => {
             setContent(DEMO_OPENAPI);
             setContentType(ContentType.OPENAPI);
         } else {
-            w.onmessage = (evt: MessageEvent) => {
+            const handler = (evt: MessageEvent): void => {
                 console.info("[App] OnMessage received: ", evt);
                 if (evt.data && evt.data.type && evt.data.type === "apicurio-docs-render") {
                     const update: DocsUpdateType = evt.data.data as DocsUpdateType;
@@ -36,6 +36,10 @@ export const App: FunctionComponent<object> = () => {
                     setContentType(update.contentType);
                 }
             };
+            w.addEventListener("message", handler);
+            // Signal to the parent frame that the listener is ready to receive data.
+            w.parent.postMessage({ type: "apicurio-docs-ready" }, "*");
+            return () => w.removeEventListener("message", handler);
         }
     }, []);
 

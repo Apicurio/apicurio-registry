@@ -92,15 +92,14 @@ public class GitOpsTest {
         assertThat(sidecar.get().getVolumeMounts())
                 .anyMatch(vm -> "gitops-repos".equals(vm.getName()) && "/repos".equals(vm.getMountPath()));
 
-        // Verify app container has read-only volume mount
+        // Verify app container has the volume mount (writable for dry-run validation)
         var appContainer = podSpec.getContainers().stream()
                 .filter(c -> "apicurio-registry-app".equals(c.getName()))
                 .findFirst();
         assertThat(appContainer).isPresent();
         assertThat(appContainer.get().getVolumeMounts())
                 .anyMatch(vm -> "gitops-repos".equals(vm.getName())
-                        && "/repos".equals(vm.getMountPath())
-                        && Boolean.TRUE.equals(vm.getReadOnly()));
+                        && "/repos".equals(vm.getMountPath()));
     }
 
     @Test

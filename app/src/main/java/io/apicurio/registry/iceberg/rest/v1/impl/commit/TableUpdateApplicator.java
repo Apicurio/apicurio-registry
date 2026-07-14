@@ -1,5 +1,7 @@
 package io.apicurio.registry.iceberg.rest.v1.impl.commit;
 
+import io.apicurio.registry.iceberg.rest.v1.impl.IcebergSchemaUtil;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -140,18 +142,11 @@ public final class TableUpdateApplicator {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static void updateLastColumnId(Map<String, Object> schema, Map<String, Object> metadata) {
-        List<Map<String, Object>> fields = (List<Map<String, Object>>) schema.get("fields");
-        if (fields != null) {
-            int maxFieldId = toInt(metadata.getOrDefault("last-column-id", 0));
-            for (Map<String, Object> field : fields) {
-                int fieldId = toInt(field.get("id"));
-                if (fieldId > maxFieldId) {
-                    maxFieldId = fieldId;
-                }
-            }
-            metadata.put("last-column-id", maxFieldId);
+        int schemaMaxId = IcebergSchemaUtil.computeMaxFieldId(schema);
+        int currentLastColumnId = toInt(metadata.getOrDefault("last-column-id", 0));
+        if (schemaMaxId > currentLastColumnId) {
+            metadata.put("last-column-id", schemaMaxId);
         }
     }
 

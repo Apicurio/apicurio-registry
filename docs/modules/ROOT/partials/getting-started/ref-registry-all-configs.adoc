@@ -67,11 +67,26 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Version of the registry agent (defaults to app version)
+|`apicurio.a2a.default-visibility`
+|`string`
+|`entitled`
+|`3.0.0`
+|Default visibility for new Agent Card artifacts (public, entitled, private)
 |`apicurio.a2a.enabled`
 |`boolean`
 |`false`
 |`3.0.0`
 |Enable A2A protocol support _(experimental)_
+|`apicurio.a2a.entitlements.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable entitlement-based agent filtering
+|`apicurio.a2a.public-discovery.enabled`
+|`boolean`
+|`true`
+|`3.0.0`
+|Enable public (unauthenticated) agent discovery endpoint
 |===
 
 == api
@@ -189,6 +204,21 @@ The following {registry} configuration options are available for each component 
 |
 |`2.4.3.Final`
 |Header authorization name
+|`apicurio.auth.role-source.kubernetes.group-mapping.admin`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated Kubernetes groups that map to sr-admin role _(experimental)_
+|`apicurio.auth.role-source.kubernetes.group-mapping.developer`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated Kubernetes groups that map to sr-developer role _(experimental)_
+|`apicurio.auth.role-source.kubernetes.group-mapping.readonly`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated Kubernetes groups that map to sr-readonly role _(experimental)_
 |`apicurio.auth.roles.admin`
 |`string`
 |`sr-admin`
@@ -229,11 +259,26 @@ The following {registry} configuration options are available for each component 
 |
 |`2.5.0.Final`
 |Client credentials scope.
+|`apicurio.authn.kubernetes.api-audiences`
+|`optional<string>`
+|
+|`3.3.0`
+|Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated. _(experimental)_
+|`apicurio.authn.kubernetes.cache-expiration`
+|`int`
+|`5`
+|`3.3.0`
+|TokenReview result cache expiration in minutes _(experimental)_
+|`apicurio.authn.kubernetes.enabled`
+|`boolean`
+|`false`
+|`3.3.0`
+|Enable Kubernetes TokenReview authentication _(experimental)_
 |`apicurio.authn.mechanism.priority`
 |`string`
 |`basic,proxy-header,oidc`
 |`3.2.3`
-|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc.
+|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc, kubernetes.
 |`apicurio.authn.proxy-header.email`
 |`string`
 |`X-Forwarded-Email`
@@ -474,31 +519,31 @@ The following {registry} configuration options are available for each component 
 |`300`
 |`1.0.2.Final`
 |Status reset window duration of persistence liveness check
+|`apicurio.metrics.persistence-timeout-readiness-check.counter-reset-window-duration.seconds`
+|`integer`
+|`60`
+|`1.0.2.Final`
+|Counter reset window duration of persistence readiness check
 |`apicurio.metrics.persistence-timeout-readiness-check.error-threshold`
 |`integer`
 |`5`
 |`1.0.2.Final`
 |Error threshold of persistence readiness check
+|`apicurio.metrics.persistence-timeout-readiness-check.status-reset-window-duration.seconds`
+|`integer`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of persistence readiness check
 |`apicurio.metrics.persistence-timeout-readiness-check.timeout.seconds`
 |`integer`
 |`15`
 |`1.0.2.Final`
 |Timeout of persistence readiness check
-|`apicurio.metrics.persitence-timeout-readiness-check.status-reset-window-duration.seconds`
-|`integer`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of persistence readiness check
-|`apicurio.metrics.resonse-error-liveness-check.counter-reset-window-duration.seconds`
-|`integer`
-|`60`
-|`1.0.2.Final`
-|Counter reset window duration of response liveness check
 |`apicurio.metrics.response-error-liveness-check.counter-reset-window-duration.seconds`
 |`integer`
 |`60`
 |`1.0.2.Final`
-|Counter reset window duration of persistence readiness check
+|Counter reset window duration of response liveness check
 |`apicurio.metrics.response-error-liveness-check.disabled`
 |`boolean`
 |`false`
@@ -524,16 +569,16 @@ The following {registry} configuration options are available for each component 
 |`1`
 |`1.0.2.Final`
 |Error threshold of response readiness check
+|`apicurio.metrics.response-timeout-readiness-check.status-reset-window-duration.seconds`
+|`instance<integer>`
+|`300`
+|`1.0.2.Final`
+|Status reset window duration of response readiness check
 |`apicurio.metrics.response-timeout-readiness-check.timeout.seconds`
 |`instance<integer>`
 |`10`
 |`1.0.2.Final`
 |Timeout of response readiness check
-|`apicurio.metrics.response-timeout-rediness-check.status-reset-window-duration.seconds`
-|`instance<integer>`
-|`300`
-|`1.0.2.Final`
-|Status reset window duration of response readiness check
 |`apicurio.storage.metrics.cache.check-period.ms`
 |`long`
 |`30000`
@@ -606,6 +651,21 @@ The following {registry} configuration options are available for each component 
 |
 |`3.0.0`
 |Temporary work directory to use when importing data.
+|`apicurio.import.zip.max-entry-count`
+|`int`
+|`10000`
+|`3.0.7`
+|Maximum number of ZIP entries allowed during import. Defaults to 10,000.
+|`apicurio.import.zip.max-entry-size`
+|`long`
+|`10485760`
+|`3.0.7`
+|Maximum decompressed size in bytes allowed for a single ZIP entry during import. Defaults to 10 MiB.
+|`apicurio.import.zip.max-total-size`
+|`long`
+|`104857600`
+|`3.0.7`
+|Maximum total decompressed size in bytes allowed across all ZIP entries during import. Defaults to 100 MiB.
 |===
 
 == kubernetesops
@@ -756,6 +816,24 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.metrics.rest.distribution.percentiles`
+|`list<double>`
+|`0.5,0.95,0.99,0.9995`
+|`3.3.1`
+|        Comma-separated list of percentile values to pre-compute         for REST API request metrics.         Each value must be between 0.0 and 1.0 (e.g. 0.5 for the median,         0.95 for the 95th percentile).         These percentiles are computed client-side and exported as individual gauge metrics.
+
+|`apicurio.metrics.rest.distribution.slo`
+|`list<double>`
+|`0.1,0.25,0.5,1.0,2.0,5.0,10.0`
+|`3.3.1`
+|        Comma-separated list of service level objective (SLO) boundary values         in seconds for REST API request histogram buckets.         Only used when the distribution type is `histogram`.         Each value defines a histogram bucket boundary.         Adjust these boundaries to match your monitoring system's expectations         for accurate percentile computation from histogram data.
+
+|`apicurio.metrics.rest.distribution.type`
+|`string`
+|`histogram`
+|`3.3.1`
+|        The distribution type for REST API request metrics.         Use `histogram` (default) for explicit bucket histogram with SLO boundaries         and pre-computed percentiles.         Use `summary` for pre-computed percentiles only, without histogram buckets.         Datadog users should use `summary` for accurate latency percentiles,         since Datadog re-computes percentiles from histogram buckets         and the default bucket boundaries may not provide sufficient granularity.
+
 |`apicurio.metrics.rest.enabled`
 |`boolean`
 |`true`

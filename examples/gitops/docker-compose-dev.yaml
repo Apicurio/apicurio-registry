@@ -19,7 +19,7 @@
 #      docker compose -f docker-compose-dev.yaml up
 #
 #   3. Start Registry in dev mode:
-#      mvn clean install -Dfast -pl app -am -DskipTests && cd app
+#      mvn clean install -Dlocal -pl app -am -DskipTests && cd app
 #      mvn quarkus:dev \
 #        -Dapicurio.storage.kind=gitops \
 #        -Dapicurio.features.experimental.enabled=true \

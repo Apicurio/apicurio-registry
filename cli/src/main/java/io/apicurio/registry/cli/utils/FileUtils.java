@@ -102,6 +102,18 @@ public final class FileUtils {
         }
     }
 
+    public static byte[] readContentAsBytes(final String file) {
+        try {
+            if ("-".equals(file)) {
+                return System.in.readAllBytes();
+            } else {
+                return Files.readAllBytes(Path.of(file));
+            }
+        } catch (IOException ex) {
+            throw new CliException("Could not read content from: " + file, ex, APPLICATION_ERROR_RETURN_CODE);
+        }
+    }
+
     public static void deleteDirectory(Path dirPath) {
         if (!Files.exists(dirPath)) {
             log.debugf("Directory does not exist, nothing to delete: %s", dirPath);

@@ -1,4 +1,10 @@
+import { useMemo, useRef } from "react";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
+
+export interface ArtifactTypeInfo {
+    id: string;
+    label: string;
+}
 
 export class ArtifactTypes {
     public static AVRO = "AVRO";
@@ -11,6 +17,7 @@ export class ArtifactTypes {
     public static WSDL = "WSDL";
     public static XSD = "XSD";
     public static XML = "XML";
+    public static THRIFT = "THRIFT";
     public static AGENT_CARD = "AGENT_CARD";
     public static MCP_TOOL = "MCP_TOOL";
     public static MODEL_SCHEMA = "MODEL_SCHEMA";
@@ -48,6 +55,9 @@ export class ArtifactTypes {
                 break;
             case "XML":
                 title = "XML";
+                break;
+            case "THRIFT":
+                title = "Thrift IDL";
                 break;
             case "AGENT_CARD":
                 title = "A2A Agent Card";
@@ -98,6 +108,9 @@ export class ArtifactTypes {
             case "XML":
                 title = "XML";
                 break;
+            case "THRIFT":
+                title = "Thrift";
+                break;
             case "AGENT_CARD":
                 title = "Agent Card";
                 break;
@@ -147,6 +160,9 @@ export class ArtifactTypes {
             case "XML":
                 classes += " xml-icon24";
                 break;
+            case "THRIFT":
+                classes += " thrift-icon24";
+                break;
             case "AGENT_CARD":
                 classes += " agentcard-icon24";
                 break;
@@ -181,7 +197,7 @@ const allTypes = async (admin: AdminService): Promise<string[]> => {
     return Promise.resolve(ALL_TYPES);
 };
 
-const allTypesWithLabels = async (admin: AdminService): Promise<any[]> => {
+const allTypesWithLabels = async (admin: AdminService): Promise<ArtifactTypeInfo[]> => {
     return allTypes(admin).then(types => {
         return types.map(t => { return { id: t, label: ArtifactTypes.getLabel(t) }; });
     });
@@ -190,18 +206,20 @@ const allTypesWithLabels = async (admin: AdminService): Promise<any[]> => {
 
 export interface ArtifactTypesService {
     allTypes(): Promise<string[]>;
-    allTypesWithLabels(): Promise<any[]>;
+    allTypesWithLabels(): Promise<ArtifactTypeInfo[]>;
 }
 
 export const useArtifactTypesService: () => ArtifactTypesService = (): ArtifactTypesService => {
     const admin: AdminService = useAdminService();
+    const adminRef = useRef(admin);
+    adminRef.current = admin;
 
-    return {
+    return useMemo(() => ({
         allTypes(): Promise<string[]> {
-            return allTypes(admin);
+            return allTypes(adminRef.current);
         },
-        allTypesWithLabels(): Promise<any[]> {
-            return allTypesWithLabels(admin);
+        allTypesWithLabels(): Promise<ArtifactTypeInfo[]> {
+            return allTypesWithLabels(adminRef.current);
         }
-    };
+    }), []);
 };

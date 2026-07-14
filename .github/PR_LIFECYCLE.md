@@ -112,6 +112,21 @@ instead of adding or removing labels directly.
 Use `/auto-merge` to enable automatic merging. When the PR reaches `ready-to-merge`
 (approved + tested), it will be merged automatically. Use `/auto-merge` again to disable.
 
+### Branch auto-update (merge-rebase)
+
+When merging fails because the PR branch is behind `main` (other PRs were merged in the
+meantime), the orchestrator handles it automatically:
+
+1. If the branch can be cleanly rebased (`rebaseable: true`), the branch is updated
+2. Tests are **skipped** — they already passed on the previous HEAD, and a clean rebase
+   means the code is functionally identical
+3. Only the Verification Gate runs (~1-2 minutes)
+4. Once the gate passes, the merge proceeds automatically
+
+If the branch has conflicts, the orchestrator posts an error and asks the author to
+resolve them manually. If the branch falls behind again during the gate run, the
+merge falls back to standard error handling (full test suite re-run).
+
 ## Configuration
 
 The orchestrator is configured in `.github/pr-lifecycle.yml`:

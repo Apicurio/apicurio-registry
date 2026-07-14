@@ -1,0 +1,42 @@
+## Manual end-to-end verification for GitHub issue #4446.
+## Starts an nginx reverse proxy in front of the registry on https://localhost:8443.
+##
+## Usage:
+##   1. Build the app:   ./mvnw clean install -DskipTests -pl app -am
+##   2. Start:           docker compose -f app/src/test/resources/cors-proxy-test/docker-compose.yaml up
+##   3. Test preflight:
+##        curl -v -X OPTIONS https://localhost:8443/apis/registry/v3/groups \
+##          -H "Origin: https://localhost:8443" \
+##          -H "Access-Control-Request-Method: DELETE" \
+##          -H "Access-Control-Request-Headers: authorization" \
+##          --insecure
+##      Expected: 200 with Access-Control-Allow-Origin: https://localhost:8443
+##
+##   4. Test actual POST:
+##        curl -v -X POST https://localhost:8443/apis/registry/v3/groups \
+##          -H "Origin: https://localhost:8443" \
+##          -H "Content-Type: application/json" \
+##          -d '{"groupId": "cors-test"}' \
+##          --insecure
+##      Expected: 200 with Access-Control-Allow-Origin: https://localhost:8443
+##
+##   5. Stop:            docker compose -f app/src/test/resources/cors-proxy-test/docker-compose.yaml down
+
+services:
+  registry:
+    image: quay.io/apicurio/apicurio-registry:latest-snapshot
+    environment:
+      APICURIO_URL_OVERRIDE_HOST: localhost
+      APICURIO_URL_OVERRIDE_PORT: "8443"
+    ports:
+      - "8080:8080"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - registry

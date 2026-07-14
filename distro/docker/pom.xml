@@ -47,7 +47,6 @@
                   <filtering>false</filtering>
                   <includes>
                     <include>apicurio-*.tar.gz</include>
-                    <include>apicurio-*.zip</include>
                     <include>apicurio-*runner</include>
                   </includes>
                 </resource>

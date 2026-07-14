@@ -14,5 +14,5 @@
 }
 
 .ps_dashboard-content {
-    background-color: #f0f0f0;
+    background-color: var(--registry-page-canvas-bg, #f0f0f0);
 }

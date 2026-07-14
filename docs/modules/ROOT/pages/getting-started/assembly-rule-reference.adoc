@@ -1,11 +1,12 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+// assembly-rule-reference
 [id="registry-rule-reference_{context}"]
+:_mod-docs-content-type: ASSEMBLY
 = {registry} content rule reference
-//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-This chapter provides reference information on the supported content rule types, their level of support for artifact types, and order of precedence of artifact-specific and global rules.
+{registry} supports content rules that govern how artifacts evolve. The following sections describe the available rule types, their maturity level for each artifact type, and the order of precedence when both artifact-specific and global rules are configured.
 
 * xref:registry-rule-types_{context}[]
 * xref:registry-rule-maturity-matrix_{context}[]
@@ -13,7 +14,7 @@ This chapter provides reference information on the supported content rule types,
 
 [role="_additional-resources"]
 .Additional resources
-* For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
 
@@ -21,11 +22,13 @@ This chapter provides reference information on the supported content rule types,
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
+// ref-registry-rule-types
 [id="registry-rule-types_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} content rule types
 
 [role="_abstract"]
-You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. Theses rule types apply to both global rules and artifact-specific rules.
+You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to both global rules and artifact-specific rules.
 
 .{registry} content rule types
 [%header,cols=2*]
@@ -33,14 +36,14 @@ You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to gover
 |Type
 |Description
 |`VALIDITY`
-a| Validate content before adding it to {registry}. The possible configuration values for this rule are as follows:
+a| Validates content before adding it to {registry}. The possible configuration values for this rule are as follows:
 
 * `FULL`: The validation is both syntax and semantic.
 * `SYNTAX_ONLY`: The validation is syntax only.
 * `NONE`: All validation checks are disabled.
 
 |`COMPATIBILITY`
-a| Enforce a compatibility level when updating artifacts (for example, select `BACKWARD` for backwards compatibility). Ensures that new artifacts are compatible with previously added artifact versions or clients. The possible configuration values for this rule are as follows:
+a| Enforces a compatibility level when updating artifacts (for example, `BACKWARD` for backward compatibility). This rule ensures that new artifacts are compatible with previously added artifact versions or clients. The possible configuration values for this rule are as follows:
 
 * `FULL`: The new artifact is forward and backward compatible with the most recently added artifact.
 * `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.
@@ -51,7 +54,7 @@ a| Enforce a compatibility level when updating artifacts (for example, select `B
 * `NONE`: All backward and forward compatibility checks are disabled.
 
 |`INTEGRITY`
-a| Enforce artifact reference integrity when creating or updating artifacts. Enable and configure this rule to ensure that any artifact references provided are correct. The possible configuration values for this rule are as follows:
+a| Enforces artifact reference integrity when creating or updating artifacts. This rule ensures that artifact references are correct. The possible configuration values for this rule are as follows:
 
 * `FULL`: All artifact reference integrity checks are enabled.
 * `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
@@ -66,7 +69,9 @@ a| Enforce artifact reference integrity when creating or updating artifacts. Ena
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
+// ref-registry-rule-maturity-matrix
 [id="registry-rule-maturity-matrix_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} content rule maturity
 
 [role="_abstract"]
@@ -107,6 +112,10 @@ a| Mapping detection not supported
 a| Syntax Only
 a| None
 a| Mapping detection not supported
+|*Thrift*
+a| Syntax Only
+a| None
+a| Mapping detection not supported
 |*WSDL*
 a| Full
 a| None
@@ -126,7 +135,9 @@ a| Mapping detection not supported
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
+// ref-registry-rule-precedence
 [id="registry-rule-precedence_{context}"]
+:_mod-docs-content-type: REFERENCE
 == {registry} content rule precedence
 
 [role="_abstract"]

@@ -507,6 +507,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             return ContentTypes.APPLICATION_PROTOBUF;
         } else if (lowerPath.endsWith(".graphql")) {
             return ContentTypes.APPLICATION_GRAPHQL;
+        } else if (lowerPath.endsWith(".thrift")) {
+            return ContentTypes.APPLICATION_THRIFT;
         }
         return defaultType;
     }

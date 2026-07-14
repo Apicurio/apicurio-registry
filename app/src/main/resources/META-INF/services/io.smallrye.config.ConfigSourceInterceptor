@@ -1,2 +1,3 @@
 io.apicurio.registry.services.DatabaseConfigInterceptor
+io.apicurio.registry.services.CorsConfigInterceptor
 io.apicurio.registry.config.FileBasedSecretsInterceptor

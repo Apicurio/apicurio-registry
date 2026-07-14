@@ -1,10 +1,13 @@
 package io.apicurio.registry.rest.wellknown;
 
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
+import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
 import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -65,6 +68,37 @@ public interface WellKnownResource {
             @PathParam("groupId") String groupId,
             @PathParam("artifactId") String artifactId,
             @QueryParam("version") String version);
+
+    /**
+     * Returns agents marked as public. No authentication required.
+     */
+    @GET
+    @Path("/agents/public")
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentSearchResults getPublicAgents(
+            @QueryParam("offset") @DefaultValue("0") Integer offset,
+            @QueryParam("limit") @DefaultValue("20") Integer limit);
+
+    /**
+     * Returns agents the authenticated caller is entitled to access.
+     * Includes public agents plus agents in groups the caller can read.
+     */
+    @GET
+    @Path("/agents/entitled")
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentSearchResults getEntitledAgents(
+            @QueryParam("offset") @DefaultValue("0") Integer offset,
+            @QueryParam("limit") @DefaultValue("20") Integer limit);
+
+    /**
+     * Advanced agent search with combined text query and structured filters.
+     * Respects the caller's entitlements.
+     */
+    @POST
+    @Path("/agents/search")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentSearchResults searchAgentsAdvanced(AgentSearchRequest request);
 
     /**
      * Search for registered Agent Cards by various criteria.

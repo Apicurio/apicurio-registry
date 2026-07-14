@@ -12,6 +12,7 @@ import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.search.versions.VersionsRequestBuilder;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import java.util.List;
+import java.util.Optional;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -40,7 +41,7 @@ public class SearchVersionsCommand extends AbstractCommand {
 
     @Option(
             names = {"--name"},
-            description = "Filter by version name (substring match)."
+            description = "Filter by version name. Searches both the name and artifactId fields. Use * as prefix/suffix wildcard, otherwise matches exactly."
     )
     private String name;
 
@@ -165,7 +166,7 @@ public class SearchVersionsCommand extends AbstractCommand {
                     final var table = new TableBuilder();
                     table.addColumns(GROUP_ID, ARTIFACT_ID, VERSION, NAME, ARTIFACT_TYPE,
                             STATE, GLOBAL_ID, CONTENT_ID, DESCRIPTION, CREATED_ON, OWNER);
-                    results.getVersions().forEach(v -> {
+                    Optional.ofNullable(results.getVersions()).orElse(List.of()).forEach(v -> {
                         table.addRow(
                                 v.getGroupId(),
                                 v.getArtifactId(),

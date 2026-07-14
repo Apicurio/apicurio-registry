@@ -89,7 +89,7 @@ jobs:
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -143,15 +143,15 @@ jobs:
           echo "SBOM_OUTPUT_DIR=$(pwd)/apicurio-registry/${{ needs.prepare.outputs.release-version }}" >> $GITHUB_ENV
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 20
+          node-version: 24.18.0
 
       - name: Maven Install
         run: |
@@ -205,7 +205,7 @@ jobs:
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           java-version: '21'
           distribution: 'temurin'

@@ -2,7 +2,7 @@
     padding: 22px;
     display: flex;
     flex-direction: row;
-    background-color: rgb(240,240,240);
+    flex-grow: 1;
 }
 
 .group-tab-content .group-rules {

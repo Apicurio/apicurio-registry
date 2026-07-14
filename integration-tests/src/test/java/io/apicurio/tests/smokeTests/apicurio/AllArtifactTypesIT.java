@@ -174,6 +174,12 @@ class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
                 ContentTypes.APPLICATION_GRAPHQL);
     }
 
+    @Test
+    void testThrift() throws Exception {
+        doTest("thrift/person_v1.thrift", "thrift/person_v2.thrift", ArtifactType.THRIFT,
+                ContentTypes.APPLICATION_THRIFT);
+    }
+
     @AfterEach
     void deleteRules() throws Exception {
         registryClient.admin().rules().delete();

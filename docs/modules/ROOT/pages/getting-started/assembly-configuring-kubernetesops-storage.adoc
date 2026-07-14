@@ -528,7 +528,7 @@ The following tables list all supported fields for each entity type. Fields mark
 
 |`artifactType`
 |string
-|*Required*. Artifact type: `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, `XML`.
+|*Required*. Artifact type: `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `THRIFT`, `WSDL`, `XSD`, `XML`.
 
 |`name`
 |string

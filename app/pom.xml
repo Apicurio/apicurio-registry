@@ -685,6 +685,7 @@
             <phase>process-resources</phase>
             <configuration>
               <outputDirectory>${project.build.outputDirectory}/META-INF/resources/api-specifications/registry/v3</outputDirectory>
+              <overwrite>true</overwrite>
               <resources>
                 <resource>
                   <directory>${project.build.outputDirectory}/META-INF</directory>
@@ -703,6 +704,7 @@
             <phase>prepare-package</phase>
             <configuration>
               <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <overwrite>true</overwrite>
               <resources>
                 <resource>
                   <directory>${project.basedir}/target/generated-test-sources/protobuf/</directory>

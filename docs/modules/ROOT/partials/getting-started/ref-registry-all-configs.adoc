@@ -591,6 +591,27 @@ The following {registry} configuration options are available for each component 
 |Storage metrics cache check period
 |===
 
+== http
+.http configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.http.ssl.cipher-suites`
+|`optional<string>`
+|
+|`3.3.1`
+|Comma-separated list of enabled cipher suites (e.g. TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256). When not set, the JVM/Quarkus defaults apply.
+|`apicurio.http.ssl.protocols`
+|`optional<string>`
+|
+|`3.3.1`
+|Comma-separated list of enabled SSL/TLS protocol versions (e.g. TLSv1.2,TLSv1.3). When not set, the JVM/Quarkus defaults apply.
+|===
+
 == iceberg
 .iceberg configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

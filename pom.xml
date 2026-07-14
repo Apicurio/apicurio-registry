@@ -208,7 +208,7 @@
     <failsafe.rerunFailingTestsCount>0</failsafe.rerunFailingTestsCount>
 
     <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
-    <apitomy-data-models.version>3.1.1</apitomy-data-models.version>
+    <apitomy-data-models.version>3.1.3</apitomy-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>26.0</graphql.version>
@@ -236,7 +236,7 @@
     <pulsar-clients.version>4.2.3</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.25.3</nats.version>
+    <nats.version>2.26.0</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.2.1</woodstox-core.version>
     <jgit.version>7.7.0.202606012155-r</jgit.version>
@@ -280,7 +280,7 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.7.0</version.puppycrawl>
+    <version.puppycrawl>13.8.0</version.puppycrawl>
     <!-- Protocol Buffers -->
     <proto-plugin.version>5.1.7</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
@@ -290,7 +290,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
-    <kiota.community.version>0.0.36</kiota.community.version>
+    <kiota.community.version>0.0.37</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->

@@ -74,22 +74,24 @@ jobs:
           output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
-      - name: Upload Build Artifacts for Publish
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
             app/target/
-            distro/docker/target/
-            mcp/target/docker/
-            java-sdk/common/target/
-            java-sdk/adapter-vertx/target/
-            java-sdk/adapter-jdk/target/
-            java-sdk/client/target/
-            java-sdk/client-v2/target/
-            config-index/definitions/target/
+            cli/target/
             common/target/
-            schema-util/common/target/
+            contracts-rules/target/
+            schema-resolver/target/
+            config-index/*/target/
+            distro/*/target/
+            java-sdk/*/target/
+            schema-util/*/target/
+            schema-validation/*/target/
+            serdes/*/*/target/
+            utils/*/target/
+            mcp/target/docker/
           retention-days: 1
 
   build-ui:

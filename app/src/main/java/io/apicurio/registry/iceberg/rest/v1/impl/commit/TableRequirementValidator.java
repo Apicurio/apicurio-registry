@@ -105,7 +105,7 @@ public final class TableRequirementValidator {
 
         if ("main".equals(refName)) {
             Long actualSnapshotId = toLong(currentMetadata.get("current-snapshot-id"));
-            if (!equalsLong(expectedSnapshotId, actualSnapshotId)) {
+            if (!equalsSnapshotId(expectedSnapshotId, actualSnapshotId)) {
                 throw new CommitFailedException(groupId, artifactId,
                         "Requirement failed: assert-ref-snapshot-id for ref 'main' - expected "
                                 + expectedSnapshotId + " but was " + actualSnapshotId);
@@ -175,6 +175,14 @@ public final class TableRequirementValidator {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Expected a numeric value but got: " + value, e);
         }
+    }
+
+    private static boolean equalsSnapshotId(Long a, Long b) {
+        return equalsLong(normalizeSnapshotId(a), normalizeSnapshotId(b));
+    }
+
+    private static Long normalizeSnapshotId(Long id) {
+        return (id != null && id == -1L) ? null : id;
     }
 
     private static boolean equalsLong(Long a, Long b) {

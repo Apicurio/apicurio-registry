@@ -1,7 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_newdoc-version: 2.18.7
-:_template-generated: 2026-05-07
 :_mod-docs-content-type: ASSEMBLY
 
 [id="configuring-kafka-client-serdes_{context}"]
@@ -28,8 +26,6 @@ You can configure Kafka serializers/deserializers (SerDes) in your producer and 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_newdoc-version: 2.18.7
-:_template-generated: 2026-05-07
 :_mod-docs-content-type: REFERENCE
 
 [id="registry-serdes-concepts-constants_{context}"]
@@ -99,8 +95,6 @@ For details about how to configure SerDes for different schema technologies, see
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
-:_newdoc-version: 2.18.7
-:_template-generated: 2026-05-07
 :_mod-docs-content-type: REFERENCE
 
 [id="registry-serdes-config-props_{context}"]
@@ -391,8 +385,6 @@ For more details, see the https://quarkus.io/guides/config#overriding-properties
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_newdoc-version: 2.18.7
-:_template-generated: 2026-05-07
 :_mod-docs-content-type: REFERENCE
 
 [id="registry-serdes-types-serde_{context}"]
@@ -476,8 +468,6 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_newdoc-version: 2.18.7
-:_template-generated: 2026-05-07
 :_mod-docs-content-type: REFERENCE
 
 [id="registry-serdes-types-avro_{context}"]
@@ -610,8 +600,6 @@ When you use these schemas with Avro SerDes, {registry} creates two artifacts, o
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_newdoc-version: 2.18.7
-:_template-generated: 2026-05-07
 :_mod-docs-content-type: REFERENCE
 
 [id="registry-serdes-types-json_{context}"]
@@ -724,8 +712,6 @@ In this example, a given citizen has a city. {registry} creates a citizen artifa
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_newdoc-version: 2.18.7
-:_template-generated: 2026-05-07
 :_mod-docs-content-type: REFERENCE
 
 [id="registry-serdes-types-protobuf_{context}"]

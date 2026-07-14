@@ -1,8 +1,11 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.auth.AdminOverride;
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
@@ -64,6 +67,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import io.quarkus.security.ForbiddenException;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
@@ -133,6 +137,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     SecurityIdentity securityIdentity;
+
+    @Inject
+    AuthConfig authConfig;
+
+    @Inject
+    AdminOverride adminOverride;
+
+    @Inject
+    RoleBasedAccessController rbac;
 
     @Inject
     io.apicurio.registry.services.PromptRenderingService promptRenderingService;
@@ -584,8 +597,22 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             if (data.getOwner().trim().isEmpty()) {
                 throw new MissingRequiredParameterException("Owner cannot be empty");
             } else {
-                // TODO extra security check - if the user is trying to change the owner, fail unless they are
-                // an Admin or the current Owner
+                // Security check: only an Admin or the current Owner can change ownership.
+                // This is consistent with the V2 API's updateArtifactOwner which uses
+                // AuthorizedLevel.AdminOrOwner.
+                boolean isAdmin = adminOverride.isAdmin()
+                        || (authConfig.isRbacEnabled() && rbac.isAdmin());
+                if (!isAdmin) {
+                    ArtifactMetaDataDto currentMetaData = storage.getArtifactMetaData(
+                            new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+                    String currentOwner = currentMetaData.getOwner();
+                    String currentUser = securityIdentity.getPrincipal().getName();
+                    if (currentOwner != null && !currentOwner.equals(currentUser)) {
+                        throw new ForbiddenException(
+                                "User " + currentUser + " is not authorized to change the artifact owner. "
+                                        + "Only the current owner or an admin can transfer ownership.");
+                    }
+                }
             }
         }
 

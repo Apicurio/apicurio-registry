@@ -18,6 +18,7 @@ package io.apicurio.registry.auth;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.vertx.http.runtime.security.BasicAuthenticationMechanism;
+import io.quarkus.vertx.http.runtime.security.FormAuthenticationMechanism;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.quarkus.arc.Unremovable;
@@ -67,6 +68,9 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Inject
     BasicAuthenticationMechanism basicAuthenticationMechanism;
+
+    @Inject
+    Instance<FormAuthenticationMechanism> formAuthenticationMechanism;
 
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
@@ -120,8 +124,11 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         }
 
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
-        strategyFactories.put("basic", () -> authConfig.basicAuthEnabled
+        strategyFactories.put("basic", () -> authConfig.isBasicAuthEnabled()
                 ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)
+                : null);
+        strategyFactories.put("form", () -> authConfig.isFormAuthEnabled() && formAuthenticationMechanism.isResolvable()
+                ? new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism.get())
                 : null);
         strategyFactories.put("proxy-header", () -> authConfig.proxyHeaderAuthEnabled
                 ? new DelegatingAuthenticationStrategy("proxy-header",
@@ -152,7 +159,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
             if (factory == null) {
                 log.warn("Unknown authentication mechanism name in priority list: '{}'. "
-                        + "Valid values are: basic, proxy-header, oidc, kubernetes", name);
+                        + "Valid values are: basic, form, proxy-header, oidc, kubernetes", name);
                 continue;
             }
             AuthenticationStrategy strategy = factory.get();

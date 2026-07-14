@@ -100,11 +100,19 @@ public abstract class OLMITBase implements OperatorTestContext {
                 log.warn("When using OLM v1, ApicurioRegistry3 CRD must be created when installing the bundle. Deleting the existing CRD before we can continue.");
 
                 await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-                    client.resources(ApicurioRegistry3.class).list().getItems().forEach(ar -> {
-                        log.warn("Deleting ApicurioRegistry3 CR: {}", ResourceID.fromResource(ar));
-                        client.resource(ar).delete();
-                    });
-                    assertThat(client.resources(ApicurioRegistry3.class).list().getItems()).isEmpty();
+                    try {
+                        client.resources(ApicurioRegistry3.class).list().getItems().forEach(ar -> {
+                            log.warn("Deleting ApicurioRegistry3 CR: {}", ResourceID.fromResource(ar));
+                            client.resource(ar).delete();
+                        });
+                        assertThat(client.resources(ApicurioRegistry3.class).list().getItems()).isEmpty();
+                    } catch (io.fabric8.kubernetes.client.KubernetesClientException e) {
+                        if (e.getCode() == 404) {
+                            log.debug("CRD already removed, no CRs to delete.");
+                        } else {
+                            throw e;
+                        }
+                    }
                 });
 
                 await().atMost(MEDIUM_DURATION).ignoreExceptions().until(() -> {

@@ -41,7 +41,7 @@ public class SearchVersionsCommand extends AbstractCommand {
 
     @Option(
             names = {"--name"},
-            description = "Filter by version name (substring match)."
+            description = "Filter by version name. Searches both the name and artifactId fields. Use * as prefix/suffix wildcard, otherwise matches exactly."
     )
     private String name;
 

@@ -114,6 +114,10 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
         Duration cacheDuration = Duration.ofMinutes(authConfig.kubernetesTokenCacheExpiration);
 
         if (!circuitBreaker.allowRequest()) {
+            // Circuit is open (K8s API unavailable): fail fast with the same contract as the
+            // API-error path below, returning null so the auth chain issues a 401 challenge.
+            // This is deliberate rather than a 503: it preserves the existing failure semantics and
+            // keeps anonymous access working (when enabled) while the TokenReview API is down.
             log.debug("Kubernetes TokenReview call skipped: circuit breaker is open (K8s API unavailable)");
             return null;
         }

@@ -49,7 +49,10 @@ class TokenReviewCircuitBreaker {
 
     TokenReviewCircuitBreaker(int threshold, Duration openDuration, Clock clock, Logger log) {
         this.threshold = Math.max(1, threshold);
-        this.openDuration = Objects.requireNonNull(openDuration, "openDuration");
+        // Normalize misconfiguration: a negative open window is treated as zero (the next request
+        // immediately becomes a probe) rather than throwing or producing a permanently-open circuit.
+        Objects.requireNonNull(openDuration, "openDuration");
+        this.openDuration = openDuration.isNegative() ? Duration.ZERO : openDuration;
         this.clock = Objects.requireNonNull(clock, "clock");
         this.log = Objects.requireNonNull(log, "log");
     }

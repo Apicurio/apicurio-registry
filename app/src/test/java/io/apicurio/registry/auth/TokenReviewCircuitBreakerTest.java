@@ -119,6 +119,21 @@ class TokenReviewCircuitBreakerTest {
         assertEquals(TokenReviewCircuitBreaker.State.HALF_OPEN, cb.getState());
     }
 
+    @Test
+    void negativeOpenDurationIsNormalizedToZero() {
+        // A misconfigured (negative) open window must not throw or leave the circuit permanently
+        // open: after opening, the very next request is allowed as a probe.
+        TokenReviewCircuitBreaker cb = new TokenReviewCircuitBreaker(2, Duration.ofSeconds(-5),
+                clock, LoggerFactory.getLogger(TokenReviewCircuitBreakerTest.class));
+        cb.recordFailure();
+        cb.recordFailure();
+        assertEquals(TokenReviewCircuitBreaker.State.OPEN, cb.getState());
+
+        // With a zero open window (no clock advance needed) the next request probes.
+        assertTrue(cb.allowRequest());
+        assertEquals(TokenReviewCircuitBreaker.State.HALF_OPEN, cb.getState());
+    }
+
     private static final class MutableClock extends Clock {
         private Instant now;
 

@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.group;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -47,6 +48,7 @@ public class GroupGetCommand extends AbstractCommand {
     public void run(OutputBuffer output) throws Exception {
         //noinspection ConstantConditions
         var group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
+        IdUtil.updateGroupContext(group.getGroupId(), config);
         // TODO: Should we include the `default` group in the list?
         printGroup(output, group, outputType);
     }

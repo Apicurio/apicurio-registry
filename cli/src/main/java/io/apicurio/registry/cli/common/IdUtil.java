@@ -65,4 +65,33 @@ public final class IdUtil {
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression).get();
     }
+
+    public static void updateGroupContext(final String groupId, final Config config) {
+        if (Boolean.parseBoolean(config.read().getConfig().getOrDefault("auto-context-update", "false"))) {
+            final var configModel = config.read();
+            final var contextName = configModel.getCurrentContext();
+            if (!isBlank(contextName)) {
+                final var context = configModel.getContext().get(contextName);
+                if (context != null) {
+                    context.setGroupId(groupId);
+                    config.write(configModel);
+                }
+            }
+        }
+    }
+
+    public static void updateArtifactContext(final String groupId, final String artifactId, final Config config) {
+        if (Boolean.parseBoolean(config.read().getConfig().getOrDefault("auto-context-update", "false"))) {
+            final var configModel = config.read();
+            final var contextName = configModel.getCurrentContext();
+            if (!isBlank(contextName)) {
+                final var context = configModel.getContext().get(contextName);
+                if (context != null) {
+                    context.setGroupId(groupId);
+                    context.setArtifactId(artifactId);
+                    config.write(configModel);
+                }
+            }
+        }
+    }
 }

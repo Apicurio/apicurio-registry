@@ -8,7 +8,10 @@ import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.quarkiverse.mcp.server.ToolCallException;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
 import jakarta.inject.Inject;
 
 import java.util.HashMap;
@@ -101,12 +104,22 @@ public class Utils {
     }
 
     static String formatRegistryApiError(ProblemDetails ex) {
-        return formatRegistryApiError(ex.getStatus(), ex.getDetail(), ex.getTitle(), ex.getName());
+        return formatRegistryApiError(ex, includeAuthorizationHints());
+    }
+
+    static String formatRegistryApiError(ProblemDetails ex, boolean includeAuthorizationHints) {
+        return formatRegistryApiError(ex.getStatus(), ex.getDetail(), ex.getTitle(), ex.getName(),
+                includeAuthorizationHints);
     }
 
     static String formatRegistryApiError(RuleViolationProblemDetails ex) {
+        return formatRegistryApiError(ex, includeAuthorizationHints());
+    }
+
+    static String formatRegistryApiError(RuleViolationProblemDetails ex, boolean includeAuthorizationHints) {
         StringBuilder message = new StringBuilder(
-                formatRegistryApiError(ex.getStatus(), ex.getDetail(), ex.getTitle(), ex.getName()));
+                formatRegistryApiError(ex.getStatus(), ex.getDetail(), ex.getTitle(), ex.getName(),
+                        includeAuthorizationHints));
         if (ex.getCauses() != null && !ex.getCauses().isEmpty()) {
             String causes = ex.getCauses().stream()
                     .map(cause -> firstNonBlank(cause.getContext(), "rule") + ": "
@@ -117,7 +130,8 @@ public class Utils {
         return message.toString();
     }
 
-    private static String formatRegistryApiError(Integer status, String detail, String title, String name) {
+    private static String formatRegistryApiError(Integer status, String detail, String title, String name,
+            boolean includeAuthorizationHints) {
         StringBuilder message = new StringBuilder("Request to Apicurio Registry returned an error");
         if (status != null) {
             message.append(" (HTTP ").append(status);
@@ -129,11 +143,30 @@ public class Utils {
             message.append(')');
         }
         message.append(": ").append(firstNonBlank(detail, title, name, "Unknown error"));
-        if (Integer.valueOf(403).equals(status)) {
+        // Only include Registry role names for authenticated callers — avoids leaking the
+        // authorization model to unauthenticated probes that receive 401/403.
+        if (includeAuthorizationHints && Integer.valueOf(403).equals(status)) {
             message.append(". Your Keycloak user may be missing the required Registry role "
                     + "(sr-readonly, sr-developer, or sr-admin for this operation).");
         }
         return message.toString();
+    }
+
+    /**
+     * Role-name hints are only useful (and safe) when the caller is already authenticated.
+     */
+    static boolean includeAuthorizationHints() {
+        try {
+            Instance<SecurityIdentity> identity = CDI.current().select(SecurityIdentity.class);
+            if (!identity.isResolvable()) {
+                return false;
+            }
+            SecurityIdentity securityIdentity = identity.get();
+            return securityIdentity != null && !securityIdentity.isAnonymous();
+        } catch (IllegalStateException ignored) {
+            // Outside a CDI context (unit tests, stdio without security)
+            return false;
+        }
     }
 
     private static Throwable findRegistryApiError(Throwable ex) {

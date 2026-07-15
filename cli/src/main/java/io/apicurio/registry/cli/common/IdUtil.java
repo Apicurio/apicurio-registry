@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.common;
 
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.rest.client.RegistryClient;
+import java.util.Objects;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -67,8 +68,11 @@ public final class IdUtil {
     }
 
     public static void updateGroupContext(final String groupId, final Config config) {
-        if (Boolean.parseBoolean(config.read().getConfig().getOrDefault("auto-context-update", "false"))) {
-            final var configModel = config.read();
+        Objects.requireNonNull(groupId, "groupId must not be null");
+        Objects.requireNonNull(config, "config must not be null");
+
+        final var configModel = config.read();
+        if (configModel != null && Boolean.parseBoolean(configModel.getConfig().get("auto-context-update"))) {
             final var contextName = configModel.getCurrentContext();
             if (!isBlank(contextName)) {
                 final var context = configModel.getContext().get(contextName);
@@ -81,8 +85,12 @@ public final class IdUtil {
     }
 
     public static void updateArtifactContext(final String groupId, final String artifactId, final Config config) {
-        if (Boolean.parseBoolean(config.read().getConfig().getOrDefault("auto-context-update", "false"))) {
-            final var configModel = config.read();
+        Objects.requireNonNull(groupId, "groupId must not be null");
+        Objects.requireNonNull(artifactId, "artifactId must not be null");
+        Objects.requireNonNull(config, "config must not be null");
+
+        final var configModel = config.read();
+        if (configModel != null && Boolean.parseBoolean(configModel.getConfig().get("auto-context-update"))) {
             final var contextName = configModel.getCurrentContext();
             if (!isBlank(contextName)) {
                 final var context = configModel.getContext().get(contextName);

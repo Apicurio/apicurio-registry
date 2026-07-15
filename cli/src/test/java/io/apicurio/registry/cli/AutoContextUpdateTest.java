@@ -110,4 +110,51 @@ public class AutoContextUpdateTest extends AbstractCLITest {
         assertThat(context.getGroupId()).isEqualTo("group-art-2");
         assertThat(context.getArtifactId()).isEqualTo("artifact-2");
     }
+
+    @Test
+    public void testAutoContextUpdateNullValidation() {
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateGroupContext(null, config);
+        });
+
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group", null);
+        });
+
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext(null, "art", config);
+        });
+
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext("group", null, config);
+        });
+
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext("group", "art", null);
+        });
+    }
+
+    @Test
+    public void testAutoContextUpdateWriteFailure() {
+        var failingConfig = new io.apicurio.registry.cli.config.Config() {
+            @Override
+            public io.apicurio.registry.cli.config.ConfigModel read() {
+                var model = new io.apicurio.registry.cli.config.ConfigModel();
+                model.getConfig().put("auto-context-update", "true");
+                model.setCurrentContext("test");
+                model.getContext().put("test", new io.apicurio.registry.cli.config.ConfigModel.Context());
+                return model;
+            }
+
+            @Override
+            public void write(io.apicurio.registry.cli.config.ConfigModel config) {
+                throw new io.apicurio.registry.cli.common.CliException("Mocked write failure", 3);
+            }
+        };
+
+        var exception = org.junit.jupiter.api.Assertions.assertThrows(io.apicurio.registry.cli.common.CliException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group-fail", failingConfig);
+        });
+        assertThat(exception.getMessage()).contains("Mocked write failure");
+    }
 }

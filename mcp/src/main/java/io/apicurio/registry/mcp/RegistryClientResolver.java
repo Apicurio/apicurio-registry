@@ -1,5 +1,7 @@
 package io.apicurio.registry.mcp;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.HttpAdapterType;
 import io.apicurio.registry.client.common.RegistryClientOptions;
@@ -16,6 +18,9 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.Locale;
 
 /**
@@ -28,6 +33,8 @@ import java.util.Locale;
 public class RegistryClientResolver {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryClientResolver.class);
+
+    private static final ObjectMapper JWT_PAYLOAD_MAPPER = new ObjectMapper();
 
     @ConfigProperty(name = "registry.url", defaultValue = "localhost:8080")
     String rawBaseUrl;
@@ -102,16 +109,71 @@ public class RegistryClientResolver {
         }
         String fromIdentity = resolveTokenFromSecurityIdentity();
         if (fromIdentity != null) {
+            assertBearerTokenNotExpired(fromIdentity, resolveJsonWebToken());
             return fromIdentity;
         }
-        if (!jwt.isResolvable()) {
-            return null;
-        }
-        JsonWebToken token = jwt.get();
+        JsonWebToken token = resolveJsonWebToken();
         if (token == null || token.getRawToken() == null || token.getRawToken().isBlank()) {
             return null;
         }
+        assertBearerTokenNotExpired(token.getRawToken(), token);
         return token.getRawToken();
+    }
+
+    private JsonWebToken resolveJsonWebToken() {
+        if (!jwt.isResolvable()) {
+            return null;
+        }
+        return jwt.get();
+    }
+
+    /**
+     * Rejects expired bearer tokens before forwarding them to Registry, so callers get a clear
+     * re-auth message instead of an opaque Registry 401.
+     */
+    void assertBearerTokenNotExpired(String bearerToken, JsonWebToken jwtToken) {
+        Long expirationEpochSeconds = null;
+        if (jwtToken != null) {
+            long exp = jwtToken.getExpirationTime();
+            if (exp > 0) {
+                expirationEpochSeconds = exp;
+            }
+        }
+        if (expirationEpochSeconds == null) {
+            expirationEpochSeconds = parseJwtExpirationEpochSeconds(bearerToken);
+        }
+        if (expirationEpochSeconds != null
+                && Instant.now().getEpochSecond() >= expirationEpochSeconds) {
+            throw new IllegalStateException(
+                    "Bearer access token has expired. Re-authenticate and retry the request "
+                            + "with a fresh access token.");
+        }
+    }
+
+    /**
+     * Best-effort {@code exp} claim read for JWTs when {@link JsonWebToken} is unavailable.
+     * Opaque tokens return {@code null} (no proactive check).
+     */
+    static Long parseJwtExpirationEpochSeconds(String bearerToken) {
+        if (bearerToken == null) {
+            return null;
+        }
+        String[] parts = bearerToken.split("\\.");
+        if (parts.length < 2) {
+            return null;
+        }
+        try {
+            byte[] payloadBytes = Base64.getUrlDecoder().decode(parts[1]);
+            JsonNode payload = JWT_PAYLOAD_MAPPER.readTree(
+                    new String(payloadBytes, StandardCharsets.UTF_8));
+            JsonNode exp = payload.get("exp");
+            if (exp == null || !exp.canConvertToLong()) {
+                return null;
+            }
+            return exp.longValue();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private String resolveTokenFromSecurityIdentity() {

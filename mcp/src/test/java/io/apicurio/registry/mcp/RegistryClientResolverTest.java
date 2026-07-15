@@ -15,8 +15,11 @@ import org.junit.jupiter.api.Test;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
 import java.security.Permission;
 import java.security.Principal;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -130,6 +133,47 @@ class RegistryClientResolverTest {
     }
 
     @Test
+    void resolveInboundBearerTokenRejectsExpiredJsonWebToken() {
+        long expired = Instant.now().getEpochSecond() - 60;
+        jwt.set(new TestJsonWebToken(jwtWithExp(expired), expired));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                resolver::resolveInboundBearerToken);
+        assertTrue(error.getMessage().contains("expired"));
+    }
+
+    @Test
+    void resolveInboundBearerTokenRejectsExpiredRawJwtFromIdentity() {
+        long expired = Instant.now().getEpochSecond() - 60;
+        String raw = jwtWithExp(expired);
+        securityIdentity.set(new TestSecurityIdentity(false, raw));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                resolver::resolveInboundBearerToken);
+        assertTrue(error.getMessage().contains("expired"));
+    }
+
+    @Test
+    void resolveInboundBearerTokenAllowsUnexpiredToken() {
+        long future = Instant.now().getEpochSecond() + 3600;
+        String raw = jwtWithExp(future);
+        jwt.set(new TestJsonWebToken(raw, future));
+
+        assertEquals(raw, resolver.resolveInboundBearerToken());
+    }
+
+    @Test
+    void parseJwtExpirationEpochSecondsReadsExpClaim() {
+        long exp = Instant.now().getEpochSecond() + 120;
+        assertEquals(exp, RegistryClientResolver.parseJwtExpirationEpochSeconds(jwtWithExp(exp)));
+    }
+
+    @Test
+    void parseJwtExpirationEpochSecondsReturnsNullForOpaqueToken() {
+        assertNull(RegistryClientResolver.parseJwtExpirationEpochSeconds("not-a-jwt"));
+    }
+
+    @Test
     void getClientReturnsFallbackWhenNoInboundToken() throws Exception {
         RegistryClient fallback = markerClient();
         setFallbackClient(fallback);
@@ -155,6 +199,14 @@ class RegistryClientResolverTest {
         IllegalStateException error = assertThrows(IllegalStateException.class, resolver::getClient);
         assertTrue(error.getMessage().contains("no bearer token was provided"));
         assertTrue(error.getMessage().contains("no fallback client credentials are configured"));
+    }
+
+    private static String jwtWithExp(long expEpochSeconds) {
+        String header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"none\"}".getBytes(StandardCharsets.UTF_8));
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(("{\"exp\":" + expEpochSeconds + "}").getBytes(StandardCharsets.UTF_8));
+        return header + "." + payload + ".sig";
     }
 
     private static RegistryClient markerClient() {
@@ -454,9 +506,15 @@ class RegistryClientResolverTest {
 
     private static final class TestJsonWebToken implements JsonWebToken {
         private final String rawToken;
+        private final long expirationTime;
 
         private TestJsonWebToken(String rawToken) {
+            this(rawToken, 0);
+        }
+
+        private TestJsonWebToken(String rawToken, long expirationTime) {
             this.rawToken = rawToken;
+            this.expirationTime = expirationTime;
         }
 
         @Override
@@ -477,6 +535,11 @@ class RegistryClientResolverTest {
         @Override
         public String getRawToken() {
             return rawToken;
+        }
+
+        @Override
+        public long getExpirationTime() {
+            return expirationTime;
         }
     }
 }

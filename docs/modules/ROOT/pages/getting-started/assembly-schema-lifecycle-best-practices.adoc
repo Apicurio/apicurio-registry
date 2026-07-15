@@ -7,7 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 Teams that build event-driven architectures with {registry} face recurring questions about how to manage schemas over time. Poor answers lead to production incidents, schema sprawl, and compatibility failures. {registry} provides compatibility rules, artifact references, version states, and serializer/deserializer (SerDes) validation to help you manage every phase of the schema lifecycle.
 
-Sections in this guide cover the schema lifecycle from initial design to retirement, including shared type references, safe evolution patterns, data structure recommendations, state management, runtime validation, and event-driven integration.
+The following sections cover the schema lifecycle from initial design to retirement, including shared type references, safe evolution patterns, data structure recommendations, state management, runtime validation, and event-driven integration.
 
 * xref:schema-lifecycle-overview_{context}[]
 * xref:schema-references-shared-types_{context}[]
@@ -75,7 +75,7 @@ After you understand these four phases, decide how to structure shared types so 
 [role="_abstract"]
 Shared schema references reduce duplication and improve consistency in event-driven architectures. When multiple schemas use the same data structure, you define that structure once as a stand-alone artifact in {registry} and reference it from every schema that needs it.
 
-=== Intra-schema and cross-schema references
+**Intra-schema and cross-schema references**
 
 An _intra-schema reference_ points to a type defined within the same artifact file. Avro schemas support intra-schema references natively through nested record definitions.
 
@@ -88,11 +88,11 @@ A _cross-schema reference_ points to a type registered as a separate artifact in
 * *Protobuf*: references by using `import` statements
 * *OpenAPI and AsyncAPI*: references by using `$ref` statements
 
-=== Shared type example with Avro
+**Shared type example with Avro**
 
 Consider a `MonetaryAmount` record that represents a monetary value with currency. Trade events, order events, and invoice events all use this type. Rather than duplicating the definition in each schema, you register `MonetaryAmount` as a stand-alone artifact and reference the artifact from every schema that needs it.
 
-Define the shared `MonetaryAmount` artifact:
+The following example shows the shared `MonetaryAmount` artifact:
 
 [source,json]
 ----
@@ -118,7 +118,7 @@ Define the shared `MonetaryAmount` artifact:
 }
 ----
 
-Reference `MonetaryAmount` from a `TradeKey` schema:
+The following `TradeKey` schema references `MonetaryAmount`:
 
 [source,json]
 ----
@@ -143,7 +143,7 @@ Reference `MonetaryAmount` from a `TradeKey` schema:
 }
 ----
 
-Reference `MonetaryAmount` from an `Order` schema:
+The following `Order` schema also references `MonetaryAmount`:
 
 [source,json]
 ----
@@ -171,7 +171,9 @@ Reference `MonetaryAmount` from an `Order` schema:
 }
 ----
 
-When you register `TradeKey` or `Order` in {registry}, you specify the artifact reference. The reference maps the `com.example.common.MonetaryAmount` type name to the group ID, artifact ID, and version of the `MonetaryAmount` artifact. {registry} stores each reference alongside the artifact content. You can register artifacts with references by using the {registry} REST API or the Maven plug-in. For details, see {managing-registry-artifacts-api} and {managing-registry-artifacts-maven}.
+When you register `TradeKey` or `Order` in {registry}, you specify the artifact reference. The reference maps the `com.example.common.MonetaryAmount` type name to the group ID, artifact ID, and version of the `MonetaryAmount` artifact. {registry} stores each reference alongside the artifact content.
+
+You can register artifacts with references by using the {registry} REST API or the Maven plug-in. For details, see {managing-registry-artifacts-api} and {managing-registry-artifacts-maven}.
 
 After you establish shared types, choose strategies for evolving schemas safely as requirements change.
 
@@ -228,7 +230,7 @@ Evolving a schema means adding, modifying, or removing fields as requirements ch
 
 For production environments where consumers might lag behind producers by more than one schema version, use `BACKWARD_TRANSITIVE` compatibility. Transitive compatibility modes validate each new version against _all_ previous versions, not just the most recent version. Avoid `NONE` compatibility in production because `NONE` disables all compatibility checks and allows breaking changes to reach consumers.
 
-=== Field addition with a default value
+**Field addition with a default value**
 
 You add new fields with default values to extend a schema without breaking consumers. Old consumers ignore the new field. New consumers use the default value when reading old data.
 
@@ -263,7 +265,7 @@ The following example shows the updated schema with a new field and default valu
 }
 ----
 
-=== Union types for optional data
+**Union types for optional data**
 
 You use Avro unions to represent optional fields. With a union of `["null", "type"]` and a `null` default, you can add the field without breaking existing consumers.
 
@@ -298,7 +300,7 @@ The following example shows the updated schema with an optional field that uses 
 }
 ----
 
-=== Field rename with an alias
+**Field rename with an alias**
 
 You use the `aliases` property to rename a field while maintaining compatibility. Consumers compiled against the old schema resolve the alias to the new field name during deserialization.
 
@@ -411,15 +413,17 @@ a|
 ----
 |===
 
-=== Enum versus string tradeoffs
+**Enum versus string tradeoffs**
 
 Enums enforce a closed set of values at the schema level. Producers that send an unrecognized symbol fail during serialization, which catches errors early. However, removing or reordering enum symbols breaks backward compatibility.
 
 Strings accept any value and impose no schema-level constraints. With strings, you avoid breaking changes when new values appear, but you lose compile-time validation. Use strings when the set of valid values changes frequently or when external systems control the values.
 
-=== Record wrapping for compartmentalized evolution
+**Record wrapping for compartmentalized evolution**
 
-When you wrap related fields in a nested record, you can evolve the nested record independently of the parent schema. For example, if your `Order` schema contains shipping address fields (`street`, `city`, `zip`, `country`), you wrap those fields in an `Address` record. You can then add a `state` field to `Address` without modifying any other part of the `Order` schema. Consumers that deserialize the parent schema delegate the address portion to the `Address` reader schema. This delegation keeps compatibility evaluation scoped to the nested record.
+When you wrap related fields in a nested record, you can evolve the nested record independently of the parent schema. For example, if your `Order` schema contains shipping address fields (`street`, `city`, `zip`, `country`), you wrap those fields in an `Address` record. You can then add a `state` field to `Address` without modifying any other part of the `Order` schema.
+
+Consumers that deserialize the parent schema delegate the address portion to the `Address` reader schema. This delegation keeps compatibility evaluation scoped to the nested record.
 
 With shared types, evolution strategies, and data structures in place, you can control which schema versions consumers can access by using {registry} version states to deprecate and retire schema versions.
 
@@ -520,8 +524,6 @@ curl http://MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-schema
 ----
 +
 The response body contains the current state, for example `{"state": "DEPRECATED"}`.
-
-State management controls access to schema versions. To catch invalid data before the data reaches consumers, add runtime validation at multiple points in the pipeline.
 
 // proc-validating-data-avro-generated-classes
 [id="validating-data-avro-generated-classes_{context}"]
@@ -642,7 +644,7 @@ mvn clean package
 ----
 +
 A successful build confirms that the schema is compatible with the version registered in {registry}. At runtime, the SerDes validates structural compatibility, and your application code enforces business rules.
-
++
 These validation layers apply to any Kafka producer. If your architecture includes CDC or the outbox pattern, you can extend schema lifecycle management to cover those integration points.
 
 // con-schema-event-driven-integration
@@ -653,7 +655,7 @@ These validation layers apply to any Kafka producer. If your architecture includ
 [role="_abstract"]
 Event-driven architectures that use change data capture (CDC) and messaging platforms require coordination between schema producers, consumers, and {registry}. You integrate {registry} with tools such as Debezium to automate schema registration and enforce compatibility throughout the data pipeline.
 
-=== Debezium integration with {registry}
+**Debezium integration with {registry}**
 
 Debezium captures row-level changes from databases and publishes the changes as events to Kafka topics. When you configure the Debezium connector to use the {registry} Avro converter, Debezium registers Avro schemas for each captured table. The converter maps Kafka Connect schemas to Avro schemas and stores the Avro schemas in {registry}.
 
@@ -697,7 +699,7 @@ With this configuration, Debezium registers a schema for each table that Debeziu
 
 If the new schema violates compatibility rules, the connector task fails and stops processing events until you resolve the schema conflict.
 
-=== Outbox pattern with schema registration
+**Outbox pattern with schema registration**
 
 The outbox pattern supports reliable event publishing by writing events to an outbox table in the same database transaction as the business data. Debezium captures changes from the outbox table and publishes the changes to Kafka.
 
@@ -710,7 +712,7 @@ The schema lifecycle in this pattern follows four stages:
 
 Because the outbox table has a stable schema, the Avro schema that Debezium registers rarely changes. When you add fields to the outbox event payload, follow the evolution patterns described in xref:schema-evolution-strategies_{context}[] to maintain compatibility.
 
-=== Schema lifecycle in event-driven context
+**Schema lifecycle in event-driven context**
 
 The four lifecycle phases described in xref:schema-lifecycle-overview_{context}[] apply directly to event-driven architectures. The following list describes how each phase maps to CDC and messaging workflows:
 
@@ -765,7 +767,7 @@ Use the following checklist as a quick reference for schema lifecycle best pract
 |Removing fields without reserving tags
 |===
 
-=== Design phase
+**Design phase**
 
 Follow these recommendations when you design schemas. For detailed guidance and examples, see xref:schema-references-shared-types_{context}[] and xref:schema-data-structure-recommendations_{context}[].
 
@@ -774,7 +776,7 @@ Follow these recommendations when you design schemas. For detailed guidance and 
 * Use `["null", "type"]` unions with `null` defaults for all optional fields. New fields that you add later must follow this pattern.
 * Wrap related fields in nested records to support independent evolution.
 
-=== Registration phase
+**Registration phase**
 
 Follow these recommendations when you register schemas. For a working Maven plug-in example, see xref:validating-data-avro-generated-classes_{context}[].
 
@@ -783,7 +785,7 @@ Follow these recommendations when you register schemas. For a working Maven plug
 * Use `BACKWARD_TRANSITIVE` for production environments where consumers might lag behind producers by more than one version.
 * Set `ifExists` to `FIND_OR_CREATE_VERSION` in the Maven plug-in to avoid duplicate registrations.
 
-=== Evolution phase
+**Evolution phase**
 
 Follow these recommendations when you evolve schemas. For compatible and incompatible change patterns with examples, see xref:schema-evolution-strategies_{context}[].
 
@@ -792,7 +794,7 @@ Follow these recommendations when you evolve schemas. For compatible and incompa
 * Reserve removed Protobuf field tags by adding `reserved` declarations to prevent tag reuse.
 * Test every schema change against the configured compatibility rules before merging your code.
 
-=== Deprecation and retirement phase
+**Deprecation and retirement phase**
 
 Follow these recommendations when you deprecate and retire schemas. For the step-by-step procedure, see xref:managing-schema-lifecycle-states_{context}[].
 

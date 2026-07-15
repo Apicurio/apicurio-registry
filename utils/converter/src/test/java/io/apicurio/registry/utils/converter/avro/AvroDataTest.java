@@ -8,6 +8,7 @@ import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -287,6 +289,178 @@ public class AvroDataTest {
             }
         }
         return schema;
+    }
+
+    @Test
+    void testDebeziumDateFieldRoundTrip() {
+        AvroData avroData = new AvroData(10);
+
+        Schema connectSchema = SchemaBuilder.struct()
+                .name("dbserver1.inventory.orders.Value")
+                .field("order_number", Schema.INT32_SCHEMA)
+                .field("order_date", SchemaBuilder.int32()
+                        .name("io.debezium.time.Date")
+                        .version(1)
+                        .build())
+                .field("customer_id", Schema.INT32_SCHEMA)
+                .build();
+
+        Struct input = new Struct(connectSchema)
+                .put("order_number", 10001)
+                .put("order_date", 19443)
+                .put("customer_id", 42);
+
+        Object avroValue = avroData.fromConnectData(connectSchema, input);
+        assertNotNull(avroValue, "fromConnectData must not return null");
+
+        org.apache.avro.Schema avroSchema = avroData.fromConnectSchema(connectSchema);
+        SchemaAndValue result = avroData.toConnectData(avroSchema, avroValue);
+
+        assertNotNull(result, "toConnectData must not return null");
+        Struct output = (Struct) result.value();
+        assertEquals(10001, output.get("order_number"));
+        assertEquals(19443, output.get("order_date"),
+                "order_date with connect.name annotation must not be null");
+        assertEquals(42, output.get("customer_id"));
+    }
+
+    @Test
+    void testDebeziumDateInNullableUnion() {
+        String schemaJson = "{"
+                + "\"type\":\"record\","
+                + "\"name\":\"Value\","
+                + "\"namespace\":\"dbserver1.inventory.orders\","
+                + "\"fields\":["
+                + "  {\"name\":\"order_number\",\"type\":\"int\"},"
+                + "  {\"name\":\"order_date\",\"type\":[\"null\","
+                + "    {\"type\":\"int\",\"connect.version\":1,"
+                + "     \"connect.name\":\"io.debezium.time.Date\"}]},"
+                + "  {\"name\":\"customer_id\",\"type\":\"int\"}"
+                + "]}";
+
+        org.apache.avro.Schema avroSchema = new org.apache.avro.Schema.Parser().parse(schemaJson);
+        GenericRecord record = new GenericRecordBuilder(avroSchema)
+                .set("order_number", 10001)
+                .set("order_date", 19443)
+                .set("customer_id", 42)
+                .build();
+
+        AvroData avroData = new AvroData(10);
+        SchemaAndValue result = avroData.toConnectData(avroSchema, record);
+
+        assertNotNull(result);
+        Struct output = (Struct) result.value();
+        assertEquals(19443, output.get("order_date"),
+                "Nullable order_date with connect.name must not be null when value is set");
+        assertEquals(10001, output.get("order_number"));
+        assertEquals(42, output.get("customer_id"));
+    }
+
+    @Test
+    void testMixedPlainAndAnnotatedIntFieldsRoundTrip() {
+        AvroData avroData = new AvroData(10);
+
+        Schema connectSchema = SchemaBuilder.struct()
+                .name("dbserver1.inventory.orders.Value")
+                .field("order_number", Schema.INT32_SCHEMA)
+                .field("order_date", SchemaBuilder.int32()
+                        .name("io.debezium.time.Date")
+                        .version(1)
+                        .build())
+                .field("customer_id", Schema.INT32_SCHEMA)
+                .field("quantity", Schema.INT32_SCHEMA)
+                .field("price", Schema.FLOAT64_SCHEMA)
+                .build();
+
+        Struct input = new Struct(connectSchema)
+                .put("order_number", 10001)
+                .put("order_date", 19443)
+                .put("customer_id", 42)
+                .put("quantity", 5)
+                .put("price", 99.99);
+
+        Object avroValue = avroData.fromConnectData(connectSchema, input);
+        org.apache.avro.Schema avroSchema = avroData.fromConnectSchema(connectSchema);
+        SchemaAndValue result = avroData.toConnectData(avroSchema, avroValue);
+
+        assertNotNull(result);
+        Struct output = (Struct) result.value();
+        assertEquals(10001, output.get("order_number"));
+        assertEquals(19443, output.get("order_date"),
+                "order_date with connect.name must preserve value");
+        assertEquals(42, output.get("customer_id"));
+        assertEquals(5, output.get("quantity"));
+        assertEquals(99.99, output.get("price"));
+    }
+
+    @Test
+    void testDebeziumSchemaParsePreservesConnectProps() {
+        String schemaJson = "{"
+                + "\"type\":\"record\","
+                + "\"name\":\"Value\","
+                + "\"namespace\":\"dbserver1.inventory.orders\","
+                + "\"fields\":["
+                + "  {\"name\":\"order_number\",\"type\":\"int\"},"
+                + "  {\"name\":\"order_date\",\"type\":{\"type\":\"int\","
+                + "    \"connect.version\":1,"
+                + "    \"connect.name\":\"io.debezium.time.Date\"}},"
+                + "  {\"name\":\"customer_id\",\"type\":\"int\"}"
+                + "]}";
+
+        org.apache.avro.Schema original = new org.apache.avro.Schema.Parser().parse(schemaJson);
+        String serialized = original.toString();
+        org.apache.avro.Schema reparsed = new org.apache.avro.Schema.Parser().parse(serialized);
+
+        org.apache.avro.Schema orderDateType = reparsed.getField("order_date").schema();
+        assertEquals("io.debezium.time.Date", orderDateType.getProp("connect.name"),
+                "connect.name must survive schema round-trip through toString/parse");
+        assertNotNull(orderDateType.getObjectProp("connect.version"),
+                "connect.version must survive schema round-trip through toString/parse");
+    }
+
+    @Test
+    void testToConnectDataFromReParsedDebeziumSchema() {
+        String schemaJson = "{"
+                + "\"type\":\"record\","
+                + "\"name\":\"Value\","
+                + "\"namespace\":\"dbserver1.inventory.orders\","
+                + "\"fields\":["
+                + "  {\"name\":\"order_number\",\"type\":\"int\"},"
+                + "  {\"name\":\"order_date\",\"type\":{\"type\":\"int\","
+                + "    \"connect.version\":1,"
+                + "    \"connect.name\":\"io.debezium.time.Date\"}},"
+                + "  {\"name\":\"customer_id\",\"type\":\"int\"},"
+                + "  {\"name\":\"quantity\",\"type\":\"int\"},"
+                + "  {\"name\":\"price\",\"type\":\"double\"}"
+                + "]}";
+
+        org.apache.avro.Schema original = new org.apache.avro.Schema.Parser().parse(schemaJson);
+        String serialized = original.toString();
+        org.apache.avro.Schema reparsed = new org.apache.avro.Schema.Parser().parse(serialized);
+
+        GenericRecord record = new GenericRecordBuilder(reparsed)
+                .set("order_number", 10001)
+                .set("order_date", 19443)
+                .set("customer_id", 42)
+                .set("quantity", 5)
+                .set("price", 99.99)
+                .build();
+
+        AvroData avroData = new AvroData(10);
+        SchemaAndValue result = avroData.toConnectData(reparsed, record);
+
+        assertNotNull(result);
+        Struct output = (Struct) result.value();
+        assertEquals(10001, output.get("order_number"));
+        assertEquals(19443, output.get("order_date"),
+                "order_date must not be null after schema re-parse (simulating registry round-trip)");
+        assertEquals(42, output.get("customer_id"));
+        assertEquals(5, output.get("quantity"));
+        assertEquals(99.99, output.get("price"));
+
+        assertEquals("io.debezium.time.Date",
+                result.schema().field("order_date").schema().name(),
+                "Connect schema must preserve connect.name from re-parsed Avro schema");
     }
 
     @Test

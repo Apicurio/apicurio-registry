@@ -47,6 +47,7 @@ public final class ClusterDiagnostics {
         dumpNetworkPolicies(client, namespace);
         dumpPods(client, namespace);
         dumpEvents(client, namespace);
+        dumpImagePullEvents(client, namespace);
 
         if (isOLM) {
             dumpOLMResources(client, namespace);
@@ -232,9 +233,48 @@ public final class ClusterDiagnostics {
         }
     }
 
+    private static void dumpImagePullEvents(KubernetesClient client, String namespace) {
+        log.error("--- Image Pull Events ---");
+        try {
+            var events = client.v1().events().inNamespace(namespace).list().getItems();
+            var pullEvents = events.stream()
+                    .filter(e -> {
+                        var reason = e.getReason();
+                        return reason != null && (reason.contains("Pull") || reason.contains("BackOff")
+                                || reason.contains("ErrImage"));
+                    })
+                    .filter(e -> {
+                        var type = e.getType();
+                        return "Warning".equals(type) || "Failed".equalsIgnoreCase(e.getReason());
+                    })
+                    .sorted(Comparator.comparing(
+                            (Event e) -> e.getLastTimestamp() != null ? e.getLastTimestamp() : "",
+                            Comparator.reverseOrder()))
+                    .toList();
+
+            if (pullEvents.isEmpty()) {
+                log.error("  (none)");
+                return;
+            }
+
+            for (var event : pullEvents) {
+                log.error("  {} | {} | {} | {}/{} | {}",
+                        event.getLastTimestamp(),
+                        event.getType(),
+                        event.getReason(),
+                        event.getInvolvedObject().getKind(),
+                        event.getInvolvedObject().getName(),
+                        event.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("  Failed to list image pull events: {}", e.getMessage());
+        }
+    }
+
     private static void dumpOLMResources(KubernetesClient client, String namespace) {
         log.error("--- OLM Resources ---");
 
+        dumpGenericResources(client, "operators.coreos.com/v1alpha1", "CatalogSource", namespace);
         dumpGenericResources(client, "operators.coreos.com/v1alpha1", "Subscription", namespace);
         dumpGenericResources(client, "operators.coreos.com/v1alpha1", "InstallPlan", namespace);
         dumpGenericResources(client, "operators.coreos.com/v1alpha1", "ClusterServiceVersion", namespace);

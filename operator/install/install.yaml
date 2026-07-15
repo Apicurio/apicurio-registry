@@ -7428,6 +7428,18 @@ rules:
   - create
   - get
 - apiGroups:
+  - console.openshift.io
+  resources:
+  - consoleplugins
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - coordination.k8s.io
   resources:
   - leases
@@ -7513,6 +7525,8 @@ spec:
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
         - name: REGISTRY_GITOPS_SYNC_IMAGE
           value: quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot
+        - name: REGISTRY_CONSOLE_PLUGIN_IMAGE
+          value: quay.io/apicurio/apicurio-registry-console-plugin:latest-snapshot
         image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:

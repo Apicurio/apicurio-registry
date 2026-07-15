@@ -136,21 +136,22 @@ CREATE TABLE artifact_rules (
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 
 CREATE TABLE versions (
-    globalId     BIGINT       NOT NULL,
-    groupId      VARCHAR(512) NOT NULL,
-    artifactId   VARCHAR(512) NOT NULL,
-    version      VARCHAR(256),
-    versionOrder INT          NOT NULL,
-    state        VARCHAR(64)  NOT NULL,
-    name         VARCHAR(512),
-    description  VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
-    owner        VARCHAR(256),
-    createdOn    TIMESTAMP    NOT NULL,
-    modifiedBy   VARCHAR(256),
-    modifiedOn   TIMESTAMP    NOT NULL,
-    labels       TEXT,
-    contentId    BIGINT       NOT NULL,
-    PRIMARY KEY (globalId)
+    globalId        BIGINT       NOT NULL,
+    groupId        VARCHAR(512) NOT NULL,
+    artifactId     VARCHAR(512) NOT NULL,
+    version        VARCHAR(256),
+    versionSortKey VARCHAR(512),
+    versionOrder   INT          NOT NULL,
+    state          VARCHAR(64)  NOT NULL,
+    name           VARCHAR(512),
+    description    VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    owner          VARCHAR(256),
+    createdOn      TIMESTAMP    NOT NULL,
+    modifiedBy     VARCHAR(256),
+    modifiedOn     TIMESTAMP    NOT NULL,
+    labels         TEXT,
+    contentId      BIGINT       NOT NULL,
+    PRIMARY KEY    (globalId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);

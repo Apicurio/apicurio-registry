@@ -1,42 +1,5 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
-import io.apicurio.registry.model.BranchId;
-import io.apicurio.registry.model.GAV;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionContentDto;
-import io.apicurio.registry.storage.error.ArtifactNotFoundException;
-import io.apicurio.registry.storage.error.ContentNotFoundException;
-import io.apicurio.registry.storage.error.RegistryStorageException;
-import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
-import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
-import io.apicurio.registry.storage.impl.sql.HandleFactory;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
-import io.apicurio.registry.storage.impl.sql.SqlOutboxEvent;
-import io.apicurio.registry.storage.impl.sql.SqlStatements;
-import io.apicurio.registry.storage.impl.sql.jdb.Handle;
-import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.VersionContentDtoMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
-import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
-import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.events.ArtifactVersionCreated;
-import io.apicurio.registry.events.ArtifactVersionDeleted;
-import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
-import io.apicurio.registry.events.ArtifactVersionStateChanged;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.types.VersionState;
-import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.enterprise.event.Event;
-import org.slf4j.Logger;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -47,9 +10,46 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.events.ArtifactVersionCreated;
+import io.apicurio.registry.events.ArtifactVersionDeleted;
+import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
+import io.apicurio.registry.events.ArtifactVersionStateChanged;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.impl.sql.HandleFactory;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
-import static io.apicurio.registry.utils.StringUtil.limitStr;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.storage.impl.sql.SqlOutboxEvent;
+import io.apicurio.registry.storage.impl.sql.SqlStatements;
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionContentDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
+import io.apicurio.registry.types.VersionState;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
+import static io.apicurio.registry.utils.StringUtil.limitStr;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.enterprise.event.Event;
 
 /**
  * Repository handling artifact version operations in the SQL storage layer.
@@ -536,7 +536,6 @@ public class SqlVersionRepository {
         GAV gav;
         String sortKey = generateVersionSortKey(version);
 
-        // Create a row in the "versions" table
         if (firstVersion) {
             if (version == null) {
                 version = "1";
@@ -563,16 +562,21 @@ public class SqlVersionRepository {
                     .bind(10, owner).bind(11, createdOn).bind(12, owner).bind(13, createdOn)
                     .bind(14, labelsStr).bind(15, contentId).execute();
 
-            // If version is null, update the row we just inserted to set the version to the generated
-            // versionOrder
             if (version == null) {
                 handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId()).bind(0, globalId).execute();
+                
+                gav = getGAVByGlobalIdRaw(handle, globalId);
+                 
+                String generatedSortKey = generateVersionSortKey(gav.getRawVersionId());
+                handle.createUpdate("UPDATE versions SET versionSortKey = ? WHERE globalId = ?")
+                        .bind(0, generatedSortKey)
+                        .bind(1, globalId)
+                        .execute();
+            } else {
+                gav = getGAVByGlobalIdRaw(handle, globalId);
             }
-
-            gav = getGAVByGlobalIdRaw(handle, globalId);
         }
 
-        // Insert labels into the "version_labels" table
         if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
             metaData.getLabels().forEach((k, v) -> {
                 handle.createUpdate(sqlStatements.insertVersionLabel()).bind(0, globalId)
@@ -582,7 +586,6 @@ public class SqlVersionRepository {
             });
         }
 
-        // Update system generated branches
         if (isDraft) {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
         } else {
@@ -590,7 +593,6 @@ public class SqlVersionRepository {
             branchRepository.createOrUpdateSemverBranchesRaw(handle, gav);
         }
 
-        // Create any user defined branches
         if (branches != null && !branches.isEmpty()) {
             branches.forEach(branch -> {
                 BranchId branchId = new BranchId(branch);
@@ -764,26 +766,28 @@ public class SqlVersionRepository {
         });
     }
 
-    private String generateVersionSortKey(String version) {
-    if (version == null || version.trim().isEmpty()) {
-        return version;
-    }
-    try {
-        StringBuilder sortKey = new StringBuilder();
-        String[] baseAndQualifier = version.split("-", 2);
-        String[] numericParts = baseAndQualifier[0].split("\\.");
+    public String generateVersionSortKey(String version) {
+        if (version == null || version.trim().isEmpty()) {
+            return null;
+        }
+        String withoutBuild = version.split("\\+")[0];
+        String[] parts = withoutBuild.split("-", 2);
+        String core = parts[0];
+        String prerelease = parts.length > 1 ? parts[1] : "";
 
-        for (String part : numericParts) {
-            int num = Integer.parseInt(part);
-            sortKey.append(String.format("%05d", num)).append("."); 
+        String[] coreParts = core.split("\\.");
+        long major = 0;
+        long minor = 0;
+        long patch = 0;
+        
+        try {
+            major = coreParts.length > 0 ? Long.parseLong(coreParts[0]) : 0;
+            minor = coreParts.length > 1 ? Long.parseLong(coreParts[1]) : 0;
+            patch = coreParts.length > 2 ? Long.parseLong(coreParts[2]) : 0;
+        } catch (NumberFormatException e) {
+            return "NON_SEMVER_" + version;
         }
-
-        if (baseAndQualifier.length > 1) {
-            sortKey.append("-").append(baseAndQualifier[1]);
-        }
-        return sortKey.toString();
-    } catch (NumberFormatException e) {
-        return version; 
-        }
+        String prereleaseKey = prerelease.isEmpty() ? "~" : "-" + prerelease;
+        return String.format("%05d.%05d.%05d%s", major, minor, patch, prereleaseKey);
     }
 }

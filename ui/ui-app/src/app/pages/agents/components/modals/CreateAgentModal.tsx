@@ -113,15 +113,15 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
         return !!agentCard.name && agentCard.name.trim().length > 0;
     };
 
-    const coordinatesStepFooter: WizardFooterProps = {
+    const coordinatesStepFooter: Partial<WizardFooterProps> = {
         isNextDisabled: !isCoordinatesStepValid()
     };
 
-    const contentStepFooter: WizardFooterProps = {
+    const contentStepFooter: Partial<WizardFooterProps> = {
         isNextDisabled: !isContentStepValid()
     };
 
-    const metadataStepFooter: WizardFooterProps = {
+    const metadataStepFooter: Partial<WizardFooterProps> = {
         nextButtonText: "Create",
         onNext: handleCreate
     };

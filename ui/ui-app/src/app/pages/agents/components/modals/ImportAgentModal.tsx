@@ -128,13 +128,13 @@ export const ImportAgentModal: FunctionComponent<ImportAgentModalProps> = (props
         return checkIdValid(groupId) && checkIdValid(artifactId);
     };
 
-    const urlStepFooter: WizardFooterProps = {
+    const urlStepFooter: Partial<WizardFooterProps> = {
         isNextDisabled: !isUrlStepValid()
     };
 
-    const previewStepFooter: WizardFooterProps = {};
+    const previewStepFooter: Partial<WizardFooterProps> = {};
 
-    const settingsStepFooter: WizardFooterProps = {
+    const settingsStepFooter: Partial<WizardFooterProps> = {
         nextButtonText: "Import",
         isNextDisabled: !isSettingsStepValid(),
         onNext: handleImport

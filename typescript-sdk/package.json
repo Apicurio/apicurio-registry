@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@apicurio/eslint-config": "1.0.0",
-    "@kiota-community/kiota-gen": "1.0.2",
+    "@kiota-community/kiota-gen": "1.0.3",
     "@types/node": "25.5.2",
     "cross-env": "10.1.0",
     "eslint": "9.39.5",

@@ -483,7 +483,7 @@ public class ERCache<V> {
      * Builds a concise description of the Registry/client failure for logs, preferring HTTP status
      * and message from {@link ApiException} when present.
      */
-    public static String describeRegistryError(Throwable throwable) {
+    static String describeRegistryError(Throwable throwable) {
         ApiException apiException = findApiException(throwable);
         if (apiException != null) {
             String message = apiException.getMessage();

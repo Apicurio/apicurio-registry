@@ -144,13 +144,63 @@ public class ERCacheTest {
     }
 
     @Test
-    void testDescribeRegistryErrorIncludesHttpStatusFromApiException() {
-        ApiException apiException = new TestApiException(409,
-                "RuleViolationProblemDetails: BACKWARD incompatible");
+    void testRetriesOnHttp429UntilRetriesExhausted() {
+        String contentHashKey = "retry-429";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureRetryCount(2);
+        cache.configureRetryBackoff(Duration.ofMillis(1));
 
-        String description = ERCache.describeRegistryError(apiException);
-        assertTrue(description.contains("409"));
-        assertTrue(description.contains("BACKWARD incompatible"));
+        AtomicInteger attempts = new AtomicInteger(0);
+        ApiException rateLimited = new TestApiException(429, "rate limited");
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> cache.getByContentHash(
+                contentHashKey, key -> {
+                    attempts.incrementAndGet();
+                    throw rateLimited;
+                }));
+
+        assertEquals(rateLimited, thrown);
+        assertEquals(3, attempts.get());
+    }
+
+    @Test
+    void testFailsFastOnNon429HttpErrors() {
+        for (int status : new int[] { 404, 409, 500 }) {
+            String contentHashKey = "fail-fast-" + status;
+            ERCache<String> cache = newCache(contentHashKey);
+            cache.configureRetryCount(3);
+            cache.configureRetryBackoff(Duration.ofMillis(1));
+
+            AtomicInteger attempts = new AtomicInteger(0);
+            ApiException error = new TestApiException(status, "HTTP " + status);
+
+            RuntimeException thrown = assertThrows(RuntimeException.class, () -> cache.getByContentHash(
+                    contentHashKey, key -> {
+                        attempts.incrementAndGet();
+                        throw error;
+                    }));
+
+            assertEquals(error, thrown);
+            assertEquals(1, attempts.get(), "HTTP " + status + " should not retry");
+        }
+    }
+
+    @Test
+    void testPreservesApiExceptionWrappedInCauseChain() {
+        String contentHashKey = "nested-api-exception";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureRetryCount(2);
+        cache.configureRetryBackoff(Duration.ofMillis(1));
+
+        ApiException notFound = new TestApiException(404, "artifact not found");
+        RuntimeException wrapped = new RuntimeException("load failed", notFound);
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> cache.getByContentHash(
+                contentHashKey, key -> {
+                    throw wrapped;
+                }));
+
+        assertEquals(wrapped, thrown);
     }
 
     private static class TestApiException extends ApiException {

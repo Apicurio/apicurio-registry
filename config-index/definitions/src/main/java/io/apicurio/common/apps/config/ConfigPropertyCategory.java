@@ -11,7 +11,6 @@ public enum ConfigPropertyCategory {
     CATEGORY_DOWNLOAD("download"),
     CATEGORY_GITOPS("gitops"),
     CATEGORY_HEALTH("health"), // TODO: Merge with CATEGORY_OBSERVABILITY.
-    CATEGORY_KUBERNETESOPS("kubernetesops"),
     /**
      * Properties that belong to this category will not show up in the documentation.
      */
@@ -19,6 +18,7 @@ public enum ConfigPropertyCategory {
     CATEGORY_HTTP("http"),
     CATEGORY_ICEBERG("iceberg"),
     CATEGORY_IMPORT("import"),
+    CATEGORY_KUBERNETESOPS("kubernetesops"),
     CATEGORY_LIMITS("limits"),
     CATEGORY_LOG("log"),
     CATEGORY_MCP("mcp"),

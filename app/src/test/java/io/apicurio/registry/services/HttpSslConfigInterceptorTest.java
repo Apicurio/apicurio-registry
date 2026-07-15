@@ -118,10 +118,12 @@ public class HttpSslConfigInterceptorTest {
     }
 
     private ConfigValue configValue(String name, String value, String sourceName) {
+        int ordinal = "DefaultValuesConfigSource".equals(sourceName) ? Integer.MIN_VALUE : 100;
         return ConfigValue.builder()
                 .withName(name)
                 .withValue(value)
                 .withConfigSourceName(sourceName)
+                .withConfigSourceOrdinal(ordinal)
                 .build();
     }
 }

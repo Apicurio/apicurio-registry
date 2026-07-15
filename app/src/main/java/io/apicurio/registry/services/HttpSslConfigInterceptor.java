@@ -26,7 +26,7 @@ public class HttpSslConfigInterceptor implements ConfigSourceInterceptor {
         ConfigValue existing = context.proceed(name);
         if (existing != null && existing.getValue() != null 
                 && !existing.getValue().isBlank()
-                && !"DefaultValuesConfigSource".equals(existing.getConfigSourceName())) {
+                && !isDefaultValue(existing)) {
             return existing;
         }
 
@@ -38,10 +38,19 @@ public class HttpSslConfigInterceptor implements ConfigSourceInterceptor {
                     .withName(name)
                     .withValue(apicurioValue.getValue())
                     .withConfigSourceName(apicurioValue.getConfigSourceName())
+                    .withConfigSourceOrdinal(apicurioValue.getConfigSourceOrdinal())
                     .build();
         }
 
         // No override — return whatever the chain resolves (preserves JVM defaults)
         return existing;
+    }
+
+    private boolean isDefaultValue(ConfigValue value) {
+        if (value == null) {
+            return true;
+        }
+        return "DefaultValuesConfigSource".equals(value.getConfigSourceName())
+                || value.getConfigSourceOrdinal() == Integer.MIN_VALUE;
     }
 }

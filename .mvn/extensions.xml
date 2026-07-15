@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Scalpel: affected-module detection for CI. Disabled by default
+     in maven.config; CI unit test shards opt in via -Dscalpel.enabled=true. -->
+<extensions>
+    <extension>
+        <groupId>eu.maveniverse.maven.scalpel</groupId>
+        <artifactId>extension</artifactId>
+        <version>0.3.7</version>
+    </extension>
+</extensions>

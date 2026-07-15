@@ -797,7 +797,7 @@ public class ProtobufContentValidatorTest extends ArtifactUtilProviderTestBase {
                 ContentTypes.APPLICATION_PROTOBUF);
         ProtobufContentValidator validator = new ProtobufContentValidator();
 
-        // Empty mappings must succeed — google/protobuf/* are runtime-provided.
+        // Empty mappings must succeed - google/protobuf/* are runtime-provided.
         validator.validateReferences(content, List.of());
     }
 

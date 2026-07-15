@@ -10,6 +10,7 @@ import java.lang.reflect.Proxy;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,6 +26,8 @@ class McpHttpGateFilterTest {
     private AtomicInteger statusCode;
     private AtomicBoolean ended;
     private AtomicBoolean nextCalled;
+    private AtomicReference<String> responseBody;
+    private AtomicReference<String> contentType;
     private RoutingContext context;
 
     @BeforeEach
@@ -35,18 +38,23 @@ class McpHttpGateFilterTest {
         statusCode = new AtomicInteger(-1);
         ended = new AtomicBoolean(false);
         nextCalled = new AtomicBoolean(false);
+        responseBody = new AtomicReference<>();
+        contentType = new AtomicReference<>();
         context = stubRoutingContext();
     }
 
     @Test
-    void blocksWith404WhenHttpModeDisabled() {
+    void blocksWith503WhenHttpModeDisabled() {
         http.enabled = false;
 
         filter.blockUnlessEnabled(context);
 
-        assertEquals(404, statusCode.get());
+        assertEquals(503, statusCode.get());
         assertTrue(ended.get());
         assertFalse(nextCalled.get());
+        assertTrue(contentType.get().contains("text/plain"));
+        assertTrue(responseBody.get().contains("MCP HTTP transport is disabled"));
+        assertTrue(responseBody.get().contains("apicurio.mcp.http.enabled=true"));
     }
 
     @Test
@@ -70,8 +78,17 @@ class McpHttpGateFilterTest {
                         statusCode.set((Integer) args[0]);
                         return proxy;
                     }
-                    if ("end".equals(name) && (args == null || args.length == 0)) {
+                    if ("putHeader".equals(name)) {
+                        if ("Content-Type".equals(String.valueOf(args[0]))) {
+                            contentType.set(String.valueOf(args[1]));
+                        }
+                        return proxy;
+                    }
+                    if ("end".equals(name)) {
                         ended.set(true);
+                        if (args != null && args.length == 1 && args[0] instanceof String body) {
+                            responseBody.set(body);
+                        }
                         return Future.succeededFuture();
                     }
                     if (method.getReturnType().equals(void.class)) {

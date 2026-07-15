@@ -39,7 +39,11 @@ public class McpHttpGateFilter {
 
     void blockUnlessEnabled(io.vertx.ext.web.RoutingContext ctx) {
         if (!config.http().enabled()) {
-            ctx.response().setStatusCode(404).end();
+            ctx.response()
+                    .setStatusCode(503)
+                    .putHeader("Content-Type", "text/plain; charset=UTF-8")
+                    .end("MCP HTTP transport is disabled. Set apicurio.mcp.http.enabled=true "
+                            + "with OIDC configured to enable it.");
         } else {
             ctx.next();
         }

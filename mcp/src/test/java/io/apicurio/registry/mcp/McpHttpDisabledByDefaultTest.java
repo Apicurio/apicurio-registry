@@ -31,6 +31,7 @@ public class McpHttpDisabledByDefaultTest {
                         """)
                 .post("/mcp")
                 .then()
-                .statusCode(404);
+                .statusCode(503)
+                .body(org.hamcrest.Matchers.containsString("MCP HTTP transport is disabled"));
     }
 }

@@ -581,6 +581,36 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         // Should still be the original owner
         amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals("developer-client", amd.getOwner());
+
+        // Try to update metadata WITHOUT changing owner by dev2 (should succeed - null owner case)
+        EditableArtifactMetaData eamd2 = new EditableArtifactMetaData();
+        eamd2.setName("Updated Name by dev2");
+        // Not setting owner, meaning owner is null in request
+        client_dev2.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd2);
+        
+        amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("Updated Name by dev2", amd.getName());
+        assertEquals("developer-client", amd.getOwner()); // owner should still be dev1
+
+        // Current owner changes owner (should succeed)
+        EditableArtifactMetaData eamd3 = new EditableArtifactMetaData();
+        eamd3.setOwner("developer-2-client");
+        client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd3);
+        
+        amd = client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("developer-2-client", amd.getOwner());
+
+        // Admin changes owner (should succeed)
+        var client_admin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
+        
+        EditableArtifactMetaData eamd4 = new EditableArtifactMetaData();
+        eamd4.setOwner("admin-client");
+        client_admin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd4);
+        
+        amd = client_admin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("admin-client", amd.getOwner());
     }
 
 }

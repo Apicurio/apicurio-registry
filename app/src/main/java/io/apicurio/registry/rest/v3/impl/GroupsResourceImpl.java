@@ -598,19 +598,23 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 throw new MissingRequiredParameterException("Owner cannot be empty");
             } else {
                 // Security check: only an Admin or the current Owner can change ownership.
-                // This is consistent with the V2 API's updateArtifactOwner which uses
-                // AuthorizedLevel.AdminOrOwner.
+                // We cannot use @Authorized(level = AuthorizedLevel.AdminOrOwner) on the method
+                // because non-owners with Write access need to be able to update other metadata (name, description, labels).
+                // This manual check ensures only Admin or Owner can change the owner field.
                 boolean isAdmin = adminOverride.isAdmin()
                         || (authConfig.isRbacEnabled() && rbac.isAdmin());
                 if (!isAdmin) {
                     ArtifactMetaDataDto currentMetaData = storage.getArtifactMetaData(
                             new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
                     String currentOwner = currentMetaData.getOwner();
-                    String currentUser = securityIdentity.getPrincipal().getName();
+                    java.security.Principal principal = securityIdentity.getPrincipal();
+                    String currentUser = principal != null ? principal.getName() : null;
+                    
+                    // If the current owner is null, it means the artifact is unowned. 
+                    // In this case, we allow any user with Write access to claim ownership.
                     if (currentOwner != null && !currentOwner.equals(currentUser)) {
                         throw new ForbiddenException(
-                                "User " + currentUser + " is not authorized to change the artifact owner. "
-                                        + "Only the current owner or an admin can transfer ownership.");
+                                "Only the current owner or an admin can transfer artifact ownership.");
                     }
                 }
             }

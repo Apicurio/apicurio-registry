@@ -2,22 +2,20 @@ package io.apicurio.registry.avro.rules.compatibility;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaCompatibility;
-import org.apache.avro.SchemaCompatibility.Incompatibility;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incompatibility> {
+public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
     @Override
-    protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences) {
         try {
             Schema.Parser existingParser = new Schema.Parser();
@@ -38,9 +36,10 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
                 case COMPATIBLE:
                     return Collections.emptySet();
                 case INCOMPATIBLE: {
-                    Set<Incompatibility> all = new HashSet<>();
-                    all.addAll(result.getIncompatibilities());
-                    return Collections.unmodifiableSet(all);
+                    return result.getIncompatibilities().stream()
+                            .map(incompatibility -> new SimpleCompatibilityDifference(
+                                    incompatibility.getMessage(), incompatibility.getLocation()))
+                            .collect(Collectors.toSet());
                 }
                 default:
                     throw new IllegalStateException(
@@ -50,10 +49,5 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
             throw new UnprocessableSchemaException(
                     "Could not execute compatibility rule on invalid Avro schema", ex);
         }
-    }
-
-    @Override
-    protected CompatibilityDifference transform(Incompatibility original) {
-        return new SimpleCompatibilityDifference(original.getMessage(), original.getLocation());
     }
 }

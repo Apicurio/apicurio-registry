@@ -110,4 +110,16 @@ public class ContentTypeUtilTest {
         ContentHandle protobuf = ContentHandle.create("message Foo { string bar = 1; }");
         Assertions.assertEquals(ContentTypes.APPLICATION_PROTOBUF, ContentTypeUtil.determineContentType(protobuf));
     }
+
+    @Test
+    public void testIsParsableGraphQL_rejectsYamlWithKeywords() {
+        String yamlContent = "type: Query\nfields:\n  - name: hello\n";
+        ContentHandle yaml = ContentHandle.create(yamlContent);
+        
+        // Should not be detected as GraphQL despite having "type: Query"
+        Assertions.assertFalse(ContentTypeUtil.isParsableGraphQL(yaml));
+        
+        // Should correctly fall back to YAML
+        Assertions.assertEquals(ContentTypes.APPLICATION_YAML, ContentTypeUtil.determineContentType(yaml));
+    }
 }

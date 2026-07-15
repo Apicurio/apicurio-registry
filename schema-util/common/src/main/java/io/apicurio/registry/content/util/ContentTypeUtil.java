@@ -14,6 +14,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.regex.Pattern;
 
 public final class ContentTypeUtil {
 
@@ -174,6 +175,10 @@ public final class ContentTypeUtil {
         return node;
     }
 
+    private static final Pattern GRAPHQL_DEF_PATTERN = Pattern.compile("(?m)^\\s*(type|interface|scalar|union|input|enum)\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*(?:\\{|implements|\\=|$)");
+    private static final Pattern GRAPHQL_SCHEMA_PATTERN = Pattern.compile("(?m)^\\s*schema\\s*\\{");
+    private static final Pattern GRAPHQL_DIRECTIVE_PATTERN = Pattern.compile("(?m)^\\s*directive\\s+@[a-zA-Z_][a-zA-Z0-9_]*");
+
     /**
      * Returns true if the content is likely a GraphQL schema.
      */
@@ -183,25 +188,20 @@ public final class ContentTypeUtil {
             if (text.startsWith("{") || text.startsWith("<")) {
                 return false;
             }
-            // Normalize whitespace so keyword checks work across tabs/newlines and formatting differences.
-            String normalized = text.replaceAll("\\s+", " ");
-            // Basic heuristics to differentiate GraphQL from Protobuf
-            return normalized.contains("type ")
-                    || normalized.contains("interface ")
-                    || normalized.contains("scalar ")
-                    || normalized.contains("union ")
-                    || normalized.contains("input ")
-                    || normalized.contains("schema{")
-                    || normalized.contains("schema {")
-                    || normalized.contains("directive @");
+            
+            return GRAPHQL_DEF_PATTERN.matcher(text).find()
+                    || GRAPHQL_SCHEMA_PATTERN.matcher(text).find()
+                    || GRAPHQL_DIRECTIVE_PATTERN.matcher(text).find();
         } catch (Exception e) {
             return false;
         }
     }
 
     public static String determineContentType(ContentHandle content) {
-        // Ensure content is fully materialized once, so multiple parse attempts
-        // don't depend on stream re-use.
+        // Ensure content is fully materialized once in memory.
+        // If we do not call bytes() here, the isParsableJson check may consume
+        // the underlying InputStream (e.g. via ObjectMapper.readTree), leaving
+        // the stream empty and causing subsequent format checks to incorrectly fail.
         content.bytes();
         if (isParsableJson(content)) {
             return CT_APPLICATION_JSON;

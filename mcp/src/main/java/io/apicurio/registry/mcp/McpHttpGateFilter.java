@@ -37,7 +37,7 @@ public class McpHttpGateFilter {
                 .handler(ctx -> blockUnlessEnabled(ctx));
     }
 
-    private void blockUnlessEnabled(io.vertx.ext.web.RoutingContext ctx) {
+    void blockUnlessEnabled(io.vertx.ext.web.RoutingContext ctx) {
         if (!config.http().enabled()) {
             ctx.response().setStatusCode(404).end();
         } else {

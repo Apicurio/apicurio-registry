@@ -89,14 +89,14 @@ public class RegistryClientResolver {
         return fallbackClient != null;
     }
 
-    private boolean needsFallbackClient() {
+    boolean needsFallbackClient() {
         if (!config.http().enabled()) {
             return true;
         }
         return config.auth().enabled() || !config.http().forwardToken();
     }
 
-    private String resolveInboundBearerToken() {
+    String resolveInboundBearerToken() {
         if (!config.http().enabled() || !config.http().forwardToken()) {
             return null;
         }

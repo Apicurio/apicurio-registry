@@ -30,6 +30,24 @@ public class McpHttpAuthValidator {
             return;
         }
 
+        validateHttpAuthConfig();
+
+        if (config.http().forwardToken() && config.auth().enabled()) {
+            log.warn("Both apicurio.mcp.http.forward-token and apicurio.mcp.auth.enabled are set. "
+                    + "HTTP requests will forward the caller's bearer token; client credentials are used "
+                    + "only for stdio transport.");
+        }
+
+        log.info("MCP HTTP transport enabled with inbound OIDC authentication"
+                + (config.http().forwardToken() ? " and bearer token forwarding to Registry" : ""));
+    }
+
+    /**
+     * Validates that HTTP mode has the required transport and OIDC settings.
+     *
+     * @throws IllegalStateException if required configuration is missing
+     */
+    void validateHttpAuthConfig() {
         if (!mcpHttpTransportEnabled) {
             throw new IllegalStateException(
                     "apicurio.mcp.http.enabled is true but quarkus.mcp.server.http.enabled is false. "
@@ -43,14 +61,5 @@ public class McpHttpAuthValidator {
                             + "Configure Quarkus OIDC (QUARKUS_OIDC_TENANT_ENABLED, QUARKUS_OIDC_AUTH_SERVER_URL) "
                             + "to secure the MCP HTTP endpoint.");
         }
-
-        if (config.http().forwardToken() && config.auth().enabled()) {
-            log.warn("Both apicurio.mcp.http.forward-token and apicurio.mcp.auth.enabled are set. "
-                    + "HTTP requests will forward the caller's bearer token; client credentials are used "
-                    + "only for stdio transport.");
-        }
-
-        log.info("MCP HTTP transport enabled with inbound OIDC authentication"
-                + (config.http().forwardToken() ? " and bearer token forwarding to Registry" : ""));
     }
 }

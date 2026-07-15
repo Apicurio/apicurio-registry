@@ -198,7 +198,7 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-readonly role", availableSince = "3.3.0", experimental = true)
     Optional<String> kubernetesReadOnlyGroups;
 
-    @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,form,proxy-header,oidc")
+    @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")
     @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, form, proxy-header, oidc, kubernetes.", availableSince = "3.2.3")
     String mechanismPriority;
 
@@ -232,14 +232,6 @@ public class AuthConfig {
 
     public boolean isOidcAuthEnabled() {
         return this.oidcAuthEnabled;
-    }
-
-    public boolean isBasicAuthEnabled() {
-        return this.basicAuthEnabled;
-    }
-
-    public boolean isFormAuthEnabled() {
-        return this.formAuthEnabled;
     }
 
     public boolean isRbacEnabled() {

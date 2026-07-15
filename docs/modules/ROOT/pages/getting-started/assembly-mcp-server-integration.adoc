@@ -558,6 +558,8 @@ NOTE: In HTTP mode with token forwarding, you do not need `APICURIO_MCP_AUTH_*` 
 QUARKUS_HTTP_CORS_ENABLED=true
 QUARKUS_HTTP_CORS_ORIGINS=http://localhost:6274
 ----
++
+WARNING: `QUARKUS_HTTP_CORS_ORIGINS=http://localhost:6274` is for local development (for example, MCP Inspector). In production, set this to the exact origin(s) of your deployed MCP client. Do not use localhost origins or `*` in production.
 
 . Obtain an access token from Keycloak (authorization code, device flow, or client credentials for service accounts).
 

@@ -70,3 +70,4 @@ docker compose down
 - This example is for **local development only** (Keycloak `start-dev`, known client secrets).
 - Port **8081** is used for Registry so Keycloak can keep **8080**.
 - HTTP transport is included in the MCP server image (`quarkus.mcp.server.http.enabled=true`). The `/mcp` endpoint is only reachable when `APICURIO_MCP_HTTP_ENABLED=true` with OIDC configured at runtime (see integration guide).
+- The MCP service sets `QUARKUS_HTTP_CORS_ORIGINS=http://localhost:6274` for local browser tools (e.g. MCP Inspector). **Do not use localhost CORS origins or `*` in production** — set the exact origin(s) of your deployed MCP client.

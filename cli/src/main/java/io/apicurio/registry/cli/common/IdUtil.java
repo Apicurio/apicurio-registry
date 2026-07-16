@@ -11,7 +11,7 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
  */
 public final class IdUtil {
 
-    public static final String DEFAULT_GROUP = "default";
+    private static final String DEFAULT_GROUP = "default";
 
     private IdUtil() {
     }
@@ -71,9 +71,6 @@ public final class IdUtil {
     }
 
     public static String displayGroupId(String groupId) {
-        if (groupId == null || groupId.isEmpty()) {
-            return DEFAULT_GROUP;
-        }
-        return groupId;
+        return isDefaultGroup(groupId) ? DEFAULT_GROUP : groupId;
     }
 }

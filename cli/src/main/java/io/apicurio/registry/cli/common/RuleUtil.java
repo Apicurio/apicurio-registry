@@ -59,7 +59,7 @@ public final class RuleUtil {
     }
 
     public static void rejectDefaultGroup(final String groupId) {
-        if (io.apicurio.registry.cli.common.IdUtil.isDefaultGroup(groupId)) {
+        if (IdUtil.isDefaultGroup(groupId)) {
             throw new CliException(
                     "Group rules are not available for the 'default' group. Use global rules or specify a custom group with -g.",
                     VALIDATION_ERROR_RETURN_CODE

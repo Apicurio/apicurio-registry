@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
@@ -9,6 +10,8 @@ import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static picocli.CommandLine.Option;
 
@@ -44,11 +47,10 @@ public class GroupUpdateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        String resolvedGroupId = io.apicurio.registry.cli.common.IdUtil.resolveGroupId(groupId, config);
-        if (io.apicurio.registry.cli.common.IdUtil.isDefaultGroup(resolvedGroupId)) {
-            throw new io.apicurio.registry.cli.common.CliException("The group '" + io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP + "' is implicit and cannot be updated.", io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE);
+        if (isDefaultGroup(groupId)) {
+            throw new CliException("The group 'default' is implicit and cannot be updated.", VALIDATION_ERROR_RETURN_CODE);
         }
-        var group = client.getRegistryClient().groups().byGroupId(resolvedGroupId).get();
+        var group = client.getRegistryClient().groups().byGroupId(groupId).get();
         var updatedGroup = new EditableGroupMetaData();
         updatedGroup.setDescription(group.getDescription());
         updatedGroup.setLabels(group.getLabels());
@@ -66,7 +68,7 @@ public class GroupUpdateCommand extends AbstractCommand {
                 updatedGroup.getLabels().getAdditionalData().remove(key);
             });
         }
-        client.getRegistryClient().groups().byGroupId(resolvedGroupId).put(updatedGroup);
+        client.getRegistryClient().groups().byGroupId(groupId).put(updatedGroup);
         output.writeStdOutChunk(out -> {
             out.append("Group '").append(group.getGroupId()).append("' updated successfully.\n");
         });

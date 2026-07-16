@@ -21,6 +21,7 @@ import static io.apicurio.registry.cli.utils.Columns.MODIFIED_BY;
 import static io.apicurio.registry.cli.utils.Columns.MODIFIED_ON;
 import static io.apicurio.registry.cli.utils.Columns.OWNER;
 import static io.apicurio.registry.cli.utils.Columns.VALUE;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
@@ -45,16 +46,16 @@ public class GroupGetCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        String resolvedGroupId = io.apicurio.registry.cli.common.IdUtil.resolveGroupId(groupId, config);
         GroupMetaData group;
-        if (io.apicurio.registry.cli.common.IdUtil.isDefaultGroup(resolvedGroupId)) {
+        if (isDefaultGroup(groupId)) {
+            // This is a synthetic stub because the server does not return proper metadata for the default group yet.
             group = GroupMetaData.builder()
-                    .groupId(io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP)
+                    .groupId("default")
                     .description("The default group.")
                     .build();
         } else {
             //noinspection ConstantConditions
-            group = convert(client.getRegistryClient().groups().byGroupId(resolvedGroupId).get());
+            group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
         }
         // TODO: Should we include the `default` group in the list?
         printGroup(output, group, outputType);
@@ -68,15 +69,16 @@ public class GroupGetCommand extends AbstractCommand {
                     out.append('\n');
                 }
                 case table -> {
+                    var isDefault = isDefaultGroup(group.getGroupId());
                     var table = new TableBuilder();
                     table.addColumns(FIELD, VALUE);
                     table.addRow(GROUP_ID, group.getGroupId());
                     table.addRow(DESCRIPTION, group.getDescription());
-                    table.addRow(CREATED_ON, convertToString(group.getCreatedOn()));
-                    table.addRow(OWNER, group.getOwner());
-                    table.addRow(MODIFIED_ON, convertToString(group.getModifiedOn()));
-                    table.addRow(MODIFIED_BY, group.getModifiedBy());
-                    table.addRow(LABELS, convertToString(group.getLabels()));
+                    table.addRow(CREATED_ON, isDefault ? "N/A" : convertToString(group.getCreatedOn()));
+                    table.addRow(OWNER, isDefault ? "N/A" : group.getOwner());
+                    table.addRow(MODIFIED_ON, isDefault ? "N/A" : convertToString(group.getModifiedOn()));
+                    table.addRow(MODIFIED_BY, isDefault ? "N/A" : group.getModifiedBy());
+                    table.addRow(LABELS, isDefault ? "N/A" : convertToString(group.getLabels()));
                     table.print(out);
                 }
             }

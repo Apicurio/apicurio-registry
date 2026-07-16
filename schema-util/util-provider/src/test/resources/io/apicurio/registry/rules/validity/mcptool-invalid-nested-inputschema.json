@@ -1,0 +1,13 @@
+{
+  "name": "bad_nested_input_schema_tool",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "exclusiveMinimum": true
+      }
+    },
+    "required": ["query"]
+  }
+}

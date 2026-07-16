@@ -1,0 +1,15 @@
+{
+  "name": "bad_output_schema_tool",
+  "inputSchema": {
+    "type": "object"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "total": {
+        "type": "integer",
+        "exclusiveMinimum": true
+      }
+    }
+  }
+}

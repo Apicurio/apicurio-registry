@@ -14,10 +14,10 @@ import io.apicurio.registry.content.refs.NoOpReferenceFinder;
 import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.json.content.canon.JsonContentCanonicalizer;
+import io.apicurio.registry.json.rules.validity.McpToolJsonSchemaContentValidator;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.McpToolCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
-import io.apicurio.registry.rules.validity.McpToolContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 
@@ -59,7 +59,7 @@ public class McpToolArtifactTypeUtilProvider extends AbstractArtifactTypeUtilPro
 
     @Override
     protected ContentValidator createContentValidator() {
-        return new McpToolContentValidator();
+        return new McpToolJsonSchemaContentValidator();
     }
 
     @Override

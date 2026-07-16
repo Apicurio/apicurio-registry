@@ -1,6 +1,8 @@
 package io.apicurio.registry.storage.error;
 
-public class ContentSearchNotSupportedException extends RegistryStorageException {
+import io.apicurio.registry.types.RegistryException;
+
+public class ContentSearchNotSupportedException extends RegistryException {
 
     private static final long serialVersionUID = 1L;
 

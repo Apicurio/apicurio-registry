@@ -1258,7 +1258,7 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`86400s`
 |`3.0.0`
-|Kafka sql journal topic snapshot every
+|Interval between automatic snapshots of the KafkaSQL journal topic.
 |`apicurio.kafkasql.snapshots.topic`
 |`string`
 |`kafkasql-snapshots`

@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
@@ -50,6 +51,7 @@ public class StructuredContentUpgrader implements IDbUpgrader {
                         + "WHERE v2.groupId = a.groupId AND v2.artifactId = a.artifactId)";
 
         int totalCount = 0;
+        AtomicInteger examined = new AtomicInteger();
         for (ArtifactTypeUtilProvider provider : factory.getAllArtifactTypeProviders()) {
             StructuredContentExtractor extractor = provider.getStructuredContentExtractor();
             if (extractor == null) {
@@ -57,6 +59,10 @@ public class StructuredContentUpgrader implements IDbUpgrader {
             }
             totalCount += handle.createQuery(sql).bind(0, provider.getArtifactType()).setFetchSize(50)
                     .map(new ArtifactContentRowMapper()).stream().mapToInt(artifact -> {
+                        if (examined.incrementAndGet() % 500 == 0) {
+                            log.info("Backfilling structured content: {} artifacts examined so far...",
+                                    examined.get());
+                        }
                         try {
                             return backfillArtifact(handle, artifact, extractor);
                         } catch (Exception ex) {
@@ -67,7 +73,8 @@ public class StructuredContentUpgrader implements IDbUpgrader {
                     }).sum();
         }
 
-        log.info("Successfully backfilled structured content for {} artifacts.", totalCount);
+        log.info("Successfully backfilled structured content for {} artifacts ({} examined).",
+                totalCount, examined.get());
     }
 
     private int backfillArtifact(Handle handle, ArtifactContent artifact,

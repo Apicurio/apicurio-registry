@@ -146,4 +146,27 @@ public class GroupCommandTest extends AbstractCLITest {
 
         // TODO: Test `--force` when we have a way to create artifacts via the CLI.
     }
+
+    @Test
+    public void testDefaultGroupHandling() throws JsonProcessingException {
+        // Test getting default group (returns stub, no API call)
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "default", "--output-type", "json");
+        var group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+        assertThat(group.getGroupId()).isEqualTo("default");
+
+        // Test getting empty string (resolves to default group)
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "", "--output-type", "json");
+        group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+        assertThat(group.getGroupId()).isEqualTo("default");
+
+        // Test create/update/delete default group fails with validation error
+        executeAndAssertFailure("group", "create", "default");
+        executeAndAssertFailure("group", "create", "");
+        executeAndAssertFailure("group", "update", "default");
+        executeAndAssertFailure("group", "update", "");
+        executeAndAssertFailure("group", "delete", "default");
+        executeAndAssertFailure("group", "delete", "");
+    }
 }

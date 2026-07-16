@@ -173,7 +173,7 @@
 
     <!-- Schema types -->
     <avro.version>1.12.1</avro.version>
-    <json-schema-validator.version>1.5.9</json-schema-validator.version>
+    <json-schema-validator.version>3.0.6</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.17.0</okio.version>
@@ -230,7 +230,7 @@
     <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.22.0</commons-codec.version>
     <netty.version>4.1.135.Final</netty.version>
-    <kafka-clients.version>3.9.2</kafka-clients.version>
+    <kafka-clients.version>4.3.1</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>3.6.0.Final</debezium.version>
     <pulsar-clients.version>4.2.3</pulsar-clients.version>
@@ -253,7 +253,7 @@
 
     <!-- Scala -->
     <version.scala-maven.plugin>4.9.10</version.scala-maven.plugin>
-    <scala.version>2.13.18</scala.version>
+    <scala.version>3.8.4</scala.version>
 
     <!-- Plugin Versions -->
     <version.build.helper.maven.plugin>3.6.1</version.build.helper.maven.plugin>
@@ -274,7 +274,7 @@
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
-    <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
+    <version.gmavenplus-plugin>5.1.0</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->
     <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
@@ -286,7 +286,7 @@
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
-    <flink.version>1.20.5</flink.version>
+    <flink.version>2.3.0</flink.version>
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>

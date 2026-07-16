@@ -2,7 +2,6 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.dsl.base.ResourceDefinitionContext;
@@ -24,7 +23,6 @@ import java.util.List;
 import static io.apicurio.registry.operator.Tags.KAFKA;
 import static io.apicurio.registry.operator.Tags.SLOW;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
-import static java.time.Duration.ofMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -117,10 +115,7 @@ public class KafkaSqlAccessITTest extends ITBase {
         final var clusterName = "example-cluster";
 
         // Wait for the Kafka broker pod to be ready
-        await().ignoreExceptions().untilAsserted(() ->
-                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0").get()
-                        .getStatus().getConditions()).filteredOn(c -> "Ready".equals(c.getType()))
-                        .map(PodCondition::getStatus).containsOnly("True"));
+        waitForKafkaBrokerReady(clusterName);
 
         // Create the KafkaUser
         client.load(getClass().getResourceAsStream("/k8s/examples/kafkasql/access/apicurio-registry.kafkauser.yaml"))
@@ -171,20 +166,6 @@ public class KafkaSqlAccessITTest extends ITBase {
 
         client.resource(registry).create();
 
-        // Wait for the registry deployment to come up and log "Using Kafka-SQL artifactStore".
-        // Use a longer timeout because this test deploys a lot of infrastructure (Strimzi, Kafka Access
-        // Operator, Kafka cluster) which can be slow on resource-constrained CI runners.
-        await().atMost(ofMinutes(8)).ignoreExceptions().untilAsserted(() -> {
-            var readyReplicas = client.apps().deployments().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
-                    .getReadyReplicas();
-            assertThat(readyReplicas).isNotNull().isEqualTo(1);
-            var podName = client.pods().inNamespace(namespace).list().getItems().stream()
-                    .map(pod -> pod.getMetadata().getName())
-                    .filter(podN -> podN.startsWith(registry.getMetadata().getName() + "-app-deployment"))
-                    .findFirst().get();
-            assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
-                    .contains("Using Kafka-SQL artifactStore");
-        });
+        waitForKafkaSqlRegistryReady(registry);
     }
 }

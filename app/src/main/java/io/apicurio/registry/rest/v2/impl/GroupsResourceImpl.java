@@ -363,7 +363,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public GroupMetaData getGroupById(String groupId) {
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
         return V2ApiUtil.groupDtoToGroup(group);

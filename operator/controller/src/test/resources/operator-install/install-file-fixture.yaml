@@ -1,0 +1,90 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: apicurioregistries3.registry.apicur.io
+spec:
+  group: registry.apicur.io
+  names:
+    kind: ApicurioRegistry3
+    plural: apicurioregistries3
+  scope: Namespaced
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: apicurio-registry-operator
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
+    app.kubernetes.io/name: apicurio-registry-operator
+    app.kubernetes.io/part-of: apicurio-registry
+  name: apicurio-registry-operator
+  namespace: PLACEHOLDER_NAMESPACE
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: apicurio-registry-operator
+  name: apicurio-registry-operator-clusterrole
+rules:
+- apiGroups:
+  - registry.apicur.io
+  resources:
+  - apicurioregistries3
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: apicurio-registry-operator
+  name: apicurio-registry-operator-clusterrolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: apicurio-registry-operator-clusterrole
+subjects:
+- kind: ServiceAccount
+  name: apicurio-registry-operator
+  namespace: PLACEHOLDER_NAMESPACE
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: apicurio-registry-operator
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: apicurio-registry-operator
+    app.kubernetes.io/name: apicurio-registry-operator
+    app.kubernetes.io/part-of: apicurio-registry
+  name: apicurio-registry-operator
+  namespace: PLACEHOLDER_NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry-operator
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry-operator
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: apicurio-registry-operator
+        app.kubernetes.io/name: apicurio-registry-operator
+        app.kubernetes.io/part-of: apicurio-registry
+    spec:
+      serviceAccountName: apicurio-registry-operator
+      containers:
+      - name: apicurio-registry-operator
+        image: quay.io/apicurio/apicurio-registry-operator:latest-snapshot
+        imagePullPolicy: Always

@@ -1099,9 +1099,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         // Put the new content in the DB and get the unique content ID back.
         long contentId = ensureContentAndGetId(artifactType, content, true);
 
-        versionRepository.updateArtifactVersionContent(groupId, artifactId, version, contentId);
-
+        // Update the version content and its structured-content index in a single transaction so the
+        // index can never be left pointing at a previous version's content.
         handles.withHandleNoException(handle -> {
+            versionRepository.updateArtifactVersionContentRaw(handle, groupId, artifactId, version,
+                    contentId);
             updateStructuredContentRaw(handle, groupId, artifactId, artifactType, content);
             return null;
         });

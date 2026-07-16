@@ -145,6 +145,10 @@ public abstract class ITBase implements OperatorTestContext {
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
                 deploymentTarget);
+        await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+            assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                    .list().getItems()).isEmpty();
+        });
     }
 
     protected static void startOperatorPodLog() {

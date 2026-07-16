@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import { ErrorTabContent } from "@app/pages";
 import { If } from "@apicurio/common-ui-components";
-import YAML from "yaml";
+import { isJson, parseJson, isYaml, parseYaml } from "@utils/content.utils";
 import {
     AgentCardVisualizer,
     AsyncApiVisualizer,
@@ -43,21 +43,23 @@ const getVisualizerType = (artifactType: string): VisualizerType => {
     return VisualizerType.OTHER;
 };
 
-const parseContent = (artifactContent: string): any => {
-    // Try as JSON
-    try {
-        return JSON.parse(artifactContent);
-    } catch {
-        // Do nothing
+/**
+ * Parses artifact content string into a structured object for visualization.
+ * Returns the parsed object, or undefined if parsing fails or produces a
+ * non-object value. Downstream visualizers destructure named properties
+ * (e.g. spec.name, spec.template), so primitives are rejected.
+ *
+ * Built on top of content.utils.ts utilities (isJson, parseJson, isYaml, parseYaml).
+ */
+const parseContent = (artifactContent: string): any | undefined => {
+    if (isJson(artifactContent)) {
+        const json = parseJson(artifactContent);
+        if (typeof json === "object" && json !== null) return json;
     }
-
-    // Try as YAML
-    try {
-        return YAML.parse(artifactContent);
-    } catch {
-        // Do nothing
+    if (isYaml(artifactContent)) {
+        return parseYaml(artifactContent); // isYaml already rejects primitives
     }
-    return {};
+    return undefined;
 };
 
 /**
@@ -82,37 +84,48 @@ const needsDereference = (artifactType: string): boolean => {
 export const DocumentationTabContent: FunctionComponent<DocumentationTabContentProps> = (props: DocumentationTabContentProps) => {
     const [parsedContent, setParsedContent] = useState(() =>
         props.versionContent && !needsDereference(props.artifactType)
-            ? parseContent(props.versionContent) : {}
+            ? (parseContent(props.versionContent) ?? {}) : {}
     );
     const [visualizerType] = useState(getVisualizerType(props.artifactType));
-    const [error] = useState<any>();
+    const [error, setError] = useState<any>();
     const groups: GroupsService = useGroupsService();
 
     // Handles race condition where versionContent arrives after mount.
     useEffect(() => {
+        setError(undefined); // Always clear error when deps change, including dereference types
         if (props.versionContent && !needsDereference(props.artifactType)) {
-            setParsedContent(parseContent(props.versionContent));
+            setParsedContent(parseContent(props.versionContent) ?? {});
         }
     }, [props.versionContent, props.artifactType]);
 
     useEffect(() => {
+        let cancelled = false;
+        setError(undefined); // Clear stale error when dependencies change
         if (needsDereference(props.artifactType) && props.groupId && props.artifactId && props.version) {
             groups.getArtifactVersionContentDereferenced(props.groupId, props.artifactId, props.version)
                 .then(content => {
-                    setParsedContent(parseContent(content));
+                    // Cancelled check inside callback prevents state updates after unmount
+                    if (!cancelled) {
+                        setParsedContent(parseContent(content) ?? {});
+                    }
                 })
-                .catch(() => {
-                    // Fall back to raw content if dereference fails
+                .catch((err) => {
+                    if (!cancelled) {
+                        // Fall back to raw content if dereference fails
+                        if (props.versionContent) {
+                            console.warn("[DocumentationTabContent] Dereference failed, falling back to raw content:", err);
+                            setParsedContent(parseContent(props.versionContent) ?? {});
+                        } else {
+                            setError(err);
+                        }
+                    }
                 });
         }
-    }, [props.artifactType, props.groupId, props.artifactId, props.version]);
+        return () => { cancelled = true; };
+    }, [props.artifactType, props.groupId, props.artifactId, props.version, props.versionContent]);
 
-    const isError = () : boolean => {
-        return !!error;
-    };
-
-    if (isError()){
-        return <ErrorTabContent error={{ errorMessage: "Artifact isn't a valid OpenAPI structure", error: error }}/>;
+    if (error) {
+        return <ErrorTabContent error={{ errorMessage: "Failed to load artifact documentation", error: error }}/>;
     }
 
     return (

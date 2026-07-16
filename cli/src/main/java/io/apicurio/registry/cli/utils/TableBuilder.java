@@ -1,10 +1,15 @@
 package io.apicurio.registry.cli.utils;
 
+import io.apicurio.registry.cli.common.CliException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static java.lang.Math.max;
 import static java.lang.Math.min;
 import static java.util.Arrays.stream;
@@ -43,6 +48,46 @@ public class TableBuilder {
     public TableBuilder setPagination(int page, int size, int total) {
         this.pagination = new Pagination(page, size, total);
         return this;
+    }
+
+    /**
+     * Restricts the table to the requested columns, keeping only those columns and showing them in
+     * the order requested. Requested names are matched against the column headers case-insensitively,
+     * ignoring any non-alphanumeric characters, so "groupId" matches a "Group ID" header. A null or
+     * empty selection leaves the table unchanged.
+     *
+     * @throws CliException if any requested name does not match a known column
+     */
+    public TableBuilder selectColumns(List<String> requestedColumns) {
+        if (requestedColumns == null || requestedColumns.isEmpty()) {
+            return this;
+        }
+        var columnsByName = new LinkedHashMap<String, Column>();
+        for (var column : columns) {
+            columnsByName.put(normalizeColumnName(column.getHeader()), column);
+        }
+        var selected = new ArrayList<Column>();
+        var invalid = new ArrayList<String>();
+        for (var requested : requestedColumns) {
+            var column = columnsByName.get(normalizeColumnName(requested));
+            if (column == null) {
+                invalid.add(requested);
+            } else if (!selected.contains(column)) {
+                selected.add(column);
+            }
+        }
+        if (!invalid.isEmpty()) {
+            var validColumns = columns.stream().map(Column::getHeader).collect(Collectors.joining(", "));
+            throw new CliException("Invalid column(s) '" + String.join(", ", invalid)
+                    + "'. Valid values: " + validColumns + ".", VALIDATION_ERROR_RETURN_CODE);
+        }
+        columns.clear();
+        columns.addAll(selected);
+        return this;
+    }
+
+    private static String normalizeColumnName(String name) {
+        return name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
     /**

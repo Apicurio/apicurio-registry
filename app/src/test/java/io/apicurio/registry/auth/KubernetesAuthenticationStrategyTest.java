@@ -286,6 +286,27 @@ class KubernetesAuthenticationStrategyTest {
         verify(kubernetesClient, times(2)).tokenReviews();
     }
 
+    @Test
+    void testZeroThresholdDisablesCircuitBreaker() {
+        // threshold=0 disables the breaker entirely: every request reaches the TokenReview API,
+        // no matter how many consecutive failures occur.
+        authConfig.kubernetesCircuitBreakerThreshold = 0;
+        strategy = new KubernetesAuthenticationStrategy(kubernetesClient, authConfig,
+                LoggerFactory.getLogger(KubernetesAuthenticationStrategyTest.class));
+
+        when(httpRequest.getHeader("Authorization"))
+                .thenReturn("Bearer token-a", "Bearer token-b", "Bearer token-c");
+        when(kubernetesClient.tokenReviews()).thenThrow(
+                new RuntimeException("Connection refused"));
+
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+        strategy.authenticate(routingContext, identityProviderManager).await().indefinitely();
+
+        // With the breaker disabled, no call is ever skipped.
+        verify(kubernetesClient, times(3)).tokenReviews();
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     void testSingleApiFailureDoesNotBlockOtherTokens() {

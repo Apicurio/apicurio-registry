@@ -31,6 +31,14 @@ import java.util.Objects;
  * are skipped for {@code openDuration}; the first request after that window becomes a single probe
  * (half-open). A successful probe closes the circuit, a failing probe reopens it. State transitions
  * are logged so operators can correlate them with K8s API issues.
+ *
+ * <p>A {@code threshold} of zero (or negative) disables the breaker entirely: every request is
+ * allowed through, no failure state is tracked, and the circuit never opens.
+ *
+ * <p>While the circuit is open, requests carrying Kubernetes tokens are treated as unauthenticated.
+ * If anonymous read access is enabled ({@code apicurio.auth.anonymous-read-access.enabled}), those
+ * requests are served as anonymous read-only requests instead of being rejected — see the OPEN
+ * transition log message.
  */
 class TokenReviewCircuitBreaker {
 
@@ -38,6 +46,7 @@ class TokenReviewCircuitBreaker {
         CLOSED, OPEN, HALF_OPEN
     }
 
+    private final boolean disabled;
     private final int threshold;
     private final Duration openDuration;
     private final Clock clock;
@@ -48,13 +57,19 @@ class TokenReviewCircuitBreaker {
     private Instant openedAt;
 
     TokenReviewCircuitBreaker(int threshold, Duration openDuration, Clock clock, Logger log) {
-        this.threshold = Math.max(1, threshold);
+        // A non-positive threshold disables the breaker entirely (pass-through), rather than being
+        // normalized to 1 — an explicit off-switch is less surprising than a silently-adjusted value.
+        this.disabled = threshold <= 0;
+        this.threshold = threshold;
         // Normalize misconfiguration: a negative open window is treated as zero (the next request
         // immediately becomes a probe) rather than throwing or producing a permanently-open circuit.
         Objects.requireNonNull(openDuration, "openDuration");
         this.openDuration = openDuration.isNegative() ? Duration.ZERO : openDuration;
         this.clock = Objects.requireNonNull(clock, "clock");
         this.log = Objects.requireNonNull(log, "log");
+        if (this.disabled) {
+            log.info("Kubernetes TokenReview circuit breaker disabled (threshold={})", threshold);
+        }
     }
 
     /**
@@ -62,6 +77,9 @@ class TokenReviewCircuitBreaker {
      * window has elapsed, the circuit moves to half-open and this call becomes the single probe.
      */
     synchronized boolean allowRequest() {
+        if (disabled) {
+            return true;
+        }
         if (state == State.CLOSED) {
             return true;
         }
@@ -82,6 +100,9 @@ class TokenReviewCircuitBreaker {
      * which are healthy API replies). Resets the failure counter and closes the circuit.
      */
     synchronized void recordSuccess() {
+        if (disabled) {
+            return;
+        }
         if (state != State.CLOSED) {
             log.info("Kubernetes TokenReview circuit breaker CLOSED: TokenReview API recovered");
         }
@@ -94,12 +115,18 @@ class TokenReviewCircuitBreaker {
      * threshold is reached, and reopens immediately on a failed half-open probe.
      */
     synchronized void recordFailure() {
+        if (disabled) {
+            return;
+        }
         consecutiveFailures++;
         if (state == State.HALF_OPEN || (state == State.CLOSED && consecutiveFailures >= threshold)) {
             state = State.OPEN;
             openedAt = clock.instant();
             log.warn("Kubernetes TokenReview circuit breaker OPEN after {} consecutive API failures; "
-                    + "skipping TokenReview calls for {}s", consecutiveFailures, openDuration.getSeconds());
+                    + "skipping TokenReview calls for {}s. Requests with Kubernetes tokens will be "
+                    + "treated as unauthenticated while the circuit is open; if anonymous read access "
+                    + "is enabled (apicurio.auth.anonymous-read-access.enabled), they will be served "
+                    + "as anonymous read-only requests.", consecutiveFailures, openDuration.getSeconds());
         }
     }
 

@@ -118,6 +118,10 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
             // API-error path below, returning null so the auth chain issues a 401 challenge.
             // This is deliberate rather than a 503: it preserves the existing failure semantics and
             // keeps anonymous access working (when enabled) while the TokenReview API is down.
+            // Security note: when apicurio.auth.anonymous-read-access.enabled=true, requests that
+            // would normally authenticate via a Kubernetes token are served as anonymous read-only
+            // requests for as long as the circuit is open. The OPEN transition is logged at WARN
+            // (including this fallback) so operators can correlate the change in behavior.
             log.debug("Kubernetes TokenReview call skipped: circuit breaker is open (K8s API unavailable)");
             return null;
         }

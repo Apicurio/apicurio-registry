@@ -24,6 +24,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -117,6 +124,70 @@ class TokenReviewCircuitBreakerTest {
         clock.advance(OPEN_DURATION);
         assertTrue(cb.allowRequest());
         assertEquals(TokenReviewCircuitBreaker.State.HALF_OPEN, cb.getState());
+    }
+
+    @Test
+    void zeroThresholdDisablesBreaker() {
+        // threshold=0 is an explicit off-switch: the breaker is pass-through and never opens,
+        // no matter how many failures are recorded.
+        TokenReviewCircuitBreaker cb = newBreaker(0);
+        for (int i = 0; i < 10; i++) {
+            cb.recordFailure();
+            assertTrue(cb.allowRequest());
+        }
+        assertEquals(TokenReviewCircuitBreaker.State.CLOSED, cb.getState());
+    }
+
+    @Test
+    void negativeThresholdAlsoDisablesBreaker() {
+        TokenReviewCircuitBreaker cb = newBreaker(-1);
+        for (int i = 0; i < 10; i++) {
+            cb.recordFailure();
+            assertTrue(cb.allowRequest());
+        }
+        assertEquals(TokenReviewCircuitBreaker.State.CLOSED, cb.getState());
+    }
+
+    @Test
+    void concurrentHalfOpenAdmitsExactlyOneProbe() throws Exception {
+        // Open the circuit, let the open window elapse, then race many threads at the probe
+        // window simultaneously: exactly one of them may be admitted as the half-open probe.
+        TokenReviewCircuitBreaker cb = newBreaker(2);
+        cb.recordFailure();
+        cb.recordFailure();
+        assertEquals(TokenReviewCircuitBreaker.State.OPEN, cb.getState());
+        clock.advance(OPEN_DURATION);
+
+        int threads = 20;
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            CyclicBarrier startTogether = new CyclicBarrier(threads);
+            List<Future<Boolean>> results = new ArrayList<>(threads);
+            for (int i = 0; i < threads; i++) {
+                results.add(pool.submit(() -> {
+                    startTogether.await();
+                    return cb.allowRequest();
+                }));
+            }
+
+            int admitted = 0;
+            for (Future<Boolean> result : results) {
+                if (result.get(10, TimeUnit.SECONDS)) {
+                    admitted++;
+                }
+            }
+
+            assertEquals(1, admitted, "exactly one thread must be admitted as the half-open probe");
+            assertEquals(TokenReviewCircuitBreaker.State.HALF_OPEN, cb.getState());
+
+            // The admitted probe decides the outcome for everyone: a success closes the circuit
+            // and traffic resumes for all threads.
+            cb.recordSuccess();
+            assertEquals(TokenReviewCircuitBreaker.State.CLOSED, cb.getState());
+            assertTrue(cb.allowRequest());
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test

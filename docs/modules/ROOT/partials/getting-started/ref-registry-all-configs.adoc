@@ -308,7 +308,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`5`
 |`3.4.0`
-|Number of consecutive Kubernetes TokenReview API failures after which the circuit breaker opens and TokenReview calls are temporarily skipped. _(experimental)_
+|Number of consecutive Kubernetes TokenReview API failures after which the circuit breaker opens and TokenReview calls are temporarily skipped. Set to 0 to disable the circuit breaker. While the circuit is open, requests with Kubernetes tokens are treated as unauthenticated; if apicurio.auth.anonymous-read-access.enabled is true, such requests are granted anonymous read-only access instead of being rejected. _(experimental)_
 |`apicurio.authn.token-review.circuit-breaker.timeout-seconds`
 |`int`
 |`30`

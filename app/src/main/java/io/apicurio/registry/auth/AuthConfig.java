@@ -183,7 +183,7 @@ public class AuthConfig {
     int kubernetesTokenCacheExpiration;
 
     @ConfigProperty(name = "apicurio.authn.token-review.circuit-breaker.threshold", defaultValue = "5")
-    @Info(category = CATEGORY_AUTH, description = "Number of consecutive Kubernetes TokenReview API failures after which the circuit breaker opens and TokenReview calls are temporarily skipped.", availableSince = "3.4.0", experimental = true)
+    @Info(category = CATEGORY_AUTH, description = "Number of consecutive Kubernetes TokenReview API failures after which the circuit breaker opens and TokenReview calls are temporarily skipped. Set to 0 to disable the circuit breaker. While the circuit is open, requests with Kubernetes tokens are treated as unauthenticated; if apicurio.auth.anonymous-read-access.enabled is true, such requests are granted anonymous read-only access instead of being rejected.", availableSince = "3.4.0", experimental = true)
     int kubernetesCircuitBreakerThreshold;
 
     @ConfigProperty(name = "apicurio.authn.token-review.circuit-breaker.timeout-seconds", defaultValue = "30")

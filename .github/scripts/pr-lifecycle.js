@@ -492,11 +492,36 @@ async function reconcile(github, api, pr, core) {
 // Event Handlers
 // ---------------------------------------------------------------------------
 
+async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
+  const prs = await github.paginate(github.rest.pulls.list, {
+    owner, repo, state: 'open', per_page: 100,
+  });
+  return prs.filter(p => p.user.login === author && p.number !== excludePr);
+}
+
 async function handlePrOpened({ github, context, core }) {
   const pr = context.payload.pull_request;
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
   const config = loadConfig();
+
+  if (!isAutoAccepted(config, pr.user.login)) {
+    const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
+    const maxPrs = config.max_contributor_prs ?? 1;
+    if (existingPrs.length >= maxPrs) {
+      const prLinks = existingPrs.map(p => `#${p.number}`).join(', ');
+      await api.postComment(pr.number,
+        `Thanks for your contribution! However, you already have ${existingPrs.length > 1 ? 'open PRs' : 'an open PR'} ` +
+        `(${prLinks}). To keep the review pipeline manageable, each ` +
+        `contributor can have at most ${maxPrs} open PR(s) at a time.\n\n` +
+        `Please complete or close your existing PR before opening a new one. ` +
+        `This PR has been closed automatically.`
+      );
+      await api.closePr(pr.number);
+      core.info(`PR #${pr.number} closed: ${pr.user.login} already has ${existingPrs.length} open PR(s)`);
+      return;
+    }
+  }
 
   if (isAutoAccepted(config, pr.user.login)) {
     const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;

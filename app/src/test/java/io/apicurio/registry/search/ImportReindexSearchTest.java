@@ -132,7 +132,7 @@ public class ImportReindexSearchTest extends AbstractResourceTestBase {
         // Verify search by name works after import
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = group;
-            config.queryParameters.name = "Pet Store";
+            config.queryParameters.name = "Pet Store*";
         });
         Assertions.assertEquals(1, results.getCount());
         Assertions.assertEquals("Pet Store API", results.getVersions().get(0).getName());

@@ -8,6 +8,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
@@ -32,6 +33,10 @@ import static io.apicurio.registry.utils.StringUtil.asLowerCase;
  * Extracted from AbstractSqlRegistryStorage to improve maintainability.
  */
 public class SqlSearchRepository {
+
+    private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
+            "Content search requires the search index, which is not enabled. "
+            + "Enable the search index to use content search.";
 
     private final Logger log;
 
@@ -80,58 +85,8 @@ public class SqlSearchRepository {
                         });
                         break;
                     case name:
-                        String nameValue = filter.getStringValue();
-                        boolean startsWithWildcard = nameValue.startsWith("*");
-                        boolean endsWithWildcard = nameValue.endsWith("*");
-
-                        // Remove wildcards from the value
-                        String searchValue = nameValue;
-                        if (startsWithWildcard) {
-                            searchValue = searchValue.substring(1);
-                        }
-                        if (endsWithWildcard) {
-                            searchValue = searchValue.substring(0, searchValue.length() - 1);
-                        }
-
-                        // Determine operator based on wildcards
-                        if (startsWithWildcard || endsWithWildcard) {
-                            op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                            where.append("a.name " + op + " ? OR a.artifactId " + op + " ?");
-
-                            // Add wildcards to SQL pattern based on user input
-                            String finalSearchValue = searchValue;
-                            binders.add((query, idx) -> {
-                                String pattern = finalSearchValue;
-                                if (startsWithWildcard) {
-                                    pattern = "%" + pattern;
-                                }
-                                if (endsWithWildcard) {
-                                    pattern = pattern + "%";
-                                }
-                                query.bind(idx, pattern);
-                            });
-                            binders.add((query, idx) -> {
-                                String pattern = finalSearchValue;
-                                if (startsWithWildcard) {
-                                    pattern = "%" + pattern;
-                                }
-                                if (endsWithWildcard) {
-                                    pattern = pattern + "%";
-                                }
-                                query.bind(idx, pattern);
-                            });
-                        } else {
-                            // Exact match - no wildcards
-                            op = filter.isNot() ? "!=" : "=";
-                            where.append("(a.name " + op + " ? OR a.artifactId " + op + " ?)");
-                            String finalSearchValue = searchValue;
-                            binders.add((query, idx) -> {
-                                query.bind(idx, finalSearchValue);
-                            });
-                            binders.add((query, idx) -> {
-                                query.bind(idx, finalSearchValue);
-                            });
-                        }
+                        buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
+                                filter.isNot(), binders);
                         break;
                     case groupId:
                         buildWildcardClause(where, "a.groupId",
@@ -212,8 +167,7 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        // Content search is handled by the search index only; skip in SQL
-                        break;
+                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
                     case structure:
                         // Structured content filter, e.g. "agent_card:skill:translation". Elements are
                         // stored lowercased in artifact_structured_content as elementType
@@ -378,11 +332,12 @@ public class SqlSearchRepository {
                         });
                         break;
                     case name:
+                        buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
+                                filter.isNot(), binders);
+                        break;
                     case description:
                         op = filter.isNot() ? "NOT LIKE" : "LIKE";
-                        where.append("v.");
-                        where.append(filter.getType().name());
-                        where.append(" ");
+                        where.append("v.description ");
                         where.append(op);
                         where.append(" ?");
                         binders.add((query, idx) -> {
@@ -421,8 +376,7 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        // Content search is handled by the search index only; skip in SQL
-                        break;
+                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -513,6 +467,53 @@ public class SqlSearchRepository {
                 query.bind(idx, value);
             });
         }
+    }
+
+    /**
+     * Builds a WHERE clause for a "name" filter, matched against both the name column and the
+     * artifact ID column. A leading and/or trailing {@code *} is treated as a wildcard and
+     * translated to a SQL {@code LIKE} pattern; without wildcards the match is exact. This keeps
+     * artifact and version name searches consistent, mirroring the artifact name search behavior
+     * introduced in #6298 (see #8002).
+     */
+    private void buildNameClause(StringBuilder where, String nameColumn, String artifactIdColumn,
+            String value, boolean not, List<SqlStatementVariableBinder> binders) {
+        boolean startsWithWildcard = value.startsWith("*");
+        boolean endsWithWildcard = value.endsWith("*");
+        boolean wildcard = startsWithWildcard || endsWithWildcard;
+
+        // Strip the wildcard markers to obtain the literal search value. The emptiness guards keep a
+        // value that is only wildcards (e.g. "*" or "**") from over-stripping into a substring error.
+        String searchValue = value;
+        if (startsWithWildcard && !searchValue.isEmpty()) {
+            searchValue = searchValue.substring(1);
+        }
+        if (endsWithWildcard && !searchValue.isEmpty()) {
+            searchValue = searchValue.substring(0, searchValue.length() - 1);
+        }
+
+        String op;
+        if (wildcard) {
+            op = not ? "NOT LIKE" : "LIKE";
+        } else {
+            op = not ? "!=" : "=";
+        }
+        where.append("(").append(nameColumn).append(" ").append(op).append(" ? OR ")
+                .append(artifactIdColumn).append(" ").append(op).append(" ?)");
+
+        // Translate leading/trailing '*' into SQL '%' wildcards, else bind the literal for exact match
+        String bound;
+        if (wildcard) {
+            bound = (startsWithWildcard ? "%" : "") + searchValue + (endsWithWildcard ? "%" : "");
+        } else {
+            bound = searchValue;
+        }
+        binders.add((query, idx) -> {
+            query.bind(idx, bound);
+        });
+        binders.add((query, idx) -> {
+            query.bind(idx, bound);
+        });
     }
 
     /**

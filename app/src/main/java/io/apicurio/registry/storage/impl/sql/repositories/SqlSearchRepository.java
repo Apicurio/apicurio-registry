@@ -34,8 +34,8 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
 public class SqlSearchRepository {
 
     private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
-            "Content search requires the Elasticsearch search index, which is not enabled. "
-            + "Enable the Elasticsearch search index to use content search.";
+            "Content search requires the search index, which is not enabled. "
+            + "Enable the search index to use content search.";
 
     private final Logger log;
 

@@ -366,6 +366,20 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchVersionsByContentFilterWithOtherFiltersIsBadRequest() throws Exception {
+        // The content filter must be rejected even when combined with other valid filters, so the
+        // exception is thrown regardless of which other filters are present in the request.
+        given().when()
+                .queryParam("groupId", "some-group")
+                .queryParam("content", "anything")
+                .get("/registry/v3/search/versions")
+                .then()
+                .statusCode(400)
+                .body("detail", containsString("search index"))
+                .body("detail", not(containsStringIgnoringCase("select")));
+    }
+
+    @Test
     public void testSearchVersionsByGroupIdWildcard() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String prefix = "WildcardGroupVersionTest_" + TestUtils.generateGroupId().substring(0, 8);

@@ -8,6 +8,7 @@ This chapter introduces the Data Contracts framework in {registry}, which uses t
 
 * xref:data-contracts-overview_{context}[]
 * xref:data-contracts-odcs_{context}[]
+* xref:data-contracts-artifact-references_{context}[]
 * xref:data-contracts-field-tags_{context}[]
 * xref:data-contracts-rules_{context}[]
 * xref:data-contracts-lifecycle_{context}[]
@@ -179,6 +180,46 @@ Examples:
 * `orders/OrderEvent:3` - group "orders", artifact "OrderEvent", version "3"
 * `OrderEvent:latest` - default group, artifact "OrderEvent", latest version
 * `OrderEvent` - default group, artifact "OrderEvent", latest version
+
+IMPORTANT: Each entry under `schemas[]` is independent. Projection and field metadata (PII, tags, classifications) apply only to the artifact named in that entry's `location`. Cross-artifact schema references inside the Avro/JSON Schema/Protobuf content are not followed during projection. If a nested type lives in another artifact, either add a separate `schemas[]` entry for that artifact or give it its own contract. See xref:data-contracts-artifact-references_{context}[].
+
+[id="data-contracts-artifact-references_{context}"]
+== Artifact references and data contracts
+
+[role="_abstract"]
+Schema artifacts can reference other artifacts (for example an Avro `OrderEvent` that references a shared `Address` record). Data contracts stay scoped to each artifact. {registry} does not walk those cross-artifact references when projecting ODCS field metadata.
+
+=== What works at evaluation time
+
+When a Kafka record is serialized, nested objects are fully materialized. An Avro `GenericRecord` contains the nested `Address` values inline, not a pointer to another registry artifact. After conversion to a map, CEL rules can reach nested paths:
+
+[source,json]
+----
+{
+  "orderId": "ORD-123",
+  "address": { "street": "123 Main St", "zipCode": "90210" }
+}
+----
+
+A CEL expression such as `address.zipCode != ""` works at rule evaluation time because the nested fields are present on the record.
+
+=== What projection does not do
+
+ODCS `schemas[].fields` metadata (PII flags, tags, classifications) is projected only for fields that belong to the artifact listed in that `schemas[]` entry. The projection engine does not resolve artifact references to discover fields that live on another schema.
+
+So you cannot tag `address.street` as PII from an `OrderEvent` contract if `street` is defined on a separate `Address` artifact. Declare PII on the `Address` contract (or add `Address` as its own `schemas[]` entry) instead.
+
+=== Why contracts stay per-artifact
+
+* Ownership stays clear: the team that owns `Address` declares which of its fields are PII.
+* Changing `Address` does not force every dependent contract to be re-projected.
+* Conflicting metadata is avoided when two contracts would otherwise both claim the same nested field.
+
+=== Practical guidance
+
+* Put field-level PII and tags on the contract (or `schemas[]` entry) for the artifact that actually defines those fields.
+* Use CEL quality rules on the parent artifact when you need to validate nested values on the wire; those rules see the materialized record.
+* List every governed schema under `schemas[]` when one ODCS document should cover several related artifacts.
 
 [id="data-contracts-field-tags_{context}"]
 == Field-level tags

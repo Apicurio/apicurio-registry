@@ -13,7 +13,7 @@ against the current diff (`git diff main...HEAD`).
 ## What to check
 
 ### Issue and approval
-- Is there a linked issue? Does it have a comment from carlesarnal, EricWittmann, or jsenko?
+- Is there a linked issue? Does it have a comment from a project maintainer?
 - Are there other open PRs for the same issue? (Search with `gh pr list --search`)
 
 ### Configuration properties
@@ -24,18 +24,19 @@ against the current diff (`git diff main...HEAD`).
 
 ### Security
 - Auth/authz changes without tests? BLOCKER.
-- Error messages that include usernames, class names, or stack traces? BLOCKER.
+- API error responses that include usernames, class names, or stack traces? BLOCKER.
 - Hand-rolled security logic (circuit breakers, token caching, crypto) when Quarkus/MicroProfile provides it? MAJOR.
 - New `synchronized` blocks in async/reactive code paths? MAJOR.
 
 ### Storage
-- Changes under `storage/impl/` that only touch one variant? BLOCKER — must work across all 4.
+- New features or behavioral changes under `storage/impl/` that aren't variant-specific must work across all 4 variants. Variant-specific fixes (e.g., a PostgreSQL dialect tweak) are fine.
 - New SQL without migration scripts? Flag it.
 
 ### Testing
 - New code paths without tests? BLOCKER.
 - Assertions that check only `assertNotNull` or `assertTrue(list.size() > 0)`? MAJOR — must assert specific values.
 - Security changes without negative test cases (unauthorized → 403)? BLOCKER.
+- CI failure on a test unrelated to the PR? Flag it for separate investigation — don't just retry.
 
 ### Code style
 - Star imports? BLOCKER (checkstyle will catch this, but flag it early).

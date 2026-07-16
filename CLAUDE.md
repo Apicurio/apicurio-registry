@@ -83,22 +83,22 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 Before opening a PR, verify every item. PRs that skip these get sent back.
 
 ### Before writing code
-- [ ] The linked issue has **maintainer approval** (comment from carlesarnal, EricWittmann, or jsenko). Implementing an unapproved feature request wastes everyone's time.
+- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time.
 - [ ] Check for **overlapping PRs** — search open PRs for your issue number and keywords. Duplicate work gets the later PR closed.
 
 ### Code
-- [ ] Custom config properties use the `apicurio.` prefix — never `quarkus.*` directly. See `.claude/rules/config-properties.md`.
-- [ ] Config properties in the `app` module have `@Info` annotation. Run the config doc generator after adding properties.
-- [ ] Never expose internal state in error messages — no usernames, no stack traces, no class names. Use generic messages.
+- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` annotation in `app` module, run config doc generator).
+- [ ] API error responses never expose internal state — no usernames, stack traces, or class names. Use generic messages.
 - [ ] Never hand-roll what Quarkus or MicroProfile already provides (circuit breakers, retry, fault tolerance, health checks). Check existing dependencies first.
-- [ ] Storage-layer changes must work across **all 4 variants** (sql, kafkasql, gitops, kubernetesops).
+- [ ] New features or behavioral changes under `storage/impl/` that aren't variant-specific must be implemented across all 4 storage variants.
 - [ ] Auth changes require tests for both **positive** (authorized → succeeds) and **negative** (unauthorized → 403) cases.
-- [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.
+- [ ] New Java files include the Apache 2.0 license header.
 
 ### Tests
 - [ ] Every new code path has tests. Missing tests = automatic rejection.
 - [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
 - [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
+- [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
 
 ### Submission
 - [ ] `./mvnw test-compile -pl <module> -am -DskipTests` compiles cleanly (use `test-compile`, not `compile`, when touching test files).
@@ -120,7 +120,7 @@ Before opening a PR, verify every item. PRs that skip these get sent back.
 
 - **Commands**: See `.claude/commands/` for project-specific slash commands
 - **Rules**: See `.claude/rules/` for path-scoped coding conventions
-- **Agents**: See `.claude/agents/` for specialized subagent personas
+- **Agents**: See `.claude/agents/` for specialized subagent personas (`contributor-guide`, `code-reviewer`, `security-auditor`, `ci-debugger`)
 - **Skills**: See `.claude/skills/` for auto-invoked workflow guides
 - **Permissions**: See `.claude/settings.json` for team-shared permission policies
 - **Hooks**: File protection and checkstyle-before-commit enabled by default; see `.claude/hooks/`

@@ -497,6 +497,69 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchAgentsByNonMatchingStructureFilter() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "nomatch-agent-basic", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "nomatch-agent-streaming", STREAMING_AGENT_CARD);
+
+        // A skill that no agent card declares must yield no matches (empty-result path).
+        String requestBody = """
+                {
+                    "filters": {
+                        "skills": ["no-such-skill-zzz-99999"]
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0))
+                .body("agents.artifactId", not(hasItem("nomatch-agent-basic")))
+                .body("agents.artifactId", not(hasItem("nomatch-agent-streaming")));
+    }
+
+    @Test
+    public void testSearchAgentsByMultipleStructureFilters() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "multi-agent-basic", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "multi-agent-streaming", STREAMING_AGENT_CARD);
+
+        // Both structure filters must match the same agent (they are ANDed). Only the streaming
+        // agent has the "data-processing" skill AND pushNotifications enabled; the basic agent
+        // has neither, so it must be excluded.
+        String requestBody = """
+                {
+                    "filters": {
+                        "skills": ["data-processing"],
+                        "capabilities": { "pushNotifications": true }
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("multi-agent-streaming"))
+                .body("agents.artifactId", not(hasItem("multi-agent-basic")));
+    }
+
+    @Test
     public void testSearchAgentsAdvancedWithQueryByArtifactId() throws Exception {
         String groupId = TestUtils.generateGroupId();
 

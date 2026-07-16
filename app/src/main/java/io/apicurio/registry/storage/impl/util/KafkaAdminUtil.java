@@ -8,6 +8,7 @@ import io.apicurio.registry.storage.impl.kafkasql.serde.KafkaSqlKeyDeserializer;
 import io.apicurio.registry.storage.impl.kafkasql.v2compat.BootstrapKey;
 import io.apicurio.registry.storage.impl.kafkasql.v2compat.UpgraderKey;
 import io.quarkus.arc.lookup.LookupIfProperty;
+import io.smallrye.faulttolerance.api.ExponentialBackoff;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -17,6 +18,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -130,35 +132,15 @@ public class KafkaAdminUtil {
      *
      * @param topic
      */
+    @Retry(retryOn = UnknownTopicOrPartitionException.class, maxRetries = 3, delay = 100, jitter = 50)
+    @ExponentialBackoff
     public void verifyTopicConfiguration(String topic) {
         var key = new ConfigResource(ConfigResource.Type.TOPIC, topic);
         // includeSynonyms should ensure we get effective values (including default configs).
         var options = new DescribeConfigsOptions().includeSynonyms(true);
 
-        int maxRetries = 3;
-        long backoffMs = 100;
-        for (int attempt = 0; attempt <= maxRetries; attempt++) {
-            try {
-                blockOn(toJavaFuture(adminClient.get().get().describeConfigs(singleton(key), options).all())
-                        .thenAccept(configs -> assertTopicConfiguration(topic, key, configs)));
-                break;
-            } catch (UnknownTopicOrPartitionException e) {
-                if (attempt < maxRetries) {
-                    log.warn(
-                            "Topic '{}' configuration is not yet visible to Kafka metadata ({}). Retrying configuration verification in {} ms (attempt {}/{}).",
-                            topic, e.getMessage(), backoffMs, attempt + 1, maxRetries);
-                    try {
-                        Thread.sleep(backoffMs);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException(ie);
-                    }
-                    backoffMs *= 2;
-                } else {
-                    throw e;
-                }
-            }
-        }
+        blockOn(toJavaFuture(adminClient.get().get().describeConfigs(singleton(key), options).all())
+                .thenAccept(configs -> assertTopicConfiguration(topic, key, configs)));
     }
 
     private void assertTopicConfiguration(String topic, ConfigResource key, Map<ConfigResource, Config> configs) {

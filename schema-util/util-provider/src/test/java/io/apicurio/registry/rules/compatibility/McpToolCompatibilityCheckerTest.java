@@ -344,4 +344,76 @@ class McpToolCompatibilityCheckerTest {
 
         assertTrue(result.isCompatible(), "Identical schema with description change should be fully compatible");
     }
+
+    @Test
+    void testBackwardIncompatibleParameterTypeChange() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "integer" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing an existing parameter type should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleEnumNarrowing() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json", "xml", "csv"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Narrowing an existing parameter enum should be backward incompatible");
+    }
 }

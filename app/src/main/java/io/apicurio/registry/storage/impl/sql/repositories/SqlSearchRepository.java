@@ -33,6 +33,10 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  */
 public class SqlSearchRepository {
 
+    private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
+            "Content search requires the Elasticsearch search index, which is not enabled. "
+            + "Enable the Elasticsearch search index to use content search.";
+
     private final Logger log;
 
     private final SqlStatements sqlStatements;
@@ -162,9 +166,7 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        throw new ContentSearchNotSupportedException(
-                                "Content search requires the Elasticsearch search index, which is not "
-                                + "enabled. Enable the Elasticsearch search index to use content search.");
+                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -332,9 +334,7 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        throw new ContentSearchNotSupportedException(
-                                "Content search requires the Elasticsearch search index, which is not "
-                                + "enabled. Enable the Elasticsearch search index to use content search.");
+                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }

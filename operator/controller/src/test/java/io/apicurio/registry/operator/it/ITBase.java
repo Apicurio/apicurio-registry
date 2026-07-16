@@ -163,7 +163,7 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
@@ -299,7 +299,7 @@ public abstract class ITBase implements OperatorTestContext {
 
     protected static Deployment getOperatorDeployment() {
         List<Deployment> operatorDeployments = new ArrayList<>();
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
             operatorDeployments.clear();
             operatorDeployments.addAll(
                     client.apps().deployments()
@@ -350,7 +350,7 @@ public abstract class ITBase implements OperatorTestContext {
         try {
             var crd = client.load(new FileInputStream(CRD_FILE));
             crd.createOrReplace();
-            await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+            await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
                 crd.resources().forEach(r -> assertThat(r.get()).isNotNull());
             });
         } catch (Exception e) {

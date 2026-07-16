@@ -122,6 +122,28 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testMcpToolNullInputSchema() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-null-inputschema.json");
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "/inputSchema".equals(v.getContext())));
+    }
+
+    @Test
+    public void testMcpToolNullOutputSchema() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-null-outputschema.json");
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "/outputSchema".equals(v.getContext())));
+    }
+
+    @Test
     public void testMcpToolAccepterAccepts() throws Exception {
         TypedContent content = resourceToTypedContentHandle("mcptool-valid.json");
         McpToolContentAccepter accepter = new McpToolContentAccepter();

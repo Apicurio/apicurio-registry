@@ -11,7 +11,7 @@ import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 import org.everit.json.schema.SchemaException;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,6 +21,10 @@ import java.util.Set;
  */
 public class McpToolJsonSchemaContentValidator extends McpToolContentValidator {
 
+    /**
+     * Performs the standard MCP tool envelope validation and, for FULL validation only,
+     * validates embedded inputSchema and outputSchema fields as full JSON Schemas.
+     */
     @Override
     public void validate(ValidityLevel level, TypedContent content,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
@@ -30,7 +34,7 @@ public class McpToolJsonSchemaContentValidator extends McpToolContentValidator {
             return;
         }
 
-        Set<RuleViolation> violations = new HashSet<>();
+        Set<RuleViolation> violations = new LinkedHashSet<>();
 
         try {
             JsonNode tree = ContentTypeUtil.parseJson(content.getContent());
@@ -58,12 +62,6 @@ public class McpToolJsonSchemaContentValidator extends McpToolContentValidator {
 
     private void validateEmbeddedSchema(String fieldName, JsonNode schemaNode,
             Map<String, TypedContent> resolvedReferences, Set<RuleViolation> violations) {
-        if (schemaNode == null || schemaNode.isNull()) {
-            violations.add(new RuleViolation("'" + fieldName + "' field must be an object",
-                    "/" + fieldName));
-            return;
-        }
-
         try {
             JsonUtil.readSchema(schemaNode.toString(), resolvedReferences);
         } catch (SchemaException e) {

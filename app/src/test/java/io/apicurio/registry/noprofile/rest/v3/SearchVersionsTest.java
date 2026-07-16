@@ -15,6 +15,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.not;
+
 @QuarkusTest
 public class SearchVersionsTest extends AbstractResourceTestBase {
 
@@ -344,6 +349,20 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             config.queryParameters.artifactId = "order-service";
         });
         Assertions.assertEquals(1, results.getCount(), "Exact match should return 1 version");
+    }
+
+    @Test
+    public void testSearchVersionsByContentFilterWithoutIndexIsBadRequest() throws Exception {
+        // The 'content' filter is served only by the Elasticsearch search index. With the index
+        // disabled (the default), it must return a 400 (client error) with a clear message, not a
+        // 500 that leaks the underlying SQL statement.
+        given().when()
+                .queryParam("content", "anything")
+                .get("/registry/v3/search/versions")
+                .then()
+                .statusCode(400)
+                .body("detail", containsString("search index"))
+                .body("detail", not(containsStringIgnoringCase("select")));
     }
 
     @Test

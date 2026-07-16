@@ -8,6 +8,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
@@ -161,8 +162,9 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        // Content search is handled by the search index only; skip in SQL
-                        break;
+                        throw new ContentSearchNotSupportedException(
+                                "Content search requires the Elasticsearch search index, which is not "
+                                + "enabled. Enable the Elasticsearch search index to use content search.");
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -330,8 +332,9 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        // Content search is handled by the search index only; skip in SQL
-                        break;
+                        throw new ContentSearchNotSupportedException(
+                                "Content search requires the Elasticsearch search index, which is not "
+                                + "enabled. Enable the Elasticsearch search index to use content search.");
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }

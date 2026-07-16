@@ -16,14 +16,14 @@ class UtilsErrorFormattingTest {
     void formatProblemDetailsOmitsRoleNamesByDefault() {
         var error = new ProblemDetails();
         error.setStatus(403);
-        error.setTitle("User joel is not authorized to perform the requested operation.");
-        error.setDetail("ForbiddenException: User joel is not authorized to perform the requested operation.");
+        error.setTitle("User alice is not authorized to perform the requested operation.");
+        error.setDetail("ForbiddenException: User alice is not authorized to perform the requested operation.");
         error.setName("ForbiddenException");
 
         String message = Utils.formatRegistryApiError(error);
 
         assertTrue(message.contains("HTTP 403 Forbidden"));
-        assertTrue(message.contains("User joel is not authorized"));
+        assertTrue(message.contains("User alice is not authorized"));
         assertFalse(message.contains("sr-readonly"));
         assertFalse(message.contains("sr-developer"));
         assertFalse(message.contains("sr-admin"));
@@ -33,14 +33,14 @@ class UtilsErrorFormattingTest {
     void formatProblemDetailsIncludesRoleNamesWhenHintsEnabled() {
         var error = new ProblemDetails();
         error.setStatus(403);
-        error.setTitle("User joel is not authorized to perform the requested operation.");
-        error.setDetail("ForbiddenException: User joel is not authorized to perform the requested operation.");
+        error.setTitle("User alice is not authorized to perform the requested operation.");
+        error.setDetail("ForbiddenException: User alice is not authorized to perform the requested operation.");
         error.setName("ForbiddenException");
 
         String message = Utils.formatRegistryApiError(error, true);
 
         assertTrue(message.contains("HTTP 403 Forbidden"));
-        assertTrue(message.contains("User joel is not authorized"));
+        assertTrue(message.contains("User alice is not authorized"));
         assertTrue(message.contains("sr-readonly"));
     }
 
@@ -61,11 +61,11 @@ class UtilsErrorFormattingTest {
     void formatProblemDetailsFallsBackToTitleWhenDetailMissing() {
         var error = new ProblemDetails();
         error.setStatus(403);
-        error.setTitle("User joel is not authorized to perform the requested operation.");
+        error.setTitle("User alice is not authorized to perform the requested operation.");
 
         String message = Utils.formatRegistryApiError(error);
 
-        assertTrue(message.contains("User joel is not authorized"));
+        assertTrue(message.contains("User alice is not authorized"));
     }
 
     @Test

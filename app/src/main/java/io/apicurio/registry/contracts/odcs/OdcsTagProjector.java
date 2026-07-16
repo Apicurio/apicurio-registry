@@ -72,6 +72,9 @@ public class OdcsTagProjector {
     /**
      * Returns the {@code schemas[]} entry whose {@code location} resolves to the target artifact.
      * Group may be omitted in {@code location} (defaults to {@code groupId}).
+     * <p>
+     * If multiple entries resolve to the same {@code (groupId, artifactId)}, the first match in
+     * list order is used intentionally — duplicate locations should be avoided in contract YAML.
      */
     static OdcsSchema findMatchingSchema(List<OdcsSchema> schemas, String groupId, String artifactId) {
         if (schemas == null) {

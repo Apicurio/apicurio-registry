@@ -221,6 +221,8 @@ So you cannot tag `address.street` as PII from an `OrderEvent` contract if `stre
 * Use CEL quality rules on the parent artifact when you need to validate nested values on the wire; those rules see the materialized record.
 * List every governed schema under `schemas[]` when one ODCS document should cover several related artifacts.
 
+NOTE: **Upgrade note:** Earlier releases projected field tags from every `schemas[]` entry onto each target artifact. Field-tag projection now uses only the entry whose `location` resolves to the target artifact. Artifacts with no matching entry receive no projected field tags. Contracts that previously relied on cross-entry tag bleed-through should add a dedicated `schemas[]` entry per governed artifact.
+
 [id="data-contracts-field-tags_{context}"]
 == Field-level tags
 

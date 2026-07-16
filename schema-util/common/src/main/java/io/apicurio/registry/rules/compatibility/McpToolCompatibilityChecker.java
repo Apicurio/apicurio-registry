@@ -18,6 +18,8 @@ import java.util.Set;
  * - Adding required parameters: Backward incompatible
  * - Removing required parameters: Backward incompatible
  * - Changing inputSchema type: Backward incompatible
+ * - Changing an existing parameter's type: Backward incompatible
+ * - Narrowing an existing parameter's enum: Backward incompatible
  * - Changing name, title, description, annotations: Always compatible
  */
 public class McpToolCompatibilityChecker
@@ -39,6 +41,9 @@ public class McpToolCompatibilityChecker
 
             // Check removed properties
             checkPropertyRemovals(existingNode, proposedNode, differences);
+
+            // Check per-property schema changes for properties present in both versions
+            checkPropertySchemaChanges(existingNode, proposedNode, differences);
 
             // Check added required parameters
             checkRequiredParamAdditions(existingNode, proposedNode, differences);
@@ -80,6 +85,79 @@ public class McpToolCompatibilityChecker
                         "Input property '" + prop + "' was removed"));
             }
         }
+    }
+
+    private void checkPropertySchemaChanges(JsonNode existing, JsonNode proposed,
+            Set<McpToolCompatibilityDifference> differences) {
+        JsonNode existingProps = getInputSchemaProperties(existing);
+        JsonNode proposedProps = getInputSchemaProperties(proposed);
+        if (existingProps == null || proposedProps == null) {
+            return;
+        }
+
+        Iterator<String> existingNames = existingProps.fieldNames();
+        while (existingNames.hasNext()) {
+            String propName = existingNames.next();
+            if (!proposedProps.has(propName)) {
+                continue;
+            }
+            JsonNode existingProp = existingProps.get(propName);
+            JsonNode proposedProp = proposedProps.get(propName);
+            checkPropertyTypeChange(propName, existingProp, proposedProp, differences);
+            checkEnumNarrowing(propName, existingProp, proposedProp, differences);
+        }
+    }
+
+    private void checkPropertyTypeChange(String propName, JsonNode existingProp, JsonNode proposedProp,
+            Set<McpToolCompatibilityDifference> differences) {
+        String existingType = getTextValue(existingProp, "type");
+        String proposedType = getTextValue(proposedProp, "type");
+        if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
+            differences.add(new McpToolCompatibilityDifference(
+                    McpToolCompatibilityDifference.Type.PROPERTY_TYPE_CHANGED,
+                    "Input property '" + propName + "' type changed from '" + existingType
+                            + "' to '" + proposedType + "'"));
+        }
+    }
+
+    private void checkEnumNarrowing(String propName, JsonNode existingProp, JsonNode proposedProp,
+            Set<McpToolCompatibilityDifference> differences) {
+        JsonNode existingEnum = existingProp.get("enum");
+        JsonNode proposedEnum = proposedProp.get("enum");
+        if (existingEnum == null || !existingEnum.isArray()
+                || proposedEnum == null || !proposedEnum.isArray()) {
+            return;
+        }
+
+        Set<String> proposedValues = new HashSet<>();
+        for (JsonNode val : proposedEnum) {
+            proposedValues.add(val.asText());
+        }
+
+        for (JsonNode val : existingEnum) {
+            if (!proposedValues.contains(val.asText())) {
+                differences.add(new McpToolCompatibilityDifference(
+                        McpToolCompatibilityDifference.Type.ENUM_VALUE_REMOVED,
+                        "Input property '" + propName + "' enum value '" + val.asText()
+                                + "' was removed"));
+            }
+        }
+    }
+
+    private JsonNode getInputSchemaProperties(JsonNode node) {
+        JsonNode inputSchema = node.get("inputSchema");
+        if (inputSchema != null && inputSchema.isObject()) {
+            JsonNode props = inputSchema.get("properties");
+            if (props != null && props.isObject()) {
+                return props;
+            }
+        }
+        return null;
+    }
+
+    private String getTextValue(JsonNode node, String fieldName) {
+        JsonNode field = node.get(fieldName);
+        return (field != null && field.isTextual()) ? field.asText() : null;
     }
 
     private void checkRequiredParamAdditions(JsonNode existing, JsonNode proposed,

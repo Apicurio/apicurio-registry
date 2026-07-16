@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.not;
@@ -361,8 +362,8 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 .get("/registry/v3/search/versions")
                 .then()
                 .statusCode(400)
-                .body("detail", containsString("search index"))
-                .body("detail", not(containsStringIgnoringCase("select")));
+                .body("detail", allOf(containsString("search index"),
+                        not(containsStringIgnoringCase("select"))));
     }
 
     @Test
@@ -375,8 +376,8 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 .get("/registry/v3/search/versions")
                 .then()
                 .statusCode(400)
-                .body("detail", containsString("search index"))
-                .body("detail", not(containsStringIgnoringCase("select")));
+                .body("detail", allOf(containsString("search index"),
+                        not(containsStringIgnoringCase("select"))));
     }
 
     @Test

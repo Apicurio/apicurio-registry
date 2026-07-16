@@ -70,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -93,6 +94,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
     }
+
+    // Logged at most once when data is imported (rather than written via create/update) for an
+    // artifact type that produces structured content - see warnOnStructuredContentImportGap().
+    private static final AtomicBoolean STRUCTURED_IMPORT_WARNING_LOGGED = new AtomicBoolean(false);
 
     @Inject
     Logger log;
@@ -1623,13 +1628,42 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void importArtifact(ArtifactEntity entity) {
-
+        warnOnStructuredContentImportGap(entity == null ? null : entity.artifactType);
         artifactRepository.importArtifact(entity);
+    }
+
+    /**
+     * Structured content is indexed only on the live write paths (create/update), not on import.
+     * Data loaded via import/export - and therefore the gitops and kubernetesops variants, which
+     * populate their store exclusively through import - does not populate artifact_structured_content,
+     * so structure-based discovery filters (agent card / MCP tool) will not match those artifacts
+     * until they are re-uploaded or the database-upgrade backfill runs. Log this once so the gap is
+     * visible rather than silent.
+     */
+    private void warnOnStructuredContentImportGap(String artifactType) {
+        if (artifactType == null) {
+            return;
+        }
+        try {
+            boolean hasExtractor = typeProviderFactory.getArtifactTypeProvider(artifactType)
+                    .getStructuredContentExtractor() != null;
+            if (hasExtractor && STRUCTURED_IMPORT_WARNING_LOGGED.compareAndSet(false, true)) {
+                log.warn("Imported artifacts are not indexed into artifact_structured_content; "
+                        + "structure-based discovery filters will not match imported artifacts until "
+                        + "they are re-uploaded. This also affects the gitops and kubernetesops storage "
+                        + "variants, which load data exclusively via import.");
+            }
+        } catch (Exception e) {
+            log.debug("Could not check structured-content extractor for artifact type {}.",
+                    artifactType, e);
+        }
     }
 
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
-
+        // NOTE: import does not populate artifact_structured_content (see
+        // warnOnStructuredContentImportGap); structure filters require SQL/kafkasql storage written
+        // via the create/update paths, or a database-upgrade backfill.
         versionRepository.importArtifactVersion(entity);
     }
 

@@ -1,0 +1,8 @@
+{
+  "installation-version": 1,
+  "config": {
+    "update.check-enabled": "false",
+    "quarkus.log.category.\"io.apicurio.registry.cli.services\".level": "DEBUG"
+  },
+  "context": {}
+}

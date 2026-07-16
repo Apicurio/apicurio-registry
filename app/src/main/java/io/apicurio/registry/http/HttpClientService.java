@@ -21,7 +21,18 @@ public class HttpClientService {
     @Inject
     WebClient webClient;
 
-    @Retry(maxRetries = 8, delay = 100, jitter = 50)
+    /**
+     * Posts a JSON request to the given URL and returns the parsed response.
+     *
+     * <p>All HTTP 2xx status codes are treated as success. A {@code 204 No Content} response
+     * or any 2xx response with a {@code null} body will return {@code null} rather than
+     * attempting JSON deserialization. Callers that require a non-null response should
+     * handle this case accordingly.
+     *
+     * @throws HttpClientException on non-2xx responses or communication errors
+     * @throws HttpClientInterruptException if the calling thread is interrupted (aborts retry)
+     */
+    @Retry(maxRetries = 8, delay = 100, jitter = 50, abortOn = HttpClientInterruptException.class)
     @ExponentialBackoff
     @Timeout(value = 10, unit = ChronoUnit.SECONDS)
     public <I, O> O post(String url, I body, Class<O> outputClass) throws HttpClientException {
@@ -33,15 +44,20 @@ public class HttpClientService {
 
             // Wait for the response (vert.x is async).
             HttpResponse<Buffer> httpResponse = future.toCompletionStage().toCompletableFuture().get();
-            if (httpResponse.statusCode() == 200) {
+            int status = httpResponse.statusCode();
+            if (status >= 200 && status < 300) {
+                if (status == 204 || httpResponse.body() == null || httpResponse.body().length() == 0) {
+                    return null;
+                }
                 return (O) httpResponse.bodyAsJson(outputClass);
             } else {
-                throw new HttpClientException("Webhook request failed (" + httpResponse.statusCode() + "): " + httpResponse.statusMessage());
+                throw new HttpClientException("Webhook request failed (" + status + "): " + httpResponse.statusMessage());
             }
         } catch (ExecutionException e) {
             throw new HttpClientException(e);
         } catch (InterruptedException e) {
-            throw new HttpClientException(e);
+            Thread.currentThread().interrupt();
+            throw new HttpClientInterruptException(e);
         }
     }
 }

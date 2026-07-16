@@ -2,3 +2,4 @@ node_modules/
 dist/
 .yarn/
 *.tgz
+package-lock.json

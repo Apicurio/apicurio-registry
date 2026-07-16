@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.serverconfig;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -30,6 +31,9 @@ public class ServerConfigCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var properties = Optional.ofNullable(
@@ -51,6 +55,7 @@ public class ServerConfigCommand extends AbstractCommand {
                         for (final ConfigurationProperty prop : properties) {
                             table.addRow(prop.getName(), prop.getValue(), prop.getLabel());
                         }
+                        table.selectColumns(columns.getColumns());
                         table.print(out);
                     }
                 }

@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.rolemapping;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -31,6 +32,9 @@ public class RoleMappingCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var results = client.getRegistryClient().admin().roleMappings().get();
@@ -52,6 +56,7 @@ public class RoleMappingCommand extends AbstractCommand {
                                     mapping.getPrincipalName()
                             );
                         }
+                        table.selectColumns(columns.getColumns());
                         table.print(out);
                     });
                 }

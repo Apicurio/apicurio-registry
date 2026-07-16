@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.artifact;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
@@ -63,6 +64,9 @@ public class ArtifactCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @ParentCommand
     @Getter
     private Acr parent;
@@ -116,6 +120,7 @@ public class ArtifactCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), artifacts.getCount());
+                    table.selectColumns(columns.getColumns());
                     table.print(out);
                 }
             }

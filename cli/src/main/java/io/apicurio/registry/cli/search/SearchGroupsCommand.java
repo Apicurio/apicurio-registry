@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.search;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.GroupOrderMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
@@ -61,6 +62,9 @@ public class SearchGroupsCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         //noinspection ConstantConditions
@@ -109,6 +113,7 @@ public class SearchGroupsCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), results.getCount());
+                    table.selectColumns(columns.getColumns());
                     table.print(out);
                 }
             }

@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.version;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.Conversions;
@@ -49,6 +50,9 @@ public class CommentListCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
@@ -81,6 +85,7 @@ public class CommentListCommand extends AbstractCommand {
                                 convertToString(c.getCreatedOn())
                         );
                     });
+                    table.selectColumns(columns.getColumns());
                     table.print(out);
                 }
             }

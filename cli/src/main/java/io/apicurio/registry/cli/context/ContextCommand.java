@@ -1,10 +1,12 @@
 package io.apicurio.registry.cli.context;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import java.util.Objects;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Mixin;
 
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;
@@ -23,6 +25,9 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
 )
 public class ContextCommand extends AbstractCommand {
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(OutputBuffer output) throws Exception {
         output.writeStdOutChunk(out -> {
@@ -38,6 +43,7 @@ public class ContextCommand extends AbstractCommand {
             config.read().getContext().forEach((id, context) -> {
                 table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId(), context.getArtifactId());
             });
+            table.selectColumns(columns.getColumns());
             table.print(out);
         });
     }

@@ -57,6 +57,14 @@ public class ContentTypeUtilTest {
         ContentHandle content2 = ContentHandle.create("schema{ query: Query }");
         Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(content2));
 
+        // GraphQL directive
+        ContentHandle contentDirective = ContentHandle.create("directive @deprecated(reason: String = \"No longer supported\") on FIELD_DEFINITION | ENUM_VALUE");
+        Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(contentDirective));
+
+        // GraphQL extend keyword
+        ContentHandle contentExtend = ContentHandle.create("extend type Foo { bar: String }");
+        Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(contentExtend));
+
         // GraphQL with tab whitespace
         ContentHandle content3 = ContentHandle.create("type\tQuery { hello: String }");
         Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(content3));

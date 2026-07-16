@@ -175,7 +175,7 @@ public final class ContentTypeUtil {
         return node;
     }
 
-    private static final Pattern GRAPHQL_DEF_PATTERN = Pattern.compile("(?m)^\\s*(type|interface|scalar|union|input|enum)\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*(?:\\{|implements|\\=|$)");
+    private static final Pattern GRAPHQL_DEF_PATTERN = Pattern.compile("(?m)^\\s*(?:extend\\s+)?(type|interface|scalar|union|input|enum)\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*(?:\\{|implements|\\=|$)");
     private static final Pattern GRAPHQL_SCHEMA_PATTERN = Pattern.compile("(?m)^\\s*schema\\s*\\{");
     private static final Pattern GRAPHQL_DIRECTIVE_PATTERN = Pattern.compile("(?m)^\\s*directive\\s+@[a-zA-Z_][a-zA-Z0-9_]*");
 

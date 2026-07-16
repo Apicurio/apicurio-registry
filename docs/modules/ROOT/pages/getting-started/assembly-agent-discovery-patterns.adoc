@@ -340,6 +340,13 @@ Manage agent cards through a defined lifecycle:
 |Each value in the `tags` array within each skill (deduplicated across skills)
 |===
 
+[NOTE]
+====
+Structured content search filters (skills, capabilities, input and output modes, protocol bindings, security schemes, and MCP tool parameters) are supported on the `sql` and `kafkasql` storage variants. The index is populated when an agent card or MCP tool is created or updated through the API.
+
+Artifacts loaded through import/export, and the `gitops` and `kubernetesops` storage variants (which load data exclusively through import), do not populate the structured content index. Structure-based filters return no matches for those artifacts until they are re-uploaded through the API or the database-upgrade backfill runs.
+====
+
 Design your agent cards with consistent skill IDs and capability names across your organization. With consistent naming, discovery queries return accurate results. For example, use `translation` rather than `translate` or `translator` as the skill ID across all translation agents.
 
 [role="_additional-resources"]

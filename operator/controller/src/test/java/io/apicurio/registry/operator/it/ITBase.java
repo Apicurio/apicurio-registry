@@ -285,9 +285,14 @@ public abstract class ITBase implements OperatorTestContext {
                 d.getSpec().getTemplate().getSpec().getContainers()
                         .forEach(c -> c.setImagePullPolicy("IfNotPresent"));
             }
-            await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-                client.resource(r).inNamespace(namespace).createOrReplace();
-                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+            await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+                try {
+                    client.resource(r).inNamespace(namespace).createOrReplace();
+                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
+                } catch (Exception e) {
+                    log.warn("Failed to create resource {} {}: {}", r.getKind(), r.getMetadata().getName(), e.getMessage());
+                    throw e;
+                }
             });
         });
     }

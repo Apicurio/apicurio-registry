@@ -53,8 +53,9 @@ public class TableBuilder {
     /**
      * Restricts the table to the requested columns, keeping only those columns and showing them in
      * the order requested. Requested names are matched against the column headers case-insensitively,
-     * ignoring any non-alphanumeric characters, so "groupId" matches a "Group ID" header. A null or
-     * empty selection leaves the table unchanged.
+     * ignoring any non-alphanumeric characters, so "groupId" matches a "Group ID" header. Blank
+     * entries are ignored, so "--columns name,,state" behaves like "--columns name,state". A null,
+     * empty, or entirely blank selection leaves the table unchanged.
      *
      * @throws CliException if any requested name does not match a known column
      */
@@ -69,7 +70,11 @@ public class TableBuilder {
         var selected = new ArrayList<Column>();
         var invalid = new ArrayList<String>();
         for (var requested : requestedColumns) {
-            var column = columnsByName.get(normalizeColumnName(requested));
+            var normalized = normalizeColumnName(requested);
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            var column = columnsByName.get(normalized);
             if (column == null) {
                 invalid.add(requested);
             } else if (!selected.contains(column)) {
@@ -80,6 +85,9 @@ public class TableBuilder {
             var validColumns = columns.stream().map(Column::getHeader).collect(Collectors.joining(", "));
             throw new CliException("Invalid column(s) '" + String.join(", ", invalid)
                     + "'. Valid values: " + validColumns + ".", VALIDATION_ERROR_RETURN_CODE);
+        }
+        if (selected.isEmpty()) {
+            return this;
         }
         columns.clear();
         columns.addAll(selected);

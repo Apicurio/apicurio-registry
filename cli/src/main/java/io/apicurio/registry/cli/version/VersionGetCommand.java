@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
-import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.OutputType;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -37,6 +36,7 @@ import static io.apicurio.registry.cli.utils.Columns.VERSION;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 /** Retrieves a version's metadata or content. */
 @Command(

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
-import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.OutputType;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -18,6 +17,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;

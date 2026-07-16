@@ -2,7 +2,6 @@ package io.apicurio.registry.cli.search;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
-import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -22,6 +21,7 @@ import static io.apicurio.registry.cli.utils.Columns.NAME;
 import static io.apicurio.registry.cli.utils.Columns.OWNER;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 final class SearchUtil {
 

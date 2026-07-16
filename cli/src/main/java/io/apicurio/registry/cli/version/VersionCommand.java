@@ -2,7 +2,6 @@ package io.apicurio.registry.cli.version;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
-import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.common.VersionOrderMixin;
@@ -25,6 +24,7 @@ import static io.apicurio.registry.cli.utils.Columns.STATE;
 import static io.apicurio.registry.cli.utils.Columns.VERSION;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 /** Lists versions for an artifact with pagination support. */
 @Command(

@@ -11,7 +11,7 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
  */
 public final class IdUtil {
 
-    private static final String DEFAULT_GROUP = "default";
+    public static final String DEFAULT_GROUP = "default";
 
     private IdUtil() {
     }

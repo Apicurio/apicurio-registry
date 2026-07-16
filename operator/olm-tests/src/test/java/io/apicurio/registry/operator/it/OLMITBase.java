@@ -78,7 +78,7 @@ public abstract class OLMITBase implements OperatorTestContext {
         }
     }
 
-    private static void setupOLMResources() throws Exception {
+    private void setupOLMResources() throws Exception {
         int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
         if (olmVersion == 0) {
 

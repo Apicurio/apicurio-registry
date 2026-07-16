@@ -35,11 +35,15 @@ public class GroupDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        String resolvedGroupId = io.apicurio.registry.cli.common.IdUtil.resolveGroupId(groupId, config);
+        if (io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP.equals(resolvedGroupId)) {
+            throw new io.apicurio.registry.cli.common.CliException("The group '" + io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP + "' is implicit and cannot be deleted.", io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
         // Check if the group exists
-        client.getRegistryClient().groups().byGroupId(groupId).get();
+        client.getRegistryClient().groups().byGroupId(resolvedGroupId).get();
 
         // Check if the group has artifacts
-        var artifacts = client.getRegistryClient().groups().byGroupId(groupId).artifacts().get(r -> {
+        var artifacts = client.getRegistryClient().groups().byGroupId(resolvedGroupId).artifacts().get(r -> {
             //noinspection ConstantConditions
             r.queryParameters.offset = 0;
             r.queryParameters.limit = 1;
@@ -62,10 +66,10 @@ public class GroupDeleteCommand extends AbstractCommand {
         }
 
         // Delete the group
-        client.getRegistryClient().groups().byGroupId(groupId).delete();
+        client.getRegistryClient().groups().byGroupId(resolvedGroupId).delete();
 
         output.writeStdOutChunk(out -> {
-            out.append("Group '").append(groupId).append("' deleted successfully");
+            out.append("Group '").append(resolvedGroupId).append("' deleted successfully");
             if (artifactCount > 0) {
                 out.append(" (including ").append(artifactCount).append(" artifact(s))");
             }

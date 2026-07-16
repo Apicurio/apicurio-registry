@@ -44,7 +44,11 @@ public class GroupUpdateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        var group = client.getRegistryClient().groups().byGroupId(groupId).get();
+        String resolvedGroupId = io.apicurio.registry.cli.common.IdUtil.resolveGroupId(groupId, config);
+        if (io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP.equals(resolvedGroupId)) {
+            throw new io.apicurio.registry.cli.common.CliException("The group '" + io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP + "' is implicit and cannot be updated.", io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
+        var group = client.getRegistryClient().groups().byGroupId(resolvedGroupId).get();
         var updatedGroup = new EditableGroupMetaData();
         updatedGroup.setDescription(group.getDescription());
         updatedGroup.setLabels(group.getLabels());
@@ -62,7 +66,7 @@ public class GroupUpdateCommand extends AbstractCommand {
                 updatedGroup.getLabels().getAdditionalData().remove(key);
             });
         }
-        client.getRegistryClient().groups().byGroupId(groupId).put(updatedGroup);
+        client.getRegistryClient().groups().byGroupId(resolvedGroupId).put(updatedGroup);
         output.writeStdOutChunk(out -> {
             out.append("Group '").append(group.getGroupId()).append("' updated successfully.\n");
         });

@@ -16,11 +16,8 @@
 
 package io.apicurio.registry.auth;
 
-import io.fabric8.kubernetes.api.model.authentication.TokenReview;
-import io.fabric8.kubernetes.api.model.authentication.TokenReviewSpec;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authentication.UserInfo;
-import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -29,44 +26,40 @@ import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.vertx.ext.web.RoutingContext;
+import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KubernetesAuthenticationStrategy implements AuthenticationStrategy {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final int MAX_CACHE_SIZE = 10_000;
 
-    private final KubernetesClient kubernetesClient;
+    private final TokenReviewClient tokenReviewClient;
     private final AuthConfig authConfig;
     private final Logger log;
-    private final TokenReviewCircuitBreaker circuitBreaker;
+    private final AtomicBoolean circuitOpenWarned = new AtomicBoolean(false);
     private final ConcurrentHashMap<String, WrappedValue<TokenReviewResult>> cache =
             new ConcurrentHashMap<>();
 
-    public KubernetesAuthenticationStrategy(KubernetesClient kubernetesClient,
+    public KubernetesAuthenticationStrategy(TokenReviewClient tokenReviewClient,
             AuthConfig authConfig, Logger log) {
-        this.kubernetesClient = kubernetesClient;
+        this.tokenReviewClient = tokenReviewClient;
         this.authConfig = authConfig;
         this.log = log;
-        this.circuitBreaker = new TokenReviewCircuitBreaker(
-                authConfig.kubernetesCircuitBreakerThreshold,
-                Duration.ofSeconds(authConfig.kubernetesCircuitBreakerTimeoutSeconds),
-                Clock.systemUTC(), log);
     }
 
     @Override
@@ -113,64 +106,58 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
     private TokenReviewResult performTokenReview(String token, String tokenHash) {
         Duration cacheDuration = Duration.ofMinutes(authConfig.kubernetesTokenCacheExpiration);
 
-        if (!circuitBreaker.allowRequest()) {
+        TokenReviewStatus status;
+        try {
+            status = tokenReviewClient.review(token);
+        } catch (CircuitBreakerOpenException e) {
             // Circuit is open (K8s API unavailable): fail fast with the same contract as the
             // API-error path below, returning null so the auth chain issues a 401 challenge.
             // This is deliberate rather than a 503: it preserves the existing failure semantics and
             // keeps anonymous access working (when enabled) while the TokenReview API is down.
             // Security note: when apicurio.auth.anonymous-read-access.enabled=true, requests that
             // would normally authenticate via a Kubernetes token are served as anonymous read-only
-            // requests for as long as the circuit is open. The OPEN transition is logged at WARN
-            // (including this fallback) so operators can correlate the change in behavior.
-            log.debug("Kubernetes TokenReview call skipped: circuit breaker is open (K8s API unavailable)");
+            // requests for as long as the circuit is open. The first rejection of each open episode
+            // is logged at WARN (including this fallback) so operators can correlate the change in
+            // behavior; subsequent rejections log at DEBUG to avoid flooding.
+            if (circuitOpenWarned.compareAndSet(false, true)) {
+                log.warn("Kubernetes TokenReview circuit breaker is OPEN; skipping TokenReview "
+                        + "calls. Requests with Kubernetes tokens will be treated as "
+                        + "unauthenticated while the circuit is open; if anonymous read access is "
+                        + "enabled (apicurio.auth.anonymous-read-access.enabled), they will be "
+                        + "served as anonymous read-only requests.");
+            } else {
+                log.debug("Kubernetes TokenReview call skipped: circuit breaker is open");
+            }
             return null;
-        }
-
-        try {
-            TokenReviewSpec spec = new TokenReviewSpec();
-            spec.setToken(token);
-
-            List<String> audiences = authConfig.getKubernetesApiAudiences();
-            if (!audiences.isEmpty()) {
-                spec.setAudiences(audiences);
-            }
-
-            TokenReview review = new TokenReview();
-            review.setSpec(spec);
-            TokenReview response = kubernetesClient.tokenReviews().create(review);
-            if (response == null) {
-                circuitBreaker.recordFailure();
-                return null;
-            }
-            circuitBreaker.recordSuccess();
-
-            TokenReviewStatus status = response.getStatus();
-            if (status == null || !Boolean.TRUE.equals(status.getAuthenticated())) {
-                log.debug("Kubernetes TokenReview: authentication failed");
-                cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(),
-                        new TokenReviewResult(false, null, null, Collections.emptySet())));
-                return null;
-            }
-
-            UserInfo user = status.getUser();
-            String username = user != null ? user.getUsername() : "unknown";
-            String uid = user != null ? user.getUid() : null;
-            Set<String> groups = new HashSet<>();
-            if (user != null && user.getGroups() != null) {
-                groups.addAll(user.getGroups());
-            }
-
-            log.debug("Kubernetes TokenReview: authenticated user '{}'", username);
-
-            TokenReviewResult result = new TokenReviewResult(true, username, uid, groups);
-            cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(), result));
-            return result;
-
         } catch (Exception e) {
             log.warn("Kubernetes TokenReview API call failed: {}", e.getMessage());
-            circuitBreaker.recordFailure();
             return null;
         }
+
+        // A healthy API reply (whatever its outcome) ends any open-circuit episode, so the next
+        // one is logged at WARN again.
+        circuitOpenWarned.set(false);
+
+        if (status == null || !Boolean.TRUE.equals(status.getAuthenticated())) {
+            log.debug("Kubernetes TokenReview: authentication failed");
+            cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(),
+                    new TokenReviewResult(false, null, null, Collections.emptySet())));
+            return null;
+        }
+
+        UserInfo user = status.getUser();
+        String username = user != null ? user.getUsername() : "unknown";
+        String uid = user != null ? user.getUid() : null;
+        Set<String> groups = new HashSet<>();
+        if (user != null && user.getGroups() != null) {
+            groups.addAll(user.getGroups());
+        }
+
+        log.debug("Kubernetes TokenReview: authenticated user '{}'", username);
+
+        TokenReviewResult result = new TokenReviewResult(true, username, uid, groups);
+        cachePut(tokenHash, new WrappedValue<>(cacheDuration, Instant.now(), result));
+        return result;
     }
 
     private void cachePut(String key, WrappedValue<TokenReviewResult> value) {

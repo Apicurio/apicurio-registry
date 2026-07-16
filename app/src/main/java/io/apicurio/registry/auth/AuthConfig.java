@@ -182,14 +182,6 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "TokenReview result cache expiration in minutes", availableSince = "3.3.0", experimental = true)
     int kubernetesTokenCacheExpiration;
 
-    @ConfigProperty(name = "apicurio.authn.token-review.circuit-breaker.threshold", defaultValue = "5")
-    @Info(category = CATEGORY_AUTH, description = "Number of consecutive Kubernetes TokenReview API failures after which the circuit breaker opens and TokenReview calls are temporarily skipped. Set to 0 to disable the circuit breaker. While the circuit is open, requests with Kubernetes tokens are treated as unauthenticated; if apicurio.auth.anonymous-read-access.enabled is true, such requests are granted anonymous read-only access instead of being rejected.", availableSince = "3.4.0", experimental = true)
-    int kubernetesCircuitBreakerThreshold;
-
-    @ConfigProperty(name = "apicurio.authn.token-review.circuit-breaker.timeout-seconds", defaultValue = "30")
-    @Info(category = CATEGORY_AUTH, description = "Number of seconds the Kubernetes TokenReview circuit breaker stays open before allowing a probe request to check whether the API has recovered.", availableSince = "3.4.0", experimental = true)
-    int kubernetesCircuitBreakerTimeoutSeconds;
-
     @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.admin")
     @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-admin role", availableSince = "3.3.0", experimental = true)
     Optional<String> kubernetesAdminGroups;

@@ -555,14 +555,17 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 onClose={onChangeStateModalClose}
                 onChangeState={doChangeState}
             />
-            {getAgentCardFromContent() && (
-                <EditAgentModal
-                    isOpen={isEditAgentCardModalOpen}
-                    agentCard={getAgentCardFromContent()!}
-                    onClose={() => setIsEditAgentCardModalOpen(false)}
-                    onSave={doSaveAgentCard}
-                />
-            )}
+            {(() => {
+                const agentCard = getAgentCardFromContent();
+                return agentCard ? (
+                    <EditAgentModal
+                        isOpen={isEditAgentCardModalOpen}
+                        agentCard={agentCard}
+                        onClose={() => setIsEditAgentCardModalOpen(false)}
+                        onSave={doSaveAgentCard}
+                    />
+                ) : null;
+            })()}
             <PleaseWaitModal
                 message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />

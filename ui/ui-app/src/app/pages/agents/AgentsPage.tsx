@@ -76,6 +76,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const [isCreateAgentModalOpen, setIsCreateAgentModalOpen] = useState(false);
     const [isImportAgentModalOpen, setIsImportAgentModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
+    const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
 
     const agentSvc = useAgentService();
     const appNav = useAppNavigation();
@@ -148,8 +149,8 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
         appNav.navigateTo(`/explore/${gid}/${aid}`);
     };
 
-    const doCreateAgent = (groupId: string, data: CreateArtifact): void => {
-        setIsCreateAgentModalOpen(false);
+    const doSaveAgent = (groupId: string, data: CreateArtifact, waitMessage: string, errorMessage: string): void => {
+        setPleaseWaitMessage(waitMessage);
         setIsPleaseWaitModalOpen(true);
         groups.createArtifact(groupId || null, data).then(response => {
             const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
@@ -158,21 +159,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
             appNav.navigateTo(`/explore/${gid}/${aid}`);
         }).catch(error => {
             setIsPleaseWaitModalOpen(false);
-            setPageError(toPageError(error, "Error creating agent."));
-        });
-    };
-
-    const doImportAgent = (groupId: string, data: CreateArtifact): void => {
-        setIsImportAgentModalOpen(false);
-        setIsPleaseWaitModalOpen(true);
-        groups.createArtifact(groupId || null, data).then(response => {
-            const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
-            const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
-            setIsPleaseWaitModalOpen(false);
-            appNav.navigateTo(`/explore/${gid}/${aid}`);
-        }).catch(error => {
-            setIsPleaseWaitModalOpen(false);
-            setPageError(toPageError(error, "Error importing agent."));
+            setPageError(toPageError(error, errorMessage));
         });
     };
 
@@ -414,15 +401,21 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
             <CreateAgentModal
                 isOpen={isCreateAgentModalOpen}
                 onClose={() => setIsCreateAgentModalOpen(false)}
-                onCreate={doCreateAgent}
+                onCreate={(groupId, data) => {
+                    setIsCreateAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Creating agent card, please wait...", "Error creating agent.");
+                }}
             />
             <ImportAgentModal
                 isOpen={isImportAgentModalOpen}
                 onClose={() => setIsImportAgentModalOpen(false)}
-                onImport={doImportAgent}
+                onImport={(groupId, data) => {
+                    setIsImportAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Importing agent card, please wait...", "Error importing agent.");
+                }}
             />
             <PleaseWaitModal
-                message="Creating agent card, please wait..."
+                message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen}
             />
         </PageErrorHandler>

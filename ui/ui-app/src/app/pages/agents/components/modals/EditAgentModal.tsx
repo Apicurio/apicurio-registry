@@ -18,7 +18,7 @@ export const EditAgentModal: FunctionComponent<EditAgentModalProps> = (props: Ed
         if (props.isOpen) {
             setEditedCard(props.agentCard);
         }
-    }, [props.isOpen]);
+    }, [props.isOpen, props.agentCard]);
 
     const isValid = (): boolean => {
         return !!editedCard.name && editedCard.name.trim().length > 0;

@@ -84,6 +84,11 @@ public class StructuredContentUpgrader implements IDbUpgrader {
 
         Set<String> seen = new HashSet<>();
         for (StructuredElement element : elements) {
+            if (element == null || element.kind() == null || element.name() == null) {
+                // Skip malformed elements: a null value would violate the NOT NULL constraints and,
+                // on databases like PostgreSQL, abort the backfill transaction.
+                continue;
+            }
             String elementType = limitStr(asLowerCase(artifact.type + ":" + element.kind()), 64);
             String elementValue = limitStr(asLowerCase(element.name()), 512);
             if (seen.add(elementType + ":" + elementValue)) {

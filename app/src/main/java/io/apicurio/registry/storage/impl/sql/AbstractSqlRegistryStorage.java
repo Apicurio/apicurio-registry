@@ -605,6 +605,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             List<StructuredElement> elements = extractor.extract(content.getContent());
             Set<String> seen = new HashSet<>();
             for (StructuredElement element : elements) {
+                if (element == null || element.kind() == null || element.name() == null) {
+                    // Skip malformed elements. elementType/elementValue are NOT NULL, and on some
+                    // databases (e.g. PostgreSQL) a failed statement aborts the surrounding
+                    // transaction - which here is the artifact-write transaction. Silently dropping
+                    // bad elements keeps this best-effort update from failing the whole operation.
+                    continue;
+                }
                 String elementType = limitStr(asLowerCase(artifactType + ":" + element.kind()), 64);
                 String elementValue = limitStr(asLowerCase(element.name()), 512);
                 if (seen.add(elementType + ":" + elementValue)) {

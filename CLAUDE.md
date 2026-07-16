@@ -78,6 +78,36 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 - Profiles: `local-tests`, `remote-mem`, `remote-sql`, `remote-kafka`
 - Storage-touching features must work across all variants
 
+## Contributor Checklist
+
+Before opening a PR, verify every item. PRs that skip these get sent back.
+
+### Before writing code
+- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time.
+- [ ] Check for **overlapping PRs** — search open PRs for your issue number and keywords. Duplicate work gets the later PR closed.
+
+### Code
+- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` annotation in `app` module, run config doc generator).
+- [ ] API error responses never expose internal state — no usernames, stack traces, or class names. Use generic messages.
+- [ ] Never hand-roll what Quarkus or MicroProfile already provides (circuit breakers, retry, fault tolerance, health checks). Check existing dependencies first.
+- [ ] New features or behavioral changes under `storage/impl/` that aren't variant-specific must be implemented across all 4 storage variants.
+- [ ] Auth changes require tests for both **positive** (authorized → succeeds) and **negative** (unauthorized → 403) cases.
+- [ ] New Java files include the Apache 2.0 license header.
+
+### Tests
+- [ ] Every new code path has tests. Missing tests = automatic rejection.
+- [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
+- [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
+- [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
+
+### Submission
+- [ ] `./mvnw test-compile -pl <module> -am -DskipTests` compiles cleanly (use `test-compile`, not `compile`, when touching test files).
+- [ ] `./mvnw checkstyle:check -pl <module>` passes.
+- [ ] All commits have DCO sign-off (`Signed-off-by: Name <email>`).
+- [ ] Commit messages use Conventional Commits: `type(scope): description`.
+- [ ] PR contains no unrelated changes (no whitespace fixes, no import reordering in untouched files).
+- [ ] PR description explains **what** and **why**, not just "fixes #NNN".
+
 ## Watch Out For
 
 - Protobuf-generated classes live in `target/` — don't edit them
@@ -90,7 +120,7 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 
 - **Commands**: See `.claude/commands/` for project-specific slash commands
 - **Rules**: See `.claude/rules/` for path-scoped coding conventions
-- **Agents**: See `.claude/agents/` for specialized subagent personas
+- **Agents**: See `.claude/agents/` for specialized subagent personas (`contributor-guide`, `code-reviewer`, `security-auditor`, `ci-debugger`)
 - **Skills**: See `.claude/skills/` for auto-invoked workflow guides
 - **Permissions**: See `.claude/settings.json` for team-shared permission policies
 - **Hooks**: File protection and checkstyle-before-commit enabled by default; see `.claude/hooks/`

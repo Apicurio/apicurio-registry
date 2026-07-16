@@ -137,7 +137,7 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.33.2</quarkus.version>
+    <quarkus.version>3.33.2.1</quarkus.version>
     <!--
     # QOSDK
 
@@ -177,7 +177,7 @@
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.17.0</okio.version>
-    <kotlin-stdlib.version>2.4.0</kotlin-stdlib.version>
+    <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.35.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
@@ -218,8 +218,8 @@
     <json-sKema.version>0.31.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
-    <jackson-datatype-json-org.version>2.18.8</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.18.2</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>2.21.2</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>2.21.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>

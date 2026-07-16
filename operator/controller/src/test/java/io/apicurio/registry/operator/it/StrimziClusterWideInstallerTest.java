@@ -4,6 +4,8 @@ import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
+import io.apicurio.registry.operator.Tags;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Fails fast on a Strimzi version bump if the upstream RBAC layout changed (see the README next to
  * the vendored manifest).
  */
+// Tagged kafka so it runs in the kafka CI shard on PRs (untagged tests are excluded by -Dgroups).
+@Tag(Tags.KAFKA)
 class StrimziClusterWideInstallerTest {
 
     private static final String NS = "strimzi-test-ns";
@@ -23,7 +27,8 @@ class StrimziClusterWideInstallerTest {
     void transformsManifestForClusterWideWatch() throws Exception {
         List<HasMetadata> resources = StrimziClusterWideInstaller.loadAndTransformManifest(NS);
 
-        // 10 CRDs + 7 ClusterRoles + 6 bindings (see below) + ServiceAccount + ConfigMap + Deployment
+        // 10 CRDs + 7 ClusterRoles + 7 bindings (1 RoleBinding + 6 ClusterRoleBindings, see below)
+        // + ServiceAccount + ConfigMap + Deployment
         assertThat(resources).hasSize(27);
         assertThat(resources.stream().filter(r -> "CustomResourceDefinition".equals(r.getKind())))
                 .hasSize(10);

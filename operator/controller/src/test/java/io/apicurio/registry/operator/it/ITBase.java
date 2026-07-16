@@ -108,6 +108,11 @@ public abstract class ITBase implements OperatorTestContext {
         return namespace;
     }
 
+    @Override
+    public java.util.List<String> extraDiagnosticNamespaces() {
+        return java.util.List.of(StrimziClusterWideInstaller.strimziNamespace());
+    }
+
     @BeforeAll
     public void before() throws Exception {
         operatorDeployment = getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,

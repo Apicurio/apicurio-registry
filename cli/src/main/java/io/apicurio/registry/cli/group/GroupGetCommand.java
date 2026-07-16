@@ -74,14 +74,26 @@ public class GroupGetCommand extends AbstractCommand {
                     table.addColumns(FIELD, VALUE);
                     table.addRow(GROUP_ID, group.getGroupId());
                     table.addRow(DESCRIPTION, group.getDescription());
-                    table.addRow(CREATED_ON, isDefault ? "N/A" : convertToString(group.getCreatedOn()));
-                    table.addRow(OWNER, isDefault ? "N/A" : group.getOwner());
-                    table.addRow(MODIFIED_ON, isDefault ? "N/A" : convertToString(group.getModifiedOn()));
-                    table.addRow(MODIFIED_BY, isDefault ? "N/A" : group.getModifiedBy());
-                    table.addRow(LABELS, isDefault ? "N/A" : convertToString(group.getLabels()));
+                    table.addRow(CREATED_ON, displayObj(isDefault, group.getCreatedOn()));
+                    table.addRow(OWNER, displayStr(isDefault, group.getOwner()));
+                    table.addRow(MODIFIED_ON, displayObj(isDefault, group.getModifiedOn()));
+                    table.addRow(MODIFIED_BY, displayStr(isDefault, group.getModifiedBy()));
+                    table.addRow(LABELS, displayObj(isDefault, group.getLabels()));
                     table.print(out);
                 }
             }
         });
+    }
+
+    private static String displayObj(boolean isDefault, java.util.Date value) {
+        return isDefault ? "N/A" : convertToString(value);
+    }
+
+    private static String displayObj(boolean isDefault, java.util.Map<String, String> value) {
+        return isDefault ? "N/A" : convertToString(value);
+    }
+
+    private static String displayStr(boolean isDefault, String value) {
+        return isDefault ? "N/A" : value;
     }
 }

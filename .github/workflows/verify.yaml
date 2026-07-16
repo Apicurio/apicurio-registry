@@ -35,6 +35,7 @@ jobs:
       run-cli: ${{ steps.decide.outputs.run-cli }}
       run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
       run-operator: ${{ steps.decide.outputs.run-operator }}
+      scalpel-enabled: ${{ steps.decide.outputs.scalpel-enabled }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -115,9 +116,10 @@ jobs:
               LABEL='${{ github.event.label.name }}'
               if [[ "$LABEL" != lifecycle/* ]]; then
                 echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator; do
+                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
+                echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
             fi
@@ -136,6 +138,7 @@ jobs:
               for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
+              echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
@@ -200,6 +203,13 @@ jobs:
           decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
           decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
+          # Scalpel (affected-module detection) can be disabled via PR label
+          if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then
+            echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "scalpel-enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Save decision summary
         if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
         run: |
@@ -213,7 +223,8 @@ jobs:
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
             "run-cli": "${{ steps.decide.outputs.run-cli }}",
             "run-operator": "${{ steps.decide.outputs.run-operator }}",
-            "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}"
+            "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}",
+            "scalpel-enabled": "${{ steps.decide.outputs.scalpel-enabled }}"
           }
           ARTIFACT_EOF
           cat > /tmp/verify-changes.json << 'ARTIFACT_EOF'
@@ -281,6 +292,26 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
+      scalpel-enabled: 'false'
+
+  # ============================================================================
+  # Unit Tests — Scalpel Shadow (evaluation mode)
+  #
+  # Runs the same unit test shards with Scalpel ENABLED to compare results
+  # against the control group (unit-tests). Not in the Verification Gate —
+  # failures here don't block PRs. Remove this once the team is confident
+  # in Scalpel's accuracy and switches over.
+  # PR-only: on push-to-main Scalpel is a no-op (no GITHUB_BASE_REF), so
+  # running both groups would just double CI cost with identical results.
+  # ============================================================================
+  unit-tests-scalpel:
+    name: Unit Tests (Scalpel)
+    needs: [decide, build]
+    if: needs.decide.outputs.run-unit-tests == 'true' && github.event_name == 'pull_request'
+    uses: ./.github/workflows/verify-unit-tests.yaml
+    with:
+      image-tag: ${{ github.sha }}
+      scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
 
   # ============================================================================
   # CLI Verification

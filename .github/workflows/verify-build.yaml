@@ -74,22 +74,24 @@ jobs:
           output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
-      - name: Upload Build Artifacts for Publish
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
             app/target/
-            distro/docker/target/
-            mcp/target/docker/
-            java-sdk/common/target/
-            java-sdk/adapter-vertx/target/
-            java-sdk/adapter-jdk/target/
-            java-sdk/client/target/
-            java-sdk/client-v2/target/
-            config-index/definitions/target/
+            cli/target/
             common/target/
-            schema-util/common/target/
+            contracts-rules/target/
+            schema-resolver/target/
+            config-index/*/target/
+            distro/*/target/
+            java-sdk/*/target/
+            schema-util/*/target/
+            schema-validation/*/target/
+            serdes/*/*/target/
+            utils/*/target/
+            mcp/target/docker/
           retention-days: 1
 
   build-ui:
@@ -100,7 +102,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'

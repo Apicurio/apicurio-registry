@@ -7,9 +7,11 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UserInfo;
@@ -379,6 +381,38 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
             client.groups().byGroupId(groupId).artifacts().post(createArtifact);
         });
         assertNotAuthorized(exception2);
+    }
+
+    @Test
+    public void testGetGroupByIdGroupReadSufficientWithoutArtifactPermissions() throws Exception {
+        var clientAdmin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
+        var clientReadonly = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.READONLY_CLIENT_ID, "test1"));
+
+        final String testGroupId = "testGetGroupByIdAuth";
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(testGroupId);
+        createGroup.setDescription("getGroupById authorization test");
+        clientAdmin.groups().post(createGroup);
+
+        String artifactId = TestUtils.generateArtifactId();
+        createArtifact.setArtifactId(artifactId);
+        clientAdmin.groups().byGroupId(testGroupId).artifacts().post(createArtifact);
+
+        GroupMetaData group = clientReadonly.groups().byGroupId(testGroupId).get();
+        assertEquals(testGroupId, group.getGroupId());
+
+        EditableArtifactMetaData updatedMetaData = new EditableArtifactMetaData();
+        updatedMetaData.setName("should-fail");
+        var exception = assertThrows(Exception.class, () -> {
+            clientReadonly.groups().byGroupId(testGroupId).artifacts().byArtifactId(artifactId)
+                    .put(updatedMetaData);
+        });
+        assertForbidden(exception);
     }
 
     @Test

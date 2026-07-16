@@ -8,6 +8,7 @@ import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBindingBuilder;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,9 @@ import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
  * <p>
  * The install is idempotent: if a ready operator Deployment already exists in the dedicated namespace
  * (e.g. installed by a previous test group's JVM on the same cluster), installation is skipped.
+ * Unlike the per-class guard removed in PR #8452 — which skipped installs whose target namespace had
+ * already been deleted — a JVM-wide guard is correct here because the install target is a single,
+ * never-deleted namespace.
  * Cleanup on dev clusters: {@code kubectl delete namespace <ns>} plus the Strimzi CRDs/ClusterRoles.
  */
 final class StrimziClusterWideInstaller {
@@ -53,6 +57,11 @@ final class StrimziClusterWideInstaller {
     private static final String OPERATOR_DEPLOYMENT_NAME = "strimzi-cluster-operator";
     private static final String STRIMZI_NAMESPACE_ENV = "STRIMZI_NAMESPACE";
     private static final String LEADER_ELECTION_ROLE_BINDING = "strimzi-cluster-operator-leader-election";
+    // RoleBindings the watch-all-namespaces procedure converts to ClusterRoleBindings. Fail-fast on
+    // anything else so a version bump cannot silently escalate a new namespaced binding to cluster scope.
+    private static final java.util.Set<String> CONVERTIBLE_ROLE_BINDINGS = java.util.Set.of(
+            "strimzi-cluster-operator", "strimzi-cluster-operator-watched",
+            "strimzi-cluster-operator-entity-operator-delegation");
 
     // Guarded by the synchronized ensureInstalled() — no volatile needed.
     private static boolean installedInThisJvm = false;
@@ -102,9 +111,16 @@ final class StrimziClusterWideInstaller {
 
     private static void ensureNamespace(KubernetesClient client, String namespace) {
         if (client.namespaces().withName(namespace).get() == null) {
-            client.resource(new NamespaceBuilder().withNewMetadata()
-                    .addToLabels("app", "apicurio-registry-operator-test-strimzi").withName(namespace)
-                    .endMetadata().build()).create();
+            try {
+                client.resource(new NamespaceBuilder().withNewMetadata()
+                        .addToLabels("app", "apicurio-registry-operator-test-strimzi").withName(namespace)
+                        .endMetadata().build()).create();
+            } catch (KubernetesClientException ex) {
+                // Another JVM sharing the cluster may have created it between the check and create.
+                if (ex.getCode() != 409) {
+                    throw ex;
+                }
+            }
         }
     }
 
@@ -122,14 +138,24 @@ final class StrimziClusterWideInstaller {
 
     private static HasMetadata transform(HasMetadata resource, String namespace) {
         if (resource instanceof ClusterRoleBinding crb) {
-            crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+            if (crb.getSubjects() != null) {
+                crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+            }
             return crb;
         }
         if (resource instanceof RoleBinding rb) {
-            rb.getSubjects().forEach(s -> s.setNamespace(namespace));
+            if (rb.getSubjects() != null) {
+                rb.getSubjects().forEach(s -> s.setNamespace(namespace));
+            }
             if (LEADER_ELECTION_ROLE_BINDING.equals(rb.getMetadata().getName())) {
                 // Leader election lease lives in the operator's own namespace; stays a RoleBinding.
                 return rb;
+            }
+            if (!CONVERTIBLE_ROLE_BINDINGS.contains(rb.getMetadata().getName())) {
+                throw new IllegalStateException("Unexpected RoleBinding '" + rb.getMetadata().getName()
+                        + "' in the Strimzi manifest. Review whether it must be converted for the"
+                        + " cluster-wide watch or kept namespaced, then update"
+                        + " CONVERTIBLE_ROLE_BINDINGS (see src/test/resources/strimzi/README.md).");
             }
             return toClusterRoleBinding(rb);
         }
@@ -168,7 +194,8 @@ final class StrimziClusterWideInstaller {
     }
 
     private static void waitForOperatorReady(KubernetesClient client, String namespace) {
-        await().atMost(ITBase.MEDIUM_DURATION).ignoreExceptions()
+        // LONG_DURATION: on a cold cluster this includes the operator image pull + JVM startup.
+        await().atMost(ITBase.LONG_DURATION).ignoreExceptions()
                 .untilAsserted(() -> assertThat(isOperatorReady(client, namespace)).isTrue());
     }
 }

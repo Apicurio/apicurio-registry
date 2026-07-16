@@ -11,7 +11,7 @@ into this file — keep it byte-identical to upstream.
 To bump the Strimzi version:
 1. Download the new release manifest into this directory (keep the versioned filename).
 2. Update `StrimziClusterWideInstaller.MANIFEST_RESOURCE` and delete the old file.
-3. Check the Strimzi docs "watch all namespaces" section for RBAC changes (binding names are
-   asserted by the installer and will fail fast if they change).
+3. Check the Strimzi docs "watch all namespaces" section for RBAC changes (unexpected RoleBinding names fail fast at install time via CONVERTIBLE_ROLE_BINDINGS in
+   StrimziClusterWideInstaller, and StrimziClusterWideInstallerTest asserts the full transform).
 4. Note: Strimzi 0.48+ removed support for Kafka 3.9.x — coordinate with the Kafka CR versions
    in `src/test/resources/k8s/examples/kafkasql/`.

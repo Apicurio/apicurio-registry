@@ -52,6 +52,24 @@ class TableBuilderTest {
     }
 
     @Test
+    void selectColumnsIgnoresBlankEntries() {
+        var output = render(new TableBuilder()
+                .addColumns("Group ID", "Name")
+                .addRow("g1", "n1")
+                .selectColumns(List.of("", "name", "  ")));
+        assertThat(row(output, 0)).containsExactly("Name");
+    }
+
+    @Test
+    void selectColumnsWithOnlyBlankEntriesLeavesTableUnchanged() {
+        var output = render(new TableBuilder()
+                .addColumns("Group ID", "Name")
+                .addRow("g1", "n1")
+                .selectColumns(List.of("", "  ")));
+        assertThat(row(output, 0)).containsExactly("Group ID", "Name");
+    }
+
+    @Test
     void selectColumnsWithUnknownNameThrowsValidationError() {
         var table = new TableBuilder().addColumns("Group ID", "Name").addRow("g1", "n1");
         var ex = assertThrows(CliException.class, () -> table.selectColumns(List.of("bogus")));

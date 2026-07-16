@@ -9,6 +9,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 
@@ -20,6 +21,8 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlSnapshotScheduler {
 
+    private static final long INITIAL_DELAY_SECONDS = 60L;
+
     @Inject
     Logger log;
 
@@ -27,10 +30,7 @@ public class KafkaSqlSnapshotScheduler {
     @Current
     RegistryStorage storage;
 
-    /**
-     * Minimal granularity is 1 minute.
-     */
-    @Scheduled(delay = 60, concurrentExecution = SKIP, every = "{apicurio.kafkasql.snapshot.every.seconds}")
+    @Scheduled(delay = INITIAL_DELAY_SECONDS, delayUnit = TimeUnit.SECONDS, concurrentExecution = SKIP, every = "{apicurio.kafkasql.snapshot.every.seconds}")
     void run() {
         try {
             triggerIfWritable();

@@ -28,6 +28,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -145,11 +148,22 @@ class TokenReviewClientCircuitBreakerTest {
         // CircuitBreakerOpenException — never an API error, never an inconsistent state.
         mockServer.expect().post().withPath(TOKEN_REVIEW_PATH)
                 .andReturn(200, reviewResponse(true)).always();
-        Thread.sleep(OPEN_DELAY_MS + 500);
 
-        List<Object> probeOutcomes = raceConcurrently(10);
+        // Poll with whole concurrent bursts instead of sleeping: while the circuit is still open,
+        // every burst is fully rejected without touching the server; the first burst after the
+        // open window elapses races the half-open probe — exactly the scenario under test.
+        AtomicReference<List<Object>> probeRace = new AtomicReference<>();
+        await().atMost(Duration.ofMillis(OPEN_DELAY_MS * 5))
+                .pollInterval(Duration.ofMillis(200))
+                .until(() -> {
+                    List<Object> outcomes = raceConcurrently(10);
+                    probeRace.set(outcomes);
+                    return outcomes.stream()
+                            .anyMatch(outcome -> !(outcome instanceof CircuitBreakerOpenException));
+                });
+
         int successes = 0;
-        for (Object outcome : probeOutcomes) {
+        for (Object outcome : probeRace.get()) {
             if (outcome instanceof CircuitBreakerOpenException) {
                 continue; // rejected while the probe was still in flight — expected
             }

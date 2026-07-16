@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.OutputType;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -122,7 +123,7 @@ public class ArtifactGetCommand extends AbstractCommand {
                 case table -> {
                     final var table = new TableBuilder();
                     table.addColumns(FIELD, VALUE);
-                    table.addRow(GROUP_ID, artifact.getGroupId());
+                    table.addRow(GROUP_ID, displayGroupId(artifact.getGroupId()));
                     table.addRow(ARTIFACT_ID, artifact.getArtifactId());
                     table.addRow(NAME, artifact.getName());
                     table.addRow(ARTIFACT_TYPE, artifact.getArtifactType());

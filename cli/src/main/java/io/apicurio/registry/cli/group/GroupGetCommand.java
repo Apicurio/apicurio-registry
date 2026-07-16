@@ -47,7 +47,7 @@ public class GroupGetCommand extends AbstractCommand {
     public void run(OutputBuffer output) throws Exception {
         String resolvedGroupId = io.apicurio.registry.cli.common.IdUtil.resolveGroupId(groupId, config);
         GroupMetaData group;
-        if (io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP.equals(resolvedGroupId)) {
+        if (io.apicurio.registry.cli.common.IdUtil.isDefaultGroup(resolvedGroupId)) {
             group = GroupMetaData.builder()
                     .groupId(io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP)
                     .description("The default group.")

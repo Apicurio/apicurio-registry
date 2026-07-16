@@ -47,7 +47,7 @@ public class GroupCreateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        if (io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP.equals(groupId)) {
+        if (io.apicurio.registry.cli.common.IdUtil.isDefaultGroup(groupId)) {
             throw new io.apicurio.registry.cli.common.CliException("The group '" + io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP + "' is reserved and cannot be created.", io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE);
         }
         var newGroup = new CreateGroup();

@@ -4,6 +4,7 @@ import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
 import io.apicurio.registry.cli.common.IdUtil;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.Mapper;
@@ -103,7 +104,7 @@ public class ArtifactCommand extends AbstractCommand {
                     );
                     artifacts.getArtifacts().forEach(a -> {
                         table.addRow(
-                                a.getGroupId(),
+                                displayGroupId(a.getGroupId()),
                                 a.getArtifactId(),
                                 a.getName(),
                                 a.getArtifactType(),

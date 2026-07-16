@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.version;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.common.VersionOrderMixin;
@@ -99,7 +100,7 @@ public class VersionCommand extends AbstractCommand {
                     );
                     versions.getVersions().forEach(v -> {
                         table.addRow(
-                                v.getGroupId(),
+                                displayGroupId(v.getGroupId()),
                                 v.getArtifactId(),
                                 v.getVersion(),
                                 v.getName(),

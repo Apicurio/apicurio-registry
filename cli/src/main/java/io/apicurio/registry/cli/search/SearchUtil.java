@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.search;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -42,7 +43,7 @@ final class SearchUtil {
                             CREATED_ON, OWNER, MODIFIED_ON, MODIFIED_BY, LABELS);
                     Optional.ofNullable(results.getArtifacts()).orElse(List.of()).forEach(a -> {
                         table.addRow(
-                                a.getGroupId(),
+                                displayGroupId(a.getGroupId()),
                                 a.getArtifactId(),
                                 a.getName(),
                                 a.getArtifactType(),

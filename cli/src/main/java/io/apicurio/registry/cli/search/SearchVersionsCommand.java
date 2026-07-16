@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.VersionOrderMixin;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -168,7 +169,7 @@ public class SearchVersionsCommand extends AbstractCommand {
                             STATE, GLOBAL_ID, CONTENT_ID, DESCRIPTION, CREATED_ON, OWNER);
                     Optional.ofNullable(results.getVersions()).orElse(List.of()).forEach(v -> {
                         table.addRow(
-                                v.getGroupId(),
+                                displayGroupId(v.getGroupId()),
                                 v.getArtifactId(),
                                 v.getVersion(),
                                 v.getName(),

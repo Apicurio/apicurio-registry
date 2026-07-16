@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import io.apicurio.registry.cli.common.OutputType;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -134,7 +135,7 @@ public class VersionGetCommand extends AbstractCommand {
                 case table -> {
                     final var table = new TableBuilder();
                     table.addColumns(FIELD, VALUE);
-                    table.addRow(GROUP_ID, version.getGroupId());
+                    table.addRow(GROUP_ID, displayGroupId(version.getGroupId()));
                     table.addRow(ARTIFACT_ID, version.getArtifactId());
                     table.addRow(VERSION, version.getVersion());
                     table.addRow(NAME, version.getName());

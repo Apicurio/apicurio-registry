@@ -243,13 +243,10 @@ public final class ClusterDiagnostics {
                         return reason != null && (reason.contains("Pull") || reason.contains("BackOff")
                                 || reason.contains("ErrImage"));
                     })
-                    .filter(e -> {
-                        var type = e.getType();
-                        return "Warning".equals(type) || "Failed".equalsIgnoreCase(e.getReason());
-                    })
+                    .filter(e -> "Warning".equals(e.getType()))
                     .sorted(Comparator.comparing(
-                            (Event e) -> e.getLastTimestamp() != null ? e.getLastTimestamp() : "",
-                            Comparator.reverseOrder()))
+                            Event::getLastTimestamp,
+                            Comparator.nullsLast(Comparator.reverseOrder())))
                     .toList();
 
             if (pullEvents.isEmpty()) {

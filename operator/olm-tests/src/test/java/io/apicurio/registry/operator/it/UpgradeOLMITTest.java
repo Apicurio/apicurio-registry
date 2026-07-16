@@ -1,5 +1,6 @@
 package io.apicurio.registry.operator.it;
 
+import io.apicurio.registry.operator.utils.ClusterDiagnostics;
 import io.apicurio.registry.operator.utils.OperatorTestContext;
 import io.apicurio.registry.operator.utils.OperatorTestExtension;
 import io.apicurio.registry.operator.utils.RetryTest;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 
@@ -422,16 +422,22 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         log.info("Manual approval upgrade succeeded: {} -> {}", startVersion, minorHead);
     }
 
-    private void deployCatalogAndSubscribe(String channel, String startVersion) throws IOException {
-        createResource(client, namespace, "olmv0/catalog-source.yaml");
-        waitForCatalogPodReady(client, namespace);
-        createResource(client, namespace, "olmv0/operator-group.yaml");
+    private void deployCatalogAndSubscribe(String channel, String startVersion) throws Exception {
+        try {
+            createResource(client, namespace, "olmv0/catalog-source.yaml");
+            waitForCatalogPodReady(client, namespace);
+            createResource(client, namespace, "olmv0/operator-group.yaml");
 
-        var extraVars = Map.of(
-                "${PLACEHOLDER_UPGRADE_CHANNEL}", channel,
-                "${PLACEHOLDER_UPGRADE_START_CSV}", csvName(startVersion));
-        var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
-        client.resource(replaceVars(raw, namespace, extraVars)).create();
+            var extraVars = Map.of(
+                    "${PLACEHOLDER_UPGRADE_CHANNEL}", channel,
+                    "${PLACEHOLDER_UPGRADE_START_CSV}", csvName(startVersion));
+            var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
+            client.resource(replaceVars(raw, namespace, extraVars)).create();
+        } catch (Exception e) {
+            log.error("OLM catalog/subscription setup failed, dumping cluster diagnostics", e);
+            ClusterDiagnostics.dump(client, namespace, true);
+            throw e;
+        }
     }
 
     private void waitForOperatorVersion(String version) {

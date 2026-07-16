@@ -34,14 +34,16 @@ public class McpToolJsonSchemaContentValidator extends McpToolContentValidator {
 
         try {
             JsonNode tree = ContentTypeUtil.parseJson(content.getContent());
-            validateEmbeddedSchema("inputSchema", tree.get("inputSchema"), resolvedReferences,
-                    violations);
-            if (tree.has("outputSchema")) {
-                validateEmbeddedSchema("outputSchema", tree.get("outputSchema"),
-                        resolvedReferences, violations);
+            JsonNode inputSchema = tree.get("inputSchema");
+            if (inputSchema != null) {
+                validateEmbeddedSchema("inputSchema", inputSchema, resolvedReferences, violations);
             }
-        } catch (RuleViolationException e) {
-            throw e;
+
+            JsonNode outputSchema = tree.get("outputSchema");
+            if (outputSchema != null) {
+                validateEmbeddedSchema("outputSchema", outputSchema, resolvedReferences,
+                        violations);
+            }
         } catch (Exception e) {
             throw new RuleViolationException(
                     "Invalid MCP tool definition JSON: " + e.getMessage(), RuleType.VALIDITY,
@@ -56,6 +58,12 @@ public class McpToolJsonSchemaContentValidator extends McpToolContentValidator {
 
     private void validateEmbeddedSchema(String fieldName, JsonNode schemaNode,
             Map<String, TypedContent> resolvedReferences, Set<RuleViolation> violations) {
+        if (schemaNode == null || schemaNode.isNull()) {
+            violations.add(new RuleViolation("'" + fieldName + "' field must be an object",
+                    "/" + fieldName));
+            return;
+        }
+
         try {
             JsonUtil.readSchema(schemaNode.toString(), resolvedReferences);
         } catch (SchemaException e) {
@@ -73,15 +81,21 @@ public class McpToolJsonSchemaContentValidator extends McpToolContentValidator {
     }
 
     private String prefixSchemaLocation(String fieldName, String schemaLocation) {
+        String basePath = "/" + fieldName;
         if (schemaLocation == null || schemaLocation.isEmpty() || "#".equals(schemaLocation)) {
-            return "/" + fieldName;
+            return basePath;
         }
-        if (schemaLocation.startsWith("#/")) {
-            return "/" + fieldName + schemaLocation.substring(1);
+
+        String normalizedLocation = schemaLocation;
+        if (normalizedLocation.startsWith("#")) {
+            normalizedLocation = normalizedLocation.substring(1);
         }
-        if (schemaLocation.startsWith("/")) {
-            return "/" + fieldName + schemaLocation;
+        if (normalizedLocation.isEmpty()) {
+            return basePath;
         }
-        return "/" + fieldName;
+        if (!normalizedLocation.startsWith("/")) {
+            normalizedLocation = "/" + normalizedLocation;
+        }
+        return basePath + normalizedLocation;
     }
 }

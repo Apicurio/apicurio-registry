@@ -106,8 +106,8 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
             validator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
         Assertions.assertFalse(error.getCauses().isEmpty());
-        Assertions.assertTrue(error.getCauses().stream()
-                .anyMatch(v -> v.getContext().startsWith("/inputSchema")));
+        Assertions.assertTrue(error.getCauses().stream().anyMatch(v -> "/inputSchema/properties/query/exclusiveMinimum"
+                .equals(v.getContext())));
     }
 
     @Test
@@ -117,8 +117,8 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
             validator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
         Assertions.assertFalse(error.getCauses().isEmpty());
-        Assertions.assertTrue(error.getCauses().stream()
-                .anyMatch(v -> v.getContext().startsWith("/outputSchema")));
+        Assertions.assertTrue(error.getCauses().stream().anyMatch(v -> "/outputSchema/properties/total/exclusiveMinimum"
+                .equals(v.getContext())));
     }
 
     @Test

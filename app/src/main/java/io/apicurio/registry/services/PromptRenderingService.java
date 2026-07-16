@@ -86,8 +86,10 @@ public class PromptRenderingService {
      */
     private String extractTemplateText(JsonNode templateNode) {
         JsonNode templateField = templateNode.path("template");
-        if (templateField.isMissingNode()) {
-            throw new InvalidContentException("Prompt template is missing 'template' field");
+        // Must be a string. A missing key, an explicit null, or a non-textual value all fail
+        // isTextual() — otherwise e.g. {"template": null} slips through and renders the literal "null".
+        if (!templateField.isTextual()) {
+            throw new InvalidContentException("Prompt template 'template' field is missing or not a string");
         }
         return templateField.asText();
     }

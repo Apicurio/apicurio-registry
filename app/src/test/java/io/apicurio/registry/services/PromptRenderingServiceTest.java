@@ -545,6 +545,36 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testNullTemplateField() {
+        // {"template": null} is a NullNode, not a MissingNode, so it must still be rejected
+        // rather than silently rendering the literal string "null".
+        String jsonContent = """
+            {"templateId": "null-template", "name": "Null Template", "template": null}
+            """;
+
+        ContentHandle content = ContentHandle.create(jsonContent);
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "null-template", "1.0");
+        });
+    }
+
+    @Test
+    public void testNonStringTemplateField() {
+        String jsonContent = """
+            {"templateId": "num-template", "name": "Numeric Template", "template": 123}
+            """;
+
+        ContentHandle content = ContentHandle.create(jsonContent);
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "num-template", "1.0");
+        });
+    }
+
+    @Test
     public void testInvalidYamlContent() {
         String invalidContent = "{{{{not valid yaml or json}}}}";
 

@@ -31,6 +31,7 @@ import static io.apicurio.registry.cli.utils.Columns.VERSION;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 @Command(
         name = "version",
@@ -168,7 +169,7 @@ public class SearchVersionsCommand extends AbstractCommand {
                             STATE, GLOBAL_ID, CONTENT_ID, DESCRIPTION, CREATED_ON, OWNER);
                     Optional.ofNullable(results.getVersions()).orElse(List.of()).forEach(v -> {
                         table.addRow(
-                                v.getGroupId(),
+                                displayGroupId(v.getGroupId()),
                                 v.getArtifactId(),
                                 v.getVersion(),
                                 v.getName(),

@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
 
 /**
  * Installs the Strimzi cluster operator once per cluster, configured to watch ALL namespaces
@@ -53,13 +54,15 @@ final class StrimziClusterWideInstaller {
     private static final String STRIMZI_NAMESPACE_ENV = "STRIMZI_NAMESPACE";
     private static final String LEADER_ELECTION_ROLE_BINDING = "strimzi-cluster-operator-leader-election";
 
-    private static volatile boolean installedInThisJvm = false;
+    // Guarded by the synchronized ensureInstalled() — no volatile needed.
+    private static boolean installedInThisJvm = false;
 
     private StrimziClusterWideInstaller() {
     }
 
     static String strimziNamespace() {
-        return System.getProperty(STRIMZI_NAMESPACE_PROP, STRIMZI_NAMESPACE_DEFAULT);
+        return getConfig().getOptionalValue(STRIMZI_NAMESPACE_PROP, String.class)
+                .orElse(STRIMZI_NAMESPACE_DEFAULT);
     }
 
     /**
@@ -105,7 +108,8 @@ final class StrimziClusterWideInstaller {
         }
     }
 
-    private static List<HasMetadata> loadAndTransformManifest(String namespace) throws IOException {
+    // Package-private for unit testing (StrimziClusterWideInstallerTest).
+    static List<HasMetadata> loadAndTransformManifest(String namespace) throws IOException {
         try (InputStream in = StrimziClusterWideInstaller.class.getResourceAsStream(MANIFEST_RESOURCE)) {
             if (in == null) {
                 throw new IOException("Vendored Strimzi manifest not found on classpath: "

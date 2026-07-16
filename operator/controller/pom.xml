@@ -111,6 +111,13 @@
             <goals>
               <goal>test-jar</goal>
             </goals>
+            <configuration>
+              <!-- The vendored Strimzi manifest is only used by this module's own ITs; keep the
+                   published tests-classifier jar (consumed by olm-tests) free of the ~1MB file. -->
+              <excludes>
+                <exclude>strimzi/**</exclude>
+              </excludes>
+            </configuration>
           </execution>
         </executions>
       </plugin>

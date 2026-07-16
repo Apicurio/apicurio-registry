@@ -2,6 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.utils.ClusterDiagnostics;
 import io.apicurio.registry.operator.utils.OperatorTestContext;
 import io.apicurio.registry.operator.utils.OperatorTestExtension;
 import io.fabric8.kubernetes.api.model.HasMetadata;
@@ -70,6 +71,16 @@ public abstract class OLMITBase implements OperatorTestContext {
         ingressManager = new IngressManager(client, namespace);
         cleanup = ConfigProvider.getConfig().getValue(ITBase.CLEANUP, Boolean.class);
 
+        try {
+            setupOLMResources();
+        } catch (Exception e) {
+            log.error("OLM setup failed, dumping cluster diagnostics before propagating failure", e);
+            ClusterDiagnostics.dump(client, namespace, true);
+            throw e;
+        }
+    }
+
+    private static void setupOLMResources() throws Exception {
         int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
         if (olmVersion == 0) {
 

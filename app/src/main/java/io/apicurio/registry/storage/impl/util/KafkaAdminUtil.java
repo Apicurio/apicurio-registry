@@ -140,28 +140,26 @@ public class KafkaAdminUtil {
         var options = new DescribeConfigsOptions().includeSynonyms(true);
 
         blockOn(toJavaFuture(adminClient.get().get().describeConfigs(singleton(key), options).all())
-                .thenAccept(configs -> assertTopicConfiguration(topic, key, configs)));
-    }
+                .thenAccept(d -> {
+                    var config = d.get(key);
+                    assertConfiguration(topic, config, TopicConfig.CLEANUP_POLICY_CONFIG, "delete"::equals, """
+                            Topic must not have '%s=%s'. While Apicurio Registry will work with topic compaction, it will not have any effect. \
+                            Use '%s=delete', '%s=-1', and '%s=-1' to disable automatic deletion of messages, and perform any cleanup manually after a backup has been made\
+                            """.formatted(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
+                            TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.RETENTION_MS_CONFIG, TopicConfig.RETENTION_BYTES_CONFIG));
 
-    private void assertTopicConfiguration(String topic, ConfigResource key, Map<ConfigResource, Config> configs) {
-        var config = configs.get(key);
-        assertConfiguration(topic, config, TopicConfig.CLEANUP_POLICY_CONFIG, "delete"::equals, """
-                Topic must not have '%s=%s'. While Apicurio Registry will work with topic compaction, it will not have any effect. \
-                Use '%s=delete', '%s=-1', and '%s=-1' to disable automatic deletion of messages, and perform any cleanup manually after a backup has been made\
-                """.formatted(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_COMPACT,
-                TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.RETENTION_MS_CONFIG, TopicConfig.RETENTION_BYTES_CONFIG));
+                    if (!topic.equals(configuration.get().getEventsTopic())) { // Events topic is allowed to use retention. If configured, old events should be eventually deleted.
+                        if (!configuration.get().isTopicConfigurationVerificationOverrideEnabled()) {
+                            assertConfiguration(topic, config, TopicConfig.RETENTION_MS_CONFIG, "-1"::equals,
+                                    "Topic must have '%s=-1' and '%s=-1' to prevent accidental loss of data"
+                                            .formatted(TopicConfig.RETENTION_MS_CONFIG, TopicConfig.RETENTION_BYTES_CONFIG));
+                        }
 
-        if (!topic.equals(configuration.get().getEventsTopic())) {
-            if (!configuration.get().isTopicConfigurationVerificationOverrideEnabled()) {
-                assertConfiguration(topic, config, TopicConfig.RETENTION_MS_CONFIG, "-1"::equals,
-                        "Topic must have '%s=-1' and '%s=-1' to prevent accidental loss of data"
-                                .formatted(TopicConfig.RETENTION_MS_CONFIG, TopicConfig.RETENTION_BYTES_CONFIG));
-            }
-
-            assertConfiguration(topic, config, TopicConfig.RETENTION_BYTES_CONFIG, "-1"::equals,
-                    "Topic must have '%s=-1' and '%s=-1' to prevent accidental loss of data"
-                            .formatted(TopicConfig.RETENTION_BYTES_CONFIG, TopicConfig.RETENTION_MS_CONFIG));
-        }
+                        assertConfiguration(topic, config, TopicConfig.RETENTION_BYTES_CONFIG, "-1"::equals,
+                                "Topic must have '%s=-1' and '%s=-1' to prevent accidental loss of data"
+                                        .formatted(TopicConfig.RETENTION_BYTES_CONFIG, TopicConfig.RETENTION_MS_CONFIG));
+                    }
+                }));
     }
 
     private static void assertConfiguration(String topic, Config config, String property, Predicate<String> condition, String errorMessage) {

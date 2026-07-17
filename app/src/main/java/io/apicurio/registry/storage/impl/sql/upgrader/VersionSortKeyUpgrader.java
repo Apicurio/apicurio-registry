@@ -36,11 +36,12 @@ public class VersionSortKeyUpgrader implements IDbUpgrader {
         }
 
         String updateSql = "UPDATE versions SET versionSortKey = ? WHERE globalId = ?";
-        for (VersionRecord record : records) {
-            String sortKey = VersionUtil.generateVersionSortKey(record.version);
+        
+        for (VersionRecord vRecord : records) {
+            String sortKey = VersionUtil.generateVersionSortKey(vRecord.version);
             handle.createUpdate(updateSql)
                     .bind(0, sortKey)
-                    .bind(1, record.globalId)
+                    .bind(1, vRecord.globalId)
                     .execute();
         }
 
@@ -50,6 +51,7 @@ public class VersionSortKeyUpgrader implements IDbUpgrader {
     private static class VersionRecord {
         long globalId;
         String version;
+        
         VersionRecord(long globalId, String version) {
             this.globalId = globalId;
             this.version = version;

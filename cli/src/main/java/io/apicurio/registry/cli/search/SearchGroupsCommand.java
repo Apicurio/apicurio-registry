@@ -10,6 +10,7 @@ import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.rest.client.search.groups.GroupsRequestBuilder;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedGroup;
 import java.util.List;
 import java.util.Optional;
 import picocli.CommandLine.Command;
@@ -68,7 +69,37 @@ public class SearchGroupsCommand extends AbstractCommand {
             //noinspection ConstantConditions
             applyFilters(r.queryParameters);
         }));
+        injectDefaultGroupIfNeeded(results);
         printResults(output, results);
+    }
+
+    private void injectDefaultGroupIfNeeded(GroupSearchResults results) {
+        boolean shouldInject = true;
+        if (groupId != null && !groupId.equals("default")) {
+            shouldInject = false;
+        }
+        if (description != null) {
+            shouldInject = false;
+        }
+        if (labels != null && !labels.isEmpty()) {
+            shouldInject = false;
+        }
+        if (pagination.getPage() > 1) {
+            shouldInject = false;
+        }
+        if (shouldInject) {
+            SearchedGroup defaultGroup = new SearchedGroup();
+            defaultGroup.setGroupId("default (implicit)");
+            java.util.List<SearchedGroup> newGroups = new java.util.ArrayList<>();
+            newGroups.add(defaultGroup);
+            if (results.getGroups() != null) {
+                newGroups.addAll(results.getGroups());
+            }
+            results.setGroups(newGroups);
+            if (results.getCount() != null) {
+                results.setCount(results.getCount() + 1);
+            }
+        }
     }
 
     private void applyFilters(final GroupsRequestBuilder.GetQueryParameters params) {

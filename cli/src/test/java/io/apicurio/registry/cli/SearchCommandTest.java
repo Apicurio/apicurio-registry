@@ -61,6 +61,9 @@ public class SearchCommandTest extends AbstractCLITest {
         assertThat(results.getGroups())
                 .as(withCliOutput("Search should return at least the test group"))
                 .isNotEmpty();
+        assertThat(results.getGroups())
+                .as(withCliOutput("Search should contain the default implicit group"))
+                .anyMatch(g -> "default (implicit)".equals(g.getGroupId()));
     }
 
     @Test
@@ -96,6 +99,9 @@ public class SearchCommandTest extends AbstractCLITest {
         assertThat(out.toString())
                 .as(withCliOutput("Table output should contain column headers"))
                 .contains("Group ID");
+        assertThat(out.toString())
+                .as(withCliOutput("Table output should contain default implicit group"))
+                .contains("default (implicit)");
     }
 
     @Test
@@ -106,8 +112,8 @@ public class SearchCommandTest extends AbstractCLITest {
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
         assertThat(results.getGroups())
-                .as(withCliOutput("Paginated search should return at most 1 result"))
-                .hasSizeLessThanOrEqualTo(1);
+                .as(withCliOutput("Paginated search should return at most 2 results (1 from server + 1 implicit default)"))
+                .hasSizeLessThanOrEqualTo(2);
     }
 
     @Test

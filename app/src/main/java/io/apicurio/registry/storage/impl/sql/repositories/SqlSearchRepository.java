@@ -345,6 +345,8 @@ public class SqlSearchRepository {
                 case name:
                     orderByQuery.append(" ORDER BY coalesce(v.name, v.version)");
                     break;
+                // NOTE: Falling back to lexical version ordering (v.version) when versionSortKey is null.
+                // Ordering may be unstable during the migration window until VersionSortKeyUpgrader completes.
                 case version:
                     orderByQuery.append(" ORDER BY coalesce(v.versionSortKey, v.version)");
                     break;

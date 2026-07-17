@@ -126,10 +126,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
             }
         }
 
-        // Handlers filter by their own level, so open them to the finest level we enabled.
+        // Handlers filter by their own level, so lower them to reveal the finest level we enabled.
+        // Only ever lower, never raise, so we don't suppress unrelated channels the user didn't touch.
         if (finest != null) {
             for (var handler : rootLogger.getHandlers()) {
-                handler.setLevel(finest);
+                handler.setLevel(loweredHandlerLevel(handler.getLevel(), finest));
             }
         }
     }
@@ -164,5 +165,14 @@ public abstract class AbstractCommand implements Callable<Integer> {
             case "ALL" -> java.util.logging.Level.ALL;
             default -> throw new IllegalArgumentException("Unknown log level: " + value);
         };
+    }
+
+    // Returns floor only when the handler is currently coarser (or unset), so a handler is never
+    // raised (which would hide records from channels the user did not configure).
+    static java.util.logging.Level loweredHandlerLevel(java.util.logging.Level current, java.util.logging.Level floor) {
+        if (current == null || current.intValue() > floor.intValue()) {
+            return floor;
+        }
+        return current;
     }
 }

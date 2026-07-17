@@ -117,7 +117,7 @@ final class StrimziClusterWideInstaller {
                         .endMetadata().build()).create();
             } catch (KubernetesClientException ex) {
                 // Another JVM sharing the cluster may have created it between the check and create.
-                if (ex.getCode() != 409) {
+                if (ex.getStatus() == null || !"AlreadyExists".equals(ex.getStatus().getReason())) {
                     throw ex;
                 }
             }

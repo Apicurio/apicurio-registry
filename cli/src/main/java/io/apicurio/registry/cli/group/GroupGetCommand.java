@@ -58,7 +58,7 @@ public class GroupGetCommand extends AbstractCommand {
             //noinspection ConstantConditions
             group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
         }
-        IdUtil.updateGroupContext(group.getGroupId(), config);
+        IdUtil.updateGroupContext(group.getGroupId(), config, output);
         // TODO: Should we include the `default` group in the list?
         printGroup(output, group, outputType);
     }

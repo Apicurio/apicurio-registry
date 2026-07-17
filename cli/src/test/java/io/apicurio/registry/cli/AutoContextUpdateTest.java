@@ -112,31 +112,72 @@ public class AutoContextUpdateTest extends AbstractCLITest {
     }
 
     @Test
+    public void testAutoContextUpdateGroupClearsArtifactId() {
+        // Enable auto-context-update
+        executeAndAssertSuccess("config", "set", "auto-context-update=true");
+
+        // Create a group
+        executeAndAssertSuccess("group", "create", "group-art-clear");
+
+        // Create artifact-1 in group-art-clear
+        executeAndAssertSuccess("artifact", "create", "--group", "group-art-clear", "--type", "JSON", "artifact-clear-1");
+
+        // Verify context updated with group-art-clear and artifact-clear-1
+        var context = config.read().getContext().get("test");
+        assertThat(context.getGroupId()).isEqualTo("group-art-clear");
+        assertThat(context.getArtifactId()).isEqualTo("artifact-clear-1");
+
+        // Create another group
+        executeAndAssertSuccess("group", "create", "group-art-clear-2");
+
+        // Verify context updated with group-art-clear-2 and artifactId is CLEARED (null)
+        context = config.read().getContext().get("test");
+        assertThat(context.getGroupId()).isEqualTo("group-art-clear-2");
+        assertThat(context.getArtifactId()).isNull();
+    }
+
+    @Test
     public void testAutoContextUpdateNullValidation() {
+        var dummyOutput = new io.apicurio.registry.cli.utils.OutputBuffer(val -> {}, val -> {});
+
         org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
-            io.apicurio.registry.cli.common.IdUtil.updateGroupContext(null, config);
+            io.apicurio.registry.cli.common.IdUtil.updateGroupContext(null, config, dummyOutput);
         });
 
         org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
-            io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group", null);
+            io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group", null, dummyOutput);
         });
 
         org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
-            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext(null, "art", config);
+            io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group", config, null);
         });
 
         org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
-            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext("group", null, config);
+            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext(null, "art", config, dummyOutput);
         });
 
         org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
-            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext("group", "art", null);
+            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext("group", null, config, dummyOutput);
+        });
+
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext("group", "art", null, dummyOutput);
+        });
+
+        org.junit.jupiter.api.Assertions.assertThrows(NullPointerException.class, () -> {
+            io.apicurio.registry.cli.common.IdUtil.updateArtifactContext("group", "art", config, null);
         });
     }
 
     @Test
     public void testAutoContextUpdateWriteFailure() {
-        var stdErrWriter = new java.io.StringWriter();
+        var stdOutBuilder = new java.io.StringWriter();
+        var stdErrBuilder = new java.io.StringWriter();
+        var outputBuffer = new io.apicurio.registry.cli.utils.OutputBuffer(
+            val -> stdOutBuilder.write(val),
+            val -> stdErrBuilder.write(val)
+        );
+
         var failingConfig = new io.apicurio.registry.cli.config.Config() {
             @Override
             public io.apicurio.registry.cli.config.ConfigModel read() {
@@ -152,12 +193,12 @@ public class AutoContextUpdateTest extends AbstractCLITest {
                 throw new io.apicurio.registry.cli.common.CliException("Mocked write failure", 3);
             }
         };
-        failingConfig.setStdErr(value -> stdErrWriter.write(value));
 
-        // Call updateGroupContext; it should NOT throw but print to stdErr
+        // Call updateGroupContext; it should NOT throw but print to outputBuffer's stderr chunk
         org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> {
-            io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group-fail", failingConfig);
+            io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group-fail", failingConfig, outputBuffer);
         });
-        assertThat(stdErrWriter.toString()).contains("Warning: Auto-context update failed: Mocked write failure");
+        outputBuffer.print();
+        assertThat(stdErrBuilder.toString()).contains("Warning: Auto-context update failed: Mocked write failure");
     }
 }

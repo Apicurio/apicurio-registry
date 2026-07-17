@@ -65,7 +65,7 @@ public class GroupCreateCommand extends AbstractCommand {
             newGroup.setLabels(newLabels);
         }
         var group = convert(client.getRegistryClient().groups().post(newGroup));
-        IdUtil.updateGroupContext(group.getGroupId(), config);
+        IdUtil.updateGroupContext(group.getGroupId(), config, output);
         switch (outputType.getOutputType()) {
             case json -> output.writeStdErrChunk(out -> successMessage(out, group.getGroupId()));
             case table -> output.writeStdOutChunk(out -> successMessage(out, group.getGroupId()));

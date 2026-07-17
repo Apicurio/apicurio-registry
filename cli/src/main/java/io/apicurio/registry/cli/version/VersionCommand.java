@@ -24,6 +24,7 @@ import static io.apicurio.registry.cli.utils.Columns.STATE;
 import static io.apicurio.registry.cli.utils.Columns.VERSION;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 /** Lists versions for an artifact with pagination support. */
 @Command(
@@ -99,7 +100,7 @@ public class VersionCommand extends AbstractCommand {
                     );
                     versions.getVersions().forEach(v -> {
                         table.addRow(
-                                v.getGroupId(),
+                                displayGroupId(v.getGroupId()),
                                 v.getArtifactId(),
                                 v.getVersion(),
                                 v.getName(),

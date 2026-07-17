@@ -73,6 +73,14 @@ public class ContentTypeUtilTest {
         ContentHandle notGraphql = ContentHandle.create("message Hello { string msg = 1; }");
         Assertions.assertFalse(ContentTypeUtil.isParsableGraphQL(notGraphql));
 
+        // Protobuf enum should not be detected as GraphQL
+        ContentHandle protobufEnum = ContentHandle.create("enum Status { ACTIVE = 0; }");
+        Assertions.assertFalse(ContentTypeUtil.isParsableGraphQL(protobufEnum));
+
+        // GraphQL schema with newline should be detected
+        ContentHandle schemaNewline = ContentHandle.create("schema\n{\n  query: Query\n}");
+        Assertions.assertTrue(ContentTypeUtil.isParsableGraphQL(schemaNewline));
+
         // JSON-like content should not be detected as GraphQL
         ContentHandle jsonLike = ContentHandle.create("{ \"key\": \"value\" }");
         Assertions.assertFalse(ContentTypeUtil.isParsableGraphQL(jsonLike));

@@ -1,8 +1,7 @@
-import path from "path";
-import { ConsoleRemotePlugin } from "@openshift-console/dynamic-plugin-sdk-webpack";
-import type { Configuration } from "webpack";
+const path = require("path");
+const { ConsoleRemotePlugin } = require("@openshift-console/dynamic-plugin-sdk-webpack");
 
-const config: Configuration = {
+module.exports = {
   mode: "production",
   context: path.resolve(__dirname, "src"),
   entry: {},
@@ -56,5 +55,3 @@ const config: Configuration = {
     },
   },
 };
-
-export default config;

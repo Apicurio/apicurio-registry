@@ -247,6 +247,34 @@ validate_repo_list() {
     done
 }
 
+# Trust only the workspace paths managed by this sidecar. Environment-based
+# configuration works with OpenShift arbitrary UIDs even when $HOME is not
+# writable, unlike `git config --global`.
+configure_git_safe_directories() {
+    local config_count="${GIT_CONFIG_COUNT:-0}"
+    local repo_dir repo_path
+    local workspace_path="${WORKSPACE%/}"
+    [ -n "${workspace_path}" ] || workspace_path="/"
+
+    export "GIT_CONFIG_KEY_${config_count}=safe.directory"
+    export "GIT_CONFIG_VALUE_${config_count}=${workspace_path}"
+    config_count=$((config_count + 1))
+
+    for repo_dir in "${REPO_DIRS[@]}"; do
+        # The workspace entry above already covers a repo configured with dir=.
+        if [ "${repo_dir}" = "." ]; then
+            continue
+        fi
+
+        repo_path="${workspace_path%/}/${repo_dir}"
+        export "GIT_CONFIG_KEY_${config_count}=safe.directory"
+        export "GIT_CONFIG_VALUE_${config_count}=${repo_path}"
+        config_count=$((config_count + 1))
+    done
+
+    export GIT_CONFIG_COUNT="${config_count}"
+}
+
 # ---------------------------------------------------------------------------
 # Security validation
 # ---------------------------------------------------------------------------
@@ -713,6 +741,7 @@ main() {
     log "Apicurio Registry GitOps sidecar starting"
 
     build_repo_list
+    configure_git_safe_directories
 
     log "  Workspace:     ${WORKSPACE}"
     log "  Security:      ${SECURITY}"

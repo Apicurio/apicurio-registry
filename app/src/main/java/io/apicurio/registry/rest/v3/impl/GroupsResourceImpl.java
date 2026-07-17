@@ -598,7 +598,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public GroupMetaData getGroupById(String groupId) {
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
         return V3ApiUtil.groupDtoToGroup(group);

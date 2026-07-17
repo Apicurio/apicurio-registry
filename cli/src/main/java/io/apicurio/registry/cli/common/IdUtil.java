@@ -16,6 +16,10 @@ public final class IdUtil {
     private IdUtil() {
     }
 
+    public static boolean isDefaultGroup(final String groupId) {
+        return isBlank(groupId) || DEFAULT_GROUP.equals(groupId);
+    }
+
     public static String resolveGroupId(final String groupId, final Config config) {
         if (!isBlank(groupId)) {
             return groupId;
@@ -49,7 +53,7 @@ public final class IdUtil {
 
     // Validates the group exists. Skips validation for the "default" group as it is implicit.
     public static void validateGroup(final RegistryClient client, final String groupId) {
-        if (!DEFAULT_GROUP.equals(groupId)) {
+        if (!isDefaultGroup(groupId)) {
             client.groups().byGroupId(groupId).get();
         }
     }
@@ -64,5 +68,9 @@ public final class IdUtil {
                                        final String artifactId, final String versionExpression) {
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression).get();
+    }
+
+    public static String displayGroupId(String groupId) {
+        return isDefaultGroup(groupId) ? DEFAULT_GROUP : groupId;
     }
 }

@@ -253,8 +253,13 @@ validate_repo_list() {
 configure_git_safe_directories() {
     local config_count="${GIT_CONFIG_COUNT:-0}"
     local repo_dir repo_path
-    local workspace_path="${WORKSPACE%/}"
+    local workspace_path="${WORKSPACE:-}"
     [ -n "${workspace_path}" ] || workspace_path="/"
+
+    # Strip all trailing slashes (${var%/} only removes one). Keeps "/" intact.
+    while [ "${workspace_path}" != "/" ] && [ "${workspace_path%/}" != "${workspace_path}" ]; do
+        workspace_path="${workspace_path%/}"
+    done
 
     export "GIT_CONFIG_KEY_${config_count}=safe.directory"
     export "GIT_CONFIG_VALUE_${config_count}=${workspace_path}"
@@ -266,7 +271,11 @@ configure_git_safe_directories() {
             continue
         fi
 
-        repo_path="${workspace_path%/}/${repo_dir}"
+        if [ "${workspace_path}" = "/" ]; then
+            repo_path="/${repo_dir}"
+        else
+            repo_path="${workspace_path}/${repo_dir}"
+        fi
         export "GIT_CONFIG_KEY_${config_count}=safe.directory"
         export "GIT_CONFIG_VALUE_${config_count}=${repo_path}"
         config_count=$((config_count + 1))

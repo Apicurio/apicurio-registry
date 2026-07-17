@@ -31,7 +31,7 @@ public class ContentTypes {
             case APPLICATION_GRAPHQL -> ".graphql";
             case APPLICATION_THRIFT -> ".thrift";
             case TEXT_PROMPT_TEMPLATE -> ".txt";
-            case APPLICATION_EMPTY -> ".empty";
+            case APPLICATION_EMPTY -> "";
             default -> ".bin";
         };
     }

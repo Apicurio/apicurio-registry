@@ -372,7 +372,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/EmptyAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200)
-                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact/EmptyAPI.json\""))
+                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact_EmptyAPI.json\""))
                 .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
 
@@ -380,7 +380,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/EmptyAPI-yaml")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
                 .then().statusCode(200)
-                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact/EmptyAPI-yaml.yaml\""))
+                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact_EmptyAPI-yaml.yaml\""))
                 .body(Matchers.containsString("openapi: 3.0.2"))
                 .body(Matchers.containsString("title: Empty API"));
 
@@ -389,6 +389,32 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
                 .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
                         "No version '<tip of the branch 'latest'>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
+    }
+
+    @Test
+    public void testContentDispositionSanitizationAndTruncation() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // 1. Test special characters sanitization: quotes, path separators, percents, newlines/carriage returns.
+        String specialArtifactId = "test/Artifact%Special\"Chars";
+        createArtifact(GROUP, specialArtifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", specialArtifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"test_Artifact_Special_Chars.json\""));
+
+        // 2. Test filename length truncation (max 128 characters)
+        String longArtifactId = "a".repeat(150);
+        createArtifact(GROUP, longArtifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        String expectedFilename = "a".repeat(128 - ".json".length()) + ".json";
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", longArtifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + expectedFilename + "\""));
     }
 
     @Test

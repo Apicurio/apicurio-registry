@@ -167,9 +167,19 @@ public abstract class AbstractResourceImpl {
         if (filename == null) {
             return "attachment; filename=\"content.bin\"";
         }
-        // Sanitize filename: replace double quotes and control characters to prevent header injection.
-        // Forward slash is intentionally preserved — it is valid in a quoted Content-Disposition filename per RFC 6266.
-        String sanitized = filename.replaceAll("[\"%\\n\\r]", "_");
+        // Sanitize filename: replace double quotes, path separators (slashes), and control/newline characters to prevent header injection and path traversal.
+        String sanitized = filename.replaceAll("[\"/\\\\%\\n\\r]", "_");
+
+        // Truncate long filenames to prevent oversized headers (max 128 chars), preserving extension if present
+        if (sanitized.length() > 128) {
+            int lastDot = sanitized.lastIndexOf('.');
+            if (lastDot != -1 && sanitized.length() - lastDot < 10) { // check if extension is reasonably short
+                String ext = sanitized.substring(lastDot);
+                sanitized = sanitized.substring(0, 128 - ext.length()) + ext;
+            } else {
+                sanitized = sanitized.substring(0, 128);
+            }
+        }
         return "attachment; filename=\"" + sanitized + "\"";
     }
 

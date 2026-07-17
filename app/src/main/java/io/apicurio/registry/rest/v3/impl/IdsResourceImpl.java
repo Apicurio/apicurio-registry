@@ -141,8 +141,11 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @EntityIdContentCache
     public Response getContentByHash(String contentHash) {
         ContentWrapperDto dto = storage.getContentByHash(contentHash);
+        if (dto == null) {
+            throw new ContentNotFoundException(contentHash);
+        }
         String ext = ContentTypes.getFileExtension(dto.getContentType());
-        String filename = "content" + ext;
+        String filename = contentHash + ext;
         return Response.ok(dto.getContent(), ArtifactMediaTypes.BINARY)
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
                 .build();

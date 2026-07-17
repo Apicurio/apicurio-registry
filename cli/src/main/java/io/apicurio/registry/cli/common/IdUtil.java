@@ -71,21 +71,24 @@ public final class IdUtil {
                 .versions().byVersionExpression(versionExpression).get();
     }
 
-<<<<<<< HEAD
     public static void updateGroupContext(final String groupId, final Config config) {
         Objects.requireNonNull(groupId, "groupId must not be null");
         Objects.requireNonNull(config, "config must not be null");
 
-        final var configModel = config.read();
-        if (configModel != null && Boolean.parseBoolean(configModel.getConfig().get("auto-context-update"))) {
-            final var contextName = configModel.getCurrentContext();
-            if (!isBlank(contextName)) {
-                final var context = configModel.getContext().get(contextName);
-                if (context != null) {
-                    context.setGroupId(groupId);
-                    config.write(configModel);
+        try {
+            final var configModel = config.read();
+            if (configModel != null && Boolean.parseBoolean(configModel.getConfig().get("auto-context-update"))) {
+                final var contextName = configModel.getCurrentContext();
+                if (!isBlank(contextName)) {
+                    final var context = configModel.getContext().get(contextName);
+                    if (context != null) {
+                        context.setGroupId(groupId);
+                        config.write(configModel);
+                    }
                 }
             }
+        } catch (Exception ex) {
+            config.getStdErr().print("Warning: Auto-context update failed: " + ex.getMessage() + "\n");
         }
     }
 
@@ -94,21 +97,25 @@ public final class IdUtil {
         Objects.requireNonNull(artifactId, "artifactId must not be null");
         Objects.requireNonNull(config, "config must not be null");
 
-        final var configModel = config.read();
-        if (configModel != null && Boolean.parseBoolean(configModel.getConfig().get("auto-context-update"))) {
-            final var contextName = configModel.getCurrentContext();
-            if (!isBlank(contextName)) {
-                final var context = configModel.getContext().get(contextName);
-                if (context != null) {
-                    context.setGroupId(groupId);
-                    context.setArtifactId(artifactId);
-                    config.write(configModel);
+        try {
+            final var configModel = config.read();
+            if (configModel != null && Boolean.parseBoolean(configModel.getConfig().get("auto-context-update"))) {
+                final var contextName = configModel.getCurrentContext();
+                if (!isBlank(contextName)) {
+                    final var context = configModel.getContext().get(contextName);
+                    if (context != null) {
+                        context.setGroupId(groupId);
+                        context.setArtifactId(artifactId);
+                        config.write(configModel);
+                    }
                 }
             }
+        } catch (Exception ex) {
+            config.getStdErr().print("Warning: Auto-context update failed: " + ex.getMessage() + "\n");
         }
-=======
+    }
+
     public static String displayGroupId(String groupId) {
         return isDefaultGroup(groupId) ? DEFAULT_GROUP : groupId;
->>>>>>> main
     }
 }

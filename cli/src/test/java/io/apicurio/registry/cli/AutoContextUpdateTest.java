@@ -136,6 +136,7 @@ public class AutoContextUpdateTest extends AbstractCLITest {
 
     @Test
     public void testAutoContextUpdateWriteFailure() {
+        var stdErrWriter = new java.io.StringWriter();
         var failingConfig = new io.apicurio.registry.cli.config.Config() {
             @Override
             public io.apicurio.registry.cli.config.ConfigModel read() {
@@ -151,10 +152,12 @@ public class AutoContextUpdateTest extends AbstractCLITest {
                 throw new io.apicurio.registry.cli.common.CliException("Mocked write failure", 3);
             }
         };
+        failingConfig.setStdErr(value -> stdErrWriter.write(value));
 
-        var exception = org.junit.jupiter.api.Assertions.assertThrows(io.apicurio.registry.cli.common.CliException.class, () -> {
+        // Call updateGroupContext; it should NOT throw but print to stdErr
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> {
             io.apicurio.registry.cli.common.IdUtil.updateGroupContext("group-fail", failingConfig);
         });
-        assertThat(exception.getMessage()).contains("Mocked write failure");
+        assertThat(stdErrWriter.toString()).contains("Warning: Auto-context update failed: Mocked write failure");
     }
 }

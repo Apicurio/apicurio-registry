@@ -182,6 +182,7 @@ acr config delete <property-name>
 |--------------------------|---------|-------------------------------------|
 | `update.check-enabled`   | `true`  | Enable automatic update checks      |
 | `update.timeout-seconds` | `60`    | Timeout for update network requests |
+| `auto-context-update`    | `false` | Enable auto-updating active context with group/artifact IDs after create/get operations. *Note: Context updates are not atomic across concurrent invocations (last writer wins).* |
 
 ### Context Management
 

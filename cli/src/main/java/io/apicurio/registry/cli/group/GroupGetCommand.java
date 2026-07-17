@@ -47,11 +47,6 @@ public class GroupGetCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-<<<<<<< HEAD
-        //noinspection ConstantConditions
-        var group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
-        IdUtil.updateGroupContext(group.getGroupId(), config);
-=======
         GroupMetaData group;
         if (isDefaultGroup(groupId)) {
             // This is a synthetic stub because the server does not return proper metadata for the default group yet.
@@ -63,7 +58,7 @@ public class GroupGetCommand extends AbstractCommand {
             //noinspection ConstantConditions
             group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
         }
->>>>>>> main
+        IdUtil.updateGroupContext(group.getGroupId(), config);
         // TODO: Should we include the `default` group in the list?
         printGroup(output, group, outputType);
     }

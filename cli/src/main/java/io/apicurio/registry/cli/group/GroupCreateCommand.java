@@ -1,11 +1,8 @@
 package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
-<<<<<<< HEAD
-import io.apicurio.registry.cli.common.IdUtil;
-=======
 import io.apicurio.registry.cli.common.CliException;
->>>>>>> main
+import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;

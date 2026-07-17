@@ -115,7 +115,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
         for (var entry : readLogCategoryLevels().entrySet()) {
             java.util.logging.Level level;
             try {
-                level = java.util.logging.Level.parse(entry.getValue().trim());
+                level = toJulLevel(entry.getValue());
             } catch (IllegalArgumentException ex) {
                 log.warnf("Ignoring invalid log level '%s' for category '%s'.", entry.getValue(), entry.getKey());
                 continue;
@@ -147,5 +147,22 @@ public abstract class AbstractCommand implements Callable<Integer> {
             // Config not available yet (e.g. before install) — logging config is best-effort.
         }
         return levels;
+    }
+
+    // Maps Quarkus/JBoss level names (DEBUG, TRACE, WARN, ...) to plain JUL levels. The packaged
+    // CLI runs on plain JUL, where Level.parse does not recognise DEBUG/TRACE.
+    static java.util.logging.Level toJulLevel(String value) {
+        return switch (value.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "OFF" -> java.util.logging.Level.OFF;
+            case "FATAL", "ERROR", "SEVERE" -> java.util.logging.Level.SEVERE;
+            case "WARN", "WARNING" -> java.util.logging.Level.WARNING;
+            case "INFO" -> java.util.logging.Level.INFO;
+            case "CONFIG" -> java.util.logging.Level.CONFIG;
+            case "DEBUG", "FINE" -> java.util.logging.Level.FINE;
+            case "FINER" -> java.util.logging.Level.FINER;
+            case "TRACE", "FINEST" -> java.util.logging.Level.FINEST;
+            case "ALL" -> java.util.logging.Level.ALL;
+            default -> throw new IllegalArgumentException("Unknown log level: " + value);
+        };
     }
 }

@@ -288,4 +288,57 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .body("count", equalTo(2));
     }
 
+    @Test
+    public void testSearchArtifactsLimitAndOffsetEdgeCases() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "Empty-" + idx;
+            String name = "empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setName(name);
+                        ca.getFirstVersion().setName(name);
+                    });
+        }
+
+        // A negative limit is normalized to 1, not passed to storage as an invalid query (#8611).
+        given().when().queryParam("groupId", group).queryParam("limit", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // A negative offset is normalized to 0, returning the full result set.
+        given().when().queryParam("groupId", group).queryParam("offset", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+
+        // limit=0 keeps its current semantics (empty page); only negative values are normalized.
+        given().when().queryParam("groupId", group).queryParam("limit", 0)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
+
+        // Boundary values: offset=0 and limit=1 are valid and behave normally.
+        given().when().queryParam("groupId", group).queryParam("offset", 0)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+        given().when().queryParam("groupId", group).queryParam("limit", 1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // Both parameters invalid at once: offset -> 0, limit -> 1.
+        given().when().queryParam("groupId", group).queryParam("offset", -1).queryParam("limit", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // Oversized values are capped (offset at Integer.MAX_VALUE, limit at MAX_LIMIT) instead of
+        // wrapping to a negative int, which would have produced a 500.
+        given().when().queryParam("groupId", group).queryParam("offset", 2147483648L)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
+        given().when().queryParam("groupId", group).queryParam("limit", 2147483648L)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+    }
+
 }

@@ -117,6 +117,28 @@ public class HttpSslConfigInterceptorTest {
         assertEquals("SysPropConfigSource", result.getConfigSourceName());
     }
 
+    @Test
+    void testManagementProtocolsMappedWhenApicurioPropertySet() {
+        when(context.proceed("quarkus.management.ssl.protocols")).thenReturn(null);
+        when(context.proceed("apicurio.http.ssl.protocols"))
+                .thenReturn(configValue("apicurio.http.ssl.protocols", "TLSv1.3", "testSource"));
+
+        ConfigValue result = interceptor.getValue(context, "quarkus.management.ssl.protocols");
+        assertEquals("TLSv1.3", result.getValue());
+        assertEquals("quarkus.management.ssl.protocols", result.getName());
+    }
+
+    @Test
+    void testManagementCipherSuitesMappedWhenApicurioPropertySet() {
+        when(context.proceed("quarkus.management.ssl.cipher-suites")).thenReturn(null);
+        when(context.proceed("apicurio.http.ssl.cipher-suites"))
+                .thenReturn(configValue("apicurio.http.ssl.cipher-suites", "TLS_AES_256_GCM_SHA384", "testSource"));
+
+        ConfigValue result = interceptor.getValue(context, "quarkus.management.ssl.cipher-suites");
+        assertEquals("TLS_AES_256_GCM_SHA384", result.getValue());
+        assertEquals("quarkus.management.ssl.cipher-suites", result.getName());
+    }
+
     private ConfigValue configValue(String name, String value, String sourceName) {
         int ordinal = "DefaultValuesConfigSource".equals(sourceName) ? Integer.MIN_VALUE : 100;
         return ConfigValue.builder()
@@ -127,3 +149,4 @@ public class HttpSslConfigInterceptorTest {
                 .build();
     }
 }
+

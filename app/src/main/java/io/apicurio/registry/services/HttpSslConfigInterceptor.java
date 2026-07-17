@@ -10,9 +10,11 @@ import java.util.Map;
 @Priority(102)
 public class HttpSslConfigInterceptor implements ConfigSourceInterceptor {
 
-    private static final Map<String, String> QUARKUS_TO_APICURIO = Map.of(
-        "quarkus.http.ssl.protocols", "apicurio.http.ssl.protocols",
-        "quarkus.http.ssl.cipher-suites", "apicurio.http.ssl.cipher-suites"
+    private static final Map<String, String> QUARKUS_TO_APICURIO = Map.ofEntries(
+        Map.entry("quarkus.http.ssl.protocols", "apicurio.http.ssl.protocols"),
+        Map.entry("quarkus.http.ssl.cipher-suites", "apicurio.http.ssl.cipher-suites"),
+        Map.entry("quarkus.management.ssl.protocols", "apicurio.http.ssl.protocols"),
+        Map.entry("quarkus.management.ssl.cipher-suites", "apicurio.http.ssl.cipher-suites")
     );
 
     @Override

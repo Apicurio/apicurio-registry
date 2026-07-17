@@ -339,6 +339,7 @@
       "admin-cli": [],
       "account-console": [],
       "developer-client": [],
+      "developer-2-client": [],
       "wrong-client": [],
       "broker": [
         {

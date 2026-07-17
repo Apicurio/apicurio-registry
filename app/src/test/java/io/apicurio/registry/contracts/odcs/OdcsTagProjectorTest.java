@@ -1,5 +1,7 @@
 package io.apicurio.registry.contracts.odcs;
 
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -200,5 +202,69 @@ class OdcsTagProjectorTest {
                 eq("field-tag.contract-1:"), any());
         verify(storage, never()).mergeVersionLabels(
                 eq("orders"), eq("OrderEvent"), any(), any(), any());
+    }
+
+    @Test
+    void projectResolvesBranchExpressionFromMatchingSchema() {
+        when(storage.getBranchTip(any(), eq(new BranchId("develop")), any()))
+                .thenReturn(new GAV("orders", "OrderEvent", "7"));
+
+        OdcsSchema order = OdcsSchema.builder()
+                .name("OrderEvent")
+                .location("orders/OrderEvent:branch=develop")
+                .fields(Map.of("orderId", OdcsFieldMetadata.builder().pii(true).build()))
+                .build();
+        OdcsContract contract = OdcsContract.builder()
+                .schemas(List.of(order))
+                .build();
+
+        int count = projector.project(contract, "contract-1", "orders", "OrderEvent", new ArrayList<>());
+
+        assertEquals(1, count);
+        verify(storage).mergeVersionLabels(
+                eq("orders"), eq("OrderEvent"), eq("7"),
+                eq("field-tag.contract-1:"), any());
+        verify(storage, never()).getArtifactVersions(any(), any());
+    }
+
+    @Test
+    void projectWithNullFieldsReturnsZeroWithoutMergingLabels() {
+        when(storage.getArtifactVersions("orders", "OrderEvent")).thenReturn(List.of("1"));
+
+        OdcsSchema order = OdcsSchema.builder()
+                .name("OrderEvent")
+                .location("orders/OrderEvent")
+                .fields(null)
+                .build();
+        OdcsContract contract = OdcsContract.builder()
+                .schemas(List.of(order))
+                .build();
+
+        int count = projector.project(contract, "contract-1", "orders", "OrderEvent", new ArrayList<>());
+
+        assertEquals(0, count);
+        verify(storage, never()).mergeVersionLabels(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void projectTreatsEmptyVersionSuffixAsLatestVersion() {
+        when(storage.getArtifactVersions("orders", "OrderEvent")).thenReturn(List.of("3"));
+
+        OdcsSchema order = OdcsSchema.builder()
+                .name("OrderEvent")
+                .location("orders/OrderEvent:")
+                .fields(Map.of("orderId", OdcsFieldMetadata.builder().pii(true).build()))
+                .build();
+        OdcsContract contract = OdcsContract.builder()
+                .schemas(List.of(order))
+                .build();
+
+        int count = projector.project(contract, "contract-1", "orders", "OrderEvent", new ArrayList<>());
+
+        assertEquals(1, count);
+        verify(storage).mergeVersionLabels(
+                eq("orders"), eq("OrderEvent"), eq("3"),
+                eq("field-tag.contract-1:"), any());
+        verify(storage, never()).getBranchTip(any(), any(), any());
     }
 }

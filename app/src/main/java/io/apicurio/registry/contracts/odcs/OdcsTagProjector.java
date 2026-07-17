@@ -102,7 +102,10 @@ public class OdcsTagProjector {
         String versionExpression = null;
         String location = schema.getLocation();
         if (location != null && location.contains(":")) {
-            versionExpression = location.substring(location.indexOf(':') + 1);
+            String afterColon = location.substring(location.indexOf(':') + 1);
+            if (!afterColon.isEmpty() && !afterColon.isBlank()) {
+                versionExpression = afterColon;
+            }
         }
 
         if (versionExpression != null && !versionExpression.isBlank()) {

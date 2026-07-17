@@ -227,7 +227,7 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
     @Override
     public DeleteControl cleanup(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-        ConsolePluginManager.deleteConsolePluginCR(context.getClient());
+        ConsolePluginManager.deleteConsolePluginCR(context.getClient(), primary);
         deleteCRContext(primary);
         StatusManager.clean(primary);
         return DeleteControl.defaultDelete();

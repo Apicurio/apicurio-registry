@@ -42,33 +42,39 @@ public class RegistryProxyResource {
     @GET
     @Path("/{path:.*}")
     public CompletionStage<Response> proxyGet(@HeaderParam("Authorization") String authorization,
+                                              @HeaderParam("Accept") String accept,
                                               @Context UriInfo uriInfo) {
-        return proxy("GET", authorization, uriInfo, null);
+        return proxy("GET", authorization, null, accept, uriInfo, null);
     }
 
     @POST
     @Path("/{path:.*}")
     public CompletionStage<Response> proxyPost(@HeaderParam("Authorization") String authorization,
+                                               @HeaderParam("Content-Type") String contentType,
+                                               @HeaderParam("Accept") String accept,
                                                @Context UriInfo uriInfo, byte[] body) {
-        return proxy("POST", authorization, uriInfo, body);
+        return proxy("POST", authorization, contentType, accept, uriInfo, body);
     }
 
     @PUT
     @Path("/{path:.*}")
     public CompletionStage<Response> proxyPut(@HeaderParam("Authorization") String authorization,
+                                              @HeaderParam("Content-Type") String contentType,
+                                              @HeaderParam("Accept") String accept,
                                               @Context UriInfo uriInfo, byte[] body) {
-        return proxy("PUT", authorization, uriInfo, body);
+        return proxy("PUT", authorization, contentType, accept, uriInfo, body);
     }
 
     @DELETE
     @Path("/{path:.*}")
     public CompletionStage<Response> proxyDelete(@HeaderParam("Authorization") String authorization,
+                                                  @HeaderParam("Accept") String accept,
                                                   @Context UriInfo uriInfo) {
-        return proxy("DELETE", authorization, uriInfo, null);
+        return proxy("DELETE", authorization, null, accept, uriInfo, null);
     }
 
-    private CompletionStage<Response> proxy(String method, String authorization,
-                                            UriInfo uriInfo, byte[] body) {
+    private CompletionStage<Response> proxy(String method, String authorization, String contentType,
+                                            String accept, UriInfo uriInfo, byte[] body) {
         String path = uriInfo.getPathParameters().getFirst("path");
         String query = uriInfo.getRequestUri().getRawQuery();
         String targetUrl = registryApiUrl + "/" + path + (query != null ? "?" + query : "");
@@ -81,6 +87,12 @@ public class RegistryProxyResource {
 
         if (authorization != null && !authorization.isEmpty()) {
             requestBuilder.header("Authorization", authorization);
+        }
+        if (contentType != null && !contentType.isEmpty()) {
+            requestBuilder.header("Content-Type", contentType);
+        }
+        if (accept != null && !accept.isEmpty()) {
+            requestBuilder.header("Accept", accept);
         }
 
         HttpRequest.BodyPublisher bodyPublisher = body != null && body.length > 0

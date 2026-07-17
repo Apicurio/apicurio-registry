@@ -273,7 +273,7 @@ const RegistryDetailPage: React.FC = () => {
                     <DescriptionListGroup>
                       <DescriptionListTerm>{t("TLS")}</DescriptionListTerm>
                       <DescriptionListDescription>
-                        {app?.ingress?.tlsTermination ?? app?.tls?.insecureRequests === "disabled" ? (
+                        {app?.ingress?.tlsTermination ?? (app?.tls?.insecureRequests === "disabled") ? (
                           <Label color="green">
                             {app?.ingress?.tlsTermination ?? "enabled"}
                           </Label>

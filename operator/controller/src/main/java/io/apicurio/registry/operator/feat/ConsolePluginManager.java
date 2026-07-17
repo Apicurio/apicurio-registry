@@ -26,12 +26,15 @@ public class ConsolePluginManager {
     private static final String CONSOLE_PLUGIN_API_VERSION = "v1";
     private static final String CONSOLE_PLUGIN_KIND = "ConsolePlugin";
     private static final String CONSOLE_PLUGIN_PLURAL = "consoleplugins";
-    private static final String PLUGIN_NAME = "apicurio-registry";
 
     private static final AtomicBoolean openshiftDetected = new AtomicBoolean(false);
     private static volatile boolean detectionDone = false;
 
     private ConsolePluginManager() {
+    }
+
+    public static String getPluginName(ApicurioRegistry3 primary) {
+        return primary.getMetadata().getName() + "-console-plugin";
     }
 
     public static boolean isOpenShift(KubernetesClient client) {
@@ -63,10 +66,11 @@ public class ConsolePluginManager {
 
     public static void reconcileConsolePluginCR(KubernetesClient client, ApicurioRegistry3 primary) {
         if (!isOpenShift(client) || !isEnabled(primary)) {
-            deleteConsolePluginCR(client);
+            deleteConsolePluginCR(client, primary);
             return;
         }
 
+        var pluginName = getPluginName(primary);
         var serviceName = primary.getMetadata().getName() + "-" + COMPONENT_CONSOLE_PLUGIN + "-" + RESOURCE_TYPE_SERVICE;
         var namespace = primary.getMetadata().getNamespace();
 
@@ -74,7 +78,7 @@ public class ConsolePluginManager {
                 .withApiVersion(CONSOLE_PLUGIN_API_GROUP + "/" + CONSOLE_PLUGIN_API_VERSION)
                 .withKind(CONSOLE_PLUGIN_KIND)
                 .withNewMetadata()
-                .withName(PLUGIN_NAME)
+                .withName(pluginName)
                 .endMetadata()
                 .build();
 
@@ -114,30 +118,31 @@ public class ConsolePluginManager {
                     .build();
 
             var existing = client.genericKubernetesResources(crdContext)
-                    .withName(PLUGIN_NAME)
+                    .withName(pluginName)
                     .get();
 
             if (existing == null) {
                 client.genericKubernetesResources(crdContext)
                         .resource(desired)
                         .create();
-                log.info("Created ConsolePlugin CR: {}", PLUGIN_NAME);
+                log.info("Created ConsolePlugin CR: {}", pluginName);
             } else {
                 desired.getMetadata().setResourceVersion(existing.getMetadata().getResourceVersion());
                 client.genericKubernetesResources(crdContext)
                         .resource(desired)
                         .update();
-                log.debug("Updated ConsolePlugin CR: {}", PLUGIN_NAME);
+                log.debug("Updated ConsolePlugin CR: {}", pluginName);
             }
         } catch (Exception e) {
             log.warn("Failed to reconcile ConsolePlugin CR", e);
         }
     }
 
-    public static void deleteConsolePluginCR(KubernetesClient client) {
+    public static void deleteConsolePluginCR(KubernetesClient client, ApicurioRegistry3 primary) {
         if (!isOpenShift(client)) {
             return;
         }
+        var pluginName = getPluginName(primary);
         try {
             var crdContext = new CustomResourceDefinitionContext.Builder()
                     .withGroup(CONSOLE_PLUGIN_API_GROUP)
@@ -147,14 +152,14 @@ public class ConsolePluginManager {
                     .build();
 
             var existing = client.genericKubernetesResources(crdContext)
-                    .withName(PLUGIN_NAME)
+                    .withName(pluginName)
                     .get();
 
             if (existing != null) {
                 client.genericKubernetesResources(crdContext)
-                        .withName(PLUGIN_NAME)
+                        .withName(pluginName)
                         .delete();
-                log.info("Deleted ConsolePlugin CR: {}", PLUGIN_NAME);
+                log.info("Deleted ConsolePlugin CR: {}", pluginName);
             }
         } catch (Exception e) {
             log.warn("Failed to delete ConsolePlugin CR", e);

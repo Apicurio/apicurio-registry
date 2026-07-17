@@ -8,9 +8,12 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.io.InputStream;
+import java.util.regex.Pattern;
 
 @Path("/locales")
 public class LocalesResource {
+
+    private static final Pattern SAFE_PARAM = Pattern.compile("[a-zA-Z0-9_-]+");
 
     @GET
     @Path("/resource.json")
@@ -19,6 +22,10 @@ public class LocalesResource {
                               @QueryParam("ns") String namespace) {
         if (language == null || namespace == null) {
             return Response.status(400).build();
+        }
+
+        if (!SAFE_PARAM.matcher(language).matches() || !SAFE_PARAM.matcher(namespace).matches()) {
+            return Response.status(400).entity("Invalid language or namespace parameter").build();
         }
 
         String resourcePath = "META-INF/resources/locales/" + language + "/" + namespace + ".json";

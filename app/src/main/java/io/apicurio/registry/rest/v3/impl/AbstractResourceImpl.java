@@ -159,4 +159,18 @@ public abstract class AbstractResourceImpl {
         return requestUri.resolve("/");
     }
 
+    /**
+     * Builds a safe Content-Disposition header value for a given filename.
+     * Sanitizes the filename to prevent header injection.
+     */
+    protected String buildContentDisposition(String filename) {
+        if (filename == null) {
+            return "attachment; filename=\"content.bin\"";
+        }
+        // Sanitize filename: replace double quotes and control characters to prevent header injection.
+        // Forward slash is intentionally preserved — it is valid in a quoted Content-Disposition filename per RFC 6266.
+        String sanitized = filename.replaceAll("[\"%\\n\\r]", "_");
+        return "attachment; filename=\"" + sanitized + "\"";
+    }
+
 }

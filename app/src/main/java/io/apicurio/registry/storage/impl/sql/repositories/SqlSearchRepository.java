@@ -38,6 +38,8 @@ public class SqlSearchRepository {
             "Content search requires the search index, which is not enabled. "
             + "Enable the search index to use content search.";
 
+    private static final char LIKE_ESCAPE_CHAR = '!';
+
     private final Logger log;
 
     private final SqlStatements sqlStatements;
@@ -192,10 +194,13 @@ public class SqlSearchRepository {
                                 query.bind(idx, structureParts[2]);
                             });
                         } else if (structureParts.length == 2) {
-                            // Partial format: "kind:name" - match the kind for any artifact type
-                            where.append("sc.elementType LIKE ? AND sc.elementValue = ?");
+                            // Partial format: "kind:name" - match the kind for any artifact type. The
+                            // kind is request-derived, so escape LIKE wildcards in it and keep only the
+                            // leading "%:" as an intentional wildcard.
+                            where.append("sc.elementType LIKE ? ESCAPE '" + LIKE_ESCAPE_CHAR
+                                    + "' AND sc.elementValue = ?");
                             binders.add((query, idx) -> {
-                                query.bind(idx, "%:" + structureParts[0]);
+                                query.bind(idx, "%:" + escapeLikePattern(structureParts[0]));
                             });
                             binders.add((query, idx) -> {
                                 query.bind(idx, structureParts[1]);
@@ -449,6 +454,22 @@ public class SqlSearchRepository {
             results.setCount(count);
             return results;
         });
+    }
+
+    /**
+     * Escape LIKE wildcards ({@code %} and {@code _}) and the escape character itself in a value that
+     * is used inside a LIKE pattern, so request-derived text is matched literally. The caller is
+     * responsible for adding any intentional wildcards and the matching {@code ESCAPE} clause.
+     */
+    private static String escapeLikePattern(String value) {
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (char c : value.toCharArray()) {
+            if (c == LIKE_ESCAPE_CHAR || c == '%' || c == '_') {
+                escaped.append(LIKE_ESCAPE_CHAR);
+            }
+            escaped.append(c);
+        }
+        return escaped.toString();
     }
 
     private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,

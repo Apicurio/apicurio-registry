@@ -2,18 +2,19 @@ package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.AutoscalingSpec;
 import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
+import io.apicurio.registry.operator.api.v1.spec.ConsolePluginSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
 import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
-import io.apicurio.registry.operator.api.v1.ConsolePlugin;
-import io.apicurio.registry.operator.api.v1.spec.ConsolePluginSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
-import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.feat.KubernetesOps;
+import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginDeploymentResource;
+import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginServiceResource;
 import io.apicurio.registry.operator.resource.app.AppHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.GitOpsSshServiceResource;
@@ -26,9 +27,6 @@ import io.apicurio.registry.operator.resource.ui.UIDeploymentResource;
 import io.apicurio.registry.operator.resource.ui.UIHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
-import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginCRResource;
-import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginDeploymentResource;
-import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginServiceResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceAccount;
@@ -42,7 +40,6 @@ import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.api.reconciler.dependent.DependentResource;
 import io.javaoperatorsdk.operator.processing.dependent.workflow.Condition;
-import io.javaoperatorsdk.operator.processing.dependent.workflow.CRDPresentActivationCondition;
 
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
@@ -266,14 +263,14 @@ public class ActivationConditions {
     // ===== Console Plugin
 
     private static boolean isConsolePluginEnabled(ApicurioRegistry3 primary) {
-        boolean specEnabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getConsolePlugin)
-                .map(ConsolePluginSpec::getEnabled).orElse(Boolean.TRUE);
-        boolean imageConfigured = Configuration.getConsolePluginImage().isPresent();
-        return specEnabled && imageConfigured;
+        return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getConsolePlugin)
+                .map(ConsolePluginSpec::getEnabled).orElse(Boolean.FALSE)
+                && Configuration.getConsolePluginImage().isPresent();
     }
 
     public static class ConsolePluginDeploymentActivationCondition
             implements Condition<Deployment, ApicurioRegistry3> {
+
         @Override
         public boolean isMet(DependentResource<Deployment, ApicurioRegistry3> resource,
                              ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
@@ -287,33 +284,13 @@ public class ActivationConditions {
 
     public static class ConsolePluginServiceActivationCondition
             implements Condition<Service, ApicurioRegistry3> {
+
         @Override
         public boolean isMet(DependentResource<Service, ApicurioRegistry3> resource,
                              ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
             boolean isManaged = isConsolePluginEnabled(primary);
             if (!isManaged) {
                 ((ConsolePluginServiceResource) resource).delete(primary, context);
-            }
-            return isManaged;
-        }
-    }
-
-    public static class ConsolePluginCRActivationCondition
-            implements Condition<ConsolePlugin, ApicurioRegistry3> {
-
-        private final CRDPresentActivationCondition<ConsolePlugin, ApicurioRegistry3> crdCheck =
-                new CRDPresentActivationCondition<>();
-
-        @Override
-        public boolean isMet(DependentResource<ConsolePlugin, ApicurioRegistry3> resource,
-                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
-            boolean crdPresent = crdCheck.isMet(resource, primary, context);
-            if (!crdPresent) {
-                return false;
-            }
-            boolean isManaged = isConsolePluginEnabled(primary);
-            if (!isManaged) {
-                ((ConsolePluginCRResource) resource).delete(primary, context);
             }
             return isManaged;
         }

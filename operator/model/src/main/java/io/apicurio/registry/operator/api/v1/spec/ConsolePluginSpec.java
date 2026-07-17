@@ -17,13 +17,12 @@ import lombok.Setter;
 import lombok.ToString;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
-import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(NON_NULL)
 @JsonPropertyOrder(alphabetic = true)
 @NoArgsConstructor
-@AllArgsConstructor(access = PRIVATE)
+@AllArgsConstructor
 @Builder
 @Getter
 @Setter
@@ -32,13 +31,13 @@ import static lombok.AccessLevel.PRIVATE;
 public class ConsolePluginSpec {
 
     /**
-     * Indicates whether the operator should deploy the OpenShift Console plugin.
-     * The plugin is only deployed on OpenShift clusters. Defaults to <code>true</code>.
+     * Indicates whether the operator should deploy the OpenShift Console Plugin component. Defaults to
+     * <code>false</code>.
      */
     @JsonProperty("enabled")
     @JsonPropertyDescription("""
-            Indicates whether the operator should deploy the OpenShift Console plugin. \
-            The plugin is only deployed on OpenShift clusters. Defaults to `true`.
+            Indicates whether the operator should deploy the OpenShift Console Plugin component. \
+            Defaults to `false`.
             """)
     @JsonSetter(nulls = Nulls.SKIP)
     private Boolean enabled;

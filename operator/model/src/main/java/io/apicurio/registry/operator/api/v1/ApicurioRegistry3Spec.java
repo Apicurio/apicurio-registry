@@ -43,9 +43,12 @@ public class ApicurioRegistry3Spec {
     @JsonSetter(nulls = SKIP)
     private UiSpec ui;
 
+    /**
+     * Configure Apicurio Registry OpenShift Console Plugin component.
+     */
     @JsonProperty("consolePlugin")
     @JsonPropertyDescription("""
-            Configure the OpenShift Console plugin component.
+            Configure Apicurio Registry OpenShift Console Plugin component.
             """)
     @JsonSetter(nulls = SKIP)
     private ConsolePluginSpec consolePlugin;

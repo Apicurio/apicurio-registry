@@ -12,7 +12,8 @@ import static io.apicurio.registry.operator.resource.ResourceKey.CONSOLE_PLUGIN_
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 
 @KubernetesDependent
-public class ConsolePluginServiceResource extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
+public class ConsolePluginServiceResource
+        extends CRUDKubernetesDependentResource<Service, ApicurioRegistry3> {
 
     private static final Logger log = LoggerFactory.getLogger(ConsolePluginServiceResource.class);
 

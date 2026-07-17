@@ -14,6 +14,9 @@ if [[ ! -f "${ENTRYPOINT}" ]]; then
 fi
 
 # Load only the function under test to avoid running sidecar startup side effects.
+# Coupled to entrypoint.sh layout: sed extracts from the function header through the
+# first line that is exactly '}'. Keep configure_git_safe_directories() as a flat
+# function (no nested '}' at column 0) or update this regex when refactoring.
 eval "$(sed -n '/^configure_git_safe_directories()/,/^}/p' "${ENTRYPOINT}")"
 
 if ! declare -F configure_git_safe_directories >/dev/null; then
@@ -87,6 +90,15 @@ configure_git_safe_directories
 
 assert_eq "empty-workspace val0" "/" "${GIT_CONFIG_VALUE_0}"
 assert_eq "empty-workspace val1" "/default" "${GIT_CONFIG_VALUE_1}"
+
+# --- repeated trailing slashes collapse via while-strip ---
+reset_git_config_env
+WORKSPACE="/repos//"
+REPO_DIRS=("default")
+configure_git_safe_directories
+
+assert_eq "double-slash val0" "/repos" "${GIT_CONFIG_VALUE_0}"
+assert_eq "double-slash val1" "/repos/default" "${GIT_CONFIG_VALUE_1}"
 
 if [[ "${failures}" -ne 0 ]]; then
     echo "FAILED: ${failures} assertion(s)" >&2

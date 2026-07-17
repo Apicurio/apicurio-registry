@@ -234,6 +234,18 @@ public class AuthConfig {
         return this.oidcAuthEnabled;
     }
 
+    public boolean isBasicAuthEnabled() {
+        return this.basicAuthEnabled;
+    }
+
+    public boolean isFormAuthEnabled() {
+        return this.formAuthEnabled;
+    }
+
+    public boolean isProxyHeaderAuthEnabled() {
+        return this.proxyHeaderAuthEnabled;
+    }
+
     public boolean isRbacEnabled() {
         return this.roleBasedAuthorizationEnabled;
     }

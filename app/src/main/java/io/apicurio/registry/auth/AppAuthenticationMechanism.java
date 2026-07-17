@@ -124,13 +124,13 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         }
 
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
-        strategyFactories.put("basic", () -> authConfig.basicAuthEnabled
+        strategyFactories.put("basic", () -> authConfig.isBasicAuthEnabled()
                 ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)
                 : null);
-        strategyFactories.put("form", () -> authConfig.formAuthEnabled && formAuthenticationMechanism.isResolvable()
+        strategyFactories.put("form", () -> authConfig.isFormAuthEnabled() && formAuthenticationMechanism.isResolvable()
                 ? new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism.get())
                 : null);
-        strategyFactories.put("proxy-header", () -> authConfig.proxyHeaderAuthEnabled
+        strategyFactories.put("proxy-header", () -> authConfig.isProxyHeaderAuthEnabled()
                 ? new DelegatingAuthenticationStrategy("proxy-header",
                         proxyHeaderAuthenticationMechanism)
                 : null);

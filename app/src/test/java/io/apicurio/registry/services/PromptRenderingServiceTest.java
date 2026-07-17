@@ -628,6 +628,40 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testArrayTemplateField() {
+        String jsonContent = """
+            {
+              "templateId": "array-template",
+              "template": ["a", "b"]
+            }
+            """;
+
+        ContentHandle content = ContentHandle.create(jsonContent);
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "array-template", "1.0");
+        });
+    }
+
+    @Test
+    public void testObjectTemplateField() {
+        String jsonContent = """
+            {
+              "templateId": "object-template",
+              "template": { "nested": "value" }
+            }
+            """;
+
+        ContentHandle content = ContentHandle.create(jsonContent);
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "object-template", "1.0");
+        });
+    }
+
+    @Test
     public void testInvalidYamlContent() {
         String invalidContent = "{{{{not valid yaml or json}}}}";
 

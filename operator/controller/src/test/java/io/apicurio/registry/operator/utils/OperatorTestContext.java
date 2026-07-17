@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.utils;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
 /**
  * Implemented by operator test base classes ({@code ITBase}, {@code OLMITBase}) to expose the Kubernetes
@@ -8,6 +9,8 @@ import io.fabric8.kubernetes.client.KubernetesClient;
  * infrastructure and allows the extension to dump cluster diagnostics on failure.
  */
 public interface OperatorTestContext {
+
+    ExtensionContext.Namespace STORE_NAMESPACE = ExtensionContext.Namespace.create(OperatorTestContext.class);
 
     KubernetesClient getClient();
 
@@ -21,10 +24,6 @@ public interface OperatorTestContext {
         return false;
     }
 
-    /**
-     * Additional namespaces whose diagnostics should be dumped when a test fails, beyond the test's
-     * own namespace (e.g. the dedicated namespace of a shared operator the test depends on).
-     */
     default java.util.List<String> extraDiagnosticNamespaces() {
         return java.util.List.of();
     }

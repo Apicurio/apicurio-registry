@@ -78,21 +78,28 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 - Profiles: `local-tests`, `remote-mem`, `remote-sql`, `remote-kafka`
 - Storage-touching features must work across all variants
 
-## Contributor Checklist
+## Contributor Checklist (external contributors)
 
 Before opening a PR, verify every item. PRs that skip these get sent back.
+Project committers have more latitude but should still follow the Code and Tests sections.
 
 ### Before writing code
-- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time.
+- [ ] **One PR at a time.** Do not open a second PR until your first one is merged. Maintainers will close additional PRs with "one PR at a time" — no exceptions, even if the work is ready.
+- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time. Issues with zero maintainer comments are not approved.
 - [ ] Check for **overlapping PRs** — search open PRs for your issue number and keywords. Duplicate work gets the later PR closed.
+- [ ] Check the [Tried & Rejected list](https://github.com/Apicurio/apicurio-registry/discussions/8364) — some optimizations have already been evaluated and rejected with evidence. Don't re-implement them.
 
 ### Code
-- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` annotation in `app` module, run config doc generator).
-- [ ] API error responses never expose internal state — no usernames, stack traces, or class names. Use generic messages.
-- [ ] Never hand-roll what Quarkus or MicroProfile already provides (circuit breakers, retry, fault tolerance, health checks). Check existing dependencies first.
-- [ ] New features or behavioral changes under `storage/impl/` that aren't variant-specific must be implemented across all 4 storage variants.
-- [ ] Auth changes require tests for both **positive** (authorized → succeeds) and **negative** (unauthorized → 403) cases.
+- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` in `app` module).
+- [ ] API error responses never expose internal state (usernames, stack traces, class names).
+- [ ] Use Quarkus/MicroProfile facilities (`@CircuitBreaker`, `@Retry`, `@Timeout`) instead of hand-rolled equivalents.
+- [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.
+- [ ] Non-variant-specific changes under `storage/impl/` must work across all 4 storage variants.
+- [ ] Auth changes require both positive and negative (403) test cases.
 - [ ] New Java files include the Apache 2.0 license header.
+- [ ] Don't change default config values unless that is the explicit goal of the PR.
+- [ ] Use Fabric8 Kubernetes client API idiomatically (`ex.getStatus().getReason()`, not `ex.getMessage().contains(...)`).
+- [ ] No `synchronized` in reactive/async code paths (`Uni<>`, Mutiny) — use `AtomicReference` + CAS or framework-provided mechanisms.
 
 ### Tests
 - [ ] Every new code path has tests. Missing tests = automatic rejection.

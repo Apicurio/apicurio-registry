@@ -3998,6 +3998,15 @@ spec:
                         type: object
                     type: object
                 type: object
+              consolePlugin:
+                description: |
+                  Configure Apicurio Registry OpenShift Console Plugin component.
+                properties:
+                  enabled:
+                    description: |
+                      Indicates whether the operator should deploy the OpenShift Console Plugin component. Defaults to `false`.
+                    type: boolean
+                type: object
               ui:
                 description: |
                   Configure Apicurio Registry UI component.

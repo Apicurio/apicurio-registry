@@ -193,7 +193,7 @@ public class ResourceFactory {
                 primary,
                 r.getSpec().getTemplate(),
                 CONSOLE_PLUGIN_CONTAINER_NAME,
-                Configuration.getConsolePluginImage().orElseThrow(),
+                Configuration.getConsolePluginImage().orElse(""),
                 List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(9443).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/q/health/ready").withPort(new IntOrString(9443)).withScheme("HTTPS").build()).withInitialDelaySeconds(5).withPeriodSeconds(10).build(),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/q/health/live").withPort(new IntOrString(9443)).withScheme("HTTPS").build()).withInitialDelaySeconds(5).withPeriodSeconds(10).build(),

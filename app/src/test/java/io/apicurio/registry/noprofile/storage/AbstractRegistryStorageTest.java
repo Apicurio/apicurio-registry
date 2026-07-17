@@ -1051,7 +1051,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
                 null, Collections.emptyList(), false, false, null);
 
-        String[] versionsToInsert = { "2.0.0", "1.0.0-alpha", "1.0.0", "latest" };
+        String[] versionsToInsert = { "2.0.0", "1.0.0-alpha", "1.0.1", "latest" };
         
         for (String ver : versionsToInsert) {
             storage().createArtifactVersion(GROUP_ID, artifactId, ver, ArtifactType.OPENAPI,
@@ -1070,6 +1070,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             List<SearchedVersionDto> sortedVersions = results.getVersions();
             
             Assertions.assertEquals("1.0.0-alpha", sortedVersions.get(0).getVersion());
+            Assertions.assertEquals("1", sortedVersions.get(1).getVersion());
+            Assertions.assertEquals("1.0.1", sortedVersions.get(2).getVersion());
             Assertions.assertEquals("2.0.0", sortedVersions.get(3).getVersion());
             Assertions.assertEquals("latest", sortedVersions.get(4).getVersion());
         });

@@ -280,6 +280,8 @@ public interface SqlStatements {
 
     public String updateArtifactVersionStateByGAV();
 
+    public String updateVersionSortKey();
+
     /**
      * A statement to delete all rows in the group_labels table for a given group.
      */

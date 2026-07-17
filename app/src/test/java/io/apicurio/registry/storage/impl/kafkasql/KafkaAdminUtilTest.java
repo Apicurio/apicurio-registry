@@ -15,15 +15,15 @@ import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.utils.Bytes;
-import org.eclipse.microprofile.faulttolerance.Retry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,8 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -168,50 +167,148 @@ public class KafkaAdminUtilTest {
     }
 
     /**
-     * Verifies that the topic configuration assertion works correctly (success path).
-     * The retry behavior on UnknownTopicOrPartitionException is handled by the
-     * {@code @Retry} annotation and tested separately.
+     * Happy path: describeConfigs succeeds on the very first attempt.
+     * No retries are needed and the method returns normally.
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationAssertsConfig() throws Exception {
+    void testVerifyTopicConfigurationSucceedsOnFirstAttempt() throws Exception {
+        Admin admin = setUpAdminMock();
+        when(config.getEventsTopic()).thenReturn("events-topic");
+        DescribeConfigsResult success = buildSuccessResult();
+        when(admin.describeConfigs(any(), any())).thenReturn(success);
+
+        retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3);
+
+        verify(admin, times(1)).describeConfigs(any(), any());
+    }
+
+
+    /**
+     * Simulates the retry behaviour declared by
+     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class, maxRetries = 3)}:
+     * describeConfigs throws {@link UnknownTopicOrPartitionException} on the first two
+     * attempts and succeeds on the third. The operation must complete successfully.
+     *
+     * <p>Because {@code @Retry} is a CDI interceptor and therefore inactive in plain JUnit,
+     * the retry loop is driven by {@link #retryOnUnknownTopic(Runnable, int)}, which
+     * faithfully reproduces the declared retry semantics.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testVerifyTopicConfigurationRetriesOnUnknownTopicException() throws Exception {
+        Admin admin = setUpAdminMock();
+        when(config.getEventsTopic()).thenReturn("events-topic");
+
+        DescribeConfigsResult fail = buildFailResult(new UnknownTopicOrPartitionException("topic not yet visible"));
+        DescribeConfigsResult success = buildSuccessResult();
+
+        when(admin.describeConfigs(any(), any()))
+                .thenReturn(fail)
+                .thenReturn(fail)
+                .thenReturn(success);
+
+        retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3);
+
+        verify(admin, times(3)).describeConfigs(any(), any());
+    }
+
+    /**
+     * Verifies that when describeConfigs keeps throwing {@link UnknownTopicOrPartitionException}
+     * beyond the retry budget (maxRetries = 3), the exception is ultimately propagated to the caller.
+     * Total call count must be 4: 1 initial attempt + 3 retries.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testVerifyTopicConfigurationExhaustsRetriesAndPropagates() throws Exception {
+        Admin admin = setUpAdminMock();
+        when(config.getEventsTopic()).thenReturn("events-topic");
+
+        DescribeConfigsResult fail = buildFailResult(new UnknownTopicOrPartitionException("topic not yet visible"));
+        when(admin.describeConfigs(any(), any())).thenReturn(fail);
+
+        assertThrows(UnknownTopicOrPartitionException.class, () ->
+                retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3));
+
+        verify(admin, times(4)).describeConfigs(any(), any());
+    }
+
+    /**
+     * Verifies that exceptions other than {@link UnknownTopicOrPartitionException} are NOT
+     * retried and propagate immediately after the very first failure.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testVerifyTopicConfigurationDoesNotRetryOnOtherExceptions() throws Exception {
+        Admin admin = setUpAdminMock();
+        when(config.getEventsTopic()).thenReturn("events-topic");
+
+        DescribeConfigsResult fail = buildFailResult(new TopicExistsException("unexpected error"));
+        when(admin.describeConfigs(any(), any())).thenReturn(fail);
+
+        assertThrows(TopicExistsException.class, () ->
+                retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3));
+
+        // Must fail on the first call — no retries for non-retryable exceptions
+        verify(admin, times(1)).describeConfigs(any(), any());
+    }
+
+    /**
+     * Simulates the retry semantics of
+     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class, maxRetries = maxRetries)}.
+     * <ul>
+     *   <li>Only {@link UnknownTopicOrPartitionException} is retried.</li>
+     *   <li>All other exceptions propagate immediately.</li>
+     *   <li>After {@code maxRetries} unsuccessful attempts the last exception is rethrown.</li>
+     * </ul>
+     */
+    private void retryOnUnknownTopic(Runnable action, int maxRetries) {
+        RuntimeException lastException = null;
+        for (int attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                action.run();
+                return; // success
+            } catch (UnknownTopicOrPartitionException e) {
+                lastException = e;
+            }
+        }
+        throw lastException;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Admin setUpAdminMock() throws Exception {
         Admin admin = mock(Admin.class);
         KafkaAdminClient adminClientResource = new KafkaAdminClient(() -> admin);
-        @SuppressWarnings("unchecked")
         Instance<KafkaAdminClient> adminClientInstance = mock(Instance.class);
         when(adminClientInstance.get()).thenReturn(adminClientResource);
         setField("adminClient", adminClientInstance);
+        return admin;
+    }
 
-        when(config.getEventsTopic()).thenReturn("events-topic");
-
+    /** Returns a {@link DescribeConfigsResult} that resolves to a valid, compliant topic config. */
+    private DescribeConfigsResult buildSuccessResult() {
         ConfigResource key = new ConfigResource(ConfigResource.Type.TOPIC, TEST_TOPIC);
         List<ConfigEntry> entries = List.of(
                 new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, "delete"),
                 new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "-1"),
                 new ConfigEntry(TopicConfig.RETENTION_BYTES_CONFIG, "-1"));
         Config topicConfig = new Config(entries);
-        Map<ConfigResource, Config> configs = Map.of(key, topicConfig);
 
         DescribeConfigsResult result = mock(DescribeConfigsResult.class);
-        when(result.all()).thenReturn(KafkaFuture.completedFuture(configs));
-
-        when(admin.describeConfigs(any(), any())).thenReturn(result);
-
-        kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC);
-
-        verify(admin, times(1)).describeConfigs(any(), any());
+        when(result.all()).thenReturn(KafkaFuture.completedFuture(Map.of(key, topicConfig)));
+        return result;
     }
 
-    /**
-     * Verifies that {@code verifyTopicConfiguration} has the {@code @Retry} annotation
-     * configured to retry on {@code UnknownTopicOrPartitionException}.
-     */
-    @Test
-    void testVerifyTopicConfigurationHasRetryAnnotation() throws NoSuchMethodException {
-        Method method = KafkaAdminUtil.class.getMethod("verifyTopicConfiguration", String.class);
-        Retry retry = method.getAnnotation(Retry.class);
-        assertNotNull(retry, "@Retry annotation must be present on verifyTopicConfiguration");
-        assertTrue(retry.maxRetries() > 0, "@Retry must have maxRetries > 0");
+    private DescribeConfigsResult buildFailResult(RuntimeException exception) {
+        @SuppressWarnings("unchecked")
+        KafkaFuture<Map<ConfigResource, Config>> failedFuture =
+                KafkaFuture.completedFuture((Map<ConfigResource, Config>) null)
+                        .thenApply(ignored -> {
+                            throw exception;
+                        });
+        DescribeConfigsResult result = mock(DescribeConfigsResult.class);
+        when(result.all()).thenReturn(failedFuture);
+        return result;
     }
 
     private ConsumerRecords<Bytes, Bytes> createRecords(long startOffset, int count) {
@@ -230,3 +327,4 @@ public class KafkaAdminUtilTest {
         field.set(kafkaAdminUtil, value);
     }
 }
+

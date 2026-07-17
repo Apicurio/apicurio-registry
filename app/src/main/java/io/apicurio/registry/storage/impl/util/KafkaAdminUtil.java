@@ -138,7 +138,6 @@ public class KafkaAdminUtil {
         var key = new ConfigResource(ConfigResource.Type.TOPIC, topic);
         // includeSynonyms should ensure we get effective values (including default configs).
         var options = new DescribeConfigsOptions().includeSynonyms(true);
-
         blockOn(toJavaFuture(adminClient.get().get().describeConfigs(singleton(key), options).all())
                 .thenAccept(d -> {
                     var config = d.get(key);

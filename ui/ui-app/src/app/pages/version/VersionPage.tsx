@@ -166,10 +166,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         setIsEditAgentCardModalOpen(false);
         setPleaseWaitMessage("Saving agent card as new version, please wait...");
         setIsPleaseWaitModalOpen(true);
-        let gid: string | null = groupId as string;
-        if (gid === "default") {
-            gid = null;
-        }
+        const gid: string | null = (groupId === "default") ? null : (groupId as string);
         groups.createArtifactVersion(gid, artifactId as string, {
             content: {
                 content: JSON.stringify(updatedCard, null, 2),

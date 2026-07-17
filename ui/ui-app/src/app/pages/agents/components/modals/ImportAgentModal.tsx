@@ -63,13 +63,18 @@ export const ImportAgentModal: FunctionComponent<ImportAgentModalProps> = (props
         }
         setFetchedContent(value);
         try {
-            const card = JSON.parse(value) as AgentCard;
-            if (!card.name) {
-                setFetchError("The fetched JSON does not contain a required \"name\" field.");
+            const card = JSON.parse(value);
+            if (typeof card !== "object" || card === null || Array.isArray(card)) {
+                setFetchError("The fetched content is not a valid JSON object.");
                 setParsedCard(undefined);
                 return;
             }
-            setParsedCard(card);
+            if (!card.name || typeof card.name !== "string") {
+                setFetchError("The agent card must have a \"name\" field of type string.");
+                setParsedCard(undefined);
+                return;
+            }
+            setParsedCard(card as AgentCard);
         } catch {
             setFetchError("The fetched content is not valid JSON.");
             setParsedCard(undefined);

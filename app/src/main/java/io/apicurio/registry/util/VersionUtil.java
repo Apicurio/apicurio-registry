@@ -1,6 +1,9 @@
-package io.apicurio.registry.utils;
+package io.apicurio.registry.util;
 
 public class VersionUtil {
+
+    private VersionUtil() {
+    }
 
     public static String generateVersionSortKey(String version) {
         if (version == null || version.trim().isEmpty()) {
@@ -8,7 +11,6 @@ public class VersionUtil {
         }
 
         String originalVersion = version;
-
         String withoutBuild = version.split("\\+")[0];
         String[] parts = withoutBuild.split("-", 2);
         String core = parts[0];
@@ -31,27 +33,34 @@ public class VersionUtil {
             return "NON_SEMVER_" + originalVersion;
         }
 
-        StringBuilder preBuilder = new StringBuilder();
+        String preBuilder = formatPrerelease(prerelease);
+        
+        return String.format("%010d.%010d.%010d%s", major, minor, patch, preBuilder);
+    }
+
+    private static String formatPrerelease(String prerelease) {
         if (prerelease.isEmpty()) {
-            preBuilder.append("~");
-        } else {
-            preBuilder.append("-");
-            String[] preParts = prerelease.split("\\.");
-            for (int i = 0; i < preParts.length; i++) {
-                if (i > 0) preBuilder.append(".");
-                String p = preParts[i];
-                if (p.matches("\\d+")) {
-                    try {
-                        preBuilder.append(String.format("%010d", Long.parseLong(p)));
-                    } catch (NumberFormatException e) {
-                        preBuilder.append(p);
-                    }
-                } else {
-                    preBuilder.append(p); 
-                }
-            }
+            return "~";
         }
         
-        return String.format("%010d.%010d.%010d%s", major, minor, patch, preBuilder.toString());
+        StringBuilder preBuilder = new StringBuilder("-");
+        String[] preParts = prerelease.split("\\.");
+        
+        for (int i = 0; i < preParts.length; i++) {
+            if (i > 0) {
+                preBuilder.append(".");
+            }
+            String p = preParts[i];
+            if (p.matches("\\d+")) {
+                try {
+                    preBuilder.append(String.format("%010d", Long.parseLong(p)));
+                } catch (NumberFormatException e) {
+                    preBuilder.append(p);
+                }
+            } else {
+                preBuilder.append(p); 
+            }
+        }
+        return preBuilder.toString();
     }
 }

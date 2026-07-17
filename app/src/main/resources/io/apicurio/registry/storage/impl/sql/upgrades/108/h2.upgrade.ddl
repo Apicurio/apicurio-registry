@@ -1,6 +1,6 @@
 -- *********************************************************************
 -- DDL for the Apicurio Registry - Database: h2
--- Upgrade Script from 106 to 107
+-- Upgrade Script from 107 to 108
 -- *********************************************************************
-
-UPDATE apicurio SET propValue = 107 WHERE propName = 'db_version';
+ALTER TABLE versions ADD COLUMN versionSortKey VARCHAR(512);
+UPDATE apicurio SET propValue = 108 WHERE propName = 'db_version';

@@ -182,7 +182,6 @@ public final class Conversions {
 
     // Moved to the Java SDK, see io.apicurio.registry.client.common.util.DateTimeConversions (#8644).
     public static String convertToString(OffsetDateTime ts) {
-
         if (ts == null) {
             return "";
         }
@@ -191,8 +190,7 @@ public final class Conversions {
 
     // Moved to the Java SDK, see io.apicurio.registry.client.common.util.DateTimeConversions (#8644).
     public static String convertToString(Date ts) {
-
-               if (ts == null) {
+        if (ts == null) {
             return "";
         }
         return DateTimeConversions.toIsoLocalDateTimeString(ts);

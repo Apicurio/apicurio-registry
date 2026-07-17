@@ -69,10 +69,8 @@ public class LoggingConfigTest {
         int exitCode = cmd.execute("config", "get", "update.check-enabled");
         assertThat(exitCode).isEqualTo(0);
 
-        assertThat(Logger.getLogger(CONFIGURED_CATEGORY).getLevel())
-                .isNotNull()
-                .extracting(Level::getName)
-                .isEqualTo("DEBUG");
+        // DEBUG maps to the portable JUL level FINE (see AbstractCommand.toJulLevel).
+        assertThat(Logger.getLogger(CONFIGURED_CATEGORY).getLevel()).isEqualTo(Level.FINE);
     }
 
     @Test

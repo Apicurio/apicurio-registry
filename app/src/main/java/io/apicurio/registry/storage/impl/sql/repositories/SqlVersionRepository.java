@@ -537,7 +537,7 @@ public class SqlVersionRepository {
         Long globalId = sequenceRepository.nextGlobalIdRaw(handle);
         GAV gav;
         String sortKey = VersionUtil.generateVersionSortKey(version);
-
+        // Create a row in the "versions" table
         if (firstVersion) {
             if (version == null) {
                 version = "1";
@@ -564,6 +564,9 @@ public class SqlVersionRepository {
                     .bind(10, owner).bind(11, createdOn).bind(12, owner).bind(13, createdOn)
                     .bind(14, labelsStr).bind(15, contentId).execute();
 
+            // If version is null, update the row we just inserted to set the version to the generated
+            // versionOrder
+
             if (version == null) {
                 handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId()).bind(0, globalId).execute();
                 
@@ -578,7 +581,7 @@ public class SqlVersionRepository {
                 gav = getGAVByGlobalIdRaw(handle, globalId);
             }
         }
-
+        // Insert labels into the "version_labels" table
         if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
             metaData.getLabels().forEach((k, v) -> {
                 handle.createUpdate(sqlStatements.insertVersionLabel()).bind(0, globalId)
@@ -587,14 +590,14 @@ public class SqlVersionRepository {
                         .execute();
             });
         }
-
+        // Update system generated branches
         if (isDraft) {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
         } else {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
             branchRepository.createOrUpdateSemverBranchesRaw(handle, gav);
         }
-
+        // Create any user defined branches
         if (branches != null && !branches.isEmpty()) {
             branches.forEach(branch -> {
                 BranchId branchId = new BranchId(branch);

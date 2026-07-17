@@ -594,6 +594,40 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testEmptyTemplateField() {
+        String jsonContent = """
+            {
+              "templateId": "empty-template",
+              "template": ""
+            }
+            """;
+
+        ContentHandle content = ContentHandle.create(jsonContent);
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "empty-template", "1.0");
+        });
+    }
+
+    @Test
+    public void testWhitespaceTemplateField() {
+        String jsonContent = """
+            {
+              "templateId": "whitespace-template",
+              "template": "   "
+            }
+            """;
+
+        ContentHandle content = ContentHandle.create(jsonContent);
+        Map<String, Object> variables = Map.of();
+
+        Assertions.assertThrows(InvalidContentException.class, () -> {
+            renderingService.render(content, variables, "default", "whitespace-template", "1.0");
+        });
+    }
+
+    @Test
     public void testInvalidYamlContent() {
         String invalidContent = "{{{{not valid yaml or json}}}}";
 

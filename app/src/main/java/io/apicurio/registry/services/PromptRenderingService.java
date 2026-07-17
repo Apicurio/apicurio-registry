@@ -89,10 +89,17 @@ public class PromptRenderingService {
         if (templateField.isMissingNode()) {
             throw new InvalidContentException("Prompt template is missing 'template' field");
         }
+        if (templateField.isNull()) {
+            throw new InvalidContentException("Prompt template 'template' field must not be null");
+        }
         if (!templateField.isTextual()) {
             throw new InvalidContentException("Prompt template 'template' field must be a string");
         }
-        return templateField.asText();
+        String templateText = templateField.asText();
+        if (templateText.isBlank()) {
+            throw new InvalidContentException("Prompt template 'template' field must not be blank");
+        }
+        return templateText;
     }
 
     /**

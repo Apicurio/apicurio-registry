@@ -19,6 +19,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
@@ -402,6 +403,27 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             config.queryParameters.groupId = prefix + "_alpha";
         });
         Assertions.assertEquals(1, results.getCount(), "Exact groupId should return 1 version");
+    }
+
+    @Test
+    public void testSearchVersionsNegativeLimitAndOffset() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+
+        for (int idx = 0; idx < 3; idx++) {
+            createArtifact(group, "negative-params-artifact-" + idx, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+        }
+
+        // A negative limit is normalized to 1, not passed to storage as an invalid query (#8611).
+        given().when().queryParam("groupId", group).queryParam("limit", -1)
+                .get("/registry/v3/search/versions").then().statusCode(200)
+                .body("count", equalTo(3)).body("versions.size()", equalTo(1));
+
+        // A negative offset is normalized to 0, returning the full result set.
+        given().when().queryParam("groupId", group).queryParam("offset", -1)
+                .get("/registry/v3/search/versions").then().statusCode(200)
+                .body("count", equalTo(3)).body("versions.size()", equalTo(3));
     }
 
 }

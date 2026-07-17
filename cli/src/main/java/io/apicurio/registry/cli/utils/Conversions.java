@@ -1,6 +1,8 @@
 package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.client.common.util.DateTimeConversions;
+import io.apicurio.registry.client.util.LabelsUtil;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
@@ -14,31 +16,31 @@ import io.apicurio.registry.rest.v3.beans.SearchedVersion;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-// TODO: Move some of these to the Java SDK.
+// The generic (non-bean-mapping) conversions have been moved to the Java SDK, see
+// io.apicurio.registry.client.util.LabelsUtil and
+// io.apicurio.registry.client.common.util.DateTimeConversions (#8644). The remaining
+// methods here map generated SDK client models to this module's internal
+// io.apicurio.registry.rest.v3.beans / io.apicurio.registry.types beans, which live in the
+// apicurio-registry-common module. Those stay in the CLI: moving them to the SDK would
+// require the (standalone, dependency-light) Java SDK to depend on apicurio-registry-common,
+// which is the wrong direction (common/app depend on the SDK, not vice versa).
 public final class Conversions {
 
-    private static final char ESCAPE_CHAR = '\\';
-    private static final char LABEL_SEPARATOR = '=';
     private static final String API_LABEL_SEPARATOR = ":";
 
     private Conversions() {
     }
 
+    // Moved to the Java SDK, see io.apicurio.registry.client.util.LabelsUtil (#8644).
     public static Map<String, String> convert(io.apicurio.registry.rest.client.models.Labels labels) {
-        return ofNullable(labels)
-                .map(Labels::getAdditionalData)
-                .map(x -> (Map<String, String>) (Map<String, ?>) x)
-                .orElse(Map.of());
+        return LabelsUtil.toMap(labels);
     }
 
     public static GroupMetaData convert(io.apicurio.registry.rest.client.models.GroupMetaData group) {
@@ -178,38 +180,35 @@ public final class Conversions {
                 .build();
     }
 
+    // Moved to the Java SDK, see io.apicurio.registry.client.common.util.DateTimeConversions (#8644).
     public static String convertToString(OffsetDateTime ts) {
         if (ts == null) {
             return "";
         }
-        return ts.atZoneSameInstant(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        return DateTimeConversions.toIsoLocalDateTimeString(ts);
     }
 
+    // Moved to the Java SDK, see io.apicurio.registry.client.common.util.DateTimeConversions (#8644).
     public static String convertToString(Date ts) {
         if (ts == null) {
             return "";
         }
-        return ts.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        return DateTimeConversions.toIsoLocalDateTimeString(ts);
     }
 
+    // Moved to the Java SDK, see io.apicurio.registry.client.common.util.DateTimeConversions (#8644).
     public static Date convert(OffsetDateTime ts) {
-        return Date.from(ts.toInstant());
+        return DateTimeConversions.toDate(ts);
     }
 
+    // Moved to the Java SDK, see io.apicurio.registry.client.util.LabelsUtil (#8644).
     public static String convertToString(Labels labels) {
-        return ofNullable(labels)
-                .map(Labels::getAdditionalData)
-                .map(Conversions::convertToString)
-                .orElse("");
+        return LabelsUtil.toDisplayString(labels);
     }
 
+    // Moved to the Java SDK, see io.apicurio.registry.client.util.LabelsUtil (#8644).
     public static String convertToString(Map<String, ?> labels) {
-        return labels.entrySet().stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .collect(Collectors.joining(","));
+        return LabelsUtil.toDisplayString(labels);
     }
 
     public static io.apicurio.registry.types.VersionState convertState(
@@ -227,13 +226,9 @@ public final class Conversions {
         return ofNullable(value).map(String::valueOf).orElse("");
     }
 
+    // Moved to the Java SDK, see io.apicurio.registry.client.util.LabelsUtil (#8644).
     public static Map<String, String> parseLabels(final List<String> labels) {
-        final Map<String, String> result = new LinkedHashMap<>();
-        for (final String label : labels) {
-            final LabelParts parts = splitLabel(label);
-            result.put(parts.key(), parts.value());
-        }
-        return result;
+        return LabelsUtil.parseLabels(labels);
     }
 
     public static String[] convertLabelsForApi(final List<String> labels) {
@@ -242,62 +237,15 @@ public final class Conversions {
                 .toArray(String[]::new);
     }
 
-    private record LabelParts(String key, String value) {}
-
     private static String convertLabelForApi(final String label) {
-        final LabelParts parts = splitLabel(label);
-        if (parts.key().contains(API_LABEL_SEPARATOR)) {
-            throw new CliException("Label key '" + parts.key() + "' must not contain colons. Colons are reserved by the REST API.",
+        final Map.Entry<String, String> parts = LabelsUtil.splitLabel(label);
+        if (parts.getKey().contains(API_LABEL_SEPARATOR)) {
+            throw new CliException("Label key '" + parts.getKey() + "' must not contain colons. Colons are reserved by the REST API.",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
-        if (parts.value().isEmpty()) {
-            return parts.key();
+        if (parts.getValue().isEmpty()) {
+            return parts.getKey();
         }
-        return parts.key() + API_LABEL_SEPARATOR + parts.value();
-    }
-
-    private static LabelParts splitLabel(final String label) {
-        final int separatorIndex = findUnescapedEquals(label);
-        if (separatorIndex < 0) {
-            return new LabelParts(unescape(label), "");
-        }
-        final String key = unescape(label.substring(0, separatorIndex));
-        final String value = label.substring(separatorIndex + 1);
-        return new LabelParts(key, value);
-    }
-
-    private static String unescape(final String input) {
-        final StringBuilder result = new StringBuilder(input.length());
-        boolean escaped = false;
-        for (int index = 0; index < input.length(); index++) {
-            final char ch = input.charAt(index);
-            if (escaped) {
-                result.append(ch);
-                escaped = false;
-            } else if (ch == ESCAPE_CHAR) {
-                escaped = true;
-            } else {
-                result.append(ch);
-            }
-        }
-        if (escaped) {
-            result.append(ESCAPE_CHAR);
-        }
-        return result.toString();
-    }
-
-    private static int findUnescapedEquals(final String label) {
-        boolean escaped = false;
-        for (int index = 0; index < label.length(); index++) {
-            final char ch = label.charAt(index);
-            if (escaped) {
-                escaped = false;
-            } else if (ch == ESCAPE_CHAR) {
-                escaped = true;
-            } else if (ch == LABEL_SEPARATOR) {
-                return index;
-            }
-        }
-        return -1;
+        return parts.getKey() + API_LABEL_SEPARATOR + parts.getValue();
     }
 }

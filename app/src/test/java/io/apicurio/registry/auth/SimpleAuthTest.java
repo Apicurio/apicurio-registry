@@ -611,6 +611,18 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         
         amd = client_admin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         assertEquals("admin-client", amd.getOwner());
+        
+        // RBAC Admin changes owner (should succeed)
+        var client_rbac_admin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, "registry-api", "test1"));
+        
+        EditableArtifactMetaData eamd5 = new EditableArtifactMetaData();
+        eamd5.setOwner("service-account-registry-api");
+        client_rbac_admin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(eamd5);
+        
+        amd = client_rbac_admin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        assertEquals("service-account-registry-api", amd.getOwner());
     }
 
 }

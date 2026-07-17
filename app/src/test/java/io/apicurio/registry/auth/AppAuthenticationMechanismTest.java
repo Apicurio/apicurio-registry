@@ -29,7 +29,9 @@ public class AppAuthenticationMechanismTest {
         
         mechanism.log = Mockito.mock(Logger.class);
         mechanism.basicAuthenticationMechanism = Mockito.mock(BasicAuthenticationMechanism.class);
-        mechanism.formAuthenticationMechanism = Mockito.mock(FormAuthenticationMechanism.class);
+        mechanism.formAuthenticationMechanism = Mockito.mock(Instance.class);
+        when(mechanism.formAuthenticationMechanism.isResolvable()).thenReturn(true);
+        when(mechanism.formAuthenticationMechanism.get()).thenReturn(Mockito.mock(FormAuthenticationMechanism.class));
         mechanism.oidcAuthenticationMechanism = Mockito.mock(OidcAuthenticationMechanism.class);
         mechanism.proxyHeaderAuthenticationMechanism = Mockito.mock(ProxyHeaderAuthenticationMechanism.class);
         mechanism.kubernetesClient = Mockito.mock(Instance.class);

@@ -70,7 +70,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     BasicAuthenticationMechanism basicAuthenticationMechanism;
 
     @Inject
-    FormAuthenticationMechanism formAuthenticationMechanism;
+    Instance<FormAuthenticationMechanism> formAuthenticationMechanism;
 
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
@@ -127,8 +127,8 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         strategyFactories.put("basic", () -> authConfig.basicAuthEnabled
                 ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)
                 : null);
-        strategyFactories.put("form", () -> authConfig.formAuthEnabled
-                ? new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism)
+        strategyFactories.put("form", () -> authConfig.formAuthEnabled && formAuthenticationMechanism.isResolvable()
+                ? new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism.get())
                 : null);
         strategyFactories.put("proxy-header", () -> authConfig.proxyHeaderAuthEnabled
                 ? new DelegatingAuthenticationStrategy("proxy-header",

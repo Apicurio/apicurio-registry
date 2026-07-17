@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,9 +23,16 @@ public class TableBuilder {
     private static final int MIN_COLUMN_WIDTH = 3;
     private static final int MAX_COLUMN_WIDTH = 25; // TODO: Dynamically based on terminal width.
     private static final String COLUMN_SEPARATOR = "   ";
+    private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]");
 
     // Invariant: Number of cells in every column must be the same.
     private final List<Column> columns = new ArrayList<>();
+
+    // The columns to print, in print order. Null means every column is printed.
+    // Note: the builder has no way to modify or delete columns or rows once they have been added.
+    // If that is ever needed, whether this builder should be mutable or immutable is an open design
+    // decision that has to be made first.
+    private List<Column> selectedColumns;
 
     private Pagination pagination;
 
@@ -51,15 +59,20 @@ public class TableBuilder {
     }
 
     /**
-     * Restricts the table to the requested columns, keeping only those columns and showing them in
+     * Sets the columns to print, restricting the table to the requested columns and printing them in
      * the order requested. Requested names are matched against the column headers case-insensitively,
      * ignoring any non-alphanumeric characters, so "groupId" matches a "Group ID" header. Blank
      * entries are ignored, so "--columns name,,state" behaves like "--columns name,state". A null,
      * empty, or entirely blank selection leaves the table unchanged.
+     * <p>
+     * Calling this overwrites any previous selection. The selection is always resolved against the
+     * full set of columns rather than against an earlier selection, so calling it more than once is
+     * safe and the last call wins. Only the printed output is affected - the columns that
+     * {@link #addRow(String...)} populates are unchanged.
      *
      * @throws CliException if any requested name does not match a known column
      */
-    public TableBuilder selectColumns(List<String> requestedColumns) {
+    public TableBuilder setSelectedColumns(List<String> requestedColumns) {
         if (requestedColumns == null || requestedColumns.isEmpty()) {
             return this;
         }
@@ -89,45 +102,49 @@ public class TableBuilder {
         if (selected.isEmpty()) {
             return this;
         }
-        columns.clear();
-        columns.addAll(selected);
+        selectedColumns = selected;
         return this;
     }
 
+    private List<Column> visibleColumns() {
+        return selectedColumns != null ? selectedColumns : columns;
+    }
+
     private static String normalizeColumnName(String name) {
-        return name.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+        return NON_ALPHANUMERIC.matcher(name.toLowerCase(Locale.ROOT)).replaceAll("");
     }
 
     /**
      * Builds and prints the formatted table to the provided StringBuilder.
      */
     public void print(StringBuilder out) {
-        if (columns.isEmpty()) {
+        var visible = visibleColumns();
+        if (visible.isEmpty()) {
             return;
         }
 
         // Print headers
-        for (Column column : columns) {
+        for (Column column : visible) {
             out.append(padRight(column.getHeader(), column.getWidth()))
                     .append(COLUMN_SEPARATOR);
         }
         out.append("\n");
 
         // Print header separator
-        for (Column column : columns) {
+        for (Column column : visible) {
             out.append("-".repeat(column.getWidth()))
                     .append(COLUMN_SEPARATOR);
         }
         out.append("\n");
 
         // Print rows
-        int rowCount = columns.get(0).getCells().size();
+        int rowCount = visible.get(0).getCells().size();
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
             // Print lines
             int finalRowIndex = rowIndex;
-            var maxLineHeight = columns.stream().mapToInt(c -> c.getCells().get(finalRowIndex).getHeight()).max().getAsInt();
+            var maxLineHeight = visible.stream().mapToInt(c -> c.getCells().get(finalRowIndex).getHeight()).max().getAsInt();
             for (int lineIndex = 0; lineIndex < maxLineHeight; lineIndex++) {
-                for (Column column : columns) {
+                for (Column column : visible) {
                     var lines = column.getCells().get(rowIndex).getLines();
                     var line = "";
                     if (lineIndex < lines.size()) {
@@ -141,7 +158,7 @@ public class TableBuilder {
         }
 
         // Print bottom separator
-        for (Column column : columns) {
+        for (Column column : visible) {
             out.append("-".repeat(column.getWidth() + COLUMN_SEPARATOR.length()));
         }
         out.setLength(out.length() - COLUMN_SEPARATOR.length()); // Remove last separator

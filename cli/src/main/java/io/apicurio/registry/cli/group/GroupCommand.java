@@ -94,7 +94,7 @@ public class GroupCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), groups.getCount());
-                    table.selectColumns(columns.getColumns());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

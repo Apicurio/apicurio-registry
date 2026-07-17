@@ -56,7 +56,7 @@ public class RoleMappingCommand extends AbstractCommand {
                                     mapping.getPrincipalName()
                             );
                         }
-                        table.selectColumns(columns.getColumns());
+                        table.setSelectedColumns(columns.getColumns());
                         table.print(out);
                     });
                 }

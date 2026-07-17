@@ -43,7 +43,7 @@ public class ContextCommand extends AbstractCommand {
             config.read().getContext().forEach((id, context) -> {
                 table.addRow(id + (Objects.equals(id, currentContext) ? "*" : ""), context.getRegistryUrl(), context.getGroupId(), context.getArtifactId());
             });
-            table.selectColumns(columns.getColumns());
+            table.setSelectedColumns(columns.getColumns());
             table.print(out);
         });
     }

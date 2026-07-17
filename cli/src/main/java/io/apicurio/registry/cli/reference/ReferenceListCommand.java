@@ -91,7 +91,7 @@ public class ReferenceListCommand extends AbstractCommand {
                             table.addRow(ref.getGroupId(), ref.getArtifactId(),
                                     ref.getVersion(), ref.getName());
                         }
-                        table.selectColumns(columns.getColumns());
+                        table.setSelectedColumns(columns.getColumns());
                         table.print(out);
                     }
                 }

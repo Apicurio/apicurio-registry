@@ -55,7 +55,7 @@ public class ServerConfigCommand extends AbstractCommand {
                         for (final ConfigurationProperty prop : properties) {
                             table.addRow(prop.getName(), prop.getValue(), prop.getLabel());
                         }
-                        table.selectColumns(columns.getColumns());
+                        table.setSelectedColumns(columns.getColumns());
                         table.print(out);
                     }
                 }

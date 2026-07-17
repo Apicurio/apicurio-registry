@@ -33,7 +33,7 @@ public class ConfigPropertyCommand extends AbstractCommand {
                     .filter(e -> !e.getKey().startsWith(INTERNAL_PREFIX))
                     .sorted(java.util.Map.Entry.comparingByKey())
                     .forEach(e -> table.addRow(e.getKey(), e.getValue()));
-            table.selectColumns(columns.getColumns());
+            table.setSelectedColumns(columns.getColumns());
             table.print(out);
         });
     }

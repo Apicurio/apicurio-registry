@@ -85,7 +85,7 @@ public class CommentListCommand extends AbstractCommand {
                                 convertToString(c.getCreatedOn())
                         );
                     });
-                    table.selectColumns(columns.getColumns());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

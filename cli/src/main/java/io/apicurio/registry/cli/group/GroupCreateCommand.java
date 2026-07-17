@@ -1,7 +1,11 @@
 package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+<<<<<<< HEAD
 import io.apicurio.registry.cli.common.IdUtil;
+=======
+import io.apicurio.registry.cli.common.CliException;
+>>>>>>> main
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -13,6 +17,8 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Parameters;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static io.apicurio.registry.cli.group.GroupGetCommand.printGroup;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -48,6 +54,9 @@ public class GroupCreateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (isDefaultGroup(groupId)) {
+            throw new CliException("The group 'default' is reserved and cannot be created.", VALIDATION_ERROR_RETURN_CODE);
+        }
         var newGroup = new CreateGroup();
         newGroup.setGroupId(groupId);
         if (!isBlank(description)) {

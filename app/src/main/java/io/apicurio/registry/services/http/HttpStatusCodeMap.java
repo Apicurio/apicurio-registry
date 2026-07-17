@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.error.BranchAlreadyExistsException;
 import io.apicurio.registry.storage.error.BranchNotFoundException;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.DownloadNotFoundException;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -90,6 +91,7 @@ public class HttpStatusCodeMap {
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(ContentSearchNotSupportedException.class, HTTP_BAD_REQUEST);
         map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
         map.put(DownloadNotFoundException.class, HTTP_NOT_FOUND);
         map.put(GroupNotFoundException.class, HTTP_NOT_FOUND);

@@ -17,6 +17,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
@@ -123,7 +124,7 @@ public class ArtifactGetCommand extends AbstractCommand {
                 case table -> {
                     final var table = new TableBuilder();
                     table.addColumns(FIELD, VALUE);
-                    table.addRow(GROUP_ID, artifact.getGroupId());
+                    table.addRow(GROUP_ID, displayGroupId(artifact.getGroupId()));
                     table.addRow(ARTIFACT_ID, artifact.getArtifactId());
                     table.addRow(NAME, artifact.getName());
                     table.addRow(ARTIFACT_TYPE, artifact.getArtifactType());

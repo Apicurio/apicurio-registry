@@ -21,6 +21,7 @@ import static io.apicurio.registry.cli.utils.Columns.NAME;
 import static io.apicurio.registry.cli.utils.Columns.OWNER;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 final class SearchUtil {
 
@@ -42,7 +43,7 @@ final class SearchUtil {
                             CREATED_ON, OWNER, MODIFIED_ON, MODIFIED_BY, LABELS);
                     Optional.ofNullable(results.getArtifacts()).orElse(List.of()).forEach(a -> {
                         table.addRow(
-                                a.getGroupId(),
+                                displayGroupId(a.getGroupId()),
                                 a.getArtifactId(),
                                 a.getName(),
                                 a.getArtifactType(),

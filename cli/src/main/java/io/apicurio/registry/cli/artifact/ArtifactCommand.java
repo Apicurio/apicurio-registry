@@ -121,7 +121,7 @@ public class ArtifactCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), artifacts.getCount());
-                    table.selectColumns(columns.getColumns());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

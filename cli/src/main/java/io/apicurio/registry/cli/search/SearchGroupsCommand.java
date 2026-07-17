@@ -113,7 +113,7 @@ public class SearchGroupsCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), results.getCount());
-                    table.selectColumns(columns.getColumns());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

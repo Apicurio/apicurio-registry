@@ -57,7 +57,7 @@ final class SearchUtil {
                                 convertToString(a.getLabels())
                         );
                     });
-                    table.selectColumns(columns.getColumns());
+                    table.setSelectedColumns(columns.getColumns());
                     table.setPagination(pagination.getPage(), pagination.getSize(), results.getCount());
                     table.print(out);
                 }

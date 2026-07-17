@@ -117,7 +117,7 @@ public class VersionCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), versions.getCount());
-                    table.selectColumns(columns.getColumns());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

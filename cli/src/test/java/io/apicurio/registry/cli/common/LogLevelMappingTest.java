@@ -36,4 +36,18 @@ public class LogLevelMappingTest {
         assertThatThrownBy(() -> AbstractCommand.toJulLevel("BOGUS"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    public void handlerLevelOnlyLowersNeverRaises() {
+        // Coarser handler is lowered to reveal the configured level.
+        assertThat(AbstractCommand.loweredHandlerLevel(Level.INFO, Level.FINE)).isEqualTo(Level.FINE);
+        // Handler is never raised, so unrelated channels are not suppressed.
+        assertThat(AbstractCommand.loweredHandlerLevel(Level.INFO, Level.SEVERE)).isEqualTo(Level.INFO);
+        // The permissive default (ALL) is left untouched rather than raised to the floor.
+        assertThat(AbstractCommand.loweredHandlerLevel(Level.ALL, Level.FINE)).isEqualTo(Level.ALL);
+        // An unset handler level takes the floor.
+        assertThat(AbstractCommand.loweredHandlerLevel(null, Level.FINE)).isEqualTo(Level.FINE);
+        // Equal levels stay put.
+        assertThat(AbstractCommand.loweredHandlerLevel(Level.FINE, Level.FINE)).isEqualTo(Level.FINE);
+    }
 }

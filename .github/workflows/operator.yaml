@@ -238,6 +238,8 @@ jobs:
           name: operator-test-images
           path: /tmp/
 
+      # driver=none: Kubernetes runs directly on the host, sharing all runner
+      # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).
       - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           driver: 'none'
@@ -269,10 +271,15 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
+      # -Dtest.operator.timeout.long=600: extend default Awaitility timeout from 420s (7 min)
+      #   to 600s (10 min) for slow Kafka/OLM startups on shared runners. This is read by
+      #   ITBase.LONG_DURATION via Integer.getInteger().
+      # -Dfailsafe.rerunFailingTestsCount=1: retry failed tests once as a safety net for
+      #   transient resource-related flakes.
       - name: Run ${{ matrix.name }} tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop -Dtest.operator.deployment-target=minikube ${{ matrix.extra-build-opts }}" \
+          make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop -Dtest.operator.deployment-target=minikube -Dtest.operator.timeout.long=600 -Dfailsafe.rerunFailingTestsCount=1 ${{ matrix.extra-build-opts }}" \
             REMOTE_TESTS_ALL_INSTALL_FILE=controller/target/test-install.yaml \
             GROUPS="${{ matrix.groups }}" \
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \

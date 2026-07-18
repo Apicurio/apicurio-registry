@@ -418,4 +418,69 @@ class McpToolCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Removing a parameter should be forward incompatible");
     }
+
+    @Test
+    void testFullTransitiveChecksAllPriorVersionsNotJustLatest() {
+        // Older version v1 declared an extra "legacy" property...
+        String v1 = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "legacy": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        // ...which the newer version v2 dropped.
+        String v2 = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        // Proposed adds an optional "limit" — compatible with the latest (v2), but it still
+        // omits "legacy", so it remains incompatible with v1. A transitive check that walks all
+        // prior versions must catch this; one that only looks at the latest would miss it.
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "limit": { "type": "integer" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        // Sanity check: against only the latest (v2) the proposal is compatible, so any
+        // incompatibility below can only come from also walking the older v1.
+        CompatibilityExecutionResult latestOnly = checker.testCompatibility(
+                CompatibilityLevel.FULL_TRANSITIVE, List.of(createMcpTool(v2)),
+                createMcpTool(proposed), Map.of());
+        assertTrue(latestOnly.isCompatible(),
+                "Proposal should be compatible with the latest version alone");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.FULL_TRANSITIVE, List.of(createMcpTool(v1), createMcpTool(v2)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "FULL_TRANSITIVE must walk all prior versions: removing 'legacy' (present in v1) "
+                        + "is incompatible even though the proposal matches the latest version v2");
+    }
 }

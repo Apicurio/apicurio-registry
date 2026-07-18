@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.group;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
@@ -9,6 +10,8 @@ import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static picocli.CommandLine.Option;
 
@@ -44,6 +47,9 @@ public class GroupUpdateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (isDefaultGroup(groupId)) {
+            throw new CliException("The group 'default' is implicit and cannot be updated.", VALIDATION_ERROR_RETURN_CODE);
+        }
         var group = client.getRegistryClient().groups().byGroupId(groupId).get();
         var updatedGroup = new EditableGroupMetaData();
         updatedGroup.setDescription(group.getDescription());

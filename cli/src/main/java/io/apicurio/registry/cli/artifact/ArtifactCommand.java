@@ -16,6 +16,7 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ParentCommand;
 
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
@@ -103,7 +104,7 @@ public class ArtifactCommand extends AbstractCommand {
                     );
                     artifacts.getArtifacts().forEach(a -> {
                         table.addRow(
-                                a.getGroupId(),
+                                displayGroupId(a.getGroupId()),
                                 a.getArtifactId(),
                                 a.getName(),
                                 a.getArtifactType(),

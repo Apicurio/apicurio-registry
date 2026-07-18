@@ -11,3 +11,11 @@ npm run generate-sources
 npm run lint
 npm run build
 ```
+
+## Release Notes
+
+### Factory Semantics Change (Compression)
+When creating a client via `RegistryClientFactory`, the `middlewares` parameter behavior has changed. 
+Previously, providing custom `middlewares` replaced the entire default middleware chain. 
+Now, provided middlewares are appended to Kiota's default middleware chain (which includes compression support). 
+If you pass an empty array, it will fall back to using the full default chain.

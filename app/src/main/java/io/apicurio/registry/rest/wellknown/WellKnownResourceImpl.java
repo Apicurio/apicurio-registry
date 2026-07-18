@@ -191,11 +191,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Query matches artifact metadata name and artifactId (not Agent Card JSON content).
         // Full-text content search is tracked in #7230.
         if (!StringUtil.isEmpty(request.getQuery())) {
-            String q = request.getQuery().trim();
-            if (!q.contains("*")) {
-                q = "*" + q + "*";
-            }
-            filters.add(SearchFilter.ofName(q));
+            filters.add(SearchFilter.ofName(toPartialNameFilter(request.getQuery())));
         }
 
         AgentSearchFilters f = request.getFilters();
@@ -329,7 +325,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         // Filter by name if provided
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            filters.add(SearchFilter.ofName(toPartialNameFilter(name)));
         }
 
         // Filter by skills (indexed as structured content: agent_card:skill:<id>)
@@ -528,7 +524,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
 
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            filters.add(SearchFilter.ofName(toPartialNameFilter(name)));
         }
 
         if (parameters != null && !parameters.isEmpty()) {
@@ -552,6 +548,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
      * Converts a searched artifact DTO into an MCP tool search result by fetching and parsing
      * the latest version content to extract title and parameters.
      */
+    private String toPartialNameFilter(String name) {
+        String filter = name.trim();
+        if (!filter.contains("*")) {
+            filter = "*" + filter + "*";
+        }
+        return filter;
+    }
+
     private McpToolSearchResult convertToMcpToolSearchResult(SearchedArtifactDto artifact) {
         String title = null;
         List<String> parameters = new ArrayList<>();

@@ -103,6 +103,22 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String MCP_TOOL_CONTENT = """
+            {
+                "name": "get_weather",
+                "title": "Get Weather",
+                "description": "Gets the weather forecast",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "city": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+            """;
+
     @Test
     public void testGetAgentCard() {
         givenAtRoot()
@@ -245,6 +261,24 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(2))
                 .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testSearchAgentsByPartialName() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "partial-agent-1", "WeatherAgent", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "partial-agent-2", "StreamingAgent", STREAMING_AGENT_CARD);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "Weather")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem("partial-agent-1"))
+                .body("agents.artifactId", not(hasItem("partial-agent-2")));
     }
 
     @Test
@@ -469,6 +503,24 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchMcpToolsByPartialName() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createMcpTool(groupId, "weather-tool", "get_weather", MCP_TOOL_CONTENT);
+        createMcpTool(groupId, "stock-tool", "get_stock_quote", MCP_TOOL_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "weather")
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("tools.artifactId", hasItem("weather-tool"))
+                .body("tools.artifactId", not(hasItem("stock-tool")));
+    }
+
+    @Test
     public void testSearchAgentsAdvancedNegativeOffsetLimit() {
         String requestBody = """
                 {
@@ -536,9 +588,34 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
+        createAgentCard(groupId, artifactId, null, content);
+    }
+
+    private void createAgentCard(String groupId, String artifactId, String name, String content)
+            throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+        if (name != null) {
+            createArtifact.setName(name);
+        }
+
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        createArtifact.setFirstVersion(createVersion);
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+    }
+
+    private void createMcpTool(String groupId, String artifactId, String name, String content)
+            throws Exception {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
+        createArtifact.setName(name);
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();

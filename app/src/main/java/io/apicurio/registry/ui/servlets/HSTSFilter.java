@@ -16,7 +16,7 @@ import java.io.IOException;
 public class HSTSFilter implements Filter {
 
     private static final long MAX_AGE = 31536000; // one year
-    private static final String HSTS_HEADER = "max-age=" + MAX_AGE + "; includeSubdomains";
+    private static final String HSTS_HEADER = "max-age=" + MAX_AGE + "; includeSubDomains";
 
     public static void addHstsHeaders(HttpServletResponse httpResponse) {
         httpResponse.setHeader("Strict-Transport-Security", HSTS_HEADER);

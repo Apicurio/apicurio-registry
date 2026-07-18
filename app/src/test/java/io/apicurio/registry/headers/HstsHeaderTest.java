@@ -9,6 +9,7 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 
 // #2411: the HSTS header is set by a servlet filter, so error responses that bypass the chain lose it.
 @QuarkusTest
@@ -28,6 +29,14 @@ public class HstsHeaderTest {
     public void testHstsOnSuccessResponse() {
         given().when().get("/apis/registry/v3/groups").then().statusCode(200).header(HSTS,
                 containsString("max-age="));
+    }
+
+    // #8713: RFC 6797 defines the directive as "includeSubDomains" (capital D); pin the exact
+    // value so a regression to the invalid "includeSubdomains" casing is caught.
+    @Test
+    public void testHstsDirectiveCasingIsRfcCompliant() {
+        given().when().get("/apis/registry/v3/groups").then().statusCode(200).header(HSTS,
+                equalTo("max-age=31536000; includeSubDomains"));
     }
 
     @Test

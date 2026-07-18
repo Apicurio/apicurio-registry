@@ -1,6 +1,8 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import { Comment, NewComment, VersionMetaData } from "@sdk/lib/generated-client/models";
 import {
+    Alert,
+    AlertActionCloseButton,
     Button,
     DataList,
     DataListAction,
@@ -44,6 +46,8 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     const [filter, setFilter] = useState("");
     const [isError , setIsError] = useState(false);
     const [errorMessage , setErrorMessage] = useState<string>("");
+    const [actionError , setActionError] = useState<string | undefined>(undefined);
+    
 
     const groups: GroupsService = useGroupsService();
 
@@ -69,18 +73,17 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         setIsCreateModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Adding comment, please wait.");
-        setIsError(false);
+        setActionError(undefined);
         groups.createArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, newComment)
             .then(comment => {
                 setComments([comment, ...comments]);
                 setIsPleaseWaitModalOpen(false);
-                setIsError(false);
+                
             })
             .catch(() => {
                 
                 setIsPleaseWaitModalOpen(false);
-                setIsError(true);
-                setErrorMessage("Failed to add comment.Please try again");
+                setActionError("Failed to add comment. Please try again");
 
             });
     };
@@ -89,20 +92,20 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         setIsEditModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Updating comment, please wait.");
-        setIsError(false);
+        setActionError(undefined);
         groups.updateArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, commentId, newComment)
             .then(() => {
                 setComments(comments.map(c => {
                     return c.commentId === commentId ? { ...c, value: newComment.value } : c;
                 }));
                 setIsPleaseWaitModalOpen(false);
-                setIsError(false);
+               
             })
             .catch(() => {
                 
                 setIsPleaseWaitModalOpen(false);
-                setIsError(true);
-                setErrorMessage("Failed to Edit Comment.Please try again");
+                setActionError("Failed to edit comment. Please try again");
+               
             });
     };
 
@@ -110,26 +113,28 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         setIsDeleteModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Deleting comment, please wait.");
-        setIsError(false);
-
+        setActionError(undefined);
         const commentId: string = commentToDelete?.commentId || "";
         groups.deleteArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, commentId)
             .then(() => {
                 setComments(comments.filter(c => c.commentId !== commentId));
                 setIsPleaseWaitModalOpen(false);
-                setIsError(false);
+             
             })
             .catch(() => {
               
                 setIsPleaseWaitModalOpen(false);
-                setIsError(true);
-                setErrorMessage("Failed to Delete Comment.Please try again");
+                setActionError("Failed to delete comment. Please try again");
+                
             });
     };
 
-    useEffect(() => {
+   
+
+    const loadComments = (): void => {
         setIsLoading(true);
         setIsError(false);
+        setErrorMessage("");
         groups.getArtifactVersionComments(props.version.groupId || "default", props.version.artifactId!, props.version.version!)
             .then(comments => {
                 setComments(comments);
@@ -137,11 +142,15 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsError(false);
             })
             .catch(() => {
-                
                 setIsLoading(false);
                 setIsError(true);
+                setErrorMessage("Failed to load comments. Please try again");
             });
-    }, []);
+    };
+
+    useEffect(()=> {
+        loadComments();
+    },[]);
 
     useEffect(() => {
         setFilteredComments(comments.filter(comment => {
@@ -199,6 +208,15 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
 
     return (
         <div className="comments">
+            {actionError && (
+                <Alert
+                    variant="danger"
+                    isInline
+                    title={actionError}
+                    actionClose={<AlertActionCloseButton onClick={() => setActionError(undefined)}/>}
+                    style={{ marginBottom: "15px" }}
+                />
+            )}
             <ListWithToolbar
                 toolbar={toolbar}
                 emptyState={emptyState}

@@ -7,13 +7,9 @@ import {
 } from "@microsoft/kiota-abstractions";
 import {
     FetchRequestAdapter,
-    HeadersInspectionHandler,
     KiotaClientFactory,
     Middleware,
-    ParametersNameDecodingHandler,
-    RedirectHandler,
-    RetryHandler,
-    UserAgentHandler
+    MiddlewareFactory
 } from "@microsoft/kiota-http-fetchlibrary";
 import { JsonParseNodeFactory, JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
 import { ApicurioRegistryClient, createApicurioRegistryClient } from "../generated-client/apicurioRegistryClient.js";
@@ -40,15 +36,14 @@ export class RegistryClientFactory {
             authProvider = new AnonymousAuthenticationProvider();
         }
 
-        const defaultMiddlewares = [
-            new RetryHandler(),
-            new RedirectHandler(),
-            new ParametersNameDecodingHandler(),
-            new UserAgentHandler(),
-            new HeadersInspectionHandler()
-        ];
+        let finalMiddlewares: Middleware[] | undefined = middlewares;
+        if (middlewares.length === 0) {
+            finalMiddlewares = undefined;
+        } else {
+            finalMiddlewares = [...MiddlewareFactory.getDefaultMiddlewares(), ...middlewares];
+        }
 
-        const http = KiotaClientFactory.create(undefined, [...defaultMiddlewares, ...middlewares]);
+        const http = KiotaClientFactory.create(undefined, finalMiddlewares);
         const requestAdapter: RequestAdapter = new FetchRequestAdapter(authProvider, localParseNodeFactory, localSerializationWriterFactory, http);
         requestAdapter.baseUrl = baseUrl;
         return createApicurioRegistryClient(requestAdapter);

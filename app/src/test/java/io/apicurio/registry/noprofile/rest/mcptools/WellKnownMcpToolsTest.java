@@ -232,7 +232,7 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .queryParam("offset", "not-a-number")
                 .get("/.well-known/mcp-tools")
                 .then()
-                .statusCode(404);
+                .statusCode(400);
     }
 
     @Test

@@ -23,7 +23,7 @@ an environment variable, or with the command, e.g. `make SKIP_TESTS=true build`.
 
 ## Quickstart
 
-### Published Version Quickstart (TODO)
+### Published Version Quickstart
 
 You can install a published version of the Apicurio Registry Operator from the OperatorHub, or Operator Marketplace (on
 OpenShift). Alternatively, you can use the following steps:
@@ -35,7 +35,7 @@ OpenShift). Alternatively, you can use the following steps:
    ```
 3. Choose a released version, e.g.:
    ```shell
-   export VERSION=TODO
+   export VERSION=3.0.14
    ```
    You can use `main` to install the latest development version.
 4. Run:

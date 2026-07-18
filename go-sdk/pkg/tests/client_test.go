@@ -83,8 +83,8 @@ func TestAccessSystemInfo(t *testing.T) {
 	authProvider := auth.AnonymousAuthenticationProvider{}
 
 	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
-	adapter.SetBaseUrl(RegistryUrl)
 	assert.Nil(t, err)
+	adapter.SetBaseUrl(RegistryUrl)
 	client := registryclientv3.NewApiClient(adapter)
 
 	info, err := client.System().Info().Get(context.Background(), nil)
@@ -100,8 +100,8 @@ func TestCreateAnArtifact(t *testing.T) {
 	authProvider := auth.AnonymousAuthenticationProvider{}
 
 	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
-	adapter.SetBaseUrl(RegistryUrl)
 	assert.Nil(t, err)
+	adapter.SetBaseUrl(RegistryUrl)
 	client := registryclientv3.NewApiClient(adapter)
 	contentStr := `{ "openapi": "3.0.0", "info": { "title": "My API", "version": "1.0.0" }, "paths": {} }`
 	contentType := "application/json"

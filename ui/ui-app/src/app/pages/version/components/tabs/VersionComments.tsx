@@ -42,6 +42,8 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     const [commentToEdit, setCommentToEdit] = useState<Comment>();
     const [commentToDelete, setCommentToDelete] = useState<Comment>();
     const [filter, setFilter] = useState("");
+    const [isError , setIsError] = useState(false);
+    const [errorMessage , setErrorMessage] = useState<string>("");
 
     const groups: GroupsService = useGroupsService();
 
@@ -67,14 +69,19 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         setIsCreateModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Adding comment, please wait.");
+        setIsError(false);
         groups.createArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, newComment)
             .then(comment => {
                 setComments([comment, ...comments]);
                 setIsPleaseWaitModalOpen(false);
+                setIsError(false);
             })
             .catch(() => {
-                // TODO handle error
+                
                 setIsPleaseWaitModalOpen(false);
+                setIsError(true);
+                setErrorMessage("Failed to add comment.Please try again");
+
             });
     };
 
@@ -82,16 +89,20 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         setIsEditModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Updating comment, please wait.");
+        setIsError(false);
         groups.updateArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, commentId, newComment)
             .then(() => {
                 setComments(comments.map(c => {
                     return c.commentId === commentId ? { ...c, value: newComment.value } : c;
                 }));
                 setIsPleaseWaitModalOpen(false);
+                setIsError(false);
             })
             .catch(() => {
-                // TODO handle error
+                
                 setIsPleaseWaitModalOpen(false);
+                setIsError(true);
+                setErrorMessage("Failed to Edit Comment.Please try again");
             });
     };
 
@@ -99,29 +110,36 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         setIsDeleteModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Deleting comment, please wait.");
+        setIsError(false);
 
         const commentId: string = commentToDelete?.commentId || "";
         groups.deleteArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, commentId)
             .then(() => {
                 setComments(comments.filter(c => c.commentId !== commentId));
                 setIsPleaseWaitModalOpen(false);
+                setIsError(false);
             })
             .catch(() => {
-                // TODO handle error
+              
                 setIsPleaseWaitModalOpen(false);
+                setIsError(true);
+                setErrorMessage("Failed to Delete Comment.Please try again");
             });
     };
 
     useEffect(() => {
         setIsLoading(true);
+        setIsError(false);
         groups.getArtifactVersionComments(props.version.groupId || "default", props.version.artifactId!, props.version.version!)
             .then(comments => {
                 setComments(comments);
                 setIsLoading(false);
+                setIsError(false);
             })
             .catch(() => {
-                // TODO handle error
+                
                 setIsLoading(false);
+                setIsError(true);
             });
     }, []);
 
@@ -162,6 +180,15 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         </EmptyState>
     );
 
+    const errorState = (
+        <EmptyState  headingLevel="h4"   titleText="Error" variant={EmptyStateVariant.xs}>
+            <EmptyStateBody>
+                {errorMessage}
+            </EmptyStateBody>
+        </EmptyState>
+    );
+
+
     const filteredEmptyState = (
         <EmptyState  headingLevel="h4"   titleText="No comments found" variant={EmptyStateVariant.xs}>
             <EmptyStateBody>
@@ -178,9 +205,10 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 filteredEmptyState={filteredEmptyState}
                 alwaysShowToolbar={false}
                 isLoading={isLoading}
-                isError={false}
+                isError={isError}
                 isFiltered={filter.trim().length > 0}
                 isEmpty={filteredComments.length === 0}
+                errorComponent = {errorState}
             >
                 <DataList aria-label="Compact data list example" isCompact>
                     {

@@ -91,22 +91,7 @@ public class TableBuilder {
         // Print rows
         int rowCount = columns.get(0).getCells().size();
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            // Wrap every cell of the row to its column's allocated width, then print the
-            // resulting visual lines side by side.
-            var wrapped = new ArrayList<List<String>>(columns.size());
-            for (int i = 0; i < columns.size(); i++) {
-                wrapped.add(wrap(columns.get(i).getCells().get(rowIndex).getLines(), widths[i]));
-            }
-            var maxLineHeight = wrapped.stream().mapToInt(List::size).max().getAsInt();
-            for (int lineIndex = 0; lineIndex < maxLineHeight; lineIndex++) {
-                for (int i = 0; i < columns.size(); i++) {
-                    var lines = wrapped.get(i);
-                    var line = lineIndex < lines.size() ? lines.get(lineIndex) : "";
-                    out.append(pad(line, widths[i]))
-                            .append(COLUMN_SEPARATOR);
-                }
-                endLine(out);
-            }
+            printRow(out, rowIndex, widths);
         }
 
         // Print bottom separator
@@ -119,6 +104,27 @@ public class TableBuilder {
         // Print pagination info if available
         if (pagination != null) {
             pagination.print(out);
+        }
+    }
+
+    /**
+     * Prints a single row: every cell is wrapped to its column's allocated width and the
+     * resulting visual lines are printed side by side.
+     */
+    private void printRow(StringBuilder out, int rowIndex, int[] widths) {
+        var wrapped = new ArrayList<List<String>>(columns.size());
+        for (int i = 0; i < columns.size(); i++) {
+            wrapped.add(wrap(columns.get(i).getCells().get(rowIndex).getLines(), widths[i]));
+        }
+        var maxLineHeight = wrapped.stream().mapToInt(List::size).max().getAsInt();
+        for (int lineIndex = 0; lineIndex < maxLineHeight; lineIndex++) {
+            for (int i = 0; i < columns.size(); i++) {
+                var lines = wrapped.get(i);
+                var line = lineIndex < lines.size() ? lines.get(lineIndex) : "";
+                out.append(pad(line, widths[i]))
+                        .append(COLUMN_SEPARATOR);
+            }
+            endLine(out);
         }
     }
 
@@ -232,7 +238,7 @@ public class TableBuilder {
      * making the terminal insert a blank line after every rendered line.
      */
     private static void endLine(StringBuilder out) {
-        while (out.length() > 0 && out.charAt(out.length() - 1) == ' ') {
+        while (!out.isEmpty() && out.charAt(out.length() - 1) == ' ') {
             out.setLength(out.length() - 1);
         }
         out.append("\n");

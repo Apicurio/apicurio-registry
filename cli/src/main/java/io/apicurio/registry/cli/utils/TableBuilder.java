@@ -6,13 +6,19 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import static java.lang.Math.max;
+import static java.lang.Math.min;
 import static java.util.Arrays.stream;
 
 /**
  * A fluent interface builder for creating formatted ASCII tables.
  * <p>
  * Tables adapt to the terminal width: columns wider than their fair share of the available
- * width are shrunk, and cell content that does not fit is truncated with an ellipsis.
+ * width are shrunk, and cell content is wrapped across multiple lines to fit its column, so
+ * no content is lost. Headers that do not fit their column are truncated with an ellipsis.
+ * <p>
+ * Known limitation: widths are measured in UTF-16 code units ({@link String#length()}), not
+ * display columns, so content with CJK characters (2 columns wide) or emoji (surrogate
+ * pairs) may misalign. Acceptable for the ASCII-heavy identifiers the registry works with.
  */
 public class TableBuilder {
 
@@ -73,32 +79,33 @@ public class TableBuilder {
             out.append(fit(columns.get(i).getHeader(), widths[i]))
                     .append(COLUMN_SEPARATOR);
         }
-        out.append("\n");
+        endLine(out);
 
         // Print header separator
         for (int i = 0; i < columns.size(); i++) {
             out.append("-".repeat(widths[i]))
                     .append(COLUMN_SEPARATOR);
         }
-        out.append("\n");
+        endLine(out);
 
         // Print rows
         int rowCount = columns.get(0).getCells().size();
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-            // Print lines
-            int finalRowIndex = rowIndex;
-            var maxLineHeight = columns.stream().mapToInt(c -> c.getCells().get(finalRowIndex).getHeight()).max().getAsInt();
+            // Wrap every cell of the row to its column's allocated width, then print the
+            // resulting visual lines side by side.
+            var wrapped = new ArrayList<List<String>>(columns.size());
+            for (int i = 0; i < columns.size(); i++) {
+                wrapped.add(wrap(columns.get(i).getCells().get(rowIndex).getLines(), widths[i]));
+            }
+            var maxLineHeight = wrapped.stream().mapToInt(List::size).max().getAsInt();
             for (int lineIndex = 0; lineIndex < maxLineHeight; lineIndex++) {
                 for (int i = 0; i < columns.size(); i++) {
-                    var lines = columns.get(i).getCells().get(rowIndex).getLines();
-                    var line = "";
-                    if (lineIndex < lines.size()) {
-                        line = lines.get(lineIndex);
-                    }
-                    out.append(fit(line, widths[i]))
+                    var lines = wrapped.get(i);
+                    var line = lineIndex < lines.size() ? lines.get(lineIndex) : "";
+                    out.append(pad(line, widths[i]))
                             .append(COLUMN_SEPARATOR);
                 }
-                out.append("\n");
+                endLine(out);
             }
         }
 
@@ -139,16 +146,25 @@ public class TableBuilder {
             return widths;
         }
 
-        // Fix columns that fit within the current fair share, then recompute the share
-        // from the remaining space until the allocation stabilizes.
         var fixed = new boolean[columns.size()];
+        var remaining = fixColumnsWithinFairShare(widths, fixed, available);
+        shrinkFlexibleColumns(widths, fixed, remaining);
+        return widths;
+    }
+
+    /**
+     * Fixes columns that fit within the current fair share, recomputing the share from the
+     * remaining space until the allocation stabilizes. Returns the space left over for the
+     * columns that must shrink.
+     */
+    private static int fixColumnsWithinFairShare(int[] widths, boolean[] fixed, int available) {
         var remaining = available;
-        var flexible = columns.size();
+        var flexible = widths.length;
         var changed = true;
         while (changed && flexible > 0) {
             changed = false;
             var share = remaining / flexible;
-            for (int i = 0; i < columns.size(); i++) {
+            for (int i = 0; i < widths.length; i++) {
                 if (!fixed[i] && widths[i] <= share) {
                     fixed[i] = true;
                     remaining -= widths[i];
@@ -157,28 +173,78 @@ public class TableBuilder {
                 }
             }
         }
-
-        // Split the remaining space evenly among the columns that must shrink,
-        // distributing any leftover characters one by one from the left.
-        if (flexible > 0) {
-            var share = remaining / flexible;
-            var leftover = remaining % flexible;
-            for (int i = 0; i < columns.size(); i++) {
-                if (!fixed[i]) {
-                    widths[i] = max(share + (leftover > 0 ? 1 : 0), MIN_COLUMN_WIDTH);
-                    leftover--;
-                }
-            }
-        }
-        return widths;
+        return remaining;
     }
 
     /**
-     * Pads the value to the given width, truncating with an ellipsis if it does not fit.
+     * Splits the remaining space evenly among the columns that must shrink, distributing
+     * any leftover characters one by one from the left.
+     */
+    private static void shrinkFlexibleColumns(int[] widths, boolean[] fixed, int remaining) {
+        var flexible = 0;
+        for (boolean isFixed : fixed) {
+            if (!isFixed) {
+                flexible++;
+            }
+        }
+        if (flexible == 0) {
+            return;
+        }
+        var share = remaining / flexible;
+        var leftover = remaining % flexible;
+        for (int i = 0; i < widths.length; i++) {
+            if (!fixed[i]) {
+                widths[i] = max(share + (leftover > 0 ? 1 : 0), MIN_COLUMN_WIDTH);
+                leftover--;
+            }
+        }
+    }
+
+    /**
+     * Splits logical lines into chunks no wider than the given width, so cell content wraps
+     * across multiple visual lines instead of being lost. Measured in UTF-16 code units,
+     * see the class javadoc for the display-width limitation.
+     */
+    private static List<String> wrap(List<String> lines, int width) {
+        var wrapped = new ArrayList<String>();
+        for (String line : lines) {
+            if (line.length() <= width) {
+                wrapped.add(line);
+            } else {
+                for (int i = 0; i < line.length(); i += width) {
+                    wrapped.add(line.substring(i, min(i + width, line.length())));
+                }
+            }
+        }
+        return wrapped;
+    }
+
+    /**
+     * Pads the value to the given width. Only used for content already known to fit.
+     */
+    private static String pad(String value, int width) {
+        return value + " ".repeat(width - value.length());
+    }
+
+    /**
+     * Ends the current visual line, stripping trailing spaces first. Lines padded to the
+     * full terminal width would otherwise overflow it by the trailing column separator,
+     * making the terminal insert a blank line after every rendered line.
+     */
+    private static void endLine(StringBuilder out) {
+        while (out.length() > 0 && out.charAt(out.length() - 1) == ' ') {
+            out.setLength(out.length() - 1);
+        }
+        out.append("\n");
+    }
+
+    /**
+     * Pads the header to the given width, truncating with an ellipsis if it does not fit.
+     * Headers are fixed known strings, so unlike cell content they are not wrapped.
      */
     private String fit(String value, int width) {
         if (value.length() <= width) {
-            return value + " ".repeat(width - value.length());
+            return pad(value, width);
         }
         if (width <= ELLIPSIS.length()) {
             return value.substring(0, width);

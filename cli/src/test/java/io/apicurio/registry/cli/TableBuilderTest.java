@@ -21,23 +21,27 @@ public class TableBuilderTest {
                 .addRow("1", "alpha")
                 .addRow("2", "beta"));
 
-        assertThat(output).isEqualTo(
-                "ID    NAME    \n"
-                        + "---   -----   \n"
-                        + "1     alpha   \n"
-                        + "2     beta    \n"
-                        + "-----------\n");
+        assertThat(output).isEqualTo("""
+                ID    NAME
+                ---   -----
+                1     alpha
+                2     beta
+                -----------
+                """);
     }
 
     @Test
-    public void testTruncatesWithEllipsisWhenExceedingMaxWidth() {
+    public void testWrapsCellContentWhenExceedingMaxWidth() {
         var output = print(new TableBuilder()
                 .setMaxWidth(30)
                 .addColumns("ID", "DESCRIPTION")
                 .addRow("1", "a very long description here"));
 
-        assertThat(output).contains("a very long descripti...");
-        assertThat(output).doesNotContain("a very long description here");
+        // Content is wrapped across lines within the column, never truncated.
+        assertThat(output).doesNotContain("...");
+        assertThat(output.replace(" ", "").replace("\n", "")).contains("averylongdescriptionhere");
+        output.lines().forEach(line ->
+                assertThat(line.stripTrailing().length()).isLessThanOrEqualTo(30));
     }
 
     @Test
@@ -53,7 +57,50 @@ public class TableBuilderTest {
         assertThat(dashes[0]).isEqualTo("---");
         // The wide column gets the remaining space: 40 - 3 (separator) - 3 (ID column) = 34.
         assertThat(dashes[1]).isEqualTo("-".repeat(34));
-        assertThat(output).contains("x".repeat(31) + "...");
+        // The 100 characters wrap across lines of at most 34, with nothing lost.
+        assertThat(output).contains("x".repeat(34));
+        assertThat(output).doesNotContain("x".repeat(35));
+        assertThat(output.chars().filter(c -> c == 'x').count()).isEqualTo(100);
+    }
+
+    @Test
+    public void testWrappingPreservesEmbeddedLineBreaks() {
+        var output = print(new TableBuilder()
+                .setMaxWidth(20)
+                .addColumns("ID", "NOTES")
+                .addRow("1", "short\n" + "z".repeat(30)));
+
+        assertThat(output).contains("short");
+        assertThat(output).doesNotContain("...");
+        assertThat(output.chars().filter(c -> c == 'z').count()).isEqualTo(30);
+    }
+
+    @Test
+    public void testLinesNeverExceedMaxWidthOrEndWithSpaces() {
+        var output = print(new TableBuilder()
+                .setMaxWidth(40)
+                .addColumns("ID", "NAME", "DESCRIPTION")
+                .addRow("1", "alpha", "d".repeat(80))
+                .addRow("2", "beta", "short"));
+
+        // Lines padded up to the terminal width would overflow it by the trailing
+        // separator, making the terminal wrap in a blank line after every row.
+        output.lines().forEach(line -> {
+            assertThat(line).isEqualTo(line.stripTrailing());
+            assertThat(line.length()).isLessThanOrEqualTo(40);
+        });
+    }
+
+    @Test
+    public void testHeadersTruncateWithEllipsisWhenColumnShrinks() {
+        var output = print(new TableBuilder()
+                .setMaxWidth(30)
+                .addColumns("ID", "DESCRIPTION_COLUMN_WITH_LONG_NAME")
+                .addRow("1", "y".repeat(50)));
+
+        // The header cannot wrap, so it is truncated; the cell content still wraps fully.
+        assertThat(output.lines().findFirst().orElseThrow()).contains("...");
+        assertThat(output.chars().filter(c -> c == 'y').count()).isEqualTo(50);
     }
 
     @Test
@@ -71,13 +118,14 @@ public class TableBuilderTest {
     }
 
     @Test
-    public void testZeroMaxWidthDisablesTruncation() {
+    public void testZeroMaxWidthRendersNaturalWidths() {
         var longValue = "y".repeat(200);
         var output = print(new TableBuilder()
                 .setMaxWidth(0)
                 .addColumns("ID", "VALUE")
                 .addRow("1", longValue));
 
+        // No width limit: the value stays on a single unwrapped line.
         assertThat(output).contains(longValue);
         assertThat(output).doesNotContain("...");
     }
@@ -91,7 +139,7 @@ public class TableBuilderTest {
 
         // Every column is clamped to the minimum width of 3, never less.
         var separatorLine = output.lines().skip(1).findFirst().orElseThrow();
-        assertThat(separatorLine).isEqualTo("---   ---   ");
+        assertThat(separatorLine).isEqualTo("---   ---");
     }
 
     @Test

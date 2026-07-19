@@ -6,8 +6,12 @@ import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Compatibility checker for MCP tool definition artifacts.
@@ -20,6 +24,7 @@ import java.util.Set;
  * - Changing inputSchema type: Backward incompatible
  * - Changing an existing parameter's type: Backward incompatible
  * - Narrowing an existing parameter's enum: Backward incompatible
+ * - Narrowing an existing parameter's enum relative to the prior version: Forward incompatible
  * - Changing name, title, description, annotations: Always compatible
  */
 public class McpToolCompatibilityChecker
@@ -28,8 +33,97 @@ public class McpToolCompatibilityChecker
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel,
+            List<TypedContent> existingArtifacts, TypedContent proposedArtifact,
+            Map<String, TypedContent> resolvedReferences) {
+        requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
+        requireNonNull(existingArtifacts, "existingSchemas MUST NOT be null");
+        requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
+
+        if (existingArtifacts.isEmpty()) {
+            return CompatibilityExecutionResult.compatible();
+        }
+
+        final String proposedArtifactContent = proposedArtifact.getContent().content();
+        String lastExistingSchema = existingArtifacts.get(existingArtifacts.size() - 1).getContent()
+                .content();
+
+        Set<McpToolCompatibilityDifference> incompatibleDiffs = new HashSet<>();
+
+        switch (compatibilityLevel) {
+            case BACKWARD:
+                incompatibleDiffs = doCompatibilityCheck(lastExistingSchema, proposedArtifactContent,
+                        resolvedReferences, false);
+                break;
+            case BACKWARD_TRANSITIVE:
+                incompatibleDiffs = transitivelyCheck(existingArtifacts, proposedArtifactContent,
+                        resolvedReferences, false);
+                break;
+            case FORWARD:
+                incompatibleDiffs = doCompatibilityCheck(proposedArtifactContent, lastExistingSchema,
+                        resolvedReferences, true);
+                break;
+            case FORWARD_TRANSITIVE:
+                incompatibleDiffs = transitivelyCheck(existingArtifacts, proposedArtifactContent,
+                        resolvedReferences, true);
+                break;
+            case FULL:
+                incompatibleDiffs = unionOf(
+                        doCompatibilityCheck(lastExistingSchema, proposedArtifactContent,
+                                resolvedReferences, false),
+                        doCompatibilityCheck(proposedArtifactContent, lastExistingSchema,
+                                resolvedReferences, true));
+                break;
+            case FULL_TRANSITIVE:
+                incompatibleDiffs = unionOf(
+                        transitivelyCheck(existingArtifacts, proposedArtifactContent,
+                                resolvedReferences, false),
+                        transitivelyCheck(existingArtifacts, proposedArtifactContent,
+                                resolvedReferences, true));
+                break;
+            case NONE:
+                break;
+        }
+
+        Set<CompatibilityDifference> diffs = incompatibleDiffs.stream().map(this::transform)
+                .collect(Collectors.toSet());
+        return CompatibilityExecutionResult.incompatibleOrEmpty(diffs);
+    }
+
+    private Set<McpToolCompatibilityDifference> transitivelyCheck(List<TypedContent> existingArtifacts,
+            String proposedArtifactContent, Map<String, TypedContent> resolvedReferences,
+            boolean forwardEnumCheck) {
+        Set<McpToolCompatibilityDifference> result = new HashSet<>();
+        for (int i = existingArtifacts.size() - 1; i >= 0; i--) {
+            String existing = existingArtifacts.get(i).getContent().content();
+            if (forwardEnumCheck) {
+                result.addAll(doCompatibilityCheck(proposedArtifactContent, existing,
+                        resolvedReferences, true));
+            } else {
+                result.addAll(doCompatibilityCheck(existing, proposedArtifactContent,
+                        resolvedReferences, false));
+            }
+        }
+        return result;
+    }
+
+    @SafeVarargs
+    private Set<McpToolCompatibilityDifference> unionOf(Set<McpToolCompatibilityDifference>... from) {
+        Set<McpToolCompatibilityDifference> result = new HashSet<>();
+        for (Set<McpToolCompatibilityDifference> set : from) {
+            result.addAll(set);
+        }
+        return result;
+    }
+
+    @Override
     protected Set<McpToolCompatibilityDifference> isBackwardsCompatibleWith(String existing,
             String proposed, Map<String, TypedContent> resolvedReferences) {
+        return doCompatibilityCheck(existing, proposed, resolvedReferences, false);
+    }
+
+    private Set<McpToolCompatibilityDifference> doCompatibilityCheck(String existing, String proposed,
+            Map<String, TypedContent> resolvedReferences, boolean forwardEnumCheck) {
         Set<McpToolCompatibilityDifference> differences = new HashSet<>();
 
         try {
@@ -43,7 +137,7 @@ public class McpToolCompatibilityChecker
             checkPropertyRemovals(existingNode, proposedNode, differences);
 
             // Check per-property schema changes for properties present in both versions
-            checkPropertySchemaChanges(existingNode, proposedNode, differences);
+            checkPropertySchemaChanges(existingNode, proposedNode, differences, forwardEnumCheck);
 
             // Check added required parameters
             checkRequiredParamAdditions(existingNode, proposedNode, differences);
@@ -88,7 +182,7 @@ public class McpToolCompatibilityChecker
     }
 
     private void checkPropertySchemaChanges(JsonNode existing, JsonNode proposed,
-            Set<McpToolCompatibilityDifference> differences) {
+            Set<McpToolCompatibilityDifference> differences, boolean forwardEnumCheck) {
         JsonNode existingProps = getInputSchemaProperties(existing);
         JsonNode proposedProps = getInputSchemaProperties(proposed);
         if (existingProps == null || proposedProps == null) {
@@ -103,39 +197,46 @@ public class McpToolCompatibilityChecker
             }
             JsonNode existingProp = existingProps.get(propName);
             JsonNode proposedProp = proposedProps.get(propName);
-            checkPropertyTypeChange(propName, existingProp, proposedProp, differences);
-            checkEnumNarrowing(propName, existingProp, proposedProp, differences);
+            JsonNode fromProp = forwardEnumCheck ? proposedProp : existingProp;
+            JsonNode toProp = forwardEnumCheck ? existingProp : proposedProp;
+            checkPropertyTypeNarrowing(propName, fromProp, toProp, differences);
+            checkEnumNarrowing(propName, fromProp, toProp, differences);
         }
     }
 
-    private void checkPropertyTypeChange(String propName, JsonNode existingProp, JsonNode proposedProp,
+    private void checkPropertyTypeNarrowing(String propName, JsonNode fromProp, JsonNode toProp,
             Set<McpToolCompatibilityDifference> differences) {
-        String existingType = getTextValue(existingProp, "type");
-        String proposedType = getTextValue(proposedProp, "type");
-        if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
-            differences.add(new McpToolCompatibilityDifference(
-                    McpToolCompatibilityDifference.Type.PROPERTY_TYPE_CHANGED,
-                    "Input property '" + propName + "' type changed from '" + existingType
-                            + "' to '" + proposedType + "'"));
-        }
-    }
-
-    private void checkEnumNarrowing(String propName, JsonNode existingProp, JsonNode proposedProp,
-            Set<McpToolCompatibilityDifference> differences) {
-        JsonNode existingEnum = existingProp.get("enum");
-        JsonNode proposedEnum = proposedProp.get("enum");
-        if (existingEnum == null || !existingEnum.isArray()
-                || proposedEnum == null || !proposedEnum.isArray()) {
+        Set<String> fromTypes = getTypeValues(fromProp);
+        Set<String> toTypes = getTypeValues(toProp);
+        if (fromTypes == null || toTypes == null) {
             return;
         }
 
-        Set<String> proposedValues = new HashSet<>();
-        for (JsonNode val : proposedEnum) {
-            proposedValues.add(val.asText());
+        for (String type : fromTypes) {
+            if (!toTypes.contains(type)) {
+                differences.add(new McpToolCompatibilityDifference(
+                        McpToolCompatibilityDifference.Type.PROPERTY_TYPE_CHANGED,
+                        "Input property '" + propName + "' no longer allows type '" + type + "'"));
+                return;
+            }
+        }
+    }
+
+    private void checkEnumNarrowing(String propName, JsonNode fromProp, JsonNode toProp,
+            Set<McpToolCompatibilityDifference> differences) {
+        JsonNode fromEnum = fromProp.get("enum");
+        JsonNode toEnum = toProp.get("enum");
+        if (fromEnum == null || !fromEnum.isArray() || toEnum == null || !toEnum.isArray()) {
+            return;
         }
 
-        for (JsonNode val : existingEnum) {
-            if (!proposedValues.contains(val.asText())) {
+        Set<String> toValues = new HashSet<>();
+        for (JsonNode val : toEnum) {
+            toValues.add(val.asText());
+        }
+
+        for (JsonNode val : fromEnum) {
+            if (!toValues.contains(val.asText())) {
                 differences.add(new McpToolCompatibilityDifference(
                         McpToolCompatibilityDifference.Type.ENUM_VALUE_REMOVED,
                         "Input property '" + propName + "' enum value '" + val.asText()
@@ -155,9 +256,24 @@ public class McpToolCompatibilityChecker
         return null;
     }
 
-    private String getTextValue(JsonNode node, String fieldName) {
-        JsonNode field = node.get(fieldName);
-        return (field != null && field.isTextual()) ? field.asText() : null;
+    private Set<String> getTypeValues(JsonNode node) {
+        JsonNode typeNode = node.get("type");
+        if (typeNode == null || typeNode.isNull()) {
+            return null;
+        }
+        if (typeNode.isTextual()) {
+            return Set.of(typeNode.asText());
+        }
+        if (typeNode.isArray()) {
+            Set<String> types = new HashSet<>();
+            for (JsonNode item : typeNode) {
+                if (item.isTextual()) {
+                    types.add(item.asText());
+                }
+            }
+            return types.isEmpty() ? null : types;
+        }
+        return null;
     }
 
     private void checkRequiredParamAdditions(JsonNode existing, JsonNode proposed,

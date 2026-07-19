@@ -48,6 +48,9 @@ public class McpToolCompatibilityChecker
 
         String proposed = proposedArtifact.getContent().content();
         Set<CompatibilityDifference> differences = new HashSet<>();
+        // The structural MCP tool rules are direction-agnostic, so BACKWARD, FORWARD and FULL (and
+        // their transitive variants) all evaluate identically here. The per-case switch is kept for
+        // readability only, not because the levels behave differently — there is no missing per-level logic.
         switch (compatibilityLevel) {
             case BACKWARD_TRANSITIVE:
             case FORWARD_TRANSITIVE:
@@ -59,6 +62,9 @@ public class McpToolCompatibilityChecker
                 }
                 break;
             default:
+                // Relies on existingArtifacts being ordered with the most recent version last — a
+                // contract guaranteed by AbstractCompatibilityChecker's callers. A future refactor of
+                // the base class must not silently break this ordering without updating this check.
                 String latest = existingArtifacts.get(existingArtifacts.size() - 1).getContent().content();
                 differences.addAll(isBackwardsCompatibleWith(latest, proposed, resolvedReferences));
                 break;

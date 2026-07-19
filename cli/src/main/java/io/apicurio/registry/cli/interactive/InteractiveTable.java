@@ -32,6 +32,7 @@ public class InteractiveTable<T> {
     public Selection<T> run() throws Exception {
         try (Terminal terminal = TerminalBuilder.builder()
                 .system(true)
+                .provider("jni")
                 .build()) {
             terminal.enterRawMode();
 

@@ -80,8 +80,8 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false);
                 
             })
-            .catch(() => {
-                
+            .catch((e) => {
+                console.error("Failed to Add Comments",e);
                 setIsPleaseWaitModalOpen(false);
                 setActionError("Failed to add comment. Please try again");
 
@@ -101,8 +101,8 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false);
                
             })
-            .catch(() => {
-                
+            .catch((e) => {
+                console.error("Failed to Edit Comments",e);
                 setIsPleaseWaitModalOpen(false);
                 setActionError("Failed to edit comment. Please try again");
                
@@ -121,8 +121,8 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false);
              
             })
-            .catch(() => {
-              
+            .catch((e) => {
+                console.log("Failed to delete Comments",e);
                 setIsPleaseWaitModalOpen(false);
                 setActionError("Failed to delete comment. Please try again");
                 
@@ -141,10 +141,12 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsLoading(false);
                 setIsError(false);
             })
-            .catch(() => {
+            .catch((e) => {
+                console.error("Failed to Load Comments",e);
                 setIsLoading(false);
                 setIsError(true);
                 setErrorMessage("Failed to load comments. Please try again");
+            
             });
     };
 
@@ -194,6 +196,11 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
             <EmptyStateBody>
                 {errorMessage}
             </EmptyStateBody>
+            <EmptyStateFooter>
+                <EmptyStateActions>
+                    <Button variant="secondary" onClick={() => loadComments()}>Try again</Button>
+                </EmptyStateActions>
+            </EmptyStateFooter>
         </EmptyState>
     );
 

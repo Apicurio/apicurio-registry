@@ -300,6 +300,11 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(0, results.getCount());
 
         results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "key-1:" };
+        });
+        Assertions.assertEquals(2, results.getCount());
+
+        results = clientV3.search().versions().get(config -> {
             config.queryParameters.labels = new String[] { "id:testSearchVersionsByIds_Group1_Artifact_1" };
         });
         Assertions.assertEquals(1, results.getCount());

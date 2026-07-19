@@ -113,6 +113,12 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels-3:" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
     }
 
     @Test

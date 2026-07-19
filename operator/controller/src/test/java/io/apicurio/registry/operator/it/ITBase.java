@@ -1,6 +1,5 @@
 package io.apicurio.registry.operator.it;
 
-import io.apicurio.registry.operator.App;
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.Labels;
@@ -12,6 +11,7 @@ import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
 import io.apicurio.registry.operator.utils.OperatorTestContext;
@@ -22,7 +22,6 @@ import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import io.restassured.RestAssured;
 import io.restassured.config.HttpClientConfig;
-import jakarta.enterprise.inject.spi.CDI;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -48,7 +46,6 @@ import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLa
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
 import static io.apicurio.registry.utils.Cell.cell;
 import static java.time.Duration.ofSeconds;
-import static java.util.Optional.ofNullable;
 import static org.apache.http.params.CoreConnectionPNames.CONNECTION_TIMEOUT;
 import static org.apache.http.params.CoreConnectionPNames.SO_TIMEOUT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,9 +91,12 @@ public abstract class ITBase implements OperatorTestContext {
     protected String deploymentTarget;
     protected String namespace;
     protected boolean cleanup;
-    private App app;
     protected JobManager jobManager;
     protected HostAliasManager hostAliasManager;
+
+    protected RegistryAssertions assertions;
+    protected String operatorNamespace;
+    private static volatile boolean operatorDebugForwarded;
 
     @Override
     public KubernetesClient getClient() {
@@ -109,8 +109,13 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     @Override
-    public java.util.List<String> extraDiagnosticNamespaces() {
-        return java.util.List.of(StrimziClusterWideInstaller.strimziNamespace());
+    public List<String> extraDiagnosticNamespaces() {
+        return List.of(StrimziClusterWideInstaller.strimziNamespace(),
+                OperatorClusterWideInstaller.operatorNamespace());
+    }
+
+    private boolean usesDedicatedOperator() {
+        return getClass().isAnnotationPresent(DedicatedOperator.class);
     }
 
     @BeforeAll
@@ -132,11 +137,19 @@ public abstract class ITBase implements OperatorTestContext {
         hostAliasManager = new HostAliasManager(client);
         jobManager = new JobManager(client, hostAliasManager);
 
-        if (operatorDeployment == OperatorDeployment.remote) {
+        assertions = new RegistryAssertions(client, namespace);
+
+        if (operatorDeployment == OperatorDeployment.remote && usesDedicatedOperator()) {
+            operatorNamespace = namespace;
             createTestResources();
         } else {
-            createCRDs();
-            startOperator();
+            operatorNamespace = operatorDeployment == OperatorDeployment.remote
+                    ? OperatorClusterWideInstaller.operatorNamespace()
+                    : namespace;
+            SharedOperatorLifecycle.ensureStarted(client, operatorDeployment, deploymentTarget);
+        }
+        if (getClass().isAnnotationPresent(NeedsStrimzi.class)) {
+            StrimziClusterWideInstaller.ensureInstalled(client);
         }
         startOperatorPodLog();
     }
@@ -158,8 +171,9 @@ public abstract class ITBase implements OperatorTestContext {
     protected void startOperatorPodLog() {
         if (operatorDeployment == OperatorDeployment.remote) {
             var operatorPod = waitOnOperatorPodReady();
-            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
+            if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class) && !operatorDebugForwarded) {
                 portForwardManager.startPodPortForward(operatorPod.getMetadata().getName(), 5005, 15005);
+                operatorDebugForwarded = true;
                 log.info("Remote debugging enabled. Attach your debugger to port 15005.");
             }
             podLogManager.startPodLog(ResourceID.fromResource(operatorPod));
@@ -171,90 +185,39 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     protected void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.apps().deployments()
-                    .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
-                    .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
-                    .getStatus().getReadyReplicas()).isEqualTo(replicas);
-        });
+        assertions.checkDeploymentExists(primary, component, replicas);
     }
 
     protected void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
-        Runnable check = () -> {
-            assertThat(client.apps().deployments()
-                    .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
-                    .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get())
-                    .isNull();
-        };
-        await().during(ofSeconds(10)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
-        check.run();
+        assertions.checkDeploymentDoesNotExist(primary, component);
     }
 
     protected void checkServiceExists(ApicurioRegistry3 primary, String component) {
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.services()
-                    .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
-                    .withName(primary.getMetadata().getName() + "-" + component + "-service").get())
-                    .isNotNull();
-        });
+        assertions.checkServiceExists(primary, component);
     }
 
     protected void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
-        Runnable check = () -> {
-            assertThat(client.services()
-                    .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
-                    .withName(primary.getMetadata().getName() + "-" + component + "-service").get()).isNull();
-        };
-        await().during(ofSeconds(10)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
-        check.run();
+        assertions.checkServiceDoesNotExist(primary, component);
     }
 
     protected void checkIngressExists(ApicurioRegistry3 primary, String component) {
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(client.network().v1().ingresses()
-                    .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
-                    .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get())
-                    .isNotNull();
-        });
+        assertions.checkIngressExists(primary, component);
     }
 
     protected void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
-        Runnable check = () -> {
-            assertThat(client.network().v1().ingresses()
-                    .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
-                    .withName(primary.getMetadata().getName() + "-" + component + "-ingress").get()).isNull();
-        };
-        await().during(ofSeconds(10)).atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(check::run);
-        check.run();
+        assertions.checkIngressDoesNotExist(primary, component);
     }
 
     protected PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
-                                                                        String component) {
-        final Cell<PodDisruptionBudget> rval = cell();
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            PodDisruptionBudget pdb = client.policy().v1().podDisruptionBudget()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-poddisruptionbudget")
-                    .get();
-            assertThat(pdb).isNotNull();
-            rval.set(pdb);
-        });
-
-        return rval.get();
+            String component) {
+        return assertions.checkPodDisruptionBudgetExists(primary, component);
     }
 
     protected NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
-        final Cell<NetworkPolicy> rval = cell();
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
-                    .withName(primary.getMetadata().getName() + "-" + component + "-networkpolicy").get();
-            assertThat(networkPolicy).isNotNull();
-            rval.set(networkPolicy);
-        });
-
-        return rval.get();
+        return assertions.checkNetworkPolicyExists(primary, component);
     }
 
-    private void configureRestAssured() {
+    static void configureRestAssured() {
         RestAssured.config = RestAssured.config()
                 .httpClient(HttpClientConfig.httpClientConfig()
                         // Helps with port-forwarded connection issues.
@@ -276,7 +239,10 @@ public abstract class ITBase implements OperatorTestContext {
             var installFileRaw = Files.readString(installFilePath);
             // We're not editing the deserialized resources to replicate the user experience
             installFileRaw = installFileRaw.replace("PLACEHOLDER_NAMESPACE", namespace);
-            return Serialization.unmarshal(installFileRaw);
+            List<HasMetadata> resources = Serialization.unmarshal(installFileRaw);
+            resources.stream().filter(r -> r instanceof ClusterRoleBinding).forEach(
+                    r -> r.getMetadata().setName(r.getMetadata().getName() + "-" + namespace));
+            return resources;
         } catch (NoSuchFileException ex) {
             throw new OperatorException("Remote tests require an install file to be generated. " +
                     "Please run `make INSTALL_FILE=\"" + installFilePath + "\" dist-install-file` first, " +
@@ -306,6 +272,7 @@ public abstract class ITBase implements OperatorTestContext {
             operatorDeployments.clear();
             operatorDeployments.addAll(
                     client.apps().deployments()
+                            .inNamespace(operatorNamespace)
                             .withLabels(Labels.getOperatorSelectorLabels())
                             .list().getItems()
             );
@@ -321,6 +288,7 @@ public abstract class ITBase implements OperatorTestContext {
         // TODO: Allow configuring wait time dilatation.
         await().atMost(MEDIUM_DURATION.multipliedBy(2)).during(ofSeconds(15)).ignoreExceptions().untilAsserted(() -> {
             var operatorPods = client.pods()
+                    .inNamespace(operatorNamespace)
                     .withLabels(Labels.getOperatorSelectorLabels())
                     .list().getItems();
             assertThat(operatorPods)
@@ -341,39 +309,10 @@ public abstract class ITBase implements OperatorTestContext {
 
     private void cleanTestResources() throws Exception {
         if (cleanup) {
-            log.info("Deleting generated resources from Namespace {}", namespace);
-            loadTestResources().forEach(r -> {
-                client.resource(r).inNamespace(namespace).delete();
-            });
+            log.info("Deleting cluster-scoped resources generated for Namespace {}", namespace);
+            loadTestResources().stream().filter(ClusterRoleBinding.class::isInstance)
+                    .forEach(r -> client.resource(r).delete());
         }
-    }
-
-    private void createCRDs() {
-        log.info("Creating CRDs");
-        try {
-            var crd = client.load(new FileInputStream(CRD_FILE));
-            crd.createOrReplace();
-            await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-                crd.resources().forEach(r -> assertThat(r.get()).isNotNull());
-            });
-        } catch (Exception e) {
-            log.warn("Failed to create the CRD, retrying", e);
-            createCRDs();
-        }
-    }
-
-    private void startOperator() {
-        app = CDI.current().select(App.class).get();
-        app.start(configOverride -> {
-            configOverride.withKubernetesClient(client);
-            configOverride.withUseSSAToPatchPrimaryResource(false);
-        });
-    }
-
-    // The Strimzi operator is installed once per cluster (watching all namespaces) into a dedicated
-    // namespace that afterAll never deletes; test classes only create their Kafka CRs.
-    void applyStrimziResources() throws IOException {
-        StrimziClusterWideInstaller.ensureInstalled(client);
     }
 
     /**
@@ -439,41 +378,40 @@ public abstract class ITBase implements OperatorTestContext {
     @AfterEach
     void afterEach() {
         if (cleanup) {
-            log.info("Deleting CRs");
-            client.resources(ApicurioRegistry3.class).delete();
-            try {
-                await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
-                    assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
-                            .list().getItems()).isEmpty();
-                });
-            } catch (org.awaitility.core.ConditionTimeoutException e) {
-                log.warn("Timed out waiting for graceful CR cleanup, force-removing finalizers");
-                client.resources(ApicurioRegistry3.class).list().getItems().forEach(cr -> {
-                    cr.getMetadata().setFinalizers(List.of());
-                    client.resource(cr).patch();
-                });
-                await().atMost(SHORT_DURATION).untilAsserted(() -> {
-                    assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
-                            .list().getItems()).isEmpty();
-                });
-            }
+            deleteRegistryCRs(client, namespace);
+        }
+    }
+
+    static void deleteRegistryCRs(KubernetesClient client, String namespace) {
+        log.info("Deleting CRs");
+        client.resources(ApicurioRegistry3.class).delete();
+        try {
             await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
-                var registryDeployments = client.apps().deployments().inNamespace(namespace)
-                        .withLabels(getOperatorManagedLabels()).list().getItems();
-                assertThat(registryDeployments.size()).isZero();
+                assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                        .list().getItems()).isEmpty();
+            });
+        } catch (org.awaitility.core.ConditionTimeoutException e) {
+            log.warn("Timed out waiting for graceful CR cleanup, force-removing finalizers");
+            client.resources(ApicurioRegistry3.class).list().getItems().forEach(cr -> {
+                cr.getMetadata().setFinalizers(List.of());
+                client.resource(cr).patch();
+            });
+            await().atMost(SHORT_DURATION).untilAsserted(() -> {
+                assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                        .list().getItems()).isEmpty();
             });
         }
+        await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+            var registryDeployments = client.apps().deployments().inNamespace(namespace)
+                    .withLabels(getOperatorManagedLabels()).list().getItems();
+            assertThat(registryDeployments.size()).isZero();
+        });
     }
 
     @AfterAll
     void afterAll() throws Exception {
         portForwardManager.close();
-        if (operatorDeployment == OperatorDeployment.local) {
-            app.stop();
-            log.info("Creating new K8s Client");
-            // create a new client bc operator has closed the old one
-            client = createK8sClient(namespace);
-        } else {
+        if (operatorDeployment == OperatorDeployment.remote && usesDedicatedOperator()) {
             cleanTestResources();
         }
         podLogManager.stopAndWait();

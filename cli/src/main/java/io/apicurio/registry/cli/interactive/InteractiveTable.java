@@ -1,8 +1,10 @@
 package io.apicurio.registry.cli.interactive;
 
+import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.NonBlockingReader;
+import org.jline.utils.InfoCmp.Capability;
 
 import java.util.List;
 import java.util.function.Function;
@@ -32,35 +34,33 @@ public class InteractiveTable<T> {
                 .system(true)
                 .build()) {
             terminal.enterRawMode();
-            NonBlockingReader reader = terminal.reader();
+
+            KeyMap<String> keyMap = new KeyMap<>();
+            keyMap.bind("UP", KeyMap.key(terminal, Capability.key_up));
+            keyMap.bind("DOWN", KeyMap.key(terminal, Capability.key_down));
+            keyMap.bind("ENTER", "\r");
+            keyMap.bind("QUIT", "q");
+            keyMap.bind("DELETE", "d");
+            keyMap.bind("ESC", KeyMap.esc());
+
+            BindingReader bindingReader = new BindingReader(terminal.reader());
 
             render(terminal);
             while (true) {
-                int c = reader.read();
-                if (c == 'q') {
+                String op = bindingReader.readBinding(keyMap);
+                if (op == null || op.equals("QUIT") || op.equals("ESC")) {
                     return null;
-                } else if (c == 13) { // Enter
+                } else if (op.equals("ENTER")) {
                     return rows.isEmpty() ? null : new Selection<>(rows.get(selected), Action.VIEW);
-                } else if (c == 'd') {
+                } else if (op.equals("DELETE")) {
                     return rows.isEmpty() ? null : new Selection<>(rows.get(selected), Action.DELETE);
-                } else if (c == 27) { // possible escape sequence
-                    int next = reader.read(50L);
-                    if (next == '[') {
-                        int arrow = reader.read(50L);
-                        if (arrow == 'A') { // up
-                            selected = Math.max(0, selected - 1);
-                            render(terminal);
-                        } else if (arrow == 'B') { // down
-                            selected = Math.min(rows.size() - 1, selected + 1);
-                            render(terminal);
-                        }
-                        // other escape sequences: ignore
-                    } else {
-                        // lone Esc key, no '[' followed
-                        return null;
-                    }
+                } else if (op.equals("UP")) {
+                    selected = Math.max(0, selected - 1);
+                    render(terminal);
+                } else if (op.equals("DOWN")) {
+                    selected = Math.min(rows.size() - 1, selected + 1);
+                    render(terminal);
                 }
-                // any other key: ignore
             }
         }
     }

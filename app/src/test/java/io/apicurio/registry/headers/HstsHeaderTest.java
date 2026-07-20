@@ -45,6 +45,14 @@ public class HstsHeaderTest {
                 .then().statusCode(404).header(HSTS, containsString("max-age="));
     }
 
+    // #8713: the filter chain (see #2411) also covers error responses, so pin the exact
+    // directive casing there too, not just on success responses.
+    @Test
+    public void testHstsDirectiveCasingIsRfcCompliantOn404() {
+        given().when().get("/apis/registry/v3/groups/default/artifacts/does-not-exist-" + System.nanoTime())
+                .then().statusCode(404).header(HSTS, equalTo("max-age=31536000; includeSubDomains"));
+    }
+
     @Test
     public void testHstsOnUnknownPath404() {
         given().when().get("/this-path-does-not-exist").then().statusCode(404).header(HSTS,

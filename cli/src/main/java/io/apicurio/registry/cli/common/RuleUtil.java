@@ -27,6 +27,10 @@ public final class RuleUtil {
             .map(RuleType::getValue)
             .toList();
 
+    // Invariant: VALID_CONFIGS must contain an entry for every rule type in VALID_RULE_TYPES.
+    // A rule type present in VALID_RULE_TYPES but missing here would be advertised by the
+    // {{rule-types}} help placeholder yet silently omitted from {{rule-configs}}, so keep the two
+    // in sync when adding a new rule type.
     private static final Map<String, List<String>> VALID_CONFIGS = Map.of(
             RuleType.VALIDITY.getValue(), Stream.of(ValidityLevel.values())
                     .map(Enum::name).toList(),

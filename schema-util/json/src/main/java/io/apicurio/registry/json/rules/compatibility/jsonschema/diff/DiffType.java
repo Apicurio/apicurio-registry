@@ -1,5 +1,7 @@
 package io.apicurio.registry.json.rules.compatibility.jsonschema.diff;
 
+import java.util.Locale;
+
 public enum DiffType {
 
     SUBSCHEMA_TYPE_CHANGED(false),
@@ -228,13 +230,24 @@ public enum DiffType {
     private final boolean backwardsCompatible;
 
     DiffType(boolean backwardsCompatible) {
-        this.description = this.toString();
+        this.description = humanReadable(name());
         this.backwardsCompatible = backwardsCompatible;
     }
 
     DiffType(String description, boolean backwardsCompatible) {
         this(backwardsCompatible);
         this.description = description;
+    }
+
+    /**
+     * Derives a human-readable description from an enum constant name, e.g.
+     * {@code OBJECT_TYPE_REQUIRED_PROPERTIES_MEMBER_ADDED} becomes
+     * "Object type required properties member added". Used as the default description for constants that do
+     * not supply an explicit one, so compatibility errors no longer surface the raw enum name to users.
+     */
+    private static String humanReadable(String constantName) {
+        String words = constantName.toLowerCase(Locale.ROOT).replace('_', ' ');
+        return Character.toUpperCase(words.charAt(0)) + words.substring(1);
     }
 
     /**

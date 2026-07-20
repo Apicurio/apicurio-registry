@@ -41,9 +41,15 @@ public class LoginCommand extends AbstractCommand {
 
     @Option(
             names = {"--token-endpoint"},
-            description = "OAuth2 token endpoint URL."
+            description = "OAuth2 token endpoint URL. If not provided, use --auth-server-url for OIDC discovery."
     )
     private String tokenEndpoint;
+
+    @Option(
+            names = {"--auth-server-url"},
+            description = "OIDC auth server URL for automatic token endpoint discovery."
+    )
+    private String authServerUrl;
 
     @Option(
             names = {"--client-id"},
@@ -75,6 +81,9 @@ public class LoginCommand extends AbstractCommand {
     @Inject
     CredentialStore credentialStore;
 
+    @Inject
+    OidcDiscovery oidcDiscovery;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var configModel = config.read();
@@ -89,11 +98,20 @@ public class LoginCommand extends AbstractCommand {
                         VALIDATION_ERROR_RETURN_CODE));
 
         if (!isBlank(username)) {
+            if (!isBlank(authServerUrl) || !isBlank(tokenEndpoint)) {
+                throw new CliException(
+                        "Cannot combine --username (basic auth) with --token-endpoint or --auth-server-url (OAuth2). "
+                                + "Choose one authentication method.",
+                        VALIDATION_ERROR_RETURN_CODE);
+            }
             loginBasic(output, configModel, context, contextName);
-        } else if (!isBlank(tokenEndpoint)) {
+        } else if (!isBlank(clientId)) {
             loginOAuth2(output, configModel, context, contextName);
+        } else if (!isBlank(tokenEndpoint) || !isBlank(authServerUrl)) {
+            throw new CliException("--client-id is required for OAuth2 authentication.",
+                    VALIDATION_ERROR_RETURN_CODE);
         } else {
-            throw new CliException("Specify --username for basic auth or --token-endpoint for OAuth2.",
+            throw new CliException("Specify --username for basic auth, or --client-id for OAuth2.",
                     VALIDATION_ERROR_RETURN_CODE);
         }
     }
@@ -137,10 +155,8 @@ public class LoginCommand extends AbstractCommand {
                              final ConfigModel configModel,
                              final ConfigModel.Context context,
                              final String contextName) {
-        if (isBlank(clientId)) {
-            throw new CliException("--client-id is required for OAuth2 authentication.",
-                    VALIDATION_ERROR_RETURN_CODE);
-        }
+        final var resolvedTokenEndpoint = resolveTokenEndpoint();
+
         var resolvedSecret = clientSecret;
         if (isBlank(resolvedSecret)) {
             resolvedSecret = readSecret("Client Secret: ",
@@ -155,7 +171,10 @@ public class LoginCommand extends AbstractCommand {
 
         context.clearAuth();
         context.setAuthType(ConfigModel.AUTH_TYPE_OAUTH2);
-        context.setTokenEndpoint(tokenEndpoint);
+        context.setTokenEndpoint(resolvedTokenEndpoint);
+        if (isBlank(tokenEndpoint) && !isBlank(authServerUrl)) {
+            context.setAuthServerUrl(authServerUrl);
+        }
         context.setClientId(clientId);
         context.setScope(scope);
         context.setUnsafeCredentialStorage(usedFileFallback);
@@ -171,6 +190,18 @@ public class LoginCommand extends AbstractCommand {
         output.writeStdOutChunk(out -> {
             out.append("Logged in to context '").append(contextName).append("' via OAuth2.\n");
         });
+    }
+
+    private String resolveTokenEndpoint() {
+        if (!isBlank(tokenEndpoint)) {
+            return tokenEndpoint;
+        }
+        if (!isBlank(authServerUrl)) {
+            return oidcDiscovery.discoverTokenEndpoint(authServerUrl);
+        }
+        throw new CliException(
+                "Specify --token-endpoint or --auth-server-url for OAuth2 authentication.",
+                VALIDATION_ERROR_RETURN_CODE);
     }
 
     private static String readSecret(final String prompt, final String noConsoleMessage,

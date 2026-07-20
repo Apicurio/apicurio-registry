@@ -170,6 +170,18 @@ jobs:
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
+      - name: Build and Push Multi-arch Console Plugin Images
+        run: |
+          cd registry/console-plugin
+          TAGS="-t quay.io/apicurio/apicurio-registry-console-plugin:$RELEASE_VERSION"
+          TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:$MINOR_TAG"
+          if [ "$IS_LATEST_RELEASE" = "true" ]; then
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:latest"
+          fi
+          docker buildx build --push -f ./Dockerfile \
+              $TAGS \
+              --platform linux/amd64,linux/arm64 .
+
       - name: Build and Push Multi-arch UI Images
         run: |
           cd registry/ui

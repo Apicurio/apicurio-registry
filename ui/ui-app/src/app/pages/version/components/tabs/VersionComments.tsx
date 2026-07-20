@@ -77,17 +77,14 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         groups.createArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, newComment)
             .then(comment => {
                 setComments([comment, ...comments]);
-                setIsPleaseWaitModalOpen(false);
-                
+                setIsPleaseWaitModalOpen(false); 
             })
             .catch((e) => {
                 console.error("Failed to Add Comments",e);
                 setIsPleaseWaitModalOpen(false);
                 setActionError("Failed to add comment. Please try again");
-
             });
     };
-
     const editComment = (commentId: string, newComment: NewComment): void => {
         setIsEditModalOpen(false);
         setIsPleaseWaitModalOpen(true);
@@ -99,16 +96,13 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                     return c.commentId === commentId ? { ...c, value: newComment.value } : c;
                 }));
                 setIsPleaseWaitModalOpen(false);
-               
             })
             .catch((e) => {
                 console.error("Failed to Edit Comments",e);
                 setIsPleaseWaitModalOpen(false);
                 setActionError("Failed to edit comment. Please try again");
-               
             });
     };
-
     const deleteComment = (): void => {
         setIsDeleteModalOpen(false);
         setIsPleaseWaitModalOpen(true);
@@ -119,18 +113,13 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
             .then(() => {
                 setComments(comments.filter(c => c.commentId !== commentId));
                 setIsPleaseWaitModalOpen(false);
-             
             })
             .catch((e) => {
-                console.log("Failed to delete Comments",e);
+                console.error("Failed to delete Comments",e);
                 setIsPleaseWaitModalOpen(false);
-                setActionError("Failed to delete comment. Please try again");
-                
+                setActionError("Failed to delete comment. Please try again"); 
             });
     };
-
-   
-
     const loadComments = (): void => {
         setIsLoading(true);
         setIsError(false);
@@ -146,7 +135,6 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsLoading(false);
                 setIsError(true);
                 setErrorMessage("Failed to load comments. Please try again");
-            
             });
     };
 

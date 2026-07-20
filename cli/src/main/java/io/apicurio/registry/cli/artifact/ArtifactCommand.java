@@ -7,10 +7,13 @@ import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
+import io.apicurio.registry.cli.interactive.InteractiveTable;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.cli.version.VersionCommand;
+import java.util.List;
+import java.util.Optional;
 import lombok.Getter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -65,8 +68,8 @@ public class ArtifactCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
-    @Mixin
-    private ColumnsMixin columns;
+    @Option(names = {"--interactive"}, description = "Launch interactive TUI mode.")
+    private boolean interactive;
 
     @ParentCommand
     @Getter
@@ -126,5 +129,57 @@ public class ArtifactCommand extends AbstractCommand {
                 }
             }
         });
+    }
+
+    @Override
+    public boolean supportsInteractive() {
+        return true;
+    }
+
+    @Override
+    public void runInteractive() throws Exception {
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        //noinspection ConstantConditions
+        final var results = convert(registryClient
+                .groups().byGroupId(resolvedGroupId).artifacts().get(r -> {
+                    //noinspection ConstantConditions
+                    r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();
+                    r.queryParameters.limit = pagination.getSize();
+                    r.queryParameters.orderby = ordering.getOrderBy();
+                    r.queryParameters.order = ordering.getOrder();
+                }));
+        final var artifacts = Optional.ofNullable(results.getArtifacts()).orElse(List.of());
+        if (artifacts.isEmpty()) {
+            System.out.println("No artifacts found.");
+            return;
+        }
+
+        var table = new InteractiveTable<>(artifacts,
+                a -> Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "  " + a.getArtifactType() + "  " + a.getCreatedOn());
+        var selected = table.run();
+        if (selected == null) {
+            return;
+        }
+
+        var a = selected.row();
+        switch (selected.action()) {
+            case VIEW -> {
+                System.out.println("Group:        " + displayGroupId(a.getGroupId()));
+                System.out.println("Artifact ID:  " + a.getArtifactId());
+                System.out.println("Name:         " + Optional.ofNullable(a.getName()).orElse(a.getArtifactId()));
+                System.out.println("Type:         " + a.getArtifactType());
+                System.out.println("Description:  " + Optional.ofNullable(a.getDescription()).orElse(""));
+                System.out.println("Created:      " + a.getCreatedOn());
+            }
+            case DELETE -> {
+                var deleteGroupId = Optional.ofNullable(a.getGroupId()).orElse(resolvedGroupId);
+                registryClient.groups().byGroupId(deleteGroupId)
+                        .artifacts().byArtifactId(a.getArtifactId()).delete();
+                System.out.println("Artifact '" + a.getArtifactId() + "' in group '"
+                        + deleteGroupId + "' deleted successfully.");
+            }
+        }
     }
 }

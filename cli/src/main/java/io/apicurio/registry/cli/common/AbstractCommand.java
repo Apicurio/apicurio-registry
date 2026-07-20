@@ -66,6 +66,27 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     public abstract void run(OutputBuffer output) throws Exception;
 
+    /**
+     * Commands that support --interactive should override this.
+     * Default: interactive mode isn't available for this command.
+     */
+    public boolean supportsInteractive() {
+        return false;
+    }
+
+    /**
+     * Runs the TUI loop. Only called if supportsInteractive() is true
+     * and the --interactive flag was passed. Bypasses the OutputBuffer
+     * batch model entirely — this owns the terminal directly.
+     */
+    public void runInteractive() throws Exception {
+        throw new UnsupportedOperationException("Interactive mode not implemented for this command.");
+    }
+
+    private boolean isInteractiveRequested() {
+        return spec.commandLine().getParseResult().hasMatchedOption("--interactive");
+    }
+
     private static void handleCliException(final OutputBuffer output, final CliException ex) {
         if (!ex.isQuiet()) {
             output.writeStdErrChunk(out -> out.append(ERROR_PREFIX).append(ex.getMessage()).append("\n"));

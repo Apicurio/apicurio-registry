@@ -50,6 +50,8 @@ jobs:
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.tls.**,io.apicurio.registry.cors.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          # SYNC: if you change these exclusions, also update APP_OTHER_EXCLUSIONS
+          # in .github/scripts/check-shard-coverage.sh
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.cors.**"

@@ -1025,6 +1025,67 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         });
     }
 
+    @Test
+    public void testSearchVersionsByGlobalIdAndContentId() throws Exception {
+        String artifactId = "testSearchVersionsByGlobalIdAndContentId-1";
+
+        ContentHandle contentV1 = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactVersionMetaDataDto v1 = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(contentV1).build(),
+                        null, Collections.emptyList(), false, false, null)
+                .getValue();
+        Assertions.assertNotNull(v1);
+
+        ContentHandle contentV2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactVersionMetaDataDto v2 = storage().createArtifactVersion(
+                GROUP_ID, artifactId, null, ArtifactType.OPENAPI, ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_JSON).content(contentV2).build(),
+                null, Collections.emptyList(), false, false, null);
+        Assertions.assertNotNull(v2);
+        Assertions.assertNotEquals(v1.getGlobalId(), v2.getGlobalId());
+        Assertions.assertNotEquals(v1.getContentId(), v2.getContentId());
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofGlobalId(v1.getGlobalId())),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(v1.getGlobalId(), results.getVersions().get(0).getGlobalId());
+
+            results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofGlobalId(v1.getGlobalId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(v2.getGlobalId(), results.getVersions().get(0).getGlobalId());
+
+            results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofContentId(v1.getContentId())),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(v1.getContentId(), results.getVersions().get(0).getContentId());
+
+            results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofContentId(v1.getContentId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(v2.getContentId(), results.getVersions().get(0).getContentId());
+        });
+    }
+
     private void createSomeUserData() {
         final String group1 = "testGroup-1";
         final String group2 = "testGroup-2";

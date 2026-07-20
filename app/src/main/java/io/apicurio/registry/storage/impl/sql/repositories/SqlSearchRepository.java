@@ -277,6 +277,16 @@ public class SqlSearchRepository {
                         break;
                     case contentId:
                     case globalId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
+                        where.append(op);
+                        where.append(" ?");
+                        binders.add((query, idx) -> {
+                            query.bind(idx, filter.getNumberValue().longValue());
+                        });
+                        break;
                     case state:
                     case version:
                         op = filter.isNot() ? "!=" : "=";

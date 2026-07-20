@@ -45,7 +45,7 @@ public class TableBuilder {
 
     public TableBuilder addRow(String... values) {
         for (int i = 0; i < columns.size(); i++) {
-            columns.get(i).addCell(i < values.length && values[i] != null ? values[i] : "");
+            columns.get(i).addCell(i < values.length ? values[i] : "");
         }
         return this;
     }
@@ -247,6 +247,9 @@ public class TableBuilder {
     /**
      * Pads the header to the given width, truncating with an ellipsis if it does not fit.
      * Headers are fixed known strings, so unlike cell content they are not wrapped.
+     * <p>
+     * At widths up to the ellipsis length the ellipsis is omitted: it would consume the
+     * whole column and convey nothing, while a plain cut keeps identifying characters.
      */
     private String fit(String value, int width) {
         if (value.length() <= width) {
@@ -283,8 +286,9 @@ public class TableBuilder {
         private final List<String> lines = new ArrayList<>();
         private final int width;
 
+        // A null value renders as an empty cell, so callers do not have to guard.
         public Cell(String value) {
-            lines.addAll(List.of(value.split("\n")));
+            lines.addAll(List.of((value != null ? value : "").split("\n")));
             width = lines.stream().mapToInt(String::length).max().orElse(0);
         }
 

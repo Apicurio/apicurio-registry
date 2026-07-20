@@ -62,8 +62,15 @@ public final class TerminalUtils {
         // because the CLI compiles with an older source level.
         try {
             return (Boolean) Console.class.getMethod("isTerminal").invoke(console);
-        } catch (ReflectiveOperationException ex) {
+        } catch (NoSuchMethodException ex) {
+            // Pre-JDK 22: Console::isTerminal does not exist, but System.console()
+            // already returns null for redirected streams, so a non-null console
+            // means a real terminal.
             return true;
+        } catch (ReflectiveOperationException ex) {
+            // Unexpected reflective failure on JDK 22+, where a non-null console no
+            // longer implies a terminal. Fail toward the safe default width.
+            return false;
         }
     }
 

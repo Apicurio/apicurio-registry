@@ -143,6 +143,23 @@ public class TableBuilderTest {
     }
 
     @Test
+    public void testNullCellValuesRenderAsEmpty() {
+        var output = print(new TableBuilder()
+                .setMaxWidth(80)
+                .addColumns("ID", "NAME")
+                .addRow("1", null)
+                .addRow("2", "beta"));
+
+        assertThat(output).isEqualTo("""
+                ID    NAME
+                ---   ----
+                1
+                2     beta
+                ----------
+                """);
+    }
+
+    @Test
     public void testPaginationFooter() {
         var output = print(new TableBuilder()
                 .setMaxWidth(80)

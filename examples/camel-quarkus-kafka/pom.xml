@@ -18,8 +18,8 @@
 
     <properties>
         <projectRoot>${project.basedir}/../..</projectRoot>
-        <quarkus.version>3.27.0</quarkus.version>
-        <camel-quarkus.version>3.27.1</camel-quarkus.version>
+        <quarkus.version>3.33.1</quarkus.version>
+        <camel-quarkus.version>3.33.1</camel-quarkus.version>
         <compiler-plugin.version>3.13.0</compiler-plugin.version>
         <maven.compiler.release>17</maven.compiler.release>
         <skipITs>true</skipITs>
@@ -70,6 +70,13 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-apicurio-registry-avro</artifactId>
+        </dependency>
+
+        <!-- Kafka clients (explicit version to align with Quarkus 3.33) -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>4.1.1</version>
         </dependency>
 
         <!-- Avro -->

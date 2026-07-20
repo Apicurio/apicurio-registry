@@ -4,12 +4,10 @@ import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
-import io.apicurio.registry.cli.interactive.InteractiveTable;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.search.artifacts.ArtifactsRequestBuilder;
 import java.util.List;
-import java.util.Optional;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -80,9 +78,6 @@ public class SearchArtifactsCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
-    @Option(names = {"--interactive"}, description = "Launch interactive TUI mode.")
-    private boolean interactive;
-
     @Override
     public void run(final OutputBuffer output) throws Exception {
         //noinspection ConstantConditions
@@ -91,33 +86,6 @@ public class SearchArtifactsCommand extends AbstractCommand {
             applyFilters(r.queryParameters);
         }));
         SearchUtil.printArtifactResults(output, results, outputType, pagination);
-    }
-
-    @Override
-    public boolean supportsInteractive() {
-        return true;
-    }
-
-    @Override
-    public void runInteractive() throws Exception {
-        //noinspection ConstantConditions
-        final var results = convert(client.getRegistryClient().search().artifacts().get(r -> {
-            //noinspection ConstantConditions
-            applyFilters(r.queryParameters);
-        }));
-        final var artifacts = Optional.ofNullable(results.getArtifacts()).orElse(List.of());
-        if (artifacts.isEmpty()) {
-            System.out.println("No artifacts found.");
-            return;
-        }
-
-        var table = new InteractiveTable<>(artifacts,
-                a -> a.getName() + "  " + a.getArtifactType() + "  " + a.getCreatedOn());
-        var selected = table.run();
-        if (selected != null) {
-            System.out.println("Selected: " + selected.row().getArtifactId()
-                    + " (action: " + selected.action() + ")");
-        }
     }
 
     private void applyFilters(final ArtifactsRequestBuilder.GetQueryParameters params) {

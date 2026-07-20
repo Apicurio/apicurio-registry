@@ -20,7 +20,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
-import io.apicurio.registry.types.ArtifactMediaTypes;
+
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.VersionState;
@@ -68,7 +68,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         String ext = ContentTypes.getFileExtension(dto.getContentType());
         String filename = contentId + ext;
         return Response.ok().entity(dto.getContent())
-                .type(ArtifactMediaTypes.BINARY)
+                .type(dto.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
                 .build();
     }
@@ -146,7 +146,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         }
         String ext = ContentTypes.getFileExtension(dto.getContentType());
         String filename = contentHash + ext;
-        return Response.ok(dto.getContent(), ArtifactMediaTypes.BINARY)
+        return Response.ok(dto.getContent(), dto.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
                 .build();
     }

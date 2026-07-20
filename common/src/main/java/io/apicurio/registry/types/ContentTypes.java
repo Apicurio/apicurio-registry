@@ -23,7 +23,15 @@ public class ContentTypes {
         if (contentType == null) {
             return ".bin";
         }
-        return switch (contentType) {
+        
+        String bareType = contentType;
+        int semicolonIdx = bareType.indexOf(';');
+        if (semicolonIdx != -1) {
+            bareType = bareType.substring(0, semicolonIdx);
+        }
+        bareType = bareType.trim().toLowerCase();
+
+        return switch (bareType) {
             case APPLICATION_JSON -> ".json";
             case APPLICATION_YAML -> ".yaml";
             case APPLICATION_XML -> ".xml";

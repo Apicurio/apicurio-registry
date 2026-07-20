@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.artifact;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.Conversions;
@@ -16,6 +17,7 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import picocli.CommandLine.Command;
@@ -77,7 +79,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--label"},
-            description = "Provide a list of artifact labels (format: key=value or key). Use \= to include = in a key."
+            description = "Provide a list of artifact labels (format: key=value or key). Use \\= to include = in a key."
     )
     private List<String> labels;
 
@@ -99,7 +101,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var supportedTypesList = Arrays.stream(ArtifactType.class.getDeclaredFields())
+        final var supportedTypes = Arrays.stream(ArtifactType.class.getDeclaredFields())
                 .filter(field -> Modifier.isPublic(field.getModifiers())
                         && Modifier.isStatic(field.getModifiers())
                         && field.getType().equals(String.class))
@@ -111,20 +113,22 @@ public class ArtifactCreateCommand extends AbstractCommand {
                     }
                 })
                 .sorted()
-                .collect(Collectors.joining(", "));
+                .collect(Collectors.toCollection(TreeSet::new));
+
+        final var supportedTypesList = String.join(", ", supportedTypes);
 
         // 1. Validate missing --type
         if (isBlank(artifactType)) {
-            throw new IllegalArgumentException(
-                "Missing required option '--type'. Supported artifact types are: " + supportedTypesList
-            );
+            throw new CliException(
+                    "Missing required option '--type'. Supported artifact types are: " + supportedTypesList,
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
         }
 
-        // 2. Validate missing content/file
-        if (isBlank(file)) {
-            throw new IllegalArgumentException(
-                "Missing required option '--file' (or '-' for stdin) to provide artifact content."
-            );
+        // 2. Validate invalid --type
+        if (!supportedTypes.contains(artifactType)) {
+            throw new CliException(
+                    "Invalid value for option '--type': '" + artifactType + "'. Supported artifact types are: " + supportedTypesList,
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
         }
 
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
@@ -145,16 +149,19 @@ public class ArtifactCreateCommand extends AbstractCommand {
             newArtifact.setLabels(newLabels);
         }
 
-        final var content = FileUtils.readContent(file);
-        final var firstVersion = new CreateVersion();
-        if (!isBlank(version)) {
-            firstVersion.setVersion(version);
+        // 3. Optional file content
+        if (!isBlank(file)) {
+            final var content = FileUtils.readContent(file);
+            final var firstVersion = new CreateVersion();
+            if (!isBlank(version)) {
+                firstVersion.setVersion(version);
+            }
+            final var versionContent = new VersionContent();
+            versionContent.setContent(content);
+            versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
+            firstVersion.setContent(versionContent);
+            newArtifact.setFirstVersion(firstVersion);
         }
-        final var versionContent = new VersionContent();
-        versionContent.setContent(content);
-        versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
-        firstVersion.setContent(versionContent);
-        newArtifact.setFirstVersion(firstVersion);
 
         final var result = client.getRegistryClient()
                 .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);

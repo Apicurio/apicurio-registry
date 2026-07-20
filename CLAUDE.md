@@ -105,6 +105,7 @@ Project committers have more latitude but should still follow the Code and Tests
 - [ ] Every new code path has tests. Missing tests = automatic rejection.
 - [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
 - [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
+- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans — plain JUnit with `new` bypasses interceptors.
 - [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
 
 ### Submission

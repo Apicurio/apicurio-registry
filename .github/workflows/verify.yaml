@@ -35,6 +35,7 @@ jobs:
       run-cli: ${{ steps.decide.outputs.run-cli }}
       run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
       run-operator: ${{ steps.decide.outputs.run-operator }}
+      run-console-plugin: ${{ steps.decide.outputs.run-console-plugin }}
       scalpel-enabled: ${{ steps.decide.outputs.scalpel-enabled }}
     steps:
       - name: Checkout Code
@@ -86,6 +87,8 @@ jobs:
               - '.github/workflows/verify-cli.yaml'
             operator:
               - 'operator/**'
+            console-plugin:
+              - 'console-plugin/**'
             ci:
               - '.github/workflows/**'
             ci-operator:
@@ -116,7 +119,7 @@ jobs:
               LABEL='${{ github.event.label.name }}'
               if [[ "$LABEL" != lifecycle/* ]]; then
                 echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
+                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
                 echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -135,7 +138,7 @@ jobs:
             SENDER='${{ github.event.sender.login }}'
             if has_label "orchestrator/merge-rebase" && [ "$SENDER" = "github-actions[bot]" ]; then
               echo "lifecycle-ready=true" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-go-sdk-freshness; do
+              for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
               echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -171,6 +174,7 @@ jobs:
           SDK='${{ steps.filter.outputs.sdk }}'
           CLI='${{ steps.filter.outputs.cli }}'
           OPERATOR='${{ steps.filter.outputs.operator }}'
+          CONSOLE_PLUGIN='${{ steps.filter.outputs.console-plugin }}'
           GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
           CI_OPERATOR='${{ steps.filter.outputs.ci-operator }}'
@@ -200,7 +204,8 @@ jobs:
           decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_full"  "$CLI"
-          decide run-operator   "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
+          decide run-operator        "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
+          decide run-console-plugin  "$run_smoke" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
           decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
           # Scalpel (affected-module detection) can be disabled via PR label
@@ -223,6 +228,7 @@ jobs:
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
             "run-cli": "${{ steps.decide.outputs.run-cli }}",
             "run-operator": "${{ steps.decide.outputs.run-operator }}",
+            "run-console-plugin": "${{ steps.decide.outputs.run-console-plugin }}",
             "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}",
             "scalpel-enabled": "${{ steps.decide.outputs.scalpel-enabled }}"
           }
@@ -236,6 +242,7 @@ jobs:
             "cli": "${{ steps.filter.outputs.cli }}",
             "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",
             "operator": "${{ steps.filter.outputs.operator }}",
+            "console-plugin": "${{ steps.filter.outputs.console-plugin }}",
             "ci": "${{ steps.filter.outputs.ci }}"
           }
           ARTIFACT_EOF
@@ -399,6 +406,16 @@ jobs:
     secrets: inherit
 
   # ============================================================================
+  # Console Plugin
+  # ============================================================================
+  console-plugin:
+    name: Console Plugin
+    needs: [decide]
+    if: needs.decide.outputs.run-console-plugin == 'true'
+    uses: ./.github/workflows/verify-console-plugin.yaml
+    secrets: inherit
+
+  # ============================================================================
   # VERIFICATION GATE: Single required check for branch protection
   #
   # Aggregates results from all test phases.  Passes when every upstream job
@@ -410,7 +427,7 @@ jobs:
     name: Verification Gate
     if: always()
     needs: [decide, lint-and-validate, build, unit-tests, cli-verify,
-            integration-tests, extras, sdk, go-sdk-freshness, operator]
+            integration-tests, extras, sdk, go-sdk-freshness, operator, console-plugin]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate
@@ -459,13 +476,13 @@ jobs:
   # ============================================================================
   notify-slack:
     name: Slack Notification
-    needs: [unit-tests, integration-tests, publish, operator]
+    needs: [unit-tests, integration-tests, publish, operator, console-plugin]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio' && always()
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'verification'
-      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
+      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure' || needs.console-plugin.result == 'failure') && 'failure' || 'success' }}
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

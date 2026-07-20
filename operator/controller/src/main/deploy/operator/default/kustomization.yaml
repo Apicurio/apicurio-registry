@@ -44,3 +44,8 @@ patches:
         value:
           name: REGISTRY_GITOPS_SYNC_IMAGE
           value: ${PLACEHOLDER_REGISTRY_GITOPS_SYNC_IMAGE}
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: REGISTRY_CONSOLE_PLUGIN_IMAGE
+          value: ${PLACEHOLDER_REGISTRY_CONSOLE_PLUGIN_IMAGE}

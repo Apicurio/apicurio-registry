@@ -44,6 +44,10 @@ public abstract class AbstractCommand implements Callable<Integer> {
         try {
             configureVerboseLogging();
             updateNotifier.checkAndNotify(getTopLevelCommandName());
+            if (isInteractiveRequested() && supportsInteractive()) {
+                runInteractive();
+                return OK_RETURN_CODE;
+            }
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {

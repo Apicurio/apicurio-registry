@@ -67,6 +67,9 @@ public class ArtifactCommand extends AbstractCommand {
 
     @Mixin
     private OutputTypeMixin outputType;
+    
+    @Mixin
+    private ColumnsMixin columns;
 
     @Option(names = {"--interactive"}, description = "Launch interactive TUI mode.")
     private boolean interactive;

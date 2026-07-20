@@ -54,7 +54,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
     private String groupId;
 
     @Option(
-            names = {"-t", "--type"},
+            names = {"--type"},
             description = "Artifact type (e.g. AVRO, PROTOBUF, JSON, OPENAPI, ASYNCAPI, GRAPHQL, KCONNECT, WSDL, XSD, XML)."
     )
     private String artifactType;
@@ -66,13 +66,13 @@ public class ArtifactCreateCommand extends AbstractCommand {
     private String file;
 
     @Option(
-            names = {"-n", "--name"},
+            names = {"--name"},
             description = "Provide artifact name."
     )
     private String name;
 
     @Option(
-            names = {"-d", "--description"},
+            names = {"--description"},
             description = "Provide artifact description."
     )
     private String description;

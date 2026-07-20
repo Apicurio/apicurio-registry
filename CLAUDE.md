@@ -90,7 +90,7 @@ Project committers have more latitude but should still follow the Code and Tests
 - [ ] Check the [Tried & Rejected list](https://github.com/Apicurio/apicurio-registry/discussions/8364) — some optimizations have already been evaluated and rejected with evidence. Don't re-implement them.
 
 ### Code
-- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` in `app` module).
+- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` in `app` module). If you changed `@ConfigProperty` or `@Info`, regenerate config docs: `./mvnw clean install -pl :apicurio-registry-config-generator -am -DskipTests` and commit the updated `ref-registry-all-configs.adoc`.
 - [ ] API error responses never expose internal state (usernames, stack traces, class names).
 - [ ] Use Quarkus/MicroProfile facilities (`@CircuitBreaker`, `@Retry`, `@Timeout`) instead of hand-rolled equivalents.
 - [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.

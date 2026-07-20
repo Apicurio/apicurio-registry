@@ -59,7 +59,7 @@ public class ConsolePluginManager {
 
     public static boolean isEnabled(ApicurioRegistry3 primary) {
         boolean specEnabled = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getConsolePlugin)
-                .map(ConsolePluginSpec::getEnabled).orElse(Boolean.TRUE);
+                .map(ConsolePluginSpec::getEnabled).orElse(Boolean.FALSE);
         boolean imageConfigured = Configuration.getConsolePluginImage().isPresent();
         return specEnabled && imageConfigured;
     }

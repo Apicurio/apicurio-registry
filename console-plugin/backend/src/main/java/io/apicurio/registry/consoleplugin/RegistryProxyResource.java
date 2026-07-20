@@ -19,6 +19,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 @Path("/proxy")
@@ -79,7 +80,19 @@ public class RegistryProxyResource {
         String query = uriInfo.getRequestUri().getRawQuery();
         String targetUrl = registryApiUrl + "/" + path + (query != null ? "?" + query : "");
 
+        // Validate that the resolved URL stays within the configured registry API
+        if (!targetUrl.startsWith(registryApiUrl)) {
+            return CompletableFuture.completedFuture(
+                    Response.status(400).entity("Invalid proxy path").build());
+        }
+
         log.debug("Proxying {} -> {}", method, targetUrl);
+
+        // Check request body size (10 MB max)
+        if (body != null && body.length > 10 * 1024 * 1024) {
+            return CompletableFuture.completedFuture(
+                    Response.status(413).entity("Request body too large").build());
+        }
 
         HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(targetUrl))
@@ -103,6 +116,11 @@ public class RegistryProxyResource {
 
         return httpClient.sendAsync(requestBuilder.build(), HttpResponse.BodyHandlers.ofByteArray())
                 .thenApply(resp -> {
+                    // Check response body size (50 MB max)
+                    if (resp.body() != null && resp.body().length > 50 * 1024 * 1024) {
+                        return Response.status(502)
+                                .entity("Response body too large").build();
+                    }
                     Response.ResponseBuilder builder = Response.status(resp.statusCode());
                     resp.headers().firstValue("Content-Type")
                             .ifPresent(ct -> builder.header("Content-Type", ct));

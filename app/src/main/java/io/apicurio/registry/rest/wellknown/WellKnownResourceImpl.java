@@ -333,9 +333,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Always filter by AGENT_CARD artifact type
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
 
-        // Filter by name if provided
+        // Filter by name if provided. The name filter is documented as a partial match, so
+        // wrap the value in wildcards unless the caller supplied their own.
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            String nameFilter = name.trim();
+            if (!nameFilter.contains("*")) {
+                nameFilter = "*" + nameFilter + "*";
+            }
+            filters.add(SearchFilter.ofName(nameFilter));
         }
 
         // Filter by skills (indexed as structured content: agent_card:skill:<id>)
@@ -533,8 +538,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
 
+        // The name filter is documented as a partial match, so wrap the value in wildcards
+        // unless the caller supplied their own.
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            String nameFilter = name.trim();
+            if (!nameFilter.contains("*")) {
+                nameFilter = "*" + nameFilter + "*";
+            }
+            filters.add(SearchFilter.ofName(nameFilter));
         }
 
         if (parameters != null && !parameters.isEmpty()) {

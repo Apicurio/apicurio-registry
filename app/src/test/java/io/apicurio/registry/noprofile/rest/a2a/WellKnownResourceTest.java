@@ -103,6 +103,20 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String MCP_TOOL_CONTENT = """
+            {
+                "name": "get_weather",
+                "description": "Get the current weather for a city",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "city": { "type": "string" }
+                    },
+                    "required": ["city"]
+                }
+            }
+            """;
+
     @Test
     public void testGetAgentCard() {
         givenAtRoot()
@@ -245,6 +259,61 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(2))
                 .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testSearchAgentsPartialNameMatch() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "partialmatchagent-alpha", AGENT_CARD_CONTENT);
+
+        // The name filter is documented as a partial match, so a substring should match even
+        // though the caller did not supply any wildcards.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "partialmatchagent")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("partialmatchagent-alpha"));
+    }
+
+    @Test
+    public void testSearchAgentsExplicitWildcardIsPreserved() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "explicitwildcardagent-alpha", AGENT_CARD_CONTENT);
+
+        // A caller-supplied wildcard must still work (the value is not wrapped a second time).
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "*explicitwildcardagent*")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("explicitwildcardagent-alpha"));
+    }
+
+    @Test
+    public void testSearchMcpToolsPartialNameMatch() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createMcpTool(groupId, "partialmatchtool-alpha", MCP_TOOL_CONTENT);
+
+        // Same partial-match behaviour is documented for the MCP tool discovery endpoint.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "partialmatchtool")
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("tools.artifactId", hasItem("partialmatchtool-alpha"));
     }
 
     @Test
@@ -590,6 +659,21 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        createArtifact.setFirstVersion(createVersion);
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+    }
+
+    private void createMcpTool(String groupId, String artifactId, String content) throws Exception {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();

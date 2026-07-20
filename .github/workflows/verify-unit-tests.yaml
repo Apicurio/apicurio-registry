@@ -46,9 +46,13 @@ jobs:
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          - name: app-security
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.tls.**,io.apicurio.registry.cors.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"
+            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.cors.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"

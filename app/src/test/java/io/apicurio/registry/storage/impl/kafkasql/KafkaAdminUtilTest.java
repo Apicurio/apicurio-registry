@@ -182,11 +182,10 @@ public class KafkaAdminUtilTest {
         DescribeConfigsResult success = buildSuccessResult();
         when(admin.describeConfigs(any(), any())).thenReturn(success);
 
-        retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3);
+        kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC);
 
         verify(admin, times(1)).describeConfigs(any(), any());
     }
-
 
     /**
      * Validates that {@code verifyTopicConfiguration()} throws
@@ -194,50 +193,12 @@ public class KafkaAdminUtilTest {
      * establishing the precondition for {@code @Retry(retryOn = UnknownTopicOrPartitionException.class)}
      * to be effective in production.
      *
-     * <p>The test also confirms that the method eventually succeeds once metadata becomes
-     * available (simulated here by the third {@code describeConfigs} call returning a valid
-     * result). The {@link #retryOnUnknownTopic(Runnable, int)} helper reproduces the retry
-     * semantics that the CDI interceptor would apply in a running container.
-     *
-     * <p><b>Note:</b> {@code @Retry} itself is a CDI interceptor and is inactive in plain JUnit.
-     * What this test proves is the exception contract — not that the annotation fired.
+     * <p>If the method caught and logged this exception internally, the CDI interceptor would never
+     * see it and retries would not fire. This test is a regression guard for that contract.
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationThrowsUnknownTopicExceptionWhenMetadataUnavailable() throws Exception {
-        Admin admin = setUpAdminMock();
-        when(config.getEventsTopic()).thenReturn("events-topic");
-
-        DescribeConfigsResult fail = buildFailResult(new UnknownTopicOrPartitionException("topic not yet visible"));
-        DescribeConfigsResult success = buildSuccessResult();
-
-        when(admin.describeConfigs(any(), any()))
-                .thenReturn(fail)
-                .thenReturn(fail)
-                .thenReturn(success);
-
-        // Retries succeed on the third attempt — confirms the method is retryable
-        retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3);
-
-        verify(admin, times(3)).describeConfigs(any(), any());
-    }
-
-    /**
-     * Validates the retry budget declared by {@code @Retry(maxRetries = 3)}: when
-     * {@code describeConfigs} keeps throwing {@link UnknownTopicOrPartitionException} across all
-     * 4 attempts (1 initial + 3 retries), the exception must ultimately propagate to the caller.
-     *
-     * <p>This test confirms two things:
-     * <ol>
-     *   <li>The method does not swallow {@code UnknownTopicOrPartitionException} after exhausting
-     *       the retry budget.</li>
-     *   <li>Exactly 4 calls are made — matching the contract declared on the annotation —
-     *       so the retry budget is not exceeded and not under-consumed.</li>
-     * </ol>
-     */
-    @Test
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationPropagatesAfterRetryBudgetExhausted() throws Exception {
+    void testVerifyTopicConfigurationPropagatesUnknownTopicOrPartitionException() throws Exception {
         Admin admin = setUpAdminMock();
         when(config.getEventsTopic()).thenReturn("events-topic");
 
@@ -245,10 +206,9 @@ public class KafkaAdminUtilTest {
         when(admin.describeConfigs(any(), any())).thenReturn(fail);
 
         assertThrows(UnknownTopicOrPartitionException.class, () ->
-                retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3));
+                kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC));
 
-        // 1 initial attempt + 3 retries = 4 total calls
-        verify(admin, times(4)).describeConfigs(any(), any());
+        verify(admin, times(1)).describeConfigs(any(), any());
     }
 
     /**
@@ -270,41 +230,10 @@ public class KafkaAdminUtilTest {
         when(admin.describeConfigs(any(), any())).thenReturn(fail);
 
         assertThrows(TopicExistsException.class, () ->
-                retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3));
+                kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC));
 
         // Must fail on the first call — no retries for non-retryable exceptions
         verify(admin, times(1)).describeConfigs(any(), any());
-    }
-
-    /**
-     * Reproduces the retry semantics of
-     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class, maxRetries = maxRetries)}
-     * without a CDI container.
-     *
-     * <p>This helper exists solely because {@code @Retry} is a CDI interceptor binding and
-     * therefore inert when the bean is instantiated with {@code new}. By driving the retry loop
-     * explicitly here, we can exercise multi-attempt exception-contract scenarios in plain JUnit.
-     *
-     * <ul>
-     *   <li>Only {@link UnknownTopicOrPartitionException} is retried.</li>
-     *   <li>All other exceptions propagate immediately (no retry).</li>
-     *   <li>After {@code maxRetries} unsuccessful retries the last exception is rethrown.</li>
-     * </ul>
-     *
-     * <p>Total attempts = 1 initial + {@code maxRetries}, matching
-     * {@code @Retry(maxRetries = maxRetries)} semantics.
-     */
-    private void retryOnUnknownTopic(Runnable action, int maxRetries) {
-        RuntimeException lastException = null;
-        for (int attempt = 0; attempt <= maxRetries; attempt++) {
-            try {
-                action.run();
-                return; // success
-            } catch (UnknownTopicOrPartitionException e) {
-                lastException = e;
-            }
-        }
-        throw lastException;
     }
 
     @SuppressWarnings("unchecked")
@@ -359,4 +288,3 @@ public class KafkaAdminUtilTest {
         field.set(kafkaAdminUtil, value);
     }
 }
-

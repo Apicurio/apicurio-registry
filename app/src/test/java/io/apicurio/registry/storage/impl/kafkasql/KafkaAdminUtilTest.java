@@ -167,12 +167,16 @@ public class KafkaAdminUtilTest {
     }
 
     /**
-     * Happy path: describeConfigs succeeds on the very first attempt.
-     * No retries are needed and the method returns normally.
+     * Happy path: {@code verifyTopicConfiguration()} completes normally when Kafka metadata is
+     * immediately available.
+     *
+     * <p>This is the baseline case — no retries are needed. The test confirms that when
+     * {@code describeConfigs} succeeds on the first call the method returns without error and
+     * does not make unnecessary additional calls to the admin client.
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationSucceedsOnFirstAttempt() throws Exception {
+    void testVerifyTopicConfigurationSucceedsImmediately() throws Exception {
         Admin admin = setUpAdminMock();
         when(config.getEventsTopic()).thenReturn("events-topic");
         DescribeConfigsResult success = buildSuccessResult();
@@ -185,18 +189,22 @@ public class KafkaAdminUtilTest {
 
 
     /**
-     * Simulates the retry behaviour declared by
-     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class, maxRetries = 3)}:
-     * describeConfigs throws {@link UnknownTopicOrPartitionException} on the first two
-     * attempts and succeeds on the third. The operation must complete successfully.
+     * Validates that {@code verifyTopicConfiguration()} throws
+     * {@link UnknownTopicOrPartitionException} when Kafka metadata has not yet propagated —
+     * establishing the precondition for {@code @Retry(retryOn = UnknownTopicOrPartitionException.class)}
+     * to be effective in production.
      *
-     * <p>Because {@code @Retry} is a CDI interceptor and therefore inactive in plain JUnit,
-     * the retry loop is driven by {@link #retryOnUnknownTopic(Runnable, int)}, which
-     * faithfully reproduces the declared retry semantics.
+     * <p>The test also confirms that the method eventually succeeds once metadata becomes
+     * available (simulated here by the third {@code describeConfigs} call returning a valid
+     * result). The {@link #retryOnUnknownTopic(Runnable, int)} helper reproduces the retry
+     * semantics that the CDI interceptor would apply in a running container.
+     *
+     * <p><b>Note:</b> {@code @Retry} itself is a CDI interceptor and is inactive in plain JUnit.
+     * What this test proves is the exception contract — not that the annotation fired.
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationRetriesOnUnknownTopicException() throws Exception {
+    void testVerifyTopicConfigurationThrowsUnknownTopicExceptionWhenMetadataUnavailable() throws Exception {
         Admin admin = setUpAdminMock();
         when(config.getEventsTopic()).thenReturn("events-topic");
 
@@ -208,19 +216,28 @@ public class KafkaAdminUtilTest {
                 .thenReturn(fail)
                 .thenReturn(success);
 
+        // Retries succeed on the third attempt — confirms the method is retryable
         retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3);
 
         verify(admin, times(3)).describeConfigs(any(), any());
     }
 
     /**
-     * Verifies that when describeConfigs keeps throwing {@link UnknownTopicOrPartitionException}
-     * beyond the retry budget (maxRetries = 3), the exception is ultimately propagated to the caller.
-     * Total call count must be 4: 1 initial attempt + 3 retries.
+     * Validates the retry budget declared by {@code @Retry(maxRetries = 3)}: when
+     * {@code describeConfigs} keeps throwing {@link UnknownTopicOrPartitionException} across all
+     * 4 attempts (1 initial + 3 retries), the exception must ultimately propagate to the caller.
+     *
+     * <p>This test confirms two things:
+     * <ol>
+     *   <li>The method does not swallow {@code UnknownTopicOrPartitionException} after exhausting
+     *       the retry budget.</li>
+     *   <li>Exactly 4 calls are made — matching the contract declared on the annotation —
+     *       so the retry budget is not exceeded and not under-consumed.</li>
+     * </ol>
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationExhaustsRetriesAndPropagates() throws Exception {
+    void testVerifyTopicConfigurationPropagatesAfterRetryBudgetExhausted() throws Exception {
         Admin admin = setUpAdminMock();
         when(config.getEventsTopic()).thenReturn("events-topic");
 
@@ -230,16 +247,22 @@ public class KafkaAdminUtilTest {
         assertThrows(UnknownTopicOrPartitionException.class, () ->
                 retryOnUnknownTopic(() -> kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC), 3));
 
+        // 1 initial attempt + 3 retries = 4 total calls
         verify(admin, times(4)).describeConfigs(any(), any());
     }
 
     /**
-     * Verifies that exceptions other than {@link UnknownTopicOrPartitionException} are NOT
-     * retried and propagate immediately after the very first failure.
+     * Validates the {@code retryOn} constraint declared by
+     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class)}: exceptions of any other
+     * type must propagate immediately without being retried.
+     *
+     * <p>This test uses {@link TopicExistsException} as a representative non-retryable exception.
+     * The method must fail on the very first call and must not make further attempts, proving
+     * that the retry contract does not silently absorb arbitrary exceptions.
      */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationDoesNotRetryOnOtherExceptions() throws Exception {
+    void testVerifyTopicConfigurationPropagatesNonRetryableExceptionImmediately() throws Exception {
         Admin admin = setUpAdminMock();
         when(config.getEventsTopic()).thenReturn("events-topic");
 
@@ -254,13 +277,22 @@ public class KafkaAdminUtilTest {
     }
 
     /**
-     * Simulates the retry semantics of
-     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class, maxRetries = maxRetries)}.
+     * Reproduces the retry semantics of
+     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class, maxRetries = maxRetries)}
+     * without a CDI container.
+     *
+     * <p>This helper exists solely because {@code @Retry} is a CDI interceptor binding and
+     * therefore inert when the bean is instantiated with {@code new}. By driving the retry loop
+     * explicitly here, we can exercise multi-attempt exception-contract scenarios in plain JUnit.
+     *
      * <ul>
      *   <li>Only {@link UnknownTopicOrPartitionException} is retried.</li>
-     *   <li>All other exceptions propagate immediately.</li>
-     *   <li>After {@code maxRetries} unsuccessful attempts the last exception is rethrown.</li>
+     *   <li>All other exceptions propagate immediately (no retry).</li>
+     *   <li>After {@code maxRetries} unsuccessful retries the last exception is rethrown.</li>
      * </ul>
+     *
+     * <p>Total attempts = 1 initial + {@code maxRetries}, matching
+     * {@code @Retry(maxRetries = maxRetries)} semantics.
      */
     private void retryOnUnknownTopic(Runnable action, int maxRetries) {
         RuntimeException lastException = null;

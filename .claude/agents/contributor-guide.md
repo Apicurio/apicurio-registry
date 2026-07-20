@@ -29,6 +29,7 @@ These are agent-only — they go beyond the checklist items:
 - Missing null-safety on `KubernetesClientException.getStatus()`? Flag it.
 - New SQL under `storage/impl/` without a migration script? Flag it.
 - Assertions using only `assertNotNull` or `assertTrue(list.size() > 0)` instead of specific values? MAJOR.
+- Tests for CDI interceptor annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`, `@Fallback`) using plain JUnit with `new`-constructed beans instead of `@QuarkusTest` with CDI injection? MAJOR — the annotations are inert without CDI. Either use `@QuarkusTest` or reframe as unit tests of exception behavior.
 - PR doing too much (unrelated changes, whitespace-only diffs in untouched files)? Flag and suggest splitting.
 
 ## Severity rules

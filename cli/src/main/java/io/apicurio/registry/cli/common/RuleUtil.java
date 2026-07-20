@@ -36,8 +36,6 @@ public final class RuleUtil {
                     .map(Enum::name).toList()
     );
 
-    private static final String DEFAULT_GROUP = "default";
-
     private RuleUtil() {
     }
 
@@ -82,7 +80,7 @@ public final class RuleUtil {
     }
 
     public static void rejectDefaultGroup(final String groupId) {
-        if (DEFAULT_GROUP.equals(groupId)) {
+        if (IdUtil.isDefaultGroup(groupId)) {
             throw new CliException(
                     "Group rules are not available for the 'default' group. Use global rules or specify a custom group with -g.",
                     VALIDATION_ERROR_RETURN_CODE

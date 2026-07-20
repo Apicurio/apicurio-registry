@@ -38,7 +38,7 @@ APP_OTHER_EXCLUSIONS=(
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 glob_to_regex() {
-  # io.apicurio.registry.auth.**  →  ^io\.apicurio\.registry\.auth\..*$
+  # Only handles ** (match any depth). Single * is not used in shard patterns.
   local g="$1"
   g="${g//./\\.}"       # escape dots
   g="${g//\*\*/.*}"     # ** → .*

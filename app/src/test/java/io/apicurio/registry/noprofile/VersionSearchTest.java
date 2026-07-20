@@ -1,21 +1,33 @@
 package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.Set;
 
 @QuarkusTest
 public class VersionSearchTest extends AbstractResourceTestBase {
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     @Test
     void testFilterByArtifactType() throws Exception {
@@ -88,6 +100,68 @@ public class VersionSearchTest extends AbstractResourceTestBase {
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(0, results.getCount());
+    }
+
+    @Test
+    void testFilterByGlobalId() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        CreateArtifactResponse car1 = createArtifact(groupId, "global-id-artifact-1", ArtifactType.JSON,
+                "{}", ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car2 = createArtifact(groupId, "global-id-artifact-2", ArtifactType.JSON,
+                "{\"type\":\"string\"}", ContentTypes.APPLICATION_JSON);
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.globalId = car1.getVersion().getGlobalId();
+        });
+
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(car1.getVersion().getGlobalId(), results.getVersions().get(0).getGlobalId());
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto negatedResults = storage.searchVersions(
+                    Set.of(SearchFilter.ofGroupId(groupId),
+                            SearchFilter.ofGlobalId(car1.getVersion().getGlobalId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(negatedResults);
+            Assertions.assertEquals(1, negatedResults.getCount());
+            Assertions.assertEquals(car2.getVersion().getGlobalId(),
+                    negatedResults.getVersions().get(0).getGlobalId());
+        });
+    }
+
+    @Test
+    void testFilterByContentId() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        CreateArtifactResponse car1 = createArtifact(groupId, "content-id-artifact-1", ArtifactType.JSON,
+                "{}", ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car2 = createArtifact(groupId, "content-id-artifact-2", ArtifactType.JSON,
+                "{\"type\":\"string\"}", ContentTypes.APPLICATION_JSON);
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.contentId = car1.getVersion().getContentId();
+        });
+
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(car1.getVersion().getContentId(), results.getVersions().get(0).getContentId());
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto negatedResults = storage.searchVersions(
+                    Set.of(SearchFilter.ofGroupId(groupId),
+                            SearchFilter.ofContentId(car1.getVersion().getContentId()).negated()),
+                    OrderBy.contentId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(negatedResults);
+            Assertions.assertEquals(1, negatedResults.getCount());
+            Assertions.assertEquals("content-id-artifact-2",
+                    negatedResults.getVersions().get(0).getArtifactId());
+            Assertions.assertEquals(car2.getVersion().getContentId(),
+                    negatedResults.getVersions().get(0).getContentId());
+        });
     }
 
     /**

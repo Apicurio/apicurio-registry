@@ -277,6 +277,17 @@ public class SqlSearchRepository {
                         break;
                     case contentId:
                     case globalId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
+                        where.append(op);
+                        where.append(" ?");
+                        // globalId/contentId map to numeric SQL columns, unlike state/version string filters.
+                        binders.add((query, idx) -> {
+                            query.bind(idx, getRequiredNumberValue(filter));
+                        });
+                        break;
                     case state:
                     case version:
                         op = filter.isNot() ? "!=" : "=";
@@ -425,6 +436,15 @@ public class SqlSearchRepository {
                 query.bind(idx, value);
             });
         }
+    }
+
+    private long getRequiredNumberValue(SearchFilter filter) {
+        Number value = filter.getNumberValue();
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    "Search filter " + filter.getType() + " requires a numeric value.");
+        }
+        return value.longValue();
     }
 
     /**

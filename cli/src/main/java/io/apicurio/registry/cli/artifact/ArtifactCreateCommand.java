@@ -10,8 +10,14 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.types.ArtifactType;
+
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -93,13 +99,40 @@ public class ArtifactCreateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
+        final var supportedTypesList = Arrays.stream(ArtifactType.class.getDeclaredFields())
+                .filter(field -> Modifier.isPublic(field.getModifiers())
+                        && Modifier.isStatic(field.getModifiers())
+                        && field.getType().equals(String.class))
+                .map(field -> {
+                    try {
+                        return (String) field.get(null);
+                    } catch (IllegalAccessException e) {
+                        return field.getName();
+                    }
+                })
+                .sorted()
+                .collect(Collectors.joining(", "));
+
+        // 1. Validate missing --type
+        if (isBlank(artifactType)) {
+            throw new IllegalArgumentException(
+                "Missing required option '--type'. Supported artifact types are: " + supportedTypesList
+            );
+        }
+
+        // 2. Validate missing content/file
+        if (isBlank(file)) {
+            throw new IllegalArgumentException(
+                "Missing required option '--file' (or '-' for stdin) to provide artifact content."
+            );
+        }
+
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
 
         final var newArtifact = new CreateArtifact();
         newArtifact.setArtifactId(artifactId);
-        if (!isBlank(artifactType)) {
-            newArtifact.setArtifactType(artifactType);
-        }
+        newArtifact.setArtifactType(artifactType);
+
         if (!isBlank(name)) {
             newArtifact.setName(name);
         }
@@ -112,18 +145,16 @@ public class ArtifactCreateCommand extends AbstractCommand {
             newArtifact.setLabels(newLabels);
         }
 
-        if (!isBlank(file)) {
-            final var content = FileUtils.readContent(file);
-            final var firstVersion = new CreateVersion();
-            if (!isBlank(version)) {
-                firstVersion.setVersion(version);
-            }
-            final var versionContent = new VersionContent();
-            versionContent.setContent(content);
-            versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
-            firstVersion.setContent(versionContent);
-            newArtifact.setFirstVersion(firstVersion);
+        final var content = FileUtils.readContent(file);
+        final var firstVersion = new CreateVersion();
+        if (!isBlank(version)) {
+            firstVersion.setVersion(version);
         }
+        final var versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
+        firstVersion.setContent(versionContent);
+        newArtifact.setFirstVersion(firstVersion);
 
         final var result = client.getRegistryClient()
                 .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);

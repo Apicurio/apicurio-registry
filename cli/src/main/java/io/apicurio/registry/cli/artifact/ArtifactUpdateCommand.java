@@ -35,13 +35,13 @@ public class ArtifactUpdateCommand extends AbstractCommand {
     private String groupId;
 
     @Option(
-            names = {"-n", "--name"},
+            names = {"--name"},
             description = "Updated artifact name."
     )
     private String name;
 
     @Option(
-            names = {"-d", "--description"},
+            names = {"--description"},
             description = "Updated artifact description."
     )
     private String description;

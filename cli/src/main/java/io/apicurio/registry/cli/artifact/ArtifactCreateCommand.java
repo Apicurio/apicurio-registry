@@ -77,7 +77,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
 
     @Option(
             names = {"-l", "--label"},
-            description = "Provide a list of artifact labels (format: key=value or key). Use \\= to include = in a key."
+            description = "Provide a list of artifact labels (format: key=value or key). Use \= to include = in a key."
     )
     private List<String> labels;
 

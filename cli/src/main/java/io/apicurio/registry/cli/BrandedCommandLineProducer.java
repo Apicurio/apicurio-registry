@@ -6,11 +6,14 @@ import io.quarkus.picocli.runtime.PicocliCommandLineFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.jboss.logging.Logger;
 import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Model.OptionSpec;
+import picocli.CommandLine.Model.PositionalParamSpec;
 import picocli.CommandLine;
 
 @ApplicationScoped
@@ -55,24 +58,53 @@ public class BrandedCommandLineProducer {
             exitCodes.forEach((k, v) -> patched.put(k, resolve(v, productName)));
             usage.exitCodeList(patched);
         }
-        // Options and positional parameters are immutable once built, so rebuild any whose
-        // description changed and swap it back into the command spec.
-        for (var option : List.copyOf(spec.options())) {
-            var resolved = resolve(option.description(), productName);
-            if (!Arrays.equals(resolved, option.description())) {
-                spec.remove(option);
-                spec.add(option.toBuilder().description(resolved).build());
-            }
-        }
-        for (var positional : List.copyOf(spec.positionalParameters())) {
-            var resolved = resolve(positional.description(), productName);
-            if (!Arrays.equals(resolved, positional.description())) {
-                spec.remove(positional);
-                spec.add(positional.toBuilder().description(resolved).build());
-            }
-        }
+        rebuildOptions(spec, productName);
+        rebuildPositionals(spec, productName);
         for (var sub : spec.subcommands().values()) {
             applyPlaceholders(sub.getCommandSpec(), productName);
+        }
+    }
+
+    // Options are immutable once built, so any whose description changed must be rebuilt. All
+    // options are removed and re-added in their original order, so resolving a placeholder does
+    // not move an option to the end of the help listing.
+    private void rebuildOptions(CommandSpec spec, String productName) {
+        var originals = List.copyOf(spec.options());
+        var rebuilt = new ArrayList<OptionSpec>(originals.size());
+        var changed = false;
+        for (var option : originals) {
+            var resolved = resolve(option.description(), productName);
+            if (Arrays.equals(resolved, option.description())) {
+                rebuilt.add(option);
+            } else {
+                rebuilt.add(option.toBuilder().description(resolved).build());
+                changed = true;
+            }
+        }
+        if (changed) {
+            originals.forEach(spec::remove);
+            rebuilt.forEach(spec::add);
+        }
+    }
+
+    // Positional parameters are immutable once built; rebuild any whose description changed,
+    // re-adding all of them in their original order to preserve their index order.
+    private void rebuildPositionals(CommandSpec spec, String productName) {
+        var originals = List.copyOf(spec.positionalParameters());
+        var rebuilt = new ArrayList<PositionalParamSpec>(originals.size());
+        var changed = false;
+        for (var positional : originals) {
+            var resolved = resolve(positional.description(), productName);
+            if (Arrays.equals(resolved, positional.description())) {
+                rebuilt.add(positional);
+            } else {
+                rebuilt.add(positional.toBuilder().description(resolved).build());
+                changed = true;
+            }
+        }
+        if (changed) {
+            originals.forEach(spec::remove);
+            rebuilt.forEach(spec::add);
         }
     }
 

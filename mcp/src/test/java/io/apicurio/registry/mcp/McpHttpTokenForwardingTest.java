@@ -86,7 +86,9 @@ public class McpHttpTokenForwardingTest {
                         }
                         """.formatted(groupId))
                 .statusCode(200)
-                .body(not(containsString("\"groupId\":\"" + groupId + "\"")));
+                .body(containsString("HTTP 403 Forbidden"))
+                .body(not(containsString("\"groupId\":\"" + groupId + "\"")))
+                .body(containsString("may be missing the required Registry role"));
 
         log.info("Readonly token correctly denied create_group via HTTP MCP");
     }

@@ -1,6 +1,5 @@
 package io.apicurio.registry.auth;
 
-import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.vertx.http.runtime.security.BasicAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.FormAuthenticationMechanism;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;

@@ -112,7 +112,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                         id={`var-${name}`}
                         isChecked={!!values[name]}
                         onChange={(_event, checked) => setValue(name, checked)}
-                        label={name}
+                        label={variable.description ? `${name} - ${variable.description}` : name}
                     />
                 );
             case "integer":
@@ -162,16 +162,19 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             </CardHeader>
             <CardBody>
                 <Form className="test-panel-form">
-                    {variablesList.map(({ name, variable }, index) => (
-                        <FormGroup
-                            key={index}
-                            label={variable.description ? `${name} - ${variable.description}` : name}
-                            isRequired={variable.required}
-                            fieldId={`var-${name}`}
-                        >
-                            {renderField(name, variable)}
-                        </FormGroup>
-                    ))}
+                    {variablesList.map(({ name, variable }, index) => {
+                        const isBoolean = (variable.type || "string").toLowerCase() === "boolean";
+                        return (
+                            <FormGroup
+                                key={index}
+                                label={isBoolean ? undefined : (variable.description ? `${name} - ${variable.description}` : name)}
+                                isRequired={variable.required}
+                                fieldId={`var-${name}`}
+                            >
+                                {renderField(name, variable)}
+                            </FormGroup>
+                        );
+                    })}
                     <ActionGroup>
                         <Button
                             variant="primary"

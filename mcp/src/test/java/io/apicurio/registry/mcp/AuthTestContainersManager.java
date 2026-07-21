@@ -15,8 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Test container manager that starts both Keycloak and Apicurio Registry containers
- * for testing the MCP server authentication functionality.
+ * Test container manager that starts Keycloak and Apicurio Registry for MCP authentication tests.
  * <p>
  * Uses the shared realm.json from apicurio-registry-utils-tests.
  */
@@ -29,16 +28,23 @@ public class AuthTestContainersManager implements QuarkusTestResourceLifecycleMa
 
     public static final String ADMIN_CLIENT_ID = "admin-client";
     public static final String ADMIN_CLIENT_SECRET = "test1";
+    public static final String READONLY_CLIENT_ID = "readonly-client";
+    public static final String READONLY_CLIENT_SECRET = "test1";
 
     private KeycloakContainer keycloak;
     private GenericContainer<?> registry;
     private Network network;
 
+    private static volatile String sharedTokenEndpoint;
+
+    public static String sharedTokenEndpoint() {
+        return sharedTokenEndpoint;
+    }
+
     @Override
     public Map<String, String> start() {
         network = Network.newNetwork();
 
-        // Start Keycloak first - uses realm.json from apicurio-registry-utils-tests classpath
         keycloak = new KeycloakContainer(DockerImageName.parse(KEYCLOAK_IMAGE).toString())
                 .withNetwork(network)
                 .withNetworkAliases("keycloak")
@@ -49,16 +55,18 @@ public class AuthTestContainersManager implements QuarkusTestResourceLifecycleMa
         keycloak.start();
         log.info("Keycloak started at: {}", keycloak.getAuthServerUrl());
 
-        String keycloakInternalUrl = "http://keycloak:8080";
-        String tokenEndpoint = keycloakInternalUrl + "/realms/registry/protocol/openid-connect/token";
+        String keycloakExternalRealmUrl = keycloak.getAuthServerUrl() + "/realms/registry";
+        String keycloakInternalRealmUrl = "http://keycloak:8080/realms/registry";
+        String tokenEndpoint = keycloakExternalRealmUrl + "/protocol/openid-connect/token";
+        sharedTokenEndpoint = tokenEndpoint;
 
-        // Start Registry with authentication enabled
         registry = new GenericContainer<>(DockerImageName.parse(REGISTRY_IMAGE))
                 .withNetwork(network)
                 .withNetworkAliases("registry")
                 .withExposedPorts(8080)
-                .withEnv("QUARKUS_OIDC_AUTH_SERVER_URL", keycloakInternalUrl + "/realms/registry")
-                .withEnv("QUARKUS_OIDC_TOKEN_PATH", tokenEndpoint)
+                .withEnv("QUARKUS_OIDC_AUTH_SERVER_URL", keycloakInternalRealmUrl)
+                .withEnv("QUARKUS_OIDC_TOKEN_PATH", keycloakInternalRealmUrl + "/protocol/openid-connect/token")
+                .withEnv("QUARKUS_OIDC_TOKEN_ISSUER", keycloakExternalRealmUrl)
                 .withEnv("QUARKUS_OIDC_TENANT_ENABLED", "true")
                 .withEnv("APICURIO_AUTH_ROLE_BASED_AUTHORIZATION", "true")
                 .withEnv("APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION", "true")
@@ -70,23 +78,24 @@ public class AuthTestContainersManager implements QuarkusTestResourceLifecycleMa
         log.info("Starting Registry container with authentication...");
         registry.start();
 
-        String registryHost = registry.getHost();
-        Integer registryPort = registry.getMappedPort(8080);
-        String registryUrl = "http://" + registryHost + ":" + registryPort;
-
+        String registryUrl = "http://" + registry.getHost() + ":" + registry.getMappedPort(8080);
         log.info("Registry started at: {}", registryUrl);
 
-        // Build the token endpoint URL using the external Keycloak URL
-        String externalTokenEndpoint = keycloak.getAuthServerUrl() + "/realms/registry/protocol/openid-connect/token";
+        Map<String, String> props = buildMcpProperties(registryUrl, tokenEndpoint, keycloakExternalRealmUrl);
+        Map<String, String> safeProps = new HashMap<>(props);
+        safeProps.replace("apicurio.mcp.auth.client-secret", "***");
+        log.info("MCP test configuration: {}", safeProps);
+        return props;
+    }
 
+    protected Map<String, String> buildMcpProperties(String registryUrl, String tokenEndpoint,
+            String keycloakExternalRealmUrl) {
         Map<String, String> props = new HashMap<>();
         props.put("registry.url", registryUrl);
         props.put("apicurio.mcp.auth.enabled", "true");
-        props.put("apicurio.mcp.auth.token-endpoint", externalTokenEndpoint);
+        props.put("apicurio.mcp.auth.token-endpoint", tokenEndpoint);
         props.put("apicurio.mcp.auth.client-id", ADMIN_CLIENT_ID);
         props.put("apicurio.mcp.auth.client-secret", ADMIN_CLIENT_SECRET);
-
-        log.info("MCP Test configuration: {}", props);
         return props;
     }
 

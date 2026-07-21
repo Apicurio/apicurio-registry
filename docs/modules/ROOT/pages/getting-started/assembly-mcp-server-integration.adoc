@@ -19,6 +19,7 @@ NOTE: The {registry} MCP server connects LLM clients to a running {registry} ins
 * xref:mcp-server-available-tools_{context}[]
 * xref:mcp-server-configuration-properties_{context}[]
 * xref:configuring-mcp-server-authentication_{context}[]
+* xref:configuring-mcp-server-http-oauth_{context}[]
 * xref:configuring-mcp-server-tls_{context}[]
 * xref:mcp-server-troubleshooting_{context}[]
 
@@ -372,6 +373,26 @@ For the Docker method, pass environment variables by using separate `-e` element
 |OAuth2 scope. Optional.
 |===
 
+.HTTP transport properties
+
+[cols="3,2,1,4",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`apicurio.mcp.http.enabled`
+|`APICURIO_MCP_HTTP_ENABLED`
+|`false`
+|When set to `true`, enables HTTP transport with inbound OIDC for MCP clients that connect over the network. Requires Quarkus MCP HTTP and OIDC settings at runtime (see xref:configuring-mcp-server-http-oauth_{context}[]).
+
+|`apicurio.mcp.http.forward-token`
+|`APICURIO_MCP_HTTP_FORWARD_TOKEN`
+|`true`
+|When HTTP mode is enabled, forwards the caller's bearer token to {registry} REST API calls (same RBAC as the UI). Stdio mode continues to use `apicurio.mcp.auth.*` client credentials.
+|===
+
 .TLS properties
 
 [cols="3,2,1,4",options="header"]
@@ -491,6 +512,62 @@ Replace `<your-client-secret>` with the client secret from your OIDC provider.
 * JAR: `"-Dapicurio.mcp.auth.scope=openid"`
 
 . Restart Claude Desktop to apply the changes.
+
+// proc-configuring-mcp-server-http-oauth
+:_mod-docs-content-type: PROCEDURE
+[id="configuring-mcp-server-http-oauth_{context}"]
+== Configuring MCP server HTTP transport with OAuth
+
+[role="_abstract"]
+You can run the {registry} MCP server as an HTTP service for MCP clients that connect over the network, whether they run locally or remotely. Clients authenticate with the same Keycloak realm as {registry} and the UI. The MCP server validates the inbound bearer token and forwards it unchanged to {registry} REST API calls, so role-based access control applies per user.
+
+.Prerequisites
+* {registry} is configured with OIDC authentication.
+* Clients obtain OAuth2 access tokens from the same Keycloak realm as {registry}.
+* An MCP client that supports HTTP transport is available.
+
+.Procedure
+. Enable Apicurio HTTP mode. Example Docker environment variables:
++
+[source,bash]
+----
+APICURIO_MCP_HTTP_ENABLED=true
+APICURIO_MCP_HTTP_FORWARD_TOKEN=true
+REGISTRY_URL=http://apicurio-registry:8080
+----
++
+. Configure Quarkus MCP HTTP transport and inbound OIDC (companion settings required when HTTP mode is enabled):
++
+[source,bash]
+----
+QUARKUS_MCP_SERVER_HTTP_ENABLED=true
+QUARKUS_MCP_SERVER_STDIO_ENABLED=false
+QUARKUS_OIDC_TENANT_ENABLED=true
+QUARKUS_OIDC_APPLICATION_TYPE=service
+QUARKUS_OIDC_AUTH_SERVER_URL=http://keycloak:8080/realms/registry
+QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_PATHS=/mcp
+QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_POLICY=authenticated
+----
++
+NOTE: In HTTP mode with token forwarding, you do not need `APICURIO_MCP_AUTH_*` client credentials. Stdio mode continues to use `apicurio.mcp.auth.*` when {registry} is secured.
+
+. Optional: Enable CORS if a browser-based client must call the MCP endpoint:
++
+[source,bash]
+----
+QUARKUS_HTTP_CORS_ENABLED=true
+QUARKUS_HTTP_CORS_ORIGINS=http://localhost:6274
+----
++
+WARNING: `QUARKUS_HTTP_CORS_ORIGINS=http://localhost:6274` is for local development (for example, MCP Inspector). In production, set this to the exact origin(s) of your deployed MCP client. Do not use localhost origins or `*` in production.
+
+. Obtain an access token from Keycloak (authorization code, device flow, or client credentials for service accounts).
+
+. Connect your MCP client to `http://<mcp-host>:<port>/mcp` with `Authorization: Bearer <access-token>`.
+
+. Verify that operations respect {registry} roles: a token with `sr-readonly` cannot create artifacts or groups.
+
+For a complete local example, see the `examples/mcp-keycloak` directory in the {registry} repository.
 
 // proc-configuring-mcp-server-tls
 :_mod-docs-content-type: PROCEDURE

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "http": {
+      "url": "http://localhost:8082/mcp",
+      "auth": {
+        "CLIENT_ID": "apicurio-mcp",
+        "scopes": ["openid", "profile", "email"]
+      }
+    }
+  }
+}

@@ -325,6 +325,11 @@ public class RegistryClientRequestAdapterFactory {
             case OAUTH2:
                 validateOAuth2Credentials(options.getTokenEndpoint(), options.getClientId(), options.getClientSecret());
                 break;
+            case BEARER:
+                if (options.getBearerToken() == null || options.getBearerToken().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Bearer token cannot be null or empty");
+                }
+                break;
         }
     }
 

@@ -82,6 +82,12 @@ and model capability search. Includes integration examples for Quarkus + LangCha
 
 See the [llm-artifact-types](llm-artifact-types/) directory for details.
 
+## MCP Server + Keycloak Example
+Docker Compose stack for testing the Apicurio Registry MCP server against a Keycloak-secured Registry.
+Includes stdio mode (client credentials) and HTTP mode (OAuth token forwarding).
+
+See the [mcp-keycloak](mcp-keycloak/) directory for details.
+
 ## Kafka Order Processing Example
 This example provides a complete, realistic Kafka architecture demonstrating both message production and
 consumption with Apicurio Registry as the schema registry. The example simulates an order processing

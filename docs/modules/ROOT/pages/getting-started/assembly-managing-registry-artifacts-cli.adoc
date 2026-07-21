@@ -289,6 +289,17 @@ For example:
 $ acr group --page 2 --size 25
 ----
 
+.Selecting columns
+For commands that list results in a table (for example `acr artifact`, `acr group`, and the `acr search` commands), you can choose which columns to show by using the `--columns` option. It takes a comma-separated list of column names, matched case-insensitively:
+
+[source,bash]
+----
+$ acr artifact --columns groupId,artifactId,name
+$ acr artifact version --columns version,state,createdOn
+----
+
+An unknown column name produces an error that lists the valid columns. This option only affects `table` output, and is available on commands that list multiple records rather than commands that show details of a single record.
+
 
 [id="registry-cli-reference_{context}"]
 == CLI reference

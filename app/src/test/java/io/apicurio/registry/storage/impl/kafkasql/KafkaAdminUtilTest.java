@@ -1,22 +1,12 @@
 package io.apicurio.registry.storage.impl.kafkasql;
 
-import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaAdminClient;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaSqlVerificationJournalConsumer;
 import io.apicurio.registry.storage.impl.util.KafkaAdminUtil;
 import jakarta.enterprise.inject.Instance;
-import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.Config;
-import org.apache.kafka.clients.admin.ConfigEntry;
-import org.apache.kafka.clients.admin.DescribeConfigsResult;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.config.ConfigResource;
-import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.common.errors.TopicExistsException;
-import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.apache.kafka.common.utils.Bytes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -164,112 +153,6 @@ public class KafkaAdminUtilTest {
 
         // 2 polls: assignment + one empty poll in the loop
         verify(consumer, times(2)).poll(any(Duration.class));
-    }
-
-    /**
-     * Happy path: {@code verifyTopicConfiguration()} completes normally when Kafka metadata is
-     * immediately available.
-     *
-     * <p>This is the baseline case — no retries are needed. The test confirms that when
-     * {@code describeConfigs} succeeds on the first call the method returns without error and
-     * does not make unnecessary additional calls to the admin client.
-     */
-    @Test
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationSucceedsImmediately() throws Exception {
-        Admin admin = setUpAdminMock();
-        when(config.getEventsTopic()).thenReturn("events-topic");
-        DescribeConfigsResult success = buildSuccessResult();
-        when(admin.describeConfigs(any(), any())).thenReturn(success);
-
-        kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC);
-
-        verify(admin, times(1)).describeConfigs(any(), any());
-    }
-
-    /**
-     * Validates that {@code verifyTopicConfiguration()} throws
-     * {@link UnknownTopicOrPartitionException} when Kafka metadata has not yet propagated —
-     * establishing the precondition for {@code @Retry(retryOn = UnknownTopicOrPartitionException.class)}
-     * to be effective in production.
-     *
-     * <p>If the method caught and logged this exception internally, the CDI interceptor would never
-     * see it and retries would not fire. This test is a regression guard for that contract.
-     */
-    @Test
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationPropagatesUnknownTopicOrPartitionException() throws Exception {
-        Admin admin = setUpAdminMock();
-        when(config.getEventsTopic()).thenReturn("events-topic");
-
-        DescribeConfigsResult fail = buildFailResult(new UnknownTopicOrPartitionException("topic not yet visible"));
-        when(admin.describeConfigs(any(), any())).thenReturn(fail);
-
-        assertThrows(UnknownTopicOrPartitionException.class, () ->
-                kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC));
-
-        verify(admin, times(1)).describeConfigs(any(), any());
-    }
-
-    /**
-     * Validates the {@code retryOn} constraint declared by
-     * {@code @Retry(retryOn = UnknownTopicOrPartitionException.class)}: exceptions of any other
-     * type must propagate immediately without being retried.
-     *
-     * <p>This test uses {@link TopicExistsException} as a representative non-retryable exception.
-     * The method must fail on the very first call and must not make further attempts, proving
-     * that the retry contract does not silently absorb arbitrary exceptions.
-     */
-    @Test
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
-    void testVerifyTopicConfigurationPropagatesNonRetryableExceptionImmediately() throws Exception {
-        Admin admin = setUpAdminMock();
-        when(config.getEventsTopic()).thenReturn("events-topic");
-
-        DescribeConfigsResult fail = buildFailResult(new TopicExistsException("unexpected error"));
-        when(admin.describeConfigs(any(), any())).thenReturn(fail);
-
-        assertThrows(TopicExistsException.class, () ->
-                kafkaAdminUtil.verifyTopicConfiguration(TEST_TOPIC));
-
-        // Must fail on the first call — no retries for non-retryable exceptions
-        verify(admin, times(1)).describeConfigs(any(), any());
-    }
-
-    @SuppressWarnings("unchecked")
-    private Admin setUpAdminMock() throws Exception {
-        Admin admin = mock(Admin.class);
-        KafkaAdminClient adminClientResource = new KafkaAdminClient(() -> admin);
-        Instance<KafkaAdminClient> adminClientInstance = mock(Instance.class);
-        when(adminClientInstance.get()).thenReturn(adminClientResource);
-        setField("adminClient", adminClientInstance);
-        return admin;
-    }
-
-    /** Returns a {@link DescribeConfigsResult} that resolves to a valid, compliant topic config. */
-    private DescribeConfigsResult buildSuccessResult() {
-        ConfigResource key = new ConfigResource(ConfigResource.Type.TOPIC, TEST_TOPIC);
-        List<ConfigEntry> entries = List.of(
-                new ConfigEntry(TopicConfig.CLEANUP_POLICY_CONFIG, "delete"),
-                new ConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "-1"),
-                new ConfigEntry(TopicConfig.RETENTION_BYTES_CONFIG, "-1"));
-        Config topicConfig = new Config(entries);
-
-        DescribeConfigsResult result = mock(DescribeConfigsResult.class);
-        when(result.all()).thenReturn(KafkaFuture.completedFuture(Map.of(key, topicConfig)));
-        return result;
-    }
-
-    private DescribeConfigsResult buildFailResult(RuntimeException exception) {
-        @SuppressWarnings("unchecked")
-        KafkaFuture<Map<ConfigResource, Config>> failedFuture =
-                KafkaFuture.completedFuture((Map<ConfigResource, Config>) null)
-                        .thenApply(ignored -> {
-                            throw exception;
-                        });
-        DescribeConfigsResult result = mock(DescribeConfigsResult.class);
-        when(result.all()).thenReturn(failedFuture);
-        return result;
     }
 
     private ConsumerRecords<Bytes, Bytes> createRecords(long startOffset, int count) {

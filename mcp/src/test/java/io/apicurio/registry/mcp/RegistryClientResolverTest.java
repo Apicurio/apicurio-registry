@@ -1,6 +1,8 @@
 package io.apicurio.registry.mcp;
 
 import com.microsoft.kiota.RequestAdapter;
+import io.apicurio.registry.client.common.HttpAdapterType;
+import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.quarkus.oidc.AccessTokenCredential;
 import io.quarkus.security.credential.Credential;
@@ -28,6 +30,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -201,6 +204,25 @@ class RegistryClientResolverTest {
         assertTrue(error.getMessage().contains("no fallback client credentials are configured"));
     }
 
+    @Test
+    void getClientAppliesBearerTokenWithoutMutatingCachedTransportOptions() throws Exception {
+        RegistryClientOptions cached = RegistryClientOptions.create("http://localhost:8080")
+                .httpAdapter(HttpAdapterType.JDK)
+                .retry()
+                .trustAll(true)
+                .verifyHost(false);
+        setTransportOptions(cached);
+        securityIdentity.set(new TestSecurityIdentity(false, "per-request-token"));
+
+        RegistryClient client = resolver.getClient();
+
+        assertNotNull(client);
+        assertEquals(RegistryClientOptions.AuthType.ANONYMOUS, cached.getAuthType());
+        assertNull(cached.getBearerToken());
+        assertTrue(cached.isTrustAll());
+        assertFalse(cached.isVerifyHost());
+    }
+
     private static String jwtWithExp(long expEpochSeconds) {
         String header = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString("{\"alg\":\"none\"}".getBytes(StandardCharsets.UTF_8));
@@ -229,6 +251,12 @@ class RegistryClientResolverTest {
         Field field = RegistryClientResolver.class.getDeclaredField("fallbackClient");
         field.setAccessible(true);
         field.set(resolver, client);
+    }
+
+    private void setTransportOptions(RegistryClientOptions options) throws Exception {
+        Field field = RegistryClientResolver.class.getDeclaredField("transportOptions");
+        field.setAccessible(true);
+        field.set(resolver, options);
     }
 
     private static final class TestMcpConfig implements McpConfig {

@@ -50,10 +50,18 @@ public class RegistryClientResolver {
 
     private RegistryClient fallbackClient;
 
+    /**
+     * Cached base options (URL, HTTP adapter, retry, TLS) built once at startup.
+     * Per-request callers must {@link #copyTransportOptions()} before applying a bearer
+     * token so concurrent requests do not mutate this shared instance.
+     */
+    private RegistryClientOptions transportOptions;
+
     @PostConstruct
     void init() {
+        transportOptions = buildTransportOptions();
         if (needsFallbackClient()) {
-            fallbackClient = createClient(buildBaseOptions());
+            fallbackClient = createClient(buildFallbackOptions());
             if (!config.http().enabled() || config.auth().enabled()) {
                 var info = fallbackClient.system().info().get();
                 log.info("Successfully connected to Apicurio Registry version {} at {}", info.getVersion(),
@@ -71,7 +79,9 @@ public class RegistryClientResolver {
     public RegistryClient getClient() {
         String bearerToken = resolveInboundBearerToken();
         if (bearerToken != null) {
-            var options = buildBaseOptions().bearerToken(bearerToken);
+            // Reuse cached transport settings (URL/TLS/adapter/retry); only the bearer token
+            // is applied per request on a fresh options instance.
+            var options = copyTransportOptions().bearerToken(bearerToken);
             return RegistryClientFactory.create(options);
         }
         if (fallbackClient == null) {
@@ -195,13 +205,85 @@ public class RegistryClientResolver {
         return token;
     }
 
-    private RegistryClientOptions buildBaseOptions() {
+    private RegistryClientOptions buildTransportOptions() {
         var options = RegistryClientOptions.create(rawBaseUrl)
                 .httpAdapter(HttpAdapterType.JDK)
                 .retry();
         configureTls(options);
+        return options;
+    }
+
+    private RegistryClientOptions buildFallbackOptions() {
+        var options = copyTransportOptions();
         configureClientCredentials(options);
         return options;
+    }
+
+    /**
+     * Builds a new options instance with only the cached transport settings (URL, adapter,
+     * retry, TLS). Auth is intentionally omitted so per-request bearer tokens (or fallback
+     * client credentials) can be applied without mutating {@link #transportOptions}.
+     */
+    private RegistryClientOptions copyTransportOptions() {
+        RegistryClientOptions options = transportOptions.getNormalizeRegistryUrl()
+                ? RegistryClientOptions.create(transportOptions.getRegistryUrl())
+                : RegistryClientOptions.create().rawRegistryUrl(transportOptions.getRegistryUrl());
+        options.httpAdapter(transportOptions.getHttpAdapterType());
+        if (transportOptions.isRetryEnabled()) {
+            options.retry(true, transportOptions.getMaxRetryAttempts(), transportOptions.getRetryDelayMs(),
+                    transportOptions.getBackoffMultiplier(), transportOptions.getMaxRetryDelayMs());
+        } else {
+            options.disableRetry();
+        }
+        copyTransportTls(transportOptions, options);
+        return options;
+    }
+
+    private static void copyTransportTls(RegistryClientOptions from, RegistryClientOptions to) {
+        if (from.isTrustAll()) {
+            to.trustAll(true);
+        }
+        if (!from.isVerifyHost()) {
+            to.verifyHost(false);
+        }
+
+        switch (from.getTrustStoreType()) {
+            case JKS:
+                to.trustStoreJks(from.getTrustStorePath(), from.getTrustStorePassword());
+                break;
+            case PKCS12:
+                to.trustStorePkcs12(from.getTrustStorePath(), from.getTrustStorePassword());
+                break;
+            case PEM:
+                if (from.getPemCertContent() != null) {
+                    to.trustStorePemContent(from.getPemCertContent());
+                } else if (from.getPemCertPaths() != null) {
+                    to.trustStorePem(from.getPemCertPaths());
+                }
+                break;
+            case NONE:
+            default:
+                break;
+        }
+
+        switch (from.getKeyStoreType()) {
+            case JKS:
+                to.keystoreJks(from.getKeyStorePath(), from.getKeyStorePassword());
+                break;
+            case PKCS12:
+                to.keystorePkcs12(from.getKeyStorePath(), from.getKeyStorePassword());
+                break;
+            case PEM:
+                if (from.getPemClientCertContent() != null) {
+                    to.keystorePemContent(from.getPemClientCertContent(), from.getPemClientKeyContent());
+                } else if (from.getPemClientCertPath() != null) {
+                    to.keystorePem(from.getPemClientCertPath(), from.getPemClientKeyPath());
+                }
+                break;
+            case NONE:
+            default:
+                break;
+        }
     }
 
     private void configureClientCredentials(RegistryClientOptions options) {

@@ -13,8 +13,8 @@ import java.io.Console;
 public final class TerminalUtils {
 
     /**
-     * Width used when the output is not a terminal (e.g. piped or redirected),
-     * or when detection fails. Wide enough for most tables without being unwieldy in logs.
+     * Width used when running in a terminal whose width cannot be detected.
+     * Wide enough for most tables without being unwieldy.
      */
     public static final int DEFAULT_WIDTH = 120;
 
@@ -24,8 +24,9 @@ public final class TerminalUtils {
     }
 
     /**
-     * Returns the detected terminal width in characters, falling back to {@link #DEFAULT_WIDTH}
-     * for non-TTY output or when detection is not possible.
+     * Returns the detected terminal width in characters, or 0 (no width limit) when the output
+     * is not a terminal, falling back to {@link #DEFAULT_WIDTH} when running in a terminal
+     * whose width cannot be detected.
      */
     public static int getTerminalWidth() {
         var width = cachedWidth;
@@ -38,7 +39,9 @@ public final class TerminalUtils {
 
     private static int detectWidth() {
         if (!isTerminal()) {
-            return DEFAULT_WIDTH;
+            // Piped or redirected output renders at natural width, so scripts and
+            // other consumers never see wrapped or truncated values.
+            return 0;
         }
         try {
             var width = AnsiConsole.getTerminalWidth();

@@ -7,9 +7,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TerminalUtilsTest {
 
     @Test
-    public void testGetTerminalWidthIsPositiveAndCached() {
+    public void testGetTerminalWidthIsUnlimitedWhenNotATerminal() {
+        // The test JVM's streams are redirected by surefire, so there is no terminal
+        // and the width must be unlimited (0) rather than an arbitrary default.
         var width = TerminalUtils.getTerminalWidth();
-        assertThat(width).isPositive();
+        assertThat(width).isZero();
         assertThat(TerminalUtils.getTerminalWidth()).isEqualTo(width);
     }
 

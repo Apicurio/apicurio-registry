@@ -19,6 +19,7 @@ import static io.apicurio.registry.cli.InstallCommand.ACR_BINARY;
 import static io.apicurio.registry.cli.InstallCommand.ACR_ENV;
 import static io.apicurio.registry.cli.InstallCommand.ACR_HOME_PLACEHOLDER;
 import static io.apicurio.registry.cli.InstallCommand.ACR_SCRIPT;
+import static io.apicurio.registry.cli.InstallCommand.BACKUP_SUFFIX;
 import static io.apicurio.registry.cli.InstallCommand.BIN_DIR;
 import static io.apicurio.registry.cli.InstallCommand.CLI_MARKER_COMMENT;
 import static io.apicurio.registry.cli.InstallCommand.COMPLETIONS;
@@ -186,6 +187,42 @@ public class InstallCommandTest {
         assertThat(configContent)
             .as("Existing " + CONFIG_JSON + " should be preserved (not overwritten)")
             .isEqualTo(customConfig);
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testInstallRollsBackBinaryWhenCopyFails() throws Exception {
+        createShellConfigFile("# existing config\n");
+
+        // Simulate an existing, working installation at the target location.
+        Files.createDirectories(installPath);
+        final String oldScript = "#!/bin/bash\necho 'old acr'";
+        final String oldBinary = "old binary content";
+        Files.writeString(installPath.resolve(ACR_SCRIPT), oldScript);
+        Files.writeString(installPath.resolve(ACR_BINARY), oldBinary);
+
+        // Break the distribution so the copy fails after the launcher and binary are replaced.
+        Files.delete(acrHome.resolve(README));
+
+        final var acr = new Acr();
+        final var cmd = new CommandLine(acr, factory);
+        final int exitCode = cmd.execute("install");
+
+        assertThat(exitCode)
+            .as("Install should fail when the distribution is incomplete")
+            .isNotEqualTo(0);
+        assertThat(Files.readString(installPath.resolve(ACR_BINARY)))
+            .as("The previous binary should be restored after a failed update")
+            .isEqualTo(oldBinary);
+        assertThat(Files.readString(installPath.resolve(ACR_SCRIPT)))
+            .as("The previous launcher should be restored after a failed update")
+            .isEqualTo(oldScript);
+        assertThat(installPath.resolve(ACR_BINARY + BACKUP_SUFFIX))
+            .as("Backup files should be removed after rollback")
+            .doesNotExist();
+        assertThat(installPath.resolve(ACR_SCRIPT + BACKUP_SUFFIX))
+            .as("Backup files should be removed after rollback")
+            .doesNotExist();
     }
 
     // ========== Helper Methods ==========

@@ -19,7 +19,7 @@
     "@openshift-console/dynamic-plugin-sdk-webpack": "4.20.0",
     "@patternfly/react-core": "~5.4.0",
     "@patternfly/react-icons": "~5.4.0",
-    "@patternfly/react-table": "~5.4.0",
+    "@patternfly/react-table": "~5.4.16",
     "ajv": "^8.17.0",
     "@swc/core": "^1.15.0",
     "@types/react": "~17.0.0",

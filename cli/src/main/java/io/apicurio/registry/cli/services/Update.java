@@ -152,6 +152,8 @@ public class Update {
     private void verifyChecksum(String fileUri, byte[] content) {
         var checksumUri = fileUri + ".sha256";
         log.debugf("Verifying download integrity using: %s", checksumUri);
+        // fetchBytes returns null (it does not throw) on any failure, so a missing or unreachable
+        // checksum is turned into a hard failure here to keep verification fail-closed.
         var checksumBytes = fetchBytes(checksumUri, getTimeoutSeconds());
         if (checksumBytes == null) {
             throw new CliException("Could not download the checksum from " + checksumUri
@@ -169,11 +171,15 @@ public class Update {
 
     /**
      * Extracts the hex digest from a Maven checksum file, which contains the digest optionally
-     * followed by the file name.
+     * followed by whitespace and the file name.
      */
     static String parseChecksum(byte[] checksumBytes) {
         var text = new String(checksumBytes, StandardCharsets.UTF_8).trim();
-        return text.split("\\s+", 2)[0].toLowerCase(Locale.ROOT);
+        var end = 0;
+        while (end < text.length() && !Character.isWhitespace(text.charAt(end))) {
+            end++;
+        }
+        return text.substring(0, end).toLowerCase(Locale.ROOT);
     }
 
     /**

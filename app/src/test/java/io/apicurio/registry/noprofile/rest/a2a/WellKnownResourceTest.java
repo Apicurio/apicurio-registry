@@ -299,6 +299,37 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchAgentsPartialWildcardIsPreserved() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "boundedwildcardagent-alpha", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "zzz-boundedwildcardagent-beta", AGENT_CARD_CONTENT);
+
+        // A prefix-only search stays a prefix search - if the value were wrapped again it would
+        // also match the agent that only contains the term in the middle.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "boundedwildcardagent*")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem("boundedwildcardagent-alpha"))
+                .body("agents.artifactId", not(hasItem("zzz-boundedwildcardagent-beta")));
+
+        // Same for a suffix-only search.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "*boundedwildcardagent-beta")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem("zzz-boundedwildcardagent-beta"))
+                .body("agents.artifactId", not(hasItem("boundedwildcardagent-alpha")));
+    }
+
+    @Test
     public void testSearchMcpToolsPartialNameMatch() throws Exception {
         String groupId = TestUtils.generateGroupId();
 

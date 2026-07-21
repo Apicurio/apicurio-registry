@@ -47,7 +47,7 @@ public class AuthConfig {
     boolean basicAuthEnabled;
 
     @ConfigProperty(name = "quarkus.http.auth.form.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable form auth", availableSince = "3.3.0")
+    @Info(category = CATEGORY_AUTH, description = "Enable form auth. Requires configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm).", availableSince = "3.X.X.Final")
     boolean formAuthEnabled;
 
     // TODO: Add suffix?

@@ -15,8 +15,8 @@ components (for example `ui-docs`) provide specific functionality extracted and 
 reasons mentioned above.
 
 ## Building the UI
-**Note**: You will need to have Node/NPM installed to work with the UI.  Version 16 or later of Node.js 
-should be sufficient.
+**Note**: You will need to have Node/NPM installed to work with the UI.  Node.js `^20.19.0 || >=22.12.0`
+is required (the engine requirement of Vite 7), along with npm 10 or later.
 
 ### Install Dependencies
 

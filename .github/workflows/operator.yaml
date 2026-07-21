@@ -204,6 +204,11 @@ jobs:
             olm-enable: "false"
             olm-v1-enable: "false"
             extra-build-opts: ""
+          - name: operator-mutation
+            groups: "operator-mutation"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
           - name: olm-v1
             groups: "OLM"
             olm-enable: "true"

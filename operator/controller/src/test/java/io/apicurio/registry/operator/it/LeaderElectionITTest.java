@@ -14,8 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.apicurio.registry.operator.Tags.FEATURE;
-import static io.apicurio.registry.operator.Tags.FEATURE_SETUP;
+import static io.apicurio.registry.operator.Tags.OPERATOR_MUTATION;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
@@ -24,8 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
-@Tag(FEATURE)
-@Tag(FEATURE_SETUP)
+@Tag(OPERATOR_MUTATION)
+@DedicatedOperator
 public class LeaderElectionITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(LeaderElectionITTest.class);

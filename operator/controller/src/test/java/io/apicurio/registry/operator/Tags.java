@@ -28,6 +28,9 @@ public final class Tags {
     /** Feature tests with heavy infrastructure setup (multi-namespace, TLS, operator restarts) */
     public static final String FEATURE_SETUP = "feature-setup";
 
+    /** Tests that mutate the operator Deployment itself */
+    public static final String OPERATOR_MUTATION = "operator-mutation";
+
     /** Slow tests that take significant time */
     public static final String SLOW = "slow";
 

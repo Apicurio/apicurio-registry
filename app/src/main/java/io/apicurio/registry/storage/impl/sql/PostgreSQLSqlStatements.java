@@ -100,4 +100,21 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return "SELECT CASE WHEN pg_advisory_unlock(1886352239) THEN 1 ELSE 0 END";
     }
 
+    @Override
+    public String fullTextSearchClause() {
+        return """
+                (to_tsvector('english', COALESCE(a.name, '') || ' ' || COALESCE(a.description, '')) \
+                @@ websearch_to_tsquery('english', ?) \
+                OR EXISTS ( \
+                SELECT 1 FROM versions fts_v JOIN content fts_c ON fts_c.contentId = fts_v.contentId \
+                WHERE fts_v.groupId = a.groupId AND fts_v.artifactId = a.artifactId \
+                AND to_tsvector('english', convert_from(fts_c.content, 'UTF8')) \
+                @@ websearch_to_tsquery('english', ?)))""";
+    }
+
+    @Override
+    public boolean supportsNativeFullTextSearch() {
+        return true;
+    }
+
 }

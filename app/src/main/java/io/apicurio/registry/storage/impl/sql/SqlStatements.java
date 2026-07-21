@@ -850,4 +850,12 @@ public interface SqlStatements {
     String selectContractAuditLogCount();
 
     String deleteAllContractAuditEntries();
+
+    default String fullTextSearchClause() {
+        return "LOWER(COALESCE(a.name, '') || ' ' || COALESCE(a.description, '')) LIKE LOWER(?)";
+    }
+
+    default boolean supportsNativeFullTextSearch() {
+        return false;
+    }
 }

@@ -60,7 +60,19 @@ public abstract class AbstractCommand implements Callable<Integer> {
             output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
+            persistConfig(output);
             output.print();
+        }
+    }
+
+    // Runs in the finally block so config updates made before a failure are still saved.
+    private void persistConfig(final OutputBuffer output) {
+        try {
+            config.flush();
+        } catch (Exception ex) {
+            log.error("Could not persist configuration changes", ex);
+            output.writeStdErrChunk(out -> out.append(ERROR_PREFIX)
+                    .append("Could not persist configuration changes: ").append(ex.getMessage()).append("\n"));
         }
     }
 

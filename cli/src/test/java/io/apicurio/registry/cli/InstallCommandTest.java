@@ -191,18 +191,22 @@ public class InstallCommandTest {
 
     @Test
     @EnabledOnOs({OS.MAC, OS.LINUX})
-    public void testInstallRollsBackBinaryWhenCopyFails() throws Exception {
+    public void testInstallRollsBackFilesWhenCopyFails() throws Exception {
         createShellConfigFile("# existing config\n");
 
         // Simulate an existing, working installation at the target location.
         Files.createDirectories(installPath);
         final String oldScript = "#!/bin/bash\necho 'old acr'";
         final String oldBinary = "old binary content";
+        final String oldReadme = "# old readme";
+        final String oldCompletions = "# old completions";
         Files.writeString(installPath.resolve(ACR_SCRIPT), oldScript);
         Files.writeString(installPath.resolve(ACR_BINARY), oldBinary);
+        Files.writeString(installPath.resolve(README), oldReadme);
+        Files.writeString(installPath.resolve(COMPLETIONS), oldCompletions);
 
-        // Break the distribution so the copy fails after the launcher and binary are replaced.
-        Files.delete(acrHome.resolve(README));
+        // Break the distribution so the copy fails after several files have been replaced.
+        Files.delete(acrHome.resolve(ACR_ENV));
 
         final var acr = new Acr();
         final var cmd = new CommandLine(acr, factory);
@@ -211,18 +215,17 @@ public class InstallCommandTest {
         assertThat(exitCode)
             .as("Install should fail when the distribution is incomplete")
             .isNotEqualTo(0);
-        assertThat(Files.readString(installPath.resolve(ACR_BINARY)))
-            .as("The previous binary should be restored after a failed update")
-            .isEqualTo(oldBinary);
-        assertThat(Files.readString(installPath.resolve(ACR_SCRIPT)))
-            .as("The previous launcher should be restored after a failed update")
-            .isEqualTo(oldScript);
-        assertThat(installPath.resolve(ACR_BINARY + BACKUP_SUFFIX))
-            .as("Backup files should be removed after rollback")
-            .doesNotExist();
-        assertThat(installPath.resolve(ACR_SCRIPT + BACKUP_SUFFIX))
-            .as("Backup files should be removed after rollback")
-            .doesNotExist();
+        // Every file overwritten before the failure should be rolled back to its previous version.
+        assertThat(Files.readString(installPath.resolve(ACR_SCRIPT))).isEqualTo(oldScript);
+        assertThat(Files.readString(installPath.resolve(ACR_BINARY))).isEqualTo(oldBinary);
+        assertThat(Files.readString(installPath.resolve(README))).isEqualTo(oldReadme);
+        assertThat(Files.readString(installPath.resolve(COMPLETIONS))).isEqualTo(oldCompletions);
+        // Backup files should be cleaned up after rollback.
+        for (final String name : new String[] {ACR_SCRIPT, ACR_BINARY, README, COMPLETIONS}) {
+            assertThat(installPath.resolve(name + BACKUP_SUFFIX))
+                .as(name + " backup should be removed after rollback")
+                .doesNotExist();
+        }
     }
 
     // ========== Helper Methods ==========

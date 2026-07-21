@@ -127,15 +127,21 @@ public class InstallCommand extends AbstractCommand {
      * The distribution ZIP already contains the correct OS-specific acr_env file,
      * so no OS detection is needed for file selection.
      */
+    // Files overwritten or modified in place by copyDistributionFiles; all are backed up so a
+    // failed install can be rolled back to the previous working installation.
+    private static final String[] INSTALLED_FILES = {
+            ACR_SCRIPT, ACR_BINARY, README, COMPLETIONS, ACR_ENV, CONFIG_JSON
+    };
+
     private void copyFiles(final Path currentPath, final Path cliHomePath) throws IOException {
-        // Back up the currently installed launcher and binary so a failed copy can be rolled back,
-        // keeping the previous working installation until the new one is fully in place.
-        final Map<Path, Path> backups = backupExisting(cliHomePath, ACR_SCRIPT, ACR_BINARY);
+        // Back up every installed file that will be overwritten so a failed copy can be rolled
+        // back, keeping the previous working installation until the new one is fully in place.
+        final Map<Path, Path> backups = backupExisting(cliHomePath, INSTALLED_FILES);
         try {
             copyDistributionFiles(currentPath, cliHomePath);
             deleteBackups(backups);
         } catch (IOException | RuntimeException e) {
-            restoreBackups(backups);
+            restoreBackups(backups, e);
             throw e;
         }
     }
@@ -198,10 +204,12 @@ public class InstallCommand extends AbstractCommand {
     }
 
     /**
-     * Restores the previous installation from the backups and removes the backup files. Used when
-     * the installation fails, so the user is left with the working version they had before.
+     * Restores the previous installation from the backups and removes the backup files, so the
+     * user is left with the working version they had before the failed install. A restore that
+     * itself fails is attached to the original failure as a suppressed exception, since it may
+     * leave a partially-overwritten file behind that the caller needs to know about.
      */
-    private void restoreBackups(final Map<Path, Path> backups) {
+    private void restoreBackups(final Map<Path, Path> backups, final Throwable primary) {
         backups.forEach((original, backup) -> {
             try {
                 Files.copy(backup, original, REPLACE_EXISTING, COPY_ATTRIBUTES);
@@ -209,6 +217,7 @@ public class InstallCommand extends AbstractCommand {
                 log.debugf("Rolled back %s from backup", original);
             } catch (IOException restoreError) {
                 log.errorf(restoreError, "Failed to roll back %s from backup %s", original, backup);
+                primary.addSuppressed(restoreError);
             }
         });
     }

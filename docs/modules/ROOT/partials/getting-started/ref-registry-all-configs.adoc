@@ -364,7 +364,7 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`true`
 |`3.2.0`
-|Provide higher quality ETags if possible, but they might be more expensive to compute. This feature trades more computation for potentially higher cacheability of some operations. 
+|Provide higher quality ETags if possible, but they might be more expensive to compute. This feature trades more computation for potentially higher cacheability of some operations.
 |`apicurio.http-caching.low-cacheability.max-age-seconds`
 |`long`
 |`10`
@@ -630,17 +630,17 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`true`
 |`3.0.0`
-|When set to true, content IDs from the import file will be used (otherwise new IDs will be generated).  Defaults to 'true'.
+|When set to true, content IDs from the import file will be used (otherwise new IDs will be generated). Defaults to 'true'.
 |`apicurio.import.preserveGlobalId`
 |`boolean`
 |`true`
 |`3.0.0`
-|When set to true, global IDs from the import file will be used (otherwise new IDs will be generated).  Defaults to 'true'.
+|When set to true, global IDs from the import file will be used (otherwise new IDs will be generated). Defaults to 'true'.
 |`apicurio.import.requireEmptyRegistry`
 |`boolean`
 |`true`
 |`3.0.0`
-|When set to true, importing data will only work when the registry is empty.  Defaults to 'true'.
+|When set to true, importing data will only work when the registry is empty. Defaults to 'true'.
 |`apicurio.import.url`
 |`optional<url>`
 |
@@ -820,55 +820,48 @@ The following {registry} configuration options are available for each component 
 |`list<double>`
 |`0.5,0.95,0.99,0.9995`
 |`3.3.1`
-|        Comma-separated list of percentile values to pre-compute         for REST API request metrics.         Each value must be between 0.0 and 1.0 (e.g. 0.5 for the median,         0.95 for the 95th percentile).         These percentiles are computed client-side and exported as individual gauge metrics.
-
+|Comma-separated list of percentile values to pre-compute for REST API request metrics. Each value must be between 0.0 and 1.0 (e.g. 0.5 for the median, 0.95 for the 95th percentile). These percentiles are computed client-side and exported as individual gauge metrics.
 |`apicurio.metrics.rest.distribution.slo`
 |`list<double>`
 |`0.1,0.25,0.5,1.0,2.0,5.0,10.0`
 |`3.3.1`
-|        Comma-separated list of service level objective (SLO) boundary values         in seconds for REST API request histogram buckets.         Only used when the distribution type is `histogram`.         Each value defines a histogram bucket boundary.         Adjust these boundaries to match your monitoring system's expectations         for accurate percentile computation from histogram data.
-
+|Comma-separated list of service level objective (SLO) boundary values in seconds for REST API request histogram buckets. Only used when the distribution type is `histogram`. Each value defines a histogram bucket boundary. Adjust these boundaries to match your monitoring system's expectations for accurate percentile computation from histogram data.
 |`apicurio.metrics.rest.distribution.type`
 |`string`
 |`histogram`
 |`3.3.1`
-|        The distribution type for REST API request metrics.         Use `histogram` (default) for explicit bucket histogram with SLO boundaries         and pre-computed percentiles.         Use `summary` for pre-computed percentiles only, without histogram buckets.         Datadog users should use `summary` for accurate latency percentiles,         since Datadog re-computes percentiles from histogram buckets         and the default bucket boundaries may not provide sufficient granularity.
-
+|The distribution type for REST API request metrics. Use `histogram` (default) for explicit bucket histogram with SLO boundaries and pre-computed percentiles. Use `summary` for pre-computed percentiles only, without histogram buckets. Datadog users should use `summary` for accurate latency percentiles, since Datadog re-computes percentiles from histogram buckets and the default bucket boundaries may not provide sufficient granularity.
 |`apicurio.metrics.rest.enabled`
 |`boolean`
 |`true`
 |`3.1.1`
-|        Enable collecting metrics about REST API requests.
-
+|Enable collecting metrics about REST API requests.
 |`apicurio.metrics.rest.explicit-status-codes-list`
 |`list<string>`
 |`401`
 |`3.1.1`
-|        Only the general category of the HTTP status code is added as a tag/label on REST API request metrics,
-        e.g. `1xx`, `2xx`, ...         If you are interested in metrics for a specific status code, e.g. 401 for authentication errors,
-        this property allows you to specify a list of such codes.         Each request will be counted only once, i.e. either as the specific status code or in the general category. 
+|Only the general category of the HTTP status code is added as a tag/label on REST API request metrics,
+        e.g. `1xx`, `2xx`, ... If you are interested in metrics for a specific status code, e.g. 401 for authentication errors,
+        this property allows you to specify a list of such codes. Each request will be counted only once, i.e. either as the specific status code or in the general category.
 |`apicurio.metrics.rest.method-tag-enabled`
 |`boolean`
 |`true`
 |`3.1.1`
-|        Add the HTTP method tag/label on REST API request metrics.         You might disable this tag to reduce metrics cardinality.
-
+|Add the HTTP method tag/label on REST API request metrics. You might disable this tag to reduce metrics cardinality.
 |`apicurio.metrics.rest.path-filter-pattern`
 |`string`
 |`/apis/.*`
 |`3.1.1`
-|        Only requests with a path matching this pattern (Java syntax) will be considered for metrics collection.         The pattern is applied to the request path only,
+|Only requests with a path matching this pattern (Java syntax) will be considered for metrics collection. The pattern is applied to the request path only,
         e.g. `curl 'http://localhost:8080/apis/registry/v3/groups/default/artifacts?offset=42&limit=10'`
         will be matched against `/apis/registry/v3/groups/default/artifacts`.
-
 |`apicurio.metrics.rest.path-tag-enabled`
 |`boolean`
 |`true`
 |`3.1.1`
-|        Add the unsubstituted path tag/label on REST API request metrics,
-        e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`.         You might disable this tag to reduce metrics cardinality.         When an unsubstituted REST API resource path could not be determined,
+|Add the unsubstituted path tag/label on REST API request metrics,
+        e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`. You might disable this tag to reduce metrics cardinality. When an unsubstituted REST API resource path could not be determined,
         the tag value will be `(unspecified)`.
-
 |`quarkus.otel.enabled`
 |`boolean`
 |`true`

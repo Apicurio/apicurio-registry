@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.services;
 
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.config.ConfigProperties;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Duration;
@@ -52,15 +53,14 @@ public class UpdateNotifier {
 
     private boolean shouldCheck() {
         try {
-            var configModel = config.read();
-            var props = configModel.getConfig();
+            var props = config.read().getConfig();
 
-            if ("false".equalsIgnoreCase(props.get("update.check-enabled"))) {
+            if ("false".equalsIgnoreCase(props.get(ConfigProperties.UPDATE_CHECK_ENABLED))) {
                 log.debugf("Update check skipped: update.check-enabled=false");
                 return false;
             }
 
-            var postponedUntil = props.get("internal.update.postponed-until");
+            var postponedUntil = props.get(ConfigProperties.INTERNAL_UPDATE_POSTPONED_UNTIL);
             if (postponedUntil != null) {
                 var until = Instant.parse(postponedUntil);
                 if (Instant.now().isBefore(until)) {
@@ -69,7 +69,7 @@ public class UpdateNotifier {
                 }
             }
 
-            var lastCheck = props.get("internal.update.last-check");
+            var lastCheck = props.get(ConfigProperties.INTERNAL_UPDATE_LAST_CHECK);
             if (lastCheck != null) {
                 var last = Instant.parse(lastCheck);
                 var elapsed = Duration.between(last, Instant.now());
@@ -102,7 +102,7 @@ public class UpdateNotifier {
 
     private String getProductName() {
         try {
-            var name = config.read().getConfig().get("internal.branding.product-name");
+            var name = config.getProperty(ConfigProperties.INTERNAL_BRANDING_PRODUCT_NAME);
             return name != null ? name : "Apicurio Registry CLI";
         } catch (Exception e) {
             return "Apicurio Registry CLI";

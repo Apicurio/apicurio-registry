@@ -19,8 +19,6 @@ import picocli.CommandLine.Mixin;
 )
 public class ConfigPropertyCommand extends AbstractCommand {
 
-    static final String INTERNAL_PREFIX = "internal.";
-
     @Mixin
     private ColumnsMixin columns;
 
@@ -30,7 +28,7 @@ public class ConfigPropertyCommand extends AbstractCommand {
             var table = new TableBuilder();
             table.addColumns("Property", "Value");
             config.read().getConfig().entrySet().stream()
-                    .filter(e -> !e.getKey().startsWith(INTERNAL_PREFIX))
+                    .filter(e -> !ConfigProperties.isInternal(e.getKey()))
                     .sorted(java.util.Map.Entry.comparingByKey())
                     .forEach(e -> table.addRow(e.getKey(), e.getValue()));
             table.setSelectedColumns(columns.getColumns());

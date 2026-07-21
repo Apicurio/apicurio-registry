@@ -47,31 +47,30 @@ public class ContextUpdateCommand extends AbstractCommand {
             throw new CliException("At least one update option is required (--registry-url, --group, or --artifact).",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
-        final var configModel = config.read();
-        final var contextName = isBlank(name) ? configModel.getCurrentContext() : name;
+        final var contextName = isBlank(name) ? config.getCurrentContext() : name;
         if (isBlank(contextName)) {
             throw new CliException("No context specified and no current context is set.",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
-        final var context = configModel.getContext().get(contextName);
-        if (context == null) {
+        if (config.getContext(contextName) == null) {
             throw new CliException("Context '" + contextName + "' does not exist.",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
-        if (registryUrl != null) {
-            if (isBlank(registryUrl)) {
-                throw new CliException("Registry URL cannot be empty.",
-                        CliException.VALIDATION_ERROR_RETURN_CODE);
+        if (registryUrl != null && isBlank(registryUrl)) {
+            throw new CliException("Registry URL cannot be empty.",
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
+        config.updateContext(contextName, context -> {
+            if (registryUrl != null) {
+                context.setRegistryUrl(registryUrl);
             }
-            context.setRegistryUrl(registryUrl);
-        }
-        if (groupId != null) {
-            context.setGroupId(groupId);
-        }
-        if (artifactId != null) {
-            context.setArtifactId(artifactId);
-        }
-        config.write(configModel);
+            if (groupId != null) {
+                context.setGroupId(groupId);
+            }
+            if (artifactId != null) {
+                context.setArtifactId(artifactId);
+            }
+        });
         output.writeStdOutChunk(out -> {
             out.append("Context '").append(contextName).append("' updated successfully.\n");
         });

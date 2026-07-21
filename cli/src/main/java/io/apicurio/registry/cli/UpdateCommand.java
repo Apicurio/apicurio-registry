@@ -2,6 +2,7 @@ package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.config.ConfigProperties;
 import io.apicurio.registry.cli.services.CliVersion;
 import io.apicurio.registry.cli.services.Update;
 import io.apicurio.registry.cli.utils.FileUtils;
@@ -94,10 +95,8 @@ public class UpdateCommand extends AbstractCommand {
 
     private void handlePostpone(OutputBuffer output) {
         var hours = Math.min(postponeHours, MAX_POSTPONE_HOURS);
-        var configModel = config.read();
         var until = Instant.now().plusSeconds(hours * 3600L);
-        configModel.getConfig().put("internal.update.postponed-until", until.toString());
-        config.write(configModel);
+        config.setProperty(ConfigProperties.INTERNAL_UPDATE_POSTPONED_UNTIL, until.toString());
         output.writeStdOutLine("Update notifications postponed for %d hours.".formatted(postponeHours));
     }
 

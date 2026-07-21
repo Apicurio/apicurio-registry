@@ -18,7 +18,7 @@ export const SortOrderToggle: FunctionComponent<SortOrderToggleProps> = (props: 
     );
 
     return (
-        <Button icon={icon} variant="plain"  onClick={() => {
+        <Button icon={icon} variant="plain" aria-label="Toggle sort order" onClick={() => {
             props.onChange(props.sortOrder === SortOrder.asc ? SortOrder.desc : SortOrder.asc);
         }} />
     );

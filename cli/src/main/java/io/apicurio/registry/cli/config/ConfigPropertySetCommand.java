@@ -25,8 +25,7 @@ public class ConfigPropertySetCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        // Parse and validate every argument before applying any change so the operation is atomic:
-        // a malformed argument must not leave some properties already set.
+        // Parse all args first so a bad one doesn't leave some properties already set.
         final Map<String, String> parsed = new LinkedHashMap<>();
         for (var prop : properties) {
             var eqIndex = prop.indexOf('=');

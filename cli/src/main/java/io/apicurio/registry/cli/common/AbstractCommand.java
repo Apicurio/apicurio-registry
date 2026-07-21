@@ -41,33 +41,43 @@ public abstract class AbstractCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
+        var commandFailed = false;
         try {
             configureVerboseLogging();
             updateNotifier.checkAndNotify(getTopLevelCommandName());
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
+            commandFailed = true;
             handleCliException(output, ex);
             return ex.getCode();
         } catch (RuleViolationProblemDetails ex) {
+            commandFailed = true;
             handleRuleViolation(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (ProblemDetails ex) {
+            commandFailed = true;
             handleProblemDetails(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (Exception ex) {
+            commandFailed = true;
             log.error("Unexpected error", ex);
             output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
-            persistConfig(output);
+            persistConfig(output, commandFailed);
             output.print();
         }
     }
 
-    // Runs in the finally block so config updates made before a failure are still saved.
-    private void persistConfig(final OutputBuffer output) {
+    // Runs in finally so config changes made before a failure are still saved. Commands update
+    // config only after their network/IO work succeeds, so a failure won't leave a partial config.
+    private void persistConfig(final OutputBuffer output, final boolean commandFailed) {
         try {
+            if (commandFailed && config.isDirty()) {
+                log.debugf("Command '%s' failed but had unsaved config changes; saving them anyway.",
+                        getTopLevelCommandName());
+            }
             config.flush();
         } catch (Exception ex) {
             log.error("Could not persist configuration changes", ex);

@@ -98,6 +98,17 @@ public class ConfigTest {
     }
 
     @Test
+    public void testIsDirtyReflectsPendingChanges() throws IOException {
+        assertThat(config.isDirty()).isFalse();
+
+        config.setProperty("b", "2");
+        assertThat(config.isDirty()).isTrue();
+
+        config.flush();
+        assertThat(config.isDirty()).isFalse();
+    }
+
+    @Test
     public void testFlushIsNoOpWhenNotDirty() throws IOException {
         config.read();
         Files.delete(configFile);

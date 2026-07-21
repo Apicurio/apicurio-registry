@@ -30,6 +30,7 @@ public class Config {
     // Loaded via SPI by AcrHomeConfigSource before CDI is available; commands should @Inject Config instead.
     static Config instance;
 
+    // Not synchronized; the CLI runs one command at a time on a single thread.
     private ConfigModel cachedConfig;
     private boolean dirty;
 
@@ -116,8 +117,25 @@ public class Config {
         return getAcrCurrentHomePath().resolve("config.json");
     }
 
-    // Returns the live cache, not a defensive copy. Mutating it directly requires calling markDirty().
+    /**
+     * Returns the live config object. Prefer the typed accessors ({@link #getProperty},
+     * {@link #setProperty}, {@link #putContext}, {@link #updateContext}, ...), which mark the config
+     * dirty so {@link #flush()} saves it.
+     *
+     * @deprecated Changes made directly on the returned object are not saved unless you also call
+     *     {@link #markDirty()}, which is easy to forget:
+     *     <pre>{@code
+     *       config.read().setCurrentContext("dev");   // not saved
+     *       config.setCurrentContext("dev");          // saved
+     *     }</pre>
+     */
+    @Deprecated
     public ConfigModel read() {
+        return cache();
+    }
+
+    // Loads and caches config.json on first use.
+    private ConfigModel cache() {
         if (cachedConfig == null) {
             var configPath = getConfigFilePath();
             try {
@@ -130,56 +148,56 @@ public class Config {
     }
 
     public String getProperty(final String key) {
-        return read().getConfig().get(key);
+        return cache().getConfig().get(key);
     }
 
     public boolean hasProperty(final String key) {
-        return read().getConfig().containsKey(key);
+        return cache().getConfig().containsKey(key);
     }
 
     public void setProperty(final String key, final String value) {
-        read().getConfig().put(key, value);
+        cache().getConfig().put(key, value);
         markDirty();
     }
 
     public String removeProperty(final String key) {
-        var previous = read().getConfig().remove(key);
+        var previous = cache().getConfig().remove(key);
         markDirty();
         return previous;
     }
 
     public String getCurrentContext() {
-        return read().getCurrentContext();
+        return cache().getCurrentContext();
     }
 
     public ConfigModel.Context getContext(final String name) {
-        return read().getContext().get(name);
+        return cache().getContext().get(name);
     }
 
     public void setCurrentContext(final String name) {
-        read().setCurrentContext(name);
+        cache().setCurrentContext(name);
         markDirty();
     }
 
     public void putContext(final String name, final ConfigModel.Context context) {
-        read().getContext().put(name, context);
+        cache().getContext().put(name, context);
         markDirty();
     }
 
     public ConfigModel.Context removeContext(final String name) {
-        var removed = read().getContext().remove(name);
+        var removed = cache().getContext().remove(name);
         markDirty();
         return removed;
     }
 
     public void clearContexts() {
-        read().getContext().clear();
+        cache().getContext().clear();
         markDirty();
     }
 
     // No-op (returns false) if no context with the given name exists.
     public boolean updateContext(final String name, final Consumer<ConfigModel.Context> mutation) {
-        var context = read().getContext().get(name);
+        var context = cache().getContext().get(name);
         if (context == null) {
             return false;
         }
@@ -190,6 +208,10 @@ public class Config {
 
     public void markDirty() {
         dirty = true;
+    }
+
+    public boolean isDirty() {
+        return dirty;
     }
 
     // Called once at the end of each command, from AbstractCommand.call().

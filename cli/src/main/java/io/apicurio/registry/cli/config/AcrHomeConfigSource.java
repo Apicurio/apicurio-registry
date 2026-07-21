@@ -26,7 +26,7 @@ public class AcrHomeConfigSource implements ConfigSource {
             if (Config.instance == null) {
                 return Collections.emptyMap();
             }
-            // read() returns the live cache now, so copy it in case a command mutates it later.
+            // Copy so a later command mutating the config can't affect what we return here.
             return new HashMap<>(Config.instance.read().getConfig());
         } catch (CliException e) {
             return Collections.emptyMap();

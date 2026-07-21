@@ -24,7 +24,7 @@ public class ConfigPropertyDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        // Validate that every key exists before removing any, so the operation is atomic.
+        // Check all keys exist first so a missing one doesn't delete some and then fail.
         for (var key : keys) {
             if (!config.hasProperty(key)) {
                 throw new CliException("Property '" + key + "' is not set.", VALIDATION_ERROR_RETURN_CODE);

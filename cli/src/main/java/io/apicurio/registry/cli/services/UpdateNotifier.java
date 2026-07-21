@@ -53,14 +53,12 @@ public class UpdateNotifier {
 
     private boolean shouldCheck() {
         try {
-            var props = config.read().getConfig();
-
-            if ("false".equalsIgnoreCase(props.get(ConfigProperties.UPDATE_CHECK_ENABLED))) {
+            if ("false".equalsIgnoreCase(config.getProperty(ConfigProperties.UPDATE_CHECK_ENABLED))) {
                 log.debugf("Update check skipped: update.check-enabled=false");
                 return false;
             }
 
-            var postponedUntil = props.get(ConfigProperties.INTERNAL_UPDATE_POSTPONED_UNTIL);
+            var postponedUntil = config.getProperty(ConfigProperties.INTERNAL_UPDATE_POSTPONED_UNTIL);
             if (postponedUntil != null) {
                 var until = Instant.parse(postponedUntil);
                 if (Instant.now().isBefore(until)) {
@@ -69,7 +67,7 @@ public class UpdateNotifier {
                 }
             }
 
-            var lastCheck = props.get(ConfigProperties.INTERNAL_UPDATE_LAST_CHECK);
+            var lastCheck = config.getProperty(ConfigProperties.INTERNAL_UPDATE_LAST_CHECK);
             if (lastCheck != null) {
                 var last = Instant.parse(lastCheck);
                 var elapsed = Duration.between(last, Instant.now());

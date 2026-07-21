@@ -137,7 +137,7 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.33.2</quarkus.version>
+    <quarkus.version>3.33.2.1</quarkus.version>
     <!--
     # QOSDK
 
@@ -218,8 +218,8 @@
     <json-sKema.version>0.31.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
-    <jackson-datatype-json-org.version>2.18.8</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.18.2</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>2.21.2</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>2.21.2</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
@@ -1384,6 +1384,7 @@
         <module>go-sdk</module>
         <module>mcp</module>
         <module>operator</module>
+        <module>console-plugin/backend</module>
         <module>utils/exportConfluent</module>
         <module>utils/extra-tests</module>
         <module>utils/flink</module>

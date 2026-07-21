@@ -4,9 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
+import io.apicurio.registry.storage.error.InvalidContentException;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,9 +25,6 @@ public class PromptRenderingService {
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{([^}]+)\\}\\}");
 
-    @Inject
-    Logger log;
-
     /**
      * Renders a prompt template by substituting variables.
      *
@@ -41,38 +37,35 @@ public class PromptRenderingService {
      */
     public RenderPromptResponse render(ContentHandle content, Map<String, Object> variables,
                                         String groupId, String artifactId, String version) {
-        try {
-            // Parse the template content (could be YAML or JSON)
-            JsonNode templateNode = parseContent(content);
-
-            // Extract template field and variables schema
-            String templateText = extractTemplateText(templateNode);
-            JsonNode variablesSchema = templateNode.path("variables");
-
-            // Validate variables against schema
-            List<RenderValidationError> validationErrors = validateVariables(variables, variablesSchema);
-
-            // Render the template by substituting variables
-            String rendered = substituteVariables(templateText, variables);
-
-            return RenderPromptResponse.builder()
-                    .rendered(rendered)
-                    .groupId(groupId)
-                    .artifactId(artifactId)
-                    .version(version)
-                    .validationErrors(validationErrors)
-                    .build();
-
-        } catch (Exception e) {
-            log.error("Failed to render prompt template", e);
-            throw new RuntimeException("Failed to render prompt template: " + e.getMessage(), e);
+        // Parse the template content (could be YAML or JSON)
+        JsonNode templateNode = parseContent(content);
+        if (templateNode == null || !templateNode.isObject()) {
+            throw new InvalidContentException("Prompt template content must be a JSON or YAML object");
         }
+
+        // Extract template field and variables schema
+        String templateText = extractTemplateText(templateNode);
+        JsonNode variablesSchema = templateNode.path("variables");
+
+        // Validate variables against schema
+        List<RenderValidationError> validationErrors = validateVariables(variables, variablesSchema);
+
+        // Render the template by substituting variables
+        String rendered = substituteVariables(templateText, variables);
+
+        return RenderPromptResponse.builder()
+                .rendered(rendered)
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .version(version)
+                .validationErrors(validationErrors)
+                .build();
     }
 
     /**
      * Parse content as YAML or JSON.
      */
-    private JsonNode parseContent(ContentHandle content) throws Exception {
+    private JsonNode parseContent(ContentHandle content) {
         String text = content.content();
 
         // Try YAML first (which also handles JSON)
@@ -80,7 +73,11 @@ public class PromptRenderingService {
             return YAML_MAPPER.readTree(text);
         } catch (Exception e) {
             // Fall back to JSON
-            return MAPPER.readTree(text);
+            try {
+                return MAPPER.readTree(text);
+            } catch (Exception ex) {
+                throw new InvalidContentException("Prompt template content is not valid YAML or JSON");
+            }
         }
     }
 
@@ -90,7 +87,7 @@ public class PromptRenderingService {
     private String extractTemplateText(JsonNode templateNode) {
         JsonNode templateField = templateNode.path("template");
         if (templateField.isMissingNode()) {
-            throw new IllegalArgumentException("Prompt template is missing 'template' field");
+            throw new InvalidContentException("Prompt template is missing 'template' field");
         }
         return templateField.asText();
     }

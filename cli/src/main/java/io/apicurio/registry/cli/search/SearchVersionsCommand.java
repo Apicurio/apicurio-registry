@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.search;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.common.VersionOrderMixin;
@@ -31,6 +32,7 @@ import static io.apicurio.registry.cli.utils.Columns.VERSION;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 @Command(
         name = "version",
@@ -108,6 +110,9 @@ public class SearchVersionsCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         //noinspection ConstantConditions
@@ -168,7 +173,7 @@ public class SearchVersionsCommand extends AbstractCommand {
                             STATE, GLOBAL_ID, CONTENT_ID, DESCRIPTION, CREATED_ON, OWNER);
                     Optional.ofNullable(results.getVersions()).orElse(List.of()).forEach(v -> {
                         table.addRow(
-                                v.getGroupId(),
+                                displayGroupId(v.getGroupId()),
                                 v.getArtifactId(),
                                 v.getVersion(),
                                 v.getName(),
@@ -182,6 +187,7 @@ public class SearchVersionsCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), results.getCount());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

@@ -70,8 +70,9 @@ public abstract class AbstractCommand implements Callable<Integer> {
         }
     }
 
-    // Runs in finally so config changes made before a failure are still saved. Commands update
-    // config only after their network/IO work succeeds, so a failure won't leave a partial config.
+    // flush() runs regardless of command outcome, so config changes are saved even when the command
+    // fails. Commands are expected to change config only after their IO succeeds (a convention this
+    // class can't enforce), so a failure won't persist half-finished state.
     private void persistConfig(final OutputBuffer output, final boolean commandFailed) {
         try {
             if (commandFailed && config.isDirty()) {

@@ -3,9 +3,11 @@ package io.apicurio.registry.mcp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +28,10 @@ class McpHttpAuthValidatorTest {
         validator.config = new ValidatorMcpConfig(http, auth);
         validator.oidcTenantEnabled = false;
         validator.mcpHttpTransportEnabled = false;
+        validator.registryUrl = "localhost:8080";
+        validator.connectivityProbe = (host, port) -> {
+            // no-op: unit tests do not require a live Registry
+        };
     }
 
     @Test
@@ -87,6 +93,84 @@ class McpHttpAuthValidatorTest {
         validator.oidcTenantEnabled = true;
 
         assertDoesNotThrow(validator::validateHttpAuthConfig);
+    }
+
+    @Test
+    void parseRegistryHostPortAcceptsHostPortAndFullUrl() {
+        assertEquals(new McpHttpAuthValidator.HostPort("localhost", 8080),
+                McpHttpAuthValidator.parseRegistryHostPort("localhost:8080"));
+        assertEquals(new McpHttpAuthValidator.HostPort("registry.example.com", 443),
+                McpHttpAuthValidator.parseRegistryHostPort("https://registry.example.com"));
+        assertEquals(new McpHttpAuthValidator.HostPort("localhost", 8080),
+                McpHttpAuthValidator.parseRegistryHostPort("http://localhost:8080/apis/registry/v3"));
+    }
+
+    @Test
+    void parseRegistryHostPortRejectsBlankAndInvalid() {
+        IllegalStateException blank = assertThrows(IllegalStateException.class,
+                () -> McpHttpAuthValidator.parseRegistryHostPort("  "));
+        assertTrue(blank.getMessage().contains("registry.url must be configured"));
+
+        IllegalStateException invalid = assertThrows(IllegalStateException.class,
+                () -> McpHttpAuthValidator.parseRegistryHostPort("not a url"));
+        assertTrue(invalid.getMessage().contains("registry.url"));
+    }
+
+    @Test
+    void validateRegistryUrlProbesReachabilityWhenAuthDisabled() {
+        http.enabled = true;
+        auth.enabled = false;
+        validator.registryUrl = "localhost:8080";
+
+        boolean[] probed = {false};
+        validator.connectivityProbe = (host, port) -> {
+            probed[0] = true;
+            assertEquals("localhost", host);
+            assertEquals(8080, port);
+        };
+
+        assertDoesNotThrow(validator::validateRegistryUrl);
+        assertTrue(probed[0]);
+    }
+
+    @Test
+    void validateRegistryUrlSkipsReachabilityWhenAuthEnabled() {
+        http.enabled = true;
+        auth.enabled = true;
+        validator.registryUrl = "localhost:8080";
+        validator.connectivityProbe = (host, port) -> {
+            throw new IOException("should not be called when client-credentials probe covers startup");
+        };
+
+        assertDoesNotThrow(validator::validateRegistryUrl);
+    }
+
+    @Test
+    void validateRegistryUrlFailsWhenHostUnreachable() {
+        http.enabled = true;
+        auth.enabled = false;
+        validator.registryUrl = "registry.invalid:9999";
+        validator.connectivityProbe = (host, port) -> {
+            throw new IOException("Connection refused");
+        };
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                validator::validateRegistryUrl);
+        assertTrue(error.getMessage().contains("Cannot reach Apicurio Registry"));
+        assertTrue(error.getMessage().contains("registry.invalid:9999"));
+    }
+
+    @Test
+    void onStartValidatesRegistryUrlWhenHttpEnabled() {
+        http.enabled = true;
+        validator.mcpHttpTransportEnabled = true;
+        validator.oidcTenantEnabled = true;
+        validator.registryUrl = "localhost:8080";
+        boolean[] probed = {false};
+        validator.connectivityProbe = (host, port) -> probed[0] = true;
+
+        assertDoesNotThrow(() -> validator.onStart(null));
+        assertTrue(probed[0]);
     }
 
     private static final class TestHttp implements McpConfig.Http {

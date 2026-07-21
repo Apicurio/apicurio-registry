@@ -4,6 +4,7 @@ import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.services.UpdateNotifier;
+import io.apicurio.registry.cli.utils.ColorUtil;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
@@ -40,7 +41,22 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
+        ColorUtil.init();
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
+        boolean noColorEnv = System.getenv("NO_COLOR") != null;
+        boolean isTty = System.console() != null;
+        boolean globalNoColor = false;
+        try {
+            var root = spec.root().userObject();
+            if (root instanceof Acr acr) {
+                globalNoColor = acr.isNoColor();
+            }
+        } catch (Exception e) {
+            
+        }
+        boolean colorsEnabled = !globalNoColor && !noColorEnv && isTty;
+        io.apicurio.registry.cli.utils.ColorUtil.setEnabled(colorsEnabled);
+        
         try {
             configureVerboseLogging();
             updateNotifier.checkAndNotify(getTopLevelCommandName());
@@ -68,7 +84,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     private static void handleCliException(final OutputBuffer output, final CliException ex) {
         if (!ex.isQuiet()) {
-            output.writeStdErrChunk(out -> out.append(ERROR_PREFIX).append(ex.getMessage()).append("\n"));
+            output.writeError(out -> out.append(ERROR_PREFIX).append(ex.getMessage()).append("\n"));
         }
     }
 

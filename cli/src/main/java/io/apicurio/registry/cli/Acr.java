@@ -16,6 +16,7 @@ import io.apicurio.registry.cli.serverconfig.ServerConfigCommand;
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import lombok.Getter;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 import static picocli.CommandLine.Option;
 import static picocli.CommandLine.ScopeType.INHERIT;
@@ -74,4 +75,13 @@ public class Acr {
             scope = INHERIT
     )
     private boolean _ignored;
+
+    @Option(
+            names = {"--no-color"},
+            description = "Disable colored output.",
+            scope = INHERIT
+    )
+    @Getter
+    private boolean noColor;
+    
 }

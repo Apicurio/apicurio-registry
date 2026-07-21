@@ -35,7 +35,7 @@ public class ContextUseCommand extends AbstractCommand {
         final var previousContext = configModel.getCurrentContext();
         configModel.setCurrentContext(name);
         config.write(configModel);
-        output.writeStdOutChunk(out -> {
+        output.writeSuccess(out -> {
             out.append("Switched to context '").append(name).append("'");
             if (previousContext != null) {
                 out.append(" from '").append(previousContext).append("'");

@@ -129,6 +129,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
                 .groups().byGroupId(resolvedGroupId).artifacts().post(newArtifact);
         //noinspection ConstantConditions
         final var artifact = convert(result.getArtifact());
+        IdUtil.updateArtifactContext(resolvedGroupId, artifact.getArtifactId(), config, output);
         switch (outputType.getOutputType()) {
             case json -> output.writeStdErrChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));
             case table -> output.writeStdOutChunk(out -> successMessage(out, resolvedGroupId, artifact.getArtifactId()));

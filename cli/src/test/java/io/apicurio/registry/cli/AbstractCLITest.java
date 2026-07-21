@@ -78,11 +78,11 @@ public abstract class AbstractCLITest {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws Exception {
         var acrHome = Path.of(
                         AbstractCLITest.class.getClassLoader()
                                 .getResource("acr-home")
-                                .getPath())
+                                .toURI())
                 .normalize();
         if (!Files.exists(acrHome)) {
             throw new RuntimeException("Test resource 'acr-home' does not exist");

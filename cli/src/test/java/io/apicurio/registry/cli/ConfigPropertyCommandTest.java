@@ -28,11 +28,11 @@ public class ConfigPropertyCommandTest {
     private StringWriter err;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         var acrHome = Path.of(
                         getClass().getClassLoader()
                                 .getResource("acr-home")
-                                .getPath())
+                                .toURI())
                 .normalize();
         config.setAcrCurrentHomePath(acrHome);
         config.reset();

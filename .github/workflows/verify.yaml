@@ -76,6 +76,7 @@ jobs:
               - 'java-sdk/**'
               - 'go-sdk/**'
               - 'python-sdk/**'
+              - 'apicurio-ai-python/**'
               - 'typescript-sdk/**'
             go-sdk-gen:
               - 'common/src/main/resources/META-INF/openapi.json'

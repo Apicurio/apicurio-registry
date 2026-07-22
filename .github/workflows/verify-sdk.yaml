@@ -58,6 +58,42 @@ jobs:
           sleep 5
           make test
 
+  verify-ai-python-sdk:
+    name: Verify AI Python SDK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.14.6'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
+
+      - name: Install the package
+        working-directory: apicurio-ai-python
+        run: make install
+
+      - name: Check linting
+        working-directory: apicurio-ai-python
+        run: make lint-check
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+        with:
+          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ inputs.image-tag }}'
+
+      - name: Run the tests
+        working-directory: apicurio-ai-python
+        run: |
+          docker run -d -p 8080:8080 -e APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true apicurio/apicurio-registry:${{ inputs.image-tag }}
+          sleep 5
+          make test
+
   verify-go-sdk:
     name: Verify Go SDK
     runs-on: ubuntu-latest

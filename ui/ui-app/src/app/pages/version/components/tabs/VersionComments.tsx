@@ -67,6 +67,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     };
 
     const addComment = (newComment: NewComment): void => {
+        setActionError(undefined);
         setIsCreateModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Adding comment, please wait.");
@@ -75,13 +76,14 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setComments([comment, ...comments]);
                 setIsPleaseWaitModalOpen(false);
             })
-            .catch(() => {
-                setActionError("Error adding comment. Please try again.");
+            .catch((error: any) => {
+                setActionError(error?.message || "Error adding comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
 
     const editComment = (commentId: string, newComment: NewComment): void => {
+        setActionError(undefined);
         setIsEditModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Updating comment, please wait.");
@@ -92,13 +94,14 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 }));
                 setIsPleaseWaitModalOpen(false);
             })
-            .catch(() => {
-                setActionError("Error updating comment. Please try again.");
+            .catch((error: any) => {
+                setActionError(error?.message || "Error updating comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
 
     const deleteComment = (): void => {
+        setActionError(undefined);
         setIsDeleteModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Deleting comment, please wait.");
@@ -109,21 +112,22 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setComments(comments.filter(c => c.commentId !== commentId));
                 setIsPleaseWaitModalOpen(false);
             })
-            .catch(() => {
-                setActionError("Error deleting comment. Please try again.");
+            .catch((error: any) => {
+                setActionError(error?.message || "Error deleting comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
 
     useEffect(() => {
+        setActionError(undefined);
         setIsLoading(true);
         groups.getArtifactVersionComments(props.version.groupId || "default", props.version.artifactId!, props.version.version!)
             .then(comments => {
                 setComments(comments);
                 setIsLoading(false);
             })
-            .catch(() => {
-                setActionError("Error fetching comments. Please refresh the page.");
+            .catch((error: any) => {
+                setActionError(error?.message || "Error fetching comments. Please refresh the page.");
                 setIsLoading(false);
             });
     }, []);

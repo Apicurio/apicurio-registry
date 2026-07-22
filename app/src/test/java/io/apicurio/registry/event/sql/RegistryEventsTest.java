@@ -10,6 +10,8 @@ import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
@@ -45,6 +47,7 @@ import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_RULE_CONFIG
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_CREATED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_DELETED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_STATE_CHANGED;
 import static io.apicurio.registry.storage.StorageEventType.GLOBAL_RULE_CONFIGURED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_CREATED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_DELETED;
@@ -300,6 +303,46 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 updateEvent.get("eventType").asText());
         Assertions.assertEquals("updateArtifactVersionMetadataEventDescriptionEdited",
                 updateEvent.get("description").asText());
+    }
+
+    @Test
+    public void updateArtifactVersionState() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactVersionState";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionStateName";
+        String description = "updateArtifactVersionStateDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        // A freshly created version is ENABLED; transition it to DEPRECATED.
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(VersionState.DEPRECATED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(newState);
+
+        // The state change must produce an ARTIFACT_VERSION_STATE_CHANGED event.
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_STATE_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode stateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+                stateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(groupId, stateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, stateEvent.get("artifactId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals("1", stateEvent.get("version").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
     }
 
     @Test

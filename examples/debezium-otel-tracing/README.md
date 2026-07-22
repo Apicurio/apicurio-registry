@@ -178,7 +178,7 @@ order-service: POST /orders
 ├── create-order-entity (database insert)
 │
 └── debezium-server: debezium-cdc-orders (custom OTEL SMT)
-    ├── POST apicurio-registry/apis/registry/v2/... (schema registration)
+    ├── POST apicurio-registry/apis/registry/v3/... (schema registration)
     │   └── apicurio-registry: createArtifact
     ├── Kafka producer send
     │

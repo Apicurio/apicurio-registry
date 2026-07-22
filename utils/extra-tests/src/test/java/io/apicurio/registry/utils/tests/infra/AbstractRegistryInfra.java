@@ -11,15 +11,16 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 public abstract class AbstractRegistryInfra {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractRegistryInfra.class);
 
     // KafkaSQL bootstrap involves sequential Kafka consumer polls at 5s intervals
-    // plus SQL initialization. 75s provides margin over observed ~49s worst case
-    // under CI load without masking genuinely hung containers.
-    private static final Duration KAFKASQL_STARTUP_TIMEOUT = Duration.ofSeconds(75);
+    // plus SQL initialization. Configurable via -Dtest.extra.timeout.kafkasql-startup=<seconds>.
+    private static final Duration KAFKASQL_STARTUP_TIMEOUT = Duration.ofSeconds(
+            Integer.getInteger("test.extra.timeout.kafkasql-startup", 120));
 
     private final String name;
 
@@ -50,6 +51,14 @@ public abstract class AbstractRegistryInfra {
             registryContainer.followOutput(new Slf4jLogConsumer(log).withPrefix(name));
             return true;
         } catch (ContainerLaunchException ex) {
+            if (ex.getCause() instanceof TimeoutException) {
+                throw new AssertionError(
+                        "Registry container '" + name + "' startup timed out after "
+                                + KAFKASQL_STARTUP_TIMEOUT.toSeconds() + "s"
+                                + " — this is an infrastructure issue, not a validation failure. "
+                                + "Override with -Dtest.extra.timeout.kafkasql-startup=<seconds>",
+                        ex);
+            }
             log.error("Error starting {} container: {}", name, ex.getMessage(), ex);
             return false;
         }

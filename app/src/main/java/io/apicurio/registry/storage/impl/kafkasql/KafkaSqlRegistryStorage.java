@@ -459,10 +459,12 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator
                 .waitForResponse(uuid);
 
-        outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactCreated.of(createdArtifact.getLeft())));
+        if (!dryRun) {
+            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactCreated.of(createdArtifact.getLeft())));
 
-        if (createdArtifact.getRight() != null) {
-            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(createdArtifact.getRight())));
+            if (createdArtifact.getRight() != null) {
+                outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(createdArtifact.getRight())));
+            }
         }
 
         return createdArtifact;
@@ -505,7 +507,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var uuid = blockOnResult(submitter.submitMessage(message));
         ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator
                 .waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(versionMetaDataDto)));
+        if (!dryRun) {
+            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(versionMetaDataDto)));
+        }
         return versionMetaDataDto;
     }
 

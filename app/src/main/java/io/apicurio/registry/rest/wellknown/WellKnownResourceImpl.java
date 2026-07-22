@@ -604,25 +604,24 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
-    public Response getSchema(String type, String version) {
+    public Response getSchema(String schemaType, String version) {
         if (!a2aConfig.isEnabled() && !mcpToolsConfig.isEnabled()) {
-            throw new NotFoundException("Schema not found: " + type + "/" + version);
+            throw new NotFoundException("Schema not found: " + schemaType + "/" + version);
         }
 
-        // Validate and normalize the type
-        String schemaResourcePath = getSchemaResourcePath(type, version);
+        String schemaResourcePath = getSchemaResourcePath(schemaType, version);
         if (schemaResourcePath == null) {
-            throw new NotFoundException("Schema not found: " + type + "/" + version);
+            throw new NotFoundException("Schema not found: " + schemaType + "/" + version);
         }
 
         try {
             String schemaContent = loadSchemaFromClasspath(schemaResourcePath);
             return Response.ok(schemaContent, "application/schema+json")
-                    .header("Content-Disposition", "inline; filename=\"" + type + "-" + version + ".json\"")
+                    .header("Content-Disposition", "inline; filename=\"" + schemaType + "-" + version + ".json\"")
                     .header("Cache-Control", "public, max-age=86400")
                     .build();
         } catch (IOException e) {
-            throw new NotFoundException("Schema not found: " + type + "/" + version);
+            throw new NotFoundException("Schema not found: " + schemaType + "/" + version);
         }
     }
 

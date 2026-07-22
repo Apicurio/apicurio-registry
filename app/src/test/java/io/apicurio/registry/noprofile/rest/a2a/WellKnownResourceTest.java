@@ -586,6 +586,85 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                         equalTo("1.0"));
     }
 
+    @Test
+    public void testGetSchemaWithRenamedPathParam() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/prompt-template/v1")
+                .then()
+                .statusCode(200)
+                .contentType("application/schema+json");
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/mcp-tool/v1")
+                .then()
+                .statusCode(200)
+                .contentType("application/schema+json");
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/model-schema/v1")
+                .then()
+                .statusCode(200)
+                .contentType("application/schema+json");
+    }
+
+    @Test
+    public void testGetSchemaNotFound() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/nonexistent/v1")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testV3PathGetAgentCard() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/apis/registry/v3/well-known/agent.json")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Apicurio Registry"))
+                .body("skills", hasSize(5));
+    }
+
+    @Test
+    public void testV3PathSearchAgents() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/apis/registry/v3/well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testV3PathGetSchema() {
+        givenAtRoot()
+                .when()
+                .get("/apis/registry/v3/well-known/schemas/prompt-template/v1")
+                .then()
+                .statusCode(200)
+                .contentType("application/schema+json");
+    }
+
+    @Test
+    public void testV3PathSearchMcpTools() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/apis/registry/v3/well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("tools", notNullValue());
+    }
+
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

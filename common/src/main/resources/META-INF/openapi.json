@@ -6194,6 +6194,602 @@
           }
         }
       }
+    },
+    "/well-known/agent.json": {
+      "summary": "Get the Agent Card for this registry instance.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The Agent Card for this registry instance."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getAgentCard",
+        "summary": "Get Agent Card",
+        "description": "Returns the Agent Card for this Apicurio Registry instance, enabling A2A protocol discovery of the registry as an agent."
+      }
+    },
+    "/well-known/a2a": {
+      "summary": "Get the Agent Card via the canonical A2A v1.0 discovery path.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The Agent Card for this registry instance."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getAgentCardV1",
+        "summary": "Get Agent Card (A2A v1.0)",
+        "description": "Returns the Agent Card using the canonical A2A v1.0 discovery endpoint."
+      }
+    },
+    "/well-known/agent-card.json": {
+      "summary": "Get the Agent Card (watsonx Orchestrate compatible path).",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The Agent Card for this registry instance."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getAgentCardForOrchestrate",
+        "summary": "Get Agent Card (Orchestrate)",
+        "description": "Returns the Agent Card using the watsonx Orchestrate compatible discovery path."
+      }
+    },
+    "/well-known/agents": {
+      "summary": "Search for registered agent cards.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Filter by agent name (partial match).",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "skill",
+            "description": "Filter by skill ID. Can be specified multiple times.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "capability",
+            "description": "Filter by capability (e.g., streaming:true).",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "inputMode",
+            "description": "Filter by input mode (e.g., text, image).",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "outputMode",
+            "description": "Filter by output mode.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "The number of agents to skip before starting to collect the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The number of agents to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "A paginated list of agent cards matching the search criteria."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchAgents",
+        "summary": "Search agents",
+        "description": "Returns a paginated list of registered agent cards, optionally filtered by name, skills, capabilities, or I/O modes."
+      }
+    },
+    "/well-known/agents/public": {
+      "summary": "Search for publicly visible agent cards.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "description": "The number of agents to skip before starting to collect the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The number of agents to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "A paginated list of publicly visible agent cards."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "searchPublicAgents",
+        "summary": "Search public agents",
+        "description": "Returns a paginated list of agent cards that are publicly visible without authentication."
+      }
+    },
+    "/well-known/agents/entitled": {
+      "summary": "Search for agent cards the caller is entitled to.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "description": "The number of agents to skip before starting to collect the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The number of agents to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "A paginated list of agent cards the caller is entitled to access."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchEntitledAgents",
+        "summary": "Search entitled agents",
+        "description": "Returns a paginated list of agent cards that the authenticated caller is entitled to access."
+      }
+    },
+    "/well-known/agents/search": {
+      "summary": "Advanced search for agent cards with structured filters.",
+      "post": {
+        "tags": [
+          "WellKnown"
+        ],
+        "requestBody": {
+          "description": "The structured search request with filters.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "A paginated list of agent cards matching the structured search criteria."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchAgentsAdvanced",
+        "summary": "Advanced agent search",
+        "description": "Performs an advanced search for agent cards using structured filters in the request body."
+      }
+    },
+    "/well-known/agents/{groupId}/{artifactId}": {
+      "summary": "Get a specific registered agent card.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "description": "The version of the agent card to retrieve. Defaults to the latest version.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "The raw Agent Card JSON content."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getRegisteredAgentCard",
+        "summary": "Get registered agent card",
+        "description": "Returns a specific registered Agent Card by group and artifact ID. Optionally specify a version."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID of the agent card artifact.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID of the agent card.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/mcp-tools": {
+      "summary": "Search for registered MCP tool definitions.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Filter by tool name (partial match).",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "parameter",
+            "description": "Filter by input parameter name. Can be specified multiple times.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "The number of tools to skip before starting to collect the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The number of tools to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolSearchResults"
+                }
+              }
+            },
+            "description": "A paginated list of MCP tools matching the search criteria."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchMcpTools",
+        "summary": "Search MCP tools",
+        "description": "Returns a paginated list of registered MCP tool definitions, optionally filtered by name or parameter."
+      }
+    },
+    "/well-known/mcp-tools/{groupId}/{artifactId}": {
+      "summary": "Get a specific registered MCP tool definition.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "description": "The version of the MCP tool to retrieve. Defaults to the latest version.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "The raw MCP tool definition JSON content."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getRegisteredMcpTool",
+        "summary": "Get registered MCP tool",
+        "description": "Returns a specific registered MCP tool definition by group and artifact ID. Optionally specify a version."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The group ID of the MCP tool artifact.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID of the MCP tool.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/schemas/{schemaType}/{version}": {
+      "summary": "Get a JSON Schema for a specific LLM artifact type.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "The JSON Schema for the specified artifact type and version."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getSchema",
+        "summary": "Get JSON Schema",
+        "description": "Returns the JSON Schema for a specific LLM artifact type. Supported types: prompt-template, model-schema, mcp-tool. Supported versions: v1."
+      },
+      "parameters": [
+        {
+          "name": "schemaType",
+          "description": "The schema type (e.g., prompt-template, model-schema, mcp-tool).",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "version",
+          "description": "The schema version (e.g., v1).",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
     }
   },
   "components": {
@@ -8989,6 +9585,517 @@
             "type": "boolean"
           }
         }
+      },
+      "AgentCard": {
+        "description": "Represents an A2A Agent Card - a JSON metadata document describing an AI agent following the A2A (Agent2Agent) protocol specification.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The name of the agent.",
+            "type": "string"
+          },
+          "description": {
+            "description": "A human-readable description of the agent.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the agent.",
+            "type": "string"
+          },
+          "protocolVersion": {
+            "description": "The version of the A2A protocol supported.",
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AgentProvider",
+            "description": "The organization providing this agent."
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities",
+            "description": "The capabilities supported by this agent."
+          },
+          "skills": {
+            "description": "The list of skills this agent can perform.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSkill"
+            }
+          },
+          "defaultInputModes": {
+            "description": "The default input modes supported by this agent.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultOutputModes": {
+            "description": "The default output modes supported by this agent.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supportedInterfaces": {
+            "description": "The protocol interfaces this agent supports.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "securitySchemes": {
+            "description": "Named security schemes available for this agent.",
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/A2ASecurityScheme"
+            }
+          },
+          "securityRequirements": {
+            "description": "Security requirements for accessing this agent.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/A2ASecurityRequirement"
+            }
+          },
+          "iconUrl": {
+            "description": "URL to the agent's icon.",
+            "type": "string"
+          },
+          "documentationUrl": {
+            "description": "URL to the agent's documentation.",
+            "type": "string"
+          },
+          "signatures": {
+            "description": "Cryptographic signatures on the agent card.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentCardSignature"
+            }
+          }
+        }
+      },
+      "AgentProvider": {
+        "description": "Represents the provider/organization that created an A2A agent.",
+        "type": "object",
+        "properties": {
+          "organization": {
+            "description": "The name of the organization.",
+            "type": "string"
+          },
+          "url": {
+            "description": "URL of the organization.",
+            "type": "string"
+          }
+        }
+      },
+      "AgentCapabilities": {
+        "description": "Represents the capabilities of an A2A agent.",
+        "type": "object",
+        "properties": {
+          "streaming": {
+            "description": "Whether the agent supports streaming responses.",
+            "type": "boolean"
+          },
+          "pushNotifications": {
+            "description": "Whether the agent supports push notifications.",
+            "type": "boolean"
+          },
+          "extendedAgentCard": {
+            "description": "Whether the agent supports extended agent card.",
+            "type": "boolean"
+          },
+          "extensions": {
+            "description": "Additional extensions supported by this agent.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentExtension"
+            }
+          }
+        }
+      },
+      "AgentExtension": {
+        "description": "Represents an extension declaration for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "uri": {
+            "description": "URI identifying the extension.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Human-readable description of the extension.",
+            "type": "string"
+          },
+          "required": {
+            "description": "Whether this extension is required.",
+            "type": "boolean"
+          },
+          "params": {
+            "description": "Parameters for the extension.",
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "AgentSkill": {
+        "description": "Represents a skill that an A2A agent can perform.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique identifier for the skill.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable name of the skill.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of what the skill does.",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Tags associated with this skill.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "examples": {
+            "description": "Example inputs or use cases for this skill.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inputModes": {
+            "description": "Input modes supported by this skill.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputModes": {
+            "description": "Output modes supported by this skill.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "securityRequirements": {
+            "description": "Security requirements specific to this skill.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/A2ASecurityRequirement"
+            }
+          }
+        }
+      },
+      "AgentInterface": {
+        "description": "Represents an interface endpoint for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "The URL of the interface endpoint.",
+            "type": "string"
+          },
+          "protocolBinding": {
+            "description": "The protocol binding (e.g., http+json).",
+            "type": "string"
+          },
+          "protocolVersion": {
+            "description": "The protocol version.",
+            "type": "string"
+          },
+          "tenant": {
+            "description": "Optional tenant identifier.",
+            "type": "string"
+          }
+        }
+      },
+      "A2ASecurityScheme": {
+        "description": "Represents a security scheme for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "The type of security scheme (e.g., httpAuth, openIdConnect, apiKey).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the security scheme.",
+            "type": "string"
+          },
+          "location": {
+            "description": "Where the credential is sent (e.g., header, query).",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the credential (e.g., header name).",
+            "type": "string"
+          },
+          "scheme": {
+            "description": "The HTTP auth scheme (e.g., bearer, basic).",
+            "type": "string"
+          },
+          "bearerFormat": {
+            "description": "The format of bearer tokens.",
+            "type": "string"
+          },
+          "flows": {
+            "description": "OAuth2 flow configurations.",
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "oauth2MetadataUrl": {
+            "description": "OAuth2 metadata URL.",
+            "type": "string"
+          },
+          "openIdConnectUrl": {
+            "description": "OpenID Connect discovery URL.",
+            "type": "string"
+          }
+        }
+      },
+      "A2ASecurityRequirement": {
+        "description": "Represents a security requirement for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "schemes": {
+            "description": "Map of security scheme names to their required scopes.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "AgentCardSignature": {
+        "description": "Represents a cryptographic signature on an A2A agent card.",
+        "type": "object",
+        "properties": {
+          "protected": {
+            "description": "Base64url-encoded protected header.",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature value.",
+            "type": "string"
+          },
+          "header": {
+            "description": "Unprotected header parameters.",
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "AgentSearchResult": {
+        "description": "A single agent card search result with metadata.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "The group ID of the agent card artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID of the agent card.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the agent.",
+            "type": "string"
+          },
+          "description": {
+            "description": "A description of the agent.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The version of the agent card.",
+            "type": "string"
+          },
+          "supportedInterfaces": {
+            "description": "Protocol interfaces supported by this agent.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "skills": {
+            "description": "Skill IDs associated with this agent.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities",
+            "description": "Capabilities of this agent."
+          },
+          "createdOn": {
+            "description": "Timestamp when the agent card was created.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "owner": {
+            "description": "The owner of the agent card artifact.",
+            "type": "string"
+          }
+        }
+      },
+      "AgentSearchResults": {
+        "description": "Search results for agent cards.",
+        "required": [
+          "count",
+          "agents"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "description": "The total number of agents matching the query.",
+            "type": "integer"
+          },
+          "agents": {
+            "description": "The agent search results.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSearchResult"
+            }
+          }
+        }
+      },
+      "AgentSearchRequest": {
+        "description": "Request body for the advanced agent search endpoint.",
+        "type": "object",
+        "properties": {
+          "query": {
+            "description": "Free-text search query.",
+            "type": "string"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/AgentSearchFilters",
+            "description": "Structured search filters."
+          },
+          "limit": {
+            "description": "Maximum number of results to return.",
+            "default": 20,
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Number of results to skip.",
+            "default": 0,
+            "type": "integer"
+          }
+        }
+      },
+      "AgentSearchFilters": {
+        "description": "Structured filters for advanced agent search.",
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "description": "Filter by capabilities (key = capability name, value = required state).",
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "skills": {
+            "description": "Filter by skill IDs.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "labels": {
+            "description": "Filter by labels.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "inputModes": {
+            "description": "Filter by input modes.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputModes": {
+            "description": "Filter by output modes.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "protocolBindings": {
+            "description": "Filter by protocol bindings.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "McpToolSearchResult": {
+        "description": "A single MCP tool search result with metadata.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "The group ID of the MCP tool artifact.",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "The artifact ID of the MCP tool.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the MCP tool.",
+            "type": "string"
+          },
+          "title": {
+            "description": "The title of the MCP tool.",
+            "type": "string"
+          },
+          "description": {
+            "description": "A description of the MCP tool.",
+            "type": "string"
+          },
+          "owner": {
+            "description": "The owner of the MCP tool artifact.",
+            "type": "string"
+          },
+          "createdOn": {
+            "description": "Timestamp when the MCP tool was created.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "parameters": {
+            "description": "Parameter names accepted by the MCP tool.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "McpToolSearchResults": {
+        "description": "Search results for MCP tool definitions.",
+        "required": [
+          "count",
+          "tools"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "description": "The total number of MCP tools matching the query.",
+            "type": "integer"
+          },
+          "tools": {
+            "description": "The MCP tool search results.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolSearchResult"
+            }
+          }
+        }
       }
     },
     "responses": {
@@ -9276,6 +10383,10 @@
     {
       "name": "GitOps",
       "description": "Experimental. Management and status endpoints for the GitOps storage backend. These endpoints are only available when the registry is configured with `apicurio.storage.kind=gitops`."
+    },
+    {
+      "name": "WellKnown",
+      "description": "Well-known discovery endpoints for A2A agent cards, MCP tool definitions, and JSON schemas. These endpoints enable protocol-level discovery of agents and tools registered in the Apicurio Registry."
     }
   ],
   "x-codegen": {

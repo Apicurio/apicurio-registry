@@ -18,7 +18,9 @@ import {
     SearchInput,
     Toolbar,
     ToolbarContent,
-    ToolbarItem
+    ToolbarItem,
+    Alert,
+    AlertActionCloseButton
 } from "@patternfly/react-core";
 import { FromNow, ListWithToolbar, ObjectDropdown, PleaseWaitModal } from "@apicurio/common-ui-components";
 import { ConfirmDeleteModal, CreateCommentModal, EditCommentModal, IfAuth, IfFeature } from "@app/components";
@@ -42,6 +44,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     const [commentToEdit, setCommentToEdit] = useState<Comment>();
     const [commentToDelete, setCommentToDelete] = useState<Comment>();
     const [filter, setFilter] = useState("");
+    const [actionError, setActionError] = useState<string | undefined>();
 
     const groups: GroupsService = useGroupsService();
 
@@ -73,7 +76,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false);
             })
             .catch(() => {
-                // TODO handle error
+                setActionError("Error adding comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
@@ -90,7 +93,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false);
             })
             .catch(() => {
-                // TODO handle error
+                setActionError("Error updating comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
@@ -107,7 +110,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false);
             })
             .catch(() => {
-                // TODO handle error
+                setActionError("Error deleting comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
@@ -120,7 +123,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsLoading(false);
             })
             .catch(() => {
-                // TODO handle error
+                setActionError("Error fetching comments. Please refresh the page.");
                 setIsLoading(false);
             });
     }, []);
@@ -172,6 +175,15 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
 
     return (
         <div className="comments">
+            {actionError && (
+                <Alert
+                    variant="danger"
+                    title={actionError}
+                    actionClose={<AlertActionCloseButton onClose={() => setActionError(undefined)} />}
+                    isInline
+                    style={{ marginBottom: "15px" }}
+                />
+            )}
             <ListWithToolbar
                 toolbar={toolbar}
                 emptyState={emptyState}

@@ -90,7 +90,7 @@ jobs:
       - name: Run the tests
         working-directory: apicurio-ai-python
         run: |
-          docker run -d -p 8080:8080 -e APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true apicurio/apicurio-registry:${{ inputs.image-tag }}
+          docker run -d -p 8080:8080 -e APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true -e APICURIO_A2A_ENABLED=true -e APICURIO_MCP_TOOLS_ENABLED=true apicurio/apicurio-registry:${{ inputs.image-tag }}
           sleep 5
           make test
 

@@ -121,6 +121,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public AgentCard getAgentCardForOrchestrate() {
+        return getAgentCard();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public AgentSearchResults getPublicAgents(Integer offset, Integer limit) {
         if (!a2aConfig.isEnabled() || !a2aConfig.isPublicDiscoveryEnabled()) {
             throw new NotFoundException("Public agent discovery is disabled");

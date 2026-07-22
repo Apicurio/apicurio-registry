@@ -34,7 +34,7 @@ public class GroupCreateCommand extends AbstractCommand {
     private String groupId;
 
     @Option(
-            names = {"-d", "--description"},
+            names = {"--description"},
             description = "Provide group description."
     )
     private String description;

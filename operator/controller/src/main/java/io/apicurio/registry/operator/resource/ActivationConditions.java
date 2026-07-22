@@ -2,15 +2,19 @@ package io.apicurio.registry.operator.resource;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.AutoscalingSpec;
 import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
+import io.apicurio.registry.operator.api.v1.spec.ConsolePluginSpec;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.NetworkPolicySpec;
 import io.apicurio.registry.operator.api.v1.spec.PodDisruptionSpec;
 import io.apicurio.registry.operator.api.v1.spec.UiSpec;
 import io.apicurio.registry.operator.feat.GitOps;
 import io.apicurio.registry.operator.feat.KubernetesOps;
+import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginDeploymentResource;
+import io.apicurio.registry.operator.resource.consoleplugin.ConsolePluginServiceResource;
 import io.apicurio.registry.operator.resource.app.AppHorizontalPodAutoscalerResource;
 import io.apicurio.registry.operator.resource.app.AppIngressResource;
 import io.apicurio.registry.operator.resource.app.GitOpsSshServiceResource;
@@ -251,6 +255,42 @@ public class ActivationConditions {
                     .orElse(Boolean.FALSE);
             if (!isManaged) {
                 ((UIHorizontalPodAutoscalerResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    // ===== Console Plugin
+
+    private static boolean isConsolePluginEnabled(ApicurioRegistry3 primary) {
+        return ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getConsolePlugin)
+                .map(ConsolePluginSpec::getEnabled).orElse(Boolean.FALSE)
+                && Configuration.getConsolePluginImage().isPresent();
+    }
+
+    public static class ConsolePluginDeploymentActivationCondition
+            implements Condition<Deployment, ApicurioRegistry3> {
+
+        @Override
+        public boolean isMet(DependentResource<Deployment, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = isConsolePluginEnabled(primary);
+            if (!isManaged) {
+                ((ConsolePluginDeploymentResource) resource).delete(primary, context);
+            }
+            return isManaged;
+        }
+    }
+
+    public static class ConsolePluginServiceActivationCondition
+            implements Condition<Service, ApicurioRegistry3> {
+
+        @Override
+        public boolean isMet(DependentResource<Service, ApicurioRegistry3> resource,
+                             ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
+            boolean isManaged = isConsolePluginEnabled(primary);
+            if (!isManaged) {
+                ((ConsolePluginServiceResource) resource).delete(primary, context);
             }
             return isManaged;
         }

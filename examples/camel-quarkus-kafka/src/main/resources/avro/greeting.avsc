@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "Greeting",
+  "namespace": "io.apicurio.registry.examples.camelkafka",
+  "doc": "A simple greeting message for the Camel Quarkus Kafka example",
+  "fields": [
+    {
+      "name": "name",
+      "type": "string",
+      "doc": "Name of the person being greeted"
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "doc": "The greeting message"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Timestamp when the greeting was created (milliseconds since epoch)"
+    }
+  ]
+}

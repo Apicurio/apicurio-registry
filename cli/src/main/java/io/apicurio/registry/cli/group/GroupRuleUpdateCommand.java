@@ -29,17 +29,13 @@ public class GroupRuleUpdateCommand extends AbstractCommand {
 
     @Parameters(
             index = "0",
-            description = "The rule type (VALIDITY, COMPATIBILITY, or INTEGRITY)"
+            description = "The rule type ({{rule-types}})"
     )
     private String ruleType;
 
     @Option(
             names = {"-c", "--config"},
-            // NOTE: Keep in sync with RuleUtil.VALID_CONFIGS
-            description = "The rule configuration value.%n" +
-                    "  VALIDITY: FULL | SYNTAX_ONLY | NONE%n" +
-                    "  COMPATIBILITY: BACKWARD | BACKWARD_TRANSITIVE | FORWARD | FORWARD_TRANSITIVE | FULL | FULL_TRANSITIVE | NONE%n" +
-                    "  INTEGRITY: FULL | NO_DUPLICATES | REFS_EXIST | ALL_REFS_MAPPED | NO_CIRCULAR_REFERENCES | NONE",
+            description = "The rule configuration value.%n{{rule-configs}}",
             required = true
     )
     private String ruleConfig;

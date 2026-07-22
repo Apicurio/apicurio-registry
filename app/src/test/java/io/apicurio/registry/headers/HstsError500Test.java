@@ -9,6 +9,7 @@ import java.util.Set;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 
 // Verifies the HSTS header on a 500 response (#2411). A 500 has no natural trigger, so HstsBoomResource
 // provides a test-only endpoint that throws, enabled only for this test via the alternative below.
@@ -29,5 +30,12 @@ public class HstsError500Test {
     public void testHstsOnInternalServerError500() {
         given().when().get("/apis/test/hsts-500-boom").then().statusCode(500).header(HSTS,
                 containsString("max-age="));
+    }
+
+    // #8713: pin the exact directive casing on 500 responses too, not just success responses.
+    @Test
+    public void testHstsDirectiveCasingIsRfcCompliantOn500() {
+        given().when().get("/apis/test/hsts-500-boom").then().statusCode(500).header(HSTS,
+                equalTo("max-age=31536000; includeSubDomains"));
     }
 }

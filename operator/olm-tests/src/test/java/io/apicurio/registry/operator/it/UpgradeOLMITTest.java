@@ -38,7 +38,8 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     private static final String UPGRADE_START_VERSION_PROP = "test.operator.upgrade-start-version";
     // Must be present in both 3.x and 3.2.x channels in catalog.template.yaml
     private static final String UPGRADE_START_VERSION_DEFAULT = "3.2.4";
-    private static final Duration UPGRADE_TIMEOUT = Duration.ofMinutes(10);
+    private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
+            Integer.getInteger("test.operator.timeout.olm-upgrade", 900));
 
     private KubernetesClient client;
     private String namespace;

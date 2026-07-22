@@ -465,6 +465,67 @@ public class RegistryService {
         return client.admin().config().properties().byPropertyName(propertyName).get();
     }
 
+    // ---- Well-known agent/MCP tool endpoints (no SDK support, use raw HTTP) ----
+
+    private static final java.net.http.HttpClient wellKnownHttpClient = java.net.http.HttpClient.newBuilder()
+            .connectTimeout(java.time.Duration.ofSeconds(10))
+            .build();
+
+    public String searchAgentCards(String name, String skill, String capability) throws Exception {
+        StringBuilder url = new StringBuilder(rawBaseUrl).append("/.well-known/agents?limit=50");
+        if (name != null && !name.isBlank()) {
+            url.append("&name=").append(java.net.URLEncoder.encode(name, StandardCharsets.UTF_8));
+        }
+        if (skill != null && !skill.isBlank()) {
+            url.append("&skill=").append(java.net.URLEncoder.encode(skill, StandardCharsets.UTF_8));
+        }
+        if (capability != null && !capability.isBlank()) {
+            url.append("&capability=").append(java.net.URLEncoder.encode(capability, StandardCharsets.UTF_8));
+        }
+        return fetchWellKnownEndpoint(url.toString());
+    }
+
+    public String getAgentCard(String groupId, String artifactId) throws Exception {
+        String url = rawBaseUrl + "/.well-known/agents/"
+                + java.net.URLEncoder.encode(groupId, StandardCharsets.UTF_8) + "/"
+                + java.net.URLEncoder.encode(artifactId, StandardCharsets.UTF_8);
+        return fetchWellKnownEndpoint(url);
+    }
+
+    public String searchMcpTools(String name, String parameter) throws Exception {
+        StringBuilder url = new StringBuilder(rawBaseUrl).append("/.well-known/mcp-tools?limit=50");
+        if (name != null && !name.isBlank()) {
+            url.append("&name=").append(java.net.URLEncoder.encode(name, StandardCharsets.UTF_8));
+        }
+        if (parameter != null && !parameter.isBlank()) {
+            url.append("&parameter=").append(java.net.URLEncoder.encode(parameter, StandardCharsets.UTF_8));
+        }
+        return fetchWellKnownEndpoint(url.toString());
+    }
+
+    public String getMcpTool(String groupId, String artifactId) throws Exception {
+        String url = rawBaseUrl + "/.well-known/mcp-tools/"
+                + java.net.URLEncoder.encode(groupId, StandardCharsets.UTF_8) + "/"
+                + java.net.URLEncoder.encode(artifactId, StandardCharsets.UTF_8);
+        return fetchWellKnownEndpoint(url);
+    }
+
+    private String fetchWellKnownEndpoint(String url) throws Exception {
+        var request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .header("Accept", "application/json")
+                .timeout(java.time.Duration.ofSeconds(30))
+                .GET()
+                .build();
+        var response = wellKnownHttpClient.send(request,
+                java.net.http.HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 400) {
+            throw new ToolCallException("Registry returned HTTP " + response.statusCode()
+                    + " for " + url);
+        }
+        return response.body();
+    }
+
     public void updateConfigurationProperty(String propertyName, String propertyValue) {
         if (config.safeMode() && !List.of(
                 "apicurio.rest.mutability.artifact-version-content.enabled"

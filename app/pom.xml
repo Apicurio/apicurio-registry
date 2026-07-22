@@ -274,11 +274,6 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk</artifactId>
       <scope>test</scope>
     </dependency>
@@ -295,27 +290,6 @@
     <dependency>
       <groupId>io.kiota</groupId>
       <artifactId>kiota-http-vertx</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-maven-plugin</artifactId>
-      <type>maven-plugin</type>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -367,12 +341,6 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>raml-test-micro-service</artifactId>
-      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -716,5 +684,53 @@
       </plugin>
     </plugins>
   </build>
+
+  <!-- Test-scoped dependencies on modules excluded from the reactor by the -Dlocal profile
+       (serdes, maven-plugin, raml-test-micro-service). Keep them out of -Dlocal builds so
+       dependency resolution succeeds even with -DskipTests; include them for non-local test runs. -->
+  <profiles>
+    <profile>
+      <id>local-excluded-test-deps</id>
+      <activation>
+        <property>
+          <name>!local</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-maven-plugin</artifactId>
+          <type>maven-plugin</type>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>raml-test-micro-service</artifactId>
+          <version>${project.version}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
 
 </project>

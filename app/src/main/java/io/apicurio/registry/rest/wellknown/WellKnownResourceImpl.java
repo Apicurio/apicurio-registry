@@ -4,21 +4,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.a2a.A2AConfig;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
-import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
-import io.apicurio.registry.a2a.rest.beans.AgentCard;
-import io.apicurio.registry.a2a.rest.beans.AgentInterface;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchFilters;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
 import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.mcptools.McpToolsConfig;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResult;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
+import io.apicurio.registry.rest.v3.beans.AgentCard;
+import io.apicurio.registry.rest.v3.beans.AgentInterface;
+import io.apicurio.registry.rest.v3.beans.AgentSearchFilters;
+import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -145,7 +145,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count(results.getCount())
+                .count((int) results.getCount())
                 .agents(agents)
                 .build();
     }
@@ -179,7 +179,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count((long) total)
+                .count(total)
                 .agents(agents)
                 .build();
     }
@@ -212,7 +212,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
             if (f.getCapabilities() != null) {
-                for (Map.Entry<String, Boolean> entry : f.getCapabilities().entrySet()) {
+                for (Map.Entry<String, Object> entry
+                        : f.getCapabilities().getAdditionalProperties().entrySet()) {
                     SearchFilter filter = SearchFilter.ofStructure(
                             "agent_card:capability:" + entry.getKey());
                     if (!Boolean.TRUE.equals(entry.getValue())) {
@@ -222,8 +223,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
             if (f.getLabels() != null) {
-                for (Map.Entry<String, String> entry : f.getLabels().entrySet()) {
-                    filters.add(SearchFilter.ofLabel(entry.getKey(), entry.getValue()));
+                for (Map.Entry<String, Object> entry
+                        : f.getLabels().getAdditionalProperties().entrySet()) {
+                    filters.add(SearchFilter.ofLabel(
+                            entry.getKey(), String.valueOf(entry.getValue())));
                 }
             }
             if (f.getInputModes() != null) {
@@ -243,8 +246,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
 
-        int safeOffset = request.getOffset();
-        int safeLimit = request.getLimit();
+        int safeOffset = Math.max(0, request.getOffset() != null ? request.getOffset() : 0);
+        int safeLimit = Math.max(1, Math.min(request.getLimit() != null ? request.getLimit() : 20, 500));
 
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
@@ -265,7 +268,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
 
             return AgentSearchResults.builder()
-                    .count((long) total)
+                    .count(total)
                     .agents(agents)
                     .build();
         }
@@ -279,7 +282,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count(results.getCount())
+                .count((int) results.getCount())
                 .agents(agents)
                 .build();
     }
@@ -396,7 +399,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
 
             return AgentSearchResults.builder()
-                    .count((long) total)
+                    .count(total)
                     .agents(agents)
                     .build();
         }
@@ -410,7 +413,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count(results.getCount())
+                .count((int) results.getCount())
                 .agents(agents)
                 .build();
     }
@@ -551,7 +554,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             tools.add(convertToMcpToolSearchResult(artifact));
         }
 
-        return McpToolSearchResults.builder().count(results.getCount()).tools(tools).build();
+        return McpToolSearchResults.builder().count((int) results.getCount()).tools(tools).build();
     }
 
     /**

@@ -1,18 +1,17 @@
 package io.apicurio.registry.a2a;
 
-import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
-import io.apicurio.registry.a2a.rest.beans.AgentCard;
-import io.apicurio.registry.a2a.rest.beans.AgentInterface;
-import io.apicurio.registry.a2a.rest.beans.AgentProvider;
-import io.apicurio.registry.a2a.rest.beans.AgentSkill;
-import io.apicurio.registry.a2a.rest.beans.SecurityScheme;
 import io.apicurio.registry.auth.AuthConfig;
+import io.apicurio.registry.rest.v3.beans.A2ASecurityScheme;
+import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
+import io.apicurio.registry.rest.v3.beans.AgentCard;
+import io.apicurio.registry.rest.v3.beans.AgentInterface;
+import io.apicurio.registry.rest.v3.beans.AgentProvider;
+import io.apicurio.registry.rest.v3.beans.AgentSkill;
+import io.apicurio.registry.rest.v3.beans.SecuritySchemes;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Builds the Agent Card that represents Apicurio Registry as an A2A agent.
@@ -33,7 +32,7 @@ public class RegistryAgentCardBuilder {
     public AgentCard build(String baseUrl) {
         String agentUrl = a2aConfig.getAgentUrl().orElse(baseUrl);
 
-        AgentCard.Builder builder = AgentCard.builder()
+        var builder = AgentCard.builder()
                 .name(a2aConfig.getAgentName())
                 .description(a2aConfig.getAgentDescription())
                 .version(a2aConfig.getAgentVersion().orElse(system.getVersion()))
@@ -54,7 +53,11 @@ public class RegistryAgentCardBuilder {
 
     private List<AgentInterface> buildInterfaces(String agentUrl) {
         return List.of(
-                new AgentInterface(agentUrl, "http+json", a2aConfig.getProtocolVersion())
+                AgentInterface.builder()
+                        .url(agentUrl)
+                        .protocolBinding("http+json")
+                        .protocolVersion(a2aConfig.getProtocolVersion())
+                        .build()
         );
     }
 
@@ -70,7 +73,6 @@ public class RegistryAgentCardBuilder {
                 .streaming(a2aConfig.isCapabilitiesStreaming())
                 .pushNotifications(a2aConfig.isCapabilitiesPushNotifications())
                 .extendedAgentCard(false)
-                .stateTransitionHistory(false)
                 .build();
     }
 
@@ -115,17 +117,21 @@ public class RegistryAgentCardBuilder {
         );
     }
 
-    private Map<String, SecurityScheme> buildSecuritySchemes() {
-        Map<String, SecurityScheme> schemes = new LinkedHashMap<>();
+    private SecuritySchemes buildSecuritySchemes() {
+        SecuritySchemes schemes = new SecuritySchemes();
 
         if (authConfig.isOidcAuthEnabled()) {
-            schemes.put("bearer", SecurityScheme.httpAuth("Bearer"));
+            schemes.setAdditionalProperty("bearer",
+                    A2ASecurityScheme.builder().type("httpAuth").scheme("Bearer").build());
         }
         if (authConfig.isBasicAuthEnabled()) {
-            schemes.put("basic", SecurityScheme.httpAuth("Basic"));
+            schemes.setAdditionalProperty("basic",
+                    A2ASecurityScheme.builder().type("httpAuth").scheme("Basic").build());
         }
         if (a2aConfig.isApiKeyAuthEnabled()) {
-            schemes.put("apiKey", SecurityScheme.apiKey("X-API-Key", "header"));
+            schemes.setAdditionalProperty("apiKey",
+                    A2ASecurityScheme.builder().type("apiKey").name("X-API-Key")
+                            .location("header").build());
         }
 
         return schemes;

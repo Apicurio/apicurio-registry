@@ -128,7 +128,6 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("skills.id", hasItem("artifact-management"))
                 .body("skills.id", hasItem("compatibility-check"))
                 .body("skills.id", hasItem("agent-discovery"))
-                .body("capabilities.stateTransitionHistory", equalTo(false))
                 .body("defaultInputModes", hasItem("text/plain"))
                 .body("defaultOutputModes", hasItem("text/plain"))
                 .body("securitySchemes", notNullValue());

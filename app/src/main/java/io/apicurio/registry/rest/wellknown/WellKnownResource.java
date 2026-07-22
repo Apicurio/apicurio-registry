@@ -1,9 +1,9 @@
 package io.apicurio.registry.rest.wellknown;
 
-import io.apicurio.registry.a2a.rest.beans.AgentCard;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.rest.v3.beans.AgentCard;
+import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;

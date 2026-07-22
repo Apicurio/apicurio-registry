@@ -346,6 +346,56 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void updateArtifactVersionStateDryRun() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactVersionStateDryRun";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionStateDryRunName";
+        String description = "updateArtifactVersionStateDryRunDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        // A dry-run state change must NOT emit an event. Target DISABLED so that a leaked
+        // dry-run event would be distinguishable from the real change below.
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state()
+                .put(disabled, config -> config.queryParameters.dryRun = true);
+
+        // A real state change to DEPRECATED, used as a deterministic barrier: since events are
+        // produced in submission order to a single partition, a leaked dry-run event (if any)
+        // would already be on the topic by the time this real event is consumed.
+        WrappedVersionState deprecated = new WrappedVersionState();
+        deprecated.setState(VersionState.DEPRECATED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(deprecated);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_STATE_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode stateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+                stateEvent = event;
+            }
+            // The dry-run transition to DISABLED must never have produced an event.
+            Assertions.assertNotEquals(VersionState.DISABLED.name(), event.get("newState").asText());
+        }
+
+        // Only the real DEPRECATED change is emitted; the dry-run produced nothing. The
+        // oldState is ENABLED (not DISABLED), which also confirms the dry-run did not persist.
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
+    }
+
+    @Test
     public void deleteArtifactVersion() throws Exception {
         // Preparation
         final String groupId = "createArtifactVersion";

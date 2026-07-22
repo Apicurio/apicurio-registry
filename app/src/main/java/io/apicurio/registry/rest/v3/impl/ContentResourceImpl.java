@@ -13,15 +13,22 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.v3.ContentResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.VersionContent;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Response;
 
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -35,6 +42,12 @@ public class ContentResourceImpl implements ContentResource {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    RegistryStorageContentUtils contentUtils;
+
+    @Context
+    HttpHeaders httpHeaders;
 
     /**
      * @see io.apicurio.registry.rest.v3.ContentResource#detectContentReferences(String, VersionContent)
@@ -63,5 +76,22 @@ public class ContentResourceImpl implements ContentResource {
                 })
                 .sorted(Comparator.comparing(ArtifactReference::getName))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public Response canonicalizeContent(String artifactType, InputStream data) {
+        ContentHandle content = ContentHandle.create(data);
+        if (content.bytes().length == 0) {
+            throw new BadRequestException("Empty content is not allowed.");
+        }
+        if (!factory.getAllArtifactTypes().contains(artifactType)) {
+            throw new BadRequestException("Unknown artifact type: " + artifactType);
+        }
+        String ct = httpHeaders.getMediaType() != null ? httpHeaders.getMediaType().toString() : null;
+        TypedContent typedContent = TypedContent.create(content, ct);
+        TypedContent canonicalized = contentUtils.canonicalizeContent(artifactType, typedContent,
+                Map.of());
+        return Response.ok(canonicalized.getContent()).type(canonicalized.getContentType()).build();
     }
 }

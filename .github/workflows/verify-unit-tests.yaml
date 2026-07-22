@@ -87,7 +87,7 @@ jobs:
           # Each shard compiles the same modules but runs a different subset of tests via -Dtest= filters.
           # Pre-built artifacts from the Build job are downloaded but Maven still needs to resolve/compile.
           # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
-          # -Dsurefire.rerunFailingTestsCount=2: automatically retry flaky tests up to 2 times
+          # -Dsurefire.rerunFailingTestsCount=1: automatically retry flaky tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
             --no-transfer-progress \
@@ -101,4 +101,18 @@ jobs:
             -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5 \
-            -Dsurefire.rerunFailingTestsCount=2
+            -Dsurefire.rerunFailingTestsCount=1
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-${{ matrix.shard.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-${{ matrix.shard.name }}
+          path: flaky-tests-${{ matrix.shard.name }}.json
+          retention-days: 1
+

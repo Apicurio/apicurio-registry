@@ -1164,6 +1164,7 @@ async function handleTestResult({ github, context, core }) {
         );
       }
       await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
+      await postFlakyTestsSummary(github, owner, repo, workflowRun, pr.number, core);
       continue;
     }
 
@@ -1224,6 +1225,7 @@ async function handleTestResult({ github, context, core }) {
 
     // Post or update the decision summary comment
     await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
+    await postFlakyTestsSummary(github, owner, repo, workflowRun, pr.number, core);
 
     const reconPr = await api.getPr(pr.number);
     await reconcile(github, api, reconPr, core);
@@ -1390,6 +1392,136 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
     core.info(`PR #${prNumber} decision summary posted`);
   } catch (err) {
     core.warning(`Failed to post decision summary: ${err.message}`);
+  }
+}
+
+async function postFlakyTestsSummary(github, owner, repo, workflowRun, prNumber, core) {
+  try {
+    const { data: { artifacts } } = await github.rest.actions.listWorkflowRunArtifacts({
+      owner, repo, run_id: workflowRun.id,
+    });
+    
+    const flakyArtifacts = artifacts.filter(a => a.name.startsWith('flaky-tests-'));
+    if (!flakyArtifacts.length) {
+      core.info(`No flaky-tests artifacts found for run ${workflowRun.id}`);
+      await minimizePreviousFlakyComments(github, owner, repo, prNumber, core);
+      return;
+    }
+
+    const os = require('os');
+    const { execSync } = require('child_process');
+    const allFlakyTests = [];
+
+    for (const artifact of flakyArtifacts) {
+      if (artifact.size_in_bytes > 102400) {
+        core.warning(`Flaky test artifact ${artifact.name} is too large (${artifact.size_in_bytes} bytes), skipping`);
+        continue;
+      }
+
+      const { data: zip } = await github.rest.actions.downloadArtifact({
+        owner, repo, artifact_id: artifact.id, archive_format: 'zip',
+      });
+
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flaky-tests-'));
+      const zipPath = path.join(tmpDir, 'artifact.zip');
+      fs.writeFileSync(zipPath, Buffer.from(zip));
+
+      const listing = execSync(`unzip -l "${zipPath}"`, { encoding: 'utf8' });
+      const entryLines = listing.split('\n').filter(l => l.includes('.json'));
+      let valid = true;
+      for (const line of entryLines) {
+        const entry = line.trim().split(/\s+/).pop();
+        if (entry.includes('..') || path.isAbsolute(entry)) {
+          core.warning(`Suspicious path in flaky-tests artifact zip: ${entry}, skipping`);
+          valid = false;
+          break;
+        }
+      }
+      if (!valid) continue;
+
+      execSync(`unzip -o "${zipPath}" -d "${tmpDir}"`, { stdio: 'ignore' });
+
+      const jsonFiles = fs.readdirSync(tmpDir).filter(f => f.endsWith('.json') && f !== 'artifact.zip');
+      for (const f of jsonFiles) {
+        const filePath = path.join(tmpDir, f);
+        try {
+          const raw = fs.readFileSync(filePath, 'utf8');
+          const tests = JSON.parse(raw);
+          if (Array.isArray(tests)) {
+            const source = artifact.name.substring('flaky-tests-'.length);
+            for (const t of tests) {
+              allFlakyTests.push({
+                source,
+                class: t.class || 'Unknown',
+                test: t.test || 'Unknown',
+                retries: t.retries || 0,
+                details: t.details || []
+              });
+            }
+          }
+        } catch (e) {
+          core.warning(`Failed to parse json file ${f}: ${e.message}`);
+        }
+      }
+
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch (e) {}
+    }
+
+    if (allFlakyTests.length === 0) {
+      core.info('No flaky tests detected in artifacts');
+      await minimizePreviousFlakyComments(github, owner, repo, prNumber, core);
+      return;
+    }
+
+    const bodyParts = [
+      '<!-- verify-flaky-tests-summary -->',
+      '### ⚠️ Flaky Test Retries Detected',
+      'The following tests failed initially but passed upon retry in the verification run. These retries can mask performance degradation and consume extra CI resources.',
+      '',
+      '| Job / Shard | Test Class | Test Name | Retries |',
+      '|-------------|------------|-----------|---------|',
+    ];
+
+    for (const t of allFlakyTests) {
+      const className = t.class.split('.').pop();
+      bodyParts.push(`| \`${t.source}\` | \`${className}\` | \`${t.test}\` | ${t.retries} |`);
+    }
+
+    bodyParts.push('', '> [!TIP]', '> Flaky tests should be investigated and fixed to maintain CI speed and reliability.');
+
+    const body = bodyParts.join('\n');
+
+    await minimizePreviousFlakyComments(github, owner, repo, prNumber, core);
+    await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+    core.info(`PR #${prNumber} flaky tests summary posted`);
+  } catch (err) {
+    core.warning(`Failed to post flaky tests summary: ${err.message}`);
+  }
+}
+
+async function minimizePreviousFlakyComments(github, owner, repo, prNumber, core) {
+  try {
+    const comments = await github.paginate(github.rest.issues.listComments, {
+      owner, repo, issue_number: prNumber, per_page: 100,
+    });
+    const previous = comments.filter(c => c.body?.includes('<!-- verify-flaky-tests-summary -->'));
+    for (const old of previous) {
+      try {
+        await github.graphql(`
+          mutation($id: ID!) {
+            minimizeComment(input: { subjectId: $id, classifier: OUTDATED }) {
+              minimizedComment { isMinimized }
+            }
+          }
+        `, { id: old.node_id });
+      } catch (e) {
+        core.warning(`Failed to minimize old flaky summary comment ${old.id}: ${e.message}`);
+      }
+    }
+  } catch (err) {
+    core.warning(`Failed to minimize old flaky summary comments: ${err.message}`);
   }
 }
 

@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import argparse
 import glob
+import sys
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Parse Surefire/Failsafe XML reports for flaky tests.")
@@ -55,8 +56,8 @@ def main():
                             "details": failures_list
                         })
         except Exception as e:
-            # Silently ignore malformed/incomplete XML files
-            pass
+            # Log the error to stderr but continue parsing other files
+            print(f"Error parsing XML report {xml_file}: {e}", file=sys.stderr)
 
     # Write output JSON
     with open(args.output_file, "w") as f:

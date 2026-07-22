@@ -288,7 +288,7 @@ jobs:
       - name: Parse Flaky Tests
         if: always()
         run: |
-          python .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-operator-${{ matrix.name }}.json
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-operator-${{ matrix.name }}.json
 
       - name: Upload Flaky Tests Artifact
         if: always()

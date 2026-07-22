@@ -12,6 +12,11 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.a2a.agent.auth.api-key.enabled`
+|`boolean`
+|`false`
+|`3.3.1`
+|Advertise API key authentication in the agent card security schemes
 |`apicurio.a2a.agent.capabilities.push-notifications`
 |`boolean`
 |`false`

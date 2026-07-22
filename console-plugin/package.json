@@ -15,7 +15,7 @@
     "i18n": "i18next 'src/**/*.{js,jsx,ts,tsx}' [-oc] -c i18next-parser.config.js"
   },
   "devDependencies": {
-    "@openshift-console/dynamic-plugin-sdk": "4.20.0",
+    "@openshift-console/dynamic-plugin-sdk": "4.22.0",
     "@openshift-console/dynamic-plugin-sdk-webpack": "4.20.0",
     "@patternfly/react-core": "~5.4.14",
     "@patternfly/react-icons": "~5.4.2",

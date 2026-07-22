@@ -888,7 +888,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then().statusCode(400).body("status", equalTo(400))
                 .body("title", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
-                        + " of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
+                        + " of incompatible diffs: {1}, list of diff types: ["
+                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription() + " at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));
 

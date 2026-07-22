@@ -9,6 +9,12 @@ type ContentRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
+// Canonicalize canonicalize content
+// returns a *CanonicalizeRequestBuilder when successful
+func (m *ContentRequestBuilder) Canonicalize() *CanonicalizeRequestBuilder {
+	return NewCanonicalizeRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // NewContentRequestBuilderInternal instantiates a new ContentRequestBuilder and sets the default values.
 func NewContentRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ContentRequestBuilder {
 	m := &ContentRequestBuilder{

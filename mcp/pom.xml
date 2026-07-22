@@ -38,11 +38,19 @@
         <!--
         The stdio transport enables communication through standard input and output streams.
         This is particularly useful for local integrations and command-line tools.
-        This project does not currently use the SSE transport.
         -->
         <dependency>
             <groupId>io.quarkiverse.mcp</groupId>
             <artifactId>quarkus-mcp-server-stdio</artifactId>
+        </dependency>
+
+        <!--
+        The SSE transport enables communication over HTTP using Server-Sent Events.
+        This is required for remote integrations such as watsonx Orchestrate toolkit import.
+        -->
+        <dependency>
+            <groupId>io.quarkiverse.mcp</groupId>
+            <artifactId>quarkus-mcp-server-sse</artifactId>
         </dependency>
 
         <dependency>

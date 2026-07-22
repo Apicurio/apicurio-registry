@@ -24,7 +24,7 @@
     "@swc/core": "^1.15.0",
     "@types/react": "~17.0.93",
     "@types/react-dom": "~17.0.26",
-    "@types/react-router-dom": "~5.3.0",
+    "@types/react-router-dom": "~5.3.3",
     "css-loader": "^7.1.4",
     "eslint": "^9.7.0",
     "i18next-parser": "^9.0.0",

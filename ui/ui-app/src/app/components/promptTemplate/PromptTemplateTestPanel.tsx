@@ -106,15 +106,29 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         }
 
         switch (type) {
-            case "boolean":
+            case "boolean": {
+                const booleanLabelText = variable.description ? `${name} - ${variable.description}` : name;
                 return (
                     <Checkbox
                         id={`var-${name}`}
                         isChecked={!!values[name]}
                         onChange={(_event, checked) => setValue(name, checked)}
-                        label={variable.description ? `${name} - ${variable.description}` : name}
+                        label={
+                            variable.required ? (
+                                <>
+                                    {booleanLabelText}
+                                    <span
+                                        aria-hidden="true"
+                                        style={{ color: "var(--pf-t--global--color--status--danger--default)", marginLeft: "0.25rem" }}
+                                    >
+                                        *
+                                    </span>
+                                </>
+                            ) : booleanLabelText
+                        }
                     />
                 );
+            }
             case "integer":
             case "number":
                 return (

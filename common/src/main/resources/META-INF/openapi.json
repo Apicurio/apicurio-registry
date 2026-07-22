@@ -3445,7 +3445,7 @@
           },
           {
             "name": "canonical",
-            "description": "Parameter that can be set to `true` to indicate that the server should return the canonicalized form of the artifact content.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.",
+            "description": "Parameter that can be set to `true` to indicate that the server should return the canonicalized form of the artifact content.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.  When `canonical=true`, the server resolves artifact references internally for canonicalization regardless of the `references` query parameter value.  The `references` parameter still controls how references appear in the returned content (e.g. preserved, dereferenced, or rewritten).",
             "schema": {
               "type": "boolean"
             },
@@ -4864,7 +4864,7 @@
         },
         "operationId": "canonicalizeContent",
         "summary": "Canonicalize content",
-        "description": "Canonicalizes the provided content using the rules for the specified artifact type.  Canonicalization is specific to each artifact type, but typically involves removing extra whitespace, sorting object keys, and formatting the content in a consistent manner.  The canonicalized content is returned as the response body.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* The artifact type was not provided or was invalid (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Canonicalizes the provided content using the rules for the specified artifact type.  Canonicalization is specific to each artifact type, but typically involves removing extra whitespace, sorting object keys, and formatting the content in a consistent manner.  The canonicalized content is returned as the response body.\n\nNote: this endpoint operates on the content as provided and does not resolve external references (`$ref`).  To canonicalize content with references resolved, use `GET /groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/content?canonical=true` on a stored artifact instead.\n\nThis operation can fail for the following reasons:\n\n* Provided content (request body) was empty (HTTP error `400`)\n* The artifact type was not provided or was invalid (HTTP error `400`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
     "/groups/{groupId}/artifacts/{artifactId}/contract/metadata": {

@@ -61,7 +61,7 @@ public class InteractiveTable<T> {
             terminal.puts(Capability.enter_ca_mode);
             try {
                 KeyMap<String> normalKeyMap = buildNormalKeyMap(terminal);
-                KeyMap<String> filterKeyMap = buildFilterKeyMap(terminal);
+                KeyMap<String> filterKeyMap = buildFilterKeyMap();
                 BindingReader bindingReader = new BindingReader(terminal.reader());
 
                 render(terminal);
@@ -86,11 +86,14 @@ public class InteractiveTable<T> {
         }
     }
 
+    private static final String KEY_ENTER = "ENTER";
+    private static final String KEY_BACKSPACE = "BACKSPACE";
+
     private KeyMap<String> buildNormalKeyMap(Terminal terminal) {
         KeyMap<String> keyMap = new KeyMap<>();
         keyMap.bind("UP", KeyMap.key(terminal, Capability.key_up));
         keyMap.bind("DOWN", KeyMap.key(terminal, Capability.key_down));
-        keyMap.bind("ENTER", "\r");
+        keyMap.bind(KEY_ENTER, "\r");
         keyMap.bind("QUIT", "q");
         keyMap.bind("DELETE", "d");
         keyMap.bind("FILTER", "/");
@@ -102,17 +105,17 @@ public class InteractiveTable<T> {
         return keyMap;
     }
 
-    private KeyMap<String> buildFilterKeyMap(Terminal terminal) {
+    private KeyMap<String> buildFilterKeyMap() {
         KeyMap<String> keyMap = new KeyMap<>();
-        keyMap.bind("ENTER", "\r");
+        keyMap.bind(KEY_ENTER, "\r");
         keyMap.bind("ESC", KeyMap.esc());
-        keyMap.bind("BACKSPACE", KeyMap.del());
-        keyMap.bind("BACKSPACE", "\b");
+        keyMap.bind(KEY_BACKSPACE, KeyMap.del());
+        keyMap.bind(KEY_BACKSPACE, "\b");
         for (char c = 32; c < 127; c++) {
             keyMap.bind(String.valueOf(c), String.valueOf(c));
         }
         return keyMap;
-}
+    }
 
     /** Returns a Selection if the loop should end with a result, or null to keep looping. */
     private Selection<T> handleBinding(String op, boolean filtering) {

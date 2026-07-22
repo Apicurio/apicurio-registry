@@ -78,7 +78,7 @@ public class InteractiveTableState<T> {
     }
 
     public void backspaceFilterChar() {
-        if (filterText.length() > 0) {
+        if (!filterText.isEmpty()) {
             filterText.deleteCharAt(filterText.length() - 1);
             applyFilter();
         }

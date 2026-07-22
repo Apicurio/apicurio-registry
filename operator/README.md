@@ -204,6 +204,78 @@ Available configuration options:
 | test.operator.ingress-host    | string             | -             | Used when testing Ingresses. For some clusters, you might need to provide the base hostname from where the applications on your cluster are accessible. |
 | test.operator.cleanup-enabled | `true` / `false`   | `true`        | Clean test namespaces from the cluster after the tests finish.                                                                                          |
 | test.operator.strimzi-namespace | string           | `strimzi-cluster-operator` | Dedicated long-lived namespace for the cluster-wide Strimzi operator used by the Kafka tests. Never deleted by cleanup; on persistent clusters remove it manually (see `controller/src/test/resources/strimzi/README.md`). |
+| test.operator.operator-namespace | string          | `apicurio-registry-operator-test` | Dedicated long-lived namespace for the shared cluster-wide Apicurio operator (remote tests). Never deleted by cleanup; on persistent clusters remove it manually along with the operator CRD, ClusterRole and ClusterRoleBinding. |
+
+### How the integration tests share an operator
+
+There's one operator for the whole test run, watching all namespaces, while each test class still gets
+its own throwaway namespace to create its CRs in. Remote tests install it once per cluster into
+`test.operator.operator-namespace`; local tests start one in-process operator per JVM. Neither gets torn
+down between classes, which is the whole point, since previously each of the ~28 classes was paying for
+a full operator deploy, wait-for-ready and undeploy on its own.
+
+Worth noting: the operator needs no config to watch all namespaces -- `App#start` calls
+`watchingAllNamespaces()` whenever `apicurio.operator.watched-namespaces` is blank.
+
+Three classes can't share it though, since they mutate the operator Deployment itself:
+`RestrictedNamespaceITTest`, `LeaderElectionITTest` and `OperatorConfigITTest`. These get
+`@DedicatedOperator`, so they spin up their own operator in their own namespace and run in a separate
+`operator-mutation` CI job. **They must not share a cluster with the shared operator** -- two operators
+would both end up reconciling the same CRs, and the install file's ClusterRoleBinding is a single
+cluster-scoped object that a second install would just rebind out from under the first.
+
+#### Writing a test against the infrastructure
+
+`OperatorInfraExtension` hands a test class its namespace, client and managers as parameters, so it
+doesn't need to extend `ITBase` at all:
+
+```java
+@QuarkusTest
+@ExtendWith({ OperatorInfraExtension.class, OperatorTestExtension.class })
+@Tag(FEATURE)
+public class MyITTest {
+
+    @Test
+    void test(KubernetesClient client, @TestNamespace String namespace, RegistryAssertions check) {
+        ...
+    }
+}
+```
+
+What you can inject: `KubernetesClient`, a `String` annotated `@TestNamespace`, `RegistryAssertions`,
+plus the `IngressManager`, `PortForwardManager`, `PodLogManager`, `JobManager` and `HostAliasManager`
+managers. The extension creates the namespace before the class and deletes it after, and cleans up the
+class's CRs between test methods so each one starts from an empty namespace (all of this subject to
+`test.operator.cleanup-enabled`). If a class needs Kafka, it just declares `@NeedsStrimzi` instead of
+installing it itself.
+
+`DisableUIITTest` is the worked example if you want to see it in practice. Most classes still extend
+`ITBase` though, and that's fine -- the two approaches coexist and share the one operator, so classes can
+be migrated one at a time rather than all at once. They're not duplicating logic either: `ITBase` keeps
+its `checkDeploymentExists(...)`-style helpers by delegating to the same `RegistryAssertions`, and both
+paths do their per-test cleanup through `ITBase.deleteRegistryCRs(...)`.
+
+#### Why these tests are not run in parallel
+
+These get parallelised by CI job, never by threads or forks inside one JVM. That's the project-wide rule
+for `@QuarkusTest` classes anyway, documented in `.github/workflows/README.md` ("Why not use
+forkCount > 1?"). Surefire's default `forkCount=1` already gives one JVM per module, and this Makefile
+passes `-T1` to override the repository's `-T 1C` (#8448).
+
+JUnit's own `junit.jupiter.execution.parallel.enabled` isn't an alternative here.
+`QuarkusTestExtension.ensureStarted()` isn't synchronised, so if two test classes run concurrently they
+each try to boot Quarkus, and the second boot dies with
+`Already a codec registered with name quarkus_default_local_codec`. Upstream is tracking the broader fix
+in quarkusio/quarkus#52992, still open as of writing. So for now, adding shards is really the only way to
+get more parallelism; see #7487 and #7494 for how the current jobs got split.
+
+One thing worth calling out: a `junit-platform.properties` holding those settings is deliberately **not**
+added to `controller/src/test/resources`. JUnit only reads the first such file it finds on the classpath,
+so adding one would shadow the copy shipped in `quarkus-junit-config` and drop Quarkus' own
+defaults -- `QuarkusClassOrderer`, which groups test classes to avoid needless Quarkus restarts, and
+extension autodetection. A file that just has to repeat someone else's defaults to avoid breaking them is
+worse than not having the file at all, especially since the settings it would carry are the platform
+defaults anyway.
 
 ### Remote Tests
 

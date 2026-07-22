@@ -111,6 +111,8 @@ export class HttpCodeService {
         new HttpCode(511, "Network Authentication Required")
     ];
 
+    private static cachedDropDownOptions: DropDownOption[] | null = null;
+
     /**
      * Returns the list of commonly used HTTP codes.
      */
@@ -152,7 +154,10 @@ export class HttpCodeService {
      * Called to generate an array of dropdown options for all of the HTTP codes.
      */
     public static generateDropDownOptions(): DropDownOption[] {
-        // TODO cache this?
+        if (HttpCodeService.cachedDropDownOptions !== null) {
+            return HttpCodeService.cachedDropDownOptions;
+        }
+
         let res: DropDownOption[] = HttpCodeService.HTTP_CODE_LIST_COMMON.map(e => {
             let strcode = String(e.getCode());
             return new DropDownOptionValue(strcode + " " + e.getName(), strcode);
@@ -169,6 +174,7 @@ export class HttpCodeService {
             res.push(new DropDownOptionValue(strcode + " " + e.getName(), strcode));
         });
 
-        return res.filter(e => e.isDivider() || HttpCodeService.isAprilFirst() || e.getValue() !== "418");
+        HttpCodeService.cachedDropDownOptions = res.filter(e => e.isDivider() || HttpCodeService.isAprilFirst() || e.getValue() !== "418");
+        return HttpCodeService.cachedDropDownOptions;
     }
 }

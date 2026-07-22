@@ -8,6 +8,7 @@ import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.interactive.InteractiveTable;
+import io.apicurio.registry.cli.interactive.InteractiveTable.PageResult;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
@@ -144,45 +145,56 @@ public class ArtifactCommand extends AbstractCommand {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         final var registryClient = client.getRegistryClient();
         IdUtil.validateGroup(registryClient, resolvedGroupId);
+
         //noinspection ConstantConditions
-        final var results = convert(registryClient
+        final var initialResults = convert(registryClient
                 .groups().byGroupId(resolvedGroupId).artifacts().get(r -> {
                     //noinspection ConstantConditions
-                    r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();
+                    r.queryParameters.offset = 0;
                     r.queryParameters.limit = pagination.getSize();
                     r.queryParameters.orderby = ordering.getOrderBy();
                     r.queryParameters.order = ordering.getOrder();
                 }));
-        final var artifacts = Optional.ofNullable(results.getArtifacts()).orElse(List.of());
-        if (artifacts.isEmpty()) {
-            System.out.println("No artifacts found.");
-            return;
-        }
+        final var initialRows = Optional.ofNullable(initialResults.getArtifacts()).orElse(List.of());
 
-        var table = new InteractiveTable<>(artifacts,
-                a -> Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "  " + a.getArtifactType() + "  " + a.getCreatedOn());
+        var table = new InteractiveTable<>(
+                initialRows,
+                a -> Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "  " + a.getArtifactType() + "  " + a.getCreatedOn(),
+                page -> {
+                    //noinspection ConstantConditions
+                    final var pageResults = convert(registryClient
+                            .groups().byGroupId(resolvedGroupId).artifacts().get(r -> {
+                                //noinspection ConstantConditions
+                                r.queryParameters.offset = (page - 1) * pagination.getSize();
+                                r.queryParameters.limit = pagination.getSize();
+                                r.queryParameters.orderby = ordering.getOrderBy();
+                                r.queryParameters.order = ordering.getOrder();
+                            }));
+                    final var pageRows = Optional.ofNullable(pageResults.getArtifacts()).orElse(List.of());
+                    final var hasNext = (page * pagination.getSize()) < pageResults.getCount();
+                    return new PageResult<>(pageRows, hasNext);
+                }
+        );
+
         var selected = table.run();
         if (selected == null) {
             return;
         }
 
         var a = selected.row();
-        switch (selected.action()) {
-            case VIEW -> {
-                System.out.println("Group:        " + displayGroupId(a.getGroupId()));
-                System.out.println("Artifact ID:  " + a.getArtifactId());
-                System.out.println("Name:         " + Optional.ofNullable(a.getName()).orElse(a.getArtifactId()));
-                System.out.println("Type:         " + a.getArtifactType());
-                System.out.println("Description:  " + Optional.ofNullable(a.getDescription()).orElse(""));
-                System.out.println("Created:      " + a.getCreatedOn());
-            }
-            case DELETE -> {
-                var deleteGroupId = Optional.ofNullable(a.getGroupId()).orElse(resolvedGroupId);
-                registryClient.groups().byGroupId(deleteGroupId)
-                        .artifacts().byArtifactId(a.getArtifactId()).delete();
-                System.out.println("Artifact '" + a.getArtifactId() + "' in group '"
-                        + deleteGroupId + "' deleted successfully.");
-            }
+        if (selected.action() == InteractiveTable.Action.VIEW) {
+            config.getStdOut().print("Group:        " + displayGroupId(a.getGroupId()) + "\n");
+            config.getStdOut().print("Artifact ID:  " + a.getArtifactId() + "\n");
+            config.getStdOut().print("Name:         " + Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "\n");
+            config.getStdOut().print("Type:         " + a.getArtifactType() + "\n");
+            config.getStdOut().print("Description:  " + Optional.ofNullable(a.getDescription()).orElse("") + "\n");
+            config.getStdOut().print("Created:      " + a.getCreatedOn() + "\n");
+        } else if (selected.action() == InteractiveTable.Action.DELETE) {
+            var deleteGroupId = Optional.ofNullable(a.getGroupId()).orElse(resolvedGroupId);
+            registryClient.groups().byGroupId(deleteGroupId)
+                    .artifacts().byArtifactId(a.getArtifactId()).delete();
+            config.getStdOut().print("Artifact '" + a.getArtifactId() + "' in group '"
+                    + deleteGroupId + "' deleted successfully.\n");
         }
     }
 }

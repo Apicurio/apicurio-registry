@@ -92,6 +92,60 @@ public class SearchArtifactsCommand extends AbstractCommand {
         SearchUtil.printArtifactResults(output, results, outputType, pagination, columns);
     }
 
+    @Override
+    public boolean supportsInteractive() {
+        return true;
+    }
+
+    @Override
+    public void runInteractive() throws Exception {
+        final var registryClient = client.getRegistryClient();
+        //noinspection ConstantConditions
+        final var initialResults = convert(registryClient.search().artifacts().get(r -> {
+            //noinspection ConstantConditions
+            applyFilters(r.queryParameters);
+            r.queryParameters.offset = 0;
+        }));
+        final var initialRows = java.util.Optional.ofNullable(initialResults.getArtifacts()).orElse(List.of());
+
+        var table = new io.apicurio.registry.cli.interactive.InteractiveTable<>(
+                initialRows,
+                a -> java.util.Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "  " + a.getArtifactType() + "  " + a.getCreatedOn(),
+                page -> {
+                    //noinspection ConstantConditions
+                    final var pageResults = convert(registryClient.search().artifacts().get(r -> {
+                        //noinspection ConstantConditions
+                        applyFilters(r.queryParameters);
+                        r.queryParameters.offset = (page - 1) * pagination.getSize();
+                    }));
+                    final var pageRows = java.util.Optional.ofNullable(pageResults.getArtifacts()).orElse(List.of());
+                    final var hasNext = (page * pagination.getSize()) < pageResults.getCount();
+                    return new io.apicurio.registry.cli.interactive.InteractiveTable.PageResult<>(pageRows, hasNext);
+                }
+        );
+
+        var selected = table.run();
+        if (selected == null) {
+            return;
+        }
+
+        var a = selected.row();
+        if (selected.action() == io.apicurio.registry.cli.interactive.InteractiveTable.Action.VIEW) {
+            config.getStdOut().print("Group:        " + io.apicurio.registry.cli.common.IdUtil.displayGroupId(a.getGroupId()) + "\n");
+            config.getStdOut().print("Artifact ID:  " + a.getArtifactId() + "\n");
+            config.getStdOut().print("Name:         " + java.util.Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "\n");
+            config.getStdOut().print("Type:         " + a.getArtifactType() + "\n");
+            config.getStdOut().print("Description:  " + java.util.Optional.ofNullable(a.getDescription()).orElse("") + "\n");
+            config.getStdOut().print("Created:      " + a.getCreatedOn() + "\n");
+        } else if (selected.action() == io.apicurio.registry.cli.interactive.InteractiveTable.Action.DELETE) {
+            var deleteGroupId = java.util.Optional.ofNullable(a.getGroupId()).orElse("default");
+            registryClient.groups().byGroupId(deleteGroupId)
+                    .artifacts().byArtifactId(a.getArtifactId()).delete();
+            config.getStdOut().print("Artifact '" + a.getArtifactId() + "' in group '"
+                    + deleteGroupId + "' deleted successfully.\n");
+        }
+    }
+
     private void applyFilters(final ArtifactsRequestBuilder.GetQueryParameters params) {
         params.offset = (pagination.getPage() - 1) * pagination.getSize();
         params.limit = pagination.getSize();

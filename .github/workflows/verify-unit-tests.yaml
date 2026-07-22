@@ -66,7 +66,9 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -78,6 +80,10 @@ jobs:
         run: |
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
+
+      - name: Record start time
+        id: timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
 
       - name: Run Unit Tests (${{ matrix.shard.name }})
         env:
@@ -102,3 +108,17 @@ jobs:
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5 \
             -Dsurefire.rerunFailingTestsCount=2
+
+      - name: Check shard timing
+        if: always()
+        env:
+          SHARD_NAME: ${{ matrix.shard.name }}
+          START_TIME: ${{ steps.timer.outputs.start }}
+        run: |
+          elapsed=$(( $(date +%s) - START_TIME ))
+          threshold=600
+          if [ "$elapsed" -gt "$threshold" ]; then
+            echo "::warning title=CI timing regression ($SHARD_NAME)::Shard $SHARD_NAME took ${elapsed}s (threshold: ${threshold}s). Investigate: cache miss, runner degradation, or new test overhead. See Discussion #8364."
+          else
+            echo "Shard $SHARD_NAME completed in ${elapsed}s (threshold: ${threshold}s)"
+          fi

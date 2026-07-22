@@ -129,20 +129,20 @@ public class InteractiveTable<T> {
    private void handleFilterBinding(String op) {
         if (op.equals("ESC")) {
             state.clearFilter();
-        } else if (op.equals("ENTER")) {
+        } else if (op.equals(KEY_ENTER)) {
             state.commitFilter();
-        } else if (op.equals("BACKSPACE")) {
+        } else if (op.equals(KEY_BACKSPACE)) {
             state.backspaceFilterChar();
         } else if (op.length() == 1) {
             state.typeFilterChar(op.charAt(0));
         }
-}
+    }
     private Selection<T> handleNormalBinding(String op) {
         switch (op) {
             case "QUIT", "ESC" -> {
                 return terminalExit();
             }
-            case "ENTER" -> {
+            case KEY_ENTER -> {
                 var row = state.getSelectedRow();
                 return row == null ? null : new Selection<>(row, Action.VIEW);
             }

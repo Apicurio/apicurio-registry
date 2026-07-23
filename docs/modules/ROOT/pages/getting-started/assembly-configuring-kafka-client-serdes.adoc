@@ -176,6 +176,36 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry by using HTTP basic authentication.
 |`String`
 |None
+
+|`TLS_KEYSTORE_LOCATION`
+|`apicurio.registry.tls.keystore.location`
+|Used by serializers and deserializers. The location of the key store file for mutual TLS (mTLS). Can be a file path or classpath resource.
+|`String`
+|None
+
+|`TLS_KEYSTORE_PASSWORD`
+|`apicurio.registry.tls.keystore.password`
+|Used by serializers and deserializers. The password for the key store file. Required when using JKS or PKCS12 key stores.
+|`String`
+|None
+
+|`TLS_KEYSTORE_TYPE`
+|`apicurio.registry.tls.keystore.type`
+|Used by serializers and deserializers. The type of key store. Valid values are JKS, PKCS12, or PEM.
+|`String`
+|`JKS`
+
+|`TLS_CLIENT_CERTIFICATE`
+|`apicurio.registry.tls.client-certificate`
+|Used by serializers and deserializers. The PEM client certificate content or file path for mutual TLS (mTLS).
+|`String`
+|None
+
+|`TLS_CLIENT_KEY`
+|`apicurio.registry.tls.client-key`
+|Used by serializers and deserializers. The PEM client private key content or file path for mutual TLS (mTLS).
+|`String`
+|None
 |===
 
 **OpenTelemetry distributed tracing**

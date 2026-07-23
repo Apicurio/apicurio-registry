@@ -620,17 +620,8 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
                 Map.of("groupId", groupId, "artifactId", artifactId));
 
-        JsonNode event = null;
-        for (JsonNode e : events) {
-            if (e.get("groupId").asText().equals(groupId)
-                    && e.get("artifactId").asText().equals(artifactId)
-                    && e.get("eventType").asText().equals(CONTRACT_RULESET_CONFIGURED.name())) {
-                event = e;
-            }
-        }
-
         Assertions.assertEquals(1, events.size());
-        Assertions.assertNotNull(event);
+        JsonNode event = events.get(0);
         Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
         Assertions.assertEquals(groupId, event.get("groupId").asText());
         Assertions.assertEquals(artifactId, event.get("artifactId").asText());
@@ -660,17 +651,8 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_METADATA_UPDATED,
                 Map.of("groupId", groupId, "artifactId", artifactId));
 
-        JsonNode event = null;
-        for (JsonNode e : events) {
-            if (e.get("groupId").asText().equals(groupId)
-                    && e.get("artifactId").asText().equals(artifactId)
-                    && e.get("eventType").asText().equals(CONTRACT_METADATA_UPDATED.name())) {
-                event = e;
-            }
-        }
-
         Assertions.assertEquals(1, events.size());
-        Assertions.assertNotNull(event);
+        JsonNode event = events.get(0);
         Assertions.assertEquals(CONTRACT_METADATA_UPDATED.name(), event.get("eventType").asText());
         Assertions.assertEquals(groupId, event.get("groupId").asText());
         Assertions.assertEquals(artifactId, event.get("artifactId").asText());
@@ -710,17 +692,8 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_STATUS_CHANGED,
                 Map.of("groupId", groupId, "artifactId", artifactId));
 
-        JsonNode event = null;
-        for (JsonNode e : events) {
-            if (e.get("groupId").asText().equals(groupId)
-                    && e.get("artifactId").asText().equals(artifactId)
-                    && e.get("eventType").asText().equals(CONTRACT_STATUS_CHANGED.name())) {
-                event = e;
-            }
-        }
-
         Assertions.assertEquals(1, events.size());
-        Assertions.assertNotNull(event);
+        JsonNode event = events.get(0);
         Assertions.assertEquals(CONTRACT_STATUS_CHANGED.name(), event.get("eventType").asText());
         Assertions.assertEquals(groupId, event.get("groupId").asText());
         Assertions.assertEquals(artifactId, event.get("artifactId").asText());

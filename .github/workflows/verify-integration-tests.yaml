@@ -70,7 +70,7 @@ jobs:
           # -Pintegration-tests + -P<remote-profile>: select storage backend (remote-mem, remote-sql, remote-kafka, etc.)
           # -Dgroups: JUnit 5 test tags filtering (e.g., auth, migration, debezium)
           # -Dregistry-image: Docker image built by the Build job, loaded into Minikube
-          # -Dfailsafe.rerunFailingTestsCount=2: automatically retry flaky integration tests up to 2 times
+          # -Dfailsafe.rerunFailingTestsCount=1: automatically retry flaky integration tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify -am --no-transfer-progress \
             -Pintegration-tests \
@@ -80,7 +80,20 @@ jobs:
             -pl integration-tests \
             -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
-            -Dfailsafe.rerunFailingTestsCount=2
+            -Dfailsafe.rerunFailingTestsCount=1
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}
+          path: flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}.json
+          retention-days: 1
 
       - name: Collect logs
         if: failure()

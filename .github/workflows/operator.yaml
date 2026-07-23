@@ -285,6 +285,20 @@ jobs:
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
             test-remote-group
 
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-operator-${{ matrix.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-operator-${{ matrix.name }}
+          path: flaky-tests-operator-${{ matrix.name }}.json
+          retention-days: 1
+
+
   operator-check-install:
     name: Check Install File
     runs-on: ubuntu-latest

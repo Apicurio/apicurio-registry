@@ -23,6 +23,7 @@ import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.BranchAlreadyExistsException;
 import io.apicurio.registry.storage.error.BranchNotFoundException;
+import io.apicurio.registry.storage.error.CommentNotFoundException;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
@@ -88,6 +89,7 @@ public class HttpStatusCodeMap {
         map.put(BadRequestException.class, HTTP_BAD_REQUEST);
         map.put(BranchAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(BranchNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(CommentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);

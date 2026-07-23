@@ -55,6 +55,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
@@ -1728,6 +1729,19 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 });
         assertEquals(1, comments.size());
         assertEquals("COMMENT_1", comments.get(0).getValue());
+
+        // Try to update a comment that does not exist (should return 404)
+        nc = NewComment.builder().value("COMMENT_NON_EXISTENT").build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("commentId", "999999").body(nc)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments/{commentId}")
+                .then().statusCode(HTTP_NOT_FOUND);
+
+        // Try to delete a comment that does not exist (should return 404)
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("commentId", "999999")
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments/{commentId}")
+                .then().statusCode(HTTP_NOT_FOUND);
     }
 
     @Test

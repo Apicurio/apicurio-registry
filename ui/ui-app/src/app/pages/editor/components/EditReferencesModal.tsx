@@ -56,12 +56,17 @@ export const EditReferencesModal: FunctionComponent<EditReferencesModalProps> = 
         const artifactType = props.artifactType || undefined;
         setIsDetecting(true);
         groups.detectContentReferences(props.content, contentType, artifactType).then(refs => {
-            setItems(refs.map(ref => ({
+            const detected: ArtifactReferenceFormItem[] = refs.map(ref => ({
                 name: ref.name || "",
                 groupId: ref.groupId || "",
                 artifactId: ref.artifactId || "",
                 version: ref.version || ""
-            })));
+            }));
+            setItems(current => {
+                const existingNames = new Set(current.map(item => item.name));
+                const newOnes = detected.filter(item => !existingNames.has(item.name));
+                return [...current, ...newOnes];
+            });
         }).catch(error => {
             console.error("[EditReferencesModal] Failed to detect references:", error);
         }).finally(() => {

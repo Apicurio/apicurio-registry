@@ -43,6 +43,7 @@ public class LogoutCommand extends AbstractCommand {
 
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD);
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET);
+        credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_REFRESH_TOKEN);
 
         context.clearAuth();
         config.write(configModel);

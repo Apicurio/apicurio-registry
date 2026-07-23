@@ -155,6 +155,20 @@ public class AuthCommandTest extends AbstractCLITest {
         assertThat(context.getScope()).isNull();
     }
 
+    // -- OIDC validation --
+
+    @Test
+    public void testLoginOidcMissingClientId() {
+        executeAndAssertFailure("login", "--issuer-url", "http://localhost:8080/realms/test");
+    }
+
+    @Test
+    public void testLoginOidcNoContext() {
+        executeAndAssertSuccess("context", "delete", "--all");
+        executeAndAssertFailure("login", "--issuer-url", "http://localhost:8080/realms/test",
+                "--client-id", TEST_CLIENT_ID);
+    }
+
     // -- State transitions --
 
     @Test

@@ -26,7 +26,7 @@ public class PostgresqlDataSourceITTest extends ITBase {
         client.load(PostgresqlDataSourceITTest.class
                 .getResourceAsStream("/k8s/examples/postgresql/example-postgresql-database.yaml")).create();
         // await for postgres to be available
-        await().ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
+        await().atMost(DATABASE_TIMEOUT).ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
                 .withName("example-postgresql-database").get().getStatus().getReadyReplicas()));
 
         var registry = ResourceFactory.deserialize(
@@ -36,7 +36,7 @@ public class PostgresqlDataSourceITTest extends ITBase {
 
         client.resource(registry).create();
 
-        await().ignoreExceptions().until(() -> {
+        await().atMost(DATABASE_TIMEOUT).ignoreExceptions().until(() -> {
             assertThat(client.apps().deployments().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
                     .getReadyReplicas().intValue()).isEqualTo(1);

@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.wellknown;
 import io.apicurio.registry.a2a.rest.beans.AgentCard;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
 import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
+import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
@@ -166,6 +167,36 @@ public interface WellKnownResource {
     McpToolSearchResults searchMcpTools(
             @QueryParam("name") String name,
             @QueryParam("parameter") List<String> parameters,
+            @QueryParam("offset") @DefaultValue("0") Integer offset,
+            @QueryParam("limit") @DefaultValue("20") Integer limit);
+
+    /**
+     * Returns all registered MCP tools whose {@code inputSchema} can accept the output
+     * produced by the given source tool's {@code outputSchema}.
+     *
+     * <p>Two tools are considered compatible when every property declared in the source
+     * tool's {@code outputSchema.properties} is also present in the candidate tool's
+     * {@code inputSchema.properties} with the same JSON Schema type. This models the
+     * pipeline chaining contract: the candidate tool can consume what the source tool
+     * produces.</p>
+     *
+     * <p>If the source tool has no {@code outputSchema}, an empty result is returned.
+     * The source tool itself is never included in the results.</p>
+     *
+     * @param groupId    the group ID of the source MCP tool artifact
+     * @param artifactId the artifact ID of the source MCP tool
+     * @param version    optional version expression (defaults to latest)
+     * @param offset     pagination offset
+     * @param limit      pagination limit
+     * @return the compatible MCP tools
+     */
+    @GET
+    @Path("/mcp-tools/{groupId}/{artifactId}/compatible")
+    @Produces(MediaType.APPLICATION_JSON)
+    McpCompatibleToolsResults findCompatibleTools(
+            @PathParam("groupId") String groupId,
+            @PathParam("artifactId") String artifactId,
+            @QueryParam("version") String version,
             @QueryParam("offset") @DefaultValue("0") Integer offset,
             @QueryParam("limit") @DefaultValue("20") Integer limit);
 

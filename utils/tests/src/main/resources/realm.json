@@ -339,6 +339,7 @@
       "admin-cli": [],
       "account-console": [],
       "developer-client": [],
+      "developer-2-client": [],
       "wrong-client": [],
       "broker": [
         {
@@ -505,6 +506,32 @@
       "totp": false,
       "emailVerified": false,
       "serviceAccountClientId": "developer-client",
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "realmRoles": [
+        "offline_access",
+        "uma_authorization",
+        "sr-developer",
+        "User"
+      ],
+      "clientRoles": {
+        "account": [
+          "view-applications",
+          "view-profile",
+          "manage-account"
+        ]
+      },
+      "notBefore": 0,
+      "groups": []
+    },
+    {
+      "id": "0f1c31e8-a357-4f05-90cc-3374973b6089",
+      "createdTimestamp": 1608543288932,
+      "username": "developer-2-client",
+      "enabled": true,
+      "totp": false,
+      "emailVerified": false,
+      "serviceAccountClientId": "developer-2-client",
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "realmRoles": [

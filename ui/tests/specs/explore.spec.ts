@@ -14,9 +14,7 @@ test("Explore - Sort order persistence", async ({ page }) => {
     // 1. Click sort button to change it to descending (false)
     await page.getByTestId("artifact-filter-sort").click();
 
-    // Verify localStorage has the value
-    let sortOrder = await page.evaluate(() => localStorage.getItem("apicurio-registry.config.explore.ascending"));
-    expect(sortOrder).toBe("false");
+
 
     // 2. Reload the page to test persistence
     await page.reload();

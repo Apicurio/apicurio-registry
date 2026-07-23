@@ -33,7 +33,9 @@ func initClient(registryUrl *string) *registry3.ApiClient {
 		registryUrl = &s
 	}
 
-	// Using the default adapter which automatically configures the compression middleware
+	// Using the default adapter: kiota-http-go's default client-side middleware chain includes
+	// a CompressionHandler, which gzip-compresses outgoing request bodies (Content-Encoding: gzip).
+	// This has no effect on how the server compresses its responses.
 	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(
 		&kiotaAuth.AnonymousAuthenticationProvider{},
 	)

@@ -41,7 +41,13 @@ func setupSuite(t *testing.T) func(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	cmd := exec.Command("java", "-jar", fmt.Sprintf("%s/../../../app/target/%s", pwd, registryJar))
+	jarPath := fmt.Sprintf("%s/../../../app/target/%s", pwd, registryJar)
+	if registryJar == "not-found" {
+		// Fallback to quarkus fast-jar layout
+		jarPath = fmt.Sprintf("%s/../../../app/target/quarkus-app/quarkus-run.jar", pwd)
+	}
+
+	cmd := exec.Command("java", "-jar", jarPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err = cmd.Start()

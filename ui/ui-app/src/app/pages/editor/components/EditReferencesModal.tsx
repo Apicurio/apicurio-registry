@@ -13,10 +13,15 @@ import {
     isReferencesValid
 } from "@app/components";
 import { ArtifactReference } from "@sdk/lib/generated-client/models";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { detectContentType } from "@utils/content.utils.ts";
 
 export type EditReferencesModalProps = {
     isOpen: boolean;
     references: ArtifactReference[];
+    content: string;
+    contentType: string;
+    artifactType?: string;
     onClose: () => void;
     onConfirm: (references: ArtifactReference[]) => void;
 };
@@ -33,12 +38,36 @@ const toFormItems = (references: ArtifactReference[]): ArtifactReferenceFormItem
 // Prop-driven: receives references from the parent and reports edits back via onConfirm; does not fetch on its own.
 export const EditReferencesModal: FunctionComponent<EditReferencesModalProps> = (props: EditReferencesModalProps) => {
     const [items, setItems] = useState<ArtifactReferenceFormItem[]>([]);
+    const [isDetecting, setIsDetecting] = useState(false);
+
+    const groups: GroupsService = useGroupsService();
 
     useEffect(() => {
         if (props.isOpen) {
             setItems(toFormItems(props.references));
         }
-    }, [props.isOpen]);
+    }, [props.isOpen, props.references]);
+
+    const onDetectReferences = (): void => {
+        if (!props.content) {
+            return;
+        }
+        const contentType = props.contentType || detectContentType(props.artifactType, props.content);
+        const artifactType = props.artifactType || undefined;
+        setIsDetecting(true);
+        groups.detectContentReferences(props.content, contentType, artifactType).then(refs => {
+            setItems(refs.map(ref => ({
+                name: ref.name || "",
+                groupId: ref.groupId || "",
+                artifactId: ref.artifactId || "",
+                version: ref.version || ""
+            })));
+        }).catch(error => {
+            console.error("[EditReferencesModal] Failed to detect references:", error);
+        }).finally(() => {
+            setIsDetecting(false);
+        });
+    };
 
     const onSave = (): void => {
         props.onConfirm(formItemsToReferences(items) ?? []);
@@ -76,6 +105,8 @@ export const EditReferencesModal: FunctionComponent<EditReferencesModalProps> = 
                 <ReferencesFormGroup
                     references={items}
                     onChange={setItems}
+                    onDetect={onDetectReferences}
+                    isDetecting={isDetecting}
                 />
             </Form>
         </Modal>

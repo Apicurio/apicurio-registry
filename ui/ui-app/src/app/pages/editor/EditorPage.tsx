@@ -102,6 +102,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     const [isDraftContentLoaded, setDraftContentLoaded] = useState(false);
     const [currentReferences, setCurrentReferences] = useState<ArtifactReference[]>([]);
     const [referencesDirty, setReferencesDirty] = useState(false);
+    const [referencesLoadFailed, setReferencesLoadFailed] = useState(false);
 
     const params = useParams();
     const groupId = params.groupId as string;
@@ -172,16 +173,17 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         persistDraftRecoverySnapshot
     });
 
-    const loadCurrentReferences = async (globalId: number | undefined): Promise<ArtifactReference[]> => {
+    const loadCurrentReferences = async (globalId: number | undefined): Promise<{ references: ArtifactReference[]; loaded: boolean }> => {
         if (!globalId) {
             logger.warn("[EditorPage] Draft has no globalId; skipping references fetch.");
-            return [];
+            return { references: [], loaded: true };
         }
         try {
-            return await groups.getArtifactReferences(globalId, ReferenceTypeObject.OUTBOUND);
+            const references = await groups.getArtifactReferences(globalId, ReferenceTypeObject.OUTBOUND);
+            return { references, loaded: true };
         } catch (error) {
             logger.warn("[EditorPage] Failed to load draft references:", error);
-            return [];
+            return { references: [], loaded: false };
         }
     };
 
@@ -189,7 +191,9 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         try {
             const loadedDraft = await drafts.getDraft(groupId, draftId, version);
             setDraft(loadedDraft);
-            setCurrentReferences(await loadCurrentReferences(loadedDraft.globalId));
+            const { references, loaded } = await loadCurrentReferences(loadedDraft.globalId);
+            setCurrentReferences(references);
+            setReferencesLoadFailed(!loaded);
             setDraftLoaded(true);
         } catch (error) {
             setPageError(toPageError(error, "Error loading page data."));
@@ -226,6 +230,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         setIsContentConflicting(false);
         setCurrentReferences([]);
         setReferencesDirty(false);
+        setReferencesLoadFailed(false);
         isAuthRedirectInProgressRef.current = false;
         setLoaders(createLoaders());
     }, [draftId, groupId, version]);
@@ -280,10 +285,27 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
     const saveDraftContent = async (contentToSave: string): Promise<void> => {
         try {
+            let referencesToSave: ArtifactReference[] = currentReferences;
+
+            if (referencesLoadFailed && !referencesDirty) {
+                const { references, loaded } = await loadCurrentReferences(draft.globalId);
+                if (!loaded) {
+                    setPleaseWaitModalOpen(false);
+                    setPageError(toPageError(
+                        new Error("Could not verify draft references before saving. The save was aborted to avoid overwriting existing references."),
+                        "Error saving draft content."
+                    ));
+                    return;
+                }
+                referencesToSave = references;
+                setCurrentReferences(references);
+                setReferencesLoadFailed(false);
+            }
+
             const draftContentUpdate: DraftContent = {
                 content: contentToSave,
                 contentType: draftContent.contentType,
-                references: currentReferences
+                references: referencesToSave
             };
             await drafts.updateDraftContent(groupId, draftId, version, draftContentUpdate);
             setPleaseWaitModalOpen(false);
@@ -456,6 +478,9 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
             <EditReferencesModal
                 isOpen={isEditReferencesModalOpen}
                 references={currentReferences}
+                content={serializeEditorDraftContent(currentContent)}
+                contentType={draftContent.contentType}
+                artifactType={draft.type}
                 onClose={closeEditReferencesModal}
                 onConfirm={onConfirmEditReferences} />
             <ConfirmOverwriteModal

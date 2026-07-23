@@ -665,6 +665,7 @@ export class AaiEditorComponent extends AbstractApiEditorComponent implements On
         if (this.componentImporter) {
             this.componentImporter(type).then(imports => {
                 let commands: ICommand[] = [];
+                let takenNames: Set<string> = new Set();
 
                 imports.forEach(imp => {
                     console.info("[AsyncApiEditorComponent] Importing component: ", imp.name);
@@ -675,19 +676,21 @@ export class AaiEditorComponent extends AbstractApiEditorComponent implements On
                     let counter = 1;
                     if (docComponents) {
                         if (imp.type === ComponentType.schema) {
-                            while (docComponents.getSchemaDefinition(name) != null) {
+                            while (docComponents.getSchemaDefinition(name) != null || takenNames.has(imp.type + ":" + name)) {
                                 name = imp.name + "-" + counter++;
                             }
                         } else if (imp.type === ComponentType.messageTrait) {
-                            while (docComponents.getMessageTraitDefinition(name) != null) {
+                            while (docComponents.getMessageTraitDefinition(name) != null || takenNames.has(imp.type + ":" + name)) {
                                 name = imp.name + "-" + counter++;
                             }
                         } else if (imp.type === ComponentType.message) {
-                            while (docComponents.getMessage(name) != null) {
+                            while (docComponents.getMessage(name) != null || takenNames.has(imp.type + ":" + name)) {
                                 name = imp.name + "-" + counter++;
                             }
                         }
                     }
+
+                    takenNames.add(imp.type + ":" + name);
 
                     if (imp.type === ComponentType.schema) {
                         commands.push(CommandFactory.createAddSchemaDefinitionCommand(this.document().getDocumentType(), name, fromRef));

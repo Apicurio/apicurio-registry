@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.cli.interactive;
 
+import org.jboss.logging.Logger;
 import org.jline.keymap.BindingReader;
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Terminal;
@@ -28,6 +29,8 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 
 public class InteractiveTable<T> {
+
+    private static final Logger log = Logger.getLogger(InteractiveTable.class);
 
     public enum Action {
         VIEW,
@@ -104,13 +107,15 @@ public class InteractiveTable<T> {
                 terminal.flush();
             }
         } catch (IOException e) {
-            System.err.println("Interactive mode requires an interactive terminal (TTY).");
+            log.warn("Interactive mode requires an interactive terminal (TTY).", e);
             return null;
         }
     }
 
     private static final String KEY_ENTER = "ENTER";
     private static final String KEY_BACKSPACE = "BACKSPACE";
+    private static final String KEY_CONFIRM_YES = "CONFIRM_YES";
+    private static final String KEY_CONFIRM_NO = "CONFIRM_NO";
 
     private KeyMap<String> buildNormalKeyMap(Terminal terminal) {
         KeyMap<String> keyMap = new KeyMap<>();
@@ -142,10 +147,10 @@ public class InteractiveTable<T> {
 
     private KeyMap<String> buildConfirmKeyMap() {
         KeyMap<String> keyMap = new KeyMap<>();
-        keyMap.bind("CONFIRM_YES", "y");
-        keyMap.bind("CONFIRM_YES", "Y");
-        keyMap.bind("CONFIRM_NO", "n");
-        keyMap.bind("CONFIRM_NO", "N");
+        keyMap.bind(KEY_CONFIRM_YES, "y");
+        keyMap.bind(KEY_CONFIRM_YES, "Y");
+        keyMap.bind(KEY_CONFIRM_NO, "n");
+        keyMap.bind(KEY_CONFIRM_NO, "N");
         keyMap.bind("ESC", KeyMap.esc());
         return keyMap;
     }
@@ -163,7 +168,7 @@ public class InteractiveTable<T> {
     }
 
     private Selection<T> handleConfirmDeleteBinding(String op) {
-        if ("CONFIRM_YES".equals(op)) {
+        if (KEY_CONFIRM_YES.equals(op)) {
             state.cancelConfirmDelete();
             var row = state.getSelectedRow();
             return row == null ? null : new Selection<>(row, Action.DELETE);

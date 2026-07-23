@@ -360,22 +360,62 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testGetArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
+        String yamlArtifactContent = resourceToString("openapi-empty.yaml");
 
-        // Create OpenAPI artifact
+        // Create OpenAPI artifacts
         createArtifact(GROUP, "testGetArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
                 ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, "testGetArtifact/EmptyAPI-yaml", ArtifactType.OPENAPI, yamlArtifactContent,
+                ContentTypes.APPLICATION_YAML);
 
-        // Get the artifact content
+        // Get the artifact content (JSON)
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/EmptyAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
-                .then().statusCode(200).body("openapi", equalTo("3.0.2"))
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact_EmptyAPI.json\""))
+                .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
+
+        // Get the artifact content (YAML)
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/EmptyAPI-yaml")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact_EmptyAPI-yaml.yaml\""))
+                .body(Matchers.containsString("openapi: 3.0.2"))
+                .body(Matchers.containsString("title: Empty API"));
 
         // Try to get artifact content for an artifact that doesn't exist.
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/MissingAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
                 .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
                         "No version '<tip of the branch 'latest'>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
+    }
+
+    @Test
+    public void testContentDispositionSanitizationAndTruncation() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // 1. Test special characters sanitization: path separators (slashes) are allowed in artifact IDs
+        // but must be sanitized to underscores in the Content-Disposition filename.
+        String specialArtifactId = "test/Artifact/Special/Chars";
+        createArtifact(GROUP, specialArtifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", specialArtifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"test_Artifact_Special_Chars.json\""));
+
+        // 2. Test filename length truncation (max 128 characters)
+        String longArtifactId = "a".repeat(150);
+        createArtifact(GROUP, longArtifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        String expectedFilename = "a".repeat(128 - ".json".length()) + ".json";
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", longArtifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + expectedFilename + "\""));
     }
 
     @Test

@@ -3,7 +3,6 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -21,13 +20,14 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
-import io.apicurio.registry.types.ArtifactMediaTypes;
+
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
 import io.apicurio.registry.types.VersionState;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
@@ -65,8 +65,12 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         if (isEmptyContent || (isDraft && !restConfig.isDraftProductionModeEnabled())) {
             throw new ContentNotFoundException(contentId);
         }
+        String ext = ContentTypes.getFileExtension(dto.getContentType());
+        String filename = contentId + ext;
         return Response.ok().entity(dto.getContent())
-                .type(ArtifactMediaTypes.BINARY).build();
+                .type(dto.getContentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
+                .build();
     }
 
     /**
@@ -116,8 +120,11 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
 
+        String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
+        String filename = globalId + ext;
         var builder = Response.ok().entity(contentToReturn.getContent())
-                .type(contentToReturn.getContentType());
+                .type(contentToReturn.getContentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename));
         if (returnArtifactType != null && returnArtifactType) {
             builder.header("X-Registry-ArtifactType", metaData.getArtifactType());
         }
@@ -133,8 +140,15 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     @EntityIdContentCache
     public Response getContentByHash(String contentHash) {
-        ContentHandle content = storage.getContentByHash(contentHash).getContent();
-        return Response.ok(content, ArtifactMediaTypes.BINARY).build();
+        ContentWrapperDto dto = storage.getContentByHash(contentHash);
+        if (dto == null) {
+            throw new ContentNotFoundException(contentHash);
+        }
+        String ext = ContentTypes.getFileExtension(dto.getContentType());
+        String filename = contentHash + ext;
+        return Response.ok(dto.getContent(), dto.getContentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename))
+                .build();
     }
 
     /**

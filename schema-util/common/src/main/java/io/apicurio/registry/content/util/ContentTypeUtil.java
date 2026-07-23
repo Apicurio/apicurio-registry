@@ -14,6 +14,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.regex.Pattern;
 
 public final class ContentTypeUtil {
 
@@ -174,10 +175,39 @@ public final class ContentTypeUtil {
         return node;
     }
 
-    // FIXME this doesn't work for GraphQL
+    private static final Pattern GRAPHQL_DEF_PATTERN = Pattern.compile("(?m)^\\s*(?:extend\\s+)?(type|interface|scalar|union|input)\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*(?:\\{|implements|\\=|$)");
+    private static final Pattern GRAPHQL_SCHEMA_PATTERN = Pattern.compile("(?m)^\\s*schema\\s*\\{");
+    private static final Pattern GRAPHQL_DIRECTIVE_PATTERN = Pattern.compile("(?m)^\\s*directive\\s+@[a-zA-Z_][a-zA-Z0-9_]*");
+
+    /**
+     * Returns true if the content is likely a GraphQL schema.
+     */
+    public static boolean isParsableGraphQL(ContentHandle content) {
+        try {
+            String text = content.content().trim();
+            if (text.startsWith("{") || text.startsWith("<")) {
+                return false;
+            }
+            
+            return GRAPHQL_DEF_PATTERN.matcher(text).find()
+                    || GRAPHQL_SCHEMA_PATTERN.matcher(text).find()
+                    || GRAPHQL_DIRECTIVE_PATTERN.matcher(text).find();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static String determineContentType(ContentHandle content) {
+        // Ensure content is fully materialized once in memory.
+        // If we do not call bytes() here, the isParsableJson check may consume
+        // the underlying InputStream (e.g. via ObjectMapper.readTree), leaving
+        // the stream empty and causing subsequent format checks to incorrectly fail.
+        content.bytes();
         if (isParsableJson(content)) {
             return CT_APPLICATION_JSON;
+        }
+        if (isParsableGraphQL(content)) {
+            return ContentTypes.APPLICATION_GRAPHQL;
         }
         if (isParsableYaml(content)) {
             return CT_APPLICATION_YAML;

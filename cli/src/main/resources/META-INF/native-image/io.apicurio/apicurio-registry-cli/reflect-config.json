@@ -1,5 +1,14 @@
 [
   {
+    "name": "java.io.Console",
+    "methods": [
+      {
+        "name": "isTerminal",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
     "name": "io.apicurio.registry.cli.config.ConfigModel",
     "allDeclaredConstructors": true,
     "allDeclaredFields": true,

@@ -57,7 +57,7 @@ async def test_get_registry_agent_card(registry_config: RegistryConfig):
 @pytest.mark.asyncio
 async def test_search_agents(registry_config: RegistryConfig):
     async with AgentDiscovery(registry_config) as discovery:
-        results = await discovery.search(name="weather")
+        results = await discovery.search(name="*weather*")
         assert results.count >= 1
         agent = next(
             (a for a in results.agents if a.artifact_id == "weather-agent"), None

@@ -35,7 +35,7 @@ def seed_mcp_tool():
 @pytest.mark.asyncio
 async def test_search_mcp_tools(registry_config: RegistryConfig):
     async with McpToolDiscovery(registry_config) as discovery:
-        results = await discovery.search(name="calculator")
+        results = await discovery.search(name="*calculator*")
         assert results.count >= 1
         tool = next(
             (t for t in results.tools if t.artifact_id == "calculator-tool"), None

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -59,7 +60,7 @@ final class StrimziClusterWideInstaller {
     private static final String LEADER_ELECTION_ROLE_BINDING = "strimzi-cluster-operator-leader-election";
     // RoleBindings the watch-all-namespaces procedure converts to ClusterRoleBindings. Fail-fast on
     // anything else so a version bump cannot silently escalate a new namespaced binding to cluster scope.
-    private static final java.util.Set<String> CONVERTIBLE_ROLE_BINDINGS = java.util.Set.of(
+    private static final Set<String> CONVERTIBLE_ROLE_BINDINGS = Set.of(
             "strimzi-cluster-operator", "strimzi-cluster-operator-watched",
             "strimzi-cluster-operator-entity-operator-delegation");
 

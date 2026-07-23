@@ -3,6 +3,8 @@ package io.apicurio.registry.operator.utils;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import java.util.List;
+
 /**
  * Implemented by operator test base classes ({@code ITBase}, {@code OLMITBase}) to expose the Kubernetes
  * client and namespace to the {@link OperatorTestExtension}. This avoids reflection for accessing test
@@ -24,7 +26,7 @@ public interface OperatorTestContext {
         return false;
     }
 
-    default java.util.List<String> extraDiagnosticNamespaces() {
-        return java.util.List.of();
+    default List<String> extraDiagnosticNamespaces() {
+        return List.of();
     }
 }

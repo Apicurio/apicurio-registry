@@ -60,15 +60,20 @@ final class SharedOperatorLifecycle {
 
     private static void createCRDs(KubernetesClient client) {
         log.info("Creating CRDs");
-        try {
-            var crd = client.load(new FileInputStream(CRD_FILE));
-            crd.createOrReplace();
-            await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-                crd.resources().forEach(r -> assertThat(r.get()).isNotNull());
-            });
-        } catch (Exception e) {
-            log.warn("Failed to create the CRD, retrying", e);
-            createCRDs(client);
+        Exception last = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                var crd = client.load(new FileInputStream(CRD_FILE));
+                crd.createOrReplace();
+                await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+                    crd.resources().forEach(r -> assertThat(r.get()).isNotNull());
+                });
+                return;
+            } catch (Exception e) {
+                last = e;
+                log.warn("CRD creation attempt {}/3 failed", attempt, e);
+            }
         }
+        throw new IllegalStateException("Could not create the CRDs after 3 attempts", last);
     }
 }

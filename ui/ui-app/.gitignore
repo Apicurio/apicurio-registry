@@ -1,3 +1,4 @@
 /version.js
 /config.js
 /public/kiota-wasm
+*.log

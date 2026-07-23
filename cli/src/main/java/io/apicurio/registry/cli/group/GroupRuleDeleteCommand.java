@@ -28,7 +28,7 @@ public class GroupRuleDeleteCommand extends AbstractCommand {
     @Parameters(
             index = "0",
             arity = "0..1",
-            description = "The rule type to delete (VALIDITY, COMPATIBILITY, or INTEGRITY)"
+            description = "The rule type to delete ({{rule-types}})"
     )
     private String ruleType;
 

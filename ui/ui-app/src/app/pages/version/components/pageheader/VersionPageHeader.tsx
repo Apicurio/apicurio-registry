@@ -25,6 +25,7 @@ export type VersionPageHeaderProps = {
     version: VersionMetaData | undefined;
     codegenEnabled: boolean;
     onEdit: () => void;
+    onEditAgentCard: () => void;
     onDelete: () => void;
     onDownload: () => void;
     onFinalizeDraft: () => void;
@@ -59,6 +60,16 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             isVisible: () => {
                 return !config.featureReadOnly() &&
                     config.featureDraftMutability();
+            }
+        },
+        {
+            label: "Edit Agent Card",
+            testId: "action-edit-agent-card",
+            onSelect: () => props.onEditAgentCard(),
+            isVisible: () => {
+                return !config.featureReadOnly() &&
+                    props.version?.artifactType === "AGENT_CARD" &&
+                    user.isUserDeveloper(props.artifact?.owner);
             }
         },
         {

@@ -1,6 +1,7 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.services.DisabledApisMatcherService;
+import io.apicurio.registry.ui.servlets.HSTSFilter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.Filter;
@@ -41,7 +42,8 @@ public class RegistryApplicationServletFilter implements Filter {
 
             if (disabled) {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
-                httpResponse.reset();
+                // reset() would clear the HSTS header HSTSFilter set upstream; preserve it.
+                HSTSFilter.resetKeepingHstsHeader(httpResponse);
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 // important to return, to stop the filters chain
                 return;

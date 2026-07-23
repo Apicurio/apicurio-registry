@@ -1,0 +1,7 @@
+{
+  "name": "null_output_schema_tool",
+  "inputSchema": {
+    "type": "object"
+  },
+  "outputSchema": null
+}

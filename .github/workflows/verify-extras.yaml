@@ -30,7 +30,9 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: temurin
-          cache: maven
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
@@ -200,7 +202,9 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8

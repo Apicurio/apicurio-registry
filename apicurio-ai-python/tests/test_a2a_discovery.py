@@ -42,6 +42,7 @@ def seed_agent_card():
         artifact_id="weather-agent",
         artifact_type="AGENT_CARD",
         content=json.dumps(AGENT_CARD),
+        name="test-weather-agent",
     )
 
 

@@ -58,9 +58,10 @@ def register_artifact(
     artifact_type: str,
     content: str,
     content_type: str = "application/json",
+    name: str = None,
 ) -> None:
     url = f"{API_URL}/groups/{group_id}/artifacts"
-    body = {
+    body: dict = {
         "artifactId": artifact_id,
         "artifactType": artifact_type,
         "firstVersion": {
@@ -70,5 +71,7 @@ def register_artifact(
             }
         },
     }
+    if name:
+        body["name"] = name
     resp = requests.post(url, json=body)
     resp.raise_for_status()

@@ -28,6 +28,7 @@ def seed_mcp_tool():
         artifact_id="calculator-tool",
         artifact_type="MCP_TOOL",
         content=json.dumps(MCP_TOOL_DEF),
+        name="test-calculator",
     )
 
 

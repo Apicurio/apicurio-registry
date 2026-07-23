@@ -49,7 +49,9 @@ public class KafkaInfra implements AutoCloseable {
                     .withNumberOfBrokers(1) // required
                     .withSharedNetwork()
                     .build();
+            long startTime = System.currentTimeMillis();
             kafkaCluster.start();
+            log.info("Kafka cluster started in {} ms", System.currentTimeMillis() - startTime);
         }
     }
 

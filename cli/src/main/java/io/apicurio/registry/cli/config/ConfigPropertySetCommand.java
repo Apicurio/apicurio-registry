@@ -3,7 +3,9 @@ package io.apicurio.registry.cli.config;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.OutputBuffer;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -23,7 +25,8 @@ public class ConfigPropertySetCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        var configModel = config.read();
+        // Parse all args first so a bad one doesn't leave some properties already set.
+        final Map<String, String> parsed = new LinkedHashMap<>();
         for (var prop : properties) {
             var eqIndex = prop.indexOf('=');
             if (eqIndex < 1) {
@@ -31,9 +34,9 @@ public class ConfigPropertySetCommand extends AbstractCommand {
             }
             var key = prop.substring(0, eqIndex);
             var value = prop.substring(eqIndex + 1);
-            configModel.getConfig().put(key, value);
+            parsed.put(key, value);
         }
-        config.write(configModel);
+        parsed.forEach(config::setProperty);
         output.writeStdOutLine(properties.size() == 1 ? "Property set." : properties.size() + " properties set.");
     }
 }

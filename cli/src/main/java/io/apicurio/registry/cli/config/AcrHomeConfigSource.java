@@ -2,6 +2,8 @@ package io.apicurio.registry.cli.config;
 
 import io.apicurio.registry.cli.common.CliException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.eclipse.microprofile.config.spi.ConfigSource;
@@ -24,7 +26,8 @@ public class AcrHomeConfigSource implements ConfigSource {
             if (Config.instance == null) {
                 return Collections.emptyMap();
             }
-            return Config.instance.read().getConfig();
+            // Copy so a later command mutating the config can't affect what we return here.
+            return new HashMap<>(Config.instance.read().getConfig());
         } catch (CliException e) {
             return Collections.emptyMap();
         }
@@ -36,7 +39,7 @@ public class AcrHomeConfigSource implements ConfigSource {
             if (Config.instance == null) {
                 return null;
             }
-            return Config.instance.read().getConfig().get(propertyName);
+            return Config.instance.getProperty(propertyName);
         } catch (CliException e) {
             return null;
         }
@@ -60,7 +63,7 @@ public class AcrHomeConfigSource implements ConfigSource {
             if (Config.instance == null) {
                 return Collections.emptySet();
             }
-            return Config.instance.read().getConfig().keySet();
+            return new HashSet<>(Config.instance.read().getConfig().keySet());
         } catch (CliException e) {
             return Collections.emptySet();
         }

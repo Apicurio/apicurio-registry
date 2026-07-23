@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.services;
 
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.config.ConfigProperties;
 import io.apicurio.registry.cli.utils.PlatformUtils;
 import io.vertx.core.http.HttpMethod;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -40,7 +41,7 @@ public class Update {
 
     private int getTimeoutSeconds() {
         try {
-            var value = config.read().getConfig().get("update.timeout-seconds");
+            var value = config.getProperty(ConfigProperties.UPDATE_TIMEOUT_SECONDS);
             return value != null ? Integer.parseInt(value) : DEFAULT_TIMEOUT_SECONDS;
         } catch (Exception e) {
             return DEFAULT_TIMEOUT_SECONDS;
@@ -71,9 +72,7 @@ public class Update {
                 .sorted(CliVersion.COMPARATOR)
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        var configModel = config.read();
-        configModel.getConfig().put("internal.update.last-check", Instant.now().toString());
-        config.write(configModel);
+        config.setProperty(ConfigProperties.INTERNAL_UPDATE_LAST_CHECK, Instant.now().toString());
 
         return new UpdateCheckResult(currentVersion, List.copyOf(parsed));
     }
@@ -141,7 +140,7 @@ public class Update {
     }
 
     private String getRepoUrl() {
-        String url = ConfigProvider.getConfig().getValue("internal.update.repo-url", String.class);
+        String url = ConfigProvider.getConfig().getValue(ConfigProperties.INTERNAL_UPDATE_REPO_URL, String.class);
         if (url == null || url.isBlank()) {
             throw new CliException("Update repository URL is not configured.");
         }

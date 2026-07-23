@@ -11,12 +11,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
-import static io.apicurio.registry.cli.utils.Mapper.copy;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 import static java.lang.System.err;
 import static java.lang.System.out;
@@ -24,13 +24,15 @@ import static java.lang.System.out;
 @ApplicationScoped
 public class Config {
 
-    /**
-     * Static reference for use by {@link AcrHomeConfigSource}, which is loaded via SPI
-     * before CDI is available. Commands should use {@code @Inject Config} instead.
-     */
+    public static final String ENV_ACR_CURRENT_HOME = "ACR_CURRENT_HOME";
+    public static final String ENV_ACR_HOME = "ACR_HOME";
+
+    // Loaded via SPI by AcrHomeConfigSource before CDI is available; commands should @Inject Config instead.
     static Config instance;
 
+    // Not synchronized; the CLI runs one command at a time on a single thread.
     private ConfigModel cachedConfig;
+    private boolean dirty;
 
     @Getter
     @Setter
@@ -39,9 +41,6 @@ public class Config {
     @Getter
     @Setter
     private Output stdErr = err::print;
-
-    @Setter
-    private Path acrCurrentHomePath;
 
     @ConfigProperty(name = "version")
     String cliVersion;
@@ -94,7 +93,7 @@ public class Config {
     }
 
     public Path getAcrHomePath() {
-        var home = getEnv("ACR_HOME");
+        var home = getEnv(ENV_ACR_HOME);
         if (isBlank(home)) {
             throw new CliException("ACR_HOME is not set. Please run the 'install' command first.", APPLICATION_ERROR_RETURN_CODE);
         }
@@ -107,23 +106,36 @@ public class Config {
     }
 
     public Path getAcrCurrentHomePath() {
-        if (acrCurrentHomePath != null) {
-            return acrCurrentHomePath;
-        } else {
-            var acrCurrentHome = System.getenv("ACR_CURRENT_HOME");
-            if (isBlank(acrCurrentHome)) {
-                throw new CliException("ACR_CURRENT_HOME environment variable is not set.", APPLICATION_ERROR_RETURN_CODE);
-            }
-            acrCurrentHomePath = Path.of(acrCurrentHome).normalize().toAbsolutePath();
+        var acrCurrentHome = getEnv(ENV_ACR_CURRENT_HOME);
+        if (isBlank(acrCurrentHome)) {
+            throw new CliException("ACR_CURRENT_HOME environment variable is not set.", APPLICATION_ERROR_RETURN_CODE);
         }
-        return acrCurrentHomePath;
+        return Path.of(acrCurrentHome).normalize().toAbsolutePath();
     }
 
     Path getConfigFilePath() {
         return getAcrCurrentHomePath().resolve("config.json");
     }
 
+    /**
+     * Returns the live config object. Prefer the typed accessors ({@link #getProperty},
+     * {@link #setProperty}, {@link #putContext}, {@link #updateContext}, ...), which mark the config
+     * dirty so {@link #flush()} saves it.
+     *
+     * @deprecated Changes made directly on the returned object are not saved unless you also call
+     *     {@link #markDirty()}, which is easy to forget:
+     *     <pre>{@code
+     *       config.read().setCurrentContext("dev");   // not saved
+     *       config.setCurrentContext("dev");          // saved
+     *     }</pre>
+     */
+    @Deprecated
     public ConfigModel read() {
+        return cache();
+    }
+
+    // Loads and caches config.json on first use.
+    private ConfigModel cache() {
         if (cachedConfig == null) {
             var configPath = getConfigFilePath();
             try {
@@ -132,14 +144,85 @@ public class Config {
                 throw new CliException("Could not read config file '%s'.".formatted(configPath), ex, APPLICATION_ERROR_RETURN_CODE);
             }
         }
-        return copy(cachedConfig);
+        return cachedConfig;
     }
 
-    public void write(ConfigModel config) {
+    public String getProperty(final String key) {
+        return cache().getConfig().get(key);
+    }
+
+    public boolean hasProperty(final String key) {
+        return cache().getConfig().containsKey(key);
+    }
+
+    public void setProperty(final String key, final String value) {
+        cache().getConfig().put(key, value);
+        markDirty();
+    }
+
+    public String removeProperty(final String key) {
+        var previous = cache().getConfig().remove(key);
+        markDirty();
+        return previous;
+    }
+
+    public String getCurrentContext() {
+        return cache().getCurrentContext();
+    }
+
+    public ConfigModel.Context getContext(final String name) {
+        return cache().getContext().get(name);
+    }
+
+    public void setCurrentContext(final String name) {
+        cache().setCurrentContext(name);
+        markDirty();
+    }
+
+    public void putContext(final String name, final ConfigModel.Context context) {
+        cache().getContext().put(name, context);
+        markDirty();
+    }
+
+    public ConfigModel.Context removeContext(final String name) {
+        var removed = cache().getContext().remove(name);
+        markDirty();
+        return removed;
+    }
+
+    public void clearContexts() {
+        cache().getContext().clear();
+        markDirty();
+    }
+
+    // No-op (returns false) if no context with the given name exists.
+    public boolean updateContext(final String name, final Consumer<ConfigModel.Context> mutation) {
+        var context = cache().getContext().get(name);
+        if (context == null) {
+            return false;
+        }
+        mutation.accept(context);
+        markDirty();
+        return true;
+    }
+
+    public void markDirty() {
+        dirty = true;
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    // Called once at the end of each command, from AbstractCommand.call().
+    public void flush() {
+        if (!dirty || cachedConfig == null) {
+            return;
+        }
         var configPath = getConfigFilePath();
         try {
-            Mapper.MAPPER.writeValue(configPath.toFile(), config);
-            cachedConfig = null;
+            Mapper.MAPPER.writeValue(configPath.toFile(), cachedConfig);
+            dirty = false;
         } catch (IOException ex) {
             throw new CliException("Could not write config file '%s'.".formatted(configPath), ex, APPLICATION_ERROR_RETURN_CODE);
         }
@@ -150,9 +233,9 @@ public class Config {
      */
     public void reset() {
         cachedConfig = null;
+        dirty = false;
         stdOut = out::print;
         stdErr = err::print;
-        acrCurrentHomePath = null;
         envOverrides.clear();
     }
 }

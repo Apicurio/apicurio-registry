@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.config.ConfigProperties;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
@@ -34,9 +35,8 @@ public class ConfigPropertyCommandTest {
                                 .getResource("acr-home")
                                 .getPath())
                 .normalize();
-        config.setAcrCurrentHomePath(acrHome);
         config.reset();
-        config.setAcrCurrentHomePath(acrHome);
+        config.setEnvOverride(Config.ENV_ACR_CURRENT_HOME, acrHome.toString());
 
         cmd = new CommandLine(new Acr(), factory);
         out = new StringWriter();
@@ -71,9 +71,7 @@ public class ConfigPropertyCommandTest {
     @Test
     public void testConfigListHidesInternalProperties() {
         // Set an internal property
-        var configModel = config.read();
-        configModel.getConfig().put("internal.update.last-check", "2026-01-01T00:00:00Z");
-        config.write(configModel);
+        config.setProperty(ConfigProperties.INTERNAL_UPDATE_LAST_CHECK, "2026-01-01T00:00:00Z");
 
         int exitCode = cmd.execute("config");
         assertThat(exitCode).isEqualTo(0);
@@ -102,8 +100,7 @@ public class ConfigPropertyCommandTest {
         assertThat(out.toString()).contains("Property set");
 
         // Verify it was persisted
-        var configModel = config.read();
-        assertThat(configModel.getConfig().get("test.property")).isEqualTo("test-value");
+        assertThat(config.getProperty("test.property")).isEqualTo("test-value");
     }
 
     @Test
@@ -112,9 +109,8 @@ public class ConfigPropertyCommandTest {
         assertThat(exitCode).isEqualTo(0);
         assertThat(out.toString()).contains("2 properties set");
 
-        var configModel = config.read();
-        assertThat(configModel.getConfig().get("key1")).isEqualTo("value1");
-        assertThat(configModel.getConfig().get("key2")).isEqualTo("value2");
+        assertThat(config.getProperty("key1")).isEqualTo("value1");
+        assertThat(config.getProperty("key2")).isEqualTo("value2");
     }
 
     @Test
@@ -136,8 +132,7 @@ public class ConfigPropertyCommandTest {
         assertThat(exitCode).isEqualTo(0);
         assertThat(out.toString()).contains("Property deleted");
 
-        var configModel = config.read();
-        assertThat(configModel.getConfig().containsKey("to-delete")).isFalse();
+        assertThat(config.hasProperty("to-delete")).isFalse();
     }
 
     @Test

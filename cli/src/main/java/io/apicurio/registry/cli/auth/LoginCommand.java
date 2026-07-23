@@ -77,21 +77,20 @@ public class LoginCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var configModel = config.read();
-        final var contextName = configModel.getCurrentContext();
+        final var contextName = config.getCurrentContext();
         if (isBlank(contextName)) {
             throw new CliException("No current context is set. Create a context first with 'acr context create'.",
                     VALIDATION_ERROR_RETURN_CODE);
         }
-        final var context = Optional.ofNullable(configModel.getContext().get(contextName))
+        final var context = Optional.ofNullable(config.getContext(contextName))
                 .orElseThrow(() -> new CliException(
                         "Context '" + contextName + "' not found. Create it with 'acr context create'.",
                         VALIDATION_ERROR_RETURN_CODE));
 
         if (!isBlank(username)) {
-            loginBasic(output, configModel, context, contextName);
+            loginBasic(output, context, contextName);
         } else if (!isBlank(tokenEndpoint)) {
-            loginOAuth2(output, configModel, context, contextName);
+            loginOAuth2(output, context, contextName);
         } else {
             throw new CliException("Specify --username for basic auth or --token-endpoint for OAuth2.",
                     VALIDATION_ERROR_RETURN_CODE);
@@ -99,7 +98,6 @@ public class LoginCommand extends AbstractCommand {
     }
 
     private void loginBasic(final OutputBuffer output,
-                            final ConfigModel configModel,
                             final ConfigModel.Context context,
                             final String contextName) {
         var resolvedPassword = password;
@@ -114,11 +112,12 @@ public class LoginCommand extends AbstractCommand {
                 resolvedPassword, allowUnsafe);
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET);
 
-        context.clearAuth();
-        context.setAuthType(ConfigModel.AUTH_TYPE_BASIC);
-        context.setUsername(username);
-        context.setUnsafeCredentialStorage(usedFileFallback);
-        config.write(configModel);
+        config.updateContext(contextName, ctx -> {
+            ctx.clearAuth();
+            ctx.setAuthType(ConfigModel.AUTH_TYPE_BASIC);
+            ctx.setUsername(username);
+            ctx.setUnsafeCredentialStorage(usedFileFallback);
+        });
 
         if (usedFileFallback) {
             output.writeStdOutChunk(out ->
@@ -134,7 +133,6 @@ public class LoginCommand extends AbstractCommand {
     }
 
     private void loginOAuth2(final OutputBuffer output,
-                             final ConfigModel configModel,
                              final ConfigModel.Context context,
                              final String contextName) {
         if (isBlank(clientId)) {
@@ -153,13 +151,14 @@ public class LoginCommand extends AbstractCommand {
                 ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET, resolvedSecret, allowUnsafe);
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD);
 
-        context.clearAuth();
-        context.setAuthType(ConfigModel.AUTH_TYPE_OAUTH2);
-        context.setTokenEndpoint(tokenEndpoint);
-        context.setClientId(clientId);
-        context.setScope(scope);
-        context.setUnsafeCredentialStorage(usedFileFallback);
-        config.write(configModel);
+        config.updateContext(contextName, ctx -> {
+            ctx.clearAuth();
+            ctx.setAuthType(ConfigModel.AUTH_TYPE_OAUTH2);
+            ctx.setTokenEndpoint(tokenEndpoint);
+            ctx.setClientId(clientId);
+            ctx.setScope(scope);
+            ctx.setUnsafeCredentialStorage(usedFileFallback);
+        });
 
         if (usedFileFallback) {
             output.writeStdOutChunk(out ->

@@ -74,7 +74,7 @@ public class InstallCommandTest {
         Files.writeString(acrHome.resolve(CONFIG_JSON), "{}");
 
         // Set up config to point to our test acr-home
-        config.setAcrCurrentHomePath(acrHome);
+        config.setEnvOverride(Config.ENV_ACR_CURRENT_HOME, acrHome.toString());
 
         // Set up environment variable overrides for testing
         config.setEnvOverride(ENV_HOME, userHome.toString());

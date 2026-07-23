@@ -41,26 +41,49 @@ public abstract class AbstractCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
+        var commandFailed = false;
         try {
             configureVerboseLogging();
             updateNotifier.checkAndNotify(getTopLevelCommandName());
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
+            commandFailed = true;
             handleCliException(output, ex);
             return ex.getCode();
         } catch (RuleViolationProblemDetails ex) {
+            commandFailed = true;
             handleRuleViolation(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (ProblemDetails ex) {
+            commandFailed = true;
             handleProblemDetails(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (Exception ex) {
+            commandFailed = true;
             log.error("Unexpected error", ex);
             output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
+            persistConfig(output, commandFailed);
             output.print();
+        }
+    }
+
+    // flush() runs regardless of command outcome, so config changes are saved even when the command
+    // fails. Commands are expected to change config only after their IO succeeds (a convention this
+    // class can't enforce), so a failure won't persist half-finished state.
+    private void persistConfig(final OutputBuffer output, final boolean commandFailed) {
+        try {
+            if (commandFailed && config.isDirty()) {
+                log.debugf("Command '%s' failed but had unsaved config changes; saving them anyway.",
+                        getTopLevelCommandName());
+            }
+            config.flush();
+        } catch (Exception ex) {
+            log.error("Could not persist configuration changes", ex);
+            output.writeStdErrChunk(out -> out.append(ERROR_PREFIX)
+                    .append("Could not persist configuration changes: ").append(ex.getMessage()).append("\n"));
         }
     }
 

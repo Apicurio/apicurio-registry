@@ -270,6 +270,88 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(404);
     }
 
+    private static final String PAGINATED_SOURCE_TOOL = """
+            {
+                "name": "paginated_source",
+                "title": "Paginated Source Tool",
+                "description": "Produces unique pagination output property",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "unique_page_field": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
+    private static final String PAGINATED_COMPATIBLE_TOOL = """
+            {
+                "name": "paginated_compat",
+                "title": "Paginated Compatible Tool",
+                "description": "Consumes unique pagination output property",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "unique_page_field": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
+    @Test
+    public void testFindCompatibleToolsPagination() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "paginated-source";
+
+        // Create two compatible candidates so we can paginate
+        createMcpTool(groupId, sourceId, PAGINATED_SOURCE_TOOL);
+        createMcpTool(groupId, "compat-page-1", PAGINATED_COMPATIBLE_TOOL);
+        createMcpTool(groupId, "compat-page-2", PAGINATED_COMPATIBLE_TOOL);
+
+        // Full result: 2 compatible tools, count reflects total
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .queryParam("offset", 0)
+                .queryParam("limit", 100)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("tools", hasSize(2));
+
+        // Paginated result: limit=1 returns only one tool but count stays total
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .queryParam("offset", 0)
+                .queryParam("limit", 1)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("tools", hasSize(1));
+
+        // Offset beyond results: empty page, count unchanged
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .queryParam("offset", 100)
+                .queryParam("limit", 10)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("tools", hasSize(0));
+    }
+
     @Test
     public void testMcpSchemaEndpointHeaders() {
         givenAtRoot()
@@ -281,7 +363,7 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .header("Content-Disposition", equalTo("inline; filename=\"mcp-tool-v1.json\""))
                 .header("Cache-Control", equalTo("public, max-age=86400"))
                 .body("$schema", notNullValue())
-                .body("title", equalTo("Model Context Protocol Tool Definition"));
+                .body("title", equalTo("MCP Tool Definition"));
     }
 
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {

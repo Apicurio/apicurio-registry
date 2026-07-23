@@ -97,6 +97,13 @@ public class OperatorTestExtension implements InvocationInterceptor, AfterTestEx
             var namespace = ctx.getNamespace();
             if (client != null && namespace != null) {
                 ClusterDiagnostics.dump(client, namespace, ctx.isOLMTest());
+                // E.g. the shared Strimzi operator namespace: its reconcile logs are the primary
+                // diagnostic for Kafka CR failures in the test namespace.
+                for (String extra : ctx.extraDiagnosticNamespaces()) {
+                    if (client.namespaces().withName(extra).get() != null) {
+                        ClusterDiagnostics.dump(client, extra, false);
+                    }
+                }
             } else {
                 log.warn("Cannot dump cluster diagnostics: client={}, namespace={}", client, namespace);
             }

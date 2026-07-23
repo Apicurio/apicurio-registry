@@ -20,4 +20,12 @@ public interface OperatorTestContext {
     default boolean isOLMTest() {
         return false;
     }
+
+    /**
+     * Additional namespaces whose diagnostics should be dumped when a test fails, beyond the test's
+     * own namespace (e.g. the dedicated namespace of a shared operator the test depends on).
+     */
+    default java.util.List<String> extraDiagnosticNamespaces() {
+        return java.util.List.of();
+    }
 }

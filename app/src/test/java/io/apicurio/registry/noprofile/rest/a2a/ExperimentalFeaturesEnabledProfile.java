@@ -13,7 +13,8 @@ public class ExperimentalFeaturesEnabledProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         return Map.of(
                 "apicurio.features.experimental.enabled", "true",
-                "apicurio.a2a.enabled", "true"
+                "apicurio.a2a.enabled", "true",
+                "apicurio.mcp-tools.enabled", "true"
         );
     }
 }

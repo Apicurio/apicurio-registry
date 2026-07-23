@@ -8,6 +8,7 @@ import (
 	i16223c3d64272984ac9b089a49f755b239267ef883920745d9328c825f277450 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/search"
 	i106c34e234c87a76eb0a333cfd72bb86e54870ce504215d783285b4c4377b48e "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/system"
 	if6b1343913cf488c29eab830b6c3ada6d1b89043b387e974c51a26712f7fae5e "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/users"
+	i1391038c1d25adfa8b26e290805de4f2aef07b207e0d19f4a9f922e876486bc7 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/wellknown"
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91 "github.com/microsoft/kiota-abstractions-go/serialization"
 	i4bcdc892e61ac17e2afc10b5e2b536b29f4fd6c1ad30f4a5a68df47495db3347 "github.com/microsoft/kiota-serialization-form-go"
@@ -90,4 +91,10 @@ func (m *ApiClient) System() *i106c34e234c87a76eb0a333cfd72bb86e54870ce504215d78
 // returns a *UsersRequestBuilder when successful
 func (m *ApiClient) Users() *if6b1343913cf488c29eab830b6c3ada6d1b89043b387e974c51a26712f7fae5e.UsersRequestBuilder {
 	return if6b1343913cf488c29eab830b6c3ada6d1b89043b387e974c51a26712f7fae5e.NewUsersRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// WellKnown the wellKnown property
+// returns a *WellKnownRequestBuilder when successful
+func (m *ApiClient) WellKnown() *i1391038c1d25adfa8b26e290805de4f2aef07b207e0d19f4a9f922e876486bc7.WellKnownRequestBuilder {
+	return i1391038c1d25adfa8b26e290805de4f2aef07b207e0d19f4a9f922e876486bc7.NewWellKnownRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }

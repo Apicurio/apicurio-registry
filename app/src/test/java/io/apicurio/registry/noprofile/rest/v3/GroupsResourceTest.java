@@ -395,8 +395,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     public void testContentDispositionSanitizationAndTruncation() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
 
-        // 1. Test special characters sanitization: quotes, path separators, percents, newlines/carriage returns.
-        String specialArtifactId = "test/Artifact%Special\"Chars";
+        // 1. Test special characters sanitization: path separators (slashes) are allowed in artifact IDs
+        // but must be sanitized to underscores in the Content-Disposition filename.
+        String specialArtifactId = "test/Artifact/Special/Chars";
         createArtifact(GROUP, specialArtifactId, ArtifactType.OPENAPI, artifactContent,
                 ContentTypes.APPLICATION_JSON);
 

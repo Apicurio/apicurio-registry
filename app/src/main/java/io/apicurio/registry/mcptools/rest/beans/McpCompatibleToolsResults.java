@@ -14,6 +14,7 @@ public class McpCompatibleToolsResults {
     private List<McpToolSearchResult> tools;
 
     public McpCompatibleToolsResults() {
+        // Empty constructor required for Jackson serialization/deserialization
     }
 
     public long getCount() {

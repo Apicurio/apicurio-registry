@@ -733,12 +733,16 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void setGlobalContractRuleset(io.apicurio.registry.storage.dto.ContractRuleSetDto ruleset)
             throws RegistryStorageException {
-        sqlStore.setGlobalContractRuleset(ruleset);
+        var message = new SetGlobalContractRuleset1Message(ruleset);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override
     public void deleteGlobalContractRuleset() throws RegistryStorageException {
-        sqlStore.deleteGlobalContractRuleset();
+        var message = new DeleteGlobalContractRuleset0Message();
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override

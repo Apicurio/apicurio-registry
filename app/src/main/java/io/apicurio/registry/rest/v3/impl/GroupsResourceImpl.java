@@ -49,6 +49,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceGraphDirection;
@@ -128,6 +129,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     ArtifactIdGenerator idGenerator;
+
+    @Inject
+    RegistryStorageContentUtils contentUtils;
 
     @Inject
     RestConfig restConfig;
@@ -896,18 +900,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getArtifactVersionContent(String groupId, String artifactId, String versionExpression,
-            HandleReferencesType references) {
+            HandleReferencesType references, Boolean canonical) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         if (references == null) {
-            // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
             if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
                 references = HandleReferencesType.fromValue(configuredDefault.get());
             } else {
-                // No configuration - use existing default (no behavior change)
                 references = HandleReferencesType.PRESERVE;
             }
         }
@@ -936,7 +938,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .build()
         ).prepare();
 
-        // Throw 404 if the version actually has "no content" based on the content-type
         if (ContentTypes.isEmptyContentType(artifactCell.get().getContentType())) {
             throw new ContentNotFoundException(artifactCell.get().getContentId());
         }
@@ -947,6 +948,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
         String filename = artifactId + ext;
+        if (Boolean.TRUE.equals(canonical)) {
+            Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(artifactCell.get().getReferences(),
+                            storage::getContentByReference);
+            contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
+                    contentToReturn, resolvedReferences);
+        }
+
         var builder = Response.ok().entity(contentToReturn.getContent())
                 .type(contentToReturn.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename));

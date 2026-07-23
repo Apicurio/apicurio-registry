@@ -9,6 +9,7 @@ import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 
 // #2411: the HSTS header is set by a servlet filter, so error responses that bypass the chain lose it.
 @QuarkusTest
@@ -30,10 +31,26 @@ public class HstsHeaderTest {
                 containsString("max-age="));
     }
 
+    // #8713: RFC 6797 defines the directive as "includeSubDomains" (capital D); pin the exact
+    // value so a regression to the invalid "includeSubdomains" casing is caught.
+    @Test
+    public void testHstsDirectiveCasingIsRfcCompliant() {
+        given().when().get("/apis/registry/v3/groups").then().statusCode(200).header(HSTS,
+                equalTo("max-age=31536000; includeSubDomains"));
+    }
+
     @Test
     public void testHstsOnApiNotFoundError() {
         given().when().get("/apis/registry/v3/groups/default/artifacts/does-not-exist-" + System.nanoTime())
                 .then().statusCode(404).header(HSTS, containsString("max-age="));
+    }
+
+    // #8713: the filter chain (see #2411) also covers error responses, so pin the exact
+    // directive casing there too, not just on success responses.
+    @Test
+    public void testHstsDirectiveCasingIsRfcCompliantOn404() {
+        given().when().get("/apis/registry/v3/groups/default/artifacts/does-not-exist-" + System.nanoTime())
+                .then().statusCode(404).header(HSTS, equalTo("max-age=31536000; includeSubDomains"));
     }
 
     @Test

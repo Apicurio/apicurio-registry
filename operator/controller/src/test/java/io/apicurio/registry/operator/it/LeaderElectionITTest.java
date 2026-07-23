@@ -11,6 +11,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,12 +37,8 @@ public class LeaderElectionITTest extends ITBase {
     private static final String DEFAULT_LEASE_NAME = "apicurio-registry-operator-lease";
 
     @Test
+    @DisabledIf("io.apicurio.registry.operator.it.ITBase#isLocalDeployment")
     void testLeaderElectionCreatesLease() {
-        if (operatorDeployment == OperatorDeployment.local) {
-            log.warn("This test requires an ability to edit the operator Deployment, so it's not supported when running locally.");
-            return;
-        }
-
         var operatorDeploymentCell = k8sCell(client, this::getOperatorDeployment);
         Cell<EnvVar> originalEnabledEnvVar = cell();
 
@@ -110,12 +107,8 @@ public class LeaderElectionITTest extends ITBase {
     }
 
     @Test
+    @DisabledIf("io.apicurio.registry.operator.it.ITBase#isLocalDeployment")
     void testLeaderElectionCustomLeaseName() {
-        if (operatorDeployment == OperatorDeployment.local) {
-            log.warn("This test requires an ability to edit the operator Deployment, so it's not supported when running locally.");
-            return;
-        }
-
         var operatorDeploymentCell = k8sCell(client, this::getOperatorDeployment);
         Cell<EnvVar> originalEnabledEnvVar = cell();
         Cell<EnvVar> originalLeaseNameEnvVar = cell();

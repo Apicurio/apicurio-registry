@@ -93,6 +93,11 @@ Before opening a PR, verify every item. PRs that skip these get sent back.
 - [ ] New features or behavioral changes under `storage/impl/` that aren't variant-specific must be implemented across all 4 storage variants.
 - [ ] Auth changes require tests for both **positive** (authorized → succeeds) and **negative** (unauthorized → 403) cases.
 - [ ] New Java files include the Apache 2.0 license header.
+- [ ] **No LLM artifacts** — fully qualified names must be imports (not inline `java.util.concurrent.TimeoutException`), annotations must be real (`@Tag`, `@Test`) not file paths, no hallucinated API parameters or system properties.
+- [ ] **Input validation on endpoints** — validate path parameters against traversal, verify proxy/forwarding URLs are within expected domain, enforce request body size limits on endpoints accepting user content.
+- [ ] **Default value consistency** — `@ConfigProperty(defaultValue=)`, activation conditions (`orElse()`), and `@Info` descriptions must all agree. A mismatch means one path sees a different default than the others.
+- [ ] **Don't assume APIs exist** — before proposing a system property, annotation parameter, or config mechanism, verify it actually works by checking the library source. Hallucinated flags (e.g., `-Dawaitility.defaultTimeout`) waste review cycles.
+- [ ] **No redundant guards** — don't add null checks for methods that already handle null (e.g., `Boolean.parseBoolean(null)` returns `false`). Don't call the same method twice when caching the result suffices.
 
 ### Tests
 - [ ] Every new code path has tests. Missing tests = automatic rejection.
@@ -115,6 +120,7 @@ Before opening a PR, verify every item. PRs that skip these get sent back.
 - UI has its own npm/Vite build system, separate from Maven
 - Integration tests need running infrastructure (use testcontainers or profiles)
 - `APICURIO_STORAGE_SQL_KIND` selects the SQL dialect (postgresql, mysql, mssql)
+- New components must be wired into the Verify → Decide → Verification Gate CI pipeline, not standalone workflows. A standalone workflow that doesn't block merges is an incomplete integration.
 
 ## Claude Code Configuration
 

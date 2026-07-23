@@ -27,7 +27,7 @@ type AgentCard struct {
 	// Represents the provider/organization that created an A2A agent.
 	provider AgentProviderable
 	// Security requirements for accessing this agent.
-	securityRequirements []A2aSecurityRequirementable
+	securityRequirements []AgentSecurityRequirementable
 	// Named security schemes available for this agent.
 	securitySchemes AgentCard_securitySchemesable
 	// Cryptographic signatures on the agent card.
@@ -196,15 +196,15 @@ func (m *AgentCard) GetFieldDeserializers() map[string]func(i878a80d2330e89d2689
 		return nil
 	}
 	res["securityRequirements"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfObjectValues(CreateA2aSecurityRequirementFromDiscriminatorValue)
+		val, err := n.GetCollectionOfObjectValues(CreateAgentSecurityRequirementFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			res := make([]A2aSecurityRequirementable, len(val))
+			res := make([]AgentSecurityRequirementable, len(val))
 			for i, v := range val {
 				if v != nil {
-					res[i] = v.(A2aSecurityRequirementable)
+					res[i] = v.(AgentSecurityRequirementable)
 				}
 			}
 			m.SetSecurityRequirements(res)
@@ -307,8 +307,8 @@ func (m *AgentCard) GetProvider() AgentProviderable {
 }
 
 // GetSecurityRequirements gets the securityRequirements property value. Security requirements for accessing this agent.
-// returns a []A2aSecurityRequirementable when successful
-func (m *AgentCard) GetSecurityRequirements() []A2aSecurityRequirementable {
+// returns a []AgentSecurityRequirementable when successful
+func (m *AgentCard) GetSecurityRequirements() []AgentSecurityRequirementable {
 	return m.securityRequirements
 }
 
@@ -518,7 +518,7 @@ func (m *AgentCard) SetProvider(value AgentProviderable) {
 }
 
 // SetSecurityRequirements sets the securityRequirements property value. Security requirements for accessing this agent.
-func (m *AgentCard) SetSecurityRequirements(value []A2aSecurityRequirementable) {
+func (m *AgentCard) SetSecurityRequirements(value []AgentSecurityRequirementable) {
 	m.securityRequirements = value
 }
 
@@ -559,7 +559,7 @@ type AgentCardable interface {
 	GetName() *string
 	GetProtocolVersion() *string
 	GetProvider() AgentProviderable
-	GetSecurityRequirements() []A2aSecurityRequirementable
+	GetSecurityRequirements() []AgentSecurityRequirementable
 	GetSecuritySchemes() AgentCard_securitySchemesable
 	GetSignatures() []AgentCardSignatureable
 	GetSkills() []AgentSkillable
@@ -574,7 +574,7 @@ type AgentCardable interface {
 	SetName(value *string)
 	SetProtocolVersion(value *string)
 	SetProvider(value AgentProviderable)
-	SetSecurityRequirements(value []A2aSecurityRequirementable)
+	SetSecurityRequirements(value []AgentSecurityRequirementable)
 	SetSecuritySchemes(value AgentCard_securitySchemesable)
 	SetSignatures(value []AgentCardSignatureable)
 	SetSkills(value []AgentSkillable)

@@ -9704,14 +9704,14 @@
             "description": "Named security schemes available for this agent.",
             "type": "object",
             "additionalProperties": {
-              "$ref": "#/components/schemas/A2ASecurityScheme"
+              "$ref": "#/components/schemas/A2aSecurityScheme"
             }
           },
           "securityRequirements": {
             "description": "Security requirements for accessing this agent.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/A2ASecurityRequirement"
+              "$ref": "#/components/schemas/A2aSecurityRequirement"
             }
           },
           "iconUrl": {
@@ -9841,7 +9841,7 @@
             "description": "Security requirements specific to this skill.",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/A2ASecurityRequirement"
+              "$ref": "#/components/schemas/A2aSecurityRequirement"
             }
           }
         }
@@ -9868,7 +9868,7 @@
           }
         }
       },
-      "A2ASecurityScheme": {
+      "A2aSecurityScheme": {
         "description": "Represents a security scheme for an A2A agent.",
         "type": "object",
         "properties": {
@@ -9911,7 +9911,7 @@
           }
         }
       },
-      "A2ASecurityRequirement": {
+      "A2aSecurityRequirement": {
         "description": "Represents a security requirement for an A2A agent.",
         "type": "object",
         "properties": {

@@ -21,7 +21,7 @@ type AgentSkill struct {
 	// Output modes supported by this skill.
 	outputModes []string
 	// Security requirements specific to this skill.
-	securityRequirements []A2ASecurityRequirementable
+	securityRequirements []A2aSecurityRequirementable
 	// Tags associated with this skill.
 	tags []string
 }
@@ -140,15 +140,15 @@ func (m *AgentSkill) GetFieldDeserializers() map[string]func(i878a80d2330e89d268
 		return nil
 	}
 	res["securityRequirements"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetCollectionOfObjectValues(CreateA2ASecurityRequirementFromDiscriminatorValue)
+		val, err := n.GetCollectionOfObjectValues(CreateA2aSecurityRequirementFromDiscriminatorValue)
 		if err != nil {
 			return err
 		}
 		if val != nil {
-			res := make([]A2ASecurityRequirementable, len(val))
+			res := make([]A2aSecurityRequirementable, len(val))
 			for i, v := range val {
 				if v != nil {
-					res[i] = v.(A2ASecurityRequirementable)
+					res[i] = v.(A2aSecurityRequirementable)
 				}
 			}
 			m.SetSecurityRequirements(res)
@@ -199,8 +199,8 @@ func (m *AgentSkill) GetOutputModes() []string {
 }
 
 // GetSecurityRequirements gets the securityRequirements property value. Security requirements specific to this skill.
-// returns a []A2ASecurityRequirementable when successful
-func (m *AgentSkill) GetSecurityRequirements() []A2ASecurityRequirementable {
+// returns a []A2aSecurityRequirementable when successful
+func (m *AgentSkill) GetSecurityRequirements() []A2aSecurityRequirementable {
 	return m.securityRequirements
 }
 
@@ -311,7 +311,7 @@ func (m *AgentSkill) SetOutputModes(value []string) {
 }
 
 // SetSecurityRequirements sets the securityRequirements property value. Security requirements specific to this skill.
-func (m *AgentSkill) SetSecurityRequirements(value []A2ASecurityRequirementable) {
+func (m *AgentSkill) SetSecurityRequirements(value []A2aSecurityRequirementable) {
 	m.securityRequirements = value
 }
 
@@ -329,7 +329,7 @@ type AgentSkillable interface {
 	GetInputModes() []string
 	GetName() *string
 	GetOutputModes() []string
-	GetSecurityRequirements() []A2ASecurityRequirementable
+	GetSecurityRequirements() []A2aSecurityRequirementable
 	GetTags() []string
 	SetDescription(value *string)
 	SetExamples(value []string)
@@ -337,6 +337,6 @@ type AgentSkillable interface {
 	SetInputModes(value []string)
 	SetName(value *string)
 	SetOutputModes(value []string)
-	SetSecurityRequirements(value []A2ASecurityRequirementable)
+	SetSecurityRequirements(value []A2aSecurityRequirementable)
 	SetTags(value []string)
 }

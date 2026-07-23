@@ -1,7 +1,7 @@
 package io.apicurio.registry.a2a;
 
 import io.apicurio.registry.auth.AuthConfig;
-import io.apicurio.registry.rest.v3.beans.A2ASecurityScheme;
+import io.apicurio.registry.rest.v3.beans.A2aSecurityScheme;
 import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentInterface;
@@ -122,15 +122,15 @@ public class RegistryAgentCardBuilder {
 
         if (authConfig.isOidcAuthEnabled()) {
             schemes.setAdditionalProperty("bearer",
-                    A2ASecurityScheme.builder().type("httpAuth").scheme("Bearer").build());
+                    A2aSecurityScheme.builder().type("httpAuth").scheme("Bearer").build());
         }
         if (authConfig.isBasicAuthEnabled()) {
             schemes.setAdditionalProperty("basic",
-                    A2ASecurityScheme.builder().type("httpAuth").scheme("Basic").build());
+                    A2aSecurityScheme.builder().type("httpAuth").scheme("Basic").build());
         }
         if (a2aConfig.isApiKeyAuthEnabled()) {
             schemes.setAdditionalProperty("apiKey",
-                    A2ASecurityScheme.builder().type("apiKey").name("X-API-Key")
+                    A2aSecurityScheme.builder().type("apiKey").name("X-API-Key")
                             .location("header").build());
         }
 

@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 107);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 108);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -59,6 +59,11 @@ ALTER TABLE artifact_labels ADD PRIMARY KEY (groupId, artifactId, labelKey);
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
 CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
+
+CREATE TABLE artifact_structured_content (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, elementType VARCHAR(64) NOT NULL, elementValue VARCHAR(512) NOT NULL);
+ALTER TABLE artifact_structured_content ADD CONSTRAINT FK_asc_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
+CREATE INDEX IDX_asc_1 ON artifact_structured_content(elementType, elementValue);
+CREATE INDEX IDX_asc_2 ON artifact_structured_content(groupId, artifactId);
 
 CREATE TABLE artifact_rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);

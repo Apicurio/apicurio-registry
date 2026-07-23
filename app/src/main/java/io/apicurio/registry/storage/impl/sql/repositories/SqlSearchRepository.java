@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 
 /**
  * Repository handling search operations in the SQL storage layer.
@@ -36,6 +37,8 @@ public class SqlSearchRepository {
     private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
             "Content search requires the search index, which is not enabled. "
             + "Enable the search index to use content search.";
+
+    private static final char LIKE_ESCAPE_CHAR = '!';
 
     private final Logger log;
 
@@ -167,6 +170,50 @@ public class SqlSearchRepository {
                         break;
                     case content:
                         throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+                    case structure:
+                        // Structured content filter, e.g. "agent_card:skill:translation". Elements are
+                        // stored lowercased in artifact_structured_content as elementType
+                        // ("<artifactType>:<kind>") + elementValue ("<name>").
+                        String structureValue = asLowerCase(filter.getStringValue());
+                        if (structureValue == null || structureValue.isBlank()) {
+                            where.append("1 = 1");
+                            break;
+                        }
+                        String[] structureParts = structureValue.trim().split(":", 3);
+                        op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(op);
+                        where.append(
+                                "(SELECT sc.* FROM artifact_structured_content sc WHERE sc.groupId = a.groupId AND sc.artifactId = a.artifactId AND ");
+                        if (structureParts.length == 3) {
+                            // Full format: "artifactType:kind:name" - exact match
+                            where.append("sc.elementType = ? AND sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[0] + ":" + structureParts[1]);
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[2]);
+                            });
+                        } else if (structureParts.length == 2) {
+                            // Partial format: "kind:name" - match the kind for any artifact type. The
+                            // kind is request-derived, so escape LIKE wildcards in it and keep only the
+                            // leading "%:" as an intentional wildcard.
+                            where.append("sc.elementType LIKE ? ESCAPE '" + LIKE_ESCAPE_CHAR
+                                    + "' AND sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%:" + escapeLikePattern(structureParts[0]));
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[1]);
+                            });
+                        } else {
+                            // Plain name: match the element value for any kind
+                            where.append("sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[0]);
+                            });
+                        }
+                        where.append(")");
+                        break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -407,6 +454,22 @@ public class SqlSearchRepository {
             results.setCount(count);
             return results;
         });
+    }
+
+    /**
+     * Escape LIKE wildcards ({@code %} and {@code _}) and the escape character itself in a value that
+     * is used inside a LIKE pattern, so request-derived text is matched literally. The caller is
+     * responsible for adding any intentional wildcards and the matching {@code ESCAPE} clause.
+     */
+    private static String escapeLikePattern(String value) {
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (char c : value.toCharArray()) {
+            if (c == LIKE_ESCAPE_CHAR || c == '%' || c == '_') {
+                escaped.append(LIKE_ESCAPE_CHAR);
+            }
+            escaped.append(c);
+        }
+        return escaped.toString();
     }
 
     private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,

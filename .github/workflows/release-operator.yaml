@@ -72,7 +72,7 @@ jobs:
       - name: Verify Project Version
         working-directory: registry
         run: |
-          PROJECT_VERSION="$(mvn -s ${{ github.workspace }}/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)"
+          PROJECT_VERSION="$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)"
           if [[ "$PROJECT_VERSION" != "$RELEASE_VERSION" ]]
           then
               echo "ERROR: Project version $PROJECT_VERSION does not match released version $RELEASE_VERSION"

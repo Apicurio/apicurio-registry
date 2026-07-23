@@ -82,7 +82,7 @@ jobs:
       - name: Update Release Version ${{ github.event.inputs.release-version}}
         run: |
           cd registry
-          mvn -s ${{ github.workspace }}/.github/ci-settings.xml versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
@@ -123,7 +123,7 @@ jobs:
       - name: (Operator) Generate CRD
         working-directory: registry
         run: |
-          mvn -s ${{ github.workspace }}/.github/ci-settings.xml -pl operator/controller -am -Pfull install -DskipTests --no-transfer-progress
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml -pl operator/controller -am -Pfull install -DskipTests --no-transfer-progress
 
       - name: (Operator) Update install file
         working-directory: registry/operator
@@ -357,7 +357,7 @@ jobs:
       - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd registry
-          mvn -s ${{ github.workspace }}/.github/ci-settings.xml versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.SNAPSHOT_DOCS_VERSION }}\'/g" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json

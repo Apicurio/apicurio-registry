@@ -28,7 +28,7 @@ localSerializationWriterFactory.contentTypeAssociatedFactories.set(jsonSerialize
 
 export class RegistryClientFactory {
 
-    public static createRegistryClient(baseUrl: string, authProvider?: AuthenticationProvider, middlewares: Middleware[] = []): ApicurioRegistryClient {
+    public static createRegistryClient(baseUrl: string, authProvider?: AuthenticationProvider, middlewares: Middleware[] = [], useDefaultMiddlewares: boolean = true): ApicurioRegistryClient {
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length - 1);
         }
@@ -36,12 +36,12 @@ export class RegistryClientFactory {
             authProvider = new AnonymousAuthenticationProvider();
         }
 
-        let finalMiddlewares: Middleware[] | undefined = middlewares;
-        if (middlewares.length === 0) {
-            finalMiddlewares = undefined;
-        } else {
-            finalMiddlewares = [...MiddlewareFactory.getDefaultMiddlewares(), ...middlewares];
-        }
+        // getPerformanceMiddlewares() is the default chain plus CompressionHandler, which
+        // gzip-compresses request bodies. Pass useDefaultMiddlewares=false to opt out entirely
+        // (e.g. to fully control the chain yourself via `middlewares`).
+        const finalMiddlewares: Middleware[] = useDefaultMiddlewares
+            ? [...MiddlewareFactory.getPerformanceMiddlewares(), ...middlewares]
+            : middlewares;
 
         const http = KiotaClientFactory.create(undefined, finalMiddlewares);
         const requestAdapter: RequestAdapter = new FetchRequestAdapter(authProvider, localParseNodeFactory, localSerializationWriterFactory, http);

@@ -161,12 +161,21 @@ public final class ContentTypeUtil {
     public static JsonNode parseJsonOrYaml(TypedContent content) throws IOException {
         JsonNode node = null;
         String contentType = content.getContentType();
-        // A null content type is treated as unknown: fall back to JSON parsing. The callers
-        // (content accepters, reference finders, validators) deliberately let a null content
-        // type through, so this must not throw on null.
-        if (contentType != null && (contentType.toLowerCase(Locale.ROOT).contains("yaml")
+        if (contentType == null) {
+            // A null content type is treated as unknown: we cannot rely on it to pick a parser.
+            // The callers (content accepters, reference finders, validators) deliberately let a
+            // null content type through, so this must not throw on null. Because JSON is a subset
+            // of YAML, try JSON first (the common case) and fall back to YAML on a parse failure,
+            // so YAML-shaped content submitted without a content type (e.g. prompt templates,
+            // which are published as YAML) is still detected instead of being silently rejected.
+            try {
+                node = ContentTypeUtil.parseJson(content.getContent());
+            } catch (IOException e) {
+                node = ContentTypeUtil.parseYaml(content.getContent());
+            }
+        } else if (contentType.toLowerCase(Locale.ROOT).contains("yaml")
                 || contentType.toLowerCase(Locale.ROOT).contains("yml")
-                || contentType.equalsIgnoreCase("text/x-prompt-template"))) {
+                || contentType.equalsIgnoreCase("text/x-prompt-template")) {
             node = ContentTypeUtil.parseYaml(content.getContent());
         } else {
             node = ContentTypeUtil.parseJson(content.getContent());

@@ -73,6 +73,20 @@ public class ContentTypeUtilTest {
     }
 
     @Test
+    public void testParseJsonOrYaml_nullContentType_yamlDocument() throws Exception {
+        // A YAML document submitted without a content type must still be detected: the null
+        // branch tries JSON first, then falls back to YAML on a parse failure. Without the
+        // fallback this document would fail to parse as JSON and be silently rejected.
+        TypedContent content = TypedContent.create(ContentHandle.create("name: widget\ncount: 3\n"), null);
+
+        JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+
+        Assertions.assertTrue(node.isObject());
+        Assertions.assertEquals("widget", node.get("name").asText());
+        Assertions.assertEquals(3, node.get("count").asInt());
+    }
+
+    @Test
     public void testParseJsonOrYaml_yamlContentType() throws Exception {
         // An explicit YAML content type must still route through the YAML branch.
         TypedContent content = TypedContent.create(ContentHandle.create("name: widget\ncount: 3\n"),

@@ -155,4 +155,21 @@ public class InteractiveTableStateTest {
         assertThat(state.getVisibleRows()).isEmpty();
         assertThat(state.getSelectedRow()).isNull();
     }
+
+    @Test
+    public void testStartConfirmDeleteSetsModeWhenRowsPresent() {
+        var state = newState("Apple", "Banana");
+        state.startConfirmDelete();
+        assertThat(state.getMode()).isEqualTo(InteractiveTableState.Mode.CONFIRM_DELETE);
+
+        state.cancelConfirmDelete();
+        assertThat(state.getMode()).isEqualTo(InteractiveTableState.Mode.NORMAL);
+    }
+
+    @Test
+    public void testStartConfirmDeleteNoOpWhenEmpty() {
+        var state = newState();
+        state.startConfirmDelete();
+        assertThat(state.getMode()).isEqualTo(InteractiveTableState.Mode.NORMAL);
+    }
 }

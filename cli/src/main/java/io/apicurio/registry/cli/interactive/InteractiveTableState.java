@@ -28,7 +28,8 @@ public class InteractiveTableState<T> {
 
     public enum Mode {
         NORMAL,
-        FILTER_INPUT
+        FILTER_INPUT,
+        CONFIRM_DELETE
     }
 
     private final Function<T, String> rowRenderer;
@@ -98,6 +99,16 @@ public class InteractiveTableState<T> {
             filterText.deleteCharAt(filterText.length() - 1);
             applyFilter();
         }
+    }
+
+    public void startConfirmDelete() {
+        if (!filteredRows.isEmpty()) {
+            mode = Mode.CONFIRM_DELETE;
+        }
+    }
+
+    public void cancelConfirmDelete() {
+        mode = Mode.NORMAL;
     }
 
     public void commitFilter() {

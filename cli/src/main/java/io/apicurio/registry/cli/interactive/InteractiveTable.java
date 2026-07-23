@@ -78,16 +78,22 @@ public class InteractiveTable<T> {
             try {
                 KeyMap<String> normalKeyMap = buildNormalKeyMap(terminal);
                 KeyMap<String> filterKeyMap = buildFilterKeyMap();
+                KeyMap<String> confirmKeyMap = buildConfirmKeyMap();
                 BindingReader bindingReader = new BindingReader(terminal.reader());
 
                 render(terminal);
                 while (true) {
-                    boolean filtering = state.getMode() == InteractiveTableState.Mode.FILTER_INPUT;
-                    String op = bindingReader.readBinding(filtering ? filterKeyMap : normalKeyMap);
+                    var mode = state.getMode();
+                    KeyMap<String> activeKeyMap = switch (mode) {
+                        case FILTER_INPUT -> filterKeyMap;
+                        case CONFIRM_DELETE -> confirmKeyMap;
+                        case NORMAL -> normalKeyMap;
+                    };
+                    String op = bindingReader.readBinding(activeKeyMap);
                     if (op == null) {
                         return null;
                     }
-                    var result = handleBinding(op, filtering);
+                    var result = handleBinding(op, mode);
                     if (result != null) {
                         return result;
                     }
@@ -98,6 +104,7 @@ public class InteractiveTable<T> {
                 terminal.flush();
             }
         } catch (IOException e) {
+            System.err.println("Interactive mode requires an interactive terminal (TTY).");
             return null;
         }
     }
@@ -133,16 +140,40 @@ public class InteractiveTable<T> {
         return keyMap;
     }
 
-    /** Returns a Selection if the loop should end with a result, or null to keep looping. */
-    private Selection<T> handleBinding(String op, boolean filtering) {
-        if (filtering) {
-            handleFilterBinding(op);
-            return null;
-        }
-        return handleNormalBinding(op);
+    private KeyMap<String> buildConfirmKeyMap() {
+        KeyMap<String> keyMap = new KeyMap<>();
+        keyMap.bind("CONFIRM_YES", "y");
+        keyMap.bind("CONFIRM_YES", "Y");
+        keyMap.bind("CONFIRM_NO", "n");
+        keyMap.bind("CONFIRM_NO", "N");
+        keyMap.bind("ESC", KeyMap.esc());
+        return keyMap;
     }
 
-   private void handleFilterBinding(String op) {
+    /** Returns a Selection if the loop should end with a result, or null to keep looping. */
+    private Selection<T> handleBinding(String op, InteractiveTableState.Mode mode) {
+        return switch (mode) {
+            case FILTER_INPUT -> {
+                handleFilterBinding(op);
+                yield null;
+            }
+            case CONFIRM_DELETE -> handleConfirmDeleteBinding(op);
+            case NORMAL -> handleNormalBinding(op);
+        };
+    }
+
+    private Selection<T> handleConfirmDeleteBinding(String op) {
+        if ("CONFIRM_YES".equals(op)) {
+            state.cancelConfirmDelete();
+            var row = state.getSelectedRow();
+            return row == null ? null : new Selection<>(row, Action.DELETE);
+        } else {
+            state.cancelConfirmDelete();
+            return null;
+        }
+    }
+
+    private void handleFilterBinding(String op) {
         if (op.equals("ESC")) {
             state.clearFilter();
         } else if (op.equals(KEY_ENTER)) {
@@ -153,6 +184,7 @@ public class InteractiveTable<T> {
             state.typeFilterChar(op.charAt(0));
         }
     }
+
     private Selection<T> handleNormalBinding(String op) {
         switch (op) {
             case "QUIT", "ESC" -> {
@@ -163,8 +195,8 @@ public class InteractiveTable<T> {
                 return row == null ? null : new Selection<>(row, Action.VIEW);
             }
             case "DELETE" -> {
-                var row = state.getSelectedRow();
-                return row == null ? null : new Selection<>(row, Action.DELETE);
+                state.startConfirmDelete();
+                return null;
             }
             case "UP" -> state.moveUp();
             case "DOWN" -> state.moveDown();
@@ -181,17 +213,17 @@ public class InteractiveTable<T> {
     }
 
     private void goToPage(int page) {
-    if (pageFetcher == null || page < 1) {
-        return;
+        if (pageFetcher == null || page < 1) {
+            return;
+        }
+        var result = pageFetcher.apply(page);
+        if (result == null || result.rows().isEmpty()) {
+            return;
+        }
+        currentPage = page;
+        hasNextPage = result.hasNextPage();
+        state.setRows(result.rows());
     }
-    var result = pageFetcher.apply(page);
-    if (result == null || result.rows().isEmpty()) {
-        return;
-    }
-    currentPage = page;
-    hasNextPage = result.hasNextPage();
-    state.setRows(result.rows());
-}
 
     private void render(Terminal terminal) {
         terminal.puts(Capability.clear_screen);
@@ -206,6 +238,8 @@ public class InteractiveTable<T> {
         terminal.writer().println();
         if (state.getMode() == InteractiveTableState.Mode.FILTER_INPUT) {
             terminal.writer().println("Filter: " + state.getFilterText() + "_  [Enter: apply, Esc: clear]");
+        } else if (state.getMode() == InteractiveTableState.Mode.CONFIRM_DELETE) {
+            terminal.writer().println("Delete selected artifact? [y/N] ");
         } else {
             var pageInfo = pageFetcher != null ? "  [PgUp/PgDn: page " + currentPage + "]" : "";
             terminal.writer().println("[Enter: view, d: delete, /: search, q/Esc: exit]" + pageInfo);

@@ -154,7 +154,8 @@ public class SearchArtifactsCommand extends AbstractCommand {
             config.getStdOut().print("Description:  " + java.util.Optional.ofNullable(a.getDescription()).orElse("") + "\n");
             config.getStdOut().print("Created:      " + a.getCreatedOn() + "\n");
         } else if (selected.action() == io.apicurio.registry.cli.interactive.InteractiveTable.Action.DELETE) {
-            var deleteGroupId = java.util.Optional.ofNullable(a.getGroupId()).orElse("default");
+            var deleteGroupId = java.util.Optional.ofNullable(a.getGroupId())
+                    .orElseGet(() -> io.apicurio.registry.cli.common.IdUtil.resolveGroupId(groupId, config));
             registryClient.groups().byGroupId(deleteGroupId)
                     .artifacts().byArtifactId(a.getArtifactId()).delete();
             config.getStdOut().print("Artifact '" + a.getArtifactId() + "' in group '"

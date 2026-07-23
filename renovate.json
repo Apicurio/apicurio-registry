@@ -28,7 +28,8 @@
     "docs-playbook/**",
     "examples/**",
     "utils/maven-plugin/src/test/resources/test-builds",
-    "support-chat/**"
+    "support-chat/**",
+    "console-plugin/**"
   ],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 10,

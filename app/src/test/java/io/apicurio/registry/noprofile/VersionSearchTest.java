@@ -154,7 +154,7 @@ public class VersionSearchTest extends AbstractResourceTestBase {
             VersionSearchResultsDto negatedResults = storage.searchVersions(
                     Set.of(SearchFilter.ofGroupId(groupId),
                             SearchFilter.ofContentId(car1.getVersion().getContentId()).negated()),
-                    OrderBy.contentId, OrderDirection.asc, 0, 10, false);
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
             Assertions.assertNotNull(negatedResults);
             Assertions.assertEquals(1, negatedResults.getCount());
             Assertions.assertEquals("content-id-artifact-2",

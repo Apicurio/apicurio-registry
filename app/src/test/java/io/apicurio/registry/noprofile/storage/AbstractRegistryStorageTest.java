@@ -1057,7 +1057,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
             results = storage().searchVersions(
                     Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
                             SearchFilter.ofContentId(dto.getContentId()).negated()),
-                    OrderBy.contentId, OrderDirection.asc, 0, 10, false);
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
             Assertions.assertNotNull(results);
             Assertions.assertEquals(1, results.getCount());
             Assertions.assertEquals(1, results.getVersions().size());

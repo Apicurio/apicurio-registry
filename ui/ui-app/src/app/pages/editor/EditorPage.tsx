@@ -10,6 +10,7 @@ import { useParams } from "react-router";
 import {
     CompareModal,
     DraftRecoveryModal,
+    EditReferencesModal,
     EditorContext,
     EXPLORE_PAGE_IDX,
     PageDataLoader,
@@ -43,6 +44,8 @@ import { useLoggerService } from "@services/useLoggerService.ts";
 import { serializeEditorDraftContent } from "./editorDraftSnapshot.ts";
 import { useEditorDraftRecovery } from "./useEditorDraftRecovery.ts";
 import { useEditorReauthentication } from "./useEditorReauthentication.ts";
+import { ArtifactReference, ReferenceTypeObject } from "@sdk/lib/generated-client/models";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 
 const sectionContextStyle: CSSProperties = {
     borderBottom: "1px solid #ccc",
@@ -92,10 +95,14 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     const [isCompareModalOpen, setCompareModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setPleaseWaitModalOpen] = useState(false);
     const [isConfirmOverwriteModalOpen, setConfirmOverwriteModalOpen] = useState(false);
+    const [isEditReferencesModalOpen, setEditReferencesModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [isContentConflicting, setIsContentConflicting] = useState(false);
     const [isDraftLoaded, setDraftLoaded] = useState(false);
     const [isDraftContentLoaded, setDraftContentLoaded] = useState(false);
+    const [currentReferences, setCurrentReferences] = useState<ArtifactReference[]>([]);
+    const [referencesDirty, setReferencesDirty] = useState(false);
+    const [referencesLoadFailed, setReferencesLoadFailed] = useState(false);
 
     const params = useParams();
     const groupId = params.groupId as string;
@@ -104,6 +111,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     const draftDisplayName = draft.name || draft.draftId;
 
     const drafts = useDraftsService();
+    const groups: GroupsService = useGroupsService();
     const downloadSvc = useDownloadService();
     const logger = useLoggerService();
 
@@ -165,10 +173,27 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         persistDraftRecoverySnapshot
     });
 
+    const loadCurrentReferences = async (globalId: number | undefined): Promise<{ references: ArtifactReference[]; loaded: boolean }> => {
+        if (!globalId) {
+            logger.warn("[EditorPage] Draft has no globalId; skipping references fetch.");
+            return { references: [], loaded: true };
+        }
+        try {
+            const references = await groups.getArtifactReferences(globalId, ReferenceTypeObject.OUTBOUND);
+            return { references, loaded: true };
+        } catch (error) {
+            logger.warn("[EditorPage] Failed to load draft references:", error);
+            return { references: [], loaded: false };
+        }
+    };
+
     const loadDraft = async (): Promise<void> => {
         try {
             const loadedDraft = await drafts.getDraft(groupId, draftId, version);
             setDraft(loadedDraft);
+            const { references, loaded } = await loadCurrentReferences(loadedDraft.globalId);
+            setCurrentReferences(references);
+            setReferencesLoadFailed(!loaded);
             setDraftLoaded(true);
         } catch (error) {
             setPageError(toPageError(error, "Error loading page data."));
@@ -203,6 +228,9 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         setPleaseWaitModalOpen(false);
         setPageError(undefined);
         setIsContentConflicting(false);
+        setCurrentReferences([]);
+        setReferencesDirty(false);
+        setReferencesLoadFailed(false);
         isAuthRedirectInProgressRef.current = false;
         setLoaders(createLoaders());
     }, [draftId, groupId, version]);
@@ -257,13 +285,33 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
 
     const saveDraftContent = async (contentToSave: string): Promise<void> => {
         try {
-            await drafts.updateDraftContent(groupId, draftId, version, {
+            let referencesToSave: ArtifactReference[] = currentReferences;
+
+            if (referencesLoadFailed && !referencesDirty) {
+                const { references, loaded } = await loadCurrentReferences(draft.globalId);
+                if (!loaded) {
+                    setPleaseWaitModalOpen(false);
+                    setPageError(toPageError(
+                        new Error("Could not verify draft references before saving. The save was aborted to avoid overwriting existing references."),
+                        "Error saving draft content."
+                    ));
+                    return;
+                }
+                referencesToSave = references;
+                setCurrentReferences(references);
+                setReferencesLoadFailed(false);
+            }
+
+            const draftContentUpdate: DraftContent = {
                 content: contentToSave,
-                contentType: draftContent.contentType
-            });
+                contentType: draftContent.contentType,
+                references: referencesToSave
+            };
+            await drafts.updateDraftContent(groupId, draftId, version, draftContentUpdate);
             setPleaseWaitModalOpen(false);
             void updateDraftMetadata();
             syncSavedContent(contentToSave);
+            setReferencesDirty(false);
             onDraftSaved();
         } catch (error) {
             setPleaseWaitModalOpen(false);
@@ -339,6 +387,19 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         setCompareModalOpen(false);
     };
 
+    const onEditReferences = (): void => {
+        setEditReferencesModalOpen(true);
+    };
+
+    const closeEditReferencesModal = (): void => {
+        setEditReferencesModalOpen(false);
+    };
+
+    const onConfirmEditReferences = (references: ArtifactReference[]): void => {
+        setCurrentReferences(references);
+        setReferencesDirty(true);
+    };
+
     const notDraftEmptyState = (
         <EmptyState titleText="Not a Draft" icon={WarningTriangleIcon} variant={EmptyStateVariant.sm}>
             <EmptyStateBody>
@@ -395,11 +456,13 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
                     <EditorContext
                         draft={draft}
                         dirty={isDirty}
+                        canSave={isDirty || referencesDirty}
                         contentConflict={isContentConflicting}
                         onSave={onSave}
                         onFormat={onFormat}
                         onDownload={onDownload}
                         onCompareContent={onCompareContent}
+                        onEditReferences={onEditReferences}
                     />
                 </PageSection>
                 <PageSection hasBodyWrapper={false}  id="section-editor" style={sectionEditorStyle} isFilled={true}>
@@ -412,6 +475,14 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
                 beforeName={draftDisplayName}
                 after={currentContent}
                 afterName={draftDisplayName}/>
+            <EditReferencesModal
+                isOpen={isEditReferencesModalOpen}
+                references={currentReferences}
+                content={serializeEditorDraftContent(currentContent)}
+                contentType={draftContent.contentType}
+                artifactType={draft.type}
+                onClose={closeEditReferencesModal}
+                onConfirm={onConfirmEditReferences} />
             <ConfirmOverwriteModal
                 isOpen={isConfirmOverwriteModalOpen}
                 onOverwrite={() => {

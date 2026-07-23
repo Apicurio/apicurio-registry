@@ -10,6 +10,9 @@ import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.v3.beans.ContractRuleSet;
+import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
+import io.apicurio.registry.rest.v3.beans.EditableContractMetadata;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
@@ -611,7 +614,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body("{\"domainRules\":[],\"migrationRules\":[]}")
+                .body(new ContractRuleSet().domainRules(List.of()).migrationRules(List.of()))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then()
                 .statusCode(200);
@@ -642,7 +645,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\",\"ownerTeam\":\"platform-team\"}")
+                .body(new EditableContractMetadata().status("DRAFT").ownerTeam("platform-team"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200);
@@ -673,7 +676,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(new EditableContractMetadata().status("DRAFT"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200);
@@ -683,7 +686,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body("{\"status\":\"STABLE\"}")
+                .body(new ContractStatusTransition().status("STABLE"))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then()
                 .statusCode(200);

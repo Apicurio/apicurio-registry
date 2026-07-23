@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.artifact;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.Conversions;
@@ -10,8 +11,15 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.types.ArtifactType;
+
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -93,13 +101,42 @@ public class ArtifactCreateCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
+        final var supportedTypes = Arrays.stream(ArtifactType.class.getDeclaredFields())
+                .filter(field -> Modifier.isPublic(field.getModifiers())
+                        && Modifier.isStatic(field.getModifiers())
+                        && field.getType().equals(String.class))
+                .map(field -> {
+                    try {
+                        return (String) field.get(null);
+                    } catch (IllegalAccessException e) {
+                        return field.getName();
+                    }
+                })
+                .sorted()
+                .collect(Collectors.toCollection(TreeSet::new));
+
+        final var supportedTypesList = String.join(", ", supportedTypes);
+
+        // 1. Validate missing --type
+        if (isBlank(artifactType)) {
+            throw new CliException(
+                    "Missing required option '--type'. Supported artifact types are: " + supportedTypesList,
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
+
+        // 2. Validate invalid --type
+        if (!supportedTypes.contains(artifactType)) {
+            throw new CliException(
+                    "Invalid value for option '--type': '" + artifactType + "'. Supported artifact types are: " + supportedTypesList,
+                    CliException.VALIDATION_ERROR_RETURN_CODE);
+        }
+
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
 
         final var newArtifact = new CreateArtifact();
         newArtifact.setArtifactId(artifactId);
-        if (!isBlank(artifactType)) {
-            newArtifact.setArtifactType(artifactType);
-        }
+        newArtifact.setArtifactType(artifactType);
+
         if (!isBlank(name)) {
             newArtifact.setName(name);
         }
@@ -112,6 +149,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
             newArtifact.setLabels(newLabels);
         }
 
+        // 3. Optional file content
         if (!isBlank(file)) {
             final var content = FileUtils.readContent(file);
             final var firstVersion = new CreateVersion();

@@ -156,10 +156,16 @@ REPO_URL="http://localhost:${REPO_PORT}"
 info "Mock repo started at $REPO_URL"
 
 # Verify repo is accessible
-if ! curl -sf "$REPO_URL/maven-metadata.xml" >/dev/null; then
-    echo "Mock repo is not accessible at $REPO_URL"
+TIMEOUT=30
+while ! curl -s -f "$REPO_URL" > /dev/null; do
+  TIMEOUT=$((TIMEOUT-1))
+  if [ "$TIMEOUT" -eq 0 ]; then
+    echo "Error: Mock repo is not accessible at $REPO_URL"
+    docker logs "$CONTAINER_NAME"
     exit 1
-fi
+  fi
+  sleep 1
+done
 info "Mock repo verified"
 
 # --- Install CLI from current ZIP ---

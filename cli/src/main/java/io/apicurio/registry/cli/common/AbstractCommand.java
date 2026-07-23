@@ -42,7 +42,7 @@ public abstract class AbstractCommand implements Callable<Integer> {
     public Integer call() {
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
         try {
-            configureVerboseLogging();
+            configureLogging();
             updateNotifier.checkAndNotify(getTopLevelCommandName());
             run(output);
             return OK_RETURN_CODE;
@@ -96,18 +96,83 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return current.name();
     }
 
-    private void configureVerboseLogging() {
+    private static final String LOG_CATEGORY_PREFIX = "quarkus.log.category.\"";
+    private static final String LOG_CATEGORY_SUFFIX = "\".level";
+
+    // Applied at runtime because the packaged CLI ships quarkus.log.level=OFF and Quarkus
+    // resolves quarkus.log.* at build time, so per-package levels in the CLI config are
+    // never picked up by Quarkus's own logging setup.
+    private void configureLogging() {
+        var rootLogger = java.util.logging.Logger.getLogger("");
+        java.util.logging.Level finest = null;
+
         var root = spec.root().userObject();
         if (root instanceof Acr acr && acr.isVerbose()) {
-            // Set the root logger level to FINE (DEBUG equivalent)
-            var rootLogger = java.util.logging.Logger.getLogger("");
             rootLogger.setLevel(java.util.logging.Level.FINE);
-            // Also lower handler levels — Quarkus sets quarkus.log.level=WARN on the
-            // console handler, which filters debug messages even when the logger allows them.
-            for (var handler : rootLogger.getHandlers()) {
-                handler.setLevel(java.util.logging.Level.FINE);
-            }
-            log.debug("Verbose logging enabled.");
+            finest = java.util.logging.Level.FINE;
         }
+
+        for (var entry : readLogCategoryLevels().entrySet()) {
+            java.util.logging.Level level;
+            try {
+                level = toJulLevel(entry.getValue());
+            } catch (IllegalArgumentException ex) {
+                log.warnf("Ignoring invalid log level '%s' for category '%s'.", entry.getValue(), entry.getKey());
+                continue;
+            }
+            java.util.logging.Logger.getLogger(entry.getKey()).setLevel(level);
+            if (finest == null || level.intValue() < finest.intValue()) {
+                finest = level;
+            }
+        }
+
+        // Handlers filter by their own level, so lower them to reveal the finest level we enabled.
+        // Only ever lower, never raise, so we don't suppress unrelated channels the user didn't touch.
+        if (finest != null) {
+            for (var handler : rootLogger.getHandlers()) {
+                handler.setLevel(loweredHandlerLevel(handler.getLevel(), finest));
+            }
+        }
+    }
+
+    private java.util.Map<String, String> readLogCategoryLevels() {
+        java.util.Map<String, String> levels = new java.util.HashMap<>();
+        try {
+            config.read().getConfig().forEach((key, value) -> {
+                if (key.startsWith(LOG_CATEGORY_PREFIX) && key.endsWith(LOG_CATEGORY_SUFFIX)
+                        && key.length() > LOG_CATEGORY_PREFIX.length() + LOG_CATEGORY_SUFFIX.length()) {
+                    levels.put(key.substring(LOG_CATEGORY_PREFIX.length(), key.length() - LOG_CATEGORY_SUFFIX.length()), value);
+                }
+            });
+        } catch (CliException ex) {
+            // Config not available yet (e.g. before install) — logging config is best-effort.
+        }
+        return levels;
+    }
+
+    // Maps Quarkus/JBoss level names (DEBUG, TRACE, WARN, ...) to plain JUL levels. The packaged
+    // CLI runs on plain JUL, where Level.parse does not recognise DEBUG/TRACE.
+    static java.util.logging.Level toJulLevel(String value) {
+        return switch (value.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "OFF" -> java.util.logging.Level.OFF;
+            case "FATAL", "ERROR", "SEVERE" -> java.util.logging.Level.SEVERE;
+            case "WARN", "WARNING" -> java.util.logging.Level.WARNING;
+            case "INFO" -> java.util.logging.Level.INFO;
+            case "CONFIG" -> java.util.logging.Level.CONFIG;
+            case "DEBUG", "FINE" -> java.util.logging.Level.FINE;
+            case "FINER" -> java.util.logging.Level.FINER;
+            case "TRACE", "FINEST" -> java.util.logging.Level.FINEST;
+            case "ALL" -> java.util.logging.Level.ALL;
+            default -> throw new IllegalArgumentException("Unknown log level: " + value);
+        };
+    }
+
+    // Returns floor only when the handler is currently coarser (or unset), so a handler is never
+    // raised (which would hide records from channels the user did not configure).
+    static java.util.logging.Level loweredHandlerLevel(java.util.logging.Level current, java.util.logging.Level floor) {
+        if (current == null || current.intValue() > floor.intValue()) {
+            return floor;
+        }
+        return current;
     }
 }

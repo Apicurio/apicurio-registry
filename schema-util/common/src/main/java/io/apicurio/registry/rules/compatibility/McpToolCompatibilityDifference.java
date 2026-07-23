@@ -9,13 +9,15 @@ import java.util.Objects;
  */
 public class McpToolCompatibilityDifference implements CompatibilityDifference {
 
+    static final String INPUT_SCHEMA_PROPERTIES_CONTEXT = "inputSchema/properties";
+
     public enum Type {
         REQUIRED_PARAM_ADDED("inputSchema/required"),
         REQUIRED_PARAM_REMOVED("inputSchema/required"),
         INPUT_SCHEMA_TYPE_CHANGED("inputSchema/type"),
-        PROPERTY_REMOVED("inputSchema/properties"),
-        PROPERTY_TYPE_CHANGED("inputSchema/properties"),
-        ENUM_VALUE_REMOVED("inputSchema/properties"),
+        PROPERTY_REMOVED(INPUT_SCHEMA_PROPERTIES_CONTEXT),
+        PROPERTY_TYPE_CHANGED(INPUT_SCHEMA_PROPERTIES_CONTEXT),
+        ENUM_VALUE_REMOVED(INPUT_SCHEMA_PROPERTIES_CONTEXT),
         PARSE_ERROR("document");
 
         private final String context;

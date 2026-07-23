@@ -119,7 +119,7 @@ jobs:
 
       - name: Maven Build
         if: inputs.maven-build
-        run: ./mvnw ${{ inputs.maven-args }}
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml ${{ inputs.maven-args }}
 
       - name: Set up Node.js ${{ inputs.node-version }}
         if: inputs.npm-build

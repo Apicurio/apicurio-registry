@@ -82,7 +82,7 @@ jobs:
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match"
             exit 1
@@ -156,13 +156,13 @@ jobs:
       - name: Maven Install
         run: |
           cd registry
-          mvn install -pl app -am -Pprod -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml install -pl app -am -Pprod -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Generate Maven SBOMs
         run: |
           mkdir -p $SBOM_OUTPUT_DIR
           cd registry
-          mvn -f app/pom.xml dependency:tree -DoutputType=dot -Dscope=runtime -DoutputFile=$SBOM_OUTPUT_DIR/apicurio-registry-app-${{ needs.prepare.outputs.release-version }}.runtime.sbom.dot
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml -f app/pom.xml dependency:tree -DoutputType=dot -Dscope=runtime -DoutputFile=$SBOM_OUTPUT_DIR/apicurio-registry-app-${{ needs.prepare.outputs.release-version }}.runtime.sbom.dot
 
       - name: Generate npm SBOMs
         run: |
@@ -198,7 +198,7 @@ jobs:
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match"
             exit 1
@@ -213,9 +213,9 @@ jobs:
       - name: Generate Maven Site
         run: |
           cd registry
-          mvn clean install -pl utils/maven-plugin -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml clean install -pl utils/maven-plugin -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
           cd utils/maven-plugin
-          mvn site --no-transfer-progress
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml site --no-transfer-progress
 
       - name: Apicurio Website Checkout
         run: |

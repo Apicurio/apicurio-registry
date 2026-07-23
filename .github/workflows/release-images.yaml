@@ -92,7 +92,7 @@ jobs:
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != $RELEASE_VERSION ]]
           then
               echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${RELEASE_VERSION}'"
@@ -115,7 +115,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         working-directory: registry
         run: |
-          ./mvnw clean package -am --no-transfer-progress -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+          ./mvnw -s ${{ github.workspace }}/registry/.github/ci-settings.xml clean package -am --no-transfer-progress -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 

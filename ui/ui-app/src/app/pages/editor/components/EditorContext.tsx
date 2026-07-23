@@ -19,6 +19,9 @@ export type EditorContextProps = {
     onFormat: () => void;
     onDownload: () => void;
     onCompareContent: () => void;
+    onEditReferences: () => void;
+    /** When true, Save is enabled even if content is not dirty (e.g. pending reference edits). */
+    canSave?: boolean;
 }
 
 type EditorContextMenuItem = {
@@ -49,6 +52,11 @@ export const EditorContext: FunctionComponent<EditorContextProps> = (props: Edit
             testId: "action-compare",
             isDisabled: () => { return !props.dirty; },
             onSelect: props.onCompareContent
+        },
+        {
+            label: "Edit references",
+            testId: "action-edit-references",
+            onSelect: props.onEditReferences
         },
         {
             isDivider: true
@@ -119,7 +127,7 @@ export const EditorContext: FunctionComponent<EditorContextProps> = (props: Edit
                     itemToString={item => item.label} />
             </div>
             <div key="editor-context-save" className="editor-context-save">
-                <Button className="btn-save" variant="primary" onClick={() => props.onSave()} isDisabled={!props.dirty}>Save</Button>
+                <Button className="btn-save" variant="primary" onClick={() => props.onSave()} isDisabled={!(props.canSave ?? props.dirty)}>Save</Button>
             </div>
         </div>
     );

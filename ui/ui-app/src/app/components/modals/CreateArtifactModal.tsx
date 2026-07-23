@@ -426,7 +426,6 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 itemIsDivider={(item) => item.isDivider}
                                 itemToTestId={(item) => `create-artifact-modal-${item.value}`}
                                 itemToString={(item) => item.label}
-                                appendTo="document"
                             />
                             <FormHelperText>
                                 <HelperText>

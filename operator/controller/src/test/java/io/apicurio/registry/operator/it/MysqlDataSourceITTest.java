@@ -26,7 +26,7 @@ public class MysqlDataSourceITTest extends ITBase {
         client.load(MysqlDataSourceITTest.class
                 .getResourceAsStream("/k8s/examples/mysql/example-mysql-database.yaml")).create();
         // await for MySQL to be available
-        await().ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
+        await().atMost(DATABASE_TIMEOUT).ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
                 .withName("example-mysql-database").get().getStatus().getReadyReplicas()));
 
         var registry = ResourceFactory.deserialize(
@@ -36,7 +36,7 @@ public class MysqlDataSourceITTest extends ITBase {
 
         client.resource(registry).create();
 
-        await().ignoreExceptions().until(() -> {
+        await().atMost(DATABASE_TIMEOUT).ignoreExceptions().until(() -> {
             assertThat(client.apps().deployments().inNamespace(namespace)
                     .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
                     .getReadyReplicas().intValue()).isEqualTo(1);

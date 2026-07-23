@@ -344,4 +344,363 @@ class McpToolCompatibilityCheckerTest {
 
         assertTrue(result.isCompatible(), "Identical schema with description change should be fully compatible");
     }
+
+    @Test
+    void testBackwardIncompatibleParameterTypeChange() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "integer" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing an existing parameter type should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleEnumNarrowing() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json", "xml", "csv"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Narrowing an existing parameter enum should be backward incompatible");
+    }
+
+    @Test
+    void testCompatibleWhenPropertyTypeIsNull() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "description": "free-form query" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Missing/null property type on one side should not be treated as a type change");
+    }
+
+    @Test
+    void testCompatibleWhenPropertyEnumIsNull() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json", "xml"] }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Missing/null enum on one side should not be treated as enum narrowing");
+    }
+
+    @Test
+    void testBackwardIncompatibleCombinedTypeChangeAndEnumNarrowing() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "format": { "type": "string", "enum": ["json", "xml", "csv"] }
+                        },
+                        "required": ["query", "format"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "integer" },
+                            "format": { "type": "string", "enum": ["json"] }
+                        },
+                        "required": ["query", "format"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Combined parameter type change and enum narrowing should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleAddingPropertyWithUnchangedSharedSchema() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string", "enum": ["q1", "q2"] }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string", "enum": ["q1", "q2"] },
+                            "limit": { "type": "integer" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Adding a property while leaving shared property schemas unchanged should be compatible");
+    }
+
+    @Test
+    void testForwardCompatibleEnumValueAddition() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json", "xml"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.FORWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Adding an enum value should be forward compatible");
+    }
+
+    @Test
+    void testForwardIncompatibleEnumNarrowing() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json", "xml"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": { "type": "string", "enum": ["json"] }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.FORWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Narrowing an enum relative to the prior version should be forward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleArrayTypeNarrowing() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": ["string", "null"] }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing null from an array-typed property type should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleArrayTypeWidening() {
+        String existing = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "search_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": ["string", "null"] }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Adding null to an array-typed property type should be backward compatible");
+    }
 }

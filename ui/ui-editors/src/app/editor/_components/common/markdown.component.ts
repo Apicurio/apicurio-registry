@@ -16,7 +16,9 @@
  */
 
 import {Component, Input, OnChanges, SimpleChanges, ViewEncapsulation} from "@angular/core";
+import {DomSanitizer, SafeHtml} from "@angular/platform-browser";
 import * as marked from "marked";
+import DOMPurify from "dompurify";
 
 @Component({
     selector: "markdown",
@@ -30,17 +32,18 @@ export class MarkdownComponent implements OnChanges {
     @Input("emptyText")
     emptyText: string = "No value.";
 
-    public convertedData: any;
+    public convertedData: SafeHtml;
+
+    constructor(private sanitizer: DomSanitizer) {}
 
     ngOnChanges(changes: SimpleChanges): void {
         if (this.data) {
-            // TODO sanitize the result using e.g. DOMPurify
             const mrval = marked.parse(this.data, {});
             if (typeof mrval === "string") {
-                this.convertedData = mrval;
+                this.convertedData = this.sanitizer.bypassSecurityTrustHtml(DOMPurify.sanitize(mrval));
             } else {
                 mrval.then(value => {
-                    this.convertedData = value;
+                    this.convertedData = this.sanitizer.bypassSecurityTrustHtml(DOMPurify.sanitize(value));
                 });
             }
         }

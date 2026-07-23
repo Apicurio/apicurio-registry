@@ -7,6 +7,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.PodSpec;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.condition.DisabledIf;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -41,16 +42,11 @@ public class RestrictedNamespaceITTest extends ITBase {
     }
 
     @Test
+    @DisabledIf("io.apicurio.registry.operator.it.ITBase#isLocalDeployment")
     void smoke() {
         // We will create 3 namespaces, and specify that the operator should watch 2 of them.
         // We need to set the env. variable of the operator deployment, which we can't do with OLM or local deployment,
         // unless we pass the variable in another way. TODO ConfigMap?
-        if (operatorDeployment == OperatorDeployment.local) {
-            log.warn("This test requires an ability to edit the operator Deployment, so it's not supported when running locally.");
-            // TODO: For OLM Deployment, try ConfigMap or annotations.
-            return;
-        }
-
         var operatorDeploymentCell = k8sCell(client, this::getOperatorDeployment);
 
         var namespace1 = calculateNamespace();

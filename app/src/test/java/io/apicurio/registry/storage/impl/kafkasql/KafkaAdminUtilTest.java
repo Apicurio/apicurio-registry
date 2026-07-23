@@ -35,6 +35,9 @@ public class KafkaAdminUtilTest {
 
     private KafkaAdminUtil kafkaAdminUtil;
     private KafkaConsumer<Bytes, Bytes> consumer;
+    private KafkaSqlConfiguration config;
+    @SuppressWarnings("unchecked")
+    private Instance<KafkaSqlConfiguration> configInstance;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
@@ -47,11 +50,11 @@ public class KafkaAdminUtilTest {
         Instance<KafkaSqlVerificationJournalConsumer> verificationInstance = mock(Instance.class);
         when(verificationInstance.get()).thenReturn(verificationResource);
 
-        KafkaSqlConfiguration config = mock(KafkaSqlConfiguration.class);
+        config = mock(KafkaSqlConfiguration.class);
         when(config.getPollTimeout()).thenReturn(Duration.ofMillis(100));
         when(config.getTopic()).thenReturn(TEST_TOPIC);
 
-        Instance<KafkaSqlConfiguration> configInstance = mock(Instance.class);
+        configInstance = mock(Instance.class);
         when(configInstance.get()).thenReturn(config);
 
         kafkaAdminUtil = new KafkaAdminUtil();

@@ -11,6 +11,7 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
@@ -26,6 +27,10 @@ public final class RuleUtil {
             .map(RuleType::getValue)
             .toList();
 
+    // Invariant: VALID_CONFIGS must contain an entry for every rule type in VALID_RULE_TYPES.
+    // A rule type present in VALID_RULE_TYPES but missing here would be advertised by the
+    // {{rule-types}} help placeholder yet silently omitted from {{rule-configs}}, so keep the two
+    // in sync when adding a new rule type.
     private static final Map<String, List<String>> VALID_CONFIGS = Map.of(
             RuleType.VALIDITY.getValue(), Stream.of(ValidityLevel.values())
                     .map(Enum::name).toList(),
@@ -36,6 +41,26 @@ public final class RuleUtil {
     );
 
     private RuleUtil() {
+    }
+
+    /**
+     * Renders the valid rule types as a comma-separated list, for use in help text via the
+     * {@code {{rule-types}}} placeholder.
+     */
+    public static String renderRuleTypes() {
+        return String.join(", ", VALID_RULE_TYPES);
+    }
+
+    /**
+     * Renders the valid configuration values for each rule type, one indented line per type, for
+     * use in help text via the {@code {{rule-configs}}} placeholder. Lines are separated by
+     * {@code %n} so picocli renders them as separate lines.
+     */
+    public static String renderRuleConfigs() {
+        return VALID_RULE_TYPES.stream()
+                .filter(VALID_CONFIGS::containsKey)
+                .map(type -> "  " + type + ": " + String.join(" | ", VALID_CONFIGS.get(type)))
+                .collect(Collectors.joining("%n"));
     }
 
     public static void validateRuleType(final String ruleType) {

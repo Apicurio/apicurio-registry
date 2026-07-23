@@ -666,12 +666,30 @@ export class OaiEditorComponent extends AbstractApiEditorComponent implements On
 
                 imports.forEach(imp => {
                     console.info("[ApiEditorComponent] Importing component: ", imp.name);
-                    // TODO check for name collisions
                     let name: string = imp.name;
                     let fromRef: any = {$ref: imp.$ref};
+
+                    let doc: any = this.document();
+                    let counter = 1;
+                    if (doc.is2xDocument()) {
+                        if (imp.type === ComponentType.schema && doc.definitions) {
+                            while (doc.definitions.getDefinition(name) != null) name = imp.name + "-" + counter++;
+                        } else if (imp.type === ComponentType.response && doc.responses) {
+                            while (doc.responses.getResponse(name) != null) name = imp.name + "-" + counter++;
+                        }
+                    } else {
+                        if (doc.components) {
+                            if (imp.type === ComponentType.schema) {
+                                while (doc.components.getSchemaDefinition(name) != null) name = imp.name + "-" + counter++;
+                            } else if (imp.type === ComponentType.response) {
+                                while (doc.components.getResponseDefinition(name) != null) name = imp.name + "-" + counter++;
+                            }
+                        }
+                    }
+
                     if (imp.type === ComponentType.schema) {
                         commands.push(CommandFactory.createAddSchemaDefinitionCommand(this.document().getDocumentType(), name, fromRef));
-                    } else if (type === ComponentType.response) {
+                    } else if (imp.type === ComponentType.response) {
                         commands.push(CommandFactory.createAddResponseDefinitionCommand(this.document().getDocumentType(), name, fromRef));
                     }
                 });

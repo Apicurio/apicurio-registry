@@ -668,15 +668,33 @@ export class AaiEditorComponent extends AbstractApiEditorComponent implements On
 
                 imports.forEach(imp => {
                     console.info("[AsyncApiEditorComponent] Importing component: ", imp.name);
-                    // TODO check for name collisions
                     let name: string = imp.name;
                     let fromRef: any = {$ref: imp.$ref};
+
+                    let docComponents: any = this.document().components;
+                    let counter = 1;
+                    if (docComponents) {
+                        if (imp.type === ComponentType.schema) {
+                            while (docComponents.getSchemaDefinition(name) != null) {
+                                name = imp.name + "-" + counter++;
+                            }
+                        } else if (imp.type === ComponentType.messageTrait) {
+                            while (docComponents.getMessageTraitDefinition(name) != null) {
+                                name = imp.name + "-" + counter++;
+                            }
+                        } else if (imp.type === ComponentType.message) {
+                            while (docComponents.getMessage(name) != null) {
+                                name = imp.name + "-" + counter++;
+                            }
+                        }
+                    }
+
                     if (imp.type === ComponentType.schema) {
                         commands.push(CommandFactory.createAddSchemaDefinitionCommand(this.document().getDocumentType(), name, fromRef));
-                    } else if (type === ComponentType.messageTrait) {
+                    } else if (imp.type === ComponentType.messageTrait) {
                         //commands.push(CommandFactory.createAddResponseDefinitionCommand(this.document().getDocumentType(), name, fromRef));
-                    } else if (type === ComponentType.message) {
-                        // commands.push(CommandFactory.createNewMessageDefinitionCommand(imp.name, fromRef));
+                    } else if (imp.type === ComponentType.message) {
+                        // commands.push(CommandFactory.createNewMessageDefinitionCommand(name, fromRef));
                     }
                 });
 

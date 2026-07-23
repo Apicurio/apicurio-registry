@@ -41,7 +41,7 @@ jobs:
       # -Dfull: include all optional modules needed for the Docker image
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build
-        run: ./mvnw -B clean package -Dfull -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
 
       - name: Build operand image
         run: |
@@ -305,7 +305,7 @@ jobs:
       # -Dfull: include all optional modules needed for a complete operator build
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build for install file generation
-        run: ./mvnw -B clean package -Dfull -pl operator/controller -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull -pl operator/controller -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
 
       - name: Update install file
         working-directory: operator

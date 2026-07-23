@@ -39,4 +39,4 @@ jobs:
 
       - name: Build backend
         working-directory: console-plugin/backend
-        run: ../../mvnw -B clean package -DskipTests -Dcheckstyle.skip
+        run: ../../mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -DskipTests -Dcheckstyle.skip

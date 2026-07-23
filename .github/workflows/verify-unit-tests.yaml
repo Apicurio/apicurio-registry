@@ -90,7 +90,7 @@ jobs:
           # -Dsurefire.rerunFailingTestsCount=2: automatically retry flaky tests up to 2 times
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
-            --no-transfer-progress \
+            --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             ${{ inputs.scalpel-enabled == 'true' && '-Dscalpel.enabled=true' || '' }} \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \

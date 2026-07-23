@@ -5,7 +5,8 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.Map;
 
 /**
- * Test profile that enables the experimental features gate and A2A so that A2A endpoints are accessible.
+ * Test profile that enables the experimental features gate, A2A and MCP tools so that the
+ * corresponding well-known endpoints are accessible.
  */
 public class ExperimentalFeaturesEnabledProfile implements QuarkusTestProfile {
 
@@ -13,7 +14,8 @@ public class ExperimentalFeaturesEnabledProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         return Map.of(
                 "apicurio.features.experimental.enabled", "true",
-                "apicurio.a2a.enabled", "true"
+                "apicurio.a2a.enabled", "true",
+                "apicurio.mcp-tools.enabled", "true"
         );
     }
 }

@@ -197,11 +197,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Query matches artifact metadata name and artifactId (not Agent Card JSON content).
         // Full-text content search is tracked in #7230.
         if (!StringUtil.isEmpty(request.getQuery())) {
-            String q = request.getQuery().trim();
-            if (!q.contains("*")) {
-                q = "*" + q + "*";
-            }
-            filters.add(SearchFilter.ofName(q));
+            filters.add(SearchFilter.ofPartialName(request.getQuery()));
         }
 
         AgentSearchFilters f = request.getFilters();
@@ -333,9 +329,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Always filter by AGENT_CARD artifact type
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
 
-        // Filter by name if provided
+        // Filter by name if provided. The name filter is documented as a partial match, so
+        // wrap the value in wildcards unless the caller supplied their own.
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            filters.add(SearchFilter.ofPartialName(name));
         }
 
         // Filter by skills (indexed as structured content: agent_card:skill:<id>)
@@ -533,8 +530,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
 
+        // The name filter is documented as a partial match, so wrap the value in wildcards
+        // unless the caller supplied their own.
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            filters.add(SearchFilter.ofPartialName(name));
         }
 
         if (parameters != null && !parameters.isEmpty()) {

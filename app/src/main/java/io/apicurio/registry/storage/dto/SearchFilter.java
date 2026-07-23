@@ -50,6 +50,21 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.name, value);
     }
 
+    /**
+     * Creates a name filter for a partial (substring) match. The value is wrapped in wildcards unless the
+     * caller already supplied one, so that a caller-provided prefix ("weather*") or suffix ("*weather")
+     * search is preserved as-is.
+     *
+     * @param value the name to match on
+     */
+    public static SearchFilter ofPartialName(String value) {
+        String name = value.trim();
+        if (!name.contains("*")) {
+            name = "*" + name + "*";
+        }
+        return ofName(name);
+    }
+
     public static SearchFilter ofDescription(String value) {
         return new SearchFilter(SearchFilterType.description, value);
     }

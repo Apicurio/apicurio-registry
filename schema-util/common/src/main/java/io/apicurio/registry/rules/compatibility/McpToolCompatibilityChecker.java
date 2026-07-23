@@ -6,8 +6,11 @@ import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Compatibility checker for MCP tool definition artifacts.
@@ -24,6 +27,50 @@ public class McpToolCompatibilityChecker
         extends AbstractCompatibilityChecker<McpToolCompatibilityDifference> {
 
     private static final ObjectMapper mapper = new ObjectMapper();
+
+    /**
+     * The MCP tool compatibility rules are structural and direction-agnostic, so they must always be
+     * evaluated with the existing content as the baseline and the proposed content as the new version.
+     * Relying on {@link AbstractCompatibilityChecker}'s argument swapping for the FORWARD and FULL levels
+     * would mislabel added properties as removed (and vice versa).
+     */
+    @Override
+    public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel,
+            List<TypedContent> existingArtifacts, TypedContent proposedArtifact,
+            Map<String, TypedContent> resolvedReferences) {
+        requireNonNull(compatibilityLevel, "compatibilityLevel MUST NOT be null");
+        requireNonNull(existingArtifacts, "existingArtifacts MUST NOT be null");
+        requireNonNull(proposedArtifact, "proposedArtifact MUST NOT be null");
+
+        if (compatibilityLevel == CompatibilityLevel.NONE || existingArtifacts.isEmpty()) {
+            return CompatibilityExecutionResult.compatible();
+        }
+
+        String proposed = proposedArtifact.getContent().content();
+        Set<CompatibilityDifference> differences = new HashSet<>();
+        // The structural MCP tool rules are direction-agnostic, so BACKWARD, FORWARD and FULL (and
+        // their transitive variants) all evaluate identically here. The per-case switch is kept for
+        // readability only, not because the levels behave differently — there is no missing per-level logic.
+        switch (compatibilityLevel) {
+            case BACKWARD_TRANSITIVE:
+            case FORWARD_TRANSITIVE:
+            case FULL_TRANSITIVE:
+                for (TypedContent existing : existingArtifacts) {
+                    differences.addAll(
+                            isBackwardsCompatibleWith(existing.getContent().content(), proposed,
+                                    resolvedReferences));
+                }
+                break;
+            default:
+                // Relies on existingArtifacts being ordered with the most recent version last — a
+                // contract guaranteed by AbstractCompatibilityChecker's callers. A future refactor of
+                // the base class must not silently break this ordering without updating this check.
+                String latest = existingArtifacts.get(existingArtifacts.size() - 1).getContent().content();
+                differences.addAll(isBackwardsCompatibleWith(latest, proposed, resolvedReferences));
+                break;
+        }
+        return CompatibilityExecutionResult.incompatibleOrEmpty(differences);
+    }
 
     @Override
     protected Set<McpToolCompatibilityDifference> isBackwardsCompatibleWith(String existing,

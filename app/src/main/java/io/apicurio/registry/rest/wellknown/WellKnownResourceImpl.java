@@ -17,6 +17,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.mcptools.McpToolsConfig;
+import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResult;
 import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
@@ -55,7 +56,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -552,6 +556,134 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return McpToolSearchResults.builder().count(results.getCount()).tools(tools).build();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public McpCompatibleToolsResults findCompatibleTools(String groupId, String artifactId,
+            String version, Integer offset, Integer limit) {
+        if (!mcpToolsConfig.isEnabled()) {
+            throw new NotFoundException("MCP tools support is disabled");
+        }
+
+        GroupId gid = new GroupId(groupId);
+        String rawGroupId = gid.getRawGroupIdWithNull();
+        GA ga = new GA(rawGroupId, artifactId);
+
+        StoredArtifactVersionDto sourceArtifact;
+        try {
+            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            GAV gav = VersionExpressionParser.parse(ga, versionExpression,
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+            ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            if (!ArtifactType.MCP_TOOL.equals(metadata.getArtifactType())) {
+                throw new NotFoundException("Artifact is not an MCP tool definition");
+            }
+
+            sourceArtifact = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+            throw new NotFoundException("MCP tool not found: " + groupId + "/" + artifactId);
+        }
+
+        Map<String, String> sourceOutputProps = new HashMap<>();
+        try {
+            JsonNode sourceRoot = mapper.readTree(sourceArtifact.getContent().content());
+            JsonNode outputSchema = sourceRoot.path("outputSchema");
+            if (outputSchema.isObject()) {
+                JsonNode properties = outputSchema.path("properties");
+                if (properties.isObject()) {
+                    Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
+                    while (fields.hasNext()) {
+                        Map.Entry<String, JsonNode> field = fields.next();
+                        String propName = field.getKey();
+                        JsonNode propVal = field.getValue();
+                        String propType = propVal.has("type") && propVal.get("type").isTextual()
+                                ? propVal.get("type").asText() : null;
+                        sourceOutputProps.put(propName, propType);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse source MCP tool outputSchema for {}/{}: {}",
+                    groupId, artifactId, e.getMessage());
+        }
+
+        if (sourceOutputProps.isEmpty()) {
+            return McpCompatibleToolsResults.builder().count(0).tools(Collections.emptyList()).build();
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
+
+        ArtifactSearchResultsDto candidateResults = storage.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+
+        List<McpToolSearchResult> compatibleTools = new ArrayList<>();
+        for (SearchedArtifactDto candidate : candidateResults.getArtifacts()) {
+            if (artifactId.equals(candidate.getArtifactId())
+                    && ((rawGroupId == null && candidate.getGroupId() == null)
+                            || (rawGroupId != null && rawGroupId.equals(candidate.getGroupId())))) {
+                continue;
+            }
+
+            try {
+                GA candidateGa = new GA(candidate.getGroupId(), candidate.getArtifactId());
+                GAV candidateGav = VersionExpressionParser.parse(candidateGa, "branch=latest",
+                        (g, branchId) -> storage.getBranchTip(g, branchId,
+                                RetrievalBehavior.SKIP_DISABLED_LATEST));
+                StoredArtifactVersionDto candidateStored = storage.getArtifactVersionContent(
+                        candidateGav.getRawGroupIdWithNull(), candidateGav.getRawArtifactId(),
+                        candidateGav.getRawVersionId());
+
+                JsonNode candidateRoot = mapper.readTree(candidateStored.getContent().content());
+                JsonNode candidateInputSchema = candidateRoot.path("inputSchema");
+                if (candidateInputSchema.isObject()) {
+                    JsonNode candidateProps = candidateInputSchema.path("properties");
+                    if (candidateProps.isObject()) {
+                        boolean matchesAll = true;
+                        for (Map.Entry<String, String> entry : sourceOutputProps.entrySet()) {
+                            String reqProp = entry.getKey();
+                            String reqType = entry.getValue();
+
+                            if (!candidateProps.has(reqProp)) {
+                                matchesAll = false;
+                                break;
+                            }
+                            if (reqType != null) {
+                                JsonNode candPropVal = candidateProps.get(reqProp);
+                                String candType = candPropVal.has("type") && candPropVal.get("type").isTextual()
+                                        ? candPropVal.get("type").asText() : null;
+                                if (candType != null && !reqType.equals(candType)) {
+                                    matchesAll = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (matchesAll) {
+                            compatibleTools.add(convertToMcpToolSearchResult(candidate));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to evaluate compatibility for candidate MCP tool {}/{}: {}",
+                        candidate.getGroupId(), candidate.getArtifactId(), e.getMessage());
+            }
+        }
+
+        int total = compatibleTools.size();
+        int safeOffset = Math.max(0, offset);
+        int safeLimit = Math.max(1, limit);
+        int fromIndex = Math.min(safeOffset, total);
+        int toIndex = Math.min(fromIndex + safeLimit, total);
+        List<McpToolSearchResult> page = compatibleTools.subList(fromIndex, toIndex);
+
+        return McpCompatibleToolsResults.builder().count(total).tools(page).build();
     }
 
     /**

@@ -28,7 +28,9 @@
     "docs-playbook/**",
     "examples/**",
     "utils/maven-plugin/src/test/resources/test-builds",
-    "support-chat/**"
+    "support-chat/**",
+    "console-plugin/**",
+    ".github/workflows/verify-console-plugin.yaml"
   ],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 10,

@@ -46,6 +46,10 @@ public class AuthConfig {
     @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "3.X.X.Final")
     boolean basicAuthEnabled;
 
+    @ConfigProperty(name = "quarkus.http.auth.form.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable form auth. Requires configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm).", availableSince = "3.3.1")
+    boolean formAuthEnabled;
+
     // TODO: Add suffix?
     @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
     @Info(category = CATEGORY_AUTH, description = "Default client credentials token expiration time in minutes.", availableSince = "2.2.6.Final")
@@ -195,7 +199,7 @@ public class AuthConfig {
     Optional<String> kubernetesReadOnlyGroups;
 
     @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")
-    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc, kubernetes.", availableSince = "3.2.3")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, form, proxy-header, oidc, kubernetes.", availableSince = "3.2.3")
     String mechanismPriority;
 
     @PostConstruct
@@ -203,6 +207,7 @@ public class AuthConfig {
         log.debug("===============================");
         log.debug("OIDC Auth Enabled: " + oidcAuthEnabled);
         log.debug("Basic Auth Enabled: " + basicAuthEnabled);
+        log.debug("Form Auth Enabled: " + formAuthEnabled);
         log.debug("Proxy Auth Enabled: " + proxyHeaderAuthEnabled);
         log.debug("Kubernetes Auth Enabled: " + kubernetesAuthEnabled);
         log.debug("Mechanism Priority: " + mechanismPriority);
@@ -231,6 +236,14 @@ public class AuthConfig {
 
     public boolean isBasicAuthEnabled() {
         return this.basicAuthEnabled;
+    }
+
+    public boolean isFormAuthEnabled() {
+        return this.formAuthEnabled;
+    }
+
+    public boolean isProxyHeaderAuthEnabled() {
+        return this.proxyHeaderAuthEnabled;
     }
 
     public boolean isRbacEnabled() {

@@ -276,13 +276,22 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
         const artifactType = data.type || undefined;
         setIsDetectingRefs(true);
         groups.detectContentReferences(data.content, contentType, artifactType).then(refs => {
-            const formItems: ArtifactReferenceFormItem[] = refs.map(ref => ({
+            const detected: ArtifactReferenceFormItem[] = refs.map(ref => ({
                 name: ref.name || "",
                 groupId: ref.groupId || "",
                 artifactId: ref.artifactId || "",
                 version: ref.version || ""
             }));
-            _setVersionReferences(formItems);
+            setVersionReferences(current => {
+                const existingNames = new Set(current.map(item => item.name));
+                const newOnes = detected.filter(item => !existingNames.has(item.name));
+                const merged = [...current, ...newOnes];
+                setData(prev => ({
+                    ...prev,
+                    references: formItemsToReferences(merged)
+                }));
+                return merged;
+            });
         }).catch(error => {
             console.error("[CreateDraftModal] Failed to detect references:", error);
         }).finally(() => {

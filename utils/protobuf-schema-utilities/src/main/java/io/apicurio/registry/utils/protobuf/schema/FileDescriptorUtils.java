@@ -1248,6 +1248,20 @@ public class FileDescriptorUtils {
     }
 
     private static MessageElement toMessage(FileDescriptorProto file, DescriptorProto descriptor) {
+        return toMessage(file, getMessageFullName(file, descriptor.getName()), descriptor);
+    }
+
+    private static String getMessageFullName(FileDescriptorProto file, String messageName) {
+        String packageName = file.getPackage();
+        if (packageName != null && !packageName.isEmpty()) {
+            return "." + packageName + "." + messageName;
+        } else {
+            return "." + messageName;
+        }
+    }
+
+    private static MessageElement toMessage(FileDescriptorProto file, String messageFullName,
+            DescriptorProto descriptor) {
         String name = descriptor.getName();
         ImmutableList.Builder<FieldElement> fields = ImmutableList.builder();
         ImmutableList.Builder<TypeElement> nested = ImmutableList.builder();
@@ -1259,30 +1273,81 @@ public class FileDescriptorUtils {
         }
         List<Map.Entry<String, ImmutableList.Builder<FieldElement>>> oneofs = new ArrayList<>(
                 oneofsMap.entrySet());
+        Map<String, String> mapEntryTypes = collectNestedTypes(file, messageFullName, descriptor, nested);
+        collectFields(file, descriptor, mapEntryTypes, fields, oneofs);
+        collectReserved(descriptor, reserved);
+        collectExtensions(descriptor, extensions);
+        ImmutableList.Builder<OptionElement> options = messageOptions(descriptor);
+
+        return new MessageElement(DEFAULT_LOCATION, name, "", nested.build(), options.build(),
+                reserved.build(), fields.build(), oneofs.stream()
+                // Ignore oneOfs with no fields (like Proto3 Optional)
+                .filter(e -> e.getValue().build().size() != 0)
+                .map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
+                extensions.build(), Collections.emptyList(), Collections.emptyList());
+    }
+
+    // Map fields are represented in descriptors as repeated message fields whose type is a
+    // synthetic nested message with the map_entry option enabled. Collapse them back to the
+    // map<KeyType, ValueType> syntax used in .proto text files, and omit the synthetic entry
+    // message from the nested type list.
+    //
+    // The returned map is keyed by the simple (unqualified) entry message name so that it works
+    // regardless of whether the descriptor uses fully-qualified type names (protoc-compiled
+    // descriptors, e.g. ".pkg.Payload.AttributesEntry") or short names (dynamically-built
+    // descriptors, e.g. "attributesEntry"). The field's type_name always resolves to the
+    // entry message's simple name as its last path component.
+    private static Map<String, String> collectNestedTypes(FileDescriptorProto file, String messageFullName,
+            DescriptorProto descriptor, ImmutableList.Builder<TypeElement> nested) {
+        Map<String, String> mapEntryTypes = new HashMap<>();
+        for (DescriptorProto nestedDesc : descriptor.getNestedTypeList()) {
+            String nestedFullName = messageFullName + "." + nestedDesc.getName();
+            if (nestedDesc.getOptions().getMapEntry()) {
+                FieldDescriptorProto keyField = findFieldByName(nestedDesc, KEY_FIELD);
+                FieldDescriptorProto valueField = findFieldByName(nestedDesc, VALUE_FIELD);
+                if (keyField == null || valueField == null) {
+                    throw new IllegalArgumentException(
+                            "Malformed map entry message '" + nestedFullName
+                                    + "': missing required 'key' or 'value' field.");
+                }
+                String keyType = getMapEntryFieldType(file, keyField);
+                String valueType = getMapEntryFieldType(file, valueField);
+                mapEntryTypes.put(nestedDesc.getName(), "map<" + keyType + ", " + valueType + ">");
+            } else {
+                nested.add(toMessage(file, nestedFullName, nestedDesc));
+            }
+        }
+        for (EnumDescriptorProto nestedDesc : descriptor.getEnumTypeList()) {
+            nested.add(toEnum(nestedDesc));
+        }
+        return mapEntryTypes;
+    }
+
+    private static void collectFields(FileDescriptorProto file, DescriptorProto descriptor,
+            Map<String, String> mapEntryTypes, ImmutableList.Builder<FieldElement> fields,
+            List<Map.Entry<String, ImmutableList.Builder<FieldElement>>> oneofs) {
         List<FieldElement> proto3OptionalFields = new ArrayList<>();
         for (FieldDescriptorProto fd : descriptor.getFieldList()) {
             if (fd.hasProto3Optional()) {
                 proto3OptionalFields.add(toField(file, fd, false));
                 continue;
             }
-            if (fd.hasOneofIndex()) {
+            String mapType = fd.hasTypeName() ? mapEntryTypes.get(getSimpleName(fd.getTypeName())) : null;
+            if (mapType != null) {
+                fields.add(toField(fd, mapType, null));
+            } else if (fd.hasOneofIndex()) {
                 FieldElement field = toField(file, fd, true);
                 oneofs.get(fd.getOneofIndex()).getValue().add(field);
-            }
-            else {
+            } else {
                 FieldElement field = toField(file, fd, false);
                 fields.add(field);
             }
         }
         fields.addAll(proto3OptionalFields);
-        for (DescriptorProto nestedDesc : descriptor.getNestedTypeList()) {
-            MessageElement nestedMessage = toMessage(file, nestedDesc);
-            nested.add(nestedMessage);
-        }
-        for (EnumDescriptorProto nestedDesc : descriptor.getEnumTypeList()) {
-            EnumElement nestedEnum = toEnum(nestedDesc);
-            nested.add(nestedEnum);
-        }
+    }
+
+    private static void collectReserved(DescriptorProto descriptor,
+            ImmutableList.Builder<ReservedElement> reserved) {
         for (String reservedName : descriptor.getReservedNameList()) {
             ReservedElement reservedElem = new ReservedElement(DEFAULT_LOCATION, "",
                     Collections.singletonList(reservedName));
@@ -1296,14 +1361,22 @@ public class FileDescriptorUtils {
             ReservedElement reservedElem = new ReservedElement(DEFAULT_LOCATION, "", values);
             reserved.add(reservedElem);
         }
+    }
+
+    private static void collectExtensions(DescriptorProto descriptor,
+            ImmutableList.Builder<ExtensionsElement> extensions) {
         for (DescriptorProto.ExtensionRange extensionRange : descriptor.getExtensionRangeList()) {
             List<IntRange> values = new ArrayList<>();
             int start = extensionRange.getStart();
             int end = extensionRange.getEnd() - 1;
             values.add(new IntRange(start, end));
-            ExtensionsElement extensionsElement = new ExtensionsElement(DEFAULT_LOCATION, "", values, Collections.emptyList());
+            ExtensionsElement extensionsElement = new ExtensionsElement(DEFAULT_LOCATION, "", values,
+                    Collections.emptyList());
             extensions.add(extensionsElement);
         }
+    }
+
+    private static ImmutableList.Builder<OptionElement> messageOptions(DescriptorProto descriptor) {
         ImmutableList.Builder<OptionElement> options = ImmutableList.builder();
         if (descriptor.getOptions().hasMapEntry()) {
             OptionElement option = new OptionElement(MAP_ENTRY_OPTION, booleanKind,
@@ -1315,13 +1388,7 @@ public class FileDescriptorUtils {
                     descriptor.getOptions().getNoStandardDescriptorAccessor(), false);
             options.add(option);
         }
-
-        return new MessageElement(DEFAULT_LOCATION, name, "", nested.build(), options.build(),
-                reserved.build(), fields.build(), oneofs.stream()
-                // Ignore oneOfs with no fields (like Proto3 Optional)
-                .filter(e -> e.getValue().build().size() != 0)
-                .map(e -> toOneof(e.getKey(), e.getValue())).collect(Collectors.toList()),
-                extensions.build(), Collections.emptyList(), Collections.emptyList());
+        return options;
     }
 
     private static OneOfElement toOneof(String name, ImmutableList.Builder<FieldElement> fields) {
@@ -1381,6 +1448,10 @@ public class FileDescriptorUtils {
     }
 
     private static FieldElement toField(FileDescriptorProto file, FieldDescriptorProto fd, boolean inOneof) {
+        return toField(fd, dataType(fd), inOneof ? null : label(file, fd));
+    }
+
+    private static FieldElement toField(FieldDescriptorProto fd, String type, Field.Label label) {
         String name = fd.getName();
         DescriptorProtos.FieldOptions fieldDescriptorOptions = fd.getOptions();
         ImmutableList.Builder<OptionElement> options = ImmutableList.builder();
@@ -1427,8 +1498,52 @@ public class FileDescriptorUtils {
         String jsonName = null;
         String defaultValue = fd.hasDefaultValue() && fd.getDefaultValue() != null ? fd.getDefaultValue()
                 : null;
-        return new FieldElement(DEFAULT_LOCATION, inOneof ? null : label(file, fd), dataType(fd), name,
-                defaultValue, jsonName, fd.getNumber(), "", options.build());
+        return new FieldElement(DEFAULT_LOCATION, label, type, name, defaultValue, jsonName, fd.getNumber(), "", options.build());
+    }
+
+    private static FieldDescriptorProto findFieldByName(DescriptorProto descriptor, String name) {
+        for (FieldDescriptorProto field : descriptor.getFieldList()) {
+            if (field.getName().equals(name)) {
+                return field;
+            }
+        }
+        return null;
+    }
+
+    private static String getMapEntryFieldType(FileDescriptorProto file, FieldDescriptorProto field) {
+        Objects.requireNonNull(field, "field must not be null");
+        if (field.hasTypeName()) {
+            return toRelativeTypeName(field.getTypeName(), file.getPackage());
+        }
+        return dataType(field);
+    }
+
+    private static String toRelativeTypeName(String typeName, String packageName) {
+        if (typeName == null) {
+            return null;
+        }
+        if (typeName.startsWith(".")) {
+            String fullyQualified = typeName.substring(1);
+            if (packageName != null && !packageName.isEmpty() && fullyQualified.startsWith(packageName + ".")) {
+                return fullyQualified.substring(packageName.length() + 1);
+            }
+            return fullyQualified;
+        }
+        return typeName;
+    }
+
+    /**
+     * Extracts the simple (unqualified) name from a potentially fully-qualified type name.
+     * Works for both fully-qualified names (e.g. ".com.example.Payload.AttributesEntry" -&gt;
+     * "AttributesEntry") and short names (e.g. "attributesEntry" -&gt; "attributesEntry").
+     */
+    private static String getSimpleName(String typeName) {
+        if (typeName == null) {
+            return null;
+        }
+        String name = typeName.startsWith(".") ? typeName.substring(1) : typeName;
+        int lastDot = name.lastIndexOf('.');
+        return lastDot >= 0 ? name.substring(lastDot + 1) : name;
     }
 
     private static ReservedElement toReserved(EnumDescriptorProto.EnumReservedRange range) {

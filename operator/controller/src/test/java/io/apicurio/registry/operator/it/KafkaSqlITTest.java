@@ -2,7 +2,6 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -13,16 +12,13 @@ import static io.apicurio.registry.operator.Tags.SLOW;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 
 @QuarkusTest
+@NeedsStrimzi
 @Tag(KAFKA)
 @Tag(SLOW)
 public class KafkaSqlITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlITTest.class);
 
-    @BeforeAll
-    public void beforeAll() throws Exception {
-        applyStrimziResources();
-    }
 
     @Test
     void testKafkaSQLPlain() {

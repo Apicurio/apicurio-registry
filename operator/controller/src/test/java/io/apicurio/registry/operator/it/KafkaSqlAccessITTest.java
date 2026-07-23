@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
+@NeedsStrimzi
 @Tag(KAFKA)
 @Tag(SLOW)
 public class KafkaSqlAccessITTest extends ITBase {
@@ -49,7 +50,6 @@ public class KafkaSqlAccessITTest extends ITBase {
 
     @BeforeAll
     public void beforeAll() throws Exception {
-        applyStrimziResources();
         if (!kafkaAccessOperatorInstalled) {
             installKafkaAccessOperator();
         }

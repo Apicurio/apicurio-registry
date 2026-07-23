@@ -165,7 +165,7 @@ and tags starting with `3.`.
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |
-| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 8-group test matrix on Minikube (smoke, kafka, auth, database, feature, feature-setup, OLM v0, OLM v1), publish to Quay.io on push. Cancels in-progress on new push | 45-90 min |
+| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 9-group test matrix on Minikube (smoke, kafka, auth, database, feature, feature-setup, operator-mutation, OLM v0, OLM v1), publish to Quay.io on push. Cancels in-progress on new push | 45-90 min |
 | `image-scan.yaml` | Daily at 06:00 UTC, workflow_dispatch | Trivy vulnerability scan on `latest-snapshot` image (CRITICAL + HIGH severity). Results uploaded to GitHub Security tab as SARIF | 5-10 min |
 
 ## Reusable Workflows

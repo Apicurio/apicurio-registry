@@ -91,14 +91,12 @@ public class OperatorTestExtension implements InvocationInterceptor, AfterTestEx
         if (context.getExecutionException().isEmpty()) {
             return;
         }
-        Object testInstance = context.getRequiredTestInstance();
-        if (testInstance instanceof OperatorTestContext ctx) {
+        OperatorTestContext ctx = resolveContext(context);
+        if (ctx != null) {
             var client = ctx.getClient();
             var namespace = ctx.getNamespace();
             if (client != null && namespace != null) {
                 ClusterDiagnostics.dump(client, namespace, ctx.isOLMTest());
-                // E.g. the shared Strimzi operator namespace: its reconcile logs are the primary
-                // diagnostic for Kafka CR failures in the test namespace.
                 for (String extra : ctx.extraDiagnosticNamespaces()) {
                     if (client.namespaces().withName(extra).get() != null) {
                         ClusterDiagnostics.dump(client, extra, false);
@@ -108,8 +106,16 @@ public class OperatorTestExtension implements InvocationInterceptor, AfterTestEx
                 log.warn("Cannot dump cluster diagnostics: client={}, namespace={}", client, namespace);
             }
         } else {
-            log.warn("Test class does not implement OperatorTestContext, skipping cluster diagnostics");
+            log.warn("No OperatorTestContext for this test, skipping cluster diagnostics");
         }
+    }
+
+    private OperatorTestContext resolveContext(ExtensionContext context) {
+        if (context.getRequiredTestInstance() instanceof OperatorTestContext ctx) {
+            return ctx;
+        }
+        return context.getStore(OperatorTestContext.STORE_NAMESPACE)
+                .get(OperatorTestContext.class, OperatorTestContext.class);
     }
 
     private void runCleanupBetweenRetries(ReflectiveInvocationContext<Method> invocationContext) {

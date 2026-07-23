@@ -8,11 +8,15 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -131,12 +135,67 @@ public class Update {
         if (content == null) {
             throw new CliException("Failed to download " + fileUri);
         }
+        verifyChecksum(fileUri, content);
         try {
             Files.write(targetFile, content);
             log.infof("Successfully downloaded file to: %s", targetFile);
             return targetFile;
         } catch (Exception e) {
             throw new CliException("Error writing downloaded file to: " + targetFile, e, APPLICATION_ERROR_RETURN_CODE);
+        }
+    }
+
+    /**
+     * Verifies the SHA-256 checksum of the downloaded content against the {@code .sha256} file
+     * published alongside it in the repository, failing the update if they do not match.
+     */
+    private void verifyChecksum(String fileUri, byte[] content) {
+        var checksumUri = fileUri + ".sha256";
+        log.debugf("Verifying download integrity using: %s", checksumUri);
+        // fetchBytes returns null (it does not throw) on any failure, so a missing or unreachable
+        // checksum is turned into a hard failure here to keep verification fail-closed.
+        var checksumBytes = fetchBytes(checksumUri, getTimeoutSeconds());
+        if (checksumBytes == null) {
+            throw new CliException("Could not download the checksum from " + checksumUri
+                    + " to verify the integrity of the update.");
+        }
+        var expected = parseChecksum(checksumBytes);
+        var actual = sha256Hex(content);
+        if (!expected.equals(actual)) {
+            throw new CliException("Checksum verification failed for " + fileUri
+                    + ". Expected SHA-256 " + expected + " but got " + actual
+                    + ". The download may be corrupted; please try again.");
+        }
+        log.debugf("Checksum verified: %s", actual);
+    }
+
+    /**
+     * Extracts the hex digest from a Maven checksum file, which contains the digest optionally
+     * followed by whitespace and the file name.
+     */
+    static String parseChecksum(byte[] checksumBytes) {
+        var text = new String(checksumBytes, StandardCharsets.UTF_8).trim();
+        var end = 0;
+        while (end < text.length() && !Character.isWhitespace(text.charAt(end))) {
+            end++;
+        }
+        return text.substring(0, end).toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Computes the lowercase hex SHA-256 digest of the given content.
+     */
+    static String sha256Hex(byte[] content) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256").digest(content);
+            var sb = new StringBuilder(digest.length * 2);
+            for (var b : digest) {
+                sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+                sb.append(Character.forDigit(b & 0xF, 16));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new CliException("SHA-256 algorithm is not available.", e, APPLICATION_ERROR_RETURN_CODE);
         }
     }
 
@@ -166,7 +225,8 @@ public class Update {
                     .setPort(port)
                     .setHost(uri.getHost())
                     .setURI(uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : ""))
-                    .setSsl(ssl);
+                    .setSsl(ssl)
+                    .setFollowRedirects(true);
 
             log.debugf("Fetching: %s", url);
 

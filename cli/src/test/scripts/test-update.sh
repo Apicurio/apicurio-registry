@@ -29,6 +29,18 @@ pass() { local msg="$1"; echo -e "${GREEN}PASS${NC}: ${msg}"; }
 fail() { local msg="$1"; echo -e "${RED}FAIL${NC}: ${msg}"; FAILURES=$((FAILURES + 1)); }
 info() { local msg="$1"; echo -e "${YELLOW}INFO${NC}: ${msg}"; }
 
+# Copies a ZIP into the mock repo and writes its SHA-256 checksum file, mirroring what Maven
+# Central publishes, so the CLI's download integrity check can verify it.
+publish_zip() {
+    local src="$1" dest="$2"
+    cp "$src" "$dest"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$dest" | awk '{print $1}' > "$dest.sha256"
+    else
+        shasum -a 256 "$dest" | awk '{print $1}' > "$dest.sha256"
+    fi
+}
+
 # Runs acr_runner, prints the command and its output, and stores combined output in $ACR_OUTPUT.
 # Usage: run_acr [ENV_VAR=value...] <args...>
 # Returns the exit code of acr_runner.
@@ -118,8 +130,8 @@ ARTIFACT_DIR_NEWER="$REPO_DIR/$FAKE_NEWER_VERSION"
 mkdir -p "$ARTIFACT_DIR" "$ARTIFACT_DIR_NEWER"
 
 # Copy the real ZIP as the "new version"
-cp "$CLI_ZIP" "$ARTIFACT_DIR/apicurio-registry-cli-${FAKE_NEW_VERSION}-${PLATFORM}.zip"
-cp "$CLI_ZIP" "$ARTIFACT_DIR_NEWER/apicurio-registry-cli-${FAKE_NEWER_VERSION}-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$ARTIFACT_DIR/apicurio-registry-cli-${FAKE_NEW_VERSION}-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$ARTIFACT_DIR_NEWER/apicurio-registry-cli-${FAKE_NEWER_VERSION}-${PLATFORM}.zip"
 
 # Create maven-metadata.xml
 cat > "$REPO_DIR/maven-metadata.xml" <<XMLEOF
@@ -284,7 +296,7 @@ info "--- Test 6: Single candidate auto-updates ---"
 SINGLE_REPO="$WORK_DIR/single-repo"
 SINGLE_ARTIFACT="$SINGLE_REPO/$FAKE_NEWER_VERSION"
 mkdir -p "$SINGLE_ARTIFACT"
-cp "$CLI_ZIP" "$SINGLE_ARTIFACT/apicurio-registry-cli-${FAKE_NEWER_VERSION}-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$SINGLE_ARTIFACT/apicurio-registry-cli-${FAKE_NEWER_VERSION}-${PLATFORM}.zip"
 
 cat > "$SINGLE_REPO/maven-metadata.xml" <<XMLEOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -354,8 +366,8 @@ info "--- Test 7: Redhat versions ignored for community CLI ---"
 
 REDHAT_REPO="$WORK_DIR/redhat-repo"
 mkdir -p "$REDHAT_REPO/3.1.0" "$REDHAT_REPO/3.1.0.redhat-00001"
-cp "$CLI_ZIP" "$REDHAT_REPO/3.1.0/apicurio-registry-cli-3.1.0-${PLATFORM}.zip"
-cp "$CLI_ZIP" "$REDHAT_REPO/3.1.0.redhat-00001/apicurio-registry-cli-3.1.0.redhat-00001-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$REDHAT_REPO/3.1.0/apicurio-registry-cli-3.1.0-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$REDHAT_REPO/3.1.0.redhat-00001/apicurio-registry-cli-3.1.0.redhat-00001-${PLATFORM}.zip"
 
 cat > "$REDHAT_REPO/maven-metadata.xml" <<XMLEOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -411,7 +423,7 @@ info "--- Test 9: Unparseable versions handled gracefully ---"
 
 WEIRD_REPO="$WORK_DIR/weird-repo"
 mkdir -p "$WEIRD_REPO/3.1.0"
-cp "$CLI_ZIP" "$WEIRD_REPO/3.1.0/apicurio-registry-cli-3.1.0-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$WEIRD_REPO/3.1.0/apicurio-registry-cli-3.1.0-${PLATFORM}.zip"
 
 cat > "$WEIRD_REPO/maven-metadata.xml" <<XMLEOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -447,8 +459,8 @@ info "--- Test 10: Patch auto-selected over minor ---"
 
 PATCH_REPO="$WORK_DIR/patch-repo"
 mkdir -p "$PATCH_REPO/3.2.5" "$PATCH_REPO/3.3.0"
-cp "$CLI_ZIP" "$PATCH_REPO/3.2.5/apicurio-registry-cli-3.2.5-${PLATFORM}.zip"
-cp "$CLI_ZIP" "$PATCH_REPO/3.3.0/apicurio-registry-cli-3.3.0-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$PATCH_REPO/3.2.5/apicurio-registry-cli-3.2.5-${PLATFORM}.zip"
+publish_zip "$CLI_ZIP" "$PATCH_REPO/3.3.0/apicurio-registry-cli-3.3.0-${PLATFORM}.zip"
 
 cat > "$PATCH_REPO/maven-metadata.xml" <<XMLEOF
 <?xml version="1.0" encoding="UTF-8"?>

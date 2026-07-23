@@ -12,11 +12,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.jboss.logging.Logger;
 import picocli.CommandLine.Command;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
+import static java.nio.file.StandardCopyOption.COPY_ATTRIBUTES;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 @Command(
@@ -43,6 +46,9 @@ public class InstallCommand extends AbstractCommand {
 
     // Directory names
     public static final String BIN_DIR = "bin";
+
+    // Suffix used for the backup copies kept while replacing an existing installation.
+    public static final String BACKUP_SUFFIX = ".bak";
 
     // Placeholders and markers
     public static final String ACR_HOME_PLACEHOLDER = "{{ACR_HOME}}";
@@ -121,7 +127,26 @@ public class InstallCommand extends AbstractCommand {
      * The distribution ZIP already contains the correct OS-specific acr_env file,
      * so no OS detection is needed for file selection.
      */
+    // Files overwritten or modified in place by copyDistributionFiles; all are backed up so a
+    // failed install can be rolled back to the previous working installation.
+    private static final String[] INSTALLED_FILES = {
+            ACR_SCRIPT, ACR_BINARY, README, COMPLETIONS, ACR_ENV, CONFIG_JSON
+    };
+
     private void copyFiles(final Path currentPath, final Path cliHomePath) throws IOException {
+        // Back up every installed file that will be overwritten so a failed copy can be rolled
+        // back, keeping the previous working installation until the new one is fully in place.
+        final Map<Path, Path> backups = backupExisting(cliHomePath, INSTALLED_FILES);
+        try {
+            copyDistributionFiles(currentPath, cliHomePath);
+            deleteBackups(backups);
+        } catch (IOException | RuntimeException e) {
+            restoreBackups(backups, e);
+            throw e;
+        }
+    }
+
+    private void copyDistributionFiles(final Path currentPath, final Path cliHomePath) throws IOException {
         // Copy common files
         Files.copy(currentPath.resolve(ACR_SCRIPT), cliHomePath.resolve(ACR_SCRIPT), REPLACE_EXISTING);
         Files.copy(currentPath.resolve(ACR_BINARY), cliHomePath.resolve(ACR_BINARY), REPLACE_EXISTING);
@@ -157,6 +182,57 @@ public class InstallCommand extends AbstractCommand {
                 log.debugf("Updated installation version to %d", ConfigModel.CURRENT_INSTALLATION_VERSION);
             }
         }
+    }
+
+    /**
+     * Copies each existing file to a sibling {@code .bak} file so it can be restored if the
+     * installation fails partway through. Files that do not yet exist (fresh install) are skipped.
+     *
+     * @return a map of original path to its backup path
+     */
+    private Map<Path, Path> backupExisting(final Path cliHomePath, final String... fileNames) throws IOException {
+        final Map<Path, Path> backups = new LinkedHashMap<>();
+        for (final String fileName : fileNames) {
+            final Path target = cliHomePath.resolve(fileName);
+            if (Files.exists(target)) {
+                final Path backup = cliHomePath.resolve(fileName + BACKUP_SUFFIX);
+                Files.copy(target, backup, REPLACE_EXISTING, COPY_ATTRIBUTES);
+                backups.put(target, backup);
+            }
+        }
+        return backups;
+    }
+
+    /**
+     * Restores the previous installation from the backups and removes the backup files, so the
+     * user is left with the working version they had before the failed install. A restore that
+     * itself fails is attached to the original failure as a suppressed exception, since it may
+     * leave a partially-overwritten file behind that the caller needs to know about.
+     */
+    private void restoreBackups(final Map<Path, Path> backups, final Throwable primary) {
+        backups.forEach((original, backup) -> {
+            try {
+                Files.copy(backup, original, REPLACE_EXISTING, COPY_ATTRIBUTES);
+                Files.deleteIfExists(backup);
+                log.debugf("Rolled back %s from backup", original);
+            } catch (IOException restoreError) {
+                log.errorf(restoreError, "Failed to roll back %s from backup %s", original, backup);
+                primary.addSuppressed(restoreError);
+            }
+        });
+    }
+
+    /**
+     * Removes the backup files after a successful installation.
+     */
+    private void deleteBackups(final Map<Path, Path> backups) {
+        backups.values().forEach(backup -> {
+            try {
+                Files.deleteIfExists(backup);
+            } catch (IOException e) {
+                log.warnf("Could not delete backup file %s: %s", backup, e.getMessage());
+            }
+        });
     }
 
     /**

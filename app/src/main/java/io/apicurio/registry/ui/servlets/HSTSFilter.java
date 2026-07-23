@@ -17,20 +17,28 @@ public class HSTSFilter implements Filter {
 
     private static final long MAX_AGE = 31536000; // one year
     private static final String HSTS_HEADER = "max-age=" + MAX_AGE + "; includeSubDomains";
+    private static final String X_CONTENT_TYPE_OPTIONS_HEADER = "X-Content-Type-Options";
+    private static final String X_CONTENT_TYPE_OPTIONS_VALUE = "nosniff";
 
     public static void addHstsHeaders(HttpServletResponse httpResponse) {
         httpResponse.setHeader("Strict-Transport-Security", HSTS_HEADER);
+        httpResponse.setHeader(X_CONTENT_TYPE_OPTIONS_HEADER, X_CONTENT_TYPE_OPTIONS_VALUE);
     }
 
     /**
-     * Resets the response but preserves the HSTS header, which {@link HttpServletResponse#reset()} would
-     * otherwise clear. Callers that reset the response to produce an error should use this instead.
+     * Resets the response but preserves the HSTS and X-Content-Type-Options headers, which
+     * {@link HttpServletResponse#reset()} would otherwise clear. Callers that reset the response to
+     * produce an error should use this instead.
      */
     public static void resetKeepingHstsHeader(HttpServletResponse httpResponse) {
         String hsts = httpResponse.getHeader("Strict-Transport-Security");
+        String xcto = httpResponse.getHeader(X_CONTENT_TYPE_OPTIONS_HEADER);
         httpResponse.reset();
         if (hsts != null) {
             httpResponse.setHeader("Strict-Transport-Security", hsts);
+        }
+        if (xcto != null) {
+            httpResponse.setHeader(X_CONTENT_TYPE_OPTIONS_HEADER, xcto);
         }
     }
 

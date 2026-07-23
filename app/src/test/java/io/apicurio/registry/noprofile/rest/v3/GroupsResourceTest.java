@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -1728,6 +1729,29 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 });
         assertEquals(1, comments.size());
         assertEquals("COMMENT_1", comments.get(0).getValue());
+    }
+
+    @Test
+    public void testArtifactCommentNotFound() throws Exception {
+        String artifactId = "testArtifactCommentNotFound/EmptyAPI";
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create OpenAPI artifact
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        // Delete a non-existent comment -> should be 404, not 500
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("commentId", "999999")
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments/{commentId}")
+                .then().statusCode(HTTP_NOT_FOUND);
+
+        // Update a non-existent comment -> should be 404, not 500
+        NewComment nc = NewComment.builder().value("COMMENT_UPDATED").build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("commentId", "999999").body(nc)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments/{commentId}")
+                .then().statusCode(HTTP_NOT_FOUND);
     }
 
     @Test

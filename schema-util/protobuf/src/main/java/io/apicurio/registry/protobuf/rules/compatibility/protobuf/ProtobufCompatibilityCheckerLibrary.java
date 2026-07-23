@@ -360,13 +360,13 @@ public class ProtobufCompatibilityCheckerLibrary {
             return buildFullyQualifiedName(file, type);
         }
 
-        // For types we can't locate in the schema, infer the fully qualified name
-        // This handles cross-file references or types that might be defined elsewhere
-        if (messageContext != null && !messageContext.isEmpty()) {
-            return buildFullyQualifiedName(file, messageContext + "." + type);
-        }
-
-        // Default: assume it's a top-level type
+        // For types not found in the current file (e.g., imported types), resolve against the
+        // current package. Protobuf scoping resolves unqualified simple names that are not found
+        // in nested scopes against the file's package, not against the current message context.
+        //
+        // Genuinely nested types (e.g. "Envelope.Type" referenced from a sibling field within
+        // the same file) are already handled by the scope-iteration loop above, which walks the
+        // messageContext chain outward before reaching this fallback.
         return buildFullyQualifiedName(file, type);
     }
 

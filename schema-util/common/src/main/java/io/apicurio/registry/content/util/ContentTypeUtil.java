@@ -14,6 +14,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Locale;
 
 public final class ContentTypeUtil {
 
@@ -87,7 +88,7 @@ public final class ContentTypeUtil {
             return false;
         }
         // Check for standard text/plain and variations
-        return ct.toLowerCase().contains(CT_TEXT_PLAIN);
+        return ct.toLowerCase(Locale.ROOT).contains(CT_TEXT_PLAIN);
     }
 
     /**
@@ -160,8 +161,12 @@ public final class ContentTypeUtil {
     public static JsonNode parseJsonOrYaml(TypedContent content) throws IOException {
         JsonNode node = null;
         String contentType = content.getContentType();
-        if (contentType.toLowerCase().contains("yaml") || contentType.toLowerCase().contains("yml")
-                || contentType.equalsIgnoreCase("text/x-prompt-template")) {
+        // A null content type is treated as unknown: fall back to JSON parsing. The callers
+        // (content accepters, reference finders, validators) deliberately let a null content
+        // type through, so this must not throw on null.
+        if (contentType != null && (contentType.toLowerCase(Locale.ROOT).contains("yaml")
+                || contentType.toLowerCase(Locale.ROOT).contains("yml")
+                || contentType.equalsIgnoreCase("text/x-prompt-template"))) {
             node = ContentTypeUtil.parseYaml(content.getContent());
         } else {
             node = ContentTypeUtil.parseJson(content.getContent());

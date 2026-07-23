@@ -1,6 +1,8 @@
 package io.apicurio.registry.content.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -44,5 +46,42 @@ public class ContentTypeUtilTest {
                 + "<root>&lol;</root>";
         ContentHandle content = ContentHandle.create(billionLaughs);
         Assertions.assertFalse(ContentTypeUtil.isParsableXml(content));
+    }
+
+    @Test
+    public void testParseJsonOrYaml_nullContentType_parsesAsJson() throws Exception {
+        // Callers (content accepters, reference finders, validators) let a null content type
+        // through on purpose. parseJsonOrYaml must treat null as unknown and fall back to JSON
+        // instead of throwing an NPE on contentType.toLowerCase().
+        TypedContent content = TypedContent.create(ContentHandle.create("{\"name\": \"widget\"}"), null);
+
+        JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+
+        Assertions.assertTrue(node.isObject());
+        Assertions.assertEquals("widget", node.get("name").asText());
+    }
+
+    @Test
+    public void testParseJsonOrYaml_nullContentType_jsonObject() throws Exception {
+        TypedContent content = TypedContent.create(ContentHandle.create("{\"a\": 1, \"b\": 2}"), null);
+
+        JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+
+        Assertions.assertTrue(node.isObject());
+        Assertions.assertEquals(1, node.get("a").asInt());
+        Assertions.assertEquals(2, node.get("b").asInt());
+    }
+
+    @Test
+    public void testParseJsonOrYaml_yamlContentType() throws Exception {
+        // An explicit YAML content type must still route through the YAML branch.
+        TypedContent content = TypedContent.create(ContentHandle.create("name: widget\ncount: 3\n"),
+                "application/x-yaml");
+
+        JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+
+        Assertions.assertTrue(node.isObject());
+        Assertions.assertEquals("widget", node.get("name").asText());
+        Assertions.assertEquals(3, node.get("count").asInt());
     }
 }

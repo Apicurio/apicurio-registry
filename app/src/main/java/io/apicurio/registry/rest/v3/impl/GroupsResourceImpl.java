@@ -948,6 +948,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
         String filename = artifactId + ext;
+
         if (Boolean.TRUE.equals(canonical)) {
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(artifactCell.get().getReferences(),

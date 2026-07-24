@@ -195,6 +195,10 @@
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
+                        <!-- Tests assert on plain help output. On Windows picocli enables ANSI
+                             from the environment (for example TERM in Git Bash) rather than from
+                             a console check, so it has to be disabled explicitly. -->
+                        <picocli.ansi>false</picocli.ansi>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

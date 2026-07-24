@@ -22,6 +22,9 @@
             quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-23
         </quarkus.native.builder-image>
         <jna.version>5.19.1</jna.version>
+        <!-- Suffix of the native executable. Empty on Linux/macOS, ".exe" on Windows
+             (set by the windows profile below). -->
+        <executable.suffix></executable.suffix>
         <!-- CLI branding and update defaults. Override in productized profiles. -->
         <update.repo.url>https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli</update.repo.url>
         <branding.product-name>Apicurio Registry CLI</branding.product-name>
@@ -266,6 +269,19 @@
     </build>
 
     <profiles>
+        <!-- On Windows the native executable and the packaged binary carry a ".exe" suffix. -->
+        <profile>
+            <id>cli-windows-executable</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <executable.suffix>.exe</executable.suffix>
+            </properties>
+        </profile>
+
         <!-- Attaches pre-built CLI ZIPs for other architectures (e.g., macOS aarch64)
              that were downloaded into cli/target/ before the build.
              Activated by -DcliAttachArtifacts. Used during Maven Central deploy. -->

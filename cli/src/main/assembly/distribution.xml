@@ -6,8 +6,8 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <files>
         <file>
-            <source>${project.build.directory}/${project.build.finalName}-runner</source>
-            <destName>acr_runner</destName>
+            <source>${project.build.directory}/${project.build.finalName}-runner${executable.suffix}</source>
+            <destName>acr_runner${executable.suffix}</destName>
             <outputDirectory>/</outputDirectory>
             <fileMode>0755</fileMode>
         </file>

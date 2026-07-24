@@ -1,4 +1,6 @@
+import json
 from typing import Any, Optional
+from urllib.parse import quote
 
 import httpx
 
@@ -11,9 +13,13 @@ class McpToolDiscovery:
     def __init__(self, config: RegistryConfig) -> None:
         self._config = config
         self._wellknown = WellKnownClient(config)
+        self._api_client = httpx.AsyncClient(
+            headers=config.auth_headers(), timeout=config.timeout
+        )
 
     async def close(self) -> None:
         await self._wellknown.close()
+        await self._api_client.aclose()
 
     async def __aenter__(self) -> "McpToolDiscovery":
         return self
@@ -48,6 +54,8 @@ class McpToolDiscovery:
         limit = 100
         while True:
             page = await self.search(offset=offset, limit=limit)
+            if not page.tools:
+                break
             results.extend(
                 t.model_dump(by_alias=True, exclude_none=True) for t in page.tools
             )
@@ -63,23 +71,18 @@ class McpToolDiscovery:
         group_id: Optional[str] = None,
     ) -> None:
         gid = group_id or self._config.default_group_id
-        url = f"{self._config.api_base_url}/groups/{gid}/artifacts"
-        import json
-
-        async with httpx.AsyncClient(
-            headers=self._config.auth_headers(), timeout=self._config.timeout
-        ) as client:
-            resp = await client.post(
-                url,
-                json={
-                    "artifactId": artifact_id,
-                    "artifactType": "MCP_TOOL",
-                    "firstVersion": {
-                        "content": {
-                            "content": json.dumps(tool_definition),
-                            "contentType": "application/json",
-                        }
-                    },
+        url = f"{self._config.api_base_url}/groups/{quote(gid, safe='')}/artifacts"
+        resp = await self._api_client.post(
+            url,
+            json={
+                "artifactId": artifact_id,
+                "artifactType": "MCP_TOOL",
+                "firstVersion": {
+                    "content": {
+                        "content": json.dumps(tool_definition),
+                        "contentType": "application/json",
+                    }
                 },
-            )
-            resp.raise_for_status()
+            },
+        )
+        resp.raise_for_status()

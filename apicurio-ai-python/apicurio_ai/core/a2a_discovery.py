@@ -1,5 +1,6 @@
 import json
 from typing import Any, Optional
+from urllib.parse import quote
 
 import httpx
 
@@ -16,9 +17,13 @@ class AgentDiscovery:
     def __init__(self, config: RegistryConfig) -> None:
         self._config = config
         self._wellknown = WellKnownClient(config)
+        self._api_client = httpx.AsyncClient(
+            headers=config.auth_headers(), timeout=config.timeout
+        )
 
     async def close(self) -> None:
         await self._wellknown.close()
+        await self._api_client.aclose()
 
     async def __aenter__(self) -> "AgentDiscovery":
         return self
@@ -80,7 +85,7 @@ class AgentDiscovery:
         labels: Optional[dict[str, str]] = None,
     ) -> None:
         gid = group_id or self._config.default_group_id
-        url = f"{self._config.api_base_url}/groups/{gid}/artifacts"
+        url = f"{self._config.api_base_url}/groups/{quote(gid, safe='')}/artifacts"
         body: dict[str, Any] = {
             "artifactId": artifact_id,
             "artifactType": "AGENT_CARD",
@@ -93,8 +98,5 @@ class AgentDiscovery:
         }
         if labels:
             body["labels"] = labels
-        async with httpx.AsyncClient(
-            headers=self._config.auth_headers(), timeout=self._config.timeout
-        ) as client:
-            resp = await client.post(url, json=body)
-            resp.raise_for_status()
+        resp = await self._api_client.post(url, json=body)
+        resp.raise_for_status()

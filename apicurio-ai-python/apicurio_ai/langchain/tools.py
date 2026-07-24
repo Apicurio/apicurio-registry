@@ -14,7 +14,6 @@ except ImportError as e:
 def _build_tool_from_definition(tool_def: dict[str, Any]) -> StructuredTool:
     name = tool_def.get("name", "unknown_tool")
     description = tool_def.get("description", "")
-    input_schema = tool_def.get("inputSchema", {})
 
     def _not_implemented(**kwargs: Any) -> str:
         raise NotImplementedError(

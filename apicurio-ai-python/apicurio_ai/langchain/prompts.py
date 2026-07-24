@@ -41,7 +41,7 @@ class ApicurioPromptTemplate:
             version=self._version,
         )
         template_text = _extract_template_text(raw)
-        langchain_template = re.sub(r"\{\{(\w+)\}\}", r"{\1}", template_text)
+        langchain_template = re.sub(r"\{\{([\w.\-]+)\}\}", r"{\1}", template_text)
         return ChatPromptTemplate.from_template(langchain_template)
 
 

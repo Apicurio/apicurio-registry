@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "apicurio-ai"
+version = "0.1.0"
+description = "Apicurio Registry AI integration for Python - MCP discovery, A2A discovery, Prompt governance"
+authors = ["Apicurio"]
+readme = "README.md"
+packages = [{include = "apicurio_ai"}]
+license = "Apache 2.0"
+homepage = "https://github.com/apicurio/apicurio-registry"
+repository = "https://github.com/apicurio/apicurio-registry"
+keywords = ["apicurio", "registry", "ai", "mcp", "a2a", "prompt"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+httpx = "^0.28"
+pydantic = "^2.0"
+langchain-core = {version = "^0.3", optional = true}
+fastapi = {version = "^0.115", optional = true}
+apicurioregistrysdk = {version = "^3.1", optional = true}
+
+[tool.poetry.extras]
+langchain = ["langchain-core"]
+fastapi = ["fastapi"]
+sdk = ["apicurioregistrysdk"]
+all = ["langchain-core", "fastapi", "apicurioregistrysdk"]
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.3.1"
+pytest-asyncio = "^0.21.0"
+requests = "2.32.4"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["apicurio_ai"]
+asyncio_mode = "auto"

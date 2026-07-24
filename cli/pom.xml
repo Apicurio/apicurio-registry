@@ -21,6 +21,7 @@
         <quarkus.native.builder-image>
             quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-23
         </quarkus.native.builder-image>
+        <jna.version>5.19.1</jna.version>
         <!-- CLI branding and update defaults. Override in productized profiles. -->
         <update.repo.url>https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli</update.repo.url>
         <branding.product-name>Apicurio Registry CLI</branding.product-name>
@@ -86,6 +87,15 @@
         <dependency>
             <groupId>org.semver4j</groupId>
             <artifactId>semver4j</artifactId>
+        </dependency>
+
+        <!-- Used only by WindowsCredentialProvider, to call the Windows Credential Manager.
+             The version is declared here because the Quarkus BOM manages an older JNA that
+             predates the native-image support this build relies on. -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
         </dependency>
 
         <dependency>

@@ -10,6 +10,9 @@ import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.v3.beans.ContractRuleSet;
+import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
+import io.apicurio.registry.rest.v3.beans.EditableContractMetadata;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
@@ -45,11 +48,15 @@ import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_RULE_CONFIG
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_CREATED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_DELETED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.CONTRACT_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.CONTRACT_RULESET_CONFIGURED;
+import static io.apicurio.registry.storage.StorageEventType.CONTRACT_STATUS_CHANGED;
 import static io.apicurio.registry.storage.StorageEventType.GLOBAL_RULE_CONFIGURED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_CREATED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_DELETED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_METADATA_UPDATED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_RULE_CONFIGURED;
+import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -590,6 +597,126 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
         Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
         Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+    }
+
+    @Test
+    public void contractRulesetConfigured() throws Exception {
+        // Preparation
+        final String groupId = "contractRulesetConfigured";
+        final String artifactId = generateArtifactId();
+        final String name = "contractRulesetConfiguredName";
+        final String description = "contractRulesetConfiguredDescription";
+
+        ensureArtifactCreated(groupId, artifactId, "1", name, description);
+
+        ContractRuleSet ruleSet = new ContractRuleSet();
+        ruleSet.setDomainRules(List.of());
+        ruleSet.setMigrationRules(List.of());
+
+        // Set an artifact-level contract ruleset
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(ruleSet)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then()
+                .statusCode(200);
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
+    }
+
+    @Test
+    public void contractMetadataUpdated() throws Exception {
+        // Preparation
+        final String groupId = "contractMetadataUpdated";
+        final String artifactId = generateArtifactId();
+        final String name = "contractMetadataUpdatedName";
+        final String description = "contractMetadataUpdatedDescription";
+
+        ensureArtifactCreated(groupId, artifactId, "1", name, description);
+
+        EditableContractMetadata metadata = new EditableContractMetadata();
+        metadata.setStatus(EditableContractMetadata.Status.DRAFT);
+        metadata.setOwnerTeam("platform-team");
+
+        // Update contract metadata
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(metadata)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200);
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_METADATA_UPDATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_METADATA_UPDATED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+    }
+
+    @Test
+    public void contractStatusChanged() throws Exception {
+        // Preparation
+        final String groupId = "contractStatusChanged";
+        final String artifactId = generateArtifactId();
+        final String name = "contractStatusChangedName";
+        final String description = "contractStatusChangedDescription";
+
+        ensureArtifactCreated(groupId, artifactId, "1", name, description);
+
+        EditableContractMetadata metadata = new EditableContractMetadata();
+        metadata.setStatus(EditableContractMetadata.Status.DRAFT);
+
+        // Set initial DRAFT status so a transition is possible
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(metadata)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200);
+
+        ContractStatusTransition transition = new ContractStatusTransition();
+        transition.setStatus(ContractStatusTransition.Status.STABLE);
+
+        // Transition from DRAFT to STABLE
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(transition)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then()
+                .statusCode(200);
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_STATUS_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_STATUS_CHANGED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("DRAFT", event.get("fromStatus").asText());
+        Assertions.assertEquals("STABLE", event.get("toStatus").asText());
     }
 
     private void checkGroupEvent(String groupId, List<JsonNode> events) {

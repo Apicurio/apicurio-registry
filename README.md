@@ -47,10 +47,11 @@ Which storage variant will be used is determined by the following configuration:
 |--------------------------|---------------------------|-------------------------|
 | Registry Storage Variant | `-Dapicurio.storage.kind` | `APICURIO_STORAGE_KIND` |
 
-For this property, there are three possible values:
+For this property, there are four possible values:
 - *sql* - for the SQL storage variant.
 - *kafkasql* - for the KafkaSQL storage variant.
-- *gitops* - for the Gitops storage variant.
+- *gitops* - for the GitOps storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
+- *kubernetesops* - for the Kubernetes ConfigMap storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
 
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and
@@ -173,7 +174,7 @@ java \
 -Dapicurio.kafka.common.security.protocol=SASL_SSL \
 -Dapicurio.kafka.common.sasl.mechanism=SCRAM-SHA-512 \
 -Dapicurio.kafka.common.sasl.jaas.config='org.apache.kafka.common.security.scram.ScramLoginModule required username="<username>" password="<password>";' \
--jar app/target/apicurio-registry-app-3.0.0-SNAPSHOT-runner.jar
+-jar app/target/apicurio-registry-app-*-runner.jar
 ```
 This will start up the registry with the persistence managed by the external kafka cluster.
 
@@ -226,7 +227,7 @@ services:
       POSTGRES_USER: apicurio-registry
       POSTGRES_PASSWORD: password
   app:
-    image: apicurio/apicurio-registry:3.0.0
+    image: apicurio/apicurio-registry:latest-release
     ports:
       - 8080:8080
     environment:
@@ -267,7 +268,7 @@ Note that you will need to have everything configured in your OIDC provider, bef
 
 Please note that Registry supports a wide range of authentication and authorization options.
 These options are too extensive to document in this README.  Consider the above to be just a starting point.
-For more information see the documentation on [how to configure security in Registry](https://www.apicur.io/registry/docs/apicurio-registry/2.4.x/getting-started/assembly-configuring-the-registry.html#registry-security_registry).
+For more information see the documentation on [how to configure security in Registry](https://www.apicur.io/registry/docs/).
 
 
 ## Eclipse IDE

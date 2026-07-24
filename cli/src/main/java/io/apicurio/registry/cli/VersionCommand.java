@@ -2,6 +2,7 @@ package io.apicurio.registry.cli;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.apicurio.registry.cli.VersionCommand.VersionOutput.VersionOutputBuilder;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -65,7 +66,7 @@ public class VersionCommand extends AbstractCommand {
     }
 
     // Fetches server name, version, and build timestamp from /system/info.
-    private void fetchSystemInfo(final RegistryClient client, final VersionOutput.VersionOutputBuilder builder) {
+    private void fetchSystemInfo(final RegistryClient client, final VersionOutputBuilder builder) {
         final var systemInfo = client.system().info().get();
         builder.serverName(systemInfo.getName());
         builder.serverVersion(systemInfo.getVersion());
@@ -73,7 +74,7 @@ public class VersionCommand extends AbstractCommand {
     }
 
     // Fetches supported artifact types from /admin/config/artifactTypes.
-    private void fetchArtifactTypes(final RegistryClient client, final VersionOutput.VersionOutputBuilder builder) {
+    private void fetchArtifactTypes(final RegistryClient client, final VersionOutputBuilder builder) {
         final var artifactTypes = client.admin().config().artifactTypes().get();
         builder.artifactTypes(artifactTypes != null ? artifactTypes.stream()
                 .map(ArtifactTypeInfo::getName)

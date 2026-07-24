@@ -13,7 +13,7 @@ import static com.fasterxml.jackson.annotation.Nulls.SKIP;
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({"app", "ui", "consolePlugin"})
+@JsonPropertyOrder({"version", "app", "ui", "consolePlugin"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -23,6 +23,18 @@ import static lombok.AccessLevel.PRIVATE;
 @EqualsAndHashCode
 @ToString
 public class ApicurioRegistry3Spec {
+
+    /**
+     * Override the registry version deployed by this operator. When set, the operator replaces the image tag
+     * with this value. When not set, defaults to the version bundled with the operator.
+     */
+    @JsonProperty("version")
+    @JsonPropertyDescription("""
+            Override the registry version deployed by this operator. \
+            When set, the operator replaces the image tag with this value. \
+            When not set, defaults to the version bundled with the operator.""")
+    @JsonSetter(nulls = SKIP)
+    private String version;
 
     /**
      * Configure Apicurio Registry backend (app) component.

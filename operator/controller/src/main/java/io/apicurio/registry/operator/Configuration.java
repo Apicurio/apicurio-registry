@@ -4,6 +4,7 @@ import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public class Configuration {
 
@@ -38,6 +39,42 @@ public class Configuration {
     public static String getRegistryVersion() {
         return config.getOptionalValue("registry.version", String.class)
                 .orElseThrow(() -> new OperatorException("Required configuration option 'registry.version' is not set."));
+    }
+
+    /**
+     * Return the image with its tag replaced by the given version. If version is null or blank, returns the
+     * base image unchanged.
+     */
+    public static String getImageForVersion(String baseImage, String version) {
+        if (version == null || version.isBlank()) {
+            return baseImage;
+        }
+        int colon = baseImage.lastIndexOf(':');
+        String repo = (colon > 0) ? baseImage.substring(0, colon) : baseImage;
+        return repo + ":" + version;
+    }
+
+    /**
+     * Compare two version strings (e.g. "3.0.3" or "3.3.1-SNAPSHOT"). Strips any suffix after a hyphen
+     * before comparing. Returns empty if either version is not a valid numeric semver. Otherwise returns
+     * negative if v1 < v2, zero if equal, positive if v1 > v2.
+     */
+    public static OptionalInt compareVersions(String v1, String v2) {
+        try {
+            String[] parts1 = v1.split("-")[0].split("\\.");
+            String[] parts2 = v2.split("-")[0].split("\\.");
+            int len = Math.max(parts1.length, parts2.length);
+            for (int i = 0; i < len; i++) {
+                int n1 = i < parts1.length ? Integer.parseInt(parts1[i]) : 0;
+                int n2 = i < parts2.length ? Integer.parseInt(parts2[i]) : 0;
+                if (n1 != n2) {
+                    return OptionalInt.of(Integer.compare(n1, n2));
+                }
+            }
+            return OptionalInt.of(0);
+        } catch (NumberFormatException e) {
+            return OptionalInt.empty();
+        }
     }
 
     public static String getDefaultBaseHost() {

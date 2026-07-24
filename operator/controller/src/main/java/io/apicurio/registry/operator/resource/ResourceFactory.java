@@ -53,6 +53,39 @@ public class ResourceFactory {
 
     public static final ResourceFactory INSTANCE = new ResourceFactory();
 
+    private static String getSpecVersion(ApicurioRegistry3 primary) {
+        return ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getVersion)
+                .orElse(null);
+    }
+
+    /**
+     * Validate spec.version against the operator's bundled version. Records a validation error if
+     * spec.version is newer than the operator (unsupported) or not a valid semver. Logs a warning
+     * for intentional downgrades since those are the expected staged-upgrade workflow.
+     */
+    static void validateSpecVersion(ApicurioRegistry3 primary) {
+        var specVersion = getSpecVersion(primary);
+        if (specVersion == null) {
+            return;
+        }
+        var operatorVersion = Configuration.getRegistryVersion();
+        var cmp = Configuration.compareVersions(specVersion, operatorVersion);
+        if (cmp.isEmpty()) {
+            StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                    .recordError("spec.version (%s) is not a valid version format. "
+                            + "Expected numeric semver (e.g. 3.0.3).", specVersion);
+        } else if (cmp.getAsInt() > 0) {
+            StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                    .recordError("spec.version (%s) is newer than the operator version (%s). "
+                            + "The operator may not support managing a newer registry version.",
+                            specVersion, operatorVersion);
+        } else if (cmp.getAsInt() < 0) {
+            log.warn("spec.version ({}) is older than the operator version ({}). "
+                    + "This is a downgrade. Ensure this is intentional.", specVersion, operatorVersion);
+        }
+    }
+
     public static final String COMPONENT_APP = "app";
     public static final String COMPONENT_UI = "ui";
     public static final String COMPONENT_CONSOLE_PLUGIN = "console-plugin";
@@ -70,6 +103,8 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_HORIZONTAL_POD_AUTOSCALER = "horizontalpodautoscaler";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
+        validateSpecVersion(primary);
+
         var autoscaling = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                 .map(ComponentSpec::getAutoscaling).orElse(null);
         boolean autoscalingEnabled = ofNullable(autoscaling).map(AutoscalingSpec::getEnabled)
@@ -128,7 +163,7 @@ public class ResourceFactory {
                 primary,
                 r.getSpec().getTemplate(),
                 REGISTRY_APP_CONTAINER_NAME,
-                Configuration.getAppImage(),
+                Configuration.getImageForVersion(Configuration.getAppImage(), getSpecVersion(primary)),
                 containerPort,
                 readinessProbe,
                 livenessProbe,
@@ -143,6 +178,8 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
+        validateSpecVersion(primary);
+
         var uiAutoscaling = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                 .map(ComponentSpec::getAutoscaling).orElse(null);
         boolean uiAutoscalingEnabled = ofNullable(uiAutoscaling).map(AutoscalingSpec::getEnabled)
@@ -173,7 +210,7 @@ public class ResourceFactory {
                 primary,
                 r.getSpec().getTemplate(),
                 REGISTRY_UI_CONTAINER_NAME,
-                Configuration.getUIImage(),
+                Configuration.getImageForVersion(Configuration.getUIImage(), getSpecVersion(primary)),
                 List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
@@ -464,12 +501,13 @@ public class ResourceFactory {
     }
 
     private void addDefaultLabels(Map<String, String> labels, ApicurioRegistry3 primary, String component) {
+        var version = ofNullable(getSpecVersion(primary)).orElse(Configuration.getRegistryVersion());
         labels.putAll(Map.of(
                 "app", primary.getMetadata().getName(),
                 "app.kubernetes.io/name", "apicurio-registry",
                 "app.kubernetes.io/component", component,
                 "app.kubernetes.io/instance", primary.getMetadata().getName(),
-                "app.kubernetes.io/version", Configuration.getRegistryVersion(),
+                "app.kubernetes.io/version", version,
                 "app.kubernetes.io/part-of", "apicurio-registry",
                 "app.kubernetes.io/managed-by", "apicurio-registry-operator"
         ));

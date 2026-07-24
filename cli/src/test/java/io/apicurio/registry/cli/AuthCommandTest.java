@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.auth.CredentialProvider;
+import io.apicurio.registry.cli.auth.OidcDiscovery;
 import io.apicurio.registry.cli.config.ConfigModel;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
@@ -14,13 +15,18 @@ public class AuthCommandTest extends AbstractCLITest {
     @Inject
     CredentialProvider credentialProvider;
 
+    @Inject
+    OidcDiscovery oidcDiscovery;
+
     private static final String TOKEN_PATH = "/token";
+    private static final String DISCOVERED_TOKEN_PATH = "/protocol/openid-connect/token";
     private static final String TEST_CONTEXT = "test";
     private static final String TEST_USERNAME = "testuser";
     private static final String TEST_PASSWORD = "testpass";
     private static final String TEST_CLIENT_ID = "test-client";
     private static final String TEST_CLIENT_SECRET = "test-secret";
     private static final String TEST_SCOPE = "openid profile";
+    private static final String TEST_AUTH_SERVER_URL = "http://keycloak.example.com/realms/test";
 
     // -- Help --
 
@@ -48,7 +54,22 @@ public class AuthCommandTest extends AbstractCLITest {
 
     @Test
     public void testLoginOAuth2MissingClientId() {
+        out.getBuffer().setLength(0);
         executeAndAssertFailure("login", "--token-endpoint", tokenEndpoint());
+        assertThat(err.toString())
+                .as(withCliOutput("Should require --client-id"))
+                .contains("--client-id");
+    }
+
+    @Test
+    public void testLoginOAuth2ClientIdWithoutEndpoint() {
+        out.getBuffer().setLength(0);
+        executeAndAssertFailure("login", "--client-id", TEST_CLIENT_ID,
+                "--client-secret", TEST_CLIENT_SECRET);
+        assertThat(err.toString())
+                .as(withCliOutput("Should require --token-endpoint or --auth-server-url"))
+                .contains("--token-endpoint")
+                .contains("--auth-server-url");
     }
 
     @Test
@@ -155,18 +176,190 @@ public class AuthCommandTest extends AbstractCLITest {
         assertThat(context.getScope()).isNull();
     }
 
+    // -- OIDC discovery --
+
+    @Test
+    public void testLoginOAuth2WithAuthServerUrl() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("login", "--client-id", TEST_CLIENT_ID,
+                "--client-secret", TEST_CLIENT_SECRET,
+                "--auth-server-url", TEST_AUTH_SERVER_URL);
+        assertThat(out.toString())
+                .as(withCliOutput("Should confirm OAuth2 login via discovery"))
+                .contains("Logged in to context")
+                .contains("OAuth2");
+
+        var context = getTestContext();
+        assertThat(context.getAuthType()).isEqualTo(ConfigModel.AUTH_TYPE_OAUTH2);
+        assertThat(context.getAuthServerUrl()).isEqualTo(TEST_AUTH_SERVER_URL);
+        assertThat(context.getTokenEndpoint())
+                .isEqualTo(TEST_AUTH_SERVER_URL + DISCOVERED_TOKEN_PATH);
+        assertThat(context.getClientId()).isEqualTo(TEST_CLIENT_ID);
+        assertThat(context.getUsername()).isNull();
+    }
+
+    @Test
+    public void testLoginOAuth2TokenEndpointTakesPrecedence() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("login", "--client-id", TEST_CLIENT_ID,
+                "--client-secret", TEST_CLIENT_SECRET,
+                "--token-endpoint", tokenEndpoint(),
+                "--auth-server-url", TEST_AUTH_SERVER_URL);
+
+        var context = getTestContext();
+        assertThat(context.getTokenEndpoint())
+                .as(withCliOutput("--token-endpoint should take precedence over --auth-server-url"))
+                .isEqualTo(tokenEndpoint());
+        assertThat(context.getAuthServerUrl())
+                .as("authServerUrl should not be stored when --token-endpoint was explicit")
+                .isNull();
+    }
+
+    @Test
+    public void testLoginOAuth2WithAuthServerUrlAndScope() {
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("login", "--client-id", TEST_CLIENT_ID,
+                "--client-secret", TEST_CLIENT_SECRET,
+                "--auth-server-url", TEST_AUTH_SERVER_URL,
+                "--scope", TEST_SCOPE);
+
+        var context = getTestContext();
+        assertThat(context.getScope()).isEqualTo(TEST_SCOPE);
+        assertThat(context.getAuthServerUrl()).isEqualTo(TEST_AUTH_SERVER_URL);
+    }
+
+    @Test
+    public void testLogoutClearsAuthServerUrl() {
+        executeAndAssertSuccess("login", "--client-id", TEST_CLIENT_ID,
+                "--client-secret", TEST_CLIENT_SECRET,
+                "--auth-server-url", TEST_AUTH_SERVER_URL);
+
+        executeAndAssertSuccess("logout");
+
+        var context = getTestContext();
+        assertThat(context.getAuthServerUrl()).isNull();
+        assertThat(context.getTokenEndpoint()).isNull();
+    }
+
+    @Test
+    public void testLoginOAuth2DiscoveryFailure() {
+        final var testDiscovery = (TestOidcDiscovery) oidcDiscovery;
+        try {
+            testDiscovery.setFailOnDiscover(true);
+
+            out.getBuffer().setLength(0);
+            executeAndAssertFailure("login", "--client-id", TEST_CLIENT_ID,
+                    "--client-secret", TEST_CLIENT_SECRET,
+                    "--auth-server-url", TEST_AUTH_SERVER_URL);
+            assertThat(err.toString())
+                    .as(withCliOutput("Should report discovery failure"))
+                    .contains("OIDC discovery failed");
+
+            var context = getTestContext();
+            assertThat(context.getAuthType())
+                    .as("Auth type should not be set on failure")
+                    .isNull();
+        } finally {
+            testDiscovery.setFailOnDiscover(false);
+        }
+    }
+
+    @Test
+    public void testLoginOAuth2AuthServerUrlWithoutClientId() {
+        out.getBuffer().setLength(0);
+        executeAndAssertFailure("login", "--auth-server-url", TEST_AUTH_SERVER_URL);
+        assertThat(err.toString())
+                .as(withCliOutput("Should require --client-id"))
+                .contains("--client-id");
+    }
+
+    // -- OIDC discovery edge cases --
+
+    @Test
+    public void testLoginOAuth2InvalidAuthServerUrl() {
+        out.getBuffer().setLength(0);
+        executeAndAssertFailure("login", "--client-id", TEST_CLIENT_ID,
+                "--client-secret", TEST_CLIENT_SECRET,
+                "--auth-server-url", "not-a-url");
+        assertThat(err.toString())
+                .as(withCliOutput("Should reject invalid URL format"))
+                .contains("Invalid --auth-server-url");
+    }
+
+    @Test
+    public void testLoginOAuth2AuthServerUrlMissingScheme() {
+        out.getBuffer().setLength(0);
+        executeAndAssertFailure("login", "--client-id", TEST_CLIENT_ID,
+                "--client-secret", TEST_CLIENT_SECRET,
+                "--auth-server-url", "keycloak.example.com/realms/test");
+        assertThat(err.toString())
+                .as(withCliOutput("Should reject URL without http/https scheme"))
+                .contains("http://")
+                .contains("https://");
+    }
+
+    @Test
+    public void testLoginOAuth2DiscoveryReturnsNoTokenEndpoint() {
+        final var testDiscovery = (TestOidcDiscovery) oidcDiscovery;
+        try {
+            testDiscovery.setFailOnDiscover(true,
+                    "OIDC discovery response does not contain a 'token_endpoint' field.");
+
+            out.getBuffer().setLength(0);
+            executeAndAssertFailure("login", "--client-id", TEST_CLIENT_ID,
+                    "--client-secret", TEST_CLIENT_SECRET,
+                    "--auth-server-url", TEST_AUTH_SERVER_URL);
+            assertThat(err.toString())
+                    .as(withCliOutput("Should report missing token_endpoint"))
+                    .contains("token_endpoint");
+        } finally {
+            testDiscovery.setFailOnDiscover(false);
+        }
+    }
+
+    @Test
+    public void testLoginOAuth2DiscoveryReturns404() {
+        final var testDiscovery = (TestOidcDiscovery) oidcDiscovery;
+        try {
+            testDiscovery.setFailOnDiscover(true,
+                    "OIDC discovery failed: HTTP 404 from " + TEST_AUTH_SERVER_URL);
+
+            out.getBuffer().setLength(0);
+            executeAndAssertFailure("login", "--client-id", TEST_CLIENT_ID,
+                    "--client-secret", TEST_CLIENT_SECRET,
+                    "--auth-server-url", TEST_AUTH_SERVER_URL);
+            assertThat(err.toString())
+                    .as(withCliOutput("Should report HTTP 404"))
+                    .contains("404");
+        } finally {
+            testDiscovery.setFailOnDiscover(false);
+        }
+    }
+
     // -- State transitions --
 
     @Test
-    public void testLoginUsernameAndTokenEndpoint() {
+    public void testLoginUsernameWithTokenEndpointConflicts() {
         out.getBuffer().setLength(0);
-        executeAndAssertSuccess("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+        executeAndAssertFailure("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
                 "--token-endpoint", tokenEndpoint());
+        assertThat(err.toString())
+                .as(withCliOutput("Should reject conflicting --username and --token-endpoint"))
+                .contains("Cannot combine")
+                .contains("basic auth")
+                .contains("OAuth2");
+    }
 
-        var context = getTestContext();
-        assertThat(context.getAuthType())
-                .as(withCliOutput("--username should take precedence over --token-endpoint"))
-                .isEqualTo(ConfigModel.AUTH_TYPE_BASIC);
+    @Test
+    public void testLoginUsernameWithAuthServerUrlConflicts() {
+        out.getBuffer().setLength(0);
+        executeAndAssertFailure("login", "--username", TEST_USERNAME, "--password", TEST_PASSWORD,
+                "--auth-server-url", TEST_AUTH_SERVER_URL);
+        assertThat(err.toString())
+                .as(withCliOutput("Should reject conflicting --username and --auth-server-url"))
+                .contains("Cannot combine")
+                .contains("basic auth")
+                .contains("OAuth2");
     }
 
     @Test

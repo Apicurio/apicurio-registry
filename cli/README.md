@@ -236,10 +236,17 @@ acr login --username <username> --password <password>
 
 **OAuth2 client credentials:**
 ```bash
-acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret>
+# Using OIDC discovery (recommended) — discovers the token endpoint automatically
+acr login --client-id <client-id> --auth-server-url <auth-server-url>
+
+# With explicit token endpoint
+acr login --client-id <client-id> --token-endpoint <token-endpoint-url>
 
 # With scope
-acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret> --scope <scope>
+acr login --client-id <client-id> --auth-server-url <auth-server-url> --scope <scope>
+
+# Non-interactive (CI/CD)
+acr login --client-id <client-id> --client-secret <client-secret> --auth-server-url <auth-server-url>
 ```
 
 **Log out (clears credentials from keychain and config):**

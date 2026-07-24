@@ -121,13 +121,12 @@ public class LoginCommand extends AbstractCommand {
         config.write(configModel);
 
         if (usedFileFallback) {
-            output.writeStdOutChunk(out ->
-                    out.append(UNSAFE_STORAGE_WARNING));
+            output.writeWarning(out -> out.append(UNSAFE_STORAGE_WARNING));
         }
 
         client.reset();
 
-        output.writeStdOutChunk(out -> {
+        output.writeSuccess(out -> {
             out.append("Logged in to context '").append(contextName)
                     .append("' as '").append(username).append("'.\n");
         });
@@ -168,7 +167,7 @@ public class LoginCommand extends AbstractCommand {
 
         client.reset();
 
-        output.writeStdOutChunk(out -> {
+        output.writeSuccess(out -> {
             out.append("Logged in to context '").append(contextName).append("' via OAuth2.\n");
         });
     }

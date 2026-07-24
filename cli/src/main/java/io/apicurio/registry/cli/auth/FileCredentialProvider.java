@@ -8,9 +8,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.jboss.logging.Logger;
 
@@ -106,10 +112,37 @@ class FileCredentialProvider implements CredentialProvider {
         try {
             Files.setPosixFilePermissions(path, EnumSet.of(
                     PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-        } catch (UnsupportedOperationException | IOException ex) {
-            log.warnf("Could not restrict file permissions on %s"
-                    + " — credentials may be readable by other users.", CREDENTIALS_FILE);
+        } catch (UnsupportedOperationException ex) {
+            // POSIX permissions are unavailable on Windows; fall back to an owner-only ACL.
+            restrictWindowsAcl(path);
+        } catch (IOException ex) {
+            warnPermissionsNotRestricted();
         }
+    }
+
+    private static void restrictWindowsAcl(final Path path) {
+        try {
+            final AclFileAttributeView view = Files.getFileAttributeView(path, AclFileAttributeView.class);
+            if (view == null) {
+                warnPermissionsNotRestricted();
+                return;
+            }
+            final UserPrincipal owner = view.getOwner();
+            final AclEntry entry = AclEntry.newBuilder()
+                    .setType(AclEntryType.ALLOW)
+                    .setPrincipal(owner)
+                    .setPermissions(EnumSet.allOf(AclEntryPermission.class))
+                    .build();
+            // Replace the inherited DACL so that only the owner can read the credentials file.
+            view.setAcl(List.of(entry));
+        } catch (IOException | RuntimeException ex) {
+            warnPermissionsNotRestricted();
+        }
+    }
+
+    private static void warnPermissionsNotRestricted() {
+        log.warnf("Could not restrict file permissions on %s"
+                + " — credentials may be readable by other users.", CREDENTIALS_FILE);
     }
 
     private Path credentialsPath() {

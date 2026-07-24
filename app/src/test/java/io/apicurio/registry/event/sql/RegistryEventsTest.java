@@ -4,12 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
@@ -263,6 +266,58 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(1, events.size());
         Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
         Assertions.assertEquals(ARTIFACT_VERSION_CREATED.name(), updateEvent.get("eventType").asText());
+    }
+
+    @Test
+    public void dryRunCreateArtifactEmitsNoEvent() throws Exception {
+        // Preparation
+        final String groupId = "dryRunCreateArtifact";
+        final String artifactId = generateArtifactId();
+
+        CreateArtifact dryRunCreate = buildCreateArtifact(artifactId, "dryRunLeakName");
+        clientV3.groups().byGroupId(groupId).artifacts().post(dryRunCreate,
+                config -> config.queryParameters.dryRun = true);
+
+        // Real create of the same id acts as a barrier: any leaked dry-run event precedes it.
+        CreateArtifact realCreate = buildCreateArtifact(artifactId, "realCreateName");
+        clientV3.groups().byGroupId(groupId).artifacts().post(realCreate);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals("realCreateName", events.get(0).get("name").asText());
+        for (JsonNode event : events) {
+            Assertions.assertNotEquals("dryRunLeakName", event.get("name").asText());
+        }
+    }
+
+    @Test
+    public void dryRunCreateArtifactVersionEmitsNoEvent() throws Exception {
+        // Preparation
+        final String groupId = "dryRunCreateArtifactVersion";
+        final String artifactId = generateArtifactId();
+
+        ensureArtifactCreated(groupId, artifactId, "dryRunCreateArtifactVersionName",
+                "dryRunCreateArtifactVersionDescription");
+
+        CreateVersion dryRunVersion = buildCreateVersion("2", "dryRunLeakVersionName");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(dryRunVersion, config -> config.queryParameters.dryRun = true);
+
+        // Real create of version "2" acts as a barrier: any leaked dry-run event precedes it.
+        CreateVersion realVersion = buildCreateVersion("2", "realVersionName");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(realVersion);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId, "version", "2"));
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals("realVersionName", events.get(0).get("name").asText());
+        for (JsonNode event : events) {
+            Assertions.assertNotEquals("dryRunLeakVersionName", event.get("name").asText());
+        }
     }
 
     @Test
@@ -665,6 +720,30 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(description, created.getDescription());
+    }
+
+    private CreateArtifact buildCreateArtifact(String artifactId, String name) {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setName(name);
+        createArtifact.setFirstVersion(buildCreateVersion(null, null));
+        return createArtifact;
+    }
+
+    private CreateVersion buildCreateVersion(String version, String name) {
+        CreateVersion createVersion = new CreateVersion();
+        if (version != null) {
+            createVersion.setVersion(version);
+        }
+        if (name != null) {
+            createVersion.setName(name);
+        }
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(ARTIFACT_CONTENT);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        return createVersion;
     }
 
     protected KafkaConsumer<String, String> getConsumer(String bootstrapServers) {

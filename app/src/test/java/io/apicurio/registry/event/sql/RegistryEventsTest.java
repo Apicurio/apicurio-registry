@@ -632,6 +632,7 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
         Assertions.assertEquals(groupId, event.get("groupId").asText());
         Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
     }
 
     @Test

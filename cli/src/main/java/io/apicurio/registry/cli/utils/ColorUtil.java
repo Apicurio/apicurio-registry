@@ -9,9 +9,21 @@ public final class ColorUtil {
     }
 
     private static volatile boolean enabled = true;
+    private static volatile boolean installed = false;
 
-    public static void init() {
-        AnsiConsole.systemInstall();
+    public static synchronized void init(boolean on) {
+        enabled = on;
+        if (on && !installed) {
+            AnsiConsole.systemInstall();
+            installed = true;
+        }
+    }
+
+    public static synchronized void shutdown() {
+        if (installed) {
+            AnsiConsole.systemUninstall();
+            installed = false;
+        }
     }
 
     public static void setEnabled(boolean on) {

@@ -16,7 +16,6 @@ import io.apicurio.registry.cli.serverconfig.ServerConfigCommand;
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import lombok.Getter;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 
 import static picocli.CommandLine.Option;
 import static picocli.CommandLine.ScopeType.INHERIT;

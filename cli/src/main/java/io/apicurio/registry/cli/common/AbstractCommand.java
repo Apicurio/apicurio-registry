@@ -41,22 +41,15 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     @Override
     public Integer call() {
-        ColorUtil.init();
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
+
         boolean noColorEnv = System.getenv("NO_COLOR") != null;
-        boolean isTty = System.console() != null;
-        boolean globalNoColor = false;
-        try {
-            var root = spec.root().userObject();
-            if (root instanceof Acr acr) {
-                globalNoColor = acr.isNoColor();
-            }
-        } catch (Exception e) {
-            
-        }
-        boolean colorsEnabled = !globalNoColor && !noColorEnv && isTty;
-        io.apicurio.registry.cli.utils.ColorUtil.setEnabled(colorsEnabled);
-        
+        boolean stdoutTty = isStdoutTerminal();
+        boolean globalNoColor = spec.root().userObject() instanceof Acr acr && acr.isNoColor();
+        boolean colorsEnabled = shouldEnableColors(globalNoColor, noColorEnv, stdoutTty);
+
+        ColorUtil.init(colorsEnabled);
+
         try {
             configureVerboseLogging();
             updateNotifier.checkAndNotify(getTopLevelCommandName());
@@ -77,10 +70,32 @@ public abstract class AbstractCommand implements Callable<Integer> {
             return APPLICATION_ERROR_RETURN_CODE;
         } finally {
             output.print();
+            ColorUtil.shutdown();
         }
     }
 
+    private boolean isStdoutTerminal() {
+        try {
+            Class<?> cLibrary = Class.forName("org.fusesource.jansi.internal.CLibrary");
+            var isatty = cLibrary.getMethod("isatty", int.class);
+            Object result = isatty.invoke(null, 1); // STDOUT file descriptor
+            if (result instanceof Integer value) {
+                return value == 1;
+            }
+            if (result instanceof Boolean value) {
+                return value;
+            }
+        } catch (ReflectiveOperationException ex) {
+            log.debug("Could not resolve stdout TTY via Jansi CLibrary, falling back to System.console().", ex);
+        }
+        return System.console() != null;
+    }
+ 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    static boolean shouldEnableColors(boolean globalNoColor, boolean noColorEnv, boolean stdoutTty) {
+        return !globalNoColor && !noColorEnv && stdoutTty;
+    }
 
     private static void handleCliException(final OutputBuffer output, final CliException ex) {
         if (!ex.isQuiet()) {
@@ -115,11 +130,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private void configureVerboseLogging() {
         var root = spec.root().userObject();
         if (root instanceof Acr acr && acr.isVerbose()) {
-            // Set the root logger level to FINE (DEBUG equivalent)
             var rootLogger = java.util.logging.Logger.getLogger("");
             rootLogger.setLevel(java.util.logging.Level.FINE);
-            // Also lower handler levels — Quarkus sets quarkus.log.level=WARN on the
-            // console handler, which filters debug messages even when the logger allows them.
             for (var handler : rootLogger.getHandlers()) {
                 handler.setLevel(java.util.logging.Level.FINE);
             }

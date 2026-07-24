@@ -663,15 +663,36 @@ export class OaiEditorComponent extends AbstractApiEditorComponent implements On
         if (this.componentImporter) {
             this.componentImporter(type).then(imports => {
                 let commands: ICommand[] = [];
+                let takenNames: Set<string> = new Set();
 
                 imports.forEach(imp => {
                     console.info("[ApiEditorComponent] Importing component: ", imp.name);
-                    // TODO check for name collisions
                     let name: string = imp.name;
                     let fromRef: any = {$ref: imp.$ref};
+
+                    let doc: any = this.document();
+                    let counter = 1;
+                    if (doc.is2xDocument()) {
+                        if (imp.type === ComponentType.schema && doc.definitions) {
+                            while (doc.definitions.getDefinition(name) != null || takenNames.has(imp.type + ":" + name)) name = imp.name + "-" + counter++;
+                        } else if (imp.type === ComponentType.response && doc.responses) {
+                            while (doc.responses.getResponse(name) != null || takenNames.has(imp.type + ":" + name)) name = imp.name + "-" + counter++;
+                        }
+                    } else {
+                        if (doc.components) {
+                            if (imp.type === ComponentType.schema) {
+                                while (doc.components.getSchemaDefinition(name) != null || takenNames.has(imp.type + ":" + name)) name = imp.name + "-" + counter++;
+                            } else if (imp.type === ComponentType.response) {
+                                while (doc.components.getResponseDefinition(name) != null || takenNames.has(imp.type + ":" + name)) name = imp.name + "-" + counter++;
+                            }
+                        }
+                    }
+
+                    takenNames.add(imp.type + ":" + name);
+
                     if (imp.type === ComponentType.schema) {
                         commands.push(CommandFactory.createAddSchemaDefinitionCommand(this.document().getDocumentType(), name, fromRef));
-                    } else if (type === ComponentType.response) {
+                    } else if (imp.type === ComponentType.response) {
                         commands.push(CommandFactory.createAddResponseDefinitionCommand(this.document().getDocumentType(), name, fromRef));
                     }
                 });

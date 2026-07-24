@@ -604,12 +604,12 @@ The following {registry} configuration options are available for each component 
 |`optional<string>`
 |
 |`3.3.1`
-|Comma-separated list of enabled cipher suites (e.g. TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256). When not set, the JVM/Quarkus defaults apply.
+|Comma-separated list of enabled cipher suites (e.g. TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256). When not set, the JVM/Quarkus defaults apply. Invalid values will cause TLS handshake failures at runtime.
 |`apicurio.http.ssl.protocols`
 |`optional<string>`
 |
 |`3.3.1`
-|Comma-separated list of enabled SSL/TLS protocol versions (e.g. TLSv1.2,TLSv1.3). When not set, the JVM/Quarkus defaults apply.
+|Comma-separated list of enabled SSL/TLS protocol versions (e.g. TLSv1.2,TLSv1.3). When not set, the JVM/Quarkus defaults apply. Invalid values will cause TLS handshake failures at runtime.
 |===
 
 == iceberg

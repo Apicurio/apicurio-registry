@@ -19,6 +19,8 @@ import java.util.zip.GZIPOutputStream;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -115,4 +117,62 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
                 .then().statusCode(200).body("properties.field0.type", equalTo("string"))
                 .body("properties.field199.type", equalTo("string"));
     }
+
+    /**
+     * Verifies that a response with a content type NOT in the quarkus.http.compress-media-types
+     * list is not compressed, even when the client advertises gzip support. The admin export
+     * endpoint returns application/zip, which the list deliberately excludes.
+     */
+    @Test
+    public void testResponseNotCompressedForNonListedContentType() {
+        // The admin export endpoint returns application/zip, which is not in compress-media-types.
+        // Even with Accept-Encoding: gzip, the response must NOT be compressed.
+        byte[] rawBody = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
+                .get("/registry/v3/admin/export")
+                .then().statusCode(200).header("Content-Encoding", nullValue()).extract().asByteArray();
+
+        // The response should be a valid ZIP file (starts with PK magic bytes 0x50 0x4B)
+        assertTrue(rawBody.length >= 4, "export response should not be empty");
+        assertEquals((byte) 0x50, rawBody[0], "response should start with ZIP magic byte 'P'");
+        assertEquals((byte) 0x4B, rawBody[1], "response should start with ZIP magic byte 'K'");
+    }
+
+    /**
+     * Verifies that gzip;q=0 (an explicit client refusal of gzip per RFC 9110 §12.5.3) is
+     * correctly treated as a refusal, not as acceptance.
+     */
+    @Test
+    public void testResponseNotCompressedWhenClientRefusesGzip() throws Exception {
+        String artifactId = "testResponseNotCompressedWhenClientRefusesGzip";
+        String content = largeJsonSchemaContent();
+        createArtifact(GROUP, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+
+        byte[] rawBody = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip;q=0")
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200).header("Content-Encoding", nullValue()).extract().asByteArray();
+
+        // The response should be the uncompressed content
+        assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), rawBody,
+                "response body with gzip;q=0 should be uncompressed");
+    }
+
+    /**
+     * Baseline test: no Accept-Encoding header means no compression.
+     */
+    @Test
+    public void testResponseNotCompressedWithoutAcceptEncodingHeader() throws Exception {
+        String artifactId = "testResponseNotCompressedWithoutAcceptEncoding";
+        String content = largeJsonSchemaContent();
+        createArtifact(GROUP, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+
+        byte[] rawBody = given().config(NO_AUTO_DECODE)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200).header("Content-Encoding", nullValue()).extract().asByteArray();
+
+        assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), rawBody,
+                "response body without Accept-Encoding should be uncompressed");
+    }
 }
+

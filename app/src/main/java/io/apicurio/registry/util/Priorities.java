@@ -59,6 +59,19 @@ public final class Priorities {
         }
     }
 
+    public static final class WriterInterceptors {
+
+        /**
+         * Priority for {@link io.apicurio.registry.rest.HttpCompressionWriterInterceptor}. Runs
+         * close to the wire, similar to RESTEasy's own GZIPEncodingInterceptor (priority 4000), so
+         * it wraps the output stream after other writer interceptors have run.
+         */
+        public static final int COMPRESSION = jakarta.ws.rs.Priorities.USER; // 5000
+
+        private WriterInterceptors() {
+        }
+    }
+
     private Priorities() {
     }
 }

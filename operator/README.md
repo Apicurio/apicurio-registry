@@ -474,3 +474,9 @@ env:
 ```
 
 **RBAC**: The operator's ClusterRole already includes the required permissions for `coordination.k8s.io` leases (`get`, `create`, `update`). No additional RBAC configuration is needed.
+
+### HTTP Compression
+
+Starting with recent versions, Apicurio Registry enables HTTP request and response compression by default at the application level (via Quarkus `quarkus.http.enable-compression=true`). 
+
+**Note for Operator Deployments:** If your deployment is fronted by an Ingress controller, reverse proxy (e.g., Nginx), or CDN that also performs gzip compression, you may experience double-compression or unnecessary CPU overhead. `quarkus.http.enable-compression`, `quarkus.http.enable-decompression`, and `quarkus.http.compress-media-types` are all `BUILD_AND_RUN_TIME_FIXED` properties in Quarkus — they can be set via environment variable at build time, but once the Registry image is built, that value is baked in and setting the environment variable on a running Pod (via `env:` in the CR) has no effect. In such cases, you should configure your Ingress or proxy to pass through the compressed responses or handle decompression at the edge appropriately.

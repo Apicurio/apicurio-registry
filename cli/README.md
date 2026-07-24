@@ -6,12 +6,14 @@
 
 The CLI is distributed as a native executable. A separate ZIP is provided for each platform:
 
-| Platform | Architecture            | ZIP Classifier | Shell |
-|----------|-------------------------|----------------|-------|
-| Linux    | x86_64                  | `linux-x86_64` | bash  |
-| macOS    | aarch64 (Apple Silicon) | `osx-aarch64`  | zsh   |
+| Platform | Architecture            | ZIP Classifier   | Shell            |
+|----------|-------------------------|------------------|------------------|
+| Linux    | x86_64                  | `linux-x86_64`   | bash             |
+| macOS    | aarch64 (Apple Silicon) | `osx-aarch64`    | zsh              |
+| Windows  | x86_64                  | `windows-x86_64` | cmd / PowerShell |
 
-Windows is not supported.
+On Windows the binaries are not code-signed, so SmartScreen may warn the first time you run
+the CLI. Windows on ARM and PowerShell tab-completions are not supported yet.
 
 ## Installation
 
@@ -94,6 +96,17 @@ sudo dnf install gcc zlib-static
 # Debian/Ubuntu
 sudo apt install gcc zlib1g-dev
 ```
+
+On **Windows**, install GraalVM CE (or Mandrel) for JDK 17 or later and the Visual Studio 2022
+Build Tools with the "Desktop development with C++" workload, then build from a shell where
+`native-image` can find the MSVC toolchain (GraalVM auto-detects a full Visual Studio install):
+
+```cmd
+mvnw.cmd clean package -pl cli -am -DskipTests
+```
+
+The container-based build is not available on Windows (it produces a Linux binary), so the local
+GraalVM and C++ toolchain are required there.
 
 To use a Mandrel container image instead (no local GraalVM or native toolchain needed, requires Docker/Podman):
 
@@ -245,7 +258,7 @@ Use `--no-switch-current` when creating a context to add it without switching to
 
 ### Authentication
 
-The CLI supports authenticating with secured registry instances. Credentials are stored securely in the OS keychain (macOS Keychain or Linux Secret Service) — never in config files.
+The CLI supports authenticating with secured registry instances. Credentials are stored securely in the OS keychain (macOS Keychain, Linux Secret Service, or Windows Credential Manager) — never in config files.
 
 **Basic authentication:**
 ```bash
@@ -280,6 +293,7 @@ Credentials are stored in a local file instead of the OS keychain. A warning is 
 **Prerequisites for credential storage:**
 - macOS: No prerequisites (uses Keychain)
 - Linux: `secret-tool` required (`sudo apt install libsecret-tools` or `sudo dnf install libsecret`)
+- Windows: No prerequisites (uses Windows Credential Manager)
 - Headless/CI: Use `--allow-unsafe-credential-storage` if no keychain is available
 
 ### Working with Groups

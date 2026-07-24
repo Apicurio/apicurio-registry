@@ -311,6 +311,11 @@
                                             <type>zip</type>
                                             <classifier>osx-aarch_64</classifier>
                                         </artifact>
+                                        <artifact>
+                                            <file>${project.build.directory}/apicurio-registry-cli-${project.version}-windows-x86_64.zip</file>
+                                            <type>zip</type>
+                                            <classifier>windows-x86_64</classifier>
+                                        </artifact>
                                     </artifacts>
                                 </configuration>
                             </execution>

@@ -26,8 +26,20 @@ jobs:
             # Docker is not available on macOS runners (see https://github.com/douglascamata/setup-docker-macos-action/issues/35),
             # skip @DockerRequired tests
             test-args: '-Dgroups=!docker-required'
+            timeout-minutes: 30
+          - runner: windows-latest
+            os-name: windows-x86_64
+            # Windows runners cannot run Linux containers, so skip @DockerRequired tests (as on macOS).
+            test-args: '-Dgroups=!docker-required'
+            # Native image is slowest on Windows; give it more headroom.
+            timeout-minutes: 45
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.timeout-minutes || 30 }}
+    # The build steps are bash scripts. Git Bash is available on all three runners
+    # (including windows-latest), so run every step with bash for a single script per OS.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -90,8 +102,13 @@ jobs:
 
       - name: Verify Native Binary
         run: |
-          cli/target/apicurio-registry-cli-*-runner --help
-          cli/target/apicurio-registry-cli-*-runner version
+          # The binary is "-runner" on Linux/macOS and "-runner.exe" on Windows.
+          binary=$(ls cli/target/apicurio-registry-cli-*-runner.exe 2>/dev/null || true)
+          if [ -z "$binary" ]; then
+            binary=$(ls cli/target/apicurio-registry-cli-*-runner)
+          fi
+          "$binary" --help
+          "$binary" version
 
       - name: Run CLI Update E2E Tests
         if: matrix.os-name == 'linux-x86_64'

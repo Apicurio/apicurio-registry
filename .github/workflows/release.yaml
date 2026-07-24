@@ -238,7 +238,13 @@ jobs:
             os-name: linux-x86_64
           - runner: macos-14
             os-name: osx-aarch_64
+          - runner: windows-latest
+            os-name: windows-x86_64
     runs-on: ${{ matrix.runner }}
+    # The native build step is a bash script; Git Bash is available on windows-latest too.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Apicurio Registry Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -301,7 +307,7 @@ jobs:
           ls -la artifacts/
           echo "=== CLI ZIPs ==="
           ls -la cli-zips/
-          for classifier in linux-x86_64 osx-aarch_64; do
+          for classifier in linux-x86_64 osx-aarch_64 windows-x86_64; do
             if ! ls cli-zips/*-${classifier}.zip 1>/dev/null 2>&1; then
               echo "ERROR: Missing CLI ZIP for ${classifier}"
               exit 1

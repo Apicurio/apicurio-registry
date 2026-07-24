@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.search;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
 import io.apicurio.registry.cli.common.CliException;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.ContentTypeDetector;
@@ -65,6 +66,9 @@ public class SearchByContentCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         if (canonical && artifactType == null) {
@@ -93,6 +97,6 @@ public class SearchByContentCommand extends AbstractCommand {
                         r.queryParameters.canonical = true;
                     }
                 }));
-        SearchUtil.printArtifactResults(output, results, outputType, pagination);
+        SearchUtil.printArtifactResults(output, results, outputType, pagination, columns);
     }
 }

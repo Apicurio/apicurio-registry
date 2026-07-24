@@ -28,7 +28,7 @@ public class GroupUpdateCommand extends AbstractCommand {
     private String groupId;
 
     @Option(
-            names = {"-d", "--description"},
+            names = {"--description"},
             description = "Updated group description."
     )
     private String description;

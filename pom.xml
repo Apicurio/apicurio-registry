@@ -176,7 +176,7 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.17.0</okio.version>
+    <okio.version>3.18.0</okio.version>
     <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.35.1</protobuf.version>
@@ -301,7 +301,7 @@
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
-    <keycloak.testcontainers.version>4.3.0</keycloak.testcontainers.version>
+    <keycloak.testcontainers.version>4.3.1</keycloak.testcontainers.version>
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
@@ -1384,6 +1384,7 @@
         <module>go-sdk</module>
         <module>mcp</module>
         <module>operator</module>
+        <module>console-plugin/backend</module>
         <module>utils/exportConfluent</module>
         <module>utils/extra-tests</module>
         <module>utils/flink</module>

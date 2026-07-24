@@ -11,7 +11,10 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
- * Add HSTS headers to all HTTP responses. Browser will ignore the header if the connection is not secure.
+ * Adds security headers to all HTTP responses.
+ * Browser will ignore the HSTS header if the connection is not secure.
+ * X-Content-Type-Options is intentionally co-located here to centralize
+ * response hardening in a single filter.
  */
 public class HSTSFilter implements Filter {
 

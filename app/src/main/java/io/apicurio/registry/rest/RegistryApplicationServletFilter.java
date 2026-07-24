@@ -1,7 +1,6 @@
 package io.apicurio.registry.rest;
 
 import io.apicurio.registry.services.DisabledApisMatcherService;
-import io.apicurio.registry.ui.servlets.HSTSFilter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.Filter;
@@ -13,6 +12,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * This Servlet Filter combines various functionalities that can be configured using config properties:
@@ -42,8 +43,8 @@ public class RegistryApplicationServletFilter implements Filter {
 
             if (disabled) {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
-                // reset() would clear the HSTS header HSTSFilter set upstream; preserve it.
-                HSTSFilter.resetKeepingHstsHeader(httpResponse);
+                // reset() would clear the security headers the upstream filters set; preserve them.
+                resetKeepingHeaders(httpResponse, "Strict-Transport-Security", "X-Content-Type-Options");
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 // important to return, to stop the filters chain
                 return;
@@ -51,6 +52,22 @@ public class RegistryApplicationServletFilter implements Filter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Resets the response but preserves the named headers, which {@link HttpServletResponse#reset()} would
+     * otherwise clear. The caller lists the headers to keep so it stays in control of what survives.
+     */
+    private static void resetKeepingHeaders(HttpServletResponse response, String... headerNames) {
+        Map<String, String> preserved = new LinkedHashMap<>();
+        for (String name : headerNames) {
+            String value = response.getHeader(name);
+            if (value != null) {
+                preserved.put(name, value);
+            }
+        }
+        response.reset();
+        preserved.forEach(response::setHeader);
     }
 
 }

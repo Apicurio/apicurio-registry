@@ -23,18 +23,6 @@ public class HSTSFilter implements Filter {
     }
 
     /**
-     * Resets the response but preserves the HSTS header, which {@link HttpServletResponse#reset()} would
-     * otherwise clear. Callers that reset the response to produce an error should use this instead.
-     */
-    public static void resetKeepingHstsHeader(HttpServletResponse httpResponse) {
-        String hsts = httpResponse.getHeader("Strict-Transport-Security");
-        httpResponse.reset();
-        if (hsts != null) {
-            httpResponse.setHeader("Strict-Transport-Security", hsts);
-        }
-    }
-
-    /**
      * C'tor
      */
     public HSTSFilter() {

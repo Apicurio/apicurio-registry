@@ -1,5 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useParams } from "react-router";
 import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
@@ -83,7 +84,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "usage";
     }
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
         if (gid == "default") {
             gid = null;
@@ -91,15 +92,15 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         logger.info("Loading data for artifact: ", artifactId);
         return [
             groups.getArtifactMetaData(gid, artifactId as string)
-                .then(setArtifact)
-                .catch(error => {
+                .then(guard.wrap(setArtifact))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getArtifactRules(gid, artifactId as string)
-                .then(setRules)
-                .catch(error => {
+                .then(guard.wrap(setRules))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
         ];
     };
 
@@ -360,7 +361,9 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        setLoaders(createLoaders());
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [groupId, artifactId]);
 
     const tabs: any[] = [

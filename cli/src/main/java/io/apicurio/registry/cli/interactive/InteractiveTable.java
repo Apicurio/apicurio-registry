@@ -1,0 +1,254 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.apicurio.registry.cli.interactive;
+
+import org.jboss.logging.Logger;
+import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp.Capability;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+
+public class InteractiveTable<T> {
+
+    private static final Logger log = Logger.getLogger(InteractiveTable.class);
+
+    public enum Action {
+        VIEW,
+        DELETE
+    }
+
+    public record Selection<T>(T row, Action action) {
+    }
+
+    private final InteractiveTableState<T> state;
+    private final Function<T, String> rowRenderer;
+    private final IntFunction<PageResult<T>> pageFetcher;
+    private int currentPage = 1;
+    private boolean hasNextPage = false;
+
+    /** Result of fetching a page: the rows, and whether more pages exist. */
+    public record PageResult<T>(List<T> rows, boolean hasNextPage) {
+    }
+
+    public InteractiveTable(List<T> rows, Function<T, String> rowRenderer) {
+        this(rows, rowRenderer, null);
+    }
+
+    /**
+     * @param pageFetcher optional callback invoked with a 1-based page number,
+     *                     used for server-backed pagination (PgUp/PgDn). Pass
+     *                     null to disable pagination and only show the given rows.
+     */
+    public InteractiveTable(List<T> rows, Function<T, String> rowRenderer, IntFunction<PageResult<T>> pageFetcher) {
+        this.state = new InteractiveTableState<>(rows, rowRenderer);
+        this.rowRenderer = rowRenderer;
+        this.pageFetcher = pageFetcher;
+    }
+
+    /**
+     * Runs the interactive TUI loop.
+     *
+     * @return the user's selection, or {@code null} if the user exited
+     *         (via 'q'/Esc) or if a terminal I/O error occurred. Callers
+     *         cannot distinguish these two cases from the return value alone.
+     */
+    public Selection<T> run() {
+        try (Terminal terminal = TerminalBuilder.builder()
+                .system(true)
+                .build()) {
+            terminal.enterRawMode();
+            terminal.puts(Capability.enter_ca_mode);
+            try {
+                KeyMap<String> normalKeyMap = buildNormalKeyMap(terminal);
+                KeyMap<String> filterKeyMap = buildFilterKeyMap();
+                KeyMap<String> confirmKeyMap = buildConfirmKeyMap();
+                BindingReader bindingReader = new BindingReader(terminal.reader());
+
+                render(terminal);
+                while (true) {
+                    var mode = state.getMode();
+                    KeyMap<String> activeKeyMap = switch (mode) {
+                        case FILTER_INPUT -> filterKeyMap;
+                        case CONFIRM_DELETE -> confirmKeyMap;
+                        case NORMAL -> normalKeyMap;
+                    };
+                    String op = bindingReader.readBinding(activeKeyMap);
+                    if (op == null) {
+                        return null;
+                    }
+                    var result = handleBinding(op, mode);
+                    if (result != null) {
+                        return result;
+                    }
+                    render(terminal);
+                }
+            } finally {
+                terminal.puts(Capability.exit_ca_mode);
+                terminal.flush();
+            }
+        } catch (IOException e) {
+            log.warn("Interactive mode requires an interactive terminal (TTY).", e);
+            return null;
+        }
+    }
+
+    private static final String KEY_ENTER = "ENTER";
+    private static final String KEY_BACKSPACE = "BACKSPACE";
+    private static final String KEY_CONFIRM_YES = "CONFIRM_YES";
+    private static final String KEY_CONFIRM_NO = "CONFIRM_NO";
+
+    private KeyMap<String> buildNormalKeyMap(Terminal terminal) {
+        KeyMap<String> keyMap = new KeyMap<>();
+        keyMap.bind("UP", KeyMap.key(terminal, Capability.key_up));
+        keyMap.bind("DOWN", KeyMap.key(terminal, Capability.key_down));
+        keyMap.bind(KEY_ENTER, "\r");
+        keyMap.bind("QUIT", "q");
+        keyMap.bind("DELETE", "d");
+        keyMap.bind("FILTER", "/");
+        keyMap.bind("ESC", KeyMap.esc());
+        if (pageFetcher != null) {
+            keyMap.bind("NEXT_PAGE", KeyMap.key(terminal, Capability.key_npage));
+            keyMap.bind("PREV_PAGE", KeyMap.key(terminal, Capability.key_ppage));
+        }
+        return keyMap;
+    }
+
+    private KeyMap<String> buildFilterKeyMap() {
+        KeyMap<String> keyMap = new KeyMap<>();
+        keyMap.bind(KEY_ENTER, "\r");
+        keyMap.bind("ESC", KeyMap.esc());
+        keyMap.bind(KEY_BACKSPACE, KeyMap.del());
+        keyMap.bind(KEY_BACKSPACE, "\b");
+        for (char c = 32; c < 127; c++) {
+            keyMap.bind(String.valueOf(c), String.valueOf(c));
+        }
+        return keyMap;
+    }
+
+    private KeyMap<String> buildConfirmKeyMap() {
+        KeyMap<String> keyMap = new KeyMap<>();
+        keyMap.bind(KEY_CONFIRM_YES, "y");
+        keyMap.bind(KEY_CONFIRM_YES, "Y");
+        keyMap.bind(KEY_CONFIRM_NO, "n");
+        keyMap.bind(KEY_CONFIRM_NO, "N");
+        keyMap.bind("ESC", KeyMap.esc());
+        return keyMap;
+    }
+
+    /** Returns a Selection if the loop should end with a result, or null to keep looping. */
+    private Selection<T> handleBinding(String op, InteractiveTableState.Mode mode) {
+        return switch (mode) {
+            case FILTER_INPUT -> {
+                handleFilterBinding(op);
+                yield null;
+            }
+            case CONFIRM_DELETE -> handleConfirmDeleteBinding(op);
+            case NORMAL -> handleNormalBinding(op);
+        };
+    }
+
+    private Selection<T> handleConfirmDeleteBinding(String op) {
+        if (KEY_CONFIRM_YES.equals(op)) {
+            state.cancelConfirmDelete();
+            var row = state.getSelectedRow();
+            return row == null ? null : new Selection<>(row, Action.DELETE);
+        } else {
+            state.cancelConfirmDelete();
+            return null;
+        }
+    }
+
+    private void handleFilterBinding(String op) {
+        if (op.equals("ESC")) {
+            state.clearFilter();
+        } else if (op.equals(KEY_ENTER)) {
+            state.commitFilter();
+        } else if (op.equals(KEY_BACKSPACE)) {
+            state.backspaceFilterChar();
+        } else if (op.length() == 1) {
+            state.typeFilterChar(op.charAt(0));
+        }
+    }
+
+    private Selection<T> handleNormalBinding(String op) {
+        switch (op) {
+            case "QUIT", "ESC" -> {
+                return terminalExit();
+            }
+            case KEY_ENTER -> {
+                var row = state.getSelectedRow();
+                return row == null ? null : new Selection<>(row, Action.VIEW);
+            }
+            case "DELETE" -> {
+                state.startConfirmDelete();
+                return null;
+            }
+            case "UP" -> state.moveUp();
+            case "DOWN" -> state.moveDown();
+            case "FILTER" -> state.startFilterInput();
+            case "NEXT_PAGE" -> goToPage(currentPage + 1);
+            case "PREV_PAGE" -> goToPage(currentPage - 1);
+            default -> { /* ignore unrecognized bindings */ }
+        }
+        return null;
+    }
+
+    private Selection<T> terminalExit() {
+        return null;
+    }
+
+    private void goToPage(int page) {
+        if (pageFetcher == null || page < 1) {
+            return;
+        }
+        var result = pageFetcher.apply(page);
+        if (result == null || result.rows().isEmpty()) {
+            return;
+        }
+        currentPage = page;
+        hasNextPage = result.hasNextPage();
+        state.setRows(result.rows());
+    }
+
+    private void render(Terminal terminal) {
+        terminal.puts(Capability.clear_screen);
+        var rows = state.getVisibleRows();
+        for (int i = 0; i < rows.size(); i++) {
+            String prefix = (i == state.getSelectedIndex()) ? "> " : "  ";
+            terminal.writer().println(prefix + rowRenderer.apply(rows.get(i)));
+        }
+        if (rows.isEmpty()) {
+            terminal.writer().println("(no matching rows)");
+        }
+        terminal.writer().println();
+        if (state.getMode() == InteractiveTableState.Mode.FILTER_INPUT) {
+            terminal.writer().println("Filter: " + state.getFilterText() + "_  [Enter: apply, Esc: clear]");
+        } else if (state.getMode() == InteractiveTableState.Mode.CONFIRM_DELETE) {
+            terminal.writer().println("Delete selected artifact? [y/N] ");
+        } else {
+            var pageInfo = pageFetcher != null ? "  [PgUp/PgDn: page " + currentPage + "]" : "";
+            terminal.writer().println("[Enter: view, d: delete, /: search, q/Esc: exit]" + pageInfo);
+        }
+        terminal.flush();
+    }
+}

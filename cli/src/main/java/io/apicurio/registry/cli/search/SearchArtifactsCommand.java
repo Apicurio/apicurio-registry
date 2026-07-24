@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.cli.search;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
@@ -90,6 +106,61 @@ public class SearchArtifactsCommand extends AbstractCommand {
             applyFilters(r.queryParameters);
         }));
         SearchUtil.printArtifactResults(output, results, outputType, pagination, columns);
+    }
+
+    @Override
+    public boolean supportsInteractive() {
+        return true;
+    }
+
+    @Override
+    public void runInteractive() throws Exception {
+        final var registryClient = client.getRegistryClient();
+        //noinspection ConstantConditions
+        final var initialResults = convert(registryClient.search().artifacts().get(r -> {
+            //noinspection ConstantConditions
+            applyFilters(r.queryParameters);
+            r.queryParameters.offset = 0;
+        }));
+        final var initialRows = java.util.Optional.ofNullable(initialResults.getArtifacts()).orElse(List.of());
+
+        var table = new io.apicurio.registry.cli.interactive.InteractiveTable<>(
+                initialRows,
+                a -> java.util.Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "  " + a.getArtifactType() + "  " + a.getCreatedOn(),
+                page -> {
+                    //noinspection ConstantConditions
+                    final var pageResults = convert(registryClient.search().artifacts().get(r -> {
+                        //noinspection ConstantConditions
+                        applyFilters(r.queryParameters);
+                        r.queryParameters.offset = (page - 1) * pagination.getSize();
+                    }));
+                    final var pageRows = java.util.Optional.ofNullable(pageResults.getArtifacts()).orElse(List.of());
+                    final var hasNext = (page * pagination.getSize()) < pageResults.getCount();
+                    return new io.apicurio.registry.cli.interactive.InteractiveTable.PageResult<>(pageRows, hasNext);
+                }
+        );
+
+        var selected = table.run();
+        if (selected == null) {
+            return;
+        }
+
+        var a = selected.row();
+        if (selected.action() == io.apicurio.registry.cli.interactive.InteractiveTable.Action.VIEW) {
+            config.getStdOut().print("Group:        " + io.apicurio.registry.cli.common.IdUtil.displayGroupId(a.getGroupId()) + "\n");
+            config.getStdOut().print("Artifact ID:  " + a.getArtifactId() + "\n");
+            config.getStdOut().print("Name:         " + java.util.Optional.ofNullable(a.getName()).orElse(a.getArtifactId()) + "\n");
+            config.getStdOut().print("Type:         " + a.getArtifactType() + "\n");
+            config.getStdOut().print("Description:  " + java.util.Optional.ofNullable(a.getDescription()).orElse("") + "\n");
+            config.getStdOut().print("Created:      " + a.getCreatedOn() + "\n");
+        } else if (selected.action() == io.apicurio.registry.cli.interactive.InteractiveTable.Action.DELETE) {
+            var deleteGroupId = java.util.Optional.ofNullable(a.getGroupId())
+                    .orElseGet(() -> io.apicurio.registry.cli.common.IdUtil.resolveGroupId(groupId, config));
+            registryClient.groups().byGroupId(deleteGroupId)
+                    .artifacts().byArtifactId(a.getArtifactId()).delete();
+            config.getStdOut().print("Artifact '" + a.getArtifactId() + "' in group '"
+                    + deleteGroupId + "' deleted successfully.\n");
+        }
     }
 
     private void applyFilters(final ArtifactsRequestBuilder.GetQueryParameters params) {

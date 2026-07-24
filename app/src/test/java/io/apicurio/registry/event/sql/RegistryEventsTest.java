@@ -609,12 +609,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         ensureArtifactCreated(groupId, artifactId, "1", name, description);
 
+        ContractRuleSet ruleSet = new ContractRuleSet();
+        ruleSet.setDomainRules(List.of());
+        ruleSet.setMigrationRules(List.of());
+
         // Set an artifact-level contract ruleset
         given()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body(new ContractRuleSet().domainRules(List.of()).migrationRules(List.of()))
+                .body(ruleSet)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then()
                 .statusCode(200);
@@ -640,12 +644,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         ensureArtifactCreated(groupId, artifactId, "1", name, description);
 
+        EditableContractMetadata metadata = new EditableContractMetadata();
+        metadata.setStatus(EditableContractMetadata.Status.DRAFT);
+        metadata.setOwnerTeam("platform-team");
+
         // Update contract metadata
         given()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body(new EditableContractMetadata().status("DRAFT").ownerTeam("platform-team"))
+                .body(metadata)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200);
@@ -671,22 +679,28 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
 
         ensureArtifactCreated(groupId, artifactId, "1", name, description);
 
+        EditableContractMetadata metadata = new EditableContractMetadata();
+        metadata.setStatus(EditableContractMetadata.Status.DRAFT);
+
         // Set initial DRAFT status so a transition is possible
         given()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body(new EditableContractMetadata().status("DRAFT"))
+                .body(metadata)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200);
+
+        ContractStatusTransition transition = new ContractStatusTransition();
+        transition.setStatus(ContractStatusTransition.Status.STABLE);
 
         // Transition from DRAFT to STABLE
         given()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", artifactId)
-                .body(new ContractStatusTransition().status("STABLE"))
+                .body(transition)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then()
                 .statusCode(200);

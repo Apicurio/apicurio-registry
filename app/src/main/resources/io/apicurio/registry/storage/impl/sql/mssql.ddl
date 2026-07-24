@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 107);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 108);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -68,7 +68,7 @@ ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- The "versionOrder" field is needed to generate "version" when it is not provided.
 -- It contains the same information as the "branchOrder" in the "latest" branch, but we cannot use it because of a chicken-and-egg problem.
 -- At least it is no longer confusingly called "versionId". The "versionOrder" field should not be used for any other purpose.
-CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
+CREATE TABLE versions (globalId BIGINT NOT NULL, groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), versionSortKey NVARCHAR(512), versionOrder INT NOT NULL, state NVARCHAR(64) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), owner NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2(6) NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);

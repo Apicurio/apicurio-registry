@@ -1025,6 +1025,41 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         });
     }
 
+    @Test
+    public void testVersionSortingAndSemver() throws Exception {
+        String artifactId = "testSemverSorting-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                null, Collections.emptyList(), false, false, null);
+
+        String[] versionsToInsert = { "2.0.0", "1.0.0-alpha", "1.0.1", "latest" };
+        
+        for (String ver : versionsToInsert) {
+            storage().createArtifactVersion(GROUP_ID, artifactId, ver, ArtifactType.OPENAPI,
+                    ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                    null, Collections.emptyList(), false, false, null);
+        }
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId)),
+                    OrderBy.version, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(5, results.getCount());
+            
+            List<SearchedVersionDto> sortedVersions = results.getVersions();
+            
+            Assertions.assertEquals("1.0.0-alpha", sortedVersions.get(0).getVersion());
+            Assertions.assertEquals("1", sortedVersions.get(1).getVersion());
+            Assertions.assertEquals("1.0.1", sortedVersions.get(2).getVersion());
+            Assertions.assertEquals("2.0.0", sortedVersions.get(3).getVersion());
+            Assertions.assertEquals("latest", sortedVersions.get(4).getVersion());
+        });
+    }
+
     private void createSomeUserData() {
         final String group1 = "testGroup-1";
         final String group2 = "testGroup-2";

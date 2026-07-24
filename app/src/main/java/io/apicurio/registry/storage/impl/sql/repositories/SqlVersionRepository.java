@@ -33,6 +33,7 @@ import io.apicurio.registry.events.ArtifactVersionStateChanged;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.VersionUtil;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import org.slf4j.Logger;
@@ -439,16 +440,17 @@ public class SqlVersionRepository {
                     .bind(1, normalizeGroupId(entity.groupId))
                     .bind(2, entity.artifactId)
                     .bind(3, entity.version)
-                    .bind(4, entity.versionOrder)
-                    .bind(5, entity.state)
-                    .bind(6, entity.name)
-                    .bind(7, entity.description)
-                    .bind(8, entity.owner)
-                    .bind(9, new Date(entity.createdOn))
-                    .bind(10, entity.modifiedBy)
-                    .bind(11, new Date(entity.modifiedOn))
-                    .bind(12, RegistryContentUtils.serializeLabels(entity.labels))
-                    .bind(13, entity.contentId)
+                    .bind(4, VersionUtil.generateVersionSortKey(entity.version))
+                    .bind(5, entity.versionOrder)
+                    .bind(6, entity.state)
+                    .bind(7, entity.name)
+                    .bind(8, entity.description)
+                    .bind(9, entity.owner)
+                    .bind(10, new Date(entity.createdOn))
+                    .bind(11, entity.modifiedBy)
+                    .bind(12, new Date(entity.modifiedOn))
+                    .bind(13, RegistryContentUtils.serializeLabels(entity.labels))
+                    .bind(14, entity.contentId)
                     .execute();
 
             // Insert labels into the "version_labels" table
@@ -534,39 +536,51 @@ public class SqlVersionRepository {
 
         Long globalId = sequenceRepository.nextGlobalIdRaw(handle);
         GAV gav;
-
+        String sortKey = VersionUtil.generateVersionSortKey(version);
         // Create a row in the "versions" table
         if (firstVersion) {
             if (version == null) {
                 version = "1";
+                sortKey = VersionUtil.generateVersionSortKey("1");
             }
+            final String finalSortKey = sortKey;
             final String finalVersion1 = version; // Lambda requirement
             handle.createUpdate(sqlStatements.insertVersion(true)).bind(0, globalId)
                     .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, finalVersion1)
-                    .bind(4, state).bind(5, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
-                    .bind(6, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
-                    .bind(7, owner).bind(8, createdOn).bind(9, owner).bind(10, createdOn)
-                    .bind(11, labelsStr).bind(12, contentId).execute();
+                    .bind(4, finalSortKey)
+                    .bind(5, state).bind(6, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
+                    .bind(7, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
+                    .bind(8, owner).bind(9, createdOn).bind(10, owner).bind(11, createdOn)
+                    .bind(12, labelsStr).bind(13, contentId).execute();
 
             gav = new GAV(groupId, artifactId, finalVersion1);
         } else {
             handle.createUpdate(sqlStatements.insertVersion(false)).bind(0, globalId)
                     .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version)
-                    .bind(4, normalizeGroupId(groupId)).bind(5, artifactId).bind(6, state)
-                    .bind(7, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
-                    .bind(8, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
-                    .bind(9, owner).bind(10, createdOn).bind(11, owner).bind(12, createdOn)
-                    .bind(13, labelsStr).bind(14, contentId).execute();
+                    .bind(4, sortKey)
+                    .bind(5, normalizeGroupId(groupId)).bind(6, artifactId).bind(7, state)
+                    .bind(8, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
+                    .bind(9, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
+                    .bind(10, owner).bind(11, createdOn).bind(12, owner).bind(13, createdOn)
+                    .bind(14, labelsStr).bind(15, contentId).execute();
 
             // If version is null, update the row we just inserted to set the version to the generated
             // versionOrder
+
             if (version == null) {
                 handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId()).bind(0, globalId).execute();
+                
+                gav = getGAVByGlobalIdRaw(handle, globalId);
+                 
+                String generatedSortKey = VersionUtil.generateVersionSortKey(gav.getRawVersionId());
+                handle.createUpdate(sqlStatements.updateVersionSortKey())
+                        .bind(0, generatedSortKey)
+                        .bind(1, globalId)
+                        .execute();
+            } else {
+                gav = getGAVByGlobalIdRaw(handle, globalId);
             }
-
-            gav = getGAVByGlobalIdRaw(handle, globalId);
         }
-
         // Insert labels into the "version_labels" table
         if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
             metaData.getLabels().forEach((k, v) -> {
@@ -576,7 +590,6 @@ public class SqlVersionRepository {
                         .execute();
             });
         }
-
         // Update system generated branches
         if (isDraft) {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
@@ -584,7 +597,6 @@ public class SqlVersionRepository {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
             branchRepository.createOrUpdateSemverBranchesRaw(handle, gav);
         }
-
         // Create any user defined branches
         if (branches != null && !branches.isEmpty()) {
             branches.forEach(branch -> {

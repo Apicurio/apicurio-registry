@@ -146,12 +146,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
         // TODO: Use COALESCE to unify into a single query.
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
-                    + " VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
+                    + " VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
             // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
-                    + " VALUES (?, ?, ?, ?, (SELECT maxVer FROM (SELECT MAX(versionOrder) + 1 AS maxVer FROM versions WHERE groupId = ? AND artifactId = ?) temp), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
+                    + " VALUES (?, ?, ?, ?, ?, (SELECT maxVer FROM (SELECT MAX(versionOrder) + 1 AS maxVer FROM versions WHERE groupId = ? AND artifactId = ?) temp), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -430,6 +430,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String updateArtifactVersionLabelsByGAV() {
         return "UPDATE versions SET labels = ? WHERE groupId = ? AND artifactId = ? AND version = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateVersionSortKey()
+     */
+    @Override
+    public String updateVersionSortKey() {
+        return "UPDATE versions SET versionSortKey = ? WHERE globalId = ?";
     }
 
     /**
@@ -938,8 +946,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactVersion() {
-        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**

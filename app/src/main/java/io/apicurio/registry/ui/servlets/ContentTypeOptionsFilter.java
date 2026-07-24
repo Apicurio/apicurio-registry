@@ -18,7 +18,7 @@ public class ContentTypeOptionsFilter implements Filter {
 
     private static final String CONTENT_TYPE_OPTIONS_HEADER = "nosniff";
 
-    public static void addContentTypeOptionsHeaders(HttpServletResponse httpResponse) {
+    public static void addContentTypeOptionsHeader(HttpServletResponse httpResponse) {
         httpResponse.setHeader("X-Content-Type-Options", CONTENT_TYPE_OPTIONS_HEADER);
     }
 
@@ -29,11 +29,13 @@ public class ContentTypeOptionsFilter implements Filter {
     public void init(FilterConfig config) throws ServletException {
     }
 
+    // Set before chain.doFilter(), so a downstream response.reset() clears it: the disabled-API 404 path
+    // re-lists this header in RegistryApplicationServletFilter#resetKeepingHeaders.
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
-        addContentTypeOptionsHeaders(httpResponse);
+        addContentTypeOptionsHeader(httpResponse);
         chain.doFilter(request, response);
     }
 

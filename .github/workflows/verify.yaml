@@ -272,6 +272,9 @@ jobs:
       - name: Run linter
         run: ./scripts/validate-files.sh
 
+      - name: Verify shard coverage
+        run: .github/scripts/check-shard-coverage.sh
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then

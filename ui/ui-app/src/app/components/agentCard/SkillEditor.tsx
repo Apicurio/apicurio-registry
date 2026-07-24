@@ -4,6 +4,9 @@ import {
     Button,
     Form,
     FormGroup,
+    FormHelperText,
+    HelperText,
+    HelperTextItem,
     TextArea,
     TextInput,
     Title,
@@ -47,6 +50,9 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
         tags: []
     };
 
+    const isDuplicateSkillId: boolean =
+        isAdding && !!editingSkill?.id && skills.some(s => s.id === editingSkill?.id);
+
     const handleAddSkill = (): void => {
         setEditingSkill({ ...emptySkill });
         setIsAdding(true);
@@ -64,6 +70,10 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
 
     const handleSaveSkill = (): void => {
         if (!editingSkill || !editingSkill.id || !editingSkill.name) {
+            return;
+        }
+
+        if (isDuplicateSkillId) {
             return;
         }
 
@@ -109,7 +119,17 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                         onChange={(_event, value) => setEditingSkill({ ...editingSkill, id: value })}
                         placeholder="e.g., schema-validation"
                         isDisabled={!isAdding}
+                        validated={isDuplicateSkillId ? "error" : "default"}
                     />
+                    {isDuplicateSkillId && (
+                        <FormHelperText>
+                            <HelperText>
+                                <HelperTextItem variant="error">
+                                    A skill with this ID already exists.
+                                </HelperTextItem>
+                            </HelperText>
+                        </FormHelperText>
+                    )}
                 </FormGroup>
                 <FormGroup label="Name" isRequired fieldId="skill-name">
                     <TextInput
@@ -165,7 +185,7 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                     )}
                 </FormGroup>
                 <ActionGroup>
-                    <Button variant="primary" onClick={handleSaveSkill}>
+                    <Button variant="primary" onClick={handleSaveSkill} isDisabled={isDuplicateSkillId}>
                         {isAdding ? "Add Skill" : "Save Changes"}
                     </Button>
                     <Button variant="link" onClick={handleCancelEdit}>

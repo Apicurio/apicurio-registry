@@ -387,14 +387,14 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSearchAgentsAdvancedWithQueryByArtifactId() throws Exception {
+    public void testSearchAgentsAdvancedWithQueryByName() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
-        createAgentCard(groupId, "my-search-target", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "query-name-agent", AGENT_CARD_CONTENT);
 
         String requestBody = """
                 {
-                    "query": "my-search-target",
+                    "query": "TestAgent",
                     "limit": 10,
                     "offset": 0
                 }
@@ -408,7 +408,56 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("my-search-target"));
+                .body("agents.artifactId", hasItem("query-name-agent"));
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedByDescription() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "desc-search-agent", STREAMING_AGENT_CARD);
+
+        String requestBody = """
+                {
+                    "query": "streaming capabilities",
+                    "limit": 10,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("desc-search-agent"));
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedNoMatch() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "no-match-agent", AGENT_CARD_CONTENT);
+
+        String requestBody = """
+                {
+                    "query": "xyznonexistent",
+                    "limit": 10,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", not(hasItem("no-match-agent")));
     }
 
     @Test
@@ -445,13 +494,13 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSearchAgentsAdvancedWithQueryWildcard() throws Exception {
+    public void testSearchAgentsAdvancedWithPartialQuery() throws Exception {
         String groupId = TestUtils.generateGroupId();
-        createAgentCard(groupId, "wildcard-target-agent", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "partial-query-agent", AGENT_CARD_CONTENT);
 
         String requestBody = """
                 {
-                    "query": "*wildcard-target*",
+                    "query": "test",
                     "limit": 10,
                     "offset": 0
                 }
@@ -465,7 +514,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("wildcard-target-agent"));
+                .body("agents.artifactId", hasItem("partial-query-agent"));
     }
 
     @Test
@@ -590,6 +639,19 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+
+        try {
+            com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readTree(content);
+            if (root.has("name")) {
+                createArtifact.setName(root.get("name").asText());
+            }
+            if (root.has("description")) {
+                createArtifact.setDescription(root.get("description").asText());
+            }
+        } catch (Exception e) {
+            // ignore parse failures in tests
+        }
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();

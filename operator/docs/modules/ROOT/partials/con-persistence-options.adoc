@@ -41,5 +41,48 @@ ifdef::service-registry[]
 These options require that the storage is already installed as a prerequisite.
 endif::[]
 
+[id="registry-persistence-storage-migration"]
+== Migrating from deprecated storage fields
+
+Starting with {operator} 3.0.7, storage must be configured under `spec.app.storage`.
+The older top-level fields `spec.app.sql` and `spec.app.kafkasql` have been removed and are no longer accepted.
+
+.Before (removed)
+[source,yaml]
+----
+spec:
+  app:
+    sql:
+      dataSource:
+        url: jdbc:postgresql://postgresql:5432/apicurio
+        username: apicurio
+        password: password
+----
+
+.After (required)
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://postgresql:5432/apicurio
+          username: apicurio
+          password:
+            name: postgresql-credentials
+            key: password
+----
+
+For KafkaSQL, replace `spec.app.kafkasql` with `spec.app.storage.type: kafkasql` and
+`spec.app.storage.kafkasql`.
+
+IMPORTANT: Existing custom resources that still use `spec.app.sql` or `spec.app.kafkasql`
+must be updated before upgrading to an operator version that removes these fields.
+Automatic migration of those fields is no longer performed.
+
 .Additional resources
 * xref:assembly-operator-installation.adoc[]
+* xref:registry-persistence-sql[]
+* xref:registry-persistence-kafkasql-plain[]

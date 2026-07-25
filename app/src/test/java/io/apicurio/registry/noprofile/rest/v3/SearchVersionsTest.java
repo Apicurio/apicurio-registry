@@ -6,6 +6,8 @@ import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -19,6 +21,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.containsStringIgnoringCase;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
@@ -139,8 +142,8 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 ContentTypes.APPLICATION_JSON);
 
         // Change state to DISABLED
-        io.apicurio.registry.rest.client.models.WrappedVersionState disabled = new io.apicurio.registry.rest.client.models.WrappedVersionState();
-        disabled.setState(io.apicurio.registry.rest.client.models.VersionState.DISABLED);
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
         clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
                 .byVersionExpression("1").state().put(disabled);
 
@@ -151,7 +154,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 .post("/registry/v3/search/versions")
                 .then()
                 .statusCode(200)
-                .body("count", org.hamcrest.Matchers.equalTo(1));
+                .body("count", equalTo(1));
 
         // Search with state=ENABLED
         given().when()
@@ -161,7 +164,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 .post("/registry/v3/search/versions")
                 .then()
                 .statusCode(200)
-                .body("count", org.hamcrest.Matchers.equalTo(0));
+                .body("count", equalTo(0));
 
         // Search with state=DISABLED
         given().when()
@@ -171,7 +174,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 .post("/registry/v3/search/versions")
                 .then()
                 .statusCode(200)
-                .body("count", org.hamcrest.Matchers.equalTo(1));
+                .body("count", equalTo(1));
 
         // Search with state=DEPRECATED
         given().when()
@@ -181,7 +184,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 .post("/registry/v3/search/versions")
                 .then()
                 .statusCode(200)
-                .body("count", org.hamcrest.Matchers.equalTo(0));
+                .body("count", equalTo(0));
     }
 
     @Test

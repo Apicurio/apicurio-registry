@@ -6,6 +6,7 @@ import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.data.Metadata;
 import io.apicurio.registry.serde.Default4ByteIdHandler;
 import io.apicurio.registry.serde.IdHandler;
+import io.apicurio.registry.serde.error.DeserializerErrorHandler;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 import io.apicurio.registry.serde.strategy.TopicIdStrategy;
@@ -142,6 +143,15 @@ public class SerdeConfig extends SchemaResolverConfig {
     public static final String FALLBACK_ARTIFACT_PROVIDER = "apicurio.registry.fallback.provider";
     public static final String FALLBACK_ARTIFACT_PROVIDER_DEFAULT = DefaultFallbackArtifactProvider.class
             .getName();
+
+    /**
+     * Only applicable for deserializers. Optional, fully qualified Java classname of a class that
+     * implements {@link DeserializerErrorHandler}. When a record's artifact/schema reference cannot be
+     * resolved (after any configured {@link #FALLBACK_ARTIFACT_PROVIDER} has also failed), the handler
+     * is given the chance to skip the record instead of the deserializer throwing. Unset by default,
+     * meaning no handler is used and the deserializer always throws, matching prior behavior.
+     */
+    public static final String DESERIALIZER_ERROR_HANDLER = "apicurio.registry.deserializer.error-handler";
 
     /**
      * Fully qualified Java classname of a class that will be used as the return type for the deserializer.

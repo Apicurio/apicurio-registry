@@ -17,6 +17,7 @@ import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.rest.client.models.ContractRuleSet;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.config.SerdeDeserializerConfig;
+import io.apicurio.registry.serde.error.DeserializerErrorHandler;
 import io.apicurio.registry.serde.fallback.DefaultFallbackArtifactProvider;
 import io.apicurio.registry.serde.fallback.FallbackArtifactProvider;
 import io.apicurio.registry.serde.tracing.SerDesAttributes;
@@ -48,6 +49,7 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
     private final ConcurrentHashMap<SchemaCacheKey, SchemaLookupResult<T>> fastPathCache = new ConcurrentHashMap<>();
 
     private FallbackArtifactProvider fallbackArtifactProvider;
+    private DeserializerErrorHandler deserializerErrorHandler;
     private final BaseSerde<T, U> baseSerde;
     private boolean contractRulesEnabled = false;
     private boolean contractRulesFailOnError = true;
@@ -124,6 +126,20 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                 fallbackArtifactProvider = null;
             }
         }
+
+        Object errorHandler = deserializerConfig.getDeserializerErrorHandler();
+        Utils.instantiate(DeserializerErrorHandler.class, errorHandler, this::setDeserializerErrorHandler);
+        if (deserializerErrorHandler != null) {
+            deserializerErrorHandler.configure(config.originals(), isKey);
+        }
+    }
+
+    public DeserializerErrorHandler getDeserializerErrorHandler() {
+        return deserializerErrorHandler;
+    }
+
+    public void setDeserializerErrorHandler(DeserializerErrorHandler deserializerErrorHandler) {
+        this.deserializerErrorHandler = deserializerErrorHandler;
     }
 
     public abstract SchemaParser<T, U> schemaParser();
@@ -135,13 +151,24 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
         return tracer.traceDeserialize(topic, span -> {
             span.setAttribute(SerDesAttributes.DATA_SIZE, (long) data.length);
 
-            ByteBuffer buffer = getByteBuffer(data);
+            ByteBuffer buffer;
+            try {
+                buffer = getByteBuffer(data);
+            } catch (RuntimeException e) {
+                if (shouldSkip(topic, data, e)) {
+                    return null;
+                }
+                throw e;
+            }
             ArtifactReference artifactReference = baseSerde.getIdHandler().readId(buffer);
 
             SchemaCacheKey cacheKey = getCacheKey(artifactReference);
             boolean cacheHit = cacheKey != null && fastPathCache.containsKey(cacheKey);
 
             SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+            if (schema == null) {
+                return null;
+            }
             SerDesTracer.setSchemaAttributes(span, schema, cacheHit);
 
             int length = buffer.limit() - 1 - baseSerde.getIdHandler().idSize(artifactReference, buffer);
@@ -161,6 +188,9 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
 
     public U readData(String topic, byte[] data, ArtifactReference artifactReference) {
         SchemaLookupResult<T> schema = resolve(topic, data, artifactReference);
+        if (schema == null) {
+            return null;
+        }
 
         ByteBuffer buffer = ByteBuffer.wrap(data);
         int length = buffer.limit();
@@ -198,6 +228,9 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             return result;
         } catch (RuntimeException e) {
             if (getFallbackArtifactProvider() == null) {
+                if (shouldSkip(topic, data, e)) {
+                    return null;
+                }
                 throw e;
             } else {
                 try {
@@ -211,10 +244,23 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
                     return result;
                 } catch (RuntimeException fe) {
                     fe.addSuppressed(e);
+                    if (shouldSkip(topic, data, fe)) {
+                        return null;
+                    }
                     throw fe;
                 }
             }
         }
+    }
+
+    /**
+     * Consults the configured {@link DeserializerErrorHandler}, if any, for a record whose
+     * artifact/schema reference could not be resolved.
+     *
+     * @return true if the record should be skipped (deserialize() returns null instead of throwing)
+     */
+    private boolean shouldSkip(String topic, byte[] data, RuntimeException cause) {
+        return deserializerErrorHandler != null && deserializerErrorHandler.handle(topic, data, cause);
     }
 
     /**

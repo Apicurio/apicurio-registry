@@ -3,6 +3,7 @@ package io.apicurio.registry.serde.config;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.apicurio.registry.serde.config.SerdeConfig.DESERIALIZER_ERROR_HANDLER;
 import static io.apicurio.registry.serde.config.SerdeConfig.FALLBACK_ARTIFACT_PROVIDER;
 import static io.apicurio.registry.serde.config.SerdeConfig.FALLBACK_ARTIFACT_PROVIDER_DEFAULT;
 import static java.util.Map.entry;
@@ -20,6 +21,10 @@ public class SerdeDeserializerConfig extends SerdeConfig {
 
     public Object getFallbackArtifactProvider() {
         return this.getObject(FALLBACK_ARTIFACT_PROVIDER);
+    }
+
+    public Object getDeserializerErrorHandler() {
+        return this.getObject(DESERIALIZER_ERROR_HANDLER);
     }
 
     @Override

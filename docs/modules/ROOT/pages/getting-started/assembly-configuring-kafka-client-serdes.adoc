@@ -373,6 +373,43 @@ The `DefaultFallbackArtifactProvider` uses the following properties to configure
 |None
 |===
 
+**Configuration for deserializer error handling**
+
+By default, a deserializer throws when a record's artifact/schema reference cannot be determined or
+resolved (for example, a mismatched `ENABLE_HEADERS` setting between producer and consumer, or a
+deleted schema). Because such a record is never successfully consumed, it is redelivered and fails
+again on every subsequent poll. If your application retries around a failing `poll()` call, the
+cumulative retry time can exceed `max.poll.interval.ms`, causing the consumer to be repeatedly
+evicted from its group and forced to rejoin.
+
+You can configure a `DeserializerErrorHandler` to skip a record like this instead of throwing:
+
+[source,properties]
+----
+props.putIfAbsent(SerdeConfig.DESERIALIZER_ERROR_HANDLER,
+        "io.apicurio.registry.serde.error.LoggingDeserializerErrorHandler");
+----
+
+`LoggingDeserializerErrorHandler` logs the skipped record at `WARN` and returns `null` from
+`deserialize()`, the same way a tombstone (null-valued) record is handled. To customize this
+behavior, for example to publish skipped records to a dead-letter topic, implement
+`DeserializerErrorHandler` yourself.
+
+.Configuration property for deserializer error handling
+[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`DESERIALIZER_ERROR_HANDLER`
+|`apicurio.registry.deserializer.error-handler`
+|Used by deserializers only. Fully qualified Java class name of a class that implements `DeserializerErrorHandler`. Called when a record's artifact/schema reference cannot be resolved, after any configured `FALLBACK_ARTIFACT_PROVIDER` has also failed. Unset by default, meaning no handler is used and the deserializer always throws, matching prior behavior.
+|`String`
+|None
+|===
+
 You can configure application properties as Java system properties or include them in the Quarkus
 `application.properties` file.
 For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].

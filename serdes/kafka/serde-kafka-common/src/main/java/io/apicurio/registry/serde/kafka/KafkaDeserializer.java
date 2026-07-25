@@ -7,6 +7,7 @@ import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.BaseSerde;
 import io.apicurio.registry.serde.Default4ByteIdHandler;
 import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.serde.error.DeserializerErrorHandler;
 import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.kafka.headers.HeadersHandler;
 import org.apache.kafka.common.header.Headers;
@@ -50,7 +51,12 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
         if (data[0] == BaseSerde.MAGIC_BYTE) {
             return deserialize(topic, data);
         } else if (headers == null) {
-            throw new IllegalStateException("Headers cannot be null");
+            IllegalStateException e = new IllegalStateException("Headers cannot be null");
+            DeserializerErrorHandler errorHandler = delegatedDeserializer.getDeserializerErrorHandler();
+            if (errorHandler != null && errorHandler.handle(topic, data, e)) {
+                return null;
+            }
+            throw e;
         } else {
             // try to read data even if artifactReference has no value, maybe there is a
             // fallbackArtifactProvider configured

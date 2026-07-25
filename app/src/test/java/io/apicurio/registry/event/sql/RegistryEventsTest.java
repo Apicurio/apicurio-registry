@@ -771,6 +771,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
+        // Verify the contract ruleset was persisted (KafkaSql replication)
+        given()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then()
+                .statusCode(200);
+
         // Consume the event from the broker
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
                 Map.of("groupId", groupId, "artifactId", artifactId));
@@ -804,6 +812,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", artifactId)
                 .body(metadata)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200);
+
+        // Verify the contract metadata was persisted (KafkaSql replication)
+        given()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200);
 
@@ -841,6 +857,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
+        // Verify the initial DRAFT status was persisted (KafkaSql replication)
+        given()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200);
+
         ContractStatusTransition transition = new ContractStatusTransition();
         transition.setStatus(ContractStatusTransition.Status.STABLE);
 
@@ -851,6 +875,14 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", artifactId)
                 .body(transition)
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then()
+                .statusCode(200);
+
+        // Verify the status transition was persisted (KafkaSql replication)
+        given()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200);
 

@@ -23,6 +23,7 @@ import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
 import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.feat.TlsExpirationChecker;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
 import io.apicurio.registry.operator.updater.SqlCRUpdater;
@@ -185,7 +186,10 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
         }
 )
 @ControllerConfiguration(
-        name = "apicurioregistry3reconciler"
+        name = "apicurioregistry3reconciler",
+        maxReconciliationInterval = @io.javaoperatorsdk.operator.api.reconciler.MaxReconciliationInterval(
+                interval = 24, timeUnit = java.util.concurrent.TimeUnit.HOURS
+        )
 )
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
 
@@ -208,6 +212,8 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
         }
 
         ConsolePluginManager.reconcileConsolePluginCR(context.getClient(), primary);
+
+        TlsExpirationChecker.checkCertificates(primary, context);
 
         return UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
     }

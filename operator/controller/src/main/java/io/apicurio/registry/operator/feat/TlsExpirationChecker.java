@@ -1,11 +1,27 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.operator.feat;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.IngressSpec;
 import io.apicurio.registry.operator.api.v1.spec.SecretKeyRef;
 import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
+import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.apicurio.registry.operator.status.CertificateExpiringConditionManager;
-import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.apicurio.registry.operator.utils.SecretKeyRefTool;
@@ -19,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
@@ -36,6 +53,18 @@ public class TlsExpirationChecker {
     private static final String CERT_MANAGER_ANNOTATION = "cert-manager.io/certificate-name";
     private static final int DEFAULT_WARNING_DAYS = 30;
 
+    private final ApicurioRegistry3 primary;
+    private final Context<ApicurioRegistry3> context;
+    private final int warningDays;
+    private final CertificateExpiringConditionManager expiringManager;
+
+    private TlsExpirationChecker(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context, int warningDays, CertificateExpiringConditionManager expiringManager) {
+        this.primary = primary;
+        this.context = context;
+        this.warningDays = warningDays;
+        this.expiringManager = expiringManager;
+    }
+
     public static void checkCertificates(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         if (primary.getSpec() == null || primary.getSpec().getApp() == null) {
             return;
@@ -50,22 +79,19 @@ public class TlsExpirationChecker {
         }
 
         CertificateExpiringConditionManager expiringManager = StatusManager.get(primary).getConditionManager(CertificateExpiringConditionManager.class);
+        TlsExpirationChecker checker = new TlsExpirationChecker(primary, context, warningDays, expiringManager);
 
         if (tlsSpec != null) {
-            checkKeystore(primary, context, tlsSpec.getKeystoreSecretRef(), tlsSpec.getKeystorePasswordSecretRef(), "user.p12", "user.password", warningDays, expiringManager);
-            checkKeystore(primary, context, tlsSpec.getTruststoreSecretRef(), tlsSpec.getTruststorePasswordSecretRef(), "ca.p12", "ca.password", warningDays, expiringManager);
+            checker.checkKeystore(tlsSpec.getKeystoreSecretRef(), tlsSpec.getKeystorePasswordSecretRef(), "user.p12", "user.password");
+            checker.checkKeystore(tlsSpec.getTruststoreSecretRef(), tlsSpec.getTruststorePasswordSecretRef(), "ca.p12", "ca.password");
         }
 
         if (ingressSpec != null && ingressSpec.getTlsSecretName() != null) {
-            checkIngressTls(primary, context, ingressSpec.getTlsSecretName(), warningDays, expiringManager);
+            checker.checkIngressTls(ingressSpec.getTlsSecretName());
         }
     }
 
-    private static void checkKeystore(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context,
-                                      SecretKeyRef storeRef, SecretKeyRef passRef,
-                                      String defaultStoreKey, String defaultPassKey,
-                                      int warningDays, CertificateExpiringConditionManager expiringManager) {
-
+    private void checkKeystore(SecretKeyRef storeRef, SecretKeyRef passRef, String defaultStoreKey, String defaultPassKey) {
         SecretKeyRefTool storeTool = new SecretKeyRefTool(storeRef, defaultStoreKey);
         SecretKeyRefTool passTool = new SecretKeyRefTool(passRef, defaultPassKey);
 
@@ -89,16 +115,9 @@ public class TlsExpirationChecker {
                 return;
             }
 
-            String password = "";
-            if (passTool.isValid()) {
-                Secret passSecret = context.getClient().secrets().inNamespace(primary.getMetadata().getNamespace()).withName(passRef.getName()).get();
-                if (passSecret != null) {
-                    String passKey = passRef.getKey() != null ? passRef.getKey() : defaultPassKey;
-                    String b64Pass = passSecret.getData().get(passKey);
-                    if (b64Pass != null) {
-                        password = new String(Base64.getDecoder().decode(b64Pass));
-                    }
-                }
+            String password = getKeystorePassword(passTool, passRef, defaultPassKey);
+            if (password == null) {
+                return;
             }
 
             byte[] storeBytes = Base64.getDecoder().decode(b64Store);
@@ -108,19 +127,38 @@ public class TlsExpirationChecker {
             Enumeration<String> aliases = ks.aliases();
             while (aliases.hasMoreElements()) {
                 String alias = aliases.nextElement();
-                java.security.cert.Certificate cert = ks.getCertificate(alias);
+                Certificate cert = ks.getCertificate(alias);
                 if (cert instanceof X509Certificate x509) {
-                    evaluateCertificate(primary, context, secret, x509, warningDays, expiringManager);
+                    evaluateCertificate(secret, x509);
                 }
             }
 
         } catch (Exception e) {
-            log.error("Failed to parse keystore secret {}", storeRef.getName(), e);
-            StatusManager.get(primary).getConditionManager(OperatorErrorConditionManager.class).recordException(e);
+            log.warn("Failed to parse keystore secret {}", storeRef.getName(), e);
+            StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                    .recordError("Failed to parse keystore secret '%s': %s", storeRef.getName(), e.getMessage());
         }
     }
 
-    private static void checkIngressTls(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context, String secretName, int warningDays, CertificateExpiringConditionManager expiringManager) {
+    private String getKeystorePassword(SecretKeyRefTool passTool, SecretKeyRef passRef, String defaultPassKey) {
+        if (!passTool.isValid()) {
+            return "";
+        }
+        Secret passSecret = context.getClient().secrets().inNamespace(primary.getMetadata().getNamespace()).withName(passRef.getName()).get();
+        if (passSecret != null) {
+            String passKey = passRef.getKey() != null ? passRef.getKey() : defaultPassKey;
+            String b64Pass = passSecret.getData().get(passKey);
+            if (b64Pass != null) {
+                return new String(Base64.getDecoder().decode(b64Pass));
+            }
+        }
+        
+        StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                .recordError("TLS Password Secret '%s' not found or missing key.", passRef.getName());
+        return null;
+    }
+
+    private void checkIngressTls(String secretName) {
         try {
             Secret secret = context.getClient().secrets().inNamespace(primary.getMetadata().getNamespace()).withName(secretName).get();
             if (secret == null) {
@@ -138,21 +176,20 @@ public class TlsExpirationChecker {
 
             byte[] certBytes = Base64.getDecoder().decode(b64Cert);
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            java.security.cert.Certificate cert = cf.generateCertificate(new ByteArrayInputStream(certBytes));
+            Certificate cert = cf.generateCertificate(new ByteArrayInputStream(certBytes));
 
             if (cert instanceof X509Certificate x509) {
-                evaluateCertificate(primary, context, secret, x509, warningDays, expiringManager);
+                evaluateCertificate(secret, x509);
             }
 
         } catch (Exception e) {
-            log.error("Failed to parse ingress TLS secret {}", secretName, e);
-            StatusManager.get(primary).getConditionManager(OperatorErrorConditionManager.class).recordException(e);
+            log.warn("Failed to parse ingress TLS secret {}", secretName, e);
+            StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                    .recordError("Failed to parse ingress TLS secret '%s': %s", secretName, e.getMessage());
         }
     }
 
-    private static void evaluateCertificate(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context,
-                                            Secret secret, X509Certificate cert, int warningDays,
-                                            CertificateExpiringConditionManager expiringManager) {
+    private void evaluateCertificate(Secret secret, X509Certificate cert) {
         Date notAfter = cert.getNotAfter();
         Instant expiryDate = notAfter.toInstant();
         Instant warningDate = Instant.now().plus(warningDays, ChronoUnit.DAYS);
@@ -170,20 +207,20 @@ public class TlsExpirationChecker {
 
             expiringManager.recordExpiringCertificate(secret.getMetadata().getName(), msg);
 
-            // Only emit Kubernetes Event if the condition was not already True on the previous reconciliation
-            boolean alreadyAlerting = false;
+            boolean alreadyAlerted = false;
             if (primary.getStatus() != null && primary.getStatus().getConditions() != null) {
-                alreadyAlerting = primary.getStatus().getConditions().stream()
-                        .anyMatch(c -> TYPE_CERTIFICATE_EXPIRING.equals(c.getType()) && "True".equals(c.getStatus()));
+                alreadyAlerted = primary.getStatus().getConditions().stream()
+                        .filter(c -> TYPE_CERTIFICATE_EXPIRING.equals(c.getType()) && ConditionStatus.TRUE.equals(c.getStatus()))
+                        .anyMatch(c -> c.getMessage() != null && c.getMessage().contains(secret.getMetadata().getName()));
             }
 
-            if (!alreadyAlerting) {
-                emitEvent(primary, context, "CertificateExpiring", msg);
+            if (!alreadyAlerted) {
+                emitEvent("CertificateExpiring", msg);
             }
         }
     }
 
-    private static void emitEvent(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context, String reason, String message) {
+    private void emitEvent(String reason, String message) {
         try {
             Event event = new EventBuilder()
                     .withNewMetadata()

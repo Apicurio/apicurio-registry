@@ -2,6 +2,7 @@ package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.feat.ConsolePluginManager;
+import io.apicurio.registry.operator.feat.TlsExpirationChecker;
 import io.apicurio.registry.operator.resource.ActivationConditions;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppHorizontalPodAutoscalerResource;
@@ -23,7 +24,6 @@ import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
 import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
-import io.apicurio.registry.operator.feat.TlsExpirationChecker;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
 import io.apicurio.registry.operator.updater.KafkaSqlCRUpdater;
 import io.apicurio.registry.operator.updater.SqlCRUpdater;
@@ -39,6 +39,8 @@ import io.javaoperatorsdk.operator.api.reconciler.dependent.Dependent;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.registry.operator.CRContext.deleteCRContext;
 import static io.apicurio.registry.operator.resource.ActivationConditions.AppHorizontalPodAutoscalerActivationCondition;
@@ -186,10 +188,7 @@ import static io.apicurio.registry.operator.utils.Mapper.copy;
         }
 )
 @ControllerConfiguration(
-        name = "apicurioregistry3reconciler",
-        maxReconciliationInterval = @io.javaoperatorsdk.operator.api.reconciler.MaxReconciliationInterval(
-                interval = 24, timeUnit = java.util.concurrent.TimeUnit.HOURS
-        )
+        name = "apicurioregistry3reconciler"
 )
 public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3>, Cleaner<ApicurioRegistry3> {
 
@@ -215,7 +214,16 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
         TlsExpirationChecker.checkCertificates(primary, context);
 
-        return UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
+        UpdateControl<ApicurioRegistry3> updateControl = UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
+        
+        boolean hasTls = primary.getSpec().getApp().getTls() != null
+                || (primary.getSpec().getApp().getIngress() != null
+                        && primary.getSpec().getApp().getIngress().getTlsSecretName() != null);
+        if (hasTls) {
+            updateControl = updateControl.rescheduleAfter(24, TimeUnit.HOURS);
+        }
+
+        return updateControl;
     }
 
     @Override

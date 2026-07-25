@@ -3,8 +3,11 @@ package io.apicurio.registry.operator.it;
 import io.apicurio.registry.operator.EnvironmentVariables;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.spec.InsecureRequests;
+import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.Secret;
+import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRule;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.quarkus.test.junit.QuarkusTest;
@@ -13,7 +16,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.net.URI;
+import java.util.Base64;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
@@ -373,16 +378,16 @@ public class TlsITTest extends ITBase {
     @Test
     void testTlsExpirationAlerting() throws Exception {
         // Read the static future keystore (valid for 10 years)
-        java.io.InputStream is = getClass().getResourceAsStream("/k8s/examples/tls/future.p12");
+        InputStream is = getClass().getResourceAsStream("/k8s/examples/tls/future.p12");
         byte[] keystoreBytes = is.readAllBytes();
         is.close();
         
-        String base64Keystore = java.util.Base64.getEncoder().encodeToString(keystoreBytes);
+        String base64Keystore = Base64.getEncoder().encodeToString(keystoreBytes);
 
-        io.fabric8.kubernetes.api.model.Secret secret = new io.fabric8.kubernetes.api.model.SecretBuilder()
+        Secret secret = new SecretBuilder()
                 .withNewMetadata().withName("expiring-tls-secret").withNamespace(namespace).endMetadata()
                 .addToData("ca.p12", base64Keystore)
-                .addToData("ca.password", java.util.Base64.getEncoder().encodeToString("password".getBytes()))
+                .addToData("ca.password", Base64.getEncoder().encodeToString("password".getBytes()))
                 .build();
         client.secrets().inNamespace(namespace).resource(secret).create();
 
@@ -408,7 +413,7 @@ public class TlsITTest extends ITBase {
             var condition = cr.getStatus().getConditions().stream()
                     .filter(c -> "CertificateExpiring".equals(c.getType()))
                     .findFirst();
-            return condition.isPresent() && "True".equals(condition.get().getStatus());
+            return condition.isPresent() && ConditionStatus.TRUE == condition.get().getStatus();
         });
         
         // Assert event

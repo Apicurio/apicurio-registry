@@ -197,6 +197,8 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
 
         log.trace("Reconciling Apicurio Registry: {}", primary);
 
+        io.apicurio.registry.operator.resource.ResourceFactory.validateSpecVersion(primary);
+
         // Some of the fields in the CR have been deprecated and another fields should be used instead.
         // Operator will attempt to update the CR to use the newer fields if possible.
         // This has to be done first, so subsequent functionality can deal with new fields only.

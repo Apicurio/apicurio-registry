@@ -64,7 +64,7 @@ public class ResourceFactory {
      * spec.version is newer than the operator (unsupported) or not a valid semver. Logs a warning
      * for intentional downgrades since those are the expected staged-upgrade workflow.
      */
-    static void validateSpecVersion(ApicurioRegistry3 primary) {
+    public static void validateSpecVersion(ApicurioRegistry3 primary) {
         var specVersion = getSpecVersion(primary);
         if (specVersion == null) {
             return;
@@ -72,9 +72,8 @@ public class ResourceFactory {
         var operatorVersion = Configuration.getRegistryVersion();
         var cmp = Configuration.compareVersions(specVersion, operatorVersion);
         if (cmp.isEmpty()) {
-            StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
-                    .recordError("spec.version (%s) is not a valid version format. "
-                            + "Expected numeric semver (e.g. 3.0.3).", specVersion);
+            log.warn("spec.version ({}) is not a recognized numeric format. "
+                    + "Using as-is for image tag.", specVersion);
         } else if (cmp.getAsInt() > 0) {
             StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
                     .recordError("spec.version (%s) is newer than the operator version (%s). "
@@ -103,8 +102,6 @@ public class ResourceFactory {
     public static final String RESOURCE_TYPE_HORIZONTAL_POD_AUTOSCALER = "horizontalpodautoscaler";
 
     public Deployment getDefaultAppDeployment(ApicurioRegistry3 primary) {
-        validateSpecVersion(primary);
-
         var autoscaling = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp)
                 .map(ComponentSpec::getAutoscaling).orElse(null);
         boolean autoscalingEnabled = ofNullable(autoscaling).map(AutoscalingSpec::getEnabled)
@@ -178,8 +175,6 @@ public class ResourceFactory {
     }
 
     public Deployment getDefaultUIDeployment(ApicurioRegistry3 primary) {
-        validateSpecVersion(primary);
-
         var uiAutoscaling = ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getUi)
                 .map(ComponentSpec::getAutoscaling).orElse(null);
         boolean uiAutoscalingEnabled = ofNullable(uiAutoscaling).map(AutoscalingSpec::getEnabled)

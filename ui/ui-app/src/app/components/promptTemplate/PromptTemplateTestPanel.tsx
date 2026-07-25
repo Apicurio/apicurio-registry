@@ -13,14 +13,22 @@ import {
     FormGroup,
     FormSelect,
     FormSelectOption,
+    Grid,
+    Label,
+    LabelGroup,
     Spinner,
     TextArea,
     TextInput,
-    Title
+    Title,
+    Toolbar,
+    ToolbarContent,
+    ToolbarItem
 } from "@patternfly/react-core";
+import { TagIcon } from "@patternfly/react-icons";
 import { PromptVariable } from "./PromptTemplateViewer";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
+import { ArtifactLabel, LabelsFormGroup } from "@app/components/modals/LabelsFormGroup";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -70,6 +78,12 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
+
+    // Version tagging state - reuses the same ArtifactLabel model and
+    // LabelsFormGroup editor used elsewhere in the app (e.g. EditMetaDataModal)
+    // so tagging UX is consistent across the registry.
+    const [labels, setLabels] = useState<ArtifactLabel[]>([]);
+    const [isEditingLabels, setIsEditingLabels] = useState(false);
 
     const setValue = (name: string, value: any): void => {
         setValues(prev => ({ ...prev, [name]: value }));
@@ -173,6 +187,34 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 <CardTitle>
                     <Title headingLevel="h3" size="md">Test Prompt</Title>
                 </CardTitle>
+                <Toolbar className="playground-toolbar" inset={{ default: "insetNone" }}>
+                    <ToolbarContent>
+                        <ToolbarItem>
+                            <LabelGroup>
+                                {labels.filter(l => l.name).map((label, idx) => (
+                                    <Label key={idx} color="purple" isCompact>
+                                        {label.name}{label.value ? `=${label.value}` : ""}
+                                    </Label>
+                                ))}
+                            </LabelGroup>
+                        </ToolbarItem>
+                        <ToolbarItem align={{ default: "alignRight" }}>
+                            <Button
+                                variant="link"
+                                icon={<TagIcon />}
+                                data-testid="playground-tag-version-button"
+                                onClick={() => setIsEditingLabels(!isEditingLabels)}
+                            >
+                                Tag this version
+                            </Button>
+                        </ToolbarItem>
+                    </ToolbarContent>
+                </Toolbar>
+                {isEditingLabels && (
+                    <Grid hasGutter className="playground-labels-editor">
+                        <LabelsFormGroup labels={labels} onChange={setLabels} />
+                    </Grid>
+                )}
             </CardHeader>
             <CardBody>
                 <Form className="test-panel-form">

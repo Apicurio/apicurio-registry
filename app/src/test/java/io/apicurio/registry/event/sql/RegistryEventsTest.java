@@ -771,13 +771,15 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
-        // Verify the contract ruleset was persisted (KafkaSql replication)
-        given()
-                .pathParam("groupId", groupId)
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
-                .then()
-                .statusCode(200);
+        // Wait until the write is visible on the read side (ensures KafkaSql replication
+        // has completed before polling for the outbox event).
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () ->
+                given()
+                        .pathParam("groupId", groupId)
+                        .pathParam("artifactId", artifactId)
+                        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                        .then()
+                        .extract().statusCode() == 200);
 
         // Consume the event from the broker
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
@@ -815,13 +817,17 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
-        // Verify the contract metadata was persisted (KafkaSql replication)
-        given()
-                .pathParam("groupId", groupId)
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
-                .then()
-                .statusCode(200);
+        // Wait until the written ownerTeam value is visible on the read side (ensures
+        // KafkaSql replication has completed before polling for the outbox event).
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            String ownerTeam = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                    .then()
+                    .extract().path("ownerTeam");
+            return "platform-team".equals(ownerTeam);
+        });
 
         // Consume the event from the broker
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_METADATA_UPDATED,
@@ -857,13 +863,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
-        // Verify the initial DRAFT status was persisted (KafkaSql replication)
-        given()
-                .pathParam("groupId", groupId)
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
-                .then()
-                .statusCode(200);
+        // Wait until DRAFT status is visible (ensures KafkaSql replication completed)
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            String status = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                    .then()
+                    .extract().path("status");
+            return "DRAFT".equals(status);
+        });
 
         ContractStatusTransition transition = new ContractStatusTransition();
         transition.setStatus(ContractStatusTransition.Status.STABLE);
@@ -878,13 +887,17 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
-        // Verify the status transition was persisted (KafkaSql replication)
-        given()
-                .pathParam("groupId", groupId)
-                .pathParam("artifactId", artifactId)
-                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
-                .then()
-                .statusCode(200);
+        // Wait until STABLE status is visible (ensures KafkaSql replication completed
+        // before polling for the CONTRACT_STATUS_CHANGED outbox event).
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            String status = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                    .then()
+                    .extract().path("status");
+            return "STABLE".equals(status);
+        });
 
         // Consume the event from the broker
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_STATUS_CHANGED,

@@ -6252,6 +6252,154 @@
           }
         }
       }
+    },
+    "/webhooks": {
+      "summary": "Collection of webhook subscriptions.",
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "listSubscriptions",
+        "summary": "List webhook subscriptions",
+        "description": "Returns a list of all currently registered webhook subscriptions.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Subscription"
+                  }
+                }
+              }
+            },
+            "description": "A list of webhook subscriptions."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "createSubscription",
+        "summary": "Create a webhook subscription",
+        "description": "Registers a new webhook endpoint to receive CloudEvents for the specified event types.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscription"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description": "The webhook subscription was successfully created."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/webhooks/{subscriptionId}": {
+      "summary": "A single webhook subscription.",
+      "parameters": [
+        {
+          "name": "subscriptionId",
+          "description": "The globally unique identifier of the webhook subscription.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ],
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "getSubscription",
+        "summary": "Get a webhook subscription",
+        "description": "Returns the details of a single webhook subscription.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            },
+            "description": "The webhook subscription details."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Webhooks"
+        ],
+        "operationId": "deleteSubscription",
+        "summary": "Delete a webhook subscription",
+        "description": "Deletes a single webhook subscription.",
+        "responses": {
+          "204": {
+            "description": "The webhook subscription was successfully deleted."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9047,6 +9195,83 @@
             "type": "boolean"
           }
         }
+      },
+      "SubscriptionEventType": {
+        "description": "Represents the type of registry event that a webhook subscription can be configured to receive.",
+        "enum": [
+          "ARTIFACT_CREATED",
+          "ARTIFACT_UPDATED",
+          "ARTIFACT_DELETED",
+          "ARTIFACT_DEPRECATED",
+          "VERSION_CREATED",
+          "VERSION_PUBLISHED",
+          "RULE_VIOLATED"
+        ],
+        "type": "string"
+      },
+      "Subscription": {
+        "title": "Root Type for Subscription",
+        "description": "Represents an active webhook subscription.",
+        "required": [
+          "id",
+          "url",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "The globally unique identifier of the subscription.",
+            "type": "string"
+          },
+          "url": {
+            "description": "The URL of the endpoint to which CloudEvents will be delivered via HTTP POST.",
+            "type": "string"
+          },
+          "events": {
+            "description": "The list of event types that this subscription is configured to receive.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionEventType"
+            }
+          }
+        },
+        "example": {
+          "id": "sub-01j0x1z2k3m4n5p6q7r8s9t0",
+          "url": "https://example.com/webhook/registry",
+          "events": [
+            "ARTIFACT_CREATED",
+            "VERSION_PUBLISHED"
+          ]
+        }
+      },
+      "CreateSubscription": {
+        "title": "Root Type for CreateSubscription",
+        "description": "Data sent when creating a new webhook subscription.",
+        "required": [
+          "url",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "The URL of the endpoint to which CloudEvents will be delivered via HTTP POST.",
+            "type": "string"
+          },
+          "events": {
+            "description": "The list of event types to subscribe to.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionEventType"
+            }
+          }
+        },
+        "example": {
+          "url": "https://example.com/webhook/registry",
+          "events": [
+            "ARTIFACT_CREATED",
+            "VERSION_PUBLISHED"
+          ]
+        }
       }
     },
     "responses": {
@@ -9334,6 +9559,10 @@
     {
       "name": "GitOps",
       "description": "Experimental. Management and status endpoints for the GitOps storage backend. These endpoints are only available when the registry is configured with `apicurio.storage.kind=gitops`."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Operations for managing webhook subscriptions that emit CloudEvents when registry state changes."
     }
   ],
   "x-codegen": {

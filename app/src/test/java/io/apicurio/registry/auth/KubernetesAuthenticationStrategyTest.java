@@ -248,6 +248,48 @@ class KubernetesAuthenticationStrategyTest {
     }
 
     @Test
+    void testCachedIdentityStillAuthenticatesWhileCircuitOpen() {
+        // A token that authenticated once is cached. If the circuit later opens, that cached
+        // identity must keep authenticating: the cache lookup short-circuits before the TokenReview
+        // (circuit breaker) call, so an open circuit only affects tokens that are not already
+        // cached. Uncached tokens fail open to the next mechanism, as usual.
+        when(httpRequest.getHeader("Authorization")).thenReturn(
+                "Bearer cached-token", "Bearer cached-token", "Bearer uncached-token");
+        when(tokenReviewClient.review("cached-token")).thenReturn(authenticatedStatus(
+                "cached-user", "uid-cached", Collections.emptyList()));
+        // Any token that actually reaches the client sees an open circuit.
+        when(tokenReviewClient.review("uncached-token"))
+                .thenThrow(new CircuitBreakerOpenException("circuit breaker is open"));
+
+        SecurityIdentity mockIdentity = QuarkusSecurityIdentity.builder()
+                .setPrincipal(() -> "cached-user")
+                .build();
+        when(identityProviderManager.authenticate(any(KubernetesAuthenticationRequest.class)))
+                .thenReturn(Uni.createFrom().item(mockIdentity));
+
+        // First request verifies and caches "cached-token".
+        SecurityIdentity firstResult = strategy.authenticate(routingContext, identityProviderManager)
+                .await().indefinitely();
+        // Second request for the same token while the circuit is open — served from the cache.
+        SecurityIdentity cachedResult = strategy
+                .authenticate(routingContext, identityProviderManager).await().indefinitely();
+        // A different, uncached token reaches the open circuit and fails open to the next mechanism.
+        SecurityIdentity uncachedResult = strategy
+                .authenticate(routingContext, identityProviderManager).await().indefinitely();
+
+        assertNotNull(firstResult);
+        assertNotNull(cachedResult);
+        assertEquals("cached-user", cachedResult.getPrincipal().getName());
+        assertNull(uncachedResult);
+
+        // The cached token reached the client exactly once: the second, post-open request was
+        // served from the cache and never touched the breaker. The uncached token reached the
+        // client once and was rejected by the open circuit.
+        verify(tokenReviewClient, times(1)).review("cached-token");
+        verify(tokenReviewClient, times(1)).review("uncached-token");
+    }
+
+    @Test
     void testRecoversAfterCircuitCloses() {
         // Once the breaker admits calls again (probe succeeded), authentication must work
         // immediately — no residual negative state in the strategy.

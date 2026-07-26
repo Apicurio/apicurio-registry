@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useRef, useState } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -81,12 +81,18 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
+    // Version tagging state - reuses the same ArtifactLabel model and
+    // LabelsFormGroup editor used elsewhere in the app (e.g. EditMetaDataModal).
+    // Labels are persisted to the version's metadata via GroupsService, mirroring
+    // the load-on-mount / save-on-confirm pattern used by EditMetaDataModal, so
+    // the toolbar reflects the version's real saved tags rather than local-only state.
     const [savedLabels, setSavedLabels] = useState<ArtifactLabel[]>([]);
     const [draftLabels, setDraftLabels] = useState<ArtifactLabel[]>([]);
     const [isEditingLabels, setIsEditingLabels] = useState(false);
     const [isSavingLabels, setIsSavingLabels] = useState(false);
     const [labelsError, setLabelsError] = useState<string>("");
-    const requestIdRef = { current: 0 };
+
+    const requestIdRef = useRef(0);
 
     useEffect(() => {
         let gid: string | null = props.groupId;

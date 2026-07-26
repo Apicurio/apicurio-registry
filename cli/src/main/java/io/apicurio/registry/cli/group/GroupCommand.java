@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.group;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.GroupOrderMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
@@ -47,6 +48,9 @@ public class GroupCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @ParentCommand
     @Getter
     private Acr parent;
@@ -90,6 +94,7 @@ public class GroupCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), groups.getCount());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

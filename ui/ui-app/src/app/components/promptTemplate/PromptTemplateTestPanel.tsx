@@ -1,4 +1,4 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -52,6 +52,20 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     });
 
     const [values, setValues] = useState<Record<string, any>>(initialValues);
+
+    useEffect(() => {
+        setValues(prev => {
+            const next = { ...prev };
+            variablesList.forEach(({ name, variable }) => {
+                if (!(name in next)) {
+                    const type = (variable.type || "string").toLowerCase();
+                    next[name] = type === "boolean" ? false : (variable.default ?? "");
+                }
+            });
+            return next;
+        });
+    }, [props.variables]);
+
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);

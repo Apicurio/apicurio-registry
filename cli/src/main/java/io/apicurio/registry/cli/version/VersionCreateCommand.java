@@ -55,13 +55,13 @@ public class VersionCreateCommand extends AbstractCommand {
     private String file;
 
     @Option(
-            names = {"-n", "--name"},
+            names = {"--name"},
             description = "Provide version name."
     )
     private String name;
 
     @Option(
-            names = {"-d", "--description"},
+            names = {"--description"},
             description = "Provide version description."
     )
     private String description;

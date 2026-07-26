@@ -3998,6 +3998,15 @@ spec:
                         type: object
                     type: object
                 type: object
+              consolePlugin:
+                description: |
+                  Configure Apicurio Registry OpenShift Console Plugin component.
+                properties:
+                  enabled:
+                    description: |
+                      Indicates whether the operator should deploy the OpenShift Console Plugin component. Defaults to `false`.
+                    type: boolean
+                type: object
               ui:
                 description: |
                   Configure Apicurio Registry UI component.
@@ -7513,6 +7522,8 @@ spec:
           value: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
         - name: REGISTRY_GITOPS_SYNC_IMAGE
           value: quay.io/apicurio/apicurio-registry-gitops-sync:latest-snapshot
+        - name: REGISTRY_CONSOLE_PLUGIN_IMAGE
+          value: quay.io/apicurio/apicurio-registry-console-plugin:latest-snapshot
         image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
         imagePullPolicy: Always
         livenessProbe:

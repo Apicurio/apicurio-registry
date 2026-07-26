@@ -53,6 +53,16 @@ public interface WellKnownResource {
     AgentCard getAgentCardV1();
 
     /**
+     * Returns the Agent Card for this Apicurio Registry instance.
+     * Alias for compatibility with watsonx Orchestrate, which discovers agents
+     * at /.well-known/agent-card.json by default.
+     */
+    @GET
+    @Path("/agent-card.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentCard getAgentCardForOrchestrate();
+
+    /**
      * Returns a specific registered Agent Card by group and artifact ID.
      * This enables proxying/serving of registered agent cards stored in the registry.
      *

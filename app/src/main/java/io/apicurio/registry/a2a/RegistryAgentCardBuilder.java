@@ -124,6 +124,9 @@ public class RegistryAgentCardBuilder {
         if (authConfig.isBasicAuthEnabled()) {
             schemes.put("basic", SecurityScheme.httpAuth("Basic"));
         }
+        if (a2aConfig.isApiKeyAuthEnabled()) {
+            schemes.put("apiKey", SecurityScheme.apiKey("X-API-Key", "header"));
+        }
 
         return schemes;
     }

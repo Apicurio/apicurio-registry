@@ -81,204 +81,24 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
-    // Version tagging state - reuses the same ArtifactLabel model and
-    // LabelsFormGroup editor used elsewhere in the app (e.g. EditMetaDataModal).
-    // Labels are persisted to the version's metadata via GroupsService, mirroring
-    // the load-on-mount / save-on-confirm pattern used by EditMetaDataModal, so
-    // the toolbar reflects the version's real saved tags rather than local-only state.
     const [savedLabels, setSavedLabels] = useState<ArtifactLabel[]>([]);
     const [draftLabels, setDraftLabels] = useState<ArtifactLabel[]>([]);
     const [isEditingLabels, setIsEditingLabels] = useState(false);
     const [isSavingLabels, setIsSavingLabels] = useState(false);
     const [labelsError, setLabelsError] = useState<string>("");
+    const requestIdRef = { current: 0 };
 
     useEffect(() => {
         let gid: string | null = props.groupId;
         if (gid === "default") {
             gid = null;
         }
+        const thisRequestId = ++requestIdRef.current;
         groups.getArtifactVersionMetaData(gid, props.artifactId, props.version)
             .then((meta: VersionMetaData) => {
-                const loaded = labelsToList(meta.labels);
-                setSavedLabels(loaded);
-                setDraftLabels(loaded);
-            })
-            .catch(() => {
-                // Non-fatal: if metadata can't be loaded, the toolbar simply starts empty.
-            });
-    }, [props.groupId, props.artifactId, props.version]);
-
-    const openLabelsEditor = (): void => {
-        setDraftLabels(savedLabels);
-        setLabelsError("");
-        setIsEditingLabels(true);
-    };
-
-    const cancelLabelsEditor = (): void => {
-        setDraftLabels(savedLabels);
-        setLabelsError("");
-        setIsEditingLabels(false);
-    };
-
-    const saveLabels = (): void => {
-        let gid: string | null = props.groupId;
-        if (gid === "default") {
-            gid = null;
-        }
-        setIsSavingLabels(true);
-        setLabelsError("");
-        groups.updateArtifactVersionMetaData(gid, props.artifactId, props.version, {
-            labels: listToLabels(draftLabels)
-        })
-            .then(() => {
-                setSavedLabels(draftLabels);
-                setIsEditingLabels(false);
-            })
-            .catch((err: any) => {
-                setLabelsError(err?.message || "Error saving tags for this version.");
-            })
-            .finally(() => {
-                setIsSavingLabels(false);
-            });
-    };
-
-    const setValue = (name: string, value: any): void => {
-        setValues(prev => ({ ...prev, [name]: value }));
-    };
-
-    const doRender = (): void => {
-        setIsLoading(true);
-        setError("");
-        setValidationErrors([]);
-        setRenderedOutput("");
-
-        let gid: string | null = props.groupId;
-        if (gid === "default") {
-            gid = null;
-        }
-
-        groups.renderPromptTemplate(gid, props.artifactId, props.version, values)
-            .then((response: RenderPromptResponse) => {
-                setRenderedOutput(response.rendered || "");
-                if (response.validationErrors && response.validationErrors.length > 0) {
-                    setValidationErrors(response.validationErrors);
+                if (thisRequestId !== requestIdRef.current) {
+                    return;
                 }
-            })
-            .catch((err: any) => {
-                setError(err?.message || "Error rendering prompt template");
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
-    };
-
-    const renderField = (name: string, variable: PromptVariable): React.ReactNode => {
-        const type = (variable.type || "string").toLowerCase();
-
-        if (variable.enum && variable.enum.length
-cd ~/apicurio-registry
-cat > ui/ui-app/src/app/components/promptTemplate/PromptTemplateTestPanel.tsx << 'ENDOFFILE'
-import { FunctionComponent, useEffect, useState } from "react";
-import "./PromptTemplateTestPanel.css";
-import {
-    ActionGroup,
-    Alert,
-    Button,
-    Card,
-    CardBody,
-    CardHeader,
-    CardTitle,
-    Checkbox,
-    Form,
-    FormGroup,
-    FormSelect,
-    FormSelectOption,
-    Grid,
-    Label,
-    LabelGroup,
-    Spinner,
-    TextArea,
-    TextInput,
-    Title,
-    Toolbar,
-    ToolbarContent,
-    ToolbarItem
-} from "@patternfly/react-core";
-import { TagIcon } from "@patternfly/react-icons";
-import { PromptVariable } from "./PromptTemplateViewer";
-import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
-import { ArtifactLabel, LabelsFormGroup } from "@app/components/modals/LabelsFormGroup";
-import { labelsToList, listToLabels } from "@utils/labels.utils.ts";
-import { VersionMetaData } from "@sdk/lib/generated-client/models";
-
-export type PromptTemplateTestPanelProps = {
-    groupId: string;
-    artifactId: string;
-    version: string;
-    variables: Record<string, PromptVariable> | PromptVariable[] | undefined;
-    className?: string;
-};
-
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
-    }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
-};
-
-export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {
-    const groups: GroupsService = useGroupsService();
-    const variablesList = getVariablesList(props.variables);
-
-    const initialValues: Record<string, any> = {};
-    variablesList.forEach(({ name, variable }) => {
-        if (variable.default !== undefined) {
-            initialValues[name] = variable.default;
-        } else {
-            initialValues[name] = "";
-        }
-    });
-
-    const [values, setValues] = useState<Record<string, any>>(initialValues);
-
-    useEffect(() => {
-        setValues(prev => {
-            const next = { ...prev };
-            variablesList.forEach(({ name, variable }) => {
-                if (!(name in next)) {
-                    const type = (variable.type || "string").toLowerCase();
-                    next[name] = type === "boolean" ? false : (variable.default ?? "");
-                }
-            });
-            return next;
-        });
-    }, [props.variables]);
-
-    const [renderedOutput, setRenderedOutput] = useState<string>("");
-    const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string>("");
-
-    // Version tagging state - reuses the same ArtifactLabel model and
-    // LabelsFormGroup editor used elsewhere in the app (e.g. EditMetaDataModal).
-    // Labels are persisted to the version's metadata via GroupsService, mirroring
-    // the load-on-mount / save-on-confirm pattern used by EditMetaDataModal, so
-    // the toolbar reflects the version's real saved tags rather than local-only state.
-    const [savedLabels, setSavedLabels] = useState<ArtifactLabel[]>([]);
-    const [draftLabels, setDraftLabels] = useState<ArtifactLabel[]>([]);
-    const [isEditingLabels, setIsEditingLabels] = useState(false);
-    const [isSavingLabels, setIsSavingLabels] = useState(false);
-    const [labelsError, setLabelsError] = useState<string>("");
-
-    useEffect(() => {
-        let gid: string | null = props.groupId;
-        if (gid === "default") {
-            gid = null;
-        }
-        groups.getArtifactVersionMetaData(gid, props.artifactId, props.version)
-            .then((meta: VersionMetaData) => {
                 const loaded = labelsToList(meta.labels);
                 setSavedLabels(loaded);
                 setDraftLabels(loaded);

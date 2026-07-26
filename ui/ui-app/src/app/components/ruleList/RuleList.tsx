@@ -93,7 +93,8 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                 <Button icon={<TrashIcon />} variant="plain"
                     key="delete-action"
                     data-testid="rules-validity-disable"
-                    title="Disable the  validity rule"
+                    title="Disable the validity rule"
+                    aria-label="Disable the validity rule"
                     onClick={doDisableRule("VALIDITY")} />
             </React.Fragment>
         );
@@ -120,6 +121,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                     key="delete-action"
                     data-testid="rules-compatibility-disable"
                     title="Disable the compatibility rule"
+                    aria-label="Disable the compatibility rule"
                     onClick={doDisableRule("COMPATIBILITY")} />
             </React.Fragment>
         );
@@ -146,6 +148,7 @@ export const RuleList: FunctionComponent<RuleListProps> = (props: RuleListProps)
                     key="delete-action"
                     data-testid="rules-integrity-disable"
                     title="Disable the integrity rule"
+                    aria-label="Disable the integrity rule"
                     onClick={doDisableRule("INTEGRITY")} />
             </React.Fragment>
         );

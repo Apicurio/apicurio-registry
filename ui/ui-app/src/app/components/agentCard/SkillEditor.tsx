@@ -213,6 +213,7 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                                 </Button>
                                 <Button icon={<TrashIcon />}
                                     variant="plain"
+                                    aria-label={`Delete skill ${skill.name}`}
                                     onClick={() => handleDeleteSkill(skill.id)}
                                     className="delete-btn"
                                 />

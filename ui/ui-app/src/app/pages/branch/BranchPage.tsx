@@ -1,5 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./BranchPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection,  } from "@patternfly/react-core";
 import { Link, useParams } from "react-router";
 import {
@@ -37,7 +38,7 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
     const groups: GroupsService = useGroupsService();
     const { groupId, artifactId, branchId } = useParams();
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
         if (gid == "default") {
             gid = null;
@@ -45,15 +46,15 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
         logger.info("Loading data for artifact: ", artifactId);
         return [
             groups.getArtifactMetaData(gid, artifactId as string)
-                .then(setArtifact)
-                .catch(error => {
+                .then(guard.wrap(setArtifact))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getArtifactBranchMetaData(gid, artifactId as string, branchId as string)
-                .then(setBranch)
-                .catch(error => {
+                .then(guard.wrap(setBranch))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
         ];
     };
 
@@ -117,7 +118,9 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        setLoaders(createLoaders());
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [groupId, artifactId, branchId]);
 
     const gid: string = groupId || "default";

@@ -51,7 +51,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
         console.info("[MainPageWithAuth] Login success, routing to: ", location);
         appNav.navigateTo(location);
     };
-
+       
     return (
         <AuthConfigContext.Provider value={authConfig}>
             <ApplicationAuth>

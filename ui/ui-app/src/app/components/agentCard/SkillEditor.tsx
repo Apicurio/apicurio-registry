@@ -51,7 +51,7 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
     };
 
     const isDuplicateSkillId: boolean =
-        isAdding && !!editingSkill?.id && skills.some(s => s.id === editingSkill?.id);
+        isAdding && !!editingSkill?.id?.trim() && skills.some(s => s.id.trim() === editingSkill?.id?.trim());
 
     const handleAddSkill = (): void => {
         setEditingSkill({ ...emptySkill });

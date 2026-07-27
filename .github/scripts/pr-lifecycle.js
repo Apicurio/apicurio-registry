@@ -502,14 +502,17 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
 }
 
 // Extracts referenced issue numbers from a PR body: "closes #123", "fixes: #123",
-// GitHub issue URLs, or a bare "#123" reference. Regexes are built fresh per call
-// since they carry `g`-flag lastIndex state.
+// or a GitHub issue URL. Regexes are built fresh per call since they carry
+// `g`-flag lastIndex state.
 function extractIssueNumbers(pr) {
   const body = pr.body || '';
+  // Only the closing-keyword and issue-URL forms count as a "linked" issue,
+  // matching GitHub's own auto-close semantics. A bare "#123" is too permissive:
+  // it also matches list markers, code snippets, and passing prose references,
+  // which would both mask real missing-link cases and produce false duplicates.
   const patterns = [
     /\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi,
     /github\.com\/[^/\s]+\/[^/\s]+\/issues\/(\d+)/gi,
-    /#(\d+)/g,
   ];
   const numbers = new Set();
   for (const re of patterns) {
@@ -526,16 +529,27 @@ function hasLinkedIssue(pr) {
 }
 
 // Finds other open PRs referencing at least one of the same issue numbers.
-async function findDuplicatePrs(github, owner, repo, pr) {
+async function findDuplicatePrs(github, owner, repo, pr, core) {
   const issueNumbers = extractIssueNumbers(pr);
   if (!issueNumbers.length) return [];
   const openPrs = await github.paginate(github.rest.pulls.list, {
     owner, repo, state: 'open', per_page: 100,
   });
+  core?.info(`Scanned ${openPrs.length} open PR(s) for duplicates of issue(s) ${issueNumbers.join(', ')}`);
   return openPrs.filter(p =>
     p.number !== pr.number &&
     extractIssueNumbers(p).some(n => issueNumbers.includes(n))
   );
+}
+
+// Avoids re-pinging a PR that already has a recent "possible duplicate" note,
+// so several PRs opened in quick succession against the same issue don't pile
+// up repeated comments on the earliest one.
+async function hasRecentDuplicateNote(github, owner, repo, prNumber) {
+  const comments = await github.paginate(github.rest.issues.listComments, {
+    owner, repo, issue_number: prNumber, per_page: 100,
+  });
+  return comments.slice(-10).some(c => c.body?.includes('**Possible duplicate:**'));
 }
 
 async function handlePrOpened({ github, context, core }) {
@@ -562,21 +576,28 @@ async function handlePrOpened({ github, context, core }) {
     }
   }
 
-  const issueLinkNudge = hasLinkedIssue(pr) ? '' :
+  // The issue-link requirement is scoped to the external contributor checklist —
+  // auto-accepted authors (maintainers, renovate[bot]) routinely open PRs with no
+  // issue to reference (chores, dependency bumps), so skip nudging/labeling them.
+  const issueLinkNudge = (!isAutoAccepted(config, pr.user.login) && !hasLinkedIssue(pr)) ?
     `\n\n**Heads up:** This PR doesn't appear to reference an issue. If it addresses one, ` +
     `please link it (e.g. \`Fixes #1234\`) so maintainers can see prior work on the same issue ` +
-    `and avoid duplicate reviews.`;
+    `and avoid duplicate reviews.` : '';
   if (issueLinkNudge) {
     await api.addLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
   }
 
-  const duplicates = await findDuplicatePrs(github, owner, repo, pr);
+  const duplicates = await findDuplicatePrs(github, owner, repo, pr, core);
   let duplicateNote = '';
   if (duplicates.length) {
     const dupLinks = duplicates.map(d => `#${d.number}`).join(', ');
     duplicateNote = `\n\n**Possible duplicate:** This PR references the same issue as ${dupLinks}. ` +
       `Please check for overlapping work before continuing.`;
     for (const dup of duplicates) {
+      if (await hasRecentDuplicateNote(github, owner, repo, dup.number)) {
+        core.info(`PR #${dup.number} already has a recent duplicate note, skipping re-ping`);
+        continue;
+      }
       await api.postComment(dup.number,
         `**Possible duplicate:** PR #${pr.number} was just opened referencing the same issue as this PR. ` +
         `You may want to coordinate with the other author to avoid duplicate review effort.`
@@ -688,14 +709,22 @@ async function handlePrSynchronize({ github, context, core }) {
 
   const freshPr = await api.getPr(pr.number);
 
-  if (hasLinkedIssue(freshPr)) {
-    if (hasLabel(freshPr, LABELS.NEEDS_ISSUE_LINK)) {
-      await api.removeLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
-      core.info(`PR #${pr.number} now references an issue, removed lifecycle/needs-issue-link`);
+  // Same scoping as handlePrOpened — auto-accepted authors aren't held to the
+  // issue-link requirement, so never label their PRs even if the label was
+  // somehow left over (e.g. author changed since open).
+  if (!isAutoAccepted(loadConfig(), freshPr.user.login)) {
+    if (hasLinkedIssue(freshPr)) {
+      if (hasLabel(freshPr, LABELS.NEEDS_ISSUE_LINK)) {
+        await api.removeLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
+        core.info(`PR #${pr.number} now references an issue, removed lifecycle/needs-issue-link`);
+      }
+    } else if (!hasLabel(freshPr, LABELS.NEEDS_ISSUE_LINK)) {
+      await api.addLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
+      core.info(`PR #${pr.number} still doesn't reference an issue, added lifecycle/needs-issue-link`);
     }
-  } else if (!hasLabel(freshPr, LABELS.NEEDS_ISSUE_LINK)) {
-    await api.addLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
-    core.info(`PR #${pr.number} still doesn't reference an issue, added lifecycle/needs-issue-link`);
+  } else if (hasLabel(freshPr, LABELS.NEEDS_ISSUE_LINK)) {
+    await api.removeLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
+    core.info(`PR #${pr.number} author is auto-accepted, removed stale lifecycle/needs-issue-link`);
   }
 
   await reconcile(github, api, freshPr, core);

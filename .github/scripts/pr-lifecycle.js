@@ -18,6 +18,7 @@ const LABELS = {
   READY_TO_MERGE: 'lifecycle/ready-to-merge',
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
+  NEEDS_ISSUE_LINK: 'lifecycle/needs-issue-link',
   STALE: 'lifecycle/stale',
   SMOKE_TESTED: 'lifecycle/smoke-tested',
   REVIEW_APPROVED: 'lifecycle/review-approved',
@@ -58,6 +59,7 @@ const LABEL_DEFS = {
   [LABELS.READY_TO_MERGE]:       { color: COLORS.INFO, description: 'Approved and tested, ready to merge' },
   [LABELS.WAITING_ON_AUTHOR]:    { color: COLORS.ATTENTION_STRONG, description: 'Blocked on contributor action' },
   [LABELS.WAITING_ON_MAINTAINER]:{ color: COLORS.ATTENTION, description: 'Blocked on maintainer action' },
+  [LABELS.NEEDS_ISSUE_LINK]:     { color: COLORS.ATTENTION_STRONG, description: 'PR does not reference the issue it fixes' },
   [LABELS.STALE]:                { color: COLORS.INACTIVE, description: 'No activity for 7+ days' },
   [LABELS.DISABLED]:             { color: COLORS.INACTIVE, description: 'PR excluded from lifecycle orchestrator' },
   [LABELS.AUTO_MERGE]:           { color: COLORS.INFO, description: 'Auto-merge enabled' },
@@ -499,6 +501,43 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
   return prs.filter(p => p.user.login === author && p.number !== excludePr);
 }
 
+// Extracts referenced issue numbers from a PR body: "closes #123", "fixes: #123",
+// GitHub issue URLs, or a bare "#123" reference. Regexes are built fresh per call
+// since they carry `g`-flag lastIndex state.
+function extractIssueNumbers(pr) {
+  const body = pr.body || '';
+  const patterns = [
+    /\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi,
+    /github\.com\/[^/\s]+\/[^/\s]+\/issues\/(\d+)/gi,
+    /#(\d+)/g,
+  ];
+  const numbers = new Set();
+  for (const re of patterns) {
+    let match;
+    while ((match = re.exec(body))) {
+      numbers.add(Number(match[1]));
+    }
+  }
+  return [...numbers];
+}
+
+function hasLinkedIssue(pr) {
+  return extractIssueNumbers(pr).length > 0;
+}
+
+// Finds other open PRs referencing at least one of the same issue numbers.
+async function findDuplicatePrs(github, owner, repo, pr) {
+  const issueNumbers = extractIssueNumbers(pr);
+  if (!issueNumbers.length) return [];
+  const openPrs = await github.paginate(github.rest.pulls.list, {
+    owner, repo, state: 'open', per_page: 100,
+  });
+  return openPrs.filter(p =>
+    p.number !== pr.number &&
+    extractIssueNumbers(p).some(n => issueNumbers.includes(n))
+  );
+}
+
 async function handlePrOpened({ github, context, core }) {
   const pr = context.payload.pull_request;
   const { owner, repo } = context.repo;
@@ -523,6 +562,28 @@ async function handlePrOpened({ github, context, core }) {
     }
   }
 
+  const issueLinkNudge = hasLinkedIssue(pr) ? '' :
+    `\n\n**Heads up:** This PR doesn't appear to reference an issue. If it addresses one, ` +
+    `please link it (e.g. \`Fixes #1234\`) so maintainers can see prior work on the same issue ` +
+    `and avoid duplicate reviews.`;
+  if (issueLinkNudge) {
+    await api.addLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
+  }
+
+  const duplicates = await findDuplicatePrs(github, owner, repo, pr);
+  let duplicateNote = '';
+  if (duplicates.length) {
+    const dupLinks = duplicates.map(d => `#${d.number}`).join(', ');
+    duplicateNote = `\n\n**Possible duplicate:** This PR references the same issue as ${dupLinks}. ` +
+      `Please check for overlapping work before continuing.`;
+    for (const dup of duplicates) {
+      await api.postComment(dup.number,
+        `**Possible duplicate:** PR #${pr.number} was just opened referencing the same issue as this PR. ` +
+        `You may want to coordinate with the other author to avoid duplicate review effort.`
+      );
+    }
+  }
+
   if (isAutoAccepted(config, pr.user.login)) {
     const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
     await api.addLabel(pr.number, initialState);
@@ -538,13 +599,13 @@ async function handlePrOpened({ github, context, core }) {
       await api.postComment(pr.number,
         `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
         `When ready, use \`/ready\` or mark as non-draft to run the full test suite.` +
-        maintainerHint + forkHint
+        maintainerHint + forkHint + issueLinkNudge + duplicateNote
       );
     } else {
       await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       await api.postComment(pr.number,
         `PR auto-accepted (trusted author). Full test suite will run.` +
-        maintainerHint + forkHint
+        maintainerHint + forkHint + issueLinkNudge + duplicateNote
       );
     }
     core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${initialState}`);
@@ -561,6 +622,7 @@ async function handlePrOpened({ github, context, core }) {
     message += `\n**Note (fork PR):** Review label updates may not apply automatically. ` +
       `A maintainer can use \`/retry\` after reviewing to update the labels.`;
   }
+  message += issueLinkNudge + duplicateNote;
   await api.postComment(pr.number, message);
   core.info(`PR #${pr.number} opened, set to lifecycle/new`);
 }
@@ -625,6 +687,17 @@ async function handlePrSynchronize({ github, context, core }) {
   }
 
   const freshPr = await api.getPr(pr.number);
+
+  if (hasLinkedIssue(freshPr)) {
+    if (hasLabel(freshPr, LABELS.NEEDS_ISSUE_LINK)) {
+      await api.removeLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
+      core.info(`PR #${pr.number} now references an issue, removed lifecycle/needs-issue-link`);
+    }
+  } else if (!hasLabel(freshPr, LABELS.NEEDS_ISSUE_LINK)) {
+    await api.addLabel(pr.number, LABELS.NEEDS_ISSUE_LINK);
+    core.info(`PR #${pr.number} still doesn't reference an issue, added lifecycle/needs-issue-link`);
+  }
+
   await reconcile(github, api, freshPr, core);
 }
 

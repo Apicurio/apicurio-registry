@@ -63,6 +63,15 @@
             <artifactId>apicurio-registry-java-sdk</artifactId>
         </dependency>
 
+        <!--
+        Provides PromptTemplateVariableUtil, the canonical {{variable}} parser shared with the
+        validity rule and the REST render endpoint, so the three do not drift apart again.
+        -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-schema-util-common</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>

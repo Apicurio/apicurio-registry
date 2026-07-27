@@ -478,6 +478,76 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testWhitespaceInVariableNameWithPadding() {
+        // Both spellings of the same variable must resolve to the same value.
+        String yamlContent = """
+            templateId: whitespace
+            template: "{{name}} / {{ name }} / {{   name   }}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("name", "World");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "whitespace", "1.0");
+
+        Assertions.assertEquals("World / World / World", response.getRendered());
+    }
+
+    @Test
+    public void testMissingVariableWithWhitespacePreservedAsPlaceholder() {
+        String yamlContent = """
+            templateId: partial
+            template: "Hello, {{ name }}! Your role is {{ role }}."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("name", "Bob");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "partial", "1.0");
+
+        // The unresolved placeholder is written back exactly as the author spelled it.
+        Assertions.assertEquals("Hello, Bob! Your role is {{ role }}.", response.getRendered());
+    }
+
+    @Test
+    public void testDottedNameIsNotAVariable() {
+        // Deliberate behaviour change: the canonical grammar is \\w+, so a dotted placeholder is
+        // literal text here, exactly as it already was for the validator and the MCP converter.
+        String yamlContent = """
+            templateId: dotted
+            template: "Hello, {{user.name}}!"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("user.name", "Alice");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "dotted", "1.0");
+
+        Assertions.assertEquals("Hello, {{user.name}}!", response.getRendered());
+    }
+
+    @Test
+    public void testConditionalBlockMarkersAreNotSubstituted() {
+        String yamlContent = """
+            templateId: conditional
+            template: "{{#if premium}}Hello {{ name }}{{/if}}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("name", "Alice", "premium", true);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "conditional", "1.0");
+
+        // The render endpoint does not process {{#if}} blocks (see #8728); it must at least leave
+        // the markers alone rather than mangling them while substituting the variable inside.
+        Assertions.assertEquals("{{#if premium}}Hello Alice{{/if}}", response.getRendered());
+    }
+
+    @Test
     public void testMultilineTemplate() {
         String yamlContent = """
             templateId: multiline

@@ -47,6 +47,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
@@ -524,10 +525,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public McpToolSearchResults searchMcpTools(String name, List<String> parameters,
-            Integer offset, Integer limit) {
+            String offset, String limit) {
         if (!mcpToolsConfig.isEnabled()) {
             throw new NotFoundException("MCP tools support is disabled");
         }
+
+        int safeOffset = Math.max(0, parsePaginationParam(offset, "offset", 0));
+        int safeLimit = Math.max(1, Math.min(parsePaginationParam(limit, "limit", 20), 500));
 
         Set<SearchFilter> filters = new HashSet<>();
 
@@ -544,7 +548,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.desc, offset, limit, false);
+                OrderDirection.desc, safeOffset, safeLimit, false);
 
         List<McpToolSearchResult> tools = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
@@ -552,6 +556,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return McpToolSearchResults.builder().count(results.getCount()).tools(tools).build();
+    }
+
+    private int parsePaginationParam(String value, String name, int defaultValue) {
+        if (StringUtil.isEmpty(value)) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Invalid " + name + ": must be an integer");
+        }
     }
 
     /**

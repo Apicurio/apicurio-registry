@@ -69,6 +69,7 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -946,6 +947,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
 
+        String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
+        String filename = artifactId + ext;
+
         if (Boolean.TRUE.equals(canonical)) {
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(artifactCell.get().getReferences(),
@@ -955,7 +959,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         var builder = Response.ok().entity(contentToReturn.getContent())
-                .type(contentToReturn.getContentType());
+                .type(contentToReturn.getContentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename));
 
         checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();

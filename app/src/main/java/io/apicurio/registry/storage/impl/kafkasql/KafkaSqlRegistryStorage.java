@@ -753,7 +753,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry)
             throws RegistryStorageException {
-        sqlStore.insertContractAuditEntry(entry);
+        var message = new InsertContractAuditEntry1Message(entry);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override

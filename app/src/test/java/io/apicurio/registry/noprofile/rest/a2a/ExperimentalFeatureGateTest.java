@@ -9,7 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Tests that A2A endpoints are blocked when the experimental features gate is disabled (default).
+ * Tests that A2A and MCP well-known endpoints are blocked when experimental features / feature
+ * flags are disabled (default).
  */
 @QuarkusTest
 public class ExperimentalFeatureGateTest extends AbstractResourceTestBase {
@@ -62,6 +63,38 @@ public class ExperimentalFeatureGateTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .get("/.well-known/schemas/model-schema/v1")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testMcpToolsSearchBlockedWhenDisabled() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testMcpToolGetBlockedWhenDisabled() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "some-group")
+                .pathParam("artifactId", "some-tool")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testMcpToolSchemaBlockedWhenAllExperimentalDisabled() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/schemas/mcp-tool/v1")
                 .then()
                 .statusCode(404);
     }

@@ -60,6 +60,8 @@ public class KafkaSqlMessageIndex {
                 DeleteArtifactContractRuleset2Message.class,
                 SetVersionContractRuleset4Message.class,
                 DeleteVersionContractRuleset3Message.class,
+                SetGlobalContractRuleset1Message.class,
+                DeleteGlobalContractRuleset0Message.class,
                 MergeArtifactLabels4Message.class,
                 MergeVersionLabels5Message.class);
     }

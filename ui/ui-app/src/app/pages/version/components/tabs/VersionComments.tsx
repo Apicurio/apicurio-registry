@@ -44,11 +44,9 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     const [commentToEdit, setCommentToEdit] = useState<Comment>();
     const [commentToDelete, setCommentToDelete] = useState<Comment>();
     const [filter, setFilter] = useState("");
-    const [isError , setIsError] = useState(false);
-    const [errorMessage , setErrorMessage] = useState<string>("");
-    const [actionError , setActionError] = useState<string | undefined>(undefined);
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [actionError, setActionError] = useState<string | undefined>(undefined);
     
-
     const groups: GroupsService = useGroupsService();
 
     const toggle = (commentId: string) => {
@@ -80,7 +78,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false); 
             })
             .catch((e) => {
-                console.error("Failed to Add Comments",e);
+                console.error("Failed to add Comments",e);
                 setIsPleaseWaitModalOpen(false);
                 setActionError("Failed to add comment. Please try again");
             });
@@ -98,7 +96,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setIsPleaseWaitModalOpen(false);
             })
             .catch((e) => {
-                console.error("Failed to Edit Comments",e);
+                console.error("Failed to edit Comments",e);
                 setIsPleaseWaitModalOpen(false);
                 setActionError("Failed to edit comment. Please try again");
             });
@@ -122,18 +120,15 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     };
     const loadComments = (): void => {
         setIsLoading(true);
-        setIsError(false);
         setErrorMessage("");
         groups.getArtifactVersionComments(props.version.groupId || "default", props.version.artifactId!, props.version.version!)
             .then(comments => {
                 setComments(comments);
                 setIsLoading(false);
-                setIsError(false);
             })
             .catch((e) => {
                 console.error("Failed to Load Comments",e);
                 setIsLoading(false);
-                setIsError(true);
                 setErrorMessage("Failed to load comments. Please try again");
             });
     };
@@ -192,7 +187,6 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
         </EmptyState>
     );
 
-
     const filteredEmptyState = (
         <EmptyState  headingLevel="h4"   titleText="No comments found" variant={EmptyStateVariant.xs}>
             <EmptyStateBody>
@@ -218,7 +212,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 filteredEmptyState={filteredEmptyState}
                 alwaysShowToolbar={false}
                 isLoading={isLoading}
-                isError={isError}
+                isError={errorMessage !== ""}
                 isFiltered={filter.trim().length > 0}
                 isEmpty={filteredComments.length === 0}
                 errorComponent = {errorState}

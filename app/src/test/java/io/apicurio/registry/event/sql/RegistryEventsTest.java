@@ -771,15 +771,16 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
-        // Wait until the write is visible on the read side (ensures KafkaSql replication
-        // has completed before polling for the outbox event).
-        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () ->
-                given()
-                        .pathParam("groupId", groupId)
-                        .pathParam("artifactId", artifactId)
-                        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
-                        .then()
-                        .extract().statusCode() == 200);
+        // Verify the contract ruleset was persisted (KafkaSql replication)
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && retrieved.getDomainRules() != null && retrieved.getMigrationRules() != null;
+        });
 
         // Consume the event from the broker
         List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,

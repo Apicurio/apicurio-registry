@@ -21,6 +21,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 
@@ -52,22 +53,27 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         AtomicInteger skippedCount = new AtomicInteger();
         AtomicInteger failedCount = new AtomicInteger();
 
-        handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
-                .map(new ContentWithTypeRowMapper()).stream().forEach(entity -> {
-                    processedCount.incrementAndGet();
-                    try {
-                        int result = updateEntity(handle, entity);
-                        if (result > 0) {
-                            updatedCount.incrementAndGet();
-                        } else {
-                            skippedCount.incrementAndGet();
-                        }
-                    } catch (Exception ex) {
-                        failedCount.incrementAndGet();
-                        log.warn("Failed to update canonical hash for contentId {}.",
-                                entity.contentEntity.contentId, ex);
+        // Same pattern as SqlExportRepository / SqlVersionRepository: MappedQuery.stream() only
+        // closes the ResultSet/Statement via onClose, so the Stream must be closed explicitly.
+        Stream<ContentWithType> stream = handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
+                .map(new ContentWithTypeRowMapper()).stream();
+        try (stream) {
+            stream.forEach(entity -> {
+                processedCount.incrementAndGet();
+                try {
+                    int result = updateEntity(handle, entity);
+                    if (result > 0) {
+                        updatedCount.incrementAndGet();
+                    } else {
+                        skippedCount.incrementAndGet();
                     }
-                });
+                } catch (Exception ex) {
+                    failedCount.incrementAndGet();
+                    log.warn("Failed to update canonical hash for contentId {}.",
+                            entity.contentEntity.contentId, ex);
+                }
+            });
+        }
 
         log.info(
                 "Avro canonical hash upgrade complete: processed={}, updated={}, skipped={}, failed={}.",

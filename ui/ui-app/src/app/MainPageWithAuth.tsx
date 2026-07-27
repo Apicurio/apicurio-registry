@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import { Page } from "@patternfly/react-core";
 import { AppHeader } from "@app/components";
-import { Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import {
     AgentsPage,
     ArtifactPage,
@@ -71,7 +71,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                         <Route path="/search" element={ <SearchPage /> } />
                         <Route path="/drafts" element={ <DraftsPage /> } />
                         <Route path="/explore" element={ <ExplorePage /> } />
-                        <Route path="/agents" element={ <AgentsPage /> } />
+                        <Route path="/agents" element={ config.featureAgents() ? <AgentsPage /> : <Navigate to={appNav.createLink("/dashboard")} replace /> } />
 
                         <Route
                             path="/explore/:groupId"

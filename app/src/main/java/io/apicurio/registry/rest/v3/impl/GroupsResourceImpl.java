@@ -2464,38 +2464,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return combined;
     }
 
-    private String[] parseSchemaLocation(String location, String defaultGroupId) {
-        if (location == null || location.isBlank()) {
-            return new String[0];
-        }
-        String withoutVersion = location.contains(":")
-                ? location.substring(0, location.indexOf(':'))
-                : location;
-        if (withoutVersion.isBlank()) {
-            return new String[0];
-        }
-
-        String schemaGroupId;
-        String schemaArtifactId;
-        int slashIdx = withoutVersion.indexOf('/');
-        if (slashIdx >= 0) {
-            schemaGroupId = withoutVersion.substring(0, slashIdx);
-            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
-            if (schemaArtifactId.contains("/")) {
-                return new String[0];
-            }
-        } else {
-            schemaGroupId = defaultGroupId;
-            schemaArtifactId = withoutVersion;
-        }
-
-        if (schemaGroupId == null || schemaGroupId.isBlank()
-                || schemaArtifactId.isBlank()) {
-            return new String[0];
-        }
-        return new String[] { schemaGroupId, schemaArtifactId };
-    }
-
     private OdcsContractResult toOdcsContractResult(String contractId, OdcsContract contract,
             OdcsProjectionResult projection) {
         OdcsProjectionSummary summary = new OdcsProjectionSummary();

@@ -6,6 +6,7 @@
 package io.apicurio.registry.events.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -15,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class CloudEventDtoTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Test
     public void testBuilderPattern() {

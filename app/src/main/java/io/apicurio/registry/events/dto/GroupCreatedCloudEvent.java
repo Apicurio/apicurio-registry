@@ -6,33 +6,45 @@
 package io.apicurio.registry.events.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.time.Instant;
 
 /**
- * CloudEvent wrapper for GlobalRuleConfigured event.
+ * CloudEvent wrapper for GroupCreated event.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @RegisterForReflection
-public class GlobalRuleConfiguredCloudEvent {
+public class GroupCreatedCloudEvent {
 
+    @JsonUnwrapped
     private CloudEventDto cloudEvent;
 
-    public GlobalRuleConfiguredCloudEvent() {
+    public GroupCreatedCloudEvent() {
     }
 
-    public static GlobalRuleConfiguredCloudEvent from(io.apicurio.registry.events.GlobalRuleConfigured event, String source) {
+    public static GroupCreatedCloudEvent from(io.apicurio.registry.events.GroupCreated event, String source) {
+        Instant eventTime = extractTimestampFromPayload(event.getPayload());
+        
         CloudEventDto dto = new CloudEventDto()
                 .withId(event.getId())
                 .withSource(source)
-                .withType("io.apicurio.registry.events.GlobalRuleConfigured")
-                .withTime(Instant.now())
+                .withType("io.apicurio.registry.events.GroupCreated")
+                .withTime(eventTime)
                 .withData(event.getPayload());
 
-        GlobalRuleConfiguredCloudEvent wrapper = new GlobalRuleConfiguredCloudEvent();
+        GroupCreatedCloudEvent wrapper = new GroupCreatedCloudEvent();
         wrapper.setCloudEvent(dto);
         return wrapper;
+    }
+
+    private static Instant extractTimestampFromPayload(org.json.JSONObject payload) {
+        if (payload != null && payload.has("createdOn")) {
+            long createdOn = payload.getLong("createdOn");
+            return Instant.ofEpochMilli(createdOn);
+        }
+        return Instant.now();
     }
 
     public CloudEventDto getCloudEvent() {

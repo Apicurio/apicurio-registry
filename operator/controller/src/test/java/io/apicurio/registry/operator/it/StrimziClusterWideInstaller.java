@@ -94,7 +94,12 @@ final class StrimziClusterWideInstaller {
         for (HasMetadata resource : loadAndTransformManifest(namespace)) {
             log.info("Creating Strimzi resource kind {} name {}", resource.getKind(),
                     resource.getMetadata().getName());
-            client.resource(resource).inNamespace(namespace).createOrReplace();
+            // Retry each create so a transient API error on one resource does not abort the whole
+            // install; mirrors OperatorClusterWideInstaller. createOrReplace is idempotent on retry.
+            await().atMost(ITBase.SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
+                client.resource(resource).inNamespace(namespace).createOrReplace();
+                assertThat(client.resource(resource).inNamespace(namespace).get()).isNotNull();
+            });
         }
         waitForOperatorReady(client, namespace);
         installedInThisJvm = true;

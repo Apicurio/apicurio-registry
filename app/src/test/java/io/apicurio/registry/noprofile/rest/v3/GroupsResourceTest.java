@@ -1989,15 +1989,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().asString();
 
         // Verify the preserved content is valid YAML by parsing it
-        try {
-            JsonNode preservedYaml = ContentTypeUtil.parseYaml(ContentHandle.create(preservedContent));
-            Assertions.assertNotNull(preservedYaml, "Preserved content should be valid YAML");
-            Assertions.assertTrue(preservedYaml.has("asyncapi"), "YAML should have 'asyncapi' field");
-            Assertions.assertEquals("3.0.0", preservedYaml.get("asyncapi").asText(),
-                    "Should be AsyncAPI 3.0.0");
-        } catch (IOException e) {
-            Assertions.fail("Failed to parse preserved content as YAML: " + e.getMessage());
-        }
+        JsonNode preservedYaml = Assertions.assertDoesNotThrow(
+                () -> ContentTypeUtil.parseYaml(ContentHandle.create(preservedContent)),
+                "Failed to parse preserved content as YAML");
+        Assertions.assertNotNull(preservedYaml, "Preserved content should be valid YAML");
+        Assertions.assertTrue(preservedYaml.has("asyncapi"), "YAML should have 'asyncapi' field");
+        Assertions.assertEquals("3.0.0", preservedYaml.get("asyncapi").asText(),
+                "Should be AsyncAPI 3.0.0");
 
         // Get the content of the artifact rewriting external references
         // CRITICAL: This should return YAML content with YAML content type (not JSON content type)
@@ -2020,17 +2018,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Verify the content is valid YAML by parsing it
         String responseBody = rawResponse.asString();
-        JsonNode yamlNode = null;
-        try {
-            yamlNode = ContentTypeUtil.parseYaml(ContentHandle.create(responseBody));
-            Assertions.assertNotNull(yamlNode, "Response should be valid YAML");
-            Assertions.assertTrue(yamlNode.has("asyncapi"), "YAML should have 'asyncapi' field");
-            Assertions.assertEquals("3.0.0", yamlNode.get("asyncapi").asText(),
-                    "Should be AsyncAPI 3.0.0");
-        } catch (IOException e) {
-            Assertions.fail("Failed to parse response as YAML: " + e.getMessage() + ". Body starts with: "
-                    + responseBody.substring(0, Math.min(100, responseBody.length())));
-        }
+        JsonNode yamlNode = Assertions.assertDoesNotThrow(
+                () -> ContentTypeUtil.parseYaml(ContentHandle.create(responseBody)),
+                "Failed to parse response as YAML. Body starts with: "
+                        + responseBody.substring(0, Math.min(100, responseBody.length())));
+        Assertions.assertNotNull(yamlNode, "Response should be valid YAML");
+        Assertions.assertTrue(yamlNode.has("asyncapi"), "YAML should have 'asyncapi' field");
+        Assertions.assertEquals("3.0.0", yamlNode.get("asyncapi").asText(),
+                "Should be AsyncAPI 3.0.0");
 
         // Verify the reference was rewritten to point to the REST API
         // Navigate to the $ref field: components -> messages -> ShoppingCartCreatedMessage -> payload -> schema -> $ref

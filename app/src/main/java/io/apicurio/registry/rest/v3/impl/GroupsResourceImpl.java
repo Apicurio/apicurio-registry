@@ -2465,13 +2465,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     private String[] parseSchemaLocation(String location, String defaultGroupId) {
         if (location == null || location.isBlank()) {
-            return null;
+            return new String[0];
         }
         String withoutVersion = location.contains(":")
                 ? location.substring(0, location.indexOf(':'))
                 : location;
         if (withoutVersion.isBlank()) {
-            return null;
+            return new String[0];
         }
 
         String schemaGroupId;
@@ -2481,7 +2481,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             schemaGroupId = withoutVersion.substring(0, slashIdx);
             schemaArtifactId = withoutVersion.substring(slashIdx + 1);
             if (schemaArtifactId.contains("/")) {
-                return null;
+                return new String[0];
             }
         } else {
             schemaGroupId = defaultGroupId;
@@ -2490,7 +2490,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         if (schemaGroupId == null || schemaGroupId.isBlank()
                 || schemaArtifactId.isBlank()) {
-            return null;
+            return new String[0];
         }
         return new String[] { schemaGroupId, schemaArtifactId };
     }

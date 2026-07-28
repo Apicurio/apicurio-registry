@@ -12,6 +12,7 @@ import io.vertx.core.net.PfxOptions;
 import io.vertx.core.net.ProxyOptions;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.WebClientSession;
 
 import java.lang.annotation.Annotation;
 import java.util.logging.Level;
@@ -52,6 +53,8 @@ public final class VertxAdapterFactory {
             case OAUTH2:
                 return createVertxOAuth2(options.getTokenEndpoint(), options.getClientId(),
                         options.getClientSecret(), options.getScope(), vertxToUse, webClientOptions);
+            case BEARER_TOKEN:
+                return createVertxBearerToken(options.getBearerToken(), vertxToUse, webClientOptions);
             case CUSTOM_WEBCLIENT:
                 return createVertxCustomWebClient(options);
             default:
@@ -105,6 +108,12 @@ public final class VertxAdapterFactory {
                                                      String clientId, String clientSecret, String scope, Vertx vertx, WebClientOptions webClientOptions) {
         WebClient webClient = VertXAuthFactory.buildOIDCWebClient(vertx, webClientOptions, tokenEndpoint, clientId, clientSecret, scope);
         return new VertXRequestAdapter(webClient);
+    }
+
+    private static RequestAdapter createVertxBearerToken(String token, Vertx vertx, WebClientOptions webClientOptions) {
+        WebClient webClient = webClientOptions == null ? WebClient.create(vertx) : WebClient.create(vertx, webClientOptions);
+        WebClient sessionClient = WebClientSession.create(webClient).addHeader("Authorization", "Bearer " + token);
+        return new VertXRequestAdapter(sessionClient);
     }
 
     private static RequestAdapter createVertxCustomWebClient(RegistryClientOptions options) {

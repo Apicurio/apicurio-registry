@@ -22,9 +22,11 @@ public class ConfigModel {
 
     public static final String AUTH_TYPE_BASIC = "basic";
     public static final String AUTH_TYPE_OAUTH2 = "oauth2";
+    public static final String AUTH_TYPE_OIDC = "oidc";
 
     public static final String CREDENTIAL_KEY_PASSWORD = "password";
     public static final String CREDENTIAL_KEY_CLIENT_SECRET = "client-secret";
+    public static final String CREDENTIAL_KEY_REFRESH_TOKEN = "refresh-token";
 
     @JsonProperty("installation-version")
     private int installationVersion = CURRENT_INSTALLATION_VERSION;
@@ -75,6 +77,10 @@ public class ConfigModel {
         @JsonProperty("scope")
         private String scope;
 
+        @ToString.Exclude
+        @JsonProperty("issuerUrl")
+        private String issuerUrl;
+
         @JsonProperty("unsafeCredentialStorage")
         private boolean unsafeCredentialStorage;
 
@@ -84,6 +90,7 @@ public class ConfigModel {
             tokenEndpoint = null;
             clientId = null;
             scope = null;
+            issuerUrl = null;
             unsafeCredentialStorage = false;
         }
     }

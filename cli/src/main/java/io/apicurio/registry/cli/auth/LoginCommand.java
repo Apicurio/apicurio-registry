@@ -7,6 +7,7 @@ import io.apicurio.registry.cli.utils.OutputBuffer;
 import jakarta.inject.Inject;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -14,7 +15,7 @@ import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETU
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
 /**
- * Authenticates with the registry using Basic auth or OAuth2 client credentials.
+ * Authenticates with the registry using Basic auth, OAuth2 client credentials, or browser-based OIDC.
  */
 @Command(
         name = "login",
@@ -66,6 +67,12 @@ public class LoginCommand extends AbstractCommand {
     private String scope;
 
     @Option(
+            names = {"--issuer-url"},
+            description = "OIDC issuer URL for browser-based login."
+    )
+    private String issuerUrl;
+
+    @Option(
             names = {"--allow-unsafe-credential-storage"},
             description = "Allow storing credentials in a file when the OS keychain is not available.",
             defaultValue = "false"
@@ -74,6 +81,15 @@ public class LoginCommand extends AbstractCommand {
 
     @Inject
     CredentialStore credentialStore;
+
+    @Inject
+    OidcDiscovery oidcDiscovery;
+
+    @Inject
+    OidcTokenClient oidcTokenClient;
+
+    @Inject
+    OidcCallbackServer callbackServer;
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
@@ -90,10 +106,13 @@ public class LoginCommand extends AbstractCommand {
 
         if (!isBlank(username)) {
             loginBasic(output, configModel, context, contextName);
+        } else if (!isBlank(issuerUrl)) {
+            loginOidc(output, configModel, context, contextName);
         } else if (!isBlank(tokenEndpoint)) {
             loginOAuth2(output, configModel, context, contextName);
         } else {
-            throw new CliException("Specify --username for basic auth or --token-endpoint for OAuth2.",
+            throw new CliException(
+                    "Specify --username for basic auth, --issuer-url for OIDC, or --token-endpoint for OAuth2.",
                     VALIDATION_ERROR_RETURN_CODE);
         }
     }
@@ -173,6 +192,58 @@ public class LoginCommand extends AbstractCommand {
         });
     }
 
+    private void loginOidc(final OutputBuffer output,
+                           final ConfigModel configModel,
+                           final ConfigModel.Context context,
+                           final String contextName) {
+        if (isBlank(clientId)) {
+            throw new CliException("--client-id is required for OIDC authentication.",
+                    VALIDATION_ERROR_RETURN_CODE);
+        }
+
+        final var endpoints = oidcDiscovery.discover(issuerUrl);
+        final var pkce = PkceChallenge.generate();
+        final var state = UUID.randomUUID().toString();
+
+        try (var session = callbackServer.start(state)) {
+            final var redirectUri = OidcCallbackServer.redirectUri(session.getPort());
+            final var authUrl = endpoints.authorizationEndpoint()
+                    + "?response_type=code"
+                    + "&client_id=" + encode(clientId)
+                    + "&redirect_uri=" + encode(redirectUri)
+                    + "&scope=" + encode(scope != null ? scope : "openid")
+                    + "&state=" + state
+                    + "&code_challenge=" + pkce.codeChallenge()
+                    + "&code_challenge_method=" + pkce.codeChallengeMethod();
+
+            BrowserLauncher.openUrl(authUrl);
+            output.writeStdOutChunk(out -> out.append("Waiting for browser login...\n"));
+
+            final var code = session.awaitCode();
+            final var tokenResponse = oidcTokenClient.exchangeCode(
+                    endpoints.tokenEndpoint(), code, redirectUri, clientId, pkce.codeVerifier());
+
+            context.clearAuth();
+            context.setAuthType(ConfigModel.AUTH_TYPE_OIDC);
+            context.setIssuerUrl(issuerUrl);
+            context.setTokenEndpoint(endpoints.tokenEndpoint());
+            context.setClientId(clientId);
+            context.setScope(scope);
+            config.write(configModel);
+
+            if (tokenResponse.refreshToken() != null) {
+                credentialStore.store(contextName, ConfigModel.CREDENTIAL_KEY_REFRESH_TOKEN,
+                        tokenResponse.refreshToken());
+            }
+
+            client.reset();
+
+            output.writeStdOutChunk(out -> {
+                out.append("Logged in to context '").append(contextName).append("' via OIDC.\n");
+            });
+        }
+    }
+
     private static String readSecret(final String prompt, final String noConsoleMessage,
                                      final String emptyMessage) {
         final var console = Optional.ofNullable(System.console())
@@ -188,5 +259,9 @@ public class LoginCommand extends AbstractCommand {
                 Arrays.fill(chars, '\0');
             }
         }
+    }
+
+    private static String encode(final String value) {
+        return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
     }
 }

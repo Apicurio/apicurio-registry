@@ -56,6 +56,7 @@ public class RegistryClientOptions {
         ANONYMOUS,
         BASIC,
         OAUTH2,
+        BEARER_TOKEN,
         CUSTOM_WEBCLIENT
     }
 
@@ -91,6 +92,7 @@ public class RegistryClientOptions {
     private String clientId;
     private String clientSecret;
     private String scope;
+    private String bearerToken;
     private WebClient webClient;
     // Retry config
     private boolean retryEnabled = false;
@@ -161,6 +163,10 @@ public class RegistryClientOptions {
 
     public String getScope() {
         return scope;
+    }
+
+    public String getBearerToken() {
+        return bearerToken;
     }
 
     public Vertx getVertx() {
@@ -346,6 +352,19 @@ public class RegistryClientOptions {
     }
 
     /**
+     * Configures authentication using a pre-obtained bearer token.
+     *
+     * @param token the bearer token (e.g., JWT access token)
+     * @return this builder
+     */
+    public RegistryClientOptions bearerToken(String token) {
+        clearAuth();
+        this.authType = AuthType.BEARER_TOKEN;
+        this.bearerToken = token;
+        return this;
+    }
+
+    /**
      * Configures a custom WebClient for advanced authentication scenarios.
      *
      * @param webClient the pre-configured WebClient to use
@@ -366,6 +385,7 @@ public class RegistryClientOptions {
         this.clientId = null;
         this.clientSecret = null;
         this.scope = null;
+        this.bearerToken = null;
         this.webClient = null;
     }
 

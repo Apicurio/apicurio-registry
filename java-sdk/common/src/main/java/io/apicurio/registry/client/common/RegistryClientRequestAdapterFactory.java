@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -305,9 +306,16 @@ public class RegistryClientRequestAdapterFactory {
         }
 
         try {
-            var _ignored1 = new URI(url);
-            var _ignored2 = _ignored1.toURL();
-        } catch (Exception ex) {
+            var uri = new URI(url);
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                throw new IllegalArgumentException(
+                        "Registry API URL '" + url + "' is not well-formed: scheme and host are required.");
+            }
+            if (!"http".equals(uri.getScheme()) && !"https".equals(uri.getScheme())) {
+                throw new IllegalArgumentException(
+                        "Registry API URL '" + url + "' is not well-formed: unsupported scheme '" + uri.getScheme() + "'.");
+            }
+        } catch (URISyntaxException ex) {
             throw new IllegalArgumentException("Registry API URL '" + url + "' is not well-formed: " + ex.getMessage());
         }
 

@@ -59,7 +59,9 @@ type ActionType = {
 export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (props: ExplorePageToolbarProps) => {
     const [groupFilterType] = useState(GROUP_FILTER_TYPES[0]);
     const [filterValue, setFilterValue] = useState("");
-    const [filterAscending, setFilterAscending] = useState(true);
+    const [filterAscending, setFilterAscending] = useState(
+        props.criteria.ascending
+    );
     const [kebabActions, setKebabActions] = useState<ActionType[]>([]);
 
     const config = useConfigService();
@@ -133,9 +135,9 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
                 </ToolbarItem>
                 <ToolbarItem className="sort-icon-item">
                     <Button icon={
-                        filterAscending ? <SortAlphaDownIcon/> : <SortAlphaDownAltIcon/>
+                        filterAscending ? <SortAlphaDownIcon /> : <SortAlphaDownAltIcon />
                     } variant="plain" aria-label={filterAscending ? "sort ascending" : "sort descending"} data-testid="artifact-filter-sort"
-                    onClick={onToggleAscending} />
+                        onClick={onToggleAscending} />
                 </ToolbarItem>
                 <ToolbarItem className="create-artifact-item">
                     <IfAuth isDeveloper={true}>

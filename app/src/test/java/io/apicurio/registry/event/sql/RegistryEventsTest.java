@@ -4,12 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.types.ArtifactType;
@@ -45,6 +50,7 @@ import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_RULE_CONFIG
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_CREATED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_DELETED;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_STATE_CHANGED;
 import static io.apicurio.registry.storage.StorageEventType.GLOBAL_RULE_CONFIGURED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_CREATED;
 import static io.apicurio.registry.storage.StorageEventType.GROUP_DELETED;
@@ -266,6 +272,58 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void dryRunCreateArtifactEmitsNoEvent() throws Exception {
+        // Preparation
+        final String groupId = "dryRunCreateArtifact";
+        final String artifactId = generateArtifactId();
+
+        CreateArtifact dryRunCreate = buildCreateArtifact(artifactId, "dryRunLeakName");
+        clientV3.groups().byGroupId(groupId).artifacts().post(dryRunCreate,
+                config -> config.queryParameters.dryRun = true);
+
+        // Real create of the same id acts as a barrier: any leaked dry-run event precedes it.
+        CreateArtifact realCreate = buildCreateArtifact(artifactId, "realCreateName");
+        clientV3.groups().byGroupId(groupId).artifacts().post(realCreate);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals("realCreateName", events.get(0).get("name").asText());
+        for (JsonNode event : events) {
+            Assertions.assertNotEquals("dryRunLeakName", event.get("name").asText());
+        }
+    }
+
+    @Test
+    public void dryRunCreateArtifactVersionEmitsNoEvent() throws Exception {
+        // Preparation
+        final String groupId = "dryRunCreateArtifactVersion";
+        final String artifactId = generateArtifactId();
+
+        ensureArtifactCreated(groupId, artifactId, "dryRunCreateArtifactVersionName",
+                "dryRunCreateArtifactVersionDescription");
+
+        CreateVersion dryRunVersion = buildCreateVersion("2", "dryRunLeakVersionName");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(dryRunVersion, config -> config.queryParameters.dryRun = true);
+
+        // Real create of version "2" acts as a barrier: any leaked dry-run event precedes it.
+        CreateVersion realVersion = buildCreateVersion("2", "realVersionName");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(realVersion);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId, "version", "2"));
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals("realVersionName", events.get(0).get("name").asText());
+        for (JsonNode event : events) {
+            Assertions.assertNotEquals("dryRunLeakVersionName", event.get("name").asText());
+        }
+    }
+
+    @Test
     public void updateArtifactVersionMetadata() throws Exception {
         // Preparation
         final String groupId = "updateArtifactVersionMetadata";
@@ -300,6 +358,96 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
                 updateEvent.get("eventType").asText());
         Assertions.assertEquals("updateArtifactVersionMetadataEventDescriptionEdited",
                 updateEvent.get("description").asText());
+    }
+
+    @Test
+    public void updateArtifactVersionState() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactVersionState";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionStateName";
+        String description = "updateArtifactVersionStateDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        // A freshly created version is ENABLED; transition it to DEPRECATED.
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(VersionState.DEPRECATED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(newState);
+
+        // The state change must produce an ARTIFACT_VERSION_STATE_CHANGED event.
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_STATE_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode stateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+                stateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(groupId, stateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, stateEvent.get("artifactId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals("1", stateEvent.get("version").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
+    }
+
+    @Test
+    public void updateArtifactVersionStateDryRun() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactVersionStateDryRun";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionStateDryRunName";
+        String description = "updateArtifactVersionStateDryRunDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        // A dry-run state change must NOT emit an event. Target DISABLED so that a leaked
+        // dry-run event would be distinguishable from the real change below.
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state()
+                .put(disabled, config -> config.queryParameters.dryRun = true);
+
+        // A real state change to DEPRECATED, used as a deterministic barrier: since events are
+        // produced in submission order to a single partition, a leaked dry-run event (if any)
+        // would already be on the topic by the time this real event is consumed.
+        WrappedVersionState deprecated = new WrappedVersionState();
+        deprecated.setState(VersionState.DEPRECATED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(deprecated);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_STATE_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode stateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+                stateEvent = event;
+            }
+            // The dry-run transition to DISABLED must never have produced an event.
+            Assertions.assertNotEquals(VersionState.DISABLED.name(), event.get("newState").asText());
+        }
+
+        // Only the real DEPRECATED change is emitted; the dry-run produced nothing. The
+        // oldState is ENABLED (not DISABLED), which also confirms the dry-run did not persist.
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
     }
 
     @Test
@@ -665,6 +813,30 @@ public class RegistryEventsTest extends AbstractResourceTestBase {
         assertNotNull(created);
         assertEquals(groupId, created.getGroupId());
         assertEquals(description, created.getDescription());
+    }
+
+    private CreateArtifact buildCreateArtifact(String artifactId, String name) {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setName(name);
+        createArtifact.setFirstVersion(buildCreateVersion(null, null));
+        return createArtifact;
+    }
+
+    private CreateVersion buildCreateVersion(String version, String name) {
+        CreateVersion createVersion = new CreateVersion();
+        if (version != null) {
+            createVersion.setVersion(version);
+        }
+        if (name != null) {
+            createVersion.setName(name);
+        }
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(ARTIFACT_CONTENT);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        return createVersion;
     }
 
     protected KafkaConsumer<String, String> getConsumer(String bootstrapServers) {

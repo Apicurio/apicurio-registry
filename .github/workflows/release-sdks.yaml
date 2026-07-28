@@ -80,7 +80,7 @@ jobs:
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
             exit 1
@@ -127,7 +127,7 @@ jobs:
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
             exit 1
@@ -196,7 +196,7 @@ jobs:
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
             exit 1

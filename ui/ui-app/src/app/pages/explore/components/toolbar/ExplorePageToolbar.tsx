@@ -134,10 +134,15 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
                     </Form>
                 </ToolbarItem>
                 <ToolbarItem className="sort-icon-item">
-                    <Button icon={
-                        filterAscending ? <SortAlphaDownIcon /> : <SortAlphaDownAltIcon />
-                    } variant="plain" aria-label={filterAscending ? "sort ascending" : "sort descending"} data-testid="artifact-filter-sort"
-                        onClick={onToggleAscending} />
+                    <Button
+                        icon={
+                            filterAscending ? <SortAlphaDownIcon /> : <SortAlphaDownAltIcon />
+                        }
+                        variant="plain"
+                        aria-label={filterAscending ? "sort ascending" : "sort descending"}
+                        onClick={onToggleAscending}
+                        data-testid="artifact-filter-sort"
+                    />
                 </ToolbarItem>
                 <ToolbarItem className="create-artifact-item">
                     <IfAuth isDeveloper={true}>

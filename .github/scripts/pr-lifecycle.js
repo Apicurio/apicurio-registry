@@ -550,14 +550,14 @@ async function findDuplicatePrs(github, owner, repo, pr, core) {
 
 // Avoids re-pinging a PR that already has a recent "possible duplicate" note,
 // so several PRs opened in quick succession against the same issue don't pile
-// up repeated comments on the earliest one. Single-page fetch (not paginated) —
-// comments come back oldest-first, so the most recent 100 covers any plausibly
-// recent note without walking a long-lived PR's entire comment history.
+// up repeated comments on the earliest one. Single-page fetch (not paginated),
+// sorted newest-first, so the top 10 are the actual most recent comments
+// without walking a long-lived PR's entire comment history.
 async function hasRecentDuplicateNote(github, owner, repo, prNumber) {
   const { data: comments } = await github.rest.issues.listComments({
-    owner, repo, issue_number: prNumber, per_page: 100,
+    owner, repo, issue_number: prNumber, per_page: 10, sort: 'created', direction: 'desc',
   });
-  return comments.slice(-10).some(c => c.body?.includes('**Possible duplicate:**'));
+  return comments.some(c => c.body?.includes('**Possible duplicate:**'));
 }
 
 async function handlePrOpened({ github, context, core }) {

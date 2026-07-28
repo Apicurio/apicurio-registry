@@ -510,15 +510,21 @@ function extractIssueNumbers(pr) {
   // matching GitHub's own auto-close semantics. A bare "#123" is too permissive:
   // it also matches list markers, code snippets, and passing prose references,
   // which would both mask real missing-link cases and produce false duplicates.
+  // The keyword form also accepts a trailing comma-separated list, e.g.
+  // "Fixes #12, #13, #14" — GitHub itself closes all of them.
   const patterns = [
-    /\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\b\s*:?\s*#(\d+)/gi,
+    /\b(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\b\s*:?\s*#(\d+)(?:\s*,\s*#(\d+))*/gi,
     /github\.com\/[^/\s]+\/[^/\s]+\/issues\/(\d+)/gi,
   ];
   const numbers = new Set();
   for (const re of patterns) {
     let match;
     while ((match = re.exec(body))) {
-      numbers.add(Number(match[1]));
+      // match[0] is the whole "Fixes #12, #13, #14" span; re-scan it for every
+      // "#N" since a single capture group can't repeat across a JS match.
+      for (const n of match[0].matchAll(/#(\d+)/g)) {
+        numbers.add(Number(n[1]));
+      }
     }
   }
   return [...numbers];
@@ -544,9 +550,11 @@ async function findDuplicatePrs(github, owner, repo, pr, core) {
 
 // Avoids re-pinging a PR that already has a recent "possible duplicate" note,
 // so several PRs opened in quick succession against the same issue don't pile
-// up repeated comments on the earliest one.
+// up repeated comments on the earliest one. Single-page fetch (not paginated) —
+// comments come back oldest-first, so the most recent 100 covers any plausibly
+// recent note without walking a long-lived PR's entire comment history.
 async function hasRecentDuplicateNote(github, owner, repo, prNumber) {
-  const comments = await github.paginate(github.rest.issues.listComments, {
+  const { data: comments } = await github.rest.issues.listComments({
     owner, repo, issue_number: prNumber, per_page: 100,
   });
   return comments.slice(-10).some(c => c.body?.includes('**Possible duplicate:**'));

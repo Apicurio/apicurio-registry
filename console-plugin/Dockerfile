@@ -26,7 +26,7 @@ COPY backend/src/ src/
 COPY --from=web-builder /opt/app-root/src/dist/ src/main/resources/META-INF/resources/
 
 # Build Quarkus app (fast-jar packaging)
-RUN mvn package -DskipTests -Dmaven.javadoc.skip
+RUN mvn package -DskipTests -Dmaven.javadoc.skip -Dcheckstyle.skip
 
 # Stage 3: Final image
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:latest

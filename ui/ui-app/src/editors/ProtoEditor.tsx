@@ -1,6 +1,6 @@
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { Editor as DraftEditor, EditorProps } from "./editor-types";
-import Editor, { Monaco } from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
 import { draftContentToString } from "@utils/content.utils.ts";

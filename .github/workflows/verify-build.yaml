@@ -32,7 +32,9 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - name: Build Application (skip tests for speed)
         env:

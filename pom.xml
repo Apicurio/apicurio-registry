@@ -265,6 +265,7 @@
     <version.surefire.plugin>3.5.2</version.surefire.plugin>
     <version.jar.plugin>3.4.2</version.jar.plugin>
     <version.checkstyle.plugin>3.6.0</version.checkstyle.plugin>
+    <version.enforcer.plugin>3.6.3</version.enforcer.plugin>
     <version.properties.plugin>1.3.0</version.properties.plugin>
     <version.dependency.plugin>3.8.1</version.dependency.plugin>
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
@@ -1071,6 +1072,11 @@
           <version>${version.checkstyle.plugin}</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${version.enforcer.plugin}</version>
+        </plugin>
+        <plugin>
           <groupId>io.smallrye</groupId>
           <artifactId>jandex-maven-plugin</artifactId>
           <version>${jandex.version}</version>
@@ -1262,6 +1268,27 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.9.8,)</version>
+                </requireMavenVersion>
+                <banDuplicatePomDependencyVersions/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-antrun-plugin</artifactId>
         <version>${version.maven-antrun.plugin}</version>
         <executions>
@@ -1352,6 +1379,7 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>
         <checkstyle.skip>true</checkstyle.skip>
+        <enforcer.skip>true</enforcer.skip>
         <assembly.skipAssembly>true</assembly.skipAssembly>
       </properties>
     </profile>

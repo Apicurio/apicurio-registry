@@ -18,6 +18,7 @@ FROM registry.access.redhat.com/ubi9/openjdk-21:latest AS java-builder
 USER 0
 WORKDIR /opt/app-root/src
 
+COPY root-pom.xml /opt/pom.xml
 COPY backend/pom.xml pom.xml
 COPY backend/src/ src/
 

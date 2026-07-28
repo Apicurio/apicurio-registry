@@ -311,7 +311,8 @@ public class RegistryClientRequestAdapterFactory {
                 throw new IllegalArgumentException(
                         "Registry API URL '" + url + "' is not well-formed: scheme and host are required.");
             }
-            if (!"http".equals(uri.getScheme()) && !"https".equals(uri.getScheme())) {
+            var scheme = uri.getScheme().toLowerCase(java.util.Locale.ROOT);
+            if (!"http".equals(scheme) && !"https".equals(scheme)) {
                 throw new IllegalArgumentException(
                         "Registry API URL '" + url + "' is not well-formed: unsupported scheme '" + uri.getScheme() + "'.");
             }

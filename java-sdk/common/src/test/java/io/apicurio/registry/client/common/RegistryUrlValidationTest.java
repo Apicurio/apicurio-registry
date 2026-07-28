@@ -22,7 +22,7 @@ class RegistryUrlValidationTest {
             RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3);
         } catch (IllegalArgumentException ex) {
             throw new AssertionError("URL '" + url + "' should be accepted but was rejected: " + ex.getMessage(), ex);
-        } catch (Exception ignored) {
+        } catch (IllegalStateException ignored) {
         }
     }
 

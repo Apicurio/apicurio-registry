@@ -18,16 +18,7 @@ import {
     Title
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
-
-export interface PromptVariable {
-    name?: string;
-    type?: string;
-    description?: string;
-    required?: boolean;
-    default?: any;
-    enum?: string[];
-    constraints?: any;
-}
+import { TEMPLATE_VARIABLE_REGEX, VariableSchema } from "./promptTemplateVariables";
 
 export interface PromptTemplateMetadata {
     author?: string;
@@ -47,7 +38,7 @@ export interface PromptTemplate {
     description?: string;
     version?: string;
     template?: string;
-    variables?: Record<string, PromptVariable> | PromptVariable[];
+    variables?: Record<string, VariableSchema> | VariableSchema[];
     outputSchema?: any;
     metadata?: PromptTemplateMetadata;
     mcp?: {
@@ -66,7 +57,7 @@ export type PromptTemplateViewerProps = {
 const highlightVariables = (template: string): React.ReactNode[] => {
     const parts: React.ReactNode[] = [];
     // Match both {{variable}} and {{#if variable}} / {{/if}} handlebars syntax
-    const regex = /\{\{(#?\/?(?:if|unless|each|with)\s+)?(\w+)\}\}/g;
+    const regex = new RegExp(TEMPLATE_VARIABLE_REGEX.source, TEMPLATE_VARIABLE_REGEX.flags);
     let lastIndex = 0;
     let match;
     let key = 0;
@@ -89,7 +80,7 @@ const highlightVariables = (template: string): React.ReactNode[] => {
     return parts;
 };
 
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
+const getVariablesList = (variables: Record<string, VariableSchema> | VariableSchema[] | undefined): { name: string; variable: VariableSchema }[] => {
     if (!variables) return [];
     if (Array.isArray(variables)) {
         return variables.map(v => ({ name: v.name || "", variable: v }));

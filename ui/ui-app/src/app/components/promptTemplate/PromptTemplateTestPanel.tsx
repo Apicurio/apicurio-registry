@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, ReactNode, useEffect, useState } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -13,12 +13,18 @@ import {
     FormGroup,
     FormSelect,
     FormSelectOption,
+    Label,
     Spinner,
     TextArea,
     TextInput,
     Title
 } from "@patternfly/react-core";
-import { PromptVariable } from "./PromptTemplateViewer";
+import {
+    extractTemplateVariableNames,
+    reconcileTemplateVariables,
+    ReconciledVariable,
+    VariableSchema
+} from "./promptTemplateVariables";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
 
@@ -26,28 +32,63 @@ export type PromptTemplateTestPanelProps = {
     groupId: string;
     artifactId: string;
     version: string;
-    variables: Record<string, PromptVariable> | PromptVariable[] | undefined;
+    template?: string;
+    variables: Record<string, VariableSchema> | VariableSchema[] | undefined;
     className?: string;
 };
 
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
+const toDeclaredMap = (
+    variables: Record<string, VariableSchema> | VariableSchema[] | undefined
+): Record<string, VariableSchema> | undefined => {
+    if (!variables) {
+        return undefined;
     }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
+    if (Array.isArray(variables)) {
+        const map: Record<string, VariableSchema> = {};
+        for (const variable of variables) {
+            if (variable.name) {
+                map[variable.name] = variable;
+            }
+        }
+        return map;
+    }
+    return variables;
+};
+
+const defaultSchemaForDetected = (): VariableSchema => ({
+    type: "string",
+    required: false
+});
+
+const schemaForField = (entry: ReconciledVariable): VariableSchema => {
+    return entry.schema ?? defaultSchemaForDetected();
+};
+
+const sourceLabel = (source: ReconciledVariable["source"]): { text: string; color: "grey" | "orange" } | undefined => {
+    if (source === "detected") {
+        return { text: "not in schema", color: "orange" };
+    }
+    if (source === "declared") {
+        return { text: "unused", color: "grey" };
+    }
+    return undefined;
 };
 
 export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {
     const groups: GroupsService = useGroupsService();
-    const variablesList = getVariablesList(props.variables);
+
+    const templateNames = extractTemplateVariableNames(props.template || "");
+    const reconciledVariables = reconcileTemplateVariables(templateNames, toDeclaredMap(props.variables));
 
     const initialValues: Record<string, any> = {};
-    variablesList.forEach(({ name, variable }) => {
-        if (variable.default !== undefined) {
-            initialValues[name] = variable.default;
+    reconciledVariables.forEach((entry) => {
+        const schema = schemaForField(entry);
+        if (schema.default !== undefined) {
+            initialValues[entry.name] = schema.default;
+        } else if ((schema.type || "string").toLowerCase() === "boolean") {
+            initialValues[entry.name] = false;
         } else {
-            initialValues[name] = "";
+            initialValues[entry.name] = "";
         }
     });
 
@@ -56,15 +97,16 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     useEffect(() => {
         setValues(prev => {
             const next = { ...prev };
-            variablesList.forEach(({ name, variable }) => {
-                if (!(name in next)) {
-                    const type = (variable.type || "string").toLowerCase();
-                    next[name] = type === "boolean" ? false : (variable.default ?? "");
+            reconciledVariables.forEach((entry) => {
+                if (!(entry.name in next)) {
+                    const schema = schemaForField(entry);
+                    const type = (schema.type || "string").toLowerCase();
+                    next[entry.name] = type === "boolean" ? false : (schema.default ?? "");
                 }
             });
             return next;
         });
-    }, [props.variables]);
+    }, [props.template, props.variables]);
 
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
@@ -101,7 +143,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             });
     };
 
-    const renderField = (name: string, variable: PromptVariable): React.ReactNode => {
+    const renderField = (name: string, variable: VariableSchema): ReactNode => {
         const type = (variable.type || "string").toLowerCase();
 
         if (variable.enum && variable.enum.length > 0) {
@@ -113,7 +155,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 >
                     <FormSelectOption key="placeholder" value="" label="-- Select --" />
                     {variable.enum.map((opt, i) => (
-                        <FormSelectOption key={i} value={opt} label={opt} />
+                        <FormSelectOption key={i} value={String(opt)} label={String(opt)} />
                     ))}
                 </FormSelect>
             );
@@ -181,6 +223,23 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         }
     };
 
+    const renderLabel = (entry: ReconciledVariable): ReactNode => {
+        const schema = schemaForField(entry);
+        const base = schema.description ? `${entry.name} - ${schema.description}` : entry.name;
+        const indicator = sourceLabel(entry.source);
+        if (!indicator) {
+            return base;
+        }
+        return (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                <span>{base}</span>
+                <Label color={indicator.color} isCompact>
+                    {indicator.text}
+                </Label>
+            </span>
+        );
+    };
+
     return (
         <Card className={`prompt-template-test-panel ${props.className || ""}`}>
             <CardHeader>
@@ -190,16 +249,23 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             </CardHeader>
             <CardBody>
                 <Form className="test-panel-form">
-                    {variablesList.map(({ name, variable }, index) => {
-                        const isBoolean = (variable.type || "string").toLowerCase() === "boolean";
+                    {reconciledVariables.map((entry) => {
+                        const schema = schemaForField(entry);
+                        const isBoolean = (schema.type || "string").toLowerCase() === "boolean";
+                        const indicator = sourceLabel(entry.source);
                         return (
                             <FormGroup
-                                key={index}
-                                label={isBoolean ? undefined : (variable.description ? `${name} - ${variable.description}` : name)}
-                                isRequired={variable.required}
-                                fieldId={`var-${name}`}
+                                key={`${entry.source}-${entry.name}`}
+                                label={isBoolean ? undefined : renderLabel(entry)}
+                                isRequired={!!schema.required}
+                                fieldId={`var-${entry.name}`}
                             >
-                                {renderField(name, variable)}
+                                {isBoolean && indicator && (
+                                    <Label color={indicator.color} isCompact style={{ marginBottom: "0.5rem" }}>
+                                        {indicator.text}
+                                    </Label>
+                                )}
+                                {renderField(entry.name, schema)}
                             </FormGroup>
                         );
                     })}

@@ -1,16 +1,5 @@
 import { Monaco } from "@monaco-editor/react";
 
-const graphqlThemeData = {
-    base: "vs",
-    inherit: true,
-    rules: [
-        { token: "keyword", foreground: "DB2121" },
-        { token: "type.identifier", foreground: "00CA8C", fontStyle: "bold" },
-        { token: "identifier", foreground: "0C5ED7" },
-        { token: "comment", foreground: "7A7A7A" },
-        { token: "string", fontStyle: "italic" }
-    ]
-};
 
 let graphqlRegistered = false;
 
@@ -76,5 +65,4 @@ export const registerGraphQL = (monaco: Monaco) => {
             ]
         }
     });
-    monaco.editor.defineTheme("graphql", graphqlThemeData as any);
 };

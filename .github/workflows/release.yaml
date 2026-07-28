@@ -48,7 +48,7 @@ jobs:
 
       # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -82,7 +82,7 @@ jobs:
       - name: Update Release Version ${{ github.event.inputs.release-version}}
         run: |
           cd registry
-          mvn versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml versions:set -DnewVersion=${{ github.event.inputs.release-version}} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.RELEASE_DOCS_VERSION }}\'/g" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.RELEASE_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json
@@ -123,7 +123,7 @@ jobs:
       - name: (Operator) Generate CRD
         working-directory: registry
         run: |
-          mvn -pl operator/controller -am -Pfull install -DskipTests --no-transfer-progress
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml -pl operator/controller -am -Pfull install -DskipTests --no-transfer-progress
 
       - name: (Operator) Update install file
         working-directory: registry/operator
@@ -164,12 +164,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -178,7 +178,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./mvnw clean package \
+          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml clean package \
             --no-transfer-progress \
             -Pprod -Dfull -pl '!cli' \
             -DskipTests \
@@ -207,7 +207,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
@@ -241,7 +241,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Apicurio Registry Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
@@ -257,7 +257,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./mvnw clean package \
+          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml clean package \
             --no-transfer-progress \
             -pl cli -am \
             -DskipTests \
@@ -309,7 +309,7 @@ jobs:
           done
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           name: ${{ github.event.inputs.release-version }}
           tag_name: ${{ github.event.inputs.release-version }}
@@ -357,7 +357,7 @@ jobs:
       - name: Update Snapshot Version ${{ env.SNAPSHOT_VERSION }}
         run: |
           cd registry
-          mvn versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
+          mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml versions:set -DnewVersion=${{ env.SNAPSHOT_VERSION }} -DgenerateBackupPoms=false -DprocessAllModules=true
 
           sed -i  "s/version\:\s.*/version: \'${{ env.SNAPSHOT_DOCS_VERSION }}\'/g" docs/antora.yml
           sed -i  "5s/\"version\"\:\s\".*\"/\"version\": \"${{ env.SNAPSHOT_DOCS_VERSION }}\"/g" common/src/main/resources/META-INF/openapi.json

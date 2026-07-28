@@ -9,6 +9,7 @@ import io.apicurio.registry.events.ArtifactRuleConfigured;
 import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
+import io.apicurio.registry.events.ArtifactVersionStateChanged;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
@@ -459,10 +460,12 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator
                 .waitForResponse(uuid);
 
-        outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactCreated.of(createdArtifact.getLeft())));
+        if (!dryRun) {
+            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactCreated.of(createdArtifact.getLeft())));
 
-        if (createdArtifact.getRight() != null) {
-            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(createdArtifact.getRight())));
+            if (createdArtifact.getRight() != null) {
+                outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(createdArtifact.getRight())));
+            }
         }
 
         return createdArtifact;
@@ -505,7 +508,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var uuid = blockOnResult(submitter.submitMessage(message));
         ArtifactVersionMetaDataDto versionMetaDataDto = (ArtifactVersionMetaDataDto) coordinator
                 .waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(versionMetaDataDto)));
+        if (!dryRun) {
+            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionCreated.of(versionMetaDataDto)));
+        }
         return versionMetaDataDto;
     }
 
@@ -733,18 +738,24 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void setGlobalContractRuleset(io.apicurio.registry.storage.dto.ContractRuleSetDto ruleset)
             throws RegistryStorageException {
-        sqlStore.setGlobalContractRuleset(ruleset);
+        var message = new SetGlobalContractRuleset1Message(ruleset);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override
     public void deleteGlobalContractRuleset() throws RegistryStorageException {
-        sqlStore.deleteGlobalContractRuleset();
+        var message = new DeleteGlobalContractRuleset0Message();
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override
     public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry)
             throws RegistryStorageException {
-        sqlStore.insertContractAuditEntry(entry);
+        var message = new InsertContractAuditEntry1Message(entry);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override
@@ -782,12 +793,23 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, metaData)));
     }
 
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionState(java.lang.String,
+     *      java.lang.String, java.lang.String, io.apicurio.registry.types.VersionState, boolean)
+     */
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
+        // Capture the previous state before submitting the message, since the outbox event carries it.
+        VersionState oldState = getArtifactVersionState(groupId, artifactId, version);
         var message = new UpdateArtifactVersionState5Message(groupId, artifactId, version, newState, dryRun);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        // A dry run performs no committed state change, so no event should be emitted (matches SQL).
+        if (!dryRun) {
+            outboxEvent.fire(KafkaSqlOutboxEvent
+                    .of(ArtifactVersionStateChanged.of(groupId, artifactId, version, oldState, newState)));
+        }
     }
 
     /**

@@ -1,9 +1,9 @@
 # Apicurio Registry UI
 
-Apicurio Registry UI is a React based Single Page Application based on Patternfly 5.
+Apicurio Registry UI is a React based Single Page Application based on PatternFly 6.
 
 ## Requirements
-This project requires node version 16.x.x and npm version > 8.3.x.
+This project requires Node.js `^20.19.0 || >=22.12.0` (the engine requirement of Vite 7) and npm 10 or later.
 Prior to building this project make sure you have these applications installed.
 
 ## Development Scripts

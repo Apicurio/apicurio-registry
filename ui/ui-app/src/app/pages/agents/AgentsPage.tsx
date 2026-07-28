@@ -38,7 +38,10 @@ import {
 } from "@services/useAgentService";
 import { Paging } from "@models/Paging.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
-import { FromNow } from "@apicurio/common-ui-components";
+import { FromNow, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { CreateAgentModal, ImportAgentModal } from "@app/pages/agents/components";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { CreateArtifact } from "@sdk/lib/generated-client/models";
 
 const EMPTY_RESULTS: AgentSearchResults = {
     agents: [],
@@ -70,8 +73,14 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const [skillFilter, setSkillFilter] = useState<string>("");
     const [capabilitySelectOpen, setCapabilitySelectOpen] = useState(false);
 
+    const [isCreateAgentModalOpen, setIsCreateAgentModalOpen] = useState(false);
+    const [isImportAgentModalOpen, setIsImportAgentModalOpen] = useState(false);
+    const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
+    const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+
     const agentSvc = useAgentService();
     const appNav = useAppNavigation();
+    const groups: GroupsService = useGroupsService();
 
     const createFilters = (): AgentSearchFilters => {
         return {
@@ -138,6 +147,20 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
         const gid = encodeURIComponent(agent.groupId || "default");
         const aid = encodeURIComponent(agent.artifactId);
         appNav.navigateTo(`/explore/${gid}/${aid}`);
+    };
+
+    const doSaveAgent = (groupId: string, data: CreateArtifact, waitMessage: string, errorMessage: string): void => {
+        setPleaseWaitMessage(waitMessage);
+        setIsPleaseWaitModalOpen(true);
+        groups.createArtifact(groupId || null, data).then(response => {
+            const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
+            const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
+            setIsPleaseWaitModalOpen(false);
+            appNav.navigateTo(`/explore/${gid}/${aid}`);
+        }).catch(error => {
+            setIsPleaseWaitModalOpen(false);
+            setPageError(toPageError(error, errorMessage));
+        });
     };
 
     useEffect(() => {
@@ -309,6 +332,16 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             Search
                         </Button>
                     </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
+                            Create Agent
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
+                            Import Agent
+                        </Button>
+                    </ToolbarItem>
                     <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
                         <Pagination
                             itemCount={results.count}
@@ -365,6 +398,26 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                     )}
                 </PageSection>
             </PageDataLoader>
+            <CreateAgentModal
+                isOpen={isCreateAgentModalOpen}
+                onClose={() => setIsCreateAgentModalOpen(false)}
+                onCreate={(groupId, data) => {
+                    setIsCreateAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Creating agent card, please wait...", "Error creating agent.");
+                }}
+            />
+            <ImportAgentModal
+                isOpen={isImportAgentModalOpen}
+                onClose={() => setIsImportAgentModalOpen(false)}
+                onImport={(groupId, data) => {
+                    setIsImportAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Importing agent card, please wait...", "Error importing agent.");
+                }}
+            />
+            <PleaseWaitModal
+                message={pleaseWaitMessage}
+                isOpen={isPleaseWaitModalOpen}
+            />
         </PageErrorHandler>
     );
 };

@@ -98,7 +98,6 @@ export const AddVersionToBranchModal: FunctionComponent<AddVersionToBranchModalP
                                 itemToString={item => item.branchId}
                                 itemToTestId={item => `branch-${shash(item.branchId)}`}
                                 toggleId="select-branch-toggle"
-                                appendTo="document"
                             />
                         </FormGroup>
                     </Form>

@@ -1,5 +1,6 @@
 import { CSSProperties, FunctionComponent, useEffect, useRef, useState } from "react";
 import "./EditorPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import {
     EmptyState, EmptyStateBody,
     EmptyStateVariant,
@@ -165,34 +166,34 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         persistDraftRecoverySnapshot
     });
 
-    const loadDraft = async (): Promise<void> => {
+    const loadDraft = async (guard: LoaderGuard): Promise<void> => {
         try {
             const loadedDraft = await drafts.getDraft(groupId, draftId, version);
-            setDraft(loadedDraft);
-            setDraftLoaded(true);
+            guard.wrap(setDraft)(loadedDraft);
+            guard.wrap(setDraftLoaded)(true);
         } catch (error) {
-            setPageError(toPageError(error, "Error loading page data."));
+            guard.wrap(setPageError)(toPageError(error, "Error loading page data."));
             await requestReauthenticationIfUnauthorized(error);
         }
     };
 
-    const loadDraftContent = async (): Promise<void> => {
+    const loadDraftContent = async (guard: LoaderGuard): Promise<void> => {
         try {
             const content = await drafts.getDraftContent(groupId, draftId, version);
-            setOriginalContent(content.content);
-            setCurrentContent(content.content);
-            setDraftContent(content);
-            setDraftContentLoaded(true);
+            guard.wrap(setOriginalContent)(content.content);
+            guard.wrap(setCurrentContent)(content.content);
+            guard.wrap(setDraftContent)(content);
+            guard.wrap(setDraftContentLoaded)(true);
         } catch (error) {
-            setPageError(toPageError(error, "Error loading page data."));
+            guard.wrap(setPageError)(toPageError(error, "Error loading page data."));
             await requestReauthenticationIfUnauthorized(error);
         }
     };
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         return [
-            loadDraft(),
-            loadDraftContent(),
+            loadDraft(guard),
+            loadDraftContent(guard),
         ];
     };
 
@@ -204,7 +205,9 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         setPageError(undefined);
         setIsContentConflicting(false);
         isAuthRedirectInProgressRef.current = false;
-        setLoaders(createLoaders());
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [draftId, groupId, version]);
 
     useEffect(() => {

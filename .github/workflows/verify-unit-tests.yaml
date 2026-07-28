@@ -56,17 +56,19 @@ jobs:
             maven-opts: "-Xmx4g"
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Full history only needed when Scalpel is enabled (git diff against base branch)
           fetch-depth: ${{ inputs.scalpel-enabled == 'true' && 0 || 1 }}
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -79,6 +81,10 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
+      - name: Record start time
+        id: timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Run Unit Tests (${{ matrix.shard.name }})
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -90,7 +96,7 @@ jobs:
           # -Dsurefire.rerunFailingTestsCount=2: automatically retry flaky tests up to 2 times
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
-            --no-transfer-progress \
+            --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             ${{ inputs.scalpel-enabled == 'true' && '-Dscalpel.enabled=true' || '' }} \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
@@ -102,3 +108,17 @@ jobs:
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5 \
             -Dsurefire.rerunFailingTestsCount=2
+
+      - name: Check shard timing
+        if: always()
+        env:
+          SHARD_NAME: ${{ matrix.shard.name }}
+          START_TIME: ${{ steps.timer.outputs.start }}
+        run: |
+          elapsed=$(( $(date +%s) - START_TIME ))
+          threshold=600
+          if [ "$elapsed" -gt "$threshold" ]; then
+            echo "::warning title=CI timing regression ($SHARD_NAME)::Shard $SHARD_NAME took ${elapsed}s (threshold: ${threshold}s). Investigate: cache miss, runner degradation, or new test overhead. See Discussion #8364."
+          else
+            echo "Shard $SHARD_NAME completed in ${elapsed}s (threshold: ${threshold}s)"
+          fi

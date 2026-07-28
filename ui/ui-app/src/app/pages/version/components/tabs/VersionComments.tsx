@@ -18,7 +18,9 @@ import {
     SearchInput,
     Toolbar,
     ToolbarContent,
-    ToolbarItem
+    ToolbarItem,
+    Alert,
+    AlertActionCloseButton
 } from "@patternfly/react-core";
 import { FromNow, ListWithToolbar, ObjectDropdown, PleaseWaitModal } from "@apicurio/common-ui-components";
 import { ConfirmDeleteModal, CreateCommentModal, EditCommentModal, IfAuth, IfFeature } from "@app/components";
@@ -42,6 +44,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     const [commentToEdit, setCommentToEdit] = useState<Comment>();
     const [commentToDelete, setCommentToDelete] = useState<Comment>();
     const [filter, setFilter] = useState("");
+    const [actionError, setActionError] = useState<string | undefined>();
 
     const groups: GroupsService = useGroupsService();
 
@@ -64,6 +67,7 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
     };
 
     const addComment = (newComment: NewComment): void => {
+        setActionError(undefined);
         setIsCreateModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Adding comment, please wait.");
@@ -72,13 +76,14 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setComments([comment, ...comments]);
                 setIsPleaseWaitModalOpen(false);
             })
-            .catch(() => {
-                // TODO handle error
+            .catch((error: any) => {
+                setActionError(error?.message || "Error adding comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
 
     const editComment = (commentId: string, newComment: NewComment): void => {
+        setActionError(undefined);
         setIsEditModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Updating comment, please wait.");
@@ -89,13 +94,14 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 }));
                 setIsPleaseWaitModalOpen(false);
             })
-            .catch(() => {
-                // TODO handle error
+            .catch((error: any) => {
+                setActionError(error?.message || "Error updating comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
 
     const deleteComment = (): void => {
+        setActionError(undefined);
         setIsDeleteModalOpen(false);
         setIsPleaseWaitModalOpen(true);
         setPleaseWaitMessage("Deleting comment, please wait.");
@@ -106,21 +112,22 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
                 setComments(comments.filter(c => c.commentId !== commentId));
                 setIsPleaseWaitModalOpen(false);
             })
-            .catch(() => {
-                // TODO handle error
+            .catch((error: any) => {
+                setActionError(error?.message || "Error deleting comment. Please try again.");
                 setIsPleaseWaitModalOpen(false);
             });
     };
 
     useEffect(() => {
+        setActionError(undefined);
         setIsLoading(true);
         groups.getArtifactVersionComments(props.version.groupId || "default", props.version.artifactId!, props.version.version!)
             .then(comments => {
                 setComments(comments);
                 setIsLoading(false);
             })
-            .catch(() => {
-                // TODO handle error
+            .catch((error: any) => {
+                setActionError(error?.message || "Error fetching comments. Please refresh the page.");
                 setIsLoading(false);
             });
     }, []);
@@ -172,6 +179,15 @@ export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: 
 
     return (
         <div className="comments">
+            {actionError && (
+                <Alert
+                    variant="danger"
+                    title={actionError}
+                    actionClose={<AlertActionCloseButton onClose={() => setActionError(undefined)} />}
+                    isInline
+                    style={{ marginBottom: "15px" }}
+                />
+            )}
             <ListWithToolbar
                 toolbar={toolbar}
                 emptyState={emptyState}

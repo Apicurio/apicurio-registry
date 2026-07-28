@@ -327,7 +327,7 @@ acr artifact
 **Create an artifact:**
 ```bash
 acr artifact create <artifact-id> -g <group-id> -f <file-path>
-acr artifact create <artifact-id> -g <group-id> -f <file-path> -t <artifact-type>
+acr artifact create <artifact-id> -g <group-id> -f <file-path> --type <artifact-type>
 
 # Read content from stdin:
 cat schema.json | acr artifact create <artifact-id> -g <group-id> -f -

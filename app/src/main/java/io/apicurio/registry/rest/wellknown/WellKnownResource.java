@@ -53,6 +53,16 @@ public interface WellKnownResource {
     AgentCard getAgentCardV1();
 
     /**
+     * Returns the Agent Card for this Apicurio Registry instance.
+     * Alias for compatibility with watsonx Orchestrate, which discovers agents
+     * at /.well-known/agent-card.json by default.
+     */
+    @GET
+    @Path("/agent-card.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentCard getAgentCardForOrchestrate();
+
+    /**
      * Returns a specific registered Agent Card by group and artifact ID.
      * This enables proxying/serving of registered agent cards stored in the registry.
      *
@@ -156,8 +166,8 @@ public interface WellKnownResource {
     McpToolSearchResults searchMcpTools(
             @QueryParam("name") String name,
             @QueryParam("parameter") List<String> parameters,
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
 
     /**
      * Returns the JSON Schema for a specific LLM artifact type.

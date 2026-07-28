@@ -247,7 +247,6 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
                                         onSelect={onLanguageSelect}
                                         itemToString={item => item.id}
                                         itemToTestId={item => item.testId}
-                                        appendTo="document"
                                         testId="select-language"
                                         toggleId="select-language-toggle"
                                     />

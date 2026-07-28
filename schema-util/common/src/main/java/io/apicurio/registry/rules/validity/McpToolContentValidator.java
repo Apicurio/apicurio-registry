@@ -28,6 +28,12 @@ import java.util.Set;
  */
 public class McpToolContentValidator implements ContentValidator {
 
+    /**
+     * The optional behavioral hints of the MCP ToolAnnotations schema. All of them are booleans.
+     */
+    private static final List<String> TOOL_ANNOTATION_HINTS = List.of("readOnlyHint",
+            "destructiveHint", "idempotentHint", "openWorldHint");
+
     @Override
     public void validate(ValidityLevel level, TypedContent content,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
@@ -157,31 +163,11 @@ public class McpToolContentValidator implements ContentValidator {
         // title: optional string (fallback display name per MCP spec)
         JsonValidationUtils.validateOptionalString(annotations, "title", violations);
 
-        // audience: optional array of strings ("user", "assistant")
-        if (annotations.has("audience")) {
-            JsonNode audience = annotations.get("audience");
-            if (!audience.isArray()) {
-                violations.add(new RuleViolation("'annotations.audience' must be an array",
-                        "/annotations/audience"));
-            } else {
-                JsonValidationUtils.validateStringArray(audience,
-                        "/annotations/audience", "audience role", violations);
-            }
-        }
-
-        // priority: optional number between 0 and 1
-        if (annotations.has("priority")) {
-            JsonNode priority = annotations.get("priority");
-            if (!priority.isNumber()) {
-                violations.add(new RuleViolation("'annotations.priority' must be a number",
-                        "/annotations/priority"));
-            } else {
-                double value = priority.asDouble();
-                if (value < 0 || value > 1) {
-                    violations.add(new RuleViolation(
-                            "'annotations.priority' must be between 0 and 1",
-                            "/annotations/priority"));
-                }
+        // readOnlyHint, destructiveHint, idempotentHint, openWorldHint: optional booleans
+        for (String hint : TOOL_ANNOTATION_HINTS) {
+            if (annotations.has(hint) && !annotations.get(hint).isBoolean()) {
+                violations.add(new RuleViolation("'annotations." + hint + "' must be a boolean",
+                        "/annotations/" + hint));
             }
         }
     }

@@ -19,8 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @QuarkusTest
 public class LoggingConfigTest {
 
-    // Matches the category key in test resource acr-home-logging/config.json.
+    // Match the category keys in test resource acr-home-logging/config.json.
     private static final String CONFIGURED_CATEGORY = "io.apicurio.registry.cli.services";
+    private static final String NOISY_CATEGORY = "io.apicurio.registry.cli.loggingtest.noisy";
     private static final String UNCONFIGURED_CATEGORY = "io.apicurio.registry.cli.loggingtest.unconfigured";
 
     @Inject
@@ -38,6 +39,7 @@ public class LoggingConfigTest {
     public void setUp() throws Exception {
         originalRootLevel = Logger.getLogger("").getLevel();
         Logger.getLogger(CONFIGURED_CATEGORY).setLevel(null);
+        Logger.getLogger(NOISY_CATEGORY).setLevel(null);
         Logger.getLogger(UNCONFIGURED_CATEGORY).setLevel(null);
 
         var acrHome = Path.of(
@@ -60,13 +62,14 @@ public class LoggingConfigTest {
     public void tearDown() {
         Logger.getLogger("").setLevel(originalRootLevel);
         Logger.getLogger(CONFIGURED_CATEGORY).setLevel(null);
+        Logger.getLogger(NOISY_CATEGORY).setLevel(null);
         Logger.getLogger(UNCONFIGURED_CATEGORY).setLevel(null);
         config.reset();
     }
 
     @Test
     public void perPackageLevelFromConfigIsApplied() {
-        int exitCode = cmd.execute("config", "get", "update.check-enabled");
+        int exitCode = cmd.execute("--verbose", "config", "get", "update.check-enabled");
         assertThat(exitCode).isEqualTo(0);
 
         // DEBUG maps to the portable JUL level FINE (see AbstractCommand.toJulLevel).
@@ -74,8 +77,28 @@ public class LoggingConfigTest {
     }
 
     @Test
-    public void unconfiguredPackageIsUntouched() {
+    public void perPackageLevelIsIgnoredWithoutVerbose() {
         int exitCode = cmd.execute("config", "get", "update.check-enabled");
+        assertThat(exitCode).isEqualTo(0);
+
+        // Per-package config only takes effect together with --verbose.
+        assertThat(Logger.getLogger(CONFIGURED_CATEGORY).getLevel()).isNull();
+        assertThat(Logger.getLogger(NOISY_CATEGORY).getLevel()).isNull();
+    }
+
+    @Test
+    public void noisyPackageIsSuppressedUnderVerbose() {
+        int exitCode = cmd.execute("--verbose", "config", "get", "update.check-enabled");
+        assertThat(exitCode).isEqualTo(0);
+
+        // --verbose turns on debug globally, and a coarser per-package level quiets that package.
+        assertThat(Logger.getLogger("").getLevel()).isEqualTo(Level.FINE);
+        assertThat(Logger.getLogger(NOISY_CATEGORY).getLevel()).isEqualTo(Level.WARNING);
+    }
+
+    @Test
+    public void unconfiguredPackageIsUntouched() {
+        int exitCode = cmd.execute("--verbose", "config", "get", "update.check-enabled");
         assertThat(exitCode).isEqualTo(0);
 
         assertThat(Logger.getLogger(UNCONFIGURED_CATEGORY).getLevel()).isNull();

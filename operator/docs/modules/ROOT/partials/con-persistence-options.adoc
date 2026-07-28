@@ -75,6 +75,10 @@ spec:
             key: password
 ----
 
+NOTE: The password field shape also changed. The deprecated `app.sql.dataSource.password`
+accepted a plaintext string; `app.storage.sql.dataSource.password` must be a Kubernetes
+Secret reference (`name` + `key`).
+
 For KafkaSQL, replace `spec.app.kafkasql` with `spec.app.storage.type: kafkasql` and
 `spec.app.storage.kafkasql`.
 

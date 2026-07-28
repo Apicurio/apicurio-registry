@@ -166,8 +166,8 @@ public interface WellKnownResource {
     McpToolSearchResults searchMcpTools(
             @QueryParam("name") String name,
             @QueryParam("parameter") List<String> parameters,
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
 
     /**
      * Returns the JSON Schema for a specific LLM artifact type.

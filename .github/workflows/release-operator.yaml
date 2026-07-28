@@ -1,4 +1,7 @@
 name: Release Operator
+# Triggered by Release Images workflow after all operand images are pushed,
+# ensuring correct ordering without a polling loop. Can also be dispatched
+# manually for re-runs.
 on:
   workflow_dispatch:
     inputs:
@@ -10,9 +13,6 @@ on:
         type: boolean
         default: true
 
-  release:
-    types: [ released ]
-
 permissions:
   contents: read
 
@@ -20,7 +20,7 @@ jobs:
 
   release-build:
     name: Build & Publish
-    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
+    if: github.repository_owner == 'Apicurio'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
@@ -31,19 +31,11 @@ jobs:
     steps:
 
       - name: Fetch Release Details
-        if: github.event_name == 'workflow_dispatch'
         run: |
           touch release.json && curl "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/${{ github.event.inputs.tag }}" > release.json
           echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
           echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
           echo "RUN_TESTS=${{ github.event.inputs.run_tests }}" >> $GITHUB_ENV
-
-      - name: Configure release event env
-        if: github.event_name != 'workflow_dispatch'
-        run: |
-          echo "RELEASE_VERSION=${{ github.event.release.name }}" >> $GITHUB_ENV
-          echo "BRANCH=${{ github.event.release.target_commitish }}" >> $GITHUB_ENV
-          echo "RUN_TESTS=true" >> $GITHUB_ENV
 
       - name: Download Source Code
         run: |
@@ -118,16 +110,6 @@ jobs:
         working-directory: registry/operator
         run: |
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_IMAGE_TAG=latest image-buildx-push
-
-      - name: Wait on operand images
-        working-directory: registry/operator
-        run: |
-          export REGISTRY_APP_IMAGE="$(make OPERAND_IMAGE_TAG=$RELEASE_VERSION VAR=REGISTRY_APP_IMAGE variable-get)"
-          until docker manifest inspect "$REGISTRY_APP_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_APP_IMAGE"; sleep 10; done
-          export REGISTRY_UI_IMAGE="$(make OPERAND_IMAGE_TAG=$RELEASE_VERSION VAR=REGISTRY_UI_IMAGE variable-get)"
-          until docker manifest inspect "$REGISTRY_UI_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_UI_IMAGE"; sleep 10; done
-          export REGISTRY_GITOPS_SYNC_IMAGE="$(make VAR=REGISTRY_GITOPS_SYNC_IMAGE variable-get)"
-          until docker manifest inspect "$REGISTRY_GITOPS_SYNC_IMAGE" >& /dev/null; do echo "Waiting on $REGISTRY_GITOPS_SYNC_IMAGE"; sleep 10; done
 
       - name: Build operator bundle
         working-directory: registry/operator

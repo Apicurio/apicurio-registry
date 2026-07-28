@@ -206,6 +206,12 @@ jobs:
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 
+      - name: Trigger Release Operator
+        env:
+          GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: |
+          gh workflow run release-operator.yaml --repo "$GITHUB_REPOSITORY" -f tag="$RELEASE_VERSION"
+
   # Slack notification using reusable workflow
   notify-slack:
     name: Slack Notification

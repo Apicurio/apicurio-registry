@@ -26,10 +26,16 @@ export type ReconciledVariable = {
 };
 
 /**
- * Same matching semantics as PromptTemplateViewer.highlightVariables.
+ * Shared placeholder matcher used by extractTemplateVariableNames and
+ * PromptTemplateViewer.highlightVariables.
+ *
  * Captures optional block prefix (group 1) and variable name (group 2).
+ * Optional whitespace inside the braces matches the backend canonical plain-
+ * variable pattern from PromptTemplateVariableUtil
+ * (`\{\{\s*(\w+)\s*\}\}`), while still supporting handlebars-style blocks
+ * (`{{#if x}}`, `{{ #if x }}`, etc.) in one expression for the UI.
  */
-export const TEMPLATE_VARIABLE_REGEX = /\{\{(#?\/?(?:if|unless|each|with)\s+)?(\w+)\}\}/g;
+export const TEMPLATE_VARIABLE_REGEX = /\{\{\s*(#?\/?(?:if|unless|each|with)\s+)?(\w+)\s*\}\}/g;
 
 const BLOCK_KEYWORDS = new Set(["if", "unless", "each", "with"]);
 

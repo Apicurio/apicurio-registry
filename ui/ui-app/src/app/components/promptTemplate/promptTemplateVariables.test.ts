@@ -30,6 +30,21 @@ describe("extractTemplateVariableNames", () => {
         const template = "Hello {{name}}{{#if formal}}, sir{{/if}}. Items: {{#each items}}{{item}}{{/each}}";
         expect(extractTemplateVariableNames(template)).toEqual(["name", "formal", "items", "item"]);
     });
+
+    it("tolerates whitespace inside braces for plain variables", () => {
+        expect(extractTemplateVariableNames("Hello {{ name }}!")).toEqual(["name"]);
+        expect(extractTemplateVariableNames("Hello {{  name  }}!")).toEqual(["name"]);
+        expect(extractTemplateVariableNames("{{name }} and {{ name}}")).toEqual(["name"]);
+    });
+
+    it("tolerates whitespace inside braces for block variables", () => {
+        expect(extractTemplateVariableNames("{{ #if x }}yes{{/if}}")).toEqual(["x"]);
+        expect(extractTemplateVariableNames("{{#if  x  }}yes{{/if}}")).toEqual(["x"]);
+    });
+
+    it("deduplicates the same name across spaced and unspaced spellings", () => {
+        expect(extractTemplateVariableNames("{{name}} and {{ name }}")).toEqual(["name"]);
+    });
 });
 
 describe("reconcileTemplateVariables", () => {

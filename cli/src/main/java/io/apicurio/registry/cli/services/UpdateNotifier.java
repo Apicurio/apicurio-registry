@@ -97,7 +97,7 @@ public class UpdateNotifier {
         }
         result.formatMessage(sb);
         sb.append("Run 'acr update --postpone' to postpone for 5 days.\n");
-        config.getStdErr().print(sb.toString());
+        config.getStdErr().print(io.apicurio.registry.cli.utils.ColorUtil.colorizeWarning(sb.toString()));
     }
 
     private String getProductName() {

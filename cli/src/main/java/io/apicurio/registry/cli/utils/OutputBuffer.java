@@ -10,11 +10,8 @@ import lombok.Getter;
 public class OutputBuffer {
 
     private final Output stdOut;
-
     private final Output stdErr;
-
     private final StringBuilder buffer = new StringBuilder();
-
     private final List<Chunk> chunks = new ArrayList<>();
     private int printedUpTo = 0;
 
@@ -29,7 +26,7 @@ public class OutputBuffer {
 
     public void writeStdOutChunk(Utils.Function0<StringBuilder> action) {
         action.run(buffer);
-        chunks.add(new Chunk(buffer.toString(), Chunk.Target.STDOUT));
+        chunks.add(new Chunk(buffer.toString(), Chunk.Target.STDOUT, Severity.INFO));
         buffer.setLength(0);
     }
 
@@ -52,16 +49,45 @@ public class OutputBuffer {
 
     public void writeStdErrChunk(Consumer<StringBuilder> action) {
         action.accept(buffer);
-        chunks.add(new Chunk(buffer.toString(), Chunk.Target.STDERR));
+        chunks.add(new Chunk(buffer.toString(), Chunk.Target.STDERR, Severity.INFO));
+        buffer.setLength(0);
+    }
+
+    public void writeSuccess(Consumer<StringBuilder> action) {
+        action.accept(buffer);
+        chunks.add(new Chunk(buffer.toString(), Chunk.Target.STDOUT, Severity.SUCCESS));
+        buffer.setLength(0);
+    }
+
+    public void writeWarning(Consumer<StringBuilder> action) {
+        action.accept(buffer);
+        chunks.add(new Chunk(buffer.toString(), Chunk.Target.STDERR, Severity.WARNING));
+        buffer.setLength(0);
+    }
+
+    public void writeError(Consumer<StringBuilder> action) {
+        action.accept(buffer);
+        chunks.add(new Chunk(buffer.toString(), Chunk.Target.STDERR, Severity.ERROR));
         buffer.setLength(0);
     }
 
     public void print() {
         for (int i = printedUpTo; i < chunks.size(); i++) {
             var chunk = chunks.get(i);
+            String outText = chunk.getOutput();
+
+            switch (chunk.getSeverity()) {
+                case SUCCESS -> outText = ColorUtil.colorizeSuccess(outText);
+                case WARNING -> outText = ColorUtil.colorizeWarning(outText);
+                case ERROR -> outText = ColorUtil.colorizeError(outText);
+                case INFO, NONE -> {
+
+                }
+            }
+
             switch (chunk.getTarget()) {
-                case STDOUT -> stdOut.print(chunk.getOutput());
-                case STDERR -> stdErr.print(chunk.getOutput());
+                case STDOUT -> stdOut.print(outText);
+                case STDERR -> stdErr.print(outText);
             }
         }
         printedUpTo = chunks.size();
@@ -70,10 +96,9 @@ public class OutputBuffer {
     @AllArgsConstructor
     @Getter
     private static class Chunk {
-
         private String output;
-
         private Target target;
+        private Severity severity;
 
         private enum Target {
             STDOUT,
@@ -81,9 +106,12 @@ public class OutputBuffer {
         }
     }
 
+    private enum Severity {
+        NONE, INFO, SUCCESS, WARNING, ERROR
+    }
+
     @AllArgsConstructor
     private static class WrappedException extends RuntimeException {
-
         @Getter
         private final Exception wrapped;
     }

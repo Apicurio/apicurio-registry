@@ -55,7 +55,7 @@ public class ContextCreateCommand extends AbstractCommand {
                     .groupId(groupId)
                     .artifactId(artifactId)
                     .build());
-            output.writeStdOutChunk(out -> {
+            output.writeSuccess(out -> {
                 if (!noSwitchCurrent) {
                     configModel.setCurrentContext(name);
                     out.append("Current context '").append(name).append("' added.");

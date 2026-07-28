@@ -74,4 +74,13 @@ public class Acr {
             scope = INHERIT
     )
     private boolean _ignored;
+
+    @Option(
+            names = {"--no-color"},
+            description = "Disable colored output.",
+            scope = INHERIT
+    )
+    @Getter
+    private boolean noColor;
+    
 }

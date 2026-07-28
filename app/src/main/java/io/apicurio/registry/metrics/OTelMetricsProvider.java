@@ -276,11 +276,16 @@ public class OTelMetricsProvider {
     }
 
     public synchronized void updateUsageSummaryCounts(int active, int stale, int dead) {
-        activeSchemasGauge.add(active - lastActive);
-        staleSchemasGauge.add(stale - lastStale);
-        deadSchemasGauge.add(dead - lastDead);
-        lastActive = active;
-        lastStale = stale;
-        lastDead = dead;
+        try {
+            activeSchemasGauge.add(active - lastActive);
+            staleSchemasGauge.add(stale - lastStale);
+            deadSchemasGauge.add(dead - lastDead);
+        } catch (Exception e) {
+            log.debug("Failed to record OTel usage summary metrics", e);
+        } finally {
+            lastActive = active;
+            lastStale = stale;
+            lastDead = dead;
+        }
     }
 }

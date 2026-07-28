@@ -47,6 +47,17 @@ If you use different computers to contribute, please make sure the name is the s
 
 We may use this information to acknowledge your contributions!
 
+### Claiming an issue
+
+Before you start working on an issue, let us know so we don't end up with duplicate effort:
+
+1. **Comment on the issue** saying you'd like to work on it.
+2. **Wait for a maintainer to assign it to you.** We may have context on scope, dependencies, or ongoing work that affects the approach.
+3. **If someone is already assigned**, don't open a competing PR — ask in the issue whether they need help or have moved on.
+4. **Stale assignments:** if an assigned issue has no PR and no update for two weeks, comment asking for a status update. If there's no response within a few days, a maintainer can reassign it.
+
+Opening a PR on an issue that's assigned to someone else without checking first is likely to get your PR closed.
+
 ### Code reviews
 
 All submissions, including submissions by project members, need to be reviewed by at least one Apicurio committer before being merged.

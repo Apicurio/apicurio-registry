@@ -146,4 +146,49 @@ public class GroupCommandTest extends AbstractCLITest {
 
         // TODO: Test `--force` when we have a way to create artifacts via the CLI.
     }
+
+    @Test
+    public void testDefaultGroupHandling() throws JsonProcessingException {
+        // Test getting default group (returns stub, no API call)
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "default", "--output-type", "json");
+        var group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+        assertThat(group.getGroupId()).isEqualTo("default");
+
+        // Test getting default group as a table
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "default", "--output-type", "table");
+        assertThat(out.toString()).contains("N/A");
+
+        // Test getting empty string (resolves to default group)
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "", "--output-type", "json");
+        group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+        assertThat(group.getGroupId()).isEqualTo("default");
+
+        // Test create/update/delete default group fails with validation error and proper message
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "create", "default");
+        assertThat(err.toString()).contains("is reserved and cannot be created");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "create", "");
+        assertThat(err.toString()).contains("is reserved and cannot be created");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "update", "default");
+        assertThat(err.toString()).contains("is implicit and cannot be updated");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "update", "");
+        assertThat(err.toString()).contains("is implicit and cannot be updated");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "delete", "default");
+        assertThat(err.toString()).contains("is implicit and cannot be deleted");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "delete", "");
+        assertThat(err.toString()).contains("is implicit and cannot be deleted");
+    }
 }

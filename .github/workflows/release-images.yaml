@@ -100,13 +100,13 @@ jobs:
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24.18.0
 
@@ -169,6 +169,25 @@ jobs:
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
+
+      - name: Build and Push Multi-arch Console Plugin Images
+        run: |
+          cp registry/pom.xml registry/console-plugin/root-pom.xml
+          if ! grep -q 'root-pom.xml' registry/console-plugin/Dockerfile; then
+            sed -i '/^COPY backend\/pom.xml pom.xml/i COPY root-pom.xml /opt/pom.xml' registry/console-plugin/Dockerfile
+          fi
+          if ! grep -q 'checkstyle.skip' registry/console-plugin/Dockerfile; then
+            sed -i 's/mvn package -DskipTests -Dmaven.javadoc.skip/mvn package -DskipTests -Dmaven.javadoc.skip -Dcheckstyle.skip/' registry/console-plugin/Dockerfile
+          fi
+          cd registry/console-plugin
+          TAGS="-t quay.io/apicurio/apicurio-registry-console-plugin:$RELEASE_VERSION"
+          TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:$MINOR_TAG"
+          if [ "$IS_LATEST_RELEASE" = "true" ]; then
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:latest"
+          fi
+          docker buildx build --push -f ./Dockerfile \
+              $TAGS \
+              --platform linux/amd64,linux/arm64 .
 
       - name: Build and Push Multi-arch UI Images
         run: |

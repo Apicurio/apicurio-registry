@@ -297,6 +297,13 @@ public class ArtifactCommandTest extends AbstractCLITest {
         assertThat(artifacts.getArtifacts())
                 .as(withCliOutput("Should find artifacts in default group without --group flag"))
                 .isNotEmpty();
+
+        // Test displayGroupId renders 'default' in table output
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("artifact", "--output-type", "table");
+        assertThat(out.toString())
+                .as(withCliOutput("Table output should display 'default' for default group"))
+                .contains("default");
     }
 
     @Test

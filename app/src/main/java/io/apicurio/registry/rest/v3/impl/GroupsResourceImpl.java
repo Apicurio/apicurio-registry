@@ -13,6 +13,7 @@ import io.apicurio.registry.contracts.odcs.OdcsParseException;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionEngine;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionResult;
 import io.apicurio.registry.contracts.odcs.OdcsSchema;
+import io.apicurio.registry.contracts.odcs.OdcsSchemaLocations;
 import io.apicurio.registry.rest.v3.beans.OdcsContractResult;
 import io.apicurio.registry.rest.v3.beans.OdcsContractSummary;
 import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
@@ -49,6 +50,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceGraphDirection;
@@ -67,6 +69,7 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -127,6 +130,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     ArtifactIdGenerator idGenerator;
+
+    @Inject
+    RegistryStorageContentUtils contentUtils;
 
     @Inject
     RestConfig restConfig;
@@ -598,7 +604,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Read)
     public GroupMetaData getGroupById(String groupId) {
         GroupMetaDataDto group = storage.getGroupMetaData(groupId);
         return V3ApiUtil.groupDtoToGroup(group);
@@ -895,18 +901,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getArtifactVersionContent(String groupId, String artifactId, String versionExpression,
-            HandleReferencesType references) {
+            HandleReferencesType references, Boolean canonical) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         if (references == null) {
-            // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
             if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
                 references = HandleReferencesType.fromValue(configuredDefault.get());
             } else {
-                // No configuration - use existing default (no behavior change)
                 references = HandleReferencesType.PRESERVE;
             }
         }
@@ -935,7 +939,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .build()
         ).prepare();
 
-        // Throw 404 if the version actually has "no content" based on the content-type
         if (ContentTypes.isEmptyContentType(artifactCell.get().getContentType())) {
             throw new ContentNotFoundException(artifactCell.get().getContentId());
         }
@@ -944,8 +947,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
 
+        String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
+        String filename = artifactId + ext;
+
+        if (Boolean.TRUE.equals(canonical)) {
+            Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(artifactCell.get().getReferences(),
+                            storage::getContentByReference);
+            contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
+                    contentToReturn, resolvedReferences);
+        }
+
         var builder = Response.ok().entity(contentToReturn.getContent())
-                .type(contentToReturn.getContentType());
+                .type(contentToReturn.getContentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename));
 
         checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();
@@ -2424,8 +2439,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 continue;
             }
 
-            String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
-            if (parsed == null) {
+            String[] parsed = OdcsSchemaLocations.parse(schema.getLocation(), groupId);
+            if (!OdcsSchemaLocations.isValid(parsed)) {
                 combined.addWarning("Invalid schema location: " + schema.getLocation());
                 continue;
             }
@@ -2447,38 +2462,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
         return combined;
-    }
-
-    private String[] parseSchemaLocation(String location, String defaultGroupId) {
-        if (location == null || location.isBlank()) {
-            return null;
-        }
-        String withoutVersion = location.contains(":")
-                ? location.substring(0, location.indexOf(':'))
-                : location;
-        if (withoutVersion.isBlank()) {
-            return null;
-        }
-
-        String schemaGroupId;
-        String schemaArtifactId;
-        int slashIdx = withoutVersion.indexOf('/');
-        if (slashIdx >= 0) {
-            schemaGroupId = withoutVersion.substring(0, slashIdx);
-            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
-            if (schemaArtifactId.contains("/")) {
-                return null;
-            }
-        } else {
-            schemaGroupId = defaultGroupId;
-            schemaArtifactId = withoutVersion;
-        }
-
-        if (schemaGroupId == null || schemaGroupId.isBlank()
-                || schemaArtifactId.isBlank()) {
-            return null;
-        }
-        return new String[] { schemaGroupId, schemaArtifactId };
     }
 
     private OdcsContractResult toOdcsContractResult(String contractId, OdcsContract contract,

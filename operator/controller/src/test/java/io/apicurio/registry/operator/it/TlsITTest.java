@@ -30,7 +30,7 @@ import static org.awaitility.Awaitility.await;
 public class TlsITTest extends ITBase {
 
     @BeforeAll
-    public static void setup() {
+    public void setup() {
         List<HasMetadata> resources = Serialization
                 .unmarshal(AuthITTest.class.getResourceAsStream("/k8s/examples/tls/secrets.yaml"));
 

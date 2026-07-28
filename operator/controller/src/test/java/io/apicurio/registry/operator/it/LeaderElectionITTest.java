@@ -42,7 +42,7 @@ public class LeaderElectionITTest extends ITBase {
             return;
         }
 
-        var operatorDeploymentCell = k8sCell(client, ITBase::getOperatorDeployment);
+        var operatorDeploymentCell = k8sCell(client, this::getOperatorDeployment);
         Cell<EnvVar> originalEnabledEnvVar = cell();
 
         try {
@@ -116,7 +116,7 @@ public class LeaderElectionITTest extends ITBase {
             return;
         }
 
-        var operatorDeploymentCell = k8sCell(client, ITBase::getOperatorDeployment);
+        var operatorDeploymentCell = k8sCell(client, this::getOperatorDeployment);
         Cell<EnvVar> originalEnabledEnvVar = cell();
         Cell<EnvVar> originalLeaseNameEnvVar = cell();
 

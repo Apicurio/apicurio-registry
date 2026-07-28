@@ -14,8 +14,10 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.rest.v2.beans.UserInfo;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
 @ApplicationScoped
@@ -33,6 +35,9 @@ public class UsersResourceImpl implements UsersResource {
     SecurityIdentity securityIdentity;
 
     @Inject
+    Instance<JsonWebToken> jsonWebToken;
+
+    @Inject
     RoleBasedAccessController rbac;
 
     @Inject
@@ -46,9 +51,7 @@ public class UsersResourceImpl implements UsersResource {
     public UserInfo getCurrentUserInfo() {
         UserInfo info = new UserInfo();
         info.setUsername(securityIdentity.getPrincipal().getName());
-        info.setDisplayName(securityIdentity.getPrincipal().getName()); // TODO need a better implementation
-                                                                        // of this, maybe use claims
-                                                                        // first_name and last_name
+        info.setDisplayName(getDisplayName());
         if (authConfig.isRbacEnabled()) {
             info.setAdmin(rbac.isAdmin());
             info.setDeveloper(rbac.isDeveloper());
@@ -68,6 +71,27 @@ public class UsersResourceImpl implements UsersResource {
             info.setViewer(true);
         }
         return info;
+    }
+
+    /**
+     * Constructs a display name from the user's claims (first_name and last_name).
+     * Falls back to the username if claims are not available.
+     *
+     * @return the display name
+     */
+    String getDisplayName() {
+        if (jsonWebToken.isResolvable()) {
+            String firstName = jsonWebToken.get().getClaim("first_name");
+            String lastName = jsonWebToken.get().getClaim("last_name");
+            if (firstName != null && lastName != null) {
+                return firstName + " " + lastName;
+            } else if (firstName != null) {
+                return firstName;
+            } else if (lastName != null) {
+                return lastName;
+            }
+        }
+        return securityIdentity.getPrincipal().getName();
     }
 
 }

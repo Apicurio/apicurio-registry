@@ -4,7 +4,7 @@
     xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
     version="3.0">
 
-    <!-- HSTSFilter must run first so the HSTS header is set before any downstream filter can
+    <!-- Security-header filters must run first so their headers are set before any downstream filter can
          short-circuit the chain (RedirectFilter's sendRedirect, RegistryApplicationServletFilter's 404). -->
     <filter>
         <filter-name>HSTSFilter</filter-name>
@@ -13,6 +13,18 @@
     </filter>
     <filter-mapping>
         <filter-name>HSTSFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>FORWARD</dispatcher>
+    </filter-mapping>
+
+    <filter>
+        <filter-name>ContentTypeOptionsFilter</filter-name>
+        <filter-class>io.apicurio.registry.ui.servlets.ContentTypeOptionsFilter</filter-class>
+        <async-supported>true</async-supported>
+    </filter>
+    <filter-mapping>
+        <filter-name>ContentTypeOptionsFilter</filter-name>
         <url-pattern>/*</url-pattern>
         <dispatcher>REQUEST</dispatcher>
         <dispatcher>FORWARD</dispatcher>

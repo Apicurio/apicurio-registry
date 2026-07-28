@@ -58,6 +58,8 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
+    private static final BigInteger MAX_INT_VALUE = BigInteger.valueOf(Integer.MAX_VALUE);
+    private static final BigInteger MAX_LIMIT = BigInteger.valueOf(1000);
 
     @Inject
     @Current
@@ -137,8 +139,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifacts");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -187,8 +189,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifactsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -244,8 +246,8 @@ public class SearchResourceImpl implements SearchResource {
             }).forEach(filters::add);
         }
 
-        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit));
         otelMetrics.recordSearchRequest("groups");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -329,8 +331,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofStructure(structure));
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versions");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -384,8 +386,8 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versionsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -476,9 +478,19 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
-                offset.intValue(), limit.intValue(), false);
+                normalizeOffset(offset), normalizeLimit(limit), false);
         otelMetrics.recordSearchRequest("contracts");
         return V3ApiUtil.dtoToSearchResults(results);
+    }
+
+    // Clamp the offset to [0, Integer.MAX_VALUE] so it never reaches storage as an invalid SQL query (500). See #8611.
+    private static int normalizeOffset(BigInteger offset) {
+        return offset.max(BigInteger.ZERO).min(MAX_INT_VALUE).intValue();
+    }
+
+    // Negative limit -> 1 (limit=0 keeps its empty-page semantics); cap at MAX_LIMIT to bound result size. See #8611.
+    private static int normalizeLimit(BigInteger limit) {
+        return limit.signum() < 0 ? 1 : limit.min(MAX_LIMIT).intValue();
     }
 
     /**

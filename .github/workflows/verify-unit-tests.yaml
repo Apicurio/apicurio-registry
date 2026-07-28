@@ -59,7 +59,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Full history only needed when Scalpel is enabled (git diff against base branch)
-          fetch-depth: ${{ inputs.scalpel-enabled == 'true' && 0 || 1 }}
+          fetch-depth: ${{ inputs.scalpel-enabled == 'true' && '0' || 1 }}
+
+      - name: Fetch base branch for Scalpel
+        if: inputs.scalpel-enabled == 'true' && env.GITHUB_BASE_REF != ''
+        continue-on-error: true
+        run: git fetch origin "$GITHUB_BASE_REF" --no-tags
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5

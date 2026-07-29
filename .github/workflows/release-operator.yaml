@@ -51,7 +51,7 @@ jobs:
             ALL_BRANCHES=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ')
             RESOLVED=$(echo "$ALL_BRANCHES" | grep -E '^[0-9]+\.[0-9]+\.x$' | head -1)
             if [ -z "$RESOLVED" ]; then
-              RESOLVED=$(echo "$ALL_BRANCHES" | head -1)
+              RESOLVED="main"
             fi
             if [ -n "$RESOLVED" ]; then
               echo "Resolved branch SHA $BRANCH to $RESOLVED (candidates: $(echo $ALL_BRANCHES | tr '\n' ', '))"
@@ -135,7 +135,11 @@ jobs:
       - name: Build operator catalog
         working-directory: registry/operator
         run: |
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest catalog
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog
 
       - name: Generate install file for tests
         working-directory: registry/operator

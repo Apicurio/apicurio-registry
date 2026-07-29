@@ -2,7 +2,7 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useMatch, useParams } from "react-router";
 import {
     ContentTabContent,
     DocumentationTabContent,
@@ -81,14 +81,16 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const draftsService: DraftsService = useDraftsService();
     const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
-    const location = useLocation();
+    const contentMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/content");
+    const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
+    const documentationMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/documentation");
 
     let activeTabKey: string = "overview";
-    if (location.pathname.indexOf("/content") !== -1) {
+    if (contentMatch) {
         activeTabKey = "content";
-    } else if (location.pathname.indexOf("/references") !== -1) {
+    } else if (referencesMatch) {
         activeTabKey = "references";
-    } else if (location.pathname.indexOf("/documentation") !== -1) {
+    } else if (documentationMatch) {
         activeTabKey = "documentation";
     }
 

@@ -1,0 +1,39 @@
+name: 'Setup Maven Cache'
+description: 'Compute stable pom.xml hash (excluding target/) and restore Maven dependency cache'
+
+outputs:
+  cache-hit:
+    description: 'Whether an exact cache match was found'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Compute Maven cache key
+      id: maven-hash
+      shell: bash
+      run: |
+        # Hash only SOURCE pom.xml files, excluding target/ directories.
+        # setup-java's built-in cache: 'maven' uses hashFiles('**/pom.xml') which
+        # includes Maven-embedded pom.xml copies inside downloaded build artifacts,
+        # causing cache key divergence and fragmentation between Build and test jobs.
+        # See Discussion #8364 post-mortem (Jul 22 2026).
+        files=$(find . -name 'pom.xml' -not -path '*/target/*' | sort)
+        if [ -z "$files" ]; then
+          echo "::error::No source pom.xml files found — cannot compute Maven cache key"
+          exit 1
+        fi
+        hash=$(echo "$files" | xargs cat | sha256sum | cut -d' ' -f1)
+        if [ -z "$hash" ]; then
+          echo "::error::Failed to compute Maven cache hash"
+          exit 1
+        fi
+        echo "hash=$hash" >> "$GITHUB_OUTPUT"
+
+    - name: Restore Maven cache
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ runner.os }}-${{ steps.maven-hash.outputs.hash }}
+        restore-keys: maven-${{ runner.os }}-

@@ -23,11 +23,11 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.NoOpContentValidator;
 
 /**
- * Immutable configuration holding component suppliers and metadata for a specific
- * artifact type provider.
+ * Immutable configuration describing how a particular artifact type should be handled.
  * <p>
- * Replaces per-type subclassing by encapsulating supplier functions for schema validators,
- * canonicalizers, dereferencers, reference finders, and metadata extractors.
+ * The configuration is built from lazily supplied content utilities such as accepters,
+ * validators, canonicalizers, dereferencers, and reference finders.
+ * </p>
  */
 public final class ProviderConfig {
 
@@ -57,50 +57,108 @@ public final class ProviderConfig {
         this.structuredContentExtractor = builder.structuredContentExtractor;
     }
 
+    /**
+     * Returns the content types supported by this provider.
+     *
+     * @return the supported content types
+     */
     public Set<String> getContentTypes() {
         return contentTypes;
     }
 
+    /**
+     * Indicates whether this provider supports reference resolution with context.
+     *
+     * @return {@code true} if contextual references are supported; otherwise {@code false}
+     */
     public boolean supportsReferencesWithContext() {
         return supportsReferencesWithContext;
     }
 
+    /**
+     * Returns the configured content accepter.
+     *
+     * @return the accepter supplier
+     */
     public Supplier<ContentAccepter> getAccepter() {
         return accepter;
     }
 
+    /**
+     * Returns the configured compatibility checker.
+     *
+     * @return the compatibility checker supplier
+     */
     public Supplier<CompatibilityChecker> getCompatibilityChecker() {
         return compatibilityChecker;
     }
 
+    /**
+     * Returns the configured content canonicalizer.
+     *
+     * @return the canonicalizer supplier
+     */
     public Supplier<ContentCanonicalizer> getCanonicalizer() {
         return canonicalizer;
     }
 
+    /**
+     * Returns the configured content validator.
+     *
+     * @return the validator supplier
+     */
     public Supplier<ContentValidator> getValidator() {
         return validator;
     }
 
+    /**
+     * Returns the configured content extractor.
+     *
+     * @return the extractor supplier
+     */
     public Supplier<ContentExtractor> getExtractor() {
         return extractor;
     }
 
+    /**
+     * Returns the configured content dereferencer.
+     *
+     * @return the dereferencer supplier
+     */
     public Supplier<ContentDereferencer> getDereferencer() {
         return dereferencer;
     }
 
+    /**
+     * Returns the configured reference finder.
+     *
+     * @return the reference finder supplier
+     */
     public Supplier<ReferenceFinder> getReferenceFinder() {
         return referenceFinder;
     }
 
+    /**
+     * Returns the configured reference artifact identifier extractor.
+     *
+     * @return the reference artifact identifier extractor supplier
+     */
     public Supplier<ReferenceArtifactIdentifierExtractor> getReferenceArtifactIdentifierExtractor() {
         return referenceArtifactIdentifierExtractor;
     }
 
+    /**
+     * Returns the configured structured content extractor.
+     *
+     * @return the structured content extractor supplier
+     */
     public Supplier<StructuredContentExtractor> getStructuredContentExtractor() {
         return structuredContentExtractor;
     }
 
+    /**
+     * Builder for {@link ProviderConfig} instances.
+     */
     public static class Builder {
         private Set<String> contentTypes = Set.of();
         private boolean supportsReferencesWithContext = false;
@@ -114,61 +172,132 @@ public final class ProviderConfig {
         private Supplier<ReferenceArtifactIdentifierExtractor> referenceArtifactIdentifierExtractor = () -> DefaultReferenceArtifactIdentifierExtractor.INSTANCE;
         private Supplier<StructuredContentExtractor> structuredContentExtractor = () -> NoopStructuredContentExtractor.INSTANCE;
 
+        /**
+         * Sets the supported content types.
+         *
+         * @param contentTypes the supported content types
+         * @return this builder
+         */
         public Builder contentTypes(Set<String> contentTypes) {
             this.contentTypes = (contentTypes != null) ? Set.copyOf(contentTypes) : Set.of();
             return this;
         }
 
+        /**
+         * Sets whether the provider supports references with context.
+         *
+         * @param supports whether contextual references are supported
+         * @return this builder
+         */
         public Builder supportsReferencesWithContext(boolean supports) {
             this.supportsReferencesWithContext = supports;
             return this;
         }
 
+        /**
+         * Sets the content accepter supplier.
+         *
+         * @param accepter the accepter supplier
+         * @return this builder
+         */
         public Builder accepter(Supplier<ContentAccepter> accepter) {
             this.accepter = accepter;
             return this;
         }
 
+        /**
+         * Sets the compatibility checker supplier.
+         *
+         * @param checker the compatibility checker supplier
+         * @return this builder
+         */
         public Builder compatibilityChecker(Supplier<CompatibilityChecker> checker) {
             this.compatibilityChecker = checker;
             return this;
         }
 
+        /**
+         * Sets the content canonicalizer supplier.
+         *
+         * @param canonicalizer the canonicalizer supplier
+         * @return this builder
+         */
         public Builder canonicalizer(Supplier<ContentCanonicalizer> canonicalizer) {
             this.canonicalizer = canonicalizer;
             return this;
         }
 
+        /**
+         * Sets the content validator supplier.
+         *
+         * @param validator the validator supplier
+         * @return this builder
+         */
         public Builder validator(Supplier<ContentValidator> validator) {
             this.validator = validator;
             return this;
         }
 
+        /**
+         * Sets the content extractor supplier.
+         *
+         * @param extractor the extractor supplier
+         * @return this builder
+         */
         public Builder extractor(Supplier<ContentExtractor> extractor) {
             this.extractor = extractor;
             return this;
         }
 
+        /**
+         * Sets the content dereferencer supplier.
+         *
+         * @param dereferencer the dereferencer supplier
+         * @return this builder
+         */
         public Builder dereferencer(Supplier<ContentDereferencer> dereferencer) {
             this.dereferencer = dereferencer;
             return this;
         }
 
+        /**
+         * Sets the reference finder supplier.
+         *
+         * @param finder the reference finder supplier
+         * @return this builder
+         */
         public Builder referenceFinder(Supplier<ReferenceFinder> finder) {
             this.referenceFinder = finder;
             return this;
         }
 
+        /**
+         * Sets the reference artifact identifier extractor supplier.
+         *
+         * @param extractor the reference artifact identifier extractor supplier
+         * @return this builder
+         */
         public Builder referenceArtifactIdentifierExtractor(Supplier<ReferenceArtifactIdentifierExtractor> extractor) {
             this.referenceArtifactIdentifierExtractor = extractor;
             return this;
         }
 
+        /**
+         * Sets the structured content extractor supplier.
+         *
+         * @param extractor the structured content extractor supplier
+         * @return this builder
+         */
         public Builder structuredContentExtractor(Supplier<StructuredContentExtractor> extractor) {
             this.structuredContentExtractor = extractor;
             return this;
         }
 
+        /**
+         * Builds the immutable provider configuration.
+         *
+         * @return a new provider configuration
+         */
         public ProviderConfig build() {
             return new ProviderConfig(this);
         }

@@ -112,10 +112,11 @@ import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
 import io.apicurio.registry.xsd.rules.validity.XsdContentValidator;
 
 /**
- * Central configuration registry mapping built-in artifact types (e.g. AVRO, JSON, PROTOBUF)
- * to their respective {@link ProviderConfig} definitions.
+ * Registry of built-in {@link ArtifactTypeUtilProvider} implementations used by the schema-util module.
  * <p>
- * Preserves the deterministic order of built-in providers using an insertion-ordered registry.
+ * Each entry maps a standard {@link ArtifactType} to the content handling utilities that know how to
+ * accept, validate, canonicalize, extract, dereference, and resolve references for that artifact type.
+ * </p>
  */
 public class StandardArtifactTypeProviderRegistry {
 
@@ -302,6 +303,11 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
     }
 
+    /**
+     * Creates the standard set of artifact type utility providers.
+     *
+     * @return the built-in providers in registration order
+     */
     public static List<ArtifactTypeUtilProvider> createStandardProviders() {
         List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
         PROVIDERS.forEach((type, config) ->

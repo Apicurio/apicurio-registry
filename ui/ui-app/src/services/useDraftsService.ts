@@ -51,6 +51,7 @@ const toDraft = (vmd: VersionMetaData | SearchedVersion | undefined): Draft => {
         modifiedOn: vmd!.modifiedOn as Date | undefined,
         labels: labelsToAny(vmd?.labels),
         contentId: vmd?.contentId as number | undefined,
+        globalId: vmd?.globalId as number | undefined,
         isDraft: vmd!.state === "DRAFT"
     };
     return draft;
@@ -111,7 +112,8 @@ async function createDraft(config: ConfigService, auth: AuthService, data: Creat
             },
             content: {
                 content: data.content,
-                contentType: data.contentType
+                contentType: data.contentType,
+                references: data.references
             }
         }
     };
@@ -291,7 +293,8 @@ function updateDraftContent(config: ConfigService, auth: AuthService, groupId: s
 
     const versionContent: VersionContent = {
         content: data.content,
-        contentType: data.contentType
+        contentType: data.contentType,
+        references: data.references
     };
     return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions.byVersionExpression(version).content.put(versionContent);
 }

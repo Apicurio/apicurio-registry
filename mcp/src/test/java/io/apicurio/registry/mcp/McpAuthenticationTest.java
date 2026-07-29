@@ -89,12 +89,27 @@ public class McpAuthenticationTest {
         
         // Create first version to set initial schema
         registryService.createVersion(testGroupId, testArtifactId, "1.0.0", "application/json", initialSchema, "Test Version", "Initial version", null, false);
+
+        // Add a compatibility rule to the artifact to enforce BACKWARD compatibility
+        io.apicurio.registry.rest.client.models.CreateRule createRule = new io.apicurio.registry.rest.client.models.CreateRule();
+        createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        registryService.client.groups().byGroupId(testGroupId).artifacts().byArtifactId(testArtifactId).rules().post(createRule);
         
-        // Test compatibility
+        // Test compatibility (Happy Path)
         String compatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}}}";
         String result = registryService.testSchemaCompatibility(testGroupId, testArtifactId, compatibleSchema, "application/json");
         
-        assertNotNull(result, "Result should not be null");
-        log.info("Schema compatibility result: {}", result);
+        org.junit.jupiter.api.Assertions.assertTrue(result.contains("compatible"), "Result should indicate schema is compatible");
+        log.info("Schema compatibility happy path result: {}", result);
+
+        // Test compatibility (Failure Path)
+        // Flip `id` from string to integer to break BACKWARD compatibility
+        String incompatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"integer\"}}}";
+        String negativeResult = registryService.testSchemaCompatibility(testGroupId, testArtifactId, incompatibleSchema, "application/json");
+
+        org.junit.jupiter.api.Assertions.assertTrue(negativeResult.contains("Schema compatibility check failed"), "Result should indicate schema is incompatible");
+        org.junit.jupiter.api.Assertions.assertTrue(negativeResult.contains("id"), "Result should contain the cause description mentioning the 'id' field");
+        log.info("Schema compatibility failure path result: {}", negativeResult);
     }
 }

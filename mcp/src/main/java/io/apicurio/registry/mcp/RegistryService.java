@@ -54,7 +54,7 @@ public class RegistryService {
     @Inject
     Utils utils;
 
-    private RegistryClient client;
+    RegistryClient client;
 
     @PostConstruct
     void init() {

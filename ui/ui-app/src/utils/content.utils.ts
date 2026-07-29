@@ -159,6 +159,10 @@ export const draftContentToLanguage = (content: DraftContent): string => {
         return "xml";
     } else if (content.contentType === ContentTypes.APPLICATION_WSDL) {
         return "xml";
+    } else if (content.contentType === ContentTypes.APPLICATION_GRAPHQL) {
+        return "graphql";
+    } else if (content.contentType === ContentTypes.APPLICATION_PROTOBUF) {
+        return "protobuf";
     }
     return "json";
 };

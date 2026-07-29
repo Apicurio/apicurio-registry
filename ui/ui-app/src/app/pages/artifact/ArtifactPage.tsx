@@ -1,7 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useMatch, useParams } from "react-router";
 import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     ChangeOwnerModal,
@@ -70,20 +71,23 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
     const { groupId, artifactId }= useParams();
-    const location = useLocation();
+    const rulesMatch = useMatch("/explore/:groupId/:artifactId/rules");
+    const branchesMatch = useMatch("/explore/:groupId/:artifactId/branches");
+    const contractMatch = useMatch("/explore/:groupId/:artifactId/contract");
+    const usageMatch = useMatch("/explore/:groupId/:artifactId/usage");
 
     let activeTabKey: string = "overview";
-    if (location.pathname.indexOf("/rules") !== -1) {
+    if (rulesMatch) {
         activeTabKey = "rules";
-    } else if (location.pathname.indexOf("/branches") !== -1) {
+    } else if (branchesMatch) {
         activeTabKey = "branches";
-    } else if (location.pathname.indexOf("/contract") !== -1) {
+    } else if (contractMatch) {
         activeTabKey = "contract";
-    } else if (location.pathname.indexOf("/usage") !== -1) {
+    } else if (usageMatch) {
         activeTabKey = "usage";
     }
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
         if (gid == "default") {
             gid = null;
@@ -91,15 +95,15 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         logger.info("Loading data for artifact: ", artifactId);
         return [
             groups.getArtifactMetaData(gid, artifactId as string)
-                .then(setArtifact)
-                .catch(error => {
+                .then(guard.wrap(setArtifact))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getArtifactRules(gid, artifactId as string)
-                .then(setRules)
-                .catch(error => {
+                .then(guard.wrap(setRules))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
         ];
     };
 
@@ -360,7 +364,9 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        setLoaders(createLoaders());
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [groupId, artifactId]);
 
     const tabs: any[] = [

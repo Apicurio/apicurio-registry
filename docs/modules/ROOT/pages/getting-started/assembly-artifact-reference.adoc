@@ -212,7 +212,7 @@ You can update group metadata as follows:
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 * You can update the `state` property only by using the {registry} REST API.
 
-For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-api}.
+For more details, see the `/groups/\{groupId\}` endpoint in the {registry} REST API documentation.
 
 [role="_additional-resources"]
 .Additional resources
@@ -294,7 +294,7 @@ You can update artifact metadata as follows:
 
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 
-For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoint in the {registry-rest-api}.
+For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoint in the {registry} REST API documentation.
 
 [role="_additional-resources"]
 .Additional resources
@@ -383,7 +383,7 @@ You can update artifact version metadata as follows:
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 * You can update the `state` property only by using the {registry} REST API.
 
-For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry-rest-api}.
+For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry} REST API documentation.
 
 [role="_additional-resources"]
 .Additional resources

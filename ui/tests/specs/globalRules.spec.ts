@@ -73,3 +73,31 @@ test("Global Rules - Enable Integrity Rule", async ({ page }) => {
     // Disable the rule (back to original state)
     await page.getByTestId("rules-integrity-disable").click();
 });
+
+test("Global Rules - Enable Validity Rule failure keeps the page intact", async ({ page }) => {
+    // Force the rule-creation request to fail, simulating a backend/network error.
+    await page.route("**/apis/registry/v3/admin/rules", async route => {
+        if (route.request().method() === "POST") {
+            await route.fulfill({
+                status: 500,
+                contentType: "application/json",
+                body: JSON.stringify({ message: "Simulated failure" })
+            });
+        } else {
+            await route.continue();
+        }
+    });
+
+    await expect(page.locator("#validity-rule-name")).toContainText("Validity rule");
+
+    // Attempt to enable the rule; the mocked request fails.
+    await page.getByTestId("rules-validity-enable").click();
+
+    // The page must remain intact - no full-page error, the other rules are still there.
+    await expect(page.locator("div.rule")).toHaveCount(3);
+    await expect(page.getByTestId("rule-action-error")).toBeVisible();
+
+    // The rule must NOT show as enabled - the failed request must not have been applied optimistically.
+    await expect(page.getByTestId("rules-validity-enable")).toBeVisible();
+    await expect(page.getByTestId("rules-validity-disable")).toHaveCount(0);
+});

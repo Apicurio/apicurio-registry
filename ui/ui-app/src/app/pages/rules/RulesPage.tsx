@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./RulesPage.css";
-import { PageSection, PageSectionVariants, Content } from "@patternfly/react-core";
+import { Alert, AlertActionCloseButton, PageSection, PageSectionVariants, Content } from "@patternfly/react-core";
 import { RootPageHeader, RuleList, RuleListType } from "@app/components";
 import { PageDataLoader, PageError, PageErrorHandler, PageProperties, RULES_PAGE_IDX, toPageError } from "@app/pages";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
@@ -15,6 +15,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [rules, setRules] = useState<Rule[]>([]);
+    const [ruleActionError, setRuleActionError] = useState<string>();
 
     const admin: AdminService = useAdminService();
     const logger: LoggerService = useLoggerService();
@@ -27,36 +28,42 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
 
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[RulesPage] Enabling global rule:", ruleType);
+        setRuleActionError(undefined);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        admin.createRule(ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error enabling "${ ruleType }" global rule.`));
+        admin.createRule(ruleType, config).then(() => {
+            setRules([...rules, { config, ruleType: ruleType as RuleType }]);
+        }).catch(error => {
+            setRuleActionError(error?.message || `Error enabling "${ ruleType }" global rule. Please try again.`);
         });
-        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[RulesPage] Disabling global rule:", ruleType);
-        admin.deleteRule(ruleType).catch(error => {
-            setPageError(toPageError(error, `Error disabling "${ ruleType }" global rule.`));
+        setRuleActionError(undefined);
+        admin.deleteRule(ruleType).then(() => {
+            setRules(rules.filter(r => r.ruleType !== ruleType));
+        }).catch(error => {
+            setRuleActionError(error?.message || `Error disabling "${ ruleType }" global rule. Please try again.`);
         });
-        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[RulesPage] Configuring global rule:", ruleType, config);
-        admin.updateRule(ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error configuring "${ ruleType }" global rule.`));
+        setRuleActionError(undefined);
+        admin.updateRule(ruleType, config).then(() => {
+            setRules(rules.map(r => {
+                if (r.ruleType === ruleType) {
+                    return { config, ruleType: r.ruleType };
+                } else {
+                    return r;
+                }
+            }));
+        }).catch(error => {
+            setRuleActionError(error?.message || `Error configuring "${ ruleType }" global rule. Please try again.`);
         });
-        setRules(rules.map(r => {
-            if (r.ruleType === ruleType) {
-                return { config, ruleType: r.ruleType };
-            } else {
-                return r;
-            }
-        }));
     };
 
     useEffect(() => {
@@ -76,6 +83,15 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
                 </PageSection>
                 <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                     <React.Fragment>
+                        {ruleActionError && (
+                            <Alert
+                                variant="danger"
+                                title={ruleActionError}
+                                actionClose={<AlertActionCloseButton onClose={() => setRuleActionError(undefined)} />}
+                                isInline
+                                style={{ marginBottom: "15px" }}
+                                data-testid="rule-action-error" />
+                        )}
                         <RuleList
                             type={RuleListType.Global}
                             rules={rules}

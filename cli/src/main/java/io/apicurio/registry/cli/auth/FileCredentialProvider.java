@@ -50,8 +50,16 @@ class FileCredentialProvider implements CredentialProvider {
             return encryption().decrypt(stored);
         }
         // Legacy plain text entry — migrate it to encrypted storage before returning it.
-        credentials.put(account, encryption().encrypt(stored));
-        writeCredentials(credentials);
+        // Migration is best-effort: if the config directory can't be written to (read-only
+        // filesystem, full disk, permission regression), the caller still gets a valid
+        // credential and migration is retried on the next retrieve() call.
+        try {
+            credentials.put(account, encryption().encrypt(stored));
+            writeCredentials(credentials);
+        } catch (CredentialStoreException ex) {
+            log.warnf("Could not migrate legacy plain text credential for '%s' to encrypted"
+                    + " storage (%s). Will retry on next use.", account, ex.getMessage());
+        }
         return stored;
     }
 
@@ -129,7 +137,7 @@ class FileCredentialProvider implements CredentialProvider {
         return config.getAcrCurrentHomePath().resolve(CREDENTIALS_FILE);
     }
 
-    private CredentialEncryption encryption() {
+    private synchronized CredentialEncryption encryption() {
         if (encryption == null) {
             encryption = new CredentialEncryption(config.getAcrCurrentHomePath().resolve(KEY_FILE));
         }

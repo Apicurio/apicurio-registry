@@ -21,6 +21,12 @@ import javax.crypto.spec.SecretKeySpec;
  * Encrypts and decrypts secrets stored by {@link FileCredentialProvider} using an
  * AES-256-GCM key kept in a separate, permission-restricted file next to credentials.json.
  * This keeps a leaked or backed-up credentials.json from exposing secrets on its own.
+ *
+ * <p>Threat model: since {@code credentials.key} is stored unencrypted in the same directory
+ * as {@code credentials.json}, this only defends against a single-file leak or backup of
+ * credentials.json — it does not protect against compromise of the whole config directory,
+ * which exposes both the key and the ciphertext. This is not a keychain-equivalent; it exists
+ * only for the fallback path used when no OS keychain is available.
  */
 class CredentialEncryption {
 
@@ -89,8 +95,8 @@ class CredentialEncryption {
         generator.init(KEY_SIZE_BITS);
         final var temp = Files.createTempFile(keyPath.getParent(), "credentials-key", ".tmp");
         try {
-            Files.write(temp, generator.generateKey().getEncoded());
             restrictFilePermissions(temp);
+            Files.write(temp, generator.generateKey().getEncoded());
             Files.move(temp, keyPath, StandardCopyOption.ATOMIC_MOVE);
         } catch (FileAlreadyExistsException ex) {
             // Another process created the key file concurrently — use it instead.

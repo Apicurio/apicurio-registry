@@ -128,7 +128,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             config = "BACKWARD";
         }
         groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
-            setRules([...rules, { config, ruleType: ruleType as RuleType }]);
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
             setRuleActionError(error?.message || `Error enabling "${ ruleType }" artifact rule. Please try again.`);
         });
@@ -138,7 +138,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         logger.debug("[ArtifactPage] Disabling rule:", ruleType);
         setRuleActionError(undefined);
         groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).then(() => {
-            setRules(rules.filter(r => r.ruleType !== ruleType));
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
             setRuleActionError(error?.message || `Error disabling "${ ruleType }" artifact rule. Please try again.`);
         });
@@ -148,7 +148,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         logger.debug("[ArtifactPage] Configuring rule:", ruleType, config);
         setRuleActionError(undefined);
         groups.updateArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
-            setRules(rules.map(r => {
+            setRules(prev => prev.map(r => {
                 if (r.ruleType === ruleType) {
                     return { config, ruleType: r.ruleType };
                 } else {

@@ -163,7 +163,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
             config = "BACKWARD";
         }
         groups.createGroupRule(groupId as string, ruleType, config).then(() => {
-            setRules([...rules, { config, ruleType: ruleType as RuleType }]);
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
             setRuleActionError(error?.message || `Error enabling "${ ruleType }" group rule. Please try again.`);
         });
@@ -173,7 +173,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         logger.debug("[GroupPage] Disabling rule:", ruleType);
         setRuleActionError(undefined);
         groups.deleteGroupRule(groupId as string, ruleType).then(() => {
-            setRules(rules.filter(r => r.ruleType !== ruleType));
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
             setRuleActionError(error?.message || `Error disabling "${ ruleType }" group rule. Please try again.`);
         });
@@ -183,7 +183,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         logger.debug("[GroupPage] Configuring rule:", ruleType, config);
         setRuleActionError(undefined);
         groups.updateGroupRule(groupId as string, ruleType, config).then(() => {
-            setRules(rules.map(r => {
+            setRules(prev => prev.map(r => {
                 if (r.ruleType === ruleType) {
                     return { config, ruleType: r.ruleType };
                 } else {

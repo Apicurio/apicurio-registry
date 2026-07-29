@@ -34,7 +34,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
             config = "BACKWARD";
         }
         admin.createRule(ruleType, config).then(() => {
-            setRules([...rules, { config, ruleType: ruleType as RuleType }]);
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
             setRuleActionError(error?.message || `Error enabling "${ ruleType }" global rule. Please try again.`);
         });
@@ -44,7 +44,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
         logger.debug("[RulesPage] Disabling global rule:", ruleType);
         setRuleActionError(undefined);
         admin.deleteRule(ruleType).then(() => {
-            setRules(rules.filter(r => r.ruleType !== ruleType));
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
             setRuleActionError(error?.message || `Error disabling "${ ruleType }" global rule. Please try again.`);
         });
@@ -54,7 +54,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
         logger.debug("[RulesPage] Configuring global rule:", ruleType, config);
         setRuleActionError(undefined);
         admin.updateRule(ruleType, config).then(() => {
-            setRules(rules.map(r => {
+            setRules(prev => prev.map(r => {
                 if (r.ruleType === ruleType) {
                     return { config, ruleType: r.ruleType };
                 } else {

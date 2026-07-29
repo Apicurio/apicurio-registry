@@ -121,6 +121,14 @@ jobs:
         with:
           node-version: 24.18.0
 
+      - name: Build Console Plugin frontend
+        working-directory: registry/console-plugin
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
+          mkdir -p backend/src/main/resources/META-INF/resources
+          cp -r dist/* backend/src/main/resources/META-INF/resources/
+
       - name: Build Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
@@ -182,23 +190,16 @@ jobs:
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
       - name: Build and Push Multi-arch Console Plugin Images
+        working-directory: registry/console-plugin
         run: |
-          cp registry/pom.xml registry/console-plugin/root-pom.xml
-          if ! grep -q 'root-pom.xml' registry/console-plugin/Dockerfile; then
-            sed -i '/^COPY backend\/pom.xml pom.xml/i COPY root-pom.xml /opt/pom.xml' registry/console-plugin/Dockerfile
-          fi
-          if ! grep -q 'checkstyle.skip' registry/console-plugin/Dockerfile; then
-            sed -i 's/mvn package -DskipTests -Dmaven.javadoc.skip/mvn package -DskipTests -Dmaven.javadoc.skip -Dcheckstyle.skip/' registry/console-plugin/Dockerfile
-          fi
-          cd registry/console-plugin
           TAGS="-t quay.io/apicurio/apicurio-registry-console-plugin:$RELEASE_VERSION"
           TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:$MINOR_TAG"
           if [ "$IS_LATEST_RELEASE" = "true" ]; then
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:latest"
           fi
-          docker buildx build --push -f ./Dockerfile \
+          docker buildx build --push -f ./Dockerfile.jvm \
               $TAGS \
-              --platform linux/amd64,linux/arm64 .
+              --platform linux/amd64,linux/arm64 ./backend
 
       - name: Build and Push Multi-arch UI Images
         run: |

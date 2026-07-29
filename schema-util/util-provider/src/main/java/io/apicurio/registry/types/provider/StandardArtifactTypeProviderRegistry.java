@@ -10,6 +10,7 @@ import io.apicurio.registry.asyncapi.content.extract.AsyncApiStructuredContentEx
 import io.apicurio.registry.asyncapi.content.refs.AsyncApiReferenceFinder;
 import io.apicurio.registry.asyncapi.rules.validity.AsyncApiContentValidator;
 import io.apicurio.registry.avro.content.AvroContentAccepter;
+import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
 import io.apicurio.registry.avro.content.dereference.AvroDereferencer;
 import io.apicurio.registry.avro.content.extract.AvroContentExtractor;
 import io.apicurio.registry.avro.content.extract.AvroStructuredContentExtractor;
@@ -142,6 +143,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(AvroContentAccepter::new)
                 .compatibilityChecker(AvroCompatibilityChecker::new)
+                .canonicalizer(EnhancedAvroContentCanonicalizer::new)
                 .validator(AvroContentValidator::new)
                 .extractor(AvroContentExtractor::new)
                 .dereferencer(AvroDereferencer::new)

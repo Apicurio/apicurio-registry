@@ -45,12 +45,13 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
           # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
           if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
-            # Prefer non-main branches to avoid resolving maintenance releases to main
-            # (the SHA may exist on both after post-release sync)
+            # Prefer maintenance branches (X.Y.x) over main to avoid resolving
+            # maintenance releases to main (the SHA may exist on both after post-release sync).
+            # Feature branches are ignored — only main and X.Y.x patterns are considered.
             ALL_BRANCHES=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ')
-            RESOLVED=$(echo "$ALL_BRANCHES" | grep -v '^main$' | head -1)
+            RESOLVED=$(echo "$ALL_BRANCHES" | grep -E '^[0-9]+\.[0-9]+\.x$' | head -1)
             if [ -z "$RESOLVED" ]; then
-              RESOLVED=$(echo "$ALL_BRANCHES" | head -1)
+              RESOLVED="main"
             fi
             if [ -n "$RESOLVED" ]; then
               echo "Resolved branch SHA $BRANCH to $RESOLVED (candidates: $(echo $ALL_BRANCHES | tr '\n' ', '))"
@@ -61,10 +62,21 @@ jobs:
             fi
           fi
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       - name: Verify Project Version
         working-directory: registry
         run: |
-          PROJECT_VERSION="$(mvn -s ${{ github.workspace }}/registry/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)"
+          PROJECT_VERSION="$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)"
           if [[ "$PROJECT_VERSION" != "$RELEASE_VERSION" ]]
           then
               echo "ERROR: Project version $PROJECT_VERSION does not match released version $RELEASE_VERSION"
@@ -123,7 +135,11 @@ jobs:
       - name: Build operator catalog
         working-directory: registry/operator
         run: |
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest catalog
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog
 
       - name: Generate install file for tests
         working-directory: registry/operator

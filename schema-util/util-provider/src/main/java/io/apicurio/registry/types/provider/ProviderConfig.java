@@ -20,6 +20,7 @@ import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
+import io.apicurio.registry.rules.validity.NoOpContentValidator;
 
 /**
  * Immutable configuration holding component suppliers and metadata for a specific
@@ -106,7 +107,7 @@ public final class ProviderConfig {
         private Supplier<ContentAccepter> accepter = () -> NoOpContentAccepter.INSTANCE;
         private Supplier<CompatibilityChecker> compatibilityChecker = () -> NoopCompatibilityChecker.INSTANCE;
         private Supplier<ContentCanonicalizer> canonicalizer = () -> NoOpContentCanonicalizer.INSTANCE;
-        private Supplier<ContentValidator> validator;
+        private Supplier<ContentValidator> validator = () -> NoOpContentValidator.INSTANCE;
         private Supplier<ContentExtractor> extractor = () -> NoopContentExtractor.INSTANCE;
         private Supplier<ContentDereferencer> dereferencer = () -> NoopContentDereferencer.INSTANCE;
         private Supplier<ReferenceFinder> referenceFinder = () -> NoOpReferenceFinder.INSTANCE;

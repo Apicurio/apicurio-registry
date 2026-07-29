@@ -15,9 +15,11 @@ import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSortBy;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.SearchedGroup;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.SystemInfo;
 import io.apicurio.registry.rest.client.models.UpdateConfigurationProperty;
@@ -368,6 +370,41 @@ public class RegistryService {
         v.setContent(c);
 
         return client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v);
+    }
+
+    public String testSchemaCompatibility(
+            String groupId,
+            String artifactId,
+            String versionContent,
+            String versionContentType
+    ) {
+        var v = new CreateVersion();
+        var c = new VersionContent();
+        c.setContentType(versionContentType);
+        c.setContent(versionContent);
+        v.setContent(c);
+
+        try {
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v, r -> {
+                r.queryParameters.dryRun = true;
+            });
+            return "Schema is compatible.";
+        } catch (RuleViolationProblemDetails e) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Schema compatibility check failed: ").append(e.getDetail()).append("\n");
+            if (e.getCauses() != null) {
+                for (var cause : e.getCauses()) {
+                    sb.append("- ").append(cause.getDescription());
+                    if (cause.getContext() != null) {
+                        sb.append(" at ").append(cause.getContext());
+                    }
+                    sb.append("\n");
+                }
+            }
+            return sb.toString();
+        } catch (ApiException e) {
+            throw new ToolCallException("Failed to test schema compatibility: " + e.getMessage(), e);
+        }
     }
 
     public void updateVersionState(

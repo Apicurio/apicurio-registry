@@ -74,4 +74,27 @@ public class McpAuthenticationTest {
 
         log.info("Successfully retrieved group metadata: {}", utils.toPrettyJson(groupMetadata));
     }
+
+    @Test
+    public void testOAuth2AuthenticationSchemaCompatibility() {
+        String testGroupId = "mcp-auth-test-group-compat-" + System.currentTimeMillis();
+        String testArtifactId = "mcp-auth-test-artifact-compat-" + System.currentTimeMillis();
+        
+        // Ensure group exists
+        registryService.createGroup(testGroupId, "Test group for schema compatibility", null);
+        
+        // Create an artifact
+        String initialSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}}}";
+        registryService.createArtifact(testGroupId, testArtifactId, "JSON", "Test Artifact", "Description", null);
+        
+        // Create first version to set initial schema
+        registryService.createVersion(testGroupId, testArtifactId, "1.0.0", "application/json", initialSchema, "Test Version", "Initial version", null, false);
+        
+        // Test compatibility
+        String compatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}}}";
+        String result = registryService.testSchemaCompatibility(testGroupId, testArtifactId, compatibleSchema, "application/json");
+        
+        assertNotNull(result, "Result should not be null");
+        log.info("Schema compatibility result: {}", result);
+    }
 }

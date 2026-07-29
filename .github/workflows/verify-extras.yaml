@@ -30,7 +30,9 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: temurin
-          cache: maven
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
@@ -44,7 +46,7 @@ jobs:
           # -Pextra-tests: activates the extra-tests profile (additional validation beyond unit/integration)
           # -Dregistry3-image: Docker image to test against (built by the Build job)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-          ./mvnw verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
+          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
             -Pextra-tests \
             -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -Dmaven.javadoc.skip=true \
@@ -200,7 +202,9 @@ jobs:
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -232,4 +236,4 @@ jobs:
           # -Pexamples: activates the examples profile (builds example applications)
           # -Dassembly.skipAssembly=true: skip archive generation (not needed for example compilation)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-          mvn install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress
+          mvn -s ${{ github.workspace }}/.github/ci-settings.xml install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress

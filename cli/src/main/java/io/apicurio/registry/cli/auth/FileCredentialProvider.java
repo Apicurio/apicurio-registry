@@ -16,15 +16,17 @@ import org.jboss.logging.Logger;
 
 /**
  * File-based credential provider for environments without an OS keychain.
- * Stores credentials in a separate JSON file alongside config.json.
+ * Stores credentials, encrypted at rest, in a separate JSON file alongside config.json.
  */
 class FileCredentialProvider implements CredentialProvider {
 
     private static final Logger log = Logger.getLogger(FileCredentialProvider.class);
 
     private static final String CREDENTIALS_FILE = "credentials.json";
+    private static final String KEY_FILE = "credentials.key";
 
     private final Config config;
+    private CredentialEncryption encryption;
 
     FileCredentialProvider(final Config config) {
         this.config = config;
@@ -33,13 +35,24 @@ class FileCredentialProvider implements CredentialProvider {
     @Override
     public void store(final String account, final String secret) {
         final var credentials = readCredentials();
-        credentials.put(account, secret);
+        credentials.put(account, encryption().encrypt(secret));
         writeCredentials(credentials);
     }
 
     @Override
     public String retrieve(final String account) {
-        return readCredentials().get(account);
+        final var credentials = readCredentials();
+        final var stored = credentials.get(account);
+        if (stored == null) {
+            return null;
+        }
+        if (CredentialEncryption.isEncrypted(stored)) {
+            return encryption().decrypt(stored);
+        }
+        // Legacy plain text entry — migrate it to encrypted storage before returning it.
+        credentials.put(account, encryption().encrypt(stored));
+        writeCredentials(credentials);
+        return stored;
     }
 
     @Override
@@ -114,5 +127,12 @@ class FileCredentialProvider implements CredentialProvider {
 
     private Path credentialsPath() {
         return config.getAcrCurrentHomePath().resolve(CREDENTIALS_FILE);
+    }
+
+    private CredentialEncryption encryption() {
+        if (encryption == null) {
+            encryption = new CredentialEncryption(config.getAcrCurrentHomePath().resolve(KEY_FILE));
+        }
+        return encryption;
     }
 }

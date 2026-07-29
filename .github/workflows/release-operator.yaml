@@ -135,7 +135,11 @@ jobs:
       - name: Build operator catalog
         working-directory: registry/operator
         run: |
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest catalog
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog
 
       - name: Generate install file for tests
         working-directory: registry/operator

@@ -12,25 +12,21 @@ const path = require('path');
 
 const LABELS = {
   NEW: 'lifecycle/new',
-  WIP: 'lifecycle/wip',
   READY_FOR_REVIEW: 'lifecycle/ready-for-review',
   TESTED: 'lifecycle/tested',
   READY_TO_MERGE: 'lifecycle/ready-to-merge',
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
   STALE: 'lifecycle/stale',
-  SMOKE_TESTED: 'lifecycle/smoke-tested',
   REVIEW_APPROVED: 'lifecycle/review-approved',
   DISABLED: 'orchestrator/disabled',
   AUTO_MERGE: 'orchestrator/auto-merge',
-  TESTS_DISABLED: 'orchestrator/tests-disabled',
   REVIEW_SKIPPED: 'orchestrator/review-skipped',
   MERGE_REBASE: 'orchestrator/merge-rebase',
 };
 
 const PRIMARY_STATES = [
   LABELS.NEW,
-  LABELS.WIP,
   LABELS.READY_FOR_REVIEW,
   LABELS.READY_TO_MERGE,
 ];
@@ -50,9 +46,7 @@ const COLORS = {
 
 const LABEL_DEFS = {
   [LABELS.NEW]:                  { color: COLORS.INFO, description: 'PR awaiting triage' },
-  [LABELS.WIP]:                  { color: COLORS.INFO, description: 'Accepted, author working' },
   [LABELS.READY_FOR_REVIEW]:     { color: COLORS.INFO, description: 'Ready for review, full tests running' },
-  [LABELS.SMOKE_TESTED]:         { color: COLORS.SUCCESS_LIGHT, description: 'Smoke tests passed for current HEAD' },
   [LABELS.TESTED]:               { color: COLORS.SUCCESS, description: 'Full test suite passed for current HEAD' },
   [LABELS.REVIEW_APPROVED]:      { color: COLORS.SUCCESS, description: 'PR has an approved review' },
   [LABELS.READY_TO_MERGE]:       { color: COLORS.INFO, description: 'Approved and tested, ready to merge' },
@@ -61,7 +55,6 @@ const LABEL_DEFS = {
   [LABELS.STALE]:                { color: COLORS.INACTIVE, description: 'No activity for 7+ days' },
   [LABELS.DISABLED]:             { color: COLORS.INACTIVE, description: 'PR excluded from lifecycle orchestrator' },
   [LABELS.AUTO_MERGE]:           { color: COLORS.INFO, description: 'Auto-merge enabled' },
-  [LABELS.TESTS_DISABLED]:       { color: COLORS.INFO, description: 'Smoke tests disabled for this PR' },
   [LABELS.REVIEW_SKIPPED]:       { color: COLORS.INFO, description: 'Review requirement skipped by maintainer' },
   [LABELS.MERGE_REBASE]:         { color: COLORS.INFO, description: 'Branch auto-updated for merge, tests skipped' },
 };
@@ -433,20 +426,17 @@ async function reconcile(github, api, pr, core) {
   // 1. No lifecycle label at all → initialize as new PR
   if (!state) {
     if (hasLabel(pr, LABELS.DISABLED)) return;
+    // The orchestrator ignores draft PRs entirely — nothing to reconcile.
+    if (pr.draft) return;
 
     if (isAutoAccepted(config, pr.user.login)) {
-      const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
-      await api.addLabel(pr.number, initialState);
-      if (!pr.draft) {
-        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      }
+      await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
+      await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       await retriggerVerify(api, pr, core);
-      core.warning(`PR #${pr.number} had no lifecycle label — initialized as ${initialState} (auto-accepted)`);
+      core.warning(`PR #${pr.number} had no lifecycle label — initialized as ${LABELS.READY_FOR_REVIEW} (auto-accepted)`);
     } else {
       await api.addLabel(pr.number, LABELS.NEW);
-      if (!pr.draft) {
-        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      }
+      await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
       core.warning(`PR #${pr.number} had no lifecycle label — initialized as lifecycle/new`);
     }
 
@@ -499,12 +489,11 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
   return prs.filter(p => p.user.login === author && p.number !== excludePr);
 }
 
-async function handlePrOpened({ github, context, core }) {
-  const pr = context.payload.pull_request;
-  const { owner, repo } = context.repo;
-  const api = createApi(github, owner, repo);
-  const config = loadConfig();
-
+// Shared entry point for a PR that should start (or restart, after leaving
+// draft) at the top of the lifecycle. Never called for draft PRs — the
+// orchestrator ignores those entirely (no labels, no CI) until they're
+// marked ready for review.
+async function initNewPr(github, owner, repo, api, config, pr, core) {
   if (!isAutoAccepted(config, pr.user.login)) {
     const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
     const maxPrs = config.max_contributor_prs ?? 1;
@@ -524,8 +513,8 @@ async function handlePrOpened({ github, context, core }) {
   }
 
   if (isAutoAccepted(config, pr.user.login)) {
-    const initialState = pr.draft ? LABELS.WIP : LABELS.READY_FOR_REVIEW;
-    await api.addLabel(pr.number, initialState);
+    await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
+    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     const maintainerHint = isMaintainer(config, pr.user.login)
       ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes, ` +
         `or \`/auto-merge\` to merge automatically once approved and tested.`
@@ -534,28 +523,17 @@ async function handlePrOpened({ github, context, core }) {
       ? `\n\n**Note (fork PR):** Review label updates may not apply automatically. ` +
         `A maintainer can use \`/retry\` after reviewing to update the labels.`
       : '';
-    if (pr.draft) {
-      await api.postComment(pr.number,
-        `PR auto-accepted (trusted author). Smoke tests will run on each push.\n\n` +
-        `When ready, use \`/ready\` or mark as non-draft to run the full test suite.` +
-        maintainerHint + forkHint
-      );
-    } else {
-      await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      await api.postComment(pr.number,
-        `PR auto-accepted (trusted author). Full test suite will run.` +
-        maintainerHint + forkHint
-      );
-    }
-    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${initialState}`);
+    await api.postComment(pr.number,
+      `PR auto-accepted (trusted author). Full test suite will run.` +
+      maintainerHint + forkHint
+    );
+    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${LABELS.READY_FOR_REVIEW}`);
     await retriggerVerify(api, pr, core, { waitForRun: true });
     return;
   }
 
   await api.addLabel(pr.number, LABELS.NEW);
-  if (!pr.draft) {
-    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-  }
+  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   let message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
   if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
     message += `\n**Note (fork PR):** Review label updates may not apply automatically. ` +
@@ -563,6 +541,18 @@ async function handlePrOpened({ github, context, core }) {
   }
   await api.postComment(pr.number, message);
   core.info(`PR #${pr.number} opened, set to lifecycle/new`);
+}
+
+async function handlePrOpened({ github, context, core }) {
+  const pr = context.payload.pull_request;
+  if (pr.draft) {
+    core.info(`PR #${pr.number} opened as draft, orchestrator ignoring until marked ready for review`);
+    return;
+  }
+  const { owner, repo } = context.repo;
+  const api = createApi(github, owner, repo);
+  const config = loadConfig();
+  await initNewPr(github, owner, repo, api, config, pr, core);
 }
 
 async function handlePrSynchronize({ github, context, core }) {
@@ -590,10 +580,6 @@ async function handlePrSynchronize({ github, context, core }) {
   if (hasLabel(pr, LABELS.TESTED)) {
     await api.removeLabel(pr.number, LABELS.TESTED);
     core.info(`PR #${pr.number} new push, removed lifecycle/tested`);
-  }
-  if (hasLabel(pr, LABELS.SMOKE_TESTED)) {
-    await api.removeLabel(pr.number, LABELS.SMOKE_TESTED);
-    core.info(`PR #${pr.number} new push, removed lifecycle/smoke-tested`);
   }
   // review-approved is not removed here — it is only removed when GitHub
   // dismisses the review (pull_request_review dismissed event), keeping
@@ -628,38 +614,22 @@ async function handlePrSynchronize({ github, context, core }) {
   await reconcile(github, api, freshPr, core);
 }
 
+// Fires when a draft PR is converted to non-draft. The orchestrator ignored
+// it entirely while draft, so this is its first contact — it enters the
+// lifecycle exactly like a freshly opened PR.
 async function handlePrReadyForReview({ github, context, core }) {
   const pr = context.payload.pull_request;
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
-  const state = getLifecycleState(pr);
+  const config = loadConfig();
 
-  if (state !== LABELS.WIP) {
-    core.info(`PR #${pr.number} draft->ready but not in WIP state (${state}), skipping`);
+  if (getLifecycleState(pr)) {
+    core.info(`PR #${pr.number} marked ready for review but already has a lifecycle label, skipping init`);
     return;
   }
 
-  const freshPr = await api.getPr(pr.number);
-  if (!freshPr.requested_reviewers?.length && !freshPr.requested_teams?.length) {
-    await api.postComment(pr.number,
-      `Cannot transition to ready-for-review: no reviewer is assigned. ` +
-      `Please ask a maintainer to assign a reviewer first, then use \`/ready\`.`
-    );
-    return;
-  }
-
-  await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
-  await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-  await api.postComment(pr.number,
-    `PR is now ready for review. The full test suite will run.\n\n` +
-    `A maintainer can use \`/auto-merge\` to merge automatically once approved and tested.`
-  );
-  core.info(`PR #${pr.number} transitioned to ready-for-review (draft->ready)`);
-  await retriggerVerify(api, pr, core);
-
-  const reconPr = await api.getPr(pr.number);
-  await reconcile(github, api, reconPr, core);
+  core.info(`PR #${pr.number} marked ready for review (was draft), entering lifecycle/new`);
+  await initNewPr(github, owner, repo, api, config, pr, core);
 }
 
 async function handleComment({ github, context, core }) {
@@ -682,12 +652,9 @@ async function handleComment({ github, context, core }) {
   const handlers = {
     'accept': () => cmdAccept(api, config, core, pr, actor, maintainer, comment.id),
     'reject': () => cmdReject(api, config, core, pr, actor, maintainer, parsed.args, comment.id),
-    'ready': () => cmdReady(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
     'merge': () => cmdMerge(api, config, core, pr, actor, maintainer, comment.id),
     'auto-merge': () => cmdAutoMerge(api, config, core, pr, actor, maintainer, comment.id),
     'skip-review': () => cmdSkipReview(api, config, core, pr, actor, maintainer, comment.id),
-    'disable-tests': () => cmdDisableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
-    'enable-tests': () => cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, comment.id),
     'unstale': () => cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
     'retry': () => cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comment.id),
   };
@@ -718,15 +685,15 @@ async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
     return;
   }
 
-  await api.setLifecycleState(pr, LABELS.WIP);
+  await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
   await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
   await api.postComment(pr.number,
-    `PR accepted by @${actor}. @${pr.user.login}, you can now work on your changes.\n\n` +
-    `Smoke tests will run on each push. When ready, use \`/ready\` to request a full review.`
+    `PR accepted by @${actor}. @${pr.user.login}, the full test suite will run now.\n\n` +
+    `A maintainer can use \`/auto-merge\` to merge automatically once approved and tested.`
   );
   core.info(`PR #${pr.number} accepted by ${actor}`);
-  await retriggerVerify(api, pr, core);
+  await retriggerVerify(api, pr, core, { waitForRun: true });
 }
 
 async function cmdReject(api, config, core, pr, actor, maintainer, reason, commentId) {
@@ -754,38 +721,6 @@ async function cmdReject(api, config, core, pr, actor, maintainer, reason, comme
   await api.closePr(pr.number);
   await api.addReaction(commentId, '+1');
   core.info(`PR #${pr.number} rejected by ${actor}`);
-}
-
-async function cmdReady(api, config, core, pr, actor, isAuthor, maintainer, commentId) {
-  if (!isAuthor && !maintainer) {
-    await api.addReaction(commentId, '-1');
-    await api.postComment(pr.number,
-      `@${actor} Only the PR author or a maintainer can mark a PR as ready.`
-    );
-    return;
-  }
-
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.WIP) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} Cannot mark as ready: PR is not in \`lifecycle/wip\` state (current: \`${state || 'none'}\`).`
-    );
-    return;
-  }
-
-  const freshPr = await api.getPr(pr.number);
-  await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
-  await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-  await api.removeLabel(pr.number, LABELS.TESTS_DISABLED);
-  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-  await api.addReaction(commentId, '+1');
-  await api.postComment(pr.number,
-    `PR marked as ready for review. The full test suite will run.\n\n` +
-    `A maintainer can use \`/auto-merge\` to merge automatically once approved and tested.`
-  );
-  core.info(`PR #${pr.number} marked ready by ${actor}`);
-  await retriggerVerify(api, pr, core);
 }
 
 async function cmdMerge(api, config, core, pr, actor, maintainer, commentId) {
@@ -862,20 +797,13 @@ async function cmdSkipReview(api, config, core, pr, actor, maintainer, commentId
   }
 
   const state = getLifecycleState(pr);
-  if (state !== LABELS.READY_FOR_REVIEW && state !== LABELS.WIP) {
+  if (state !== LABELS.READY_FOR_REVIEW) {
     await api.addReaction(commentId, 'confused');
     await api.postComment(pr.number,
-      `@${actor} Cannot skip review: PR must be in \`lifecycle/wip\` or \`lifecycle/ready-for-review\` state ` +
+      `@${actor} Cannot skip review: PR must be in \`lifecycle/ready-for-review\` state ` +
       `(current: \`${state || 'none'}\`).`
     );
     return;
-  }
-
-  if (state === LABELS.WIP) {
-    const freshPr = await api.getPr(pr.number);
-    await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
-    await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-    await retriggerVerify(api, freshPr, core);
   }
 
   await api.addLabel(pr.number, LABELS.REVIEW_SKIPPED);
@@ -900,40 +828,6 @@ async function cmdSkipReview(api, config, core, pr, actor, maintainer, commentId
     );
   }
   core.info(`PR #${pr.number} review skipped by ${actor}`);
-}
-
-async function cmdDisableTests(api, core, pr, actor, isAuthor, maintainer, commentId) {
-  if (!isAuthor && !maintainer) {
-    await api.addReaction(commentId, '-1');
-    return;
-  }
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.WIP) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} Tests can only be disabled in \`lifecycle/wip\` state.`
-    );
-    return;
-  }
-  await api.addLabel(pr.number, LABELS.TESTS_DISABLED);
-  await api.addReaction(commentId, '+1');
-  core.info(`PR #${pr.number} smoke tests disabled by ${actor}`);
-}
-
-async function cmdEnableTests(api, core, pr, actor, isAuthor, maintainer, commentId) {
-  if (!isAuthor && !maintainer) {
-    await api.addReaction(commentId, '-1');
-    return;
-  }
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.WIP) {
-    await api.addReaction(commentId, 'confused');
-    return;
-  }
-  await api.removeLabel(pr.number, LABELS.TESTS_DISABLED);
-  await api.addReaction(commentId, '+1');
-  core.info(`PR #${pr.number} smoke tests re-enabled by ${actor}`);
-  await retriggerVerify(api, pr, core);
 }
 
 async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, commentId) {
@@ -1167,8 +1061,8 @@ async function handleTestResult({ github, context, core }) {
       continue;
     }
 
-    if (state !== LABELS.READY_FOR_REVIEW && state !== LABELS.WIP) {
-      core.info(`PR #${pr.number} not in ready-for-review or wip state, skipping test result`);
+    if (state !== LABELS.READY_FOR_REVIEW) {
+      core.info(`PR #${pr.number} not in ready-for-review state, skipping test result`);
       continue;
     }
 
@@ -1177,23 +1071,8 @@ async function handleTestResult({ github, context, core }) {
       continue;
     }
 
-    if (state === LABELS.WIP) {
-      if (hasLabel(pr, LABELS.TESTS_DISABLED)) {
-        core.info(`PR #${pr.number} tests disabled, skipping smoke-tested update`);
-      } else if (workflowRun.conclusion === 'success') {
-        await api.addLabel(pr.number, LABELS.SMOKE_TESTED);
-        core.info(`PR #${pr.number} smoke tests passed, added lifecycle/smoke-tested`);
-      } else if (workflowRun.conclusion === 'failure') {
-        await api.removeLabel(pr.number, LABELS.SMOKE_TESTED);
-        await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-        core.info(`PR #${pr.number} smoke tests failed`);
-      }
-      continue;
-    }
-
     if (workflowRun.conclusion === 'success') {
       await api.addLabel(pr.number, LABELS.TESTED);
-      await api.removeLabel(pr.number, LABELS.SMOKE_TESTED);
       await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
       core.info(`PR #${pr.number} tests passed, added lifecycle/tested`);
 
@@ -1403,6 +1282,10 @@ async function handleStale({ github, context, core }) {
   const config = loadConfig();
   const daysUntilStale = config.stale?.days_until_stale || 7;
   const daysUntilClose = config.stale?.days_until_close || 14;
+  // PRs blocked on the author get a shorter total timeout — they're explicitly
+  // waiting on contributor action and reviewers have already invested time,
+  // so a faster close reduces wasted attention on abandoned PRs.
+  const daysUntilCloseWaitingOnAuthor = config.stale?.days_until_close_waiting_on_author || 7;
   const now = new Date();
 
   const prs = await github.paginate(github.rest.pulls.list, {
@@ -1449,10 +1332,14 @@ async function handleStale({ github, context, core }) {
                e.event === 'head_ref_force_pushed';
       });
 
+      const effectiveDaysUntilClose = hasLabel(pr, LABELS.WAITING_ON_AUTHOR)
+        ? daysUntilCloseWaitingOnAuthor
+        : daysUntilClose;
+
       if (hasActivity) {
         await api.removeLabel(pr.number, LABELS.STALE);
         core.info(`PR #${pr.number} stale removed (activity detected)`);
-      } else if (daysSinceStale >= (daysUntilClose - daysUntilStale)) {
+      } else if (daysSinceStale >= (effectiveDaysUntilClose - daysUntilStale)) {
         const closeMessage = (config.stale?.close_message || 'Closing due to inactivity.')
           .replace(/\{author\}/g, pr.user.login);
         await api.postComment(pr.number, closeMessage);

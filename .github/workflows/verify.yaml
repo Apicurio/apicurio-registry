@@ -103,12 +103,13 @@ jobs:
           ACTION="${{ github.event.action }}"
 
           # ── Phase 1: Lifecycle scope ──────────────────────────────────
-          run_smoke=false
-          run_full=false
+          # The lifecycle only has one active "run tests" scope now
+          # (lifecycle/ready-for-review / lifecycle/ready-to-merge run the
+          # full suite; everything else runs nothing).
+          run_tests=false
 
           if [ "$EVENT" = "push" ]; then
-            run_smoke=true
-            run_full=true
+            run_tests=true
           else
             # Non-lifecycle label events: skip the workflow run entirely.
             # Unlike other PR events, we do NOT need to evaluate lifecycle
@@ -147,22 +148,16 @@ jobs:
 
             if has_label "orchestrator/disabled"; then
               if has_label "DO NOT MERGE"; then
-                run_smoke=false; run_full=false
+                run_tests=false
               else
-                run_smoke=true; run_full=true
+                run_tests=true
               fi
             else
               if has_label "lifecycle/ready-for-review" || has_label "lifecycle/ready-to-merge"; then
-                run_smoke=true; run_full=true
-              elif has_label "lifecycle/wip"; then
-                if has_label "orchestrator/tests-disabled"; then
-                  run_smoke=false; run_full=false
-                else
-                  run_smoke=true; run_full=false
-                fi
+                run_tests=true
               else
                 # lifecycle/new or no lifecycle label
-                run_smoke=false; run_full=false
+                run_tests=false
               fi
             fi
           fi
@@ -197,16 +192,16 @@ jobs:
 
           IS_PUSH=$( [ "$EVENT" = "push" ] && echo true || echo false )
 
-          echo "lifecycle-ready=$run_smoke" >> "$GITHUB_OUTPUT"
-          decide run-build       "$run_smoke" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
-          decide run-unit-tests  "$run_smoke" "$IS_PUSH" "$JAVA" "$CI"
-          decide run-integration "$run_full"  "$IS_PUSH" "$INTEGRATION" "$CI"
-          decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
-          decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
-          decide run-cli         "$run_full"  "$CLI"
-          decide run-operator        "$run_full"  "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
-          decide run-console-plugin  "$run_smoke" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
-          decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
+          echo "lifecycle-ready=$run_tests" >> "$GITHUB_OUTPUT"
+          decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
+          decide run-unit-tests  "$run_tests" "$IS_PUSH" "$JAVA" "$CI"
+          decide run-integration "$run_tests" "$IS_PUSH" "$INTEGRATION" "$CI"
+          decide run-extras      "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$CI"
+          decide run-sdk         "$run_tests" "$IS_PUSH" "$SDK" "$JAVA" "$CI"
+          decide run-cli         "$run_tests" "$CLI"
+          decide run-operator        "$run_tests" "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
+          decide run-console-plugin  "$run_tests" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
+          decide run-go-sdk-freshness "$run_tests" "$GO_SDK_GEN" "$CI"
 
           # Scalpel (affected-module detection) can be disabled via PR label
           if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then

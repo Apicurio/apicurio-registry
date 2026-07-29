@@ -26,7 +26,10 @@ class HttpCompressionWriterInterceptorTest {
             "deflate, gzip;q=0.8",
             "GZIP",
             "Gzip",
-            "gzip;q=1, deflate;q=0.5"
+            "gzip;q=1, deflate;q=0.5",
+            "*",
+            "*;q=0.5",
+            "br, *"
     })
     void clientAcceptsGzip_shouldReturnTrue(String header) {
         assertTrue(HttpCompressionWriterInterceptor.clientAcceptsGzip(header),
@@ -44,7 +47,8 @@ class HttpCompressionWriterInterceptorTest {
             "gzip;q=0.000",
             "gzip ; q=0",
             "deflate, gzip;q=0",
-            "br"
+            "br",
+            "*;q=0"
     })
     void clientAcceptsGzip_shouldReturnFalse(String header) {
         assertFalse(HttpCompressionWriterInterceptor.clientAcceptsGzip(header),
@@ -61,5 +65,19 @@ class HttpCompressionWriterInterceptorTest {
     void clientAcceptsGzip_malformedQValue_treatedAsAcceptance() {
         // A malformed q-value (non-numeric) should be treated as acceptance (fail-open)
         assertTrue(HttpCompressionWriterInterceptor.clientAcceptsGzip("gzip;q=abc"));
+    }
+
+    @Test
+    void clientAcceptsGzip_explicitGzipRefusalOverridesWildcard() {
+        // Per RFC 9110 §12.5.3, a specific coding weight overrides the wildcard
+        assertFalse(HttpCompressionWriterInterceptor.clientAcceptsGzip("gzip;q=0, *;q=0.5"),
+                "explicit gzip;q=0 refusal should override wildcard acceptance");
+    }
+
+    @Test
+    void clientAcceptsGzip_explicitGzipAcceptanceOverridesWildcardRefusal() {
+        // Explicit gzip acceptance takes precedence over *;q=0
+        assertTrue(HttpCompressionWriterInterceptor.clientAcceptsGzip("gzip, *;q=0"),
+                "explicit gzip acceptance should override wildcard refusal");
     }
 }

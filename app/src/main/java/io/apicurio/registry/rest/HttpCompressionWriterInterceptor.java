@@ -72,25 +72,41 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
     /**
      * Parses the Accept-Encoding header per RFC 9110 §12.5.3, tokenizing on commas and respecting
      * quality values. A {@code gzip;q=0} token is an explicit refusal and returns {@code false}.
+     * The wildcard {@code *} matches any content-coding not explicitly listed in the header,
+     * so {@code *} or {@code *;q=0.5} implies gzip acceptance unless gzip is explicitly refused
+     * ({@code gzip;q=0}) elsewhere in the header. An explicit gzip token always takes precedence
+     * over the wildcard per the spec.
      */
     static boolean clientAcceptsGzip(String acceptEncoding) {
         if (acceptEncoding == null) {
             return false;
         }
+        Boolean gzipExplicit = null;
+        boolean wildcardAccepts = false;
         for (String token : acceptEncoding.split(",")) {
             String trimmed = token.trim().toLowerCase(Locale.ROOT);
             if (trimmed.startsWith("gzip")) {
                 String remainder = trimmed.substring(4).trim();
                 if (remainder.isEmpty()) {
-                    return true;
-                }
-                if (remainder.startsWith(";")) {
-                    return isQValueAcceptable(remainder.substring(1));
+                    gzipExplicit = true;
+                } else if (remainder.startsWith(";")) {
+                    gzipExplicit = isQValueAcceptable(remainder.substring(1));
                 }
                 // "gzip" followed by non-semicolon, non-empty — not a match (e.g., "gzipx")
+            } else if (trimmed.startsWith("*")) {
+                String remainder = trimmed.substring(1).trim();
+                if (remainder.isEmpty()) {
+                    wildcardAccepts = true;
+                } else if (remainder.startsWith(";")) {
+                    wildcardAccepts = isQValueAcceptable(remainder.substring(1));
+                }
             }
         }
-        return false;
+        // Explicit gzip token takes precedence over wildcard per RFC 9110 §12.5.3
+        if (gzipExplicit != null) {
+            return gzipExplicit;
+        }
+        return wildcardAccepts;
     }
 
     /**

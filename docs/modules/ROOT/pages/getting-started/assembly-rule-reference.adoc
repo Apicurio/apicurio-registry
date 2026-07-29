@@ -2,15 +2,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-rule-reference
 [id="registry-rule-reference_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = {registry} content rule reference
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 {registry} supports content rules that govern how artifacts evolve. The following sections describe the available rule types, their maturity level for each artifact type, and the order of precedence when both artifact-specific and global rules are configured.
-
-* xref:registry-rule-types_{context}[]
-* xref:registry-rule-maturity-matrix_{context}[]
-* xref:registry-rule-precedence_{context}[]
 
 [role="_additional-resources"]
 .Additional resources
@@ -24,8 +21,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // ref-registry-rule-types
 [id="registry-rule-types_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} content rule types
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to both global rules and artifact-specific rules.
@@ -71,8 +69,9 @@ a| Enforces artifact reference integrity when creating or updating artifacts. Th
 
 // ref-registry-rule-maturity-matrix
 [id="registry-rule-maturity-matrix_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} content rule maturity
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Not all content rules are fully implemented for every artifact type supported by {registry}. The following table shows the current maturity level for each rule and artifact type:
@@ -137,8 +136,9 @@ a| Mapping detection not supported
 
 // ref-registry-rule-precedence
 [id="registry-rule-precedence_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} content rule precedence
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. Configured artifact-specific rules override the equivalent configured global rules, as shown in the following table.
@@ -171,5 +171,3 @@ When you add or update an artifact, {registry} applies rules to check the validi
 |None
 |No
 |===
-
-

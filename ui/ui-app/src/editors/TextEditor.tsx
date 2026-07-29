@@ -4,6 +4,7 @@ import { editor } from "monaco-editor";
 import { Editor as DraftEditor, EditorProps } from "./editor-types";
 import { draftContentToLanguage, draftContentToString } from "@utils/content.utils.ts";
 import IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
+import { registerCustomLanguages } from "./registerLanguages.ts";
 
 /**
  * Simple text editor.  This is a fallback editor for any text based content
@@ -32,6 +33,7 @@ export const TextEditor: DraftEditor = (props: EditorProps) => {
 
     return (
         <Editor
+            beforeMount={registerCustomLanguages}
             className="text-editor"
             language={language}
             value={value}

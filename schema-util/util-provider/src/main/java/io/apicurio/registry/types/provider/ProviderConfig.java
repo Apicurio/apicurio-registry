@@ -115,7 +115,7 @@ public final class ProviderConfig {
         private Supplier<StructuredContentExtractor> structuredContentExtractor = () -> NoopStructuredContentExtractor.INSTANCE;
 
         public Builder contentTypes(Set<String> contentTypes) {
-            this.contentTypes = contentTypes;
+            this.contentTypes = (contentTypes != null) ? Set.copyOf(contentTypes) : Set.of();
             return this;
         }
 

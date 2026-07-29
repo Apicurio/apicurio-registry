@@ -12,6 +12,15 @@ import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 
+/**
+ * A reusable {@link io.apicurio.registry.types.provider.ArtifactTypeUtilProvider} implementation
+ * driven by a compile-time {@link ProviderConfig}.
+ * <p>
+ * Replaces the individual per-type {@code *ArtifactTypeUtilProvider} boilerplate classes.
+ * <p>
+ * <b>Note:</b> Distinct from {@code ConfiguredArtifactTypeUtilProvider}, which handles
+ * runtime JSON-configured custom artifact types.
+ */
 public class ConfigurableArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
     private final String artifactType;

@@ -82,6 +82,12 @@ import io.apicurio.registry.xsd.content.extract.XsdStructuredContentExtractor;
 import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
 import io.apicurio.registry.xsd.rules.validity.XsdContentValidator;
 
+/**
+ * Central configuration registry mapping built-in artifact types (e.g. AVRO, JSON, PROTOBUF)
+ * to their respective {@link ProviderConfig} definitions.
+ * <p>
+ * Preserves the deterministic order of built-in providers using an insertion-ordered registry.
+ */
 public class StandardArtifactTypeProviderRegistry {
 
     private static final Map<String, ProviderConfig> PROVIDERS = new LinkedHashMap<>();

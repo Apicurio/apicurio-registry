@@ -21,6 +21,13 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 
+/**
+ * Immutable configuration holding component suppliers and metadata for a specific
+ * artifact type provider.
+ * <p>
+ * Replaces per-type subclassing by encapsulating supplier functions for schema validators,
+ * canonicalizers, dereferencers, reference finders, and metadata extractors.
+ */
 public final class ProviderConfig {
 
     private final Set<String> contentTypes;

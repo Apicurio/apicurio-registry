@@ -33,7 +33,7 @@ public class ArtifactMetadataUpdatedCloudEventTest {
         assertEquals("io.apicurio.registry.events.ArtifactMetadataUpdated", cloudEvent.getCloudEvent().getType());
         assertEquals("1.0", cloudEvent.getCloudEvent().getSpecversion());
         assertEquals("application/json", cloudEvent.getCloudEvent().getDatacontenttype());
-        assertNotNull(cloudEvent.getCloudEvent().getTime());
+        assertEquals(event.getTimestamp(), cloudEvent.getCloudEvent().getTime());
         assertNotNull(cloudEvent.getCloudEvent().getData());
     }
 

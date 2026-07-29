@@ -28,7 +28,7 @@ public class ArtifactVersionStateChangedCloudEventTest {
         assertEquals("io.apicurio.registry.events.ArtifactVersionStateChanged", cloudEvent.getCloudEvent().getType());
         assertEquals("1.0", cloudEvent.getCloudEvent().getSpecversion());
         assertEquals("application/json", cloudEvent.getCloudEvent().getDatacontenttype());
-        assertNotNull(cloudEvent.getCloudEvent().getTime());
+        assertEquals(event.getTimestamp(), cloudEvent.getCloudEvent().getTime());
         assertNotNull(cloudEvent.getCloudEvent().getData());
     }
 

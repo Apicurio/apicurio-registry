@@ -9,8 +9,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-import java.time.Instant;
-
 /**
  * CloudEvent wrapper for ArtifactMetadataUpdated event.
  */
@@ -25,26 +23,16 @@ public class ArtifactMetadataUpdatedCloudEvent {
     }
 
     public static ArtifactMetadataUpdatedCloudEvent from(io.apicurio.registry.events.ArtifactMetadataUpdated event, String source) {
-        Instant eventTime = extractTimestampFromPayload(event.getPayload());
-        
         CloudEventDto dto = new CloudEventDto()
                 .withId(event.getId())
                 .withSource(source)
                 .withType("io.apicurio.registry.events.ArtifactMetadataUpdated")
-                .withTime(eventTime)
+                .withTime(event.getTimestamp())
                 .withData(event.getPayload());
 
         ArtifactMetadataUpdatedCloudEvent wrapper = new ArtifactMetadataUpdatedCloudEvent();
         wrapper.setCloudEvent(dto);
         return wrapper;
-    }
-
-    private static Instant extractTimestampFromPayload(org.json.JSONObject payload) {
-        if (payload != null && payload.has("createdOn")) {
-            long createdOn = payload.getLong("createdOn");
-            return Instant.ofEpochMilli(createdOn);
-        }
-        return Instant.now();
     }
 
     public CloudEventDto getCloudEvent() {

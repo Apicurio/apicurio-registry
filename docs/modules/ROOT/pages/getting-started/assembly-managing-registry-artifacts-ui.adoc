@@ -7,17 +7,6 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 You can manage schema and API artifacts stored in {registry} by using the {registry} web console.
 
-* xref:configuring-registry-ui_{context}[]
-* xref:browsing-artifacts-using-console_{context}[]
-* xref:adding-artifacts-using-console_{context}[]
-* xref:deleting-artifacts-using-console_{context}[]
-* xref:configuring-rules-using-console_{context}[]
-* xref:changing-artifact-owner-using-console_{context}[]
-* xref:configuring-settings-using-console_{context}[]
-* xref:exporting-importing-using-web-console_{context}[]
-
-
-
 
 [id="configuring-registry-ui_{context}"]
 == Configuring the {registry} web console
@@ -210,7 +199,7 @@ IMPORTANT: The {registry} web console disables deletion of groups, artifacts, an
 
 
 [id="enabling-deletion-using-console_{context}"]
-=== Enabling deletion of groups, artifacts, and artifact versions
+== Enabling deletion of groups, artifacts, and artifact versions
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
@@ -239,7 +228,7 @@ endif::[]
 
 
 [id="deleting-group-using-console_{context}"]
-=== Deleting a group
+== Deleting a group
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
@@ -256,7 +245,7 @@ WARNING: Deleting a group permanently removes the group and all of its artifacts
 
 
 [id="deleting-artifact-using-console_{context}"]
-=== Deleting an artifact
+== Deleting an artifact
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
@@ -273,7 +262,7 @@ WARNING: Deleting an artifact permanently removes the artifact and all of its ve
 
 
 [id="deleting-artifact-version-using-console_{context}"]
-=== Deleting an artifact version
+== Deleting an artifact version
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]

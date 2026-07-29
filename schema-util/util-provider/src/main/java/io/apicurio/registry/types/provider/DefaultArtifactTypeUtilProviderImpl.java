@@ -1,5 +1,7 @@
 package io.apicurio.registry.types.provider;
 
+import static io.apicurio.registry.types.provider.StandardArtifactTypeProviderRegistry.createStandardProviders;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -12,9 +14,7 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
 
     // Intentionally per-factory, not a shared static list: AbstractArtifactTypeUtilProvider caches
     // lazily-created components in mutable fields, so sharing one provider across factories would alias that cache.
-    protected List<ArtifactTypeUtilProvider> standardProviders = new ArrayList<ArtifactTypeUtilProvider>(
-            StandardArtifactTypeProviderRegistry.createStandardProviders()
-    );
+    protected List<ArtifactTypeUtilProvider> standardProviders = new ArrayList<ArtifactTypeUtilProvider>(createStandardProviders());
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 

@@ -31,6 +31,7 @@ class CredentialEncryption {
     private static final int KEY_SIZE_BITS = 256;
     private static final int GCM_IV_LENGTH_BYTES = 12;
     private static final int GCM_TAG_LENGTH_BITS = 128;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final Path keyPath;
     private SecretKey key;
@@ -46,7 +47,7 @@ class CredentialEncryption {
     String encrypt(final String plaintext) {
         try {
             final var iv = new byte[GCM_IV_LENGTH_BYTES];
-            new SecureRandom().nextBytes(iv);
+            RANDOM.nextBytes(iv);
             final var cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, loadOrCreateKey(), new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
             final var ciphertext = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));

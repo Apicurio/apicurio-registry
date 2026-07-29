@@ -144,7 +144,18 @@ public class HttpStatusCodeMap {
     }
 
     public int getCode(Class<?> exceptionClass) {
-        return codeMap.getOrDefault(exceptionClass, HTTP_INTERNAL_ERROR);
+        // Walk the superclass chain so that a subclass of a mapped exception (e.g. a new
+        // AlreadyExistsException variant that wasn't registered explicitly) still resolves
+        // to its ancestor's status code instead of silently falling back to 500.
+        Class<?> clazz = exceptionClass;
+        while (clazz != null && clazz != Object.class) {
+            Integer code = codeMap.get(clazz);
+            if (code != null) {
+                return code;
+            }
+            clazz = clazz.getSuperclass();
+        }
+        return HTTP_INTERNAL_ERROR;
     }
 
     public boolean isIgnored(Class<? extends Throwable> aClass) {

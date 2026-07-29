@@ -7,14 +7,6 @@
 
 An API/Schema registry - stores and retrieves APIs and Schemas.
 
-## Table of Contents
-
-- [Quick Start](#quick-start)
-- [Running with Docker](#running-with-docker)
-- [Documentation](#documentation)
-- [Community](#community)
-- [License](#license)
-
 ## Quick Start
 
 Build the project and run the registry with the in-memory storage variant:
@@ -59,13 +51,63 @@ Once both are running you can access:
 * [API documentation](http://localhost:8080/apis)
 * [User Interface](http://localhost:8888)
 
-For storage, security, and other runtime configuration options — and the full list of
-available image tags — see the [documentation](https://www.apicur.io/registry/docs/).
+For the full set of runtime configuration options (storage, deployment, and more), see the
+[documentation](https://www.apicur.io/registry/docs/). For the available image tags and the
+support policy, see [Versioning & Support Policy](#versioning--support-policy) below; for
+authentication, see [Security](#security).
+
+## Versioning & Support Policy
+
+Apicurio Registry follows [Semantic Versioning](https://semver.org/):
+
+- **Minor releases** (3.3.0, 3.4.0, ...): new features, enhancements, and bug fixes.
+- **Patch releases** (3.3.1, 3.3.2, ...): CVE and security fixes only. No new features, no bug fixes.
+
+**Support window:** the two most recent minor versions (latest and latest-1) receive patch releases for security issues. Older minors are end-of-life.
+
+**Docker image tags:**
+
+| Tag | Description |
+|-----|-------------|
+| `3.3.0` | Pinned to an exact release |
+| `3.3` | Floating tag — always points to the latest patch in the 3.3.x series |
+| `latest` / `latest-release` | Always points to the most recent stable release |
+| `latest-snapshot` | Most recent build from the `main` branch (unstable) |
+
+**OLM channels (Kubernetes operator):** each minor version has its own OLM channel (e.g., `3.3.x`). Subscribe to a channel to receive only patch updates within that minor. A rolling `3.x` channel is also available for users who always want the latest minor.
+
+## Security
+
+You can enable authentication for both the REST APIs and the user interface using an OpenID
+Connect (OIDC) server. The same server and users are federated across the UI and the REST APIs,
+so a single set of credentials works for both. Set the following environment variables to enable it.
+
+**REST API:**
+
+| Env. variable                  | Description                                  |
+|--------------------------------|----------------------------------------------|
+| `QUARKUS_OIDC_TENANT_ENABLED`  | Set to `true` to enable (default is `false`) |
+| `QUARKUS_OIDC_AUTH_SERVER_URL` | OIDC server URL                              |
+| `QUARKUS_OIDC_CLIENT_ID`       | The client for the API                       |
+
+**User interface:**
+
+| Env. variable                | Description                       |
+|------------------------------|-----------------------------------|
+| `APICURIO_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
+| `APICURIO_AUTH_URL`          | OIDC auth URL                     |
+| `APICURIO_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
+| `APICURIO_AUTH_CLIENT_ID`    | The client for the UI             |
+
+Everything must be configured in your OIDC provider before starting the application. Registry
+supports a much wider range of authentication and authorization options than shown here — treat
+this as a starting point and see the
+[security documentation](https://www.apicur.io/registry/docs/) for the full picture.
 
 ## Documentation
 
 - Build setup, IDE configuration, and testing → [DEVELOPING.md](DEVELOPING.md)
-- Contribution guidelines and versioning policy → [CONTRIBUTING.md](CONTRIBUTING.md)
+- Contribution guidelines → [CONTRIBUTING.md](CONTRIBUTING.md)
 - Runtime configuration, security, and deployment → [full documentation](https://www.apicur.io/registry/docs/)
 
 ## Community

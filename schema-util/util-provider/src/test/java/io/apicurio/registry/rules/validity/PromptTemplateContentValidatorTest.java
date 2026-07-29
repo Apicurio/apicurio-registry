@@ -361,4 +361,43 @@ class PromptTemplateContentValidatorTest {
         Assertions.assertTrue(
                 error.getCauses().stream().anyMatch(v -> v.getDescription().contains("unknown")));
     }
+
+    @Test
+    void testElseKeywordIsNotAnUndefinedVariable() throws Exception {
+        // This is the shape of examples/a2a-real-world-integration translator-agent-prompt.yaml,
+        // which uses {{else}} inside an {{#if}} block and declares only responseText and
+        // targetLanguage. Because {{else}} is a bare word it matches the variable pattern, so
+        // before the control-keyword set the validator reported it as used-but-not-defined and this
+        // shipped example could not pass FULL validity.
+        String yaml = """
+                templateId: translation
+                template: |
+                  {{responseText}}
+                  {{#if targetLanguage}}
+                  Target language: {{targetLanguage}}
+                  {{else}}
+                  Target language: Spanish (es)
+                  {{/if}}
+                variables:
+                  responseText:
+                    type: string
+                  targetLanguage:
+                    type: string
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, createYaml(yaml), Collections.emptyMap());
+    }
+
+    @Test
+    void testThisKeywordIsNotAnUndefinedVariable() throws Exception {
+        String yaml = """
+                templateId: iteration
+                template: "{{#each items}}{{this}}{{/each}}"
+                variables:
+                  items:
+                    type: string
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, createYaml(yaml), Collections.emptyMap());
+    }
 }

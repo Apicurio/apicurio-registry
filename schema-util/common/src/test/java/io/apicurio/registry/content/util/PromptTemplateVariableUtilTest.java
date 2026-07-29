@@ -110,4 +110,54 @@ class PromptTemplateVariableUtilTest {
                 PromptTemplateVariableUtil.substituteVariables("{{#if plan}}Hi {{ name }}{{/if}}",
                         varName -> "name".equals(varName) ? "Alice" : null));
     }
+
+    @Test
+    void testExtractIgnoresElseAndThisKeywords() {
+        // {{else}} and {{this}} are bare words, so the pattern alone cannot tell them apart from a
+        // variable. Without the keyword set they would be reported as used-but-not-defined.
+        // The block subjects ('formal', 'items') are not extracted either, for the same reason
+        // {{#if}} is not: the '#' stops the match. Only the standalone placeholder survives.
+        Assertions.assertEquals(List.of("salutation"),
+                PromptTemplateVariableUtil.extractVariableNames(
+                        "{{#if formal}}{{ salutation }}{{else}}Ms{{/if}}"));
+        Assertions.assertEquals(List.of("prefix"),
+                PromptTemplateVariableUtil.extractVariableNames(
+                        "{{#each items}}{{prefix}}{{this}}{{/each}}"));
+    }
+
+    @Test
+    void testExtractIgnoresElseInShippedExampleShape() {
+        // Same shape as examples/a2a-real-world-integration translator-agent-prompt.yaml, whose
+        // 'variables' block declares only responseText and targetLanguage. Reporting 'else' here
+        // would make that example fail FULL validity.
+        String template = """
+                {{responseText}}
+                {{#if targetLanguage}}
+                Target language: {{targetLanguage}}
+                {{else}}
+                Target language: Spanish (es)
+                {{/if}}
+                """;
+        Assertions.assertEquals(List.of("responseText", "targetLanguage"),
+                PromptTemplateVariableUtil.extractVariableNames(template));
+    }
+
+    @Test
+    void testSubstituteLeavesControlKeywordsAlone() {
+        // Even a resolver that would happily supply a value must not rewrite control syntax.
+        Assertions.assertEquals("{{#if formal}}Mr{{else}}Ms{{/if}}",
+                PromptTemplateVariableUtil.substituteVariables("{{#if formal}}Mr{{else}}Ms{{/if}}",
+                        varName -> "SUBSTITUTED"));
+        Assertions.assertEquals("{{this}}",
+                PromptTemplateVariableUtil.substituteVariables("{{this}}", varName -> "SUBSTITUTED"));
+    }
+
+    @Test
+    void testIsControlKeyword() {
+        Assertions.assertTrue(PromptTemplateVariableUtil.isControlKeyword("else"));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isControlKeyword("this"));
+        Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword("name"));
+        Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword("Else"));
+        Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword(null));
+    }
 }

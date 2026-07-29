@@ -11,19 +11,8 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
     protected Map<String, ArtifactTypeUtilProvider> providerMap = new ConcurrentHashMap<>();
 
     protected List<ArtifactTypeUtilProvider> standardProviders = new ArrayList<ArtifactTypeUtilProvider>(
-            List.of(new ProtobufArtifactTypeUtilProvider(), new OpenApiArtifactTypeUtilProvider(),
-                    new AsyncApiArtifactTypeUtilProvider(), new JsonArtifactTypeUtilProvider(),
-                    new AvroArtifactTypeUtilProvider(), new GraphQLArtifactTypeUtilProvider(),
-                    new KConnectArtifactTypeUtilProvider(), new WsdlArtifactTypeUtilProvider(),
-                    new XsdArtifactTypeUtilProvider(), new XmlArtifactTypeUtilProvider(),
-                    new AgentCardArtifactTypeUtilProvider(), new McpToolArtifactTypeUtilProvider(),
-                    new IcebergTableArtifactTypeUtilProvider(),
-                    new IcebergViewArtifactTypeUtilProvider(),
-                    new OpenRpcArtifactTypeUtilProvider(),
-                    new ModelSchemaArtifactTypeUtilProvider(),
-                    new PromptTemplateArtifactTypeUtilProvider(),
-                    new OdcsContractArtifactTypeUtilProvider(),
-                    new ThriftArtifactTypeUtilProvider()));
+            StandardArtifactTypeProviderRegistry.createStandardProviders()
+    );
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 

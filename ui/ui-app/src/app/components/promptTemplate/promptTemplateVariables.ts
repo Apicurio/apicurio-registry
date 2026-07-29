@@ -34,10 +34,23 @@ export type ReconciledVariable = {
  * variable pattern from PromptTemplateVariableUtil
  * (`\{\{\s*(\w+)\s*\}\}`), while still supporting handlebars-style blocks
  * (`{{#if x}}`, `{{ #if x }}`, etc.) in one expression for the UI.
+ *
+ * Deliberate scope limitations (matching backend #8977 / PromptTemplateVariableUtil):
+ * - Names are `\w+` only — dotted paths like `{{user.name}}` and hyphenated
+ *   names are NOT supported, same as the backend canonical pattern.
+ * - Handlebars special iteration variables (`@index`, `@key`, `@first`,
+ *   `@last`) are not recognized as variables (they start with `@`, outside
+ *   `\w`), consistent with the backend not supporting them either. If the
+ *   backend adds support later, this frontend logic will need a matching update.
  */
 export const TEMPLATE_VARIABLE_REGEX = /\{\{\s*(#?\/?(?:if|unless|each|with)\s+)?(\w+)\s*\}\}/g;
 
-const BLOCK_KEYWORDS = new Set(["if", "unless", "each", "with"]);
+/**
+ * Bare tag names that are Handlebars syntax/helpers, not user variables.
+ * Applied after capture so keywords that appear as the whole tag body
+ * (e.g. `{{else}}`, `{{this}}`) are excluded the same way prefix keywords are.
+ */
+const BLOCK_KEYWORDS = new Set(["if", "unless", "each", "with", "else", "this", "lookup", "log"]);
 
 /**
  * Extract de-duplicated variable names from template text in first-seen order.

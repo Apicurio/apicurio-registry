@@ -45,6 +45,44 @@ describe("extractTemplateVariableNames", () => {
     it("deduplicates the same name across spaced and unspaced spellings", () => {
         expect(extractTemplateVariableNames("{{name}} and {{ name }}")).toEqual(["name"]);
     });
+
+    it("excludes else and this when they appear as bare tag names", () => {
+        expect(extractTemplateVariableNames("{{#if x}}a{{else}}b{{/if}}")).toEqual(["x"]);
+        expect(extractTemplateVariableNames("{{#each items}}{{this}}{{/each}}")).toEqual(["items"]);
+    });
+
+    it("extracts variables from nested blocks", () => {
+        expect(extractTemplateVariableNames("{{#if a}}{{#each b}}{{item}}{{/each}}{{/if}}"))
+            .toEqual(["a", "b", "item"]);
+    });
+
+    it("extracts the name from triple-brace raw-output syntax", () => {
+        expect(extractTemplateVariableNames("{{{name}}}")).toEqual(["name"]);
+    });
+
+    it("ignores Handlebars comment syntax", () => {
+        expect(extractTemplateVariableNames("{{! a comment }}{{name}}")).toEqual(["name"]);
+        expect(extractTemplateVariableNames("{{!-- comment --}}{{name}}")).toEqual(["name"]);
+    });
+
+    it("treats prototype-collision-prone names as ordinary variable strings", () => {
+        // Documents that extraction uses Set/string equality — no JS object
+        // prototype behavior leaks into the result.
+        expect(extractTemplateVariableNames("{{constructor}} {{toString}} {{__proto__}} {{hasOwnProperty}}"))
+            .toEqual(["constructor", "toString", "__proto__", "hasOwnProperty"]);
+    });
+
+    it("does not capture dotted paths (matches backend \\w+ scope)", () => {
+        // Backend PromptTemplateVariableUtil also uses \\w+ only; {{user.name}}
+        // is intentionally out of scope for both frontend and backend.
+        expect(extractTemplateVariableNames("{{user.name}}")).toEqual([]);
+    });
+
+    it("does not capture @index-style tokens (matches backend scope)", () => {
+        // @index/@key/@first start with @ and fall outside \\w+. Backend does
+        // not support them either; if that changes, update this frontend too.
+        expect(extractTemplateVariableNames("{{#each items}}{{@index}}{{/each}}")).toEqual(["items"]);
+    });
 });
 
 describe("reconcileTemplateVariables", () => {

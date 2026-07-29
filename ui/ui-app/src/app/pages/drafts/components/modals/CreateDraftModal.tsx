@@ -35,6 +35,13 @@ import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 import { TemplatesService, useTemplatesService } from "@services/useTemplatesService.ts";
 import { Template } from "@models/templates";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { useLoggerService } from "@services/useLoggerService.ts";
+import {
+    ArtifactReferenceFormItem,
+    ReferencesFormGroup,
+    formItemsToReferences,
+    isReferencesValid
+} from "@app/components";
 
 
 type ValidType = "default" | "success" | "error";
@@ -155,10 +162,13 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
     const [isValidatingCoordinates, setIsValidatingCoordinates] = useState(false);
     const [isCoordinatesAvailable, setIsCoordinatesAvailable] = useState(true);
     const [timeoutId, setTimeoutId] = useState<any>();
+    const [versionReferences, setVersionReferences] = useState<ArtifactReferenceFormItem[]>([]);
+    const [isDetectingRefs, setIsDetectingRefs] = useState(false);
 
     const templateService: TemplatesService = useTemplatesService();
     const urlService: UrlService = useUrlService();
     const groups: GroupsService = useGroupsService();
+    const logger = useLoggerService();
 
     const setGroupId = (newGroupId: string): void => {
         setData({
@@ -252,6 +262,45 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
         });
     };
 
+    const _setVersionReferences = (newReferences: ArtifactReferenceFormItem[]): void => {
+        setVersionReferences(newReferences);
+        setData({
+            ...data,
+            references: formItemsToReferences(newReferences)
+        });
+    };
+
+    const onDetectReferences = (): void => {
+        if (!data.content) {
+            return;
+        }
+        const contentType = data.contentType || detectContentType(data.type, data.content);
+        const artifactType = data.type || undefined;
+        setIsDetectingRefs(true);
+        groups.detectContentReferences(data.content, contentType, artifactType).then(refs => {
+            const detected: ArtifactReferenceFormItem[] = refs.map(ref => ({
+                name: ref.name || "",
+                groupId: ref.groupId || "",
+                artifactId: ref.artifactId || "",
+                version: ref.version || ""
+            }));
+            setVersionReferences(current => {
+                const existingNames = new Set(current.map(item => item.name));
+                const newOnes = detected.filter(item => !existingNames.has(item.name));
+                const merged = [...current, ...newOnes];
+                setData(prev => ({
+                    ...prev,
+                    references: formItemsToReferences(merged)
+                }));
+                return merged;
+            });
+        }).catch(error => {
+            logger.warn("[CreateDraftModal] Failed to detect references:", error);
+        }).finally(() => {
+            setIsDetectingRefs(false);
+        });
+    };
+
     const fireCloseEvent = (): void => {
         props.onClose();
     };
@@ -278,6 +327,8 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
             templateService.getTemplatesFor(DraftType.OPENAPI).then(setTemplates);
             setSelectedTemplate(undefined);
             setContentTabKey(0);
+            setVersionReferences([]);
+            setIsDetectingRefs(false);
         }
     }, [props.isOpen]);
 
@@ -312,7 +363,8 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
     const isDraftIdValid: boolean = validities.draftId !== "error";
     const isCoordinatesValid: boolean = isGroupIdValid && isDraftIdValid;
     const isContentValid: boolean = validities.content === "success";
-    const isValid: boolean = isCoordinatesValid && isContentValid && isCoordinatesAvailable;
+    const areReferencesValid: boolean = isReferencesValid(versionReferences);
+    const isValid: boolean = isCoordinatesValid && isContentValid && isCoordinatesAvailable && areReferencesValid;
 
     const coordinatesStepFooter: Partial<WizardFooterProps> = {
         nextButtonProps: {
@@ -327,6 +379,13 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
         },
         onClose: props.onClose,
         isNextDisabled: !isContentValid
+    };
+    const draftReferencesStepFooter: Partial<WizardFooterProps> = {
+        nextButtonProps: {
+            id: "next-wizard-page"
+        },
+        isNextDisabled: !areReferencesValid,
+        onClose: props.onClose
     };
     const draftMetadataStepFooter: Partial<WizardFooterProps> = {
         nextButtonProps: {
@@ -540,9 +599,24 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
                     </Form>
                 </WizardStep>
                 <WizardStep
+                    name="Draft References (optional)"
+                    id="draft-references-step"
+                    key={3}
+                    footer={draftReferencesStepFooter}
+                >
+                    <Form>
+                        <ReferencesFormGroup
+                            references={versionReferences}
+                            onChange={_setVersionReferences}
+                            onDetect={onDetectReferences}
+                            isDetecting={isDetectingRefs}
+                        />
+                    </Form>
+                </WizardStep>
+                <WizardStep
                     name="Draft Metadata"
                     id="draft-metadata-step"
-                    key={3}
+                    key={4}
                     footer={draftMetadataStepFooter}
                 >
                     <Form>

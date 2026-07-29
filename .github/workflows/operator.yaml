@@ -41,7 +41,7 @@ jobs:
       # -Dfull: include all optional modules needed for the Docker image
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build
-        run: ./mvnw -B clean package -Dfull -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
 
       - name: Build operand image
         run: |
@@ -305,7 +305,7 @@ jobs:
       # -Dfull: include all optional modules needed for a complete operator build
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build for install file generation
-        run: ./mvnw -B clean package -Dfull -pl operator/controller -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull -pl operator/controller -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
 
       - name: Update install file
         working-directory: operator
@@ -363,7 +363,7 @@ jobs:
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Login to quay.io registry
         run: |

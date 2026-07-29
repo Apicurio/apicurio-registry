@@ -22,6 +22,7 @@ import io.apicurio.registry.content.extract.NoopContentExtractor;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.iceberg.content.IcebergContentValidator;
 import io.apicurio.registry.protobuf.content.extract.ProtobufStructuredContentExtractor;
+import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
@@ -132,6 +133,13 @@ class StandardArtifactTypeProviderRegistryTest {
         assertEquals(
                 Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML),
                 openRpc.getContentTypes());
+    }
+
+    @Test
+    void testOpenRpcUsesNoopCompatibilityChecker() {
+        ArtifactTypeUtilProvider openRpc = findProvider(
+                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.OPENRPC);
+        assertInstanceOf(NoopCompatibilityChecker.class, openRpc.getCompatibilityChecker());
     }
 
     @Test

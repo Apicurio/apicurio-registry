@@ -1,5 +1,6 @@
 package io.apicurio.registry.types.provider;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -299,6 +300,19 @@ public final class ProviderConfig {
          * @return a new provider configuration
          */
         public ProviderConfig build() {
+            Objects.requireNonNull(contentTypes, "contentTypes must not be null");
+            if (contentTypes.isEmpty()) {
+                throw new IllegalArgumentException("contentTypes must not be empty");
+            }
+            Objects.requireNonNull(accepter, "accepter must not be null");
+            Objects.requireNonNull(compatibilityChecker, "compatibilityChecker must not be null");
+            Objects.requireNonNull(canonicalizer, "canonicalizer must not be null");
+            Objects.requireNonNull(validator, "validator must not be null");
+            Objects.requireNonNull(extractor, "extractor must not be null");
+            Objects.requireNonNull(dereferencer, "dereferencer must not be null");
+            Objects.requireNonNull(referenceFinder, "referenceFinder must not be null");
+            Objects.requireNonNull(referenceArtifactIdentifierExtractor, "referenceArtifactIdentifierExtractor must not be null");
+            Objects.requireNonNull(structuredContentExtractor, "structuredContentExtractor must not be null");
             return new ProviderConfig(this);
         }
     }

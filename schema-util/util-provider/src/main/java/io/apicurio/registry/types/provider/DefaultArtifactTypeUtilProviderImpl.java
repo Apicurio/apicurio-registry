@@ -10,6 +10,8 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
 
     protected Map<String, ArtifactTypeUtilProvider> providerMap = new ConcurrentHashMap<>();
 
+    // Intentionally per-factory, not a shared static list: AbstractArtifactTypeUtilProvider caches
+    // lazily-created components in mutable fields, so sharing one provider across factories would alias that cache.
     protected List<ArtifactTypeUtilProvider> standardProviders = new ArrayList<ArtifactTypeUtilProvider>(
             StandardArtifactTypeProviderRegistry.createStandardProviders()
     );

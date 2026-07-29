@@ -85,7 +85,6 @@ import io.apicurio.registry.protobuf.rules.validity.ProtobufContentValidator;
 import io.apicurio.registry.rules.compatibility.AgentCardCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.McpToolCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.ModelSchemaCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.NoopCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.PromptTemplateCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AgentCardContentValidator;
 import io.apicurio.registry.rules.validity.McpToolContentValidator;
@@ -289,7 +288,6 @@ public class StandardArtifactTypeProviderRegistry {
         PROVIDERS.put(ArtifactType.ODCS_CONTRACT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_YAML))
                 .accepter(OdcsContractContentAccepter::new)
-                .compatibilityChecker(NoopCompatibilityChecker::new)
                 .canonicalizer(YamlContentCanonicalizer::new)
                 .validator(OdcsContractContentValidator::new)
                 .referenceFinder(OdcsContractReferenceFinder::new)
@@ -304,9 +302,13 @@ public class StandardArtifactTypeProviderRegistry {
     }
 
     /**
-     * Creates the standard set of artifact type utility providers.
+     * Creates a fresh set of standard artifact type utility providers per factory instance.
+     * <p>
+     * Note: Fresh provider instances are returned per call to prevent aliasing bugs across
+     * factory instances, since {@link AbstractArtifactTypeUtilProvider} lazy-caches mutable
+     * component references in volatile fields.
      *
-     * @return the built-in providers in registration order
+     * @return a new list of built-in provider instances in registration order
      */
     public static List<ArtifactTypeUtilProvider> createStandardProviders() {
         List<ArtifactTypeUtilProvider> providers = new ArrayList<>();

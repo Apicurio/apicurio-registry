@@ -1,5 +1,5 @@
 [![Verify Build Workflow](https://github.com/Apicurio/apicurio-registry/workflows/Verify%20Build%20Workflow/badge.svg)](https://github.com/Apicurio/apicurio-registry/actions?query=workflow%3A%22Verify+Build+Workflow%22)
-[![Join the chat at https://apicurio.zulipchat.com/](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://apicurio.zulipchat.com/)
+[![Join the chat on CNCF Slack](https://img.shields.io/badge/slack-join_chat-brightgreen.svg)](https://cloud-native.slack.com/archives/C0BDWTC1DTM)
 [![Automated Release Notes by gren](https://img.shields.io/badge/%F0%9F%A4%96-release%20notes-00B2EE.svg)](https://github-tools.github.io/github-release-notes/)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry?ref=badge_shield)
 
@@ -323,6 +323,8 @@ the **Reload workspace lifecycle mappings metadata** button.
 ## Community
 
 Apicurio Registry is a [Cloud Native Computing Foundation](https://cncf.io) Sandbox project.
+
+Join us on the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
 
 We abide by the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
 

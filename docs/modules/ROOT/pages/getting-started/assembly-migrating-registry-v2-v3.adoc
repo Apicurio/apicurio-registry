@@ -155,71 +155,49 @@ You can migrate from {registry} {registry-v2} to 3.x with minimal downtime by us
 
 During a minimal downtime migration, you temporarily run both {registry} {registry-v2} and {registry} 3.x simultaneously. Plan for the following resources:
 
-Infrastructure:
-
-* Separate database instances for v2 and v3 (or different schemas in the same database)
-* For KafkaSQL deployments: the same Kafka cluster with different topic names
+Infrastructure::
+* Separate database instances for v2 and v3, or different schemas in the same database
+* For KafkaSQL deployments, the same Kafka cluster with different topic names
 * Load balancer capacity for routing traffic
 * Network connectivity between all components
 
-Storage requirements:
-
+Storage::
 * v2 database or storage: existing size
 * v3 database or storage: approximately the same size as v2 (plan for 110% of the v2 size)
 * Export file storage: approximately 10-20% of the database size (compressed)
 
-Timeline:
-
+Timeline::
 * Keep v2 running for 1-7 days after migration for rollback capability
 * Total parallel operation period: 1-7 days
 * Budget for staging environment testing before production migration
 
 .Prerequisites
-
-[cols="1,3",options="header"]
-|===
-| Requirement | Description
-
-| Staging environment
-| A staging environment to test the complete migration workflow before production.
-
-| Load balancer
-| nginx, HAProxy, or a similar tool for traffic management.
-
-| Administrative access
-| Admin role credentials for export and import API endpoints and for testing admin functionality.
-
-| Database or storage
-| A separate database instance or schema (or a separate Kafka topic) for {registry} 3.x.
-
-| Backup
-| A current backup of {registry-v2} data.
-
-| Rollback plan
-| A documented procedure to revert to v2 if needed.
-|===
-
-
-
+* You have a staging environment to test the complete migration workflow before production.
+* You have a load balancer, such as nginx or HAProxy, for traffic management.
+* You have admin role credentials for the export and import API endpoints and for testing admin functionality.
+* You have a separate database instance or schema, or a separate Kafka topic, for {registry} 3.x.
+* You have a current backup of {registry-v2} data.
+* You have a documented rollback procedure to revert to v2 if needed.
 
 NOTE: Test as much of the migration as possible in a staging environment before you migrate in production.
 
 .Procedure
 
-. *Phase 1 — Preparation:* Deploy the load balancer.
+. Prepare the migration environment:
+.. Deploy the load balancer.
 +
 --
-If you do not already use a load balancer, deploy nginx or HAProxy in front of your existing {registry-v2} deployment:
+If you do not already use a load balancer, complete the following steps:
 
-.. Deploy the load balancer.
-.. Configure routing to {registry-v2}.
-.. Update client applications to connect through the load balancer.
-.. Validate that all traffic flows correctly.
+... Deploy nginx or HAProxy in front of your existing {registry-v2} deployment.
+... Configure routing to {registry-v2}.
+... Update client applications to connect through the load balancer.
+... Validate that all traffic flows correctly.
 
 See xref:migrating-registry-configuration_{context}[Updating registry configuration] for load balancer configuration examples.
 --
 
-.  Prepare the {registry} 3.x infrastructure.
+.. Prepare the {registry} 3.x infrastructure.
 +
 --
 Deploy the infrastructure for {registry} 3.x without starting the registry application:
@@ -235,7 +213,8 @@ See xref:migrating-registry-configuration_{context}[Updating registry configurat
 --
 
 
-. *Phase 2 — Pre-migration validation:* Enable read-only mode.
+. Validate the environment before you migrate:
+.. Enable read-only mode.
 +
 --
 Configure the load balancer to block write operations while it allows read operations. This prevents data changes during export.
@@ -261,7 +240,7 @@ Reload the load balancer configuration and verify that read-only mode works corr
 
 --
 
-.  Capture baseline metrics.
+.. Capture baseline metrics.
 +
 --
 Record the current state of your {registry-v2} deployment for comparison after migration.
@@ -271,7 +250,8 @@ For the metrics capture procedure, see xref:migration-scripts_{context}[Migratio
 *Checkpoint:* Read-only mode is active and write operations are blocked. Baseline is documented and ready for data migration.
 --
 
-. *Phase 3 — Data migration:* Export data from {registry-v2}.
+. Migrate the data:
+.. Export data from {registry-v2}.
 +
 --
 Export all artifacts, versions, metadata, and rules from {registry-v2} while the registry is in read-only mode.
@@ -282,7 +262,7 @@ IMPORTANT: Access the registry directly (not through the load balancer) to bypas
 
 *Checkpoint:* Export is complete and the data snapshot is captured.
 --
-.  Deploy {registry} 3.x.
+.. Deploy {registry} 3.x.
 +
 --
 Deploy {registry} 3.x by using the infrastructure that you prepared in Step 2. Configure the v3 deployment similarly to the previous v2 deployment. Note that various configuration parameters are renamed or changed.
@@ -291,7 +271,7 @@ See xref:migrating-registry-configuration_{context}[Updating registry configurat
 
 *Checkpoint:* {registry} 3.x is deployed and healthy (empty, awaiting import).
 --
-.  Import data into {registry} 3.x.
+.. Import data into {registry} 3.x.
 +
 --
 Import the exported ZIP archive into the 3.x deployment.
@@ -303,7 +283,7 @@ NOTE: The import adds to existing data and does not replace it. For best results
 *Checkpoint:* Import is complete and ready for validation.
 --
 
-.  Validate the import.
+.. Validate the import.
 +
 --
 Verify the {registry} 3.x deployment and confirm that the data migration succeeded.
@@ -315,7 +295,8 @@ If validation fails, investigate import logs and retry if necessary. Do not proc
 *Checkpoint:* v3 has all data, data metrics match v2, and the deployment is ready for traffic switch.
 --
 
-. *Phase 4 — Traffic switch:* Switch the load balancer to {registry} 3.x.
+. Switch traffic to {registry} 3.x:
+.. Switch the load balancer to {registry} 3.x.
 +
 --
 Update the load balancer configuration to route to {registry} 3.x and enable read and write operations. The following example shows an nginx configuration:
@@ -344,7 +325,7 @@ Reload the load balancer.
 
 --
 
-.  Verify traffic to the v3 deployment.
+.. Verify traffic to the v3 deployment.
 +
 --
 Confirm that traffic flows to {registry} 3.x through the load balancer. Verify that the registry is accessible, the version is 3.x, health checks pass, and write operations are enabled.
@@ -354,7 +335,8 @@ For the verification procedure, see xref:migration-scripts_{context}[Migration s
 *Checkpoint:* v3 is accessible, write operations work, and no errors appear in the logs.
 --
 
-. *Phase 5 — Post-migration validation:* Test v2 API backward compatibility.
+. Validate the migrated deployment:
+.. Test v2 API backward compatibility.
 +
 --
 Verify that existing v2 clients can access the 3.x registry through the v2 API compatibility layer.
@@ -364,7 +346,7 @@ For backward compatibility details and client migration guidance, see xref:migra
 *Checkpoint:* v2 clients work correctly against the v3 registry.
 --
 
-.  Test v3 Core API functionality.
+.. Test v3 Core API functionality.
 +
 --
 Verify that v3-specific API features work correctly, including system endpoints, search endpoints, admin endpoints, and the Branch API.
@@ -374,21 +356,21 @@ For the v3 API verification procedure, see xref:migration-scripts_{context}[Migr
 *Checkpoint:* v3 Core API features work correctly.
 --
 
-.  Run smoke tests.
+.. Run smoke tests.
 +
 --
 Execute production smoke tests to validate critical functionality:
 
-.. Test critical client applications.
-.. Verify that Kafka SerDes applications work (if applicable).
-.. Check authentication and authorization.
-.. Monitor error rates and performance metrics.
-.. Validate that no increase in 4xx/5xx errors occurs.
+... Test critical client applications.
+... Verify that Kafka SerDes applications work (if applicable).
+... Check authentication and authorization.
+... Monitor error rates and performance metrics.
+... Validate that no increase in 4xx/5xx errors occurs.
 
 *Checkpoint:* All smoke tests passed and production traffic is stable.
 --
 
-. *Phase 6 — Stabilization:* Monitor and observe.
+. Monitor the new deployment and keep {registry-v2} available for rollback.
 +
 --
 Keep {registry-v2} running but not serving traffic for rollback capability:
@@ -403,7 +385,7 @@ See xref:migrating-registry-applications_{context}[Migrating registry client app
 *Checkpoint:* v3 is stable for 1-7 days and no rollback is needed.
 --
 
-. *Phase 7 — Cleanup:* Decommission {registry-v2}.
+. Decommission {registry-v2}.
 +
 --
 After 1-7 days of successful operation on {registry} 3.x, decommission v2 infrastructure.
@@ -927,19 +909,14 @@ This compatibility helps you avoid data loss during migration.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Configuration keys in {registry} 3.x adopt a unified `apicurio.` namespace and reorganize authentication, eventing, UI, and storage settings. The following tables map v2 properties to their v3 equivalents.
+Configuration keys in {registry} 3.x adopt a unified `apicurio.` namespace and reorganize authentication, eventing, UI, and storage settings. The following tables map v2 properties to their v3 equivalents, grouped by configuration area, with example migrations.
 
 IMPORTANT: Configuration property changes are extensive in 3.x. Review all sections carefully and test in a staging environment before you migrate production deployments.
 
-[id="configuring-storage_{context}"]
-== Detailed configuration property mappings
-
-:_mod-docs-content-type: REFERENCE
-
-[role="_abstract"]
 You must use separate database instances or schemas for v2 and v3 because the database schemas are incompatible.
 
-[cols="1,1",options="header"]
+.SQL database storage properties
+[id="configuring-storage_{context}",cols="1,1",options="header"]
 |===
 | Registry 2.x property
 | Registry 3.x property
@@ -1768,7 +1745,34 @@ All migration scripts share the following common features:
 * Detailed progress indicators.
 * Clear exit codes for automation (0 = success, 1 = failure).
 
-Script: apicurio-capture-metrics.sh
+All scripts read the following common environment variables:
+
+.Common environment variables
+[cols="1,2",options="header"]
+|===
+| Variable
+| Description
+
+| `REGISTRY_URL`
+| Registry base URL (for example, `https://registry.example.com`)
+
+| `AUTH_ENABLED`
+| Set to `true` to enable OAuth2 authentication
+
+| `AUTH_TOKEN_URL`
+| OAuth2 token endpoint URL
+
+| `AUTH_CLIENT_ID`
+| OAuth2 client ID
+
+| `AUTH_CLIENT_SECRET`
+| OAuth2 client secret
+
+| `SKIP_TLS_VERIFY`
+| Set to `true` to skip TLS certificate verification
+|===
+
+*apicurio-capture-metrics.sh*
 
 *Purpose:* Captures metrics from the registry before and after migration.
 
@@ -1801,43 +1805,16 @@ export OUTPUT_FILE="registry-baseline.txt"
 ./apicurio-capture-metrics.sh
 ----
 
-*Environment variables:*
+*Script-specific environment variables:*
 
-[cols="1,2",options="header"]
-|===
-| Variable
-| Description
-
-| `REGISTRY_URL`
-| Registry base URL (for example, `https://registry.example.com`)
-
-| `REGISTRY_API_VERSION`
-| API version to use (default: `v2`)
-
-| `AUTH_ENABLED`
-| Set to `true` to enable OAuth2 authentication
-
-| `AUTH_TOKEN_URL`
-| OAuth2 token endpoint URL
-
-| `AUTH_CLIENT_ID`
-| OAuth2 client ID
-
-| `AUTH_CLIENT_SECRET`
-| OAuth2 client secret
-
-| `OUTPUT_FILE`
-| Output file path (default: `registry-baseline.txt`)
-
-| `SKIP_TLS_VERIFY`
-| Set to `true` to skip TLS certificate verification
-|===
+`REGISTRY_API_VERSION`:: API version to use (default: `v2`)
+`OUTPUT_FILE`:: Output file path (default: `registry-baseline.txt`)
 
 *Output:*
 
 Text file that contains artifact summary and global rules (default: `registry-baseline.txt`).
 
-Script: apicurio-export-registry-data.sh
+*apicurio-export-registry-data.sh*
 
 *Purpose:* Exports all data from a {registry-v2} deployment to a ZIP file.
 
@@ -1870,37 +1847,10 @@ export EXPORT_FILE="registry-export.zip"
 ./apicurio-export-registry-data.sh
 ----
 
-*Environment variables:*
+*Script-specific environment variables:*
 
-[cols="1,2",options="header"]
-|===
-| Variable
-| Description
-
-| `REGISTRY_URL`
-| Registry base URL (for example, `https://registry-v2.example.com`)
-
-| `REGISTRY_API_VERSION`
-| API version to use (default: `v2`)
-
-| `AUTH_ENABLED`
-| Set to `true` to enable OAuth2 authentication
-
-| `AUTH_TOKEN_URL`
-| OAuth2 token endpoint URL
-
-| `AUTH_CLIENT_ID`
-| OAuth2 client ID
-
-| `AUTH_CLIENT_SECRET`
-| OAuth2 client secret
-
-| `EXPORT_FILE`
-| Export file path (default: `registry-export.zip`)
-
-| `SKIP_TLS_VERIFY`
-| Set to `true` to skip TLS certificate verification
-|===
+`REGISTRY_API_VERSION`:: API version to use (default: `v2`)
+`EXPORT_FILE`:: Export file path (default: `registry-export.zip`)
 
 *Output:*
 
@@ -1911,7 +1861,7 @@ ZIP file that contains the complete registry export (default: `registry-export.z
 * Run this script while the registry is in read-only mode to maintain data consistency.
 * The export file size varies depending on registry size.
 
-Script: apicurio-import-registry-data.sh
+*apicurio-import-registry-data.sh*
 
 *Purpose:* Imports data from a v2 export file into a {registry} 3.x deployment.
 
@@ -1945,37 +1895,10 @@ export IMPORT_FILE="registry-export.zip"
 ./apicurio-import-registry-data.sh
 ----
 
-*Environment variables:*
+*Script-specific environment variables:*
 
-[cols="1,2",options="header"]
-|===
-| Variable
-| Description
-
-| `REGISTRY_URL`
-| Registry base URL (for example, `https://registry-v3.example.com`)
-
-| `REGISTRY_API_VERSION`
-| API version to use (default: `v3`)
-
-| `AUTH_ENABLED`
-| Set to `true` to enable OAuth2 authentication
-
-| `AUTH_TOKEN_URL`
-| OAuth2 token endpoint URL
-
-| `AUTH_CLIENT_ID`
-| OAuth2 client ID
-
-| `AUTH_CLIENT_SECRET`
-| OAuth2 client secret
-
-| `IMPORT_FILE`
-| Import file path (default: `registry-export.zip`)
-
-| `SKIP_TLS_VERIFY`
-| Set to `true` to skip TLS certificate verification
-|===
+`REGISTRY_API_VERSION`:: API version to use (default: `v3`)
+`IMPORT_FILE`:: Import file path (default: `registry-export.zip`)
 
 *Important notes:*
 
@@ -1983,7 +1906,7 @@ export IMPORT_FILE="registry-export.zip"
 * The script warns if the registry already contains artifacts.
 * Import into an empty v3 registry for best results.
 
-Script: apicurio-verify-registry-version.sh
+*apicurio-verify-registry-version.sh*
 
 *Purpose:* Verifies the version and health of a {registry} deployment.
 
@@ -2014,41 +1937,16 @@ export AUTH_CLIENT_SECRET="your-secret"
 ./apicurio-verify-registry-version.sh
 ----
 
-*Environment variables:*
+*Script-specific environment variables:*
 
-[cols="1,2",options="header"]
-|===
-| Variable
-| Description
-
-| `REGISTRY_URL`
-| Registry base URL (for example, `https://registry.example.com`)
-
-| `REGISTRY_VERSION`
-| Registry version to test (default: `v3`)
-
-| `AUTH_ENABLED`
-| Set to `true` to enable OAuth2 authentication
-
-| `AUTH_TOKEN_URL`
-| OAuth2 token endpoint URL
-
-| `AUTH_CLIENT_ID`
-| OAuth2 client ID
-
-| `AUTH_CLIENT_SECRET`
-| OAuth2 client secret
-
-| `SKIP_TLS_VERIFY`
-| Set to `true` to skip TLS certificate verification
-|===
+`REGISTRY_VERSION`:: Registry version to test (default: `v3`)
 
 *Exit codes:*
 
 * `0`: All checks passed.
 * `1`: One or more checks failed.
 
-Script: apicurio-verify-v3-api-features.sh
+*apicurio-verify-v3-api-features.sh*
 
 *Purpose:* Verifies that v3-specific API features are available and functioning correctly.
 
@@ -2078,31 +1976,9 @@ export AUTH_CLIENT_SECRET="your-secret"
 ./apicurio-verify-v3-api-features.sh
 ----
 
-*Environment variables:*
+*Script-specific environment variables:*
 
-[cols="1,2",options="header"]
-|===
-| Variable
-| Description
-
-| `REGISTRY_URL`
-| Registry base URL (for example, `https://registry-v3.example.com`)
-
-| `AUTH_ENABLED`
-| Set to `true` to enable OAuth2 authentication
-
-| `AUTH_TOKEN_URL`
-| OAuth2 token endpoint URL
-
-| `AUTH_CLIENT_ID`
-| OAuth2 client ID
-
-| `AUTH_CLIENT_SECRET`
-| OAuth2 client secret
-
-| `SKIP_TLS_VERIFY`
-| Set to `true` to skip TLS certificate verification
-|===
+None. This script uses only the common environment variables.
 
 *Exit codes:*
 
@@ -2161,6 +2037,10 @@ export SKIP_TLS_VERIFY="true"
 ----
 
 WARNING: Use `SKIP_TLS_VERIFY=true` only in non-production environments.
+
+*Common script errors:*
+
+The following list maps common script error messages to checks that resolve them:
 
 "Failed to obtain access token"::
 Verify that `AUTH_TOKEN_URL` is correct. Check that client credentials are valid. Confirm that the client has appropriate roles (for example, `sr-admin`). Test manually with curl.

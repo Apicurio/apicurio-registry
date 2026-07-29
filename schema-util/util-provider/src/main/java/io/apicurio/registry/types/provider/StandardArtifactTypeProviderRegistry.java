@@ -16,13 +16,15 @@ import io.apicurio.registry.avro.content.extract.AvroStructuredContentExtractor;
 import io.apicurio.registry.avro.content.refs.AvroReferenceFinder;
 import io.apicurio.registry.avro.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.avro.rules.validity.AvroContentValidator;
-import io.apicurio.registry.content.AgentCardContentAccepter;
-import io.apicurio.registry.content.McpToolContentAccepter;
-import io.apicurio.registry.content.extract.AgentCardContentExtractor;
-import io.apicurio.registry.content.extract.AgentCardStructuredContentExtractor;
-import io.apicurio.registry.content.extract.McpToolContentExtractor;
-import io.apicurio.registry.content.extract.McpToolStructuredContentExtractor;
+import io.apicurio.registry.content.*;
+import io.apicurio.registry.content.canon.YamlContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ModelSchemaDereferencer;
+import io.apicurio.registry.content.dereference.PromptTemplateDereferencer;
+import io.apicurio.registry.content.extract.*;
 import io.apicurio.registry.content.refs.AvroReferenceArtifactIdentifierExtractor;
+import io.apicurio.registry.content.refs.ModelSchemaReferenceFinder;
+import io.apicurio.registry.content.refs.OdcsContractReferenceFinder;
+import io.apicurio.registry.content.refs.PromptTemplateReferenceFinder;
 import io.apicurio.registry.graphql.content.GraphQLContentAccepter;
 import io.apicurio.registry.graphql.content.canon.GraphQLContentCanonicalizer;
 import io.apicurio.registry.graphql.content.extract.GraphQLStructuredContentExtractor;
@@ -46,6 +48,12 @@ import io.apicurio.registry.openapi.content.extract.OpenApiStructuredContentExtr
 import io.apicurio.registry.openapi.content.refs.OpenApiReferenceFinder;
 import io.apicurio.registry.openapi.rules.compatibility.OpenApiCompatibilityChecker;
 import io.apicurio.registry.openapi.rules.validity.OpenApiContentValidator;
+import io.apicurio.registry.openrpc.content.OpenRpcContentAccepter;
+import io.apicurio.registry.openrpc.content.canon.OpenRpcContentCanonicalizer;
+import io.apicurio.registry.openrpc.content.dereference.OpenRpcDereferencer;
+import io.apicurio.registry.openrpc.content.extract.OpenRpcContentExtractor;
+import io.apicurio.registry.openrpc.content.refs.OpenRpcReferenceFinder;
+import io.apicurio.registry.openrpc.rules.validity.OpenRpcContentValidator;
 import io.apicurio.registry.protobuf.content.ProtobufContentAccepter;
 import io.apicurio.registry.protobuf.content.canon.ProtobufContentCanonicalizer;
 import io.apicurio.registry.protobuf.content.dereference.ProtobufDereferencer;
@@ -53,10 +61,12 @@ import io.apicurio.registry.protobuf.content.extract.ProtobufStructuredContentEx
 import io.apicurio.registry.protobuf.content.refs.ProtobufReferenceFinder;
 import io.apicurio.registry.protobuf.rules.compatibility.ProtobufCompatibilityChecker;
 import io.apicurio.registry.protobuf.rules.validity.ProtobufContentValidator;
-import io.apicurio.registry.rules.compatibility.AgentCardCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.McpToolCompatibilityChecker;
-import io.apicurio.registry.rules.validity.AgentCardContentValidator;
-import io.apicurio.registry.rules.validity.McpToolContentValidator;
+import io.apicurio.registry.rules.compatibility.*;
+import io.apicurio.registry.rules.validity.*;
+import io.apicurio.registry.thrift.content.ThriftContentAccepter;
+import io.apicurio.registry.thrift.content.canon.ThriftContentCanonicalizer;
+import io.apicurio.registry.thrift.content.extract.ThriftStructuredContentExtractor;
+import io.apicurio.registry.thrift.rules.validity.ThriftContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.wsdl.content.WsdlContentAccepter;
@@ -204,6 +214,55 @@ public class StandardArtifactTypeProviderRegistry {
                 .validator(() -> new IcebergContentValidator(false))
                 .extractor(() -> new IcebergContentExtractor(false))
                 .structuredContentExtractor(() -> new IcebergStructuredContentExtractor(false))
+                .build());
+        PROVIDERS.put(ArtifactType.OPENRPC, new ProviderConfig.Builder()
+                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))
+                .accepter(OpenRpcContentAccepter::new)
+                .canonicalizer(OpenRpcContentCanonicalizer::new)
+                .validator(OpenRpcContentValidator::new)
+                .extractor(OpenRpcContentExtractor::new)
+                .dereferencer(OpenRpcDereferencer::new)
+                .referenceFinder(OpenRpcReferenceFinder::new)
+                .supportsReferencesWithContext(true)
+                .build());
+        PROVIDERS.put(ArtifactType.MODEL_SCHEMA, new ProviderConfig.Builder()
+                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))
+                .accepter(ModelSchemaContentAccepter::new)
+                .compatibilityChecker(ModelSchemaCompatibilityChecker::new)
+                .canonicalizer(JsonContentCanonicalizer::new)
+                .validator(ModelSchemaContentValidator::new)
+                .extractor(ModelSchemaContentExtractor::new)
+                .dereferencer(ModelSchemaDereferencer::new)
+                .referenceFinder(ModelSchemaReferenceFinder::new)
+                .structuredContentExtractor(ModelSchemaStructuredContentExtractor::new)
+                .supportsReferencesWithContext(true)
+                .build());
+        PROVIDERS.put(ArtifactType.PROMPT_TEMPLATE, new ProviderConfig.Builder()
+                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML, ContentTypes.TEXT_PROMPT_TEMPLATE))
+                .accepter(PromptTemplateContentAccepter::new)
+                .compatibilityChecker(PromptTemplateCompatibilityChecker::new)
+                .canonicalizer(YamlContentCanonicalizer::new)
+                .validator(PromptTemplateContentValidator::new)
+                .extractor(PromptTemplateContentExtractor::new)
+                .dereferencer(PromptTemplateDereferencer::new)
+                .referenceFinder(PromptTemplateReferenceFinder::new)
+                .structuredContentExtractor(PromptTemplateStructuredContentExtractor::new)
+                .supportsReferencesWithContext(true)
+                .build());
+        PROVIDERS.put(ArtifactType.ODCS_CONTRACT, new ProviderConfig.Builder()
+                .contentTypes(Set.of(ContentTypes.APPLICATION_YAML))
+                .accepter(OdcsContractContentAccepter::new)
+                .compatibilityChecker(NoopCompatibilityChecker::new)
+                .canonicalizer(YamlContentCanonicalizer::new)
+                .validator(OdcsContractContentValidator::new)
+                .referenceFinder(OdcsContractReferenceFinder::new)
+                .build());
+        PROVIDERS.put(ArtifactType.THRIFT, new ProviderConfig.Builder()
+                .contentTypes(Set.of(ContentTypes.APPLICATION_THRIFT))
+                .accepter(ThriftContentAccepter::new)
+                .canonicalizer(ThriftContentCanonicalizer::new)
+                .validator(ThriftContentValidator::new)
+                .structuredContentExtractor(ThriftStructuredContentExtractor::new)
                 .build());
     }
 

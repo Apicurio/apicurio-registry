@@ -178,10 +178,11 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property                 | Default | Description                         |
-|--------------------------|---------|-------------------------------------|
-| `update.check-enabled`   | `true`  | Enable automatic update checks      |
-| `update.timeout-seconds` | `60`    | Timeout for update network requests |
+| Property                             | Default | Description                                                                                  |
+|---------------------------------------|---------|-----------------------------------------------------------------------------------------------|
+| `update.check-enabled`               | `true`  | Enable automatic update checks                                                               |
+| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                          |
+| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)  |
 
 #### Logging
 

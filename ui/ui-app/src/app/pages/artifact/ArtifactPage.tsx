@@ -59,6 +59,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [rules, setRules] = useState<Rule[]>([]);
+    const [ruleActionError, setRuleActionError] = useState<string>();
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState(false);
     const [versionToDelete, setVersionToDelete] = useState<SearchedVersion>();
@@ -121,36 +122,42 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
 
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[ArtifactPage] Enabling rule:", ruleType);
+        setRuleActionError(undefined);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error enabling "${ ruleType }" artifact rule.`));
+        groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
+            setRules([...rules, { config, ruleType: ruleType as RuleType }]);
+        }).catch(error => {
+            setRuleActionError(error?.message || `Error enabling "${ ruleType }" artifact rule. Please try again.`);
         });
-        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[ArtifactPage] Disabling rule:", ruleType);
-        groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).catch(error => {
-            setPageError(toPageError(error, `Error disabling "${ ruleType }" artifact rule.`));
+        setRuleActionError(undefined);
+        groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).then(() => {
+            setRules(rules.filter(r => r.ruleType !== ruleType));
+        }).catch(error => {
+            setRuleActionError(error?.message || `Error disabling "${ ruleType }" artifact rule. Please try again.`);
         });
-        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[ArtifactPage] Configuring rule:", ruleType, config);
-        groups.updateArtifactRule(groupId as string, artifactId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error configuring "${ ruleType }" artifact rule.`));
+        setRuleActionError(undefined);
+        groups.updateArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
+            setRules(rules.map(r => {
+                if (r.ruleType === ruleType) {
+                    return { config, ruleType: r.ruleType };
+                } else {
+                    return r;
+                }
+            }));
+        }).catch(error => {
+            setRuleActionError(error?.message || `Error configuring "${ ruleType }" artifact rule. Please try again.`);
         });
-        setRules(rules.map(r => {
-            if (r.ruleType === ruleType) {
-                return { config, ruleType: r.ruleType };
-            } else {
-                return r;
-            }
-        }));
     };
 
     const onDeleteModalClose = (): void => {
@@ -387,6 +394,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onEnableRule={doEnableRule}
                 onDisableRule={doDisableRule}
                 onConfigureRule={doConfigureRule}
+                actionError={ruleActionError}
+                onDismissActionError={() => setRuleActionError(undefined)}
             />
         </Tab>,
         <Tab data-testid="artifact-branches-tab" eventKey="branches" title="Branches" key="branches" tabContentId="tab-branches">

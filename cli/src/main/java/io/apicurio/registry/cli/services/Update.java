@@ -4,6 +4,7 @@ import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.PlatformUtils;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.ByteArrayInputStream;
@@ -15,8 +16,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -51,6 +54,20 @@ public class Update {
         }
     }
 
+    /**
+     * Opt-in escape hatch for private/custom repositories that don't publish {@code .sha256}
+     * sidecar files alongside the archive. Defaults to {@code false} so verification is
+     * fail-closed unless explicitly disabled.
+     */
+    private boolean isSkipChecksumVerification() {
+        try {
+            var value = config.read().getConfig().get("update.skip-checksum-verification");
+            return "true".equalsIgnoreCase(value);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public UpdateCheckResult checkForUpdates(CliVersion currentVersion) {
         var allVersions = fetchAvailableVersions();
         if (allVersions == null || allVersions.isEmpty()) {
@@ -70,8 +87,8 @@ public class Update {
                         v -> v.major() + "." + v.minor(),
                         Collectors.maxBy(CliVersion.COMPARATOR)))
                 .values().stream()
-                .filter(java.util.Optional::isPresent)
-                .map(java.util.Optional::get)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .sorted(CliVersion.COMPARATOR)
                 .collect(Collectors.toCollection(ArrayList::new));
 
@@ -148,8 +165,15 @@ public class Update {
     /**
      * Verifies the SHA-256 checksum of the downloaded content against the {@code .sha256} file
      * published alongside it in the repository, failing the update if they do not match.
+     * Skipped entirely when {@code update.skip-checksum-verification} is enabled, for custom
+     * repositories that don't publish checksum sidecar files.
      */
     private void verifyChecksum(String fileUri, byte[] content) {
+        if (isSkipChecksumVerification()) {
+            log.warn("Download integrity check skipped (update.skip-checksum-verification=true). "
+                    + "The downloaded archive will not be verified against a checksum.");
+            return;
+        }
         var checksumUri = fileUri + ".sha256";
         log.debugf("Verifying download integrity using: %s", checksumUri);
         // fetchBytes returns null (it does not throw) on any failure, so a missing or unreachable
@@ -188,12 +212,7 @@ public class Update {
     static String sha256Hex(byte[] content) {
         try {
             var digest = MessageDigest.getInstance("SHA-256").digest(content);
-            var sb = new StringBuilder(digest.length * 2);
-            for (var b : digest) {
-                sb.append(Character.forDigit((b >> 4) & 0xF, 16));
-                sb.append(Character.forDigit(b & 0xF, 16));
-            }
-            return sb.toString();
+            return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new CliException("SHA-256 algorithm is not available.", e, APPLICATION_ERROR_RETURN_CODE);
         }
@@ -220,7 +239,7 @@ public class Update {
 
             boolean ssl = "https".equals(uri.getScheme());
             int port = uri.getPort() != -1 ? uri.getPort() : (ssl ? 443 : 80);
-            var requestOptions = new io.vertx.core.http.RequestOptions()
+            var requestOptions = new RequestOptions()
                     .setMethod(HttpMethod.GET)
                     .setPort(port)
                     .setHost(uri.getHost())

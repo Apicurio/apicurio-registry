@@ -500,6 +500,60 @@ else
 fi
 
 # ============================================================
+# TEST 11: Checksum mismatch aborts the update
+# ============================================================
+
+info "--- Test 11: Checksum mismatch aborts the update ---"
+
+BAD_CHECKSUM_VERSION="3.9.0"
+BAD_CHECKSUM_REPO="$WORK_DIR/bad-checksum-repo"
+BAD_CHECKSUM_ARTIFACT_DIR="$BAD_CHECKSUM_REPO/$BAD_CHECKSUM_VERSION"
+mkdir -p "$BAD_CHECKSUM_ARTIFACT_DIR"
+
+BAD_CHECKSUM_ZIP="$BAD_CHECKSUM_ARTIFACT_DIR/apicurio-registry-cli-${BAD_CHECKSUM_VERSION}-${PLATFORM}.zip"
+cp "$CLI_ZIP" "$BAD_CHECKSUM_ZIP"
+# Publish a checksum that does not match the archive's real SHA-256 digest.
+echo "0000000000000000000000000000000000000000000000000000000000000" > "$BAD_CHECKSUM_ZIP.sha256"
+
+cat > "$BAD_CHECKSUM_REPO/maven-metadata.xml" <<XMLEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-cli</artifactId>
+  <versioning>
+    <latest>$BAD_CHECKSUM_VERSION</latest>
+    <release>$BAD_CHECKSUM_VERSION</release>
+    <versions>
+      <version>3.0.0</version>
+      <version>$BAD_CHECKSUM_VERSION</version>
+    </versions>
+  </versioning>
+</metadata>
+XMLEOF
+
+start_repo "$BAD_CHECKSUM_REPO"
+
+BEFORE_MTIME=$(stat -c %Y "$INSTALL_HOME/acr_runner" 2>/dev/null || stat -f %m "$INSTALL_HOME/acr_runner")
+sleep 1
+
+UPDATE_RC=0
+run_acr VERSION="3.0.0" update "$BAD_CHECKSUM_VERSION" || UPDATE_RC=$?
+
+AFTER_MTIME=$(stat -c %Y "$INSTALL_HOME/acr_runner" 2>/dev/null || stat -f %m "$INSTALL_HOME/acr_runner")
+
+if [[ "$UPDATE_RC" -ne 0 ]] && echo "$ACR_OUTPUT" | grep -qi "checksum"; then
+    pass "Update failed with a checksum verification error"
+else
+    fail "Expected update to fail with a checksum error. Exit code: $UPDATE_RC, output: $ACR_OUTPUT"
+fi
+
+if [[ "$AFTER_MTIME" == "$BEFORE_MTIME" ]]; then
+    pass "Binary was left untouched after checksum failure"
+else
+    fail "Binary was modified despite checksum verification failure"
+fi
+
+# ============================================================
 # Summary
 # ============================================================
 

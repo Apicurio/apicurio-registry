@@ -277,13 +277,8 @@ public class InstallCommand extends AbstractCommand {
         if (Files.exists(shellConfigPath)) {
             final String sourceCmd = "source " + binPath.resolve(ACR_ENV);
             if (!FileUtils.findInFile(shellConfigPath, sourceCmd)) {
-                try {
-                    Files.writeString(shellConfigPath, "\n" + sourceCmd + CLI_MARKER_COMMENT + "\n", StandardOpenOption.APPEND);
-                    log.debugf("Updated %s at: %s", shellConfigPath.getFileName(), shellConfigPath);
-                } catch (final IOException e) {
-                    log.errorf(e, "Failed to update %s at: %s", shellConfigPath.getFileName(), shellConfigPath);
-                    throw new RuntimeException(e);
-                }
+                Files.writeString(shellConfigPath, "\n" + sourceCmd + CLI_MARKER_COMMENT + "\n", StandardOpenOption.APPEND);
+                log.debugf("Updated %s at: %s", shellConfigPath.getFileName(), shellConfigPath);
             }
         } else {
             log.warnf("Could not update '%s'. File does not exist at: %s", shellConfigPath.getFileName(), shellConfigPath);

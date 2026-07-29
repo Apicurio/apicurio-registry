@@ -432,7 +432,6 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
                                 itemIsDivider={(item) => item.isDivider}
                                 itemToTestId={(item) => `create-draft-modal-${item.value}`}
                                 itemToString={(item) => item.label}
-                                appendTo="document"
                             />
                         </FormGroup>
                     </Form>

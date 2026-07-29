@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, MouseEvent, Ref, useEffect, useState } from "react";
 import "./CreateArtifactModal.css";
 import {
     FileUpload,
@@ -9,6 +9,12 @@ import {
     GridItem,
     HelperText,
     HelperTextItem,
+    Divider,
+    MenuToggle,
+    MenuToggleElement,
+    Select,
+    SelectList,
+    SelectOption,
     Tab,
     Tabs,
     TabTitleText,
@@ -22,7 +28,7 @@ import {
     Modal
 } from "@patternfly/react-core/deprecated";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
-import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
+import { If, UrlUpload } from "@apicurio/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";
@@ -113,6 +119,8 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const [artifactTypes, setArtifactTypes] = useState<any[]>([]);
     const [artifactTypeOptions, setArtifactTypeOptions] = useState<ArtifactTypeItem[]>([]);
     const [selectedType, setSelectedType] = useState<ArtifactTypeItem>(DEFAULT_ARTIFACT_TYPE);
+    const [isArtifactTypeSelectOpen, setArtifactTypeSelectOpen] = useState(false);
+    const [artifactTypeMenuHeight, setArtifactTypeMenuHeight] = useState(240);
     const [artifactLabels, setArtifactLabels] = useState<ArtifactLabel[]>([]);
     const [contentTabKey, setContentTabKey] = useState(0);
     const [contentIsLoading, setContentIsLoading] = useState(false);
@@ -137,6 +145,32 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
             artifactType: newArtifactType
         });
     };
+
+    const onArtifactTypeSelect = (_event: MouseEvent | undefined, item: ArtifactTypeItem | undefined): void => {
+        if (item && !item.isDivider) {
+            setSelectedType(item);
+        }
+        setArtifactTypeSelectOpen(false);
+    };
+
+    const artifactTypeToggle = (toggleRef: Ref<MenuToggleElement>) => (
+        <MenuToggle
+            ref={toggleRef}
+            className="menu-toggle"
+            onClick={(event) => {
+                const toggleBounds = event.currentTarget.getBoundingClientRect();
+                const availableBelow = window.innerHeight - toggleBounds.bottom - 16;
+                const availableAbove = toggleBounds.top - 16;
+                const availableHeight = availableBelow >= 160 ? availableBelow : Math.max(availableBelow, availableAbove);
+                setArtifactTypeMenuHeight(Math.min(240, Math.max(120, availableHeight)));
+                setArtifactTypeSelectOpen(!isArtifactTypeSelectOpen);
+            }}
+            isExpanded={isArtifactTypeSelectOpen}
+            data-testid="create-artifact-modal-type-select"
+        >
+            {selectedType.label}
+        </MenuToggle>
+    );
 
     const setArtifactName = (newName: string): void => {
         setData({
@@ -418,15 +452,36 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                             </If>
                         </FormGroup>
                         <FormGroup label="Type" fieldId="form-artifact-type" isRequired={true}>
-                            <ObjectSelect
-                                value={selectedType}
-                                items={artifactTypeOptions}
-                                testId="create-artifact-modal-type-select"
-                                onSelect={setSelectedType}
-                                itemIsDivider={(item) => item.isDivider}
-                                itemToTestId={(item) => `create-artifact-modal-${item.value}`}
-                                itemToString={(item) => item.label}
-                            />
+                            <Select
+                                id="create-artifact-modal-type-select"
+                                isOpen={isArtifactTypeSelectOpen}
+                                selected={selectedType}
+                                onSelect={onArtifactTypeSelect}
+                                onOpenChange={setArtifactTypeSelectOpen}
+                                toggle={artifactTypeToggle}
+                                maxMenuHeight={`${artifactTypeMenuHeight}px`}
+                                isScrollable
+                                popperProps={{
+                                    appendTo: () => document.body,
+                                    enableFlip: true,
+                                    preventOverflow: true
+                                }}
+                            >
+                                <SelectList>
+                                    {artifactTypeOptions.map((item, index) => item.isDivider ? (
+                                        <Divider component="li" key={`divider-${index}`} />
+                                    ) : (
+                                        <SelectOption
+                                            key={item.value}
+                                            value={item}
+                                            isSelected={item.value === selectedType.value}
+                                            data-testid={`create-artifact-modal-${item.value}`}
+                                        >
+                                            {item.label}
+                                        </SelectOption>
+                                    ))}
+                                </SelectList>
+                            </Select>
                             <FormHelperText>
                                 <HelperText>
                                     <HelperTextItem>Note: If "Auto-Detect" is chosen, Version Content will be required.</HelperTextItem>

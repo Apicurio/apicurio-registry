@@ -45,10 +45,11 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
           # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
           if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
-            # Prefer non-main branches to avoid resolving maintenance releases to main
-            # (the SHA may exist on both after post-release sync)
+            # Prefer maintenance branches (X.Y.x) over main to avoid resolving
+            # maintenance releases to main (the SHA may exist on both after post-release sync).
+            # Feature branches are ignored — only main and X.Y.x patterns are considered.
             ALL_BRANCHES=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ')
-            RESOLVED=$(echo "$ALL_BRANCHES" | grep -v '^main$' | head -1)
+            RESOLVED=$(echo "$ALL_BRANCHES" | grep -E '^[0-9]+\.[0-9]+\.x$' | head -1)
             if [ -z "$RESOLVED" ]; then
               RESOLVED=$(echo "$ALL_BRANCHES" | head -1)
             fi

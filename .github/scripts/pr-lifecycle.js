@@ -693,7 +693,7 @@ async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
     `A maintainer can use \`/auto-merge\` to merge automatically once approved and tested.`
   );
   core.info(`PR #${pr.number} accepted by ${actor}`);
-  await retriggerVerify(api, pr, core, { waitForRun: true });
+  await retriggerVerify(api, pr, core);
 }
 
 async function cmdReject(api, config, core, pr, actor, maintainer, reason, commentId) {

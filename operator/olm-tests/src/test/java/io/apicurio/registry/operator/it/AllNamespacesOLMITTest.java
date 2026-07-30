@@ -15,10 +15,15 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Verifies the AllNamespaces install mode: with an OperatorGroup that has no targetNamespaces,
- * OLM creates cluster-wide RBAC (ClusterRole + ClusterRoleBinding) and the operator watches all
- * namespaces. The operand is deployed into a namespace other than the operator's own, which is
- * only possible with cluster-wide workload permissions.
+ * Verifies the AllNamespaces install mode: with an OperatorGroup that has no targetNamespaces, the
+ * operator watches all namespaces. The operand is deployed into a namespace other than the
+ * operator's own, which is only possible with cluster-wide workload permissions.
+ * <p>
+ * This works even though the workload verbs live in the CSV's namespace-scoped {@code permissions}
+ * (from rbac/namespaced/role.yaml): in AllNamespaces mode the OperatorGroup targets all namespaces
+ * ({@code *}), and OLM promotes each CSV {@code permissions} rule to a ClusterRole +
+ * ClusterRoleBinding. In SingleNamespace mode the same rules are instead copied as Roles into the
+ * target namespace(s). See the OLM OperatorGroup RBAC docs.
  */
 @QuarkusTest
 @Tag(OLM)

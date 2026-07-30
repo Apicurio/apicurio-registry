@@ -1423,50 +1423,68 @@ async function postFlakyTestsSummary(github, owner, repo, workflowRun, prNumber,
       });
 
       const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'flaky-tests-'));
-      const zipPath = path.join(tmpDir, 'artifact.zip');
-      fs.writeFileSync(zipPath, Buffer.from(zip));
+      try {
+        const zipPath = path.join(tmpDir, 'artifact.zip');
+        fs.writeFileSync(zipPath, Buffer.from(zip));
 
-      const listing = execSync(`unzip -l "${zipPath}"`, { encoding: 'utf8' });
-      const entryLines = listing.split('\n').filter(l => l.includes('.json'));
-      let valid = true;
-      for (const line of entryLines) {
-        const entry = line.trim().split(/\s+/).pop();
-        if (entry.includes('..') || path.isAbsolute(entry)) {
-          core.warning(`Suspicious path in flaky-tests artifact zip: ${entry}, skipping`);
-          valid = false;
-          break;
-        }
-      }
-      if (!valid) continue;
-
-      execSync(`unzip -o "${zipPath}" -d "${tmpDir}"`, { stdio: 'ignore' });
-
-      const jsonFiles = fs.readdirSync(tmpDir).filter(f => f.endsWith('.json') && f !== 'artifact.zip');
-      for (const f of jsonFiles) {
-        const filePath = path.join(tmpDir, f);
-        try {
-          const raw = fs.readFileSync(filePath, 'utf8');
-          const tests = JSON.parse(raw);
-          if (Array.isArray(tests)) {
-            const source = artifact.name.substring('flaky-tests-'.length);
-            for (const t of tests) {
-              allFlakyTests.push({
-                source,
-                class: t.class || 'Unknown',
-                test: t.test || 'Unknown',
-                retries: t.retries || 0,
-                details: t.details || []
-              });
+        const listing = execSync(`unzip -l "${zipPath}"`, { encoding: 'utf8' });
+        const lines = listing.split('\n');
+        let inEntries = false;
+        const entries = [];
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('---------')) {
+            inEntries = !inEntries;
+            continue;
+          }
+          if (inEntries) {
+            const parts = trimmed.split(/\s+/);
+            if (parts.length >= 4) {
+              const entryName = parts.slice(3).join(' ');
+              entries.push(entryName);
             }
           }
-        } catch (e) {
-          core.warning(`Failed to parse json file ${f}: ${e.message}`);
         }
-      }
 
-      try {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      } catch (e) {}
+        let valid = true;
+        for (const entry of entries) {
+          if (entry.includes('..') || path.isAbsolute(entry)) {
+            core.warning(`Suspicious path in flaky-tests artifact zip: ${entry}, skipping`);
+            valid = false;
+            break;
+          }
+        }
+        if (!valid) continue;
+
+        execSync(`unzip -o "${zipPath}" -d "${tmpDir}"`, { stdio: 'ignore' });
+
+        const jsonFiles = fs.readdirSync(tmpDir).filter(f => f.endsWith('.json') && f !== 'artifact.zip');
+        for (const f of jsonFiles) {
+          const filePath = path.join(tmpDir, f);
+          try {
+            const raw = fs.readFileSync(filePath, 'utf8');
+            const tests = JSON.parse(raw);
+            if (Array.isArray(tests)) {
+              const source = artifact.name.substring('flaky-tests-'.length);
+              for (const t of tests) {
+                allFlakyTests.push({
+                  source,
+                  class: t.class || 'Unknown',
+                  test: t.test || 'Unknown',
+                  retries: t.retries || 0,
+                  details: t.details || []
+                });
+              }
+            }
+          } catch (e) {
+            core.warning(`Failed to parse json file ${f}: ${e.message}`);
+          }
+        }
+      } finally {
+        try {
+          fs.rmSync(tmpDir, { recursive: true, force: true });
+        } catch (e) {}
+      }
     }
 
     if (allFlakyTests.length === 0) {

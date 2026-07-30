@@ -38,7 +38,7 @@ public abstract class OLMITBase implements OperatorTestContext {
     public static final String PROJECT_VERSION_PROP = OLMTestUtils.PROJECT_VERSION_PROP;
     public static final String PROJECT_ROOT_PROP = OLMTestUtils.PROJECT_ROOT_PROP;
     public static final String CATALOG_IMAGE_PROP = OLMTestUtils.CATALOG_IMAGE_PROP;
-    public static final String OML_VERSION = OLMTestUtils.OLM_VERSION_PROP;
+    public static final String OLM_VERSION = OLMTestUtils.OLM_VERSION_PROP;
 
     protected KubernetesClient client;
     protected String namespace;
@@ -87,8 +87,16 @@ public abstract class OLMITBase implements OperatorTestContext {
         return "olmv0/operator-group.yaml";
     }
 
+    /**
+     * The configured OLM version this test run targets (0 for OLM v0, 1 for OLM v1). CI runs the
+     * OLM-tagged tests in both modes. Tests with mode-specific assumptions can use this to skip.
+     */
+    protected int getOlmVersion() {
+        return ConfigProvider.getConfig().getOptionalValue(OLM_VERSION, Integer.class).orElse(0);
+    }
+
     private void setupOLMResources() throws Exception {
-        int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
+        int olmVersion = ConfigProvider.getConfig().getOptionalValue(OLM_VERSION, Integer.class).orElse(0);
         if (olmVersion == 0) {
 
             if (client.apiextensions().v1().customResourceDefinitions().withName("catalogsources.operators.coreos.com").get() == null) {
@@ -220,7 +228,7 @@ public abstract class OLMITBase implements OperatorTestContext {
     @AfterAll
     public void afterAll() throws IOException {
         if (cleanup) {
-            int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
+            int olmVersion = ConfigProvider.getConfig().getOptionalValue(OLM_VERSION, Integer.class).orElse(0);
             if (olmVersion == 0) {
                 deleteResource("olmv0/subscription.yaml");
                 deleteResource(getOperatorGroupResourcePath());

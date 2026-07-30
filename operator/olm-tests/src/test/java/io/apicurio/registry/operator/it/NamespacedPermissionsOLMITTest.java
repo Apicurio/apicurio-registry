@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Negative test for the SingleNamespace/OwnNamespace install mode.
@@ -37,6 +38,11 @@ public class NamespacedPermissionsOLMITTest extends OLMITBase {
 
     @RetryTest
     void workloadPermissionsAreNamespaceScoped() {
+        // This asserts the SingleNamespace (OLM v0) boundary. In OLM v1 the operator is installed
+        // via the installer ClusterRole which grants workload access cluster-wide, so the
+        // SubjectAccessReview would be allowed and this negative assertion would not hold.
+        assumeTrue(getOlmVersion() == 0, "Namespace-scoped permission boundary test only applies to OLM v0");
+
         // Wait for the operator to be ready first.
         var projectVersion = ConfigProvider.getConfig().getValue(PROJECT_VERSION_PROP, String.class);
         await().ignoreExceptions().untilAsserted(() -> {

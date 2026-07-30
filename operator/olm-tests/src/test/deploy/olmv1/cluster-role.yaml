@@ -84,14 +84,15 @@ rules:
 
     # Operator permissions (transitive):
 
+  # Kept in sync with the operator's runtime permissions in
+  # controller/src/main/deploy/rbac/namespaced (cluster-role.yaml get/list/watch +
+  # role.yaml patch/update). The operator never creates or deletes the CR.
   - apiGroups:
       - registry.apicur.io
     resources:
       - apicurioregistries3
       - apicurioregistries3/status
     verbs:
-      - create
-      - delete
       - get
       - list
       - patch

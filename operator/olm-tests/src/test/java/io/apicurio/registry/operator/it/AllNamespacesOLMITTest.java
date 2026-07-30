@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Verifies the AllNamespaces install mode: with an OperatorGroup that has no targetNamespaces,
@@ -32,6 +33,11 @@ public class AllNamespacesOLMITTest extends OLMITBase {
 
     @RetryTest
     void operandDeploysInAnotherNamespace() {
+        // OperatorGroups (and the AllNamespaces install mode via empty targetNamespaces) are an
+        // OLM v0 concept. In v1 mode setupOLMResources() ignores getOperatorGroupResourcePath(),
+        // so this test only applies to OLM v0.
+        assumeTrue(getOlmVersion() == 0, "AllNamespaces OperatorGroup test only applies to OLM v0");
+
         // Wait for the operator to be ready first.
         var projectVersion = ConfigProvider.getConfig().getValue(PROJECT_VERSION_PROP, String.class);
         await().ignoreExceptions().untilAsserted(() -> {

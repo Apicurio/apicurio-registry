@@ -680,12 +680,17 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         return sqlStore.getArtifactContractRuleset(groupId, artifactId);
     }
 
+    private void fireContractOutboxEvent(OutboxEvent event) {
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(event));
+    }
+
     @Override
     public void setArtifactContractRuleset(String groupId, String artifactId,
             ContractRuleSetDto ruleset) throws RegistryStorageException {
         var message = new SetArtifactContractRuleset3Message(groupId, artifactId, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractRulesetConfigured.of(groupId, artifactId, null, "SET"));
     }
 
     @Override
@@ -694,6 +699,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteArtifactContractRuleset2Message(groupId, artifactId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractRulesetConfigured.of(groupId, artifactId, null, "DELETE"));
     }
 
     @Override
@@ -708,6 +714,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetVersionContractRuleset4Message(groupId, artifactId, version, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractRulesetConfigured.of(groupId, artifactId, version, "SET"));
     }
 
     @Override
@@ -716,6 +723,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteVersionContractRuleset3Message(groupId, artifactId, version);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractRulesetConfigured.of(groupId, artifactId, version, "DELETE"));
     }
 
     @Override
@@ -734,12 +742,30 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     public void setGlobalContractRuleset(io.apicurio.registry.storage.dto.ContractRuleSetDto ruleset)
             throws RegistryStorageException {
         sqlStore.setGlobalContractRuleset(ruleset);
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractRulesetConfigured.of("__GLOBAL__", "__GLOBAL__", null, "SET"));
     }
 
     @Override
     public void deleteGlobalContractRuleset() throws RegistryStorageException {
         sqlStore.deleteGlobalContractRuleset();
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractRulesetConfigured.of("__GLOBAL__", "__GLOBAL__", null, "DELETE"));
     }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        mergeArtifactLabels(groupId, artifactId, prefix, labels);
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractMetadataUpdated.of(groupId, artifactId));
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String prevStatus,
+            String targetStatus, String prefix, Map<String, String> statusLabels) throws RegistryStorageException {
+        mergeArtifactLabels(groupId, artifactId, prefix, statusLabels);
+        fireContractOutboxEvent(io.apicurio.registry.events.ContractStatusChanged.of(groupId, artifactId, prevStatus, targetStatus));
+    }
+
+
 
     @Override
     public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry)

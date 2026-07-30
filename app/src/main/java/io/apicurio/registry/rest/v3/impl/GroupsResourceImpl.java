@@ -180,9 +180,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     io.apicurio.registry.contracts.migration.MigrationRuleService migrationRuleService;
 
     @Inject
-    jakarta.enterprise.event.Event<io.apicurio.registry.storage.impl.sql.SqlOutboxEvent> contractOutboxEvent;
-
-    @Inject
     io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
 
     /**
@@ -2003,12 +2000,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Convert editable metadata to namespaced labels
         Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto, prefix);
 
-        // Atomic merge scoped to the contract prefix
-        storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
-
-        // Fire metadata updated event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId)));
+        // Atomic merge scoped to the contract prefix and fire outbox event in storage layer
+        storage.updateContractMetadata(rawGroupId, artifactId, prefix, contractLabels);
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2137,29 +2130,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String prefix = contractId != null
                 ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
 
-        // Update status label
+        // Collect status and lifecycle date labels to merge
+        Map<String, String> statusLabels = new java.util.LinkedHashMap<>();
         String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
-        storage.mergeArtifactLabels(rawGroupId, artifactId, statusKey,
-                Map.of(statusKey, targetStatus.name()));
+        statusLabels.put(statusKey, targetStatus.name());
 
-        // Update lifecycle date labels
         if (targetStatus == ContractStatus.STABLE) {
             String key = prefix + ContractLabels.SUFFIX_STABLE_DATE;
-            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
-                    Map.of(key, java.time.LocalDate.now().toString()));
+            statusLabels.put(key, java.time.LocalDate.now().toString());
         }
         if (targetStatus == ContractStatus.DEPRECATED) {
             String key = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
-            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
-                    Map.of(key, java.time.LocalDate.now().toString()));
+            statusLabels.put(key, java.time.LocalDate.now().toString());
         }
 
-        // Fire status changed event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
-                        currentMetadata.getStatus() != null
-                                ? currentMetadata.getStatus().name() : null,
-                        targetStatus.name())));
+        String prevStatusStr = currentMetadata.getStatus() != null
+                ? currentMetadata.getStatus().name() : null;
+
+        // Delegate status transition and outbox event firing to storage layer in 1 atomic merge
+        storage.transitionContractStatus(rawGroupId, artifactId, prevStatusStr, targetStatus.name(), prefix, statusLabels);
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

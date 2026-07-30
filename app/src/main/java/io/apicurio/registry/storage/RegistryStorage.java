@@ -554,6 +554,22 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Updates contract metadata and fires contract metadata updated outbox event.
+     */
+    default void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        mergeArtifactLabels(groupId, artifactId, prefix, labels);
+    }
+
+    /**
+     * Transitions contract status and fires contract status changed outbox event.
+     */
+    default void transitionContractStatus(String groupId, String artifactId, String prevStatus,
+            String targetStatus, String prefix, Map<String, String> statusLabels) throws RegistryStorageException {
+        mergeArtifactLabels(groupId, artifactId, prefix, statusLabels);
+    }
+
+    /**
      * Atomically merges labels into an artifact version: deletes all labels matching the
      * prefix, then inserts the provided labels.
      */

@@ -902,6 +902,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix, Map<String, String> labels)
+            throws RegistryStorageException {
+        mergeArtifactLabels(groupId, artifactId, prefix, labels);
+        outboxEvent.fire(SqlOutboxEvent.of(
+                io.apicurio.registry.events.ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String prevStatus, String targetStatus,
+            String prefix, Map<String, String> statusLabels) throws RegistryStorageException {
+        mergeArtifactLabels(groupId, artifactId, prefix, statusLabels);
+        outboxEvent.fire(SqlOutboxEvent.of(
+                io.apicurio.registry.events.ContractStatusChanged.of(groupId, artifactId, prevStatus, targetStatus)));
+    }
+
+    @Override
     public void insertContractAuditEntry(ContractAuditEntryDto entry) throws RegistryStorageException {
         contractAuditRepository.insertAuditEntry(entry);
     }

@@ -524,4 +524,16 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
                                                                   String version) {
         return delegate.getDeprecationReadiness(groupId, artifactId, version);
     }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix, Map<String, String> labels)
+            throws RegistryStorageException {
+        delegate.updateContractMetadata(groupId, artifactId, prefix, labels);
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String prevStatus, String targetStatus,
+            String prefix, Map<String, String> statusLabels) throws RegistryStorageException {
+        delegate.transitionContractStatus(groupId, artifactId, prevStatus, targetStatus, prefix, statusLabels);
+    }
 }

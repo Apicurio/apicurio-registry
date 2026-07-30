@@ -7,6 +7,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
@@ -16,6 +17,9 @@ import java.util.Properties;
  */
 public class KafkaFacade implements AutoCloseable {
     static final Logger LOGGER = LoggerFactory.getLogger(KafkaFacade.class);
+
+    private static final int STARTUP_ATTEMPTS = 3;
+    private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(3);
 
     private AdminClient client;
 
@@ -72,9 +76,11 @@ public class KafkaFacade implements AutoCloseable {
                 .withAdditionalKafkaConfiguration(Map.of(
                         "transaction.state.log.replication.factor", "1",
                         "transaction.state.log.min.isr", "1"))
-                .build();
-        kafkaContainer.start();
-
+                .build()
+                .withStartupAttempts(STARTUP_ATTEMPTS)
+                .withStartupTimeout(STARTUP_TIMEOUT);
+        
+        this.kafkaContainer.start();
     }
 
     public void stopIfPossible() throws Exception {

@@ -437,7 +437,16 @@ async function migrateLegacyLabels(api, pr, core) {
   if (!hasLegacyWip) return false;
 
   await api.removeLabel(pr.number, LEGACY_WIP_LABEL);
-  await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
+
+  // Draft + auto-accepted used to be the standard lifecycle/wip combination.
+  // Drafts are outside the lifecycle now, so drop the legacy label without
+  // promoting — the PR enters lifecycle/new when it is marked ready for review.
+  if (pr.draft) {
+    core.info(`PR #${pr.number} is a draft — removed legacy lifecycle/wip without promoting`);
+    return true;
+  }
+
+  await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.postComment(pr.number,
     `**Lifecycle update:** the \`lifecycle/wip\` stage has been removed. This PR has been ` +

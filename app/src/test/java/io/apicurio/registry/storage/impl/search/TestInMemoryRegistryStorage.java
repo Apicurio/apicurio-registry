@@ -17,10 +17,12 @@ import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
 import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
+import io.apicurio.registry.storage.dto.ContractStatus;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableContractMetadataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -962,6 +964,18 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteArtifactContractRuleset(String groupId, String artifactId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String contractId,
+            EditableContractMetadataDto metadata) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String contractId,
+            ContractStatus fromStatus, ContractStatus toStatus, String transitionDate) {
         throw new UnsupportedOperationException();
     }
 

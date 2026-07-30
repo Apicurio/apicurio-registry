@@ -18,6 +18,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableContractMetadataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -30,6 +31,7 @@ import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContractAuditEntryDto;
 import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
+import io.apicurio.registry.storage.dto.ContractStatus;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
 import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
@@ -513,6 +515,19 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException;
+
+    /**
+     * Updates the metadata for an artifact contract.
+     */
+    void updateContractMetadata(String groupId, String artifactId, String contractId,
+            EditableContractMetadataDto metadata) throws RegistryStorageException;
+
+    /**
+     * Transitions an artifact contract to a new status.
+     */
+    void transitionContractStatus(String groupId, String artifactId, String contractId,
+            ContractStatus fromStatus, ContractStatus toStatus, String transitionDate)
             throws RegistryStorageException;
 
     /**

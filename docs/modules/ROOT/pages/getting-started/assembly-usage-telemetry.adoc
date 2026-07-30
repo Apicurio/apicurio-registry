@@ -26,8 +26,8 @@ Usage telemetry answers key governance questions:
 
 Usage tracking is **server-side** and **zero-configuration for the client**. The registry records usage events automatically when it serves schema content. Clients opt in by setting an HTTP header that identifies the application:
 
-* `X-Registry-Client-Id` — identifies the client application (e.g., `payments-svc`). Must contain only letters, digits, dots, hyphens, and underscores. Maximum 256 characters.
-* `X-Registry-Operation` — optional, the operation type: `SERIALIZE` or `DESERIALIZE`.
+`X-Registry-Client-Id`:: Identifies the client application (for example, `payments-svc`). Must contain only letters, digits, dots, hyphens, and underscores. Maximum 256 characters.
+`X-Registry-Operation`:: Optional. The operation type: `SERIALIZE` or `DESERIALIZE`.
 
 If no `X-Registry-Client-Id` header is present, the request is not tracked.
 
@@ -82,7 +82,7 @@ The registry server exposes the following properties to configure usage telemetr
 |`apicurio.usage.aggregation.every`
 |duration
 |`1h`
-|How often the usage metrics are refreshed and old events are cleaned up. Uses Quarkus scheduler expression syntax (e.g., `1h`, `30m`, `10s`).
+|How often the usage metrics are refreshed and old events are cleaned up. Uses Quarkus scheduler expression syntax (for example, `1h`, `30m`, or `10s`).
 |===
 
 [id="ref-usage-telemetry-client-configuration_{context}"]
@@ -131,7 +131,7 @@ apicurio.registry.url=http://registry:8080/apis/registry/v3
 apicurio.registry.usage-telemetry.client-id=payments-svc
 ----
 +
-That's it — no additional endpoints to call, no buffers to configure.
+No additional endpoints to call and no buffers to configure are required.
 +
 All usage endpoints are under `/admin/usage/` and require `apicurio.usage.telemetry.enabled=true`. Endpoints return HTTP 409 (Conflict) when telemetry is not enabled.
 
@@ -261,10 +261,10 @@ Apicurio Registry supports a version lifecycle state machine for controlled depr
      ◀───────────────────────────────────┘
 ----
 
-* **ENABLED** — Version is active and available for use.
-* **DEPRECATED** — Version still works but consumers should migrate. A warning is logged on access.
-* **SUNSET** — Migration deadline has passed. The version will be removed soon. Requires transitioning through DEPRECATED first.
-* **DISABLED** — Version is blocked from use.
+`ENABLED`:: Version is active and available for use.
+`DEPRECATED`:: Version still works but consumers should migrate. A warning is logged on access.
+`SUNSET`:: Migration deadline has passed. The version will be removed soon. Requires transitioning through `DEPRECATED` first.
+`DISABLED`:: Version is blocked from use.
 
 .Prerequisites
 * No active consumers depend on the version, verified by using the deprecation readiness endpoint.
@@ -296,13 +296,15 @@ curl -X PUT http://localhost:8080/apis/registry/v3/groups/default/artifacts/User
 [role="_abstract"]
 When usage telemetry is enabled, the registry UI displays the following elements.
 
-* **Dashboard widget** — Shows Active/Stale/Dead counts with colored labels (green/orange/red).
-* **Version badges** — Each version in the artifact versions table shows its usage classification badge.
-* **Usage tab** — The artifact detail page has a "Usage" tab with:
-  ** Consumer version heatmap table with color-coded fetch counts.
-  ** Version drift alerts for consumers using outdated versions.
-  ** Deprecation readiness panel (click a version column header to check).
-* **SUNSET badge** — Versions in the SUNSET state display a purple badge.
+Dashboard widget:: Shows Active/Stale/Dead counts with colored labels (green/orange/red).
+Version badges:: Each version in the artifact versions table shows its usage classification badge.
+Usage tab:: The artifact detail page has a "Usage" tab with the following panels:
++
+* Consumer version heatmap table with color-coded fetch counts.
+* Version drift alerts for consumers using outdated versions.
+* Deprecation readiness panel (click a version column header to check).
+
+SUNSET badge:: Versions in the `SUNSET` state display a purple badge.
 
 [id="ref-usage-telemetry-opentelemetry-metrics-export_{context}"]
 == OpenTelemetry metrics export
@@ -367,12 +369,12 @@ apicurio_usage_schemas_active or apicurio_usage_schemas_stale or apicurio_usage_
 [role="_abstract"]
 Usage telemetry is designed to minimize data collection and give operators and clients control over what is recorded.
 
-* **Opt-in only** — Disabled by default on both server and client.
-* **No message content** — Only schema coordinates and client identifier are recorded.
-* **No user identity** — The `clientId` is a configured application name, not a user or personal identifier.
-* **Client-controlled** — Each client application decides whether to set the `X-Registry-Client-Id` header.
-* **Zero overhead when disabled** — No headers sent, no events recorded, no database writes.
-* **Automatic cleanup** — Events older than the retention period are deleted automatically.
+Opt-in only:: Disabled by default on both server and client.
+No message content:: Only schema coordinates and the client identifier are recorded.
+No user identity:: The `clientId` is a configured application name, not a user or personal identifier.
+Client-controlled:: Each client application decides whether to set the `X-Registry-Client-Id` header.
+Zero overhead when disabled:: No headers are sent, no events are recorded, and no database writes occur.
+Automatic cleanup:: Events older than the retention period are deleted automatically.
 
 [id="proc-usage-telemetry-demo-script_{context}"]
 == Running the usage telemetry demo script

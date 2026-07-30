@@ -26,10 +26,10 @@ Events follow the *outbox pattern*: they are produced as part of the same transa
 
 Typical use cases for registry events include:
 
-* *Auditing and compliance* -- Track every change to schemas and API definitions.
-* *CI/CD automation* -- Trigger pipeline runs when a new artifact version is registered.
-* *Cache invalidation* -- Notify downstream services when a schema changes.
-* *Event-driven architectures* -- React to registry state changes in real time.
+Auditing and compliance:: Track every change to schemas and API definitions.
+CI/CD automation:: Trigger pipeline runs when a new artifact version is registered.
+Cache invalidation:: Notify downstream services when a schema changes.
+Event-driven architectures:: React to registry state changes in real time.
 
 NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQL storage. MySQL and H2 do not support the outbox table. KafkaSQL supports events natively.
 
@@ -185,7 +185,7 @@ The event system uses CDI (Contexts and Dependency Injection) events internally 
 The following diagram shows the event flow from a storage operation to external consumers:
 
 ----
-Storage operation (e.g., createArtifact)
+Storage operation (for example, createArtifact)
        |
        v
   Fire CDI event

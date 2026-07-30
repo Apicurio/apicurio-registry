@@ -26,6 +26,8 @@ import static java.util.Objects.requireNonNull;
  * - Changing an existing parameter's type: Backward incompatible
  * - Narrowing an existing parameter's enum: Backward incompatible
  * - Narrowing an existing parameter's enum relative to the prior version: Forward incompatible
+ * - Adding enum values or widening JSON Schema type unions (e.g. {@code string} to
+ *   {@code ["string","null"]}): Forward compatible under {@code FORWARD}/{@code FULL}
  * - Changing name, title, description, annotations: Always compatible
  */
 public class McpToolCompatibilityChecker

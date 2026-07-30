@@ -770,10 +770,13 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public void transitionContractStatus(String groupId, String artifactId, String prevStatus,
-            String targetStatus, String prefix, Map<String, String> statusLabels) throws RegistryStorageException {
-        mergeArtifactLabels(groupId, artifactId, prefix, statusLabels);
+            String targetStatus, Map<String, String> statusLabels) throws RegistryStorageException {
+        for (Map.Entry<String, String> entry : statusLabels.entrySet()) {
+            mergeArtifactLabels(groupId, artifactId, entry.getKey(), Map.of(entry.getKey(), entry.getValue()));
+        }
         fireContractOutboxEvent(io.apicurio.registry.events.ContractStatusChanged.of(groupId, artifactId, prevStatus, targetStatus));
     }
+
 
 
 

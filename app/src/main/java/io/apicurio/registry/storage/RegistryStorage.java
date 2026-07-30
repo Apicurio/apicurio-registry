@@ -565,9 +565,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * Transitions contract status and fires contract status changed outbox event.
      */
     default void transitionContractStatus(String groupId, String artifactId, String prevStatus,
-            String targetStatus, String prefix, Map<String, String> statusLabels) throws RegistryStorageException {
-        mergeArtifactLabels(groupId, artifactId, prefix, statusLabels);
+            String targetStatus, Map<String, String> statusLabels) throws RegistryStorageException {
+        for (Map.Entry<String, String> entry : statusLabels.entrySet()) {
+            mergeArtifactLabels(groupId, artifactId, entry.getKey(), Map.of(entry.getKey(), entry.getValue()));
+        }
     }
+
 
     /**
      * Atomically merges labels into an artifact version: deletes all labels matching the

@@ -451,6 +451,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 </FormHelperText>
                             </If>
                         </FormGroup>
+                        <FormGroup label="Type" fieldId="form-artifact-type" isRequired={true}>
                             <Select
                                 id="create-artifact-modal-type-select"
                                 isOpen={isArtifactTypeSelectOpen}

@@ -2153,8 +2153,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String prevStatusStr = currentMetadata.getStatus() != null
                 ? currentMetadata.getStatus().name() : null;
 
-        // Delegate status transition and outbox event firing to storage layer in 1 atomic merge
-        storage.transitionContractStatus(rawGroupId, artifactId, prevStatusStr, targetStatus.name(), prefix, statusLabels);
+        // Delegate status transition and outbox event firing to storage layer
+        storage.transitionContractStatus(rawGroupId, artifactId, prevStatusStr, targetStatus.name(), statusLabels);
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

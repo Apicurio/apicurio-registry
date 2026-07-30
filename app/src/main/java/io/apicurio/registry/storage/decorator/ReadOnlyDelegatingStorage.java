@@ -533,7 +533,7 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
 
     @Override
     public void transitionContractStatus(String groupId, String artifactId, String prevStatus, String targetStatus,
-            String prefix, Map<String, String> statusLabels) throws RegistryStorageException {
-        delegate.transitionContractStatus(groupId, artifactId, prevStatus, targetStatus, prefix, statusLabels);
+            Map<String, String> statusLabels) throws RegistryStorageException {
+        delegate.transitionContractStatus(groupId, artifactId, prevStatus, targetStatus, statusLabels);
     }
 }

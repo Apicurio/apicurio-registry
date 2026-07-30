@@ -201,10 +201,12 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const onFileTextChange = (_event: any, value: string | undefined): void => {
         // Auto-detect the version from the content (e.g. "info.version" in an OpenAPI or
         // AsyncAPI spec), but only while the user has not edited the version themselves.
+        // When nothing is detected (non-spec content, or content that is transiently
+        // unparseable mid-edit) the previous value is preserved rather than cleared.
         // The functional update matters: this handler can be called asynchronously (URL
         // fetch, file read), so spreading a captured `data` could clobber newer state.
         const detectedVersion: string | undefined = detectVersionInContent(value);
-        const applyDetectedVersion: boolean = !versionIsDirty.current;
+        const applyDetectedVersion: boolean = !versionIsDirty.current && detectedVersion !== undefined;
         setData(prevData => ({
             ...prevData,
             firstVersion: {
@@ -237,13 +239,13 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         // The user edited the version (including clearing it): stop auto-detecting.
         versionIsDirty.current = true;
         setAutoDetectedVersion(undefined);
-        setData({
-            ...data,
+        setData(prevData => ({
+            ...prevData,
             firstVersion: {
-                ...data.firstVersion,
+                ...prevData.firstVersion,
                 version: newVersion
             }
-        });
+        }));
     };
 
     const setVersionName = (newName: string): void => {

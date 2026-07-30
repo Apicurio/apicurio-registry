@@ -51,9 +51,11 @@ export const CreateVersionModal: FunctionComponent<CreateVersionModalProps> = (p
     const onContentChange = (_event: any, value: any): void => {
         // Auto-detect the version from the content (e.g. "info.version" in an OpenAPI or
         // AsyncAPI spec), but only while the user has not edited the version themselves.
+        // When nothing is detected (non-spec content, or content that is transiently
+        // unparseable mid-edit) the previous value is preserved rather than cleared.
         const detectedVersion: string | undefined = detectVersionInContent(value);
-        if (!versionIsDirty.current) {
-            setVersion(detectedVersion || "");
+        if (!versionIsDirty.current && detectedVersion !== undefined) {
+            setVersion(detectedVersion);
             setAutoDetectedVersion(detectedVersion);
         }
         setContent(value);

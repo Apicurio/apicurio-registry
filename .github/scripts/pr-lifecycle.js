@@ -438,9 +438,7 @@ async function migrateLegacyLabels(api, pr, core) {
 
   await api.removeLabel(pr.number, LEGACY_WIP_LABEL);
 
-  // Draft + auto-accepted used to be the standard lifecycle/wip combination.
-  // Drafts are outside the lifecycle now, so drop the legacy label without
-  // promoting — the PR enters lifecycle/new when it is marked ready for review.
+  // Drafts are outside the lifecycle now — just drop the legacy label.
   if (pr.draft) {
     core.info(`PR #${pr.number} is a draft — removed legacy lifecycle/wip without promoting`);
     return true;
@@ -1320,9 +1318,9 @@ async function handleStale({ github, context, core }) {
   const config = loadConfig();
   const daysUntilStale = config.stale?.days_until_stale || 7;
   const daysUntilClose = config.stale?.days_until_close || 14;
-  // PRs blocked on the author get a shorter total timeout — they're explicitly
-  // waiting on contributor action and reviewers have already invested time,
-  // so a faster close reduces wasted attention on abandoned PRs.
+  // PRs blocked on the author warn and close sooner (4/7 vs 7/14), but keep
+  // the same 3-day grace after the warning.
+  const daysUntilStaleWaitingOnAuthor = config.stale?.days_until_stale_waiting_on_author || 4;
   const daysUntilCloseWaitingOnAuthor = config.stale?.days_until_close_waiting_on_author || 7;
   const now = new Date();
 
@@ -1349,6 +1347,10 @@ async function handleStale({ github, context, core }) {
     const updatedAt = new Date(pr.updated_at);
     const daysSinceUpdate = (now - updatedAt) / (1000 * 60 * 60 * 24);
 
+    const isWaitingOnAuthor = hasLabel(pr, LABELS.WAITING_ON_AUTHOR);
+    const effectiveDaysUntilStale = isWaitingOnAuthor ? daysUntilStaleWaitingOnAuthor : daysUntilStale;
+    const effectiveDaysUntilClose = isWaitingOnAuthor ? daysUntilCloseWaitingOnAuthor : daysUntilClose;
+
     if (hasLabel(pr, LABELS.STALE)) {
       const { data: events } = await github.rest.issues.listEventsForTimeline({
         owner, repo, issue_number: pr.number, per_page: 100,
@@ -1370,24 +1372,21 @@ async function handleStale({ github, context, core }) {
                e.event === 'head_ref_force_pushed';
       });
 
-      const effectiveDaysUntilClose = hasLabel(pr, LABELS.WAITING_ON_AUTHOR)
-        ? daysUntilCloseWaitingOnAuthor
-        : daysUntilClose;
-
+      // pr is a snapshot from before this run, so a PR can't hit both the
+      // "just went stale" and "already stale" branches in the same pass.
       if (hasActivity) {
         await api.removeLabel(pr.number, LABELS.STALE);
         core.info(`PR #${pr.number} stale removed (activity detected)`);
-      } else if (daysSinceStale >= (effectiveDaysUntilClose - daysUntilStale)) {
+      } else if (daysSinceStale >= (effectiveDaysUntilClose - effectiveDaysUntilStale)) {
         const closeMessage = (config.stale?.close_message || 'Closing due to inactivity.')
           .replace(/\{author\}/g, pr.user.login);
         await api.postComment(pr.number, closeMessage);
         await api.closePr(pr.number);
         core.info(`PR #${pr.number} closed due to extended inactivity`);
       }
-    } else if (daysSinceUpdate >= daysUntilStale) {
+    } else if (daysSinceUpdate >= effectiveDaysUntilStale) {
       await api.addLabel(pr.number, LABELS.STALE);
-      // waiting-on-author PRs may close almost immediately — tell the author
-      const graceDays = Math.max(0, (hasLabel(pr, LABELS.WAITING_ON_AUTHOR) ? daysUntilCloseWaitingOnAuthor : daysUntilClose) - daysUntilStale);
+      const graceDays = Math.max(0, effectiveDaysUntilClose - effectiveDaysUntilStale);
       const closeWindow = graceDays <= 0
         ? 'as soon as the next check'
         : `in ${graceDays} more day${graceDays === 1 ? '' : 's'}`;

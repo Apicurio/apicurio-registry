@@ -20,12 +20,14 @@ merge:
 stale:
   days_until_stale: 7
   days_until_close: 14
-  # PRs blocked on the author (lifecycle/waiting-on-author) close after this
-  # many total days instead — they're explicitly stalled on contributor
-  # action and reviewers have already invested time.
+  # PRs blocked on the author (lifecycle/waiting-on-author) get an earlier
+  # stale warning and a shorter total close timeout — they're explicitly
+  # stalled on contributor action and reviewers have already invested time.
+  # 4/7 keeps the same 3-day post-warning grace as the 7/14 default pair.
+  days_until_stale_waiting_on_author: 4
   days_until_close_waiting_on_author: 7
   stale_message: |
-    This PR has been inactive for 7 days. @{author}, please update or comment
+    This PR has been inactive. @{author}, please update or comment
     to keep it open. It will be closed {close_window} if no activity occurs.
     Use `/unstale` to remove this label.
   close_message: |

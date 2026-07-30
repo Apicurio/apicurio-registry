@@ -63,8 +63,8 @@ opened PR.
 
 If your PR has no activity for 7 days, it will be marked as stale and you will be
 pinged. Comment or push to remove the stale label, or use `/unstale`. PRs blocked on
-you (`lifecycle/waiting-on-author`) are closed after 7 total days of inactivity;
-other PRs are closed after 14 total days.
+you (`lifecycle/waiting-on-author`) go stale sooner — after 4 days — and are closed
+after 7 total days of inactivity; other PRs go stale at 7 days and close at 14 total.
 
 ### Available commands
 
@@ -134,6 +134,8 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
 - **merge.delete_branch** — whether to delete the branch after merge
 - **stale.days_until_stale** — days of inactivity before marking as stale (default: 7)
 - **stale.days_until_close** — total days of inactivity before closing (default: 14)
+- **stale.days_until_stale_waiting_on_author** — days of inactivity before marking a PR
+  blocked on the author as stale (default: 4)
 - **stale.days_until_close_waiting_on_author** — total days of inactivity before closing a
   PR blocked on the author (default: 7)
 - **welcome_message** — message posted when a PR is opened

@@ -1273,7 +1273,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // First we generate an identifier for the snapshot, then we send a snapshot marker to the journal
         // topic.
         String snapshotId = UUID.randomUUID().toString();
-        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + ".sql");
+        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + ".sql.gz");
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
         this.lastTriggeredSnapshot = snapshotId;
         log.debug("Snapshot with id {} triggered.", snapshotId);
@@ -1284,6 +1284,23 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         ProducerRecord<String, String> record = new ProducerRecord<>(configuration.getSnapshotsTopic(), 0,
                 snapshotId, snapshotLocation, Collections.emptyList());
         RecordMetadata recordMetadata = blockOnResult(snapshotsProducer.apply(record));
+        
+        // Cleanup old local dumps to save disk space
+        try {
+            Path storeDir = Path.of(configuration.getSnapshotStoreLocation());
+            if (java.nio.file.Files.isDirectory(storeDir)) {
+                try (java.nio.file.DirectoryStream<Path> stream = java.nio.file.Files.newDirectoryStream(storeDir, "*.{sql,sql.gz}")) {
+                    for (Path p : stream) {
+                        if (!p.getFileName().toString().startsWith(snapshotId)) {
+                            java.nio.file.Files.deleteIfExists(p);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error cleaning up old snapshot files", e);
+        }
+
         return snapshotLocation;
     }
 

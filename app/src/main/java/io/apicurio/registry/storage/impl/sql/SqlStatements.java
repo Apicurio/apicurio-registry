@@ -724,7 +724,15 @@ public interface SqlStatements {
 
     public String createDataSnapshot();
 
+    default String createDataSnapshot(String location) {
+        return createDataSnapshot();
+    }
+
     public String restoreFromSnapshot();
+
+    default String restoreFromSnapshot(String location) {
+        return restoreFromSnapshot();
+    }
 
     // ========== Events ==========
 

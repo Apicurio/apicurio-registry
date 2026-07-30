@@ -182,9 +182,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     io.apicurio.registry.contracts.migration.MigrationRuleService migrationRuleService;
 
     @Inject
-    jakarta.enterprise.event.Event<io.apicurio.registry.storage.impl.sql.SqlOutboxEvent> contractOutboxEvent;
-
-    @Inject
     io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
 
     /**
@@ -2013,8 +2010,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
 
         // Fire metadata updated event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId)));
+        storage.createEvent(io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId));
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2161,11 +2157,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         // Fire status changed event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
-                        currentMetadata.getStatus() != null
-                                ? currentMetadata.getStatus().name() : null,
-                        targetStatus.name())));
+        storage.createEvent(io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
+                currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : null,
+                targetStatus.name()));
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

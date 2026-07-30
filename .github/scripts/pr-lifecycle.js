@@ -722,7 +722,7 @@ async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
   }
 
   await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
-  await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
   await api.postComment(pr.number,
     `PR accepted by @${actor}. @${pr.user.login}, the full test suite will run now.\n\n` +

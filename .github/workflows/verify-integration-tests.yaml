@@ -55,6 +55,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Create CNI directory
+        run: |
+          sudo mkdir -p /etc/cni/net.d
+          sudo chmod 755 /etc/cni/net.d
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2

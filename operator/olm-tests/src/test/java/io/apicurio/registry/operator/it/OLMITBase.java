@@ -78,6 +78,15 @@ public abstract class OLMITBase implements OperatorTestContext {
         }
     }
 
+    /**
+     * The OLM v0 OperatorGroup resource to install. Defaults to a SingleNamespace/OwnNamespace
+     * group targeting the install namespace. Override to install in a different mode, e.g.
+     * AllNamespaces via {@code olmv0/operator-group-all-namespaces.yaml}.
+     */
+    protected String getOperatorGroupResourcePath() {
+        return "olmv0/operator-group.yaml";
+    }
+
     private void setupOLMResources() throws Exception {
         int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
         if (olmVersion == 0) {
@@ -95,7 +104,7 @@ public abstract class OLMITBase implements OperatorTestContext {
                                 .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus())));
             });
 
-            createResource("olmv0/operator-group.yaml");
+            createResource(getOperatorGroupResourcePath());
             createResource("olmv0/subscription.yaml");
         } else if (olmVersion == 1) {
 
@@ -214,7 +223,7 @@ public abstract class OLMITBase implements OperatorTestContext {
             int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
             if (olmVersion == 0) {
                 deleteResource("olmv0/subscription.yaml");
-                deleteResource("olmv0/operator-group.yaml");
+                deleteResource(getOperatorGroupResourcePath());
                 deleteResource("olmv0/catalog-source.yaml");
             } else if (olmVersion == 1) {
                 deleteResource("olmv1/cluster-extension.yaml");

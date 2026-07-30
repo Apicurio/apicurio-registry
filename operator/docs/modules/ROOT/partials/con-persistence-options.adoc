@@ -86,6 +86,17 @@ IMPORTANT: Existing custom resources that still use `spec.app.sql` or `spec.app.
 must be updated before upgrading to an operator version that removes these fields.
 Automatic migration of those fields is no longer performed.
 
+.Upgrade failure mode
+After this removal, `spec.app.sql` and `spec.app.kafkasql` are no longer part of the
+`ApicurioRegistry3` CRD/`AppSpec` model. On upgrade, those fields are expected to be ignored or
+dropped rather than migrated. The operator only configures SQL/KafkaSQL storage from
+`spec.app.storage`; if that is absent, Registry uses the default in-memory storage.
+There is currently no dedicated status condition that reports the removed fields — after upgrading,
+verify that `spec.app.storage` is set and that Registry is not unexpectedly using in-memory storage.
+
+See also issue https://github.com/Apicurio/apicurio-registry/issues/7317[Apicurio Registry #7317]
+and the corresponding release notes for this breaking change.
+
 .Additional resources
 * xref:assembly-operator-installation.adoc[]
 * xref:registry-persistence-sql[]

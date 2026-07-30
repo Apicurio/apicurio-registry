@@ -1,9 +1,9 @@
 package io.apicurio.registry.rest.wellknown;
 
-import io.apicurio.registry.a2a.rest.beans.AgentCard;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.rest.v3.beans.AgentCard;
+import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -24,7 +24,7 @@ import java.util.List;
  * /.well-known/agent.json for discovery purposes.
  *
  * This resource also serves JSON Schemas for LLM artifact types at
- * /.well-known/schemas/{type}/{version} for IDE autocompletion and validation.
+ * /.well-known/schemas/{schemaType}/{version} for IDE autocompletion and validation.
  *
  * @see <a href="https://a2a-protocol.org/">A2A Protocol</a>
  * @see <a href="https://json-schema.org/">JSON Schema</a>
@@ -179,14 +179,14 @@ public interface WellKnownResource {
      * - model-schema (versions: v1)
      * - mcp-tool (versions: v1)
      *
-     * @param type the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
+     * @param schemaType the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
      * @param version the schema version (e.g., "v1")
      * @return the JSON Schema
      */
     @GET
-    @Path("/schemas/{type}/{version}")
+    @Path("/schemas/{schemaType}/{version}")
     @Produces(MediaType.APPLICATION_JSON)
     Response getSchema(
-            @PathParam("type") String type,
+            @PathParam("schemaType") String schemaType,
             @PathParam("version") String version);
 }

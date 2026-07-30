@@ -21,6 +21,7 @@ import {
 import { PromptVariable } from "./PromptTemplateViewer";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
+import { coerceEnumValue } from "./PromptTemplateTestPanel.utils";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -107,8 +108,8 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         if (variable.enum && variable.enum.length > 0) {
             return (
                 <FormSelect
-                    value={values[name] || ""}
-                    onChange={(_event, val) => setValue(name, val)}
+                    value={values[name] ?? ""}
+                    onChange={(_event, val) => setValue(name, coerceEnumValue(val, type))}
                     aria-label={name}
                 >
                     <FormSelectOption key="placeholder" value="" label="-- Select --" />

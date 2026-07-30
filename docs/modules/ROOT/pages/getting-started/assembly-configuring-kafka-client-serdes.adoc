@@ -1,23 +1,16 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
-
 [id="configuring-kafka-client-serdes_{context}"]
 = Configuring Kafka serializers/deserializers in Java clients
+
+:_mod-docs-content-type: ASSEMBLY
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
 [role="_abstract"]
-You can configure Kafka serializers/deserializers (SerDes) in your producer and consumer Java client applications:
+You can configure Kafka serializers/deserializers (SerDes) in your producer and consumer Java client applications.
 
-* xref:registry-serdes-concepts-constants_{context}[]
-* xref:registry-serdes-config-props_{context}[]
-* xref:registry-serdes-types-serde_{context}[]
-* xref:registry-serdes-types-avro_{context}[]
-* xref:registry-serdes-types-json_{context}[]
-* xref:registry-serdes-types-protobuf_{context}[]
+== Prerequisites
 
-
-.Prerequisites
 * You have read {kafka-client-serdes}.
 
 //INCLUDES
@@ -26,10 +19,10 @@ You can configure Kafka serializers/deserializers (SerDes) in your producer and 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_mod-docs-content-type: REFERENCE
-
 [id="registry-serdes-concepts-constants_{context}"]
 == {registry} serializer/deserializer configuration in client applications
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure specific client serializer/deserializer (SerDes) services and schema lookup strategies directly in a client application by using the following example constants.
@@ -77,17 +70,12 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 * `REGISTRY_CONVERTER_SERIALIZER_PARAM`: The required serializer to use with the {registry} Kafka converter.
 * `REGISTRY_CONVERTER_DESERIALIZER_PARAM`: The required deserializer to use with the {registry} Kafka converter.
 
-**Configuration for different schema types**
-
-For details about how to configure SerDes for different schema technologies, see the following resources:
-
-* xref:registry-serdes-types-avro_registry[]
-* xref:registry-serdes-types-json_registry[]
-* xref:registry-serdes-types-protobuf_registry[]
-
 [role="_additional-resources"]
 .Additional resources
 * xref:registry-serdes-config-props_{context}[]
+* xref:registry-serdes-types-avro_registry[]
+* xref:registry-serdes-types-json_registry[]
+* xref:registry-serdes-types-protobuf_registry[]
 * {kafka-client-serdes}
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class]
 
@@ -95,10 +83,10 @@ For details about how to configure SerDes for different schema technologies, see
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
-:_mod-docs-content-type: REFERENCE
-
 [id="registry-serdes-config-props_{context}"]
 == {registry} serializer/deserializer configuration properties
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} Kafka serializers/deserializers (SerDes) support the following Java configuration properties.
@@ -108,7 +96,7 @@ For details about how to configure SerDes for different schema technologies, see
 {registry} SerDes are based on the `SchemaResolver` interface, which abstracts access to the registry and applies the same lookup logic for the SerDes classes of all supported formats.
 
 .Configuration property for SchemaResolver interface
-[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
+[cols="5,5,5,3,5",width="100%",options="header",role="table-expandable"]
 |===
 |Constant
 |Property
@@ -139,7 +127,7 @@ You can use the `DefaultSchemaResolver` to configure the following features:
 The `DefaultSchemaResolver` provides the following properties to configure access to the core registry API:
 
 .Configuration properties for access to registry API
-[.table-expandable,width="100%",cols="4,5,5,3,2",options="header"]
+[cols="4,5,5,3,2",width="100%",options="header",role="table-expandable"]
 |===
 |Constant
 |Property
@@ -197,14 +185,12 @@ in your application (for example, by using the OpenTelemetry Java agent or the Q
 extension), the SerDes HTTP calls participate in the active trace. If no OpenTelemetry SDK is
 configured, the behavior is a no-op and the SerDes add no trace headers.
 
-For more details about SDK-level configuration, see xref:registry-sdk-config_{context}[].
-
 **Configuration for registry lookup options**
 
 The `DefaultSchemaResolver` uses the following properties to configure how to look up artifacts in {registry}.
 
 .Configuration properties for registry artifact lookup
-[.table-expandable,width="100%",cols="5,5,5,3,4",options="header"]
+[cols="5,5,5,3,4",width="100%",options="header",role="table-expandable"]
 |===
 |Constant
 |Property
@@ -303,7 +289,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 The `DefaultSchemaResolver` uses the following properties to configure how artifact information is written to and read from Kafka.
 
 .Configuration properties to read/write artifact information in Kafka
-[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
+[cols="5,5,5,3,5",width="100%",options="header",role="table-expandable"]
 |===
 |Constant
 |Property
@@ -332,7 +318,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 The `DefaultSchemaResolver` uses the following property to configure a fall-back provider for all deserializers.
 
 .Configuration property for deserializer fall-back provider
-[.table-expandable,width="100%",cols="5,5,5,3,5",options="header"]
+[cols="5,5,5,3,5",width="100%",options="header",role="table-expandable"]
 |===
 |Constant
 |Property
@@ -349,7 +335,7 @@ The `DefaultSchemaResolver` uses the following property to configure a fall-back
 The `DefaultFallbackArtifactProvider` uses the following properties to configure deserializer fall-back options:
 
 .Configuration properties for deserializer fall-back options
-[.table-expandable,width="100%",cols="5,5,5,3,2",options="header"]
+[cols="5,5,5,3,2",width="100%",options="header",role="table-expandable"]
 |===
 |Constant
 |Property
@@ -379,16 +365,17 @@ For more details, see the https://quarkus.io/guides/config#overriding-properties
 
 [role="_additional-resources"]
 .Additional resources
+* xref:registry-sdk-config_{context}[]
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java[SerdeConfig Java class]
 
 
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_mod-docs-content-type: REFERENCE
-
 [id="registry-serdes-types-serde_{context}"]
 == Client serializer/deserializer types
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you use schemas in your Kafka client applications, you must choose which specific schema type to use, depending on your use case. {registry} provides SerDe Java classes for Apache Avro, JSON Schema, and Google Protobuf.
@@ -468,10 +455,10 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_mod-docs-content-type: REFERENCE
-
 [id="registry-serdes-types-avro_{context}"]
 == Avro SerDes configuration
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure the Kafka client serializer and deserializer (SerDes) classes for Apache Avro by using the configuration options in this section.
@@ -600,10 +587,10 @@ When you use these schemas with Avro SerDes, {registry} creates two artifacts, o
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_mod-docs-content-type: REFERENCE
-
 [id="registry-serdes-types-json_{context}"]
 == JSON Schema SerDes configuration
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure the Kafka client serializer and deserializer (SerDes) classes for JSON Schema by using the configuration options in this section.
@@ -712,10 +699,10 @@ In this example, a given citizen has a city. {registry} creates a citizen artifa
 // Module included in the following assemblies:
 //  assembly-using-kafka-client-serdes
 
-:_mod-docs-content-type: REFERENCE
-
 [id="registry-serdes-types-protobuf_{context}"]
 == Protobuf SerDes configuration
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure the Kafka client serializer and deserializer (SerDes) classes for Google Protobuf by using the configuration options in this section.
@@ -734,11 +721,6 @@ You can configure the Protobuf serializer class as follows:
 * ID location
 * ID encoding
 * Schema validation
-
-For details about these configuration options, see the following sections:
-
-* xref:registry-serdes-concepts-constants_registry[]
-* xref:registry-serdes-types-avro_registry[]
 
 **Protobuf deserializer configuration**
 
@@ -815,5 +797,7 @@ In this example, {registry} stores two Protobuf artifacts, one for `TableInfo` a
 
 [role="_additional-resources"]
 .Additional resources
+* xref:registry-serdes-concepts-constants_registry[]
+* xref:registry-serdes-types-avro_registry[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]

@@ -116,6 +116,38 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        // Test trailing colon label queries
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels:" };
+        });
+        Assertions.assertEquals(5, results.getGroups().size());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels-3:" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        // Test namespace colon label queries (e.g. "env:tag:") to protect against regression
+        Labels nsLabels = new Labels();
+        nsLabels.setAdditionalData(Map.of("env:tag", "production"));
+        CreateGroup nsGroup = new CreateGroup();
+        nsGroup.setGroupId("testSearchGroupsByNsLabel");
+        nsGroup.setLabels(nsLabels);
+        clientV3.groups().post(nsGroup);
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env:tag:" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByNsLabel", results.getGroups().get(0).getGroupId());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env:tag:production" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByNsLabel", results.getGroups().get(0).getGroupId());
     }
 
     @Test

@@ -230,10 +230,8 @@ public class SearchResourceImpl implements SearchResource {
                     throw new BadRequestException(
                             "label search filter incorrectly formatted, missing left side of ':' delimiter");
                 }
-                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
-                // use null for the value (will match all groups containing a label with the key and *any* value).
-                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
-                    labelKey = prop.replace(":", "");
+                if (delimiterIndex < 0) {
+                    labelKey = prop;
                     labelValue = null;
                 } else if (delimiterIndex == (prop.length() - 1)) {
                     labelKey = prop.substring(0, delimiterIndex);
@@ -300,10 +298,8 @@ public class SearchResourceImpl implements SearchResource {
                     throw new BadRequestException(
                             "label search filter incorrectly formatted, missing left side of ':' delimiter");
                 }
-                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
-                // use null for the value (will match all versions containing a label with the key and *any* value).
-                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
-                    labelKey = prop.replace(":", "");
+                if (delimiterIndex < 0) {
+                    labelKey = prop;
                     labelValue = null;
                 } else if (delimiterIndex == (prop.length() - 1)) {
                     labelKey = prop.substring(0, delimiterIndex);

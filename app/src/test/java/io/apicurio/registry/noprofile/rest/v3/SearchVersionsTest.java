@@ -426,4 +426,71 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
                 .body("count", equalTo(3)).body("versions.size()", equalTo(3));
     }
 
+    @Test
+    public void testSearchVersionsByLabels() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        createArtifact.setLabels(EditableArtifactMetaDataDto.builder().labels(java.util.Map.of("byLabels", "byLabels-value", "byLabels-3", "byLabels-value-3", "env:tag", "production")).build().getLabels());
+        clientV3.groups().byGroupId(group).artifacts().post(createArtifact);
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels:byLabels-value" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        // Test trailing colon label queries
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels:" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels-3:" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        // Test namespace colon label queries (e.g. "env:tag:") to protect against regression
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "env:tag:" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "env:tag:production" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+    }
+
 }

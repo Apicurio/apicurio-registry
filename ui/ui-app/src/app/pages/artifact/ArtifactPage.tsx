@@ -2,7 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useMatch, useParams } from "react-router";
 import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     ChangeOwnerModal,
@@ -71,16 +71,19 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
     const { groupId, artifactId }= useParams();
-    const location = useLocation();
+    const rulesMatch = useMatch("/explore/:groupId/:artifactId/rules");
+    const branchesMatch = useMatch("/explore/:groupId/:artifactId/branches");
+    const contractMatch = useMatch("/explore/:groupId/:artifactId/contract");
+    const usageMatch = useMatch("/explore/:groupId/:artifactId/usage");
 
     let activeTabKey: string = "overview";
-    if (location.pathname.indexOf("/rules") !== -1) {
+    if (rulesMatch) {
         activeTabKey = "rules";
-    } else if (location.pathname.indexOf("/branches") !== -1) {
+    } else if (branchesMatch) {
         activeTabKey = "branches";
-    } else if (location.pathname.indexOf("/contract") !== -1) {
+    } else if (contractMatch) {
         activeTabKey = "contract";
-    } else if (location.pathname.indexOf("/usage") !== -1) {
+    } else if (usageMatch) {
         activeTabKey = "usage";
     }
 

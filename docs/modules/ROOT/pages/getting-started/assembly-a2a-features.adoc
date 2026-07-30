@@ -1,45 +1,29 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
+:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
 [id="assembly-a2a-features_{context}"]
 = A2A protocol features in {registry}
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 {registry} implements the A2A (Agent-to-Agent) protocol for AI agent discovery, orchestration, and lifecycle management.
 
 ifdef::service-registry-downstream[]
-WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope].
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
 endif::[]
 
-* xref:a2a-overview_{context}[]
-* xref:a2a-configuration_{context}[]
-* xref:a2a-well-known-endpoints_{context}[]
-* xref:a2a-discovery-endpoints_{context}[]
-* xref:a2a-visibility-model_{context}[]
-* xref:a2a-agent-card-artifact-type_{context}[]
-* xref:a2a-validation-rules_{context}[]
-* xref:a2a-compatibility-checking_{context}[]
-* xref:a2a-automatic-label-extraction_{context}[]
-* xref:a2a-registry-built-in-skills_{context}[]
-* xref:a2a-llm-lifecycle-management_{context}[]
-* xref:a2a-multi-agent-workflow-example_{context}[]
-* xref:a2a-java-sdk-usage_{context}[]
-* xref:a2a-rest-api-reference_{context}[]
-* xref:a2a-troubleshooting_{context}[]
-
 // con-a2a-overview
-:_mod-docs-content-type: CONCEPT
 [id="a2a-overview_{context}"]
 == A2A protocol overview
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 With the A2A protocol, AI agents can discover and communicate with each other through standardized endpoints. {registry} serves as both an A2A agent and an agent registry.
 
-.{registry} as an A2A agent
-{registry} provides its own capabilities, including schema validation, search, and artifact management.
-
-.{registry} as an agent registry
-{registry} stores and discovers other agents' Agent Cards.
+{registry} as an A2A agent:: {registry} provides its own capabilities, including schema validation, search, and artifact management.
+{registry} as an agent registry:: {registry} stores and discovers other agents' Agent Cards.
 
 .{registry} dual-role A2A architecture
 [cols="1,1",options="header"]
@@ -70,9 +54,10 @@ Capabilities:
 |===
 
 // ref-a2a-configuration
-:_mod-docs-content-type: REFERENCE
 [id="a2a-configuration_{context}"]
 == A2A configuration properties
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can control A2A features by using the following configuration properties.
@@ -119,18 +104,19 @@ You can control A2A features by using the following configuration properties.
 |===
 
 // ref-a2a-well-known-endpoints
-:_mod-docs-content-type: REFERENCE
 [id="a2a-well-known-endpoints_{context}"]
 == A2A well-known endpoints
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} provides the following well-known endpoints for A2A agent discovery and retrieval.
 
-.GET /.well-known/agent.json
+GET /.well-known/agent.json::
 Retrieves the Agent Card for the {registry} instance.
-
++
 Response: Agent Card JSON document
-
++
 [source,json]
 ----
 {
@@ -163,9 +149,9 @@ Response: Agent Card JSON document
 }
 ----
 
-.GET /.well-known/agents
+GET /.well-known/agents::
 Searches for registered Agent Cards with filtering support.
-
++
 .Query parameters for /.well-known/agents
 [cols="1,1,3"]
 |===
@@ -199,13 +185,13 @@ Searches for registered Agent Cards with filtering support.
 |integer
 |Pagination limit (default: 20)
 |===
-
++
 .Example request
 [source,bash]
 ----
 curl "http://localhost:8080/.well-known/agents?skill=translation&capability=streaming:true"
 ----
-
++
 .Example response: AgentSearchResults
 [source,json]
 ----
@@ -226,52 +212,57 @@ curl "http://localhost:8080/.well-known/agents?skill=translation&capability=stre
 }
 ----
 
-.GET /.well-known/agents/\{groupId}/\{artifactId}
+GET /.well-known/agents/\{groupId}/\{artifactId}::
 Retrieves a specific registered Agent Card.
-
-.Path parameters
++
+*Path parameters*
++
 * `groupId` - The group containing the agent card
 * `artifactId` - The artifact ID of the agent card
-
-.Query parameters
++
+*Query parameters*
++
 * `version` (optional) - Specific version (defaults to latest)
-
++
 Response: Agent Card JSON document
 
 // ref-a2a-discovery-endpoints
-:_mod-docs-content-type: REFERENCE
 [id="a2a-discovery-endpoints_{context}"]
 == Agent discovery and entitlement endpoints
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} provides a three-tier agent discovery model for enterprise agent catalogs, based on the link:https://github.com/a2aproject/A2A/discussions/741[A2A community proposal].
 
-.GET /.well-known/agents/public
+GET /.well-known/agents/public::
 Returns agents explicitly marked as public. No authentication required.
-
++
 Only Agent Card artifacts labeled with `apicurio.agent.visibility=public` are returned.
-
-.Query parameters
++
+*Query parameters*
++
 * `offset` (integer) - Pagination offset (default: 0)
 * `limit` (integer) - Pagination limit (default: 20)
-
++
 .Example request
 [source,bash]
 ----
 curl "http://localhost:8080/.well-known/agents/public"
 ----
 
-.GET /.well-known/agents/entitled
+GET /.well-known/agents/entitled::
 Returns agents the authenticated caller is entitled to access, filtered by visibility:
-
++
 * `public` agents are always included
 * `entitled` agents (default) are included for any authenticated user
 * `private` agents are included only for the artifact owner or admins
-
-.Query parameters
++
+*Query parameters*
++
 * `offset` (integer) - Pagination offset (default: 0)
 * `limit` (integer) - Pagination limit (default: 20)
-
++
 .Example request
 [source,bash]
 ----
@@ -279,9 +270,9 @@ curl -H "Authorization: Bearer <token>" \
   "http://localhost:8080/.well-known/agents/entitled"
 ----
 
-.POST /.well-known/agents/search
+POST /.well-known/agents/search::
 Advanced agent search with combined text query and structured filters. Respects the caller's entitlements when entitlement filtering is enabled.
-
++
 .Example request body
 [source,json]
 ----
@@ -299,15 +290,16 @@ Advanced agent search with combined text query and structured filters. Respects 
   "offset": 0
 }
 ----
-
++
 All filter fields are optional. When multiple filters are specified, results must match all of them.
-
++
 NOTE: The `query` field matches artifact metadata name and artifact ID, not Agent Card JSON content. Full-text content search is planned for a future release.
 
 // ref-a2a-visibility-model
-:_mod-docs-content-type: REFERENCE
 [id="a2a-visibility-model_{context}"]
 == Agent visibility model
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label.
@@ -335,8 +327,7 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
   -d '{"labels": {"apicurio.agent.visibility": "public"}}'
 ----
 
-.How entitlements work
-{registry} maps the A2A community entitlement concept to its existing RBAC model:
+*How entitlements work:* {registry} maps the A2A community entitlement concept to its existing RBAC model:
 
 * *Groups* act as organizational namespaces
 * *Entitling a client* = granting read access to the group containing the Agent Card artifacts
@@ -364,9 +355,10 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 NOTE: When authentication is not configured, visibility filtering is skipped and all agents are visible to all users.
 
 // ref-a2a-agent-card-artifact-type
-:_mod-docs-content-type: REFERENCE
 [id="a2a-agent-card-artifact-type_{context}"]
 == Agent Card artifact type
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Agent Cards are stored as artifacts with type `AGENT_CARD`. You can create Agent Cards by using the REST API and you can validate them against the A2A specification JSON schema.
@@ -389,9 +381,9 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts"
   }'
 ----
 
-.Agent Card JSON schema
 Agent Cards must conform to the A2A specification:
 
+.Agent Card JSON schema
 [source,json]
 ----
 {
@@ -444,9 +436,10 @@ Agent Cards must conform to the A2A specification:
 ----
 
 // ref-a2a-validation-rules
-:_mod-docs-content-type: REFERENCE
 [id="a2a-validation-rules_{context}"]
 == Agent Card validation rules
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Agent Cards have three validation levels that control how much validation occurs when you create or update an Agent Card.
@@ -476,20 +469,23 @@ a|Complete schema validation including:
 |===
 
 // ref-a2a-compatibility-checking
-:_mod-docs-content-type: REFERENCE
 [id="a2a-compatibility-checking_{context}"]
 == Agent Card compatibility rules
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you version Agent Cards, {registry} enforces compatibility rules to ensure that changes do not break existing clients.
 
-.Compatible changes (allowed)
+*Compatible changes (allowed):*
+
 * Adding new skills
 * Adding new capabilities
 * Adding authentication schemes
 * Adding input or output modes
 
-.Incompatible changes (can break clients)
+*Incompatible changes (can break clients):*
+
 * Removing skills
 * Removing or disabling capabilities
 * Removing supported interfaces (matched by URL and protocol binding)
@@ -498,9 +494,10 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 * Removing input or output modes
 
 // ref-a2a-automatic-label-extraction
-:_mod-docs-content-type: REFERENCE
 [id="a2a-automatic-label-extraction_{context}"]
 == Automatic label extraction for Agent Cards
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} automatically extracts labels from Agent Cards for search. You can use these labels for efficient capability-based discovery by using the {registry} label search.
@@ -532,9 +529,10 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 |===
 
 // ref-a2a-registry-built-in-skills
-:_mod-docs-content-type: REFERENCE
 [id="a2a-registry-built-in-skills_{context}"]
 == {registry} built-in A2A skills
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} operates as an A2A agent with the following built-in skills.
@@ -560,16 +558,17 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 |===
 
 // con-a2a-llm-lifecycle-management
-:_mod-docs-content-type: CONCEPT
 [id="a2a-llm-lifecycle-management_{context}"]
 == LLM lifecycle management
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 A2A integration includes full LLM lifecycle management with additional artifact types, including MODEL_SCHEMA and PROMPT_TEMPLATE.
 
-.MODEL_SCHEMA artifact type
 The MODEL_SCHEMA artifact type defines input and output schemas for LLM agents:
 
+.MODEL_SCHEMA artifact type
 [source,json]
 ----
 {
@@ -588,9 +587,9 @@ The MODEL_SCHEMA artifact type defines input and output schemas for LLM agents:
 }
 ----
 
-.PROMPT_TEMPLATE artifact type
 The PROMPT_TEMPLATE artifact type stores versioned prompt templates with variable support:
 
+.PROMPT_TEMPLATE artifact type
 [source,yaml]
 ----
 templateId: sentiment-analysis
@@ -614,9 +613,9 @@ metadata:
   outputSchema: urn:apicurio:llm-agents.schemas/sentiment-output
 ----
 
-.Artifact links
 Agent Cards can reference their schemas and prompts by using URN references:
 
+.Artifact links
 [source,json]
 ----
 {
@@ -633,12 +632,13 @@ Agent Cards can reference their schemas and prompts by using URN references:
 ----
 
 // con-a2a-multi-agent-workflow-example
-:_mod-docs-content-type: CONCEPT
 [id="a2a-multi-agent-workflow-example_{context}"]
 == Multi-agent workflow example
 
+:_mod-docs-content-type: CONCEPT
+
 [role="_abstract"]
-You can chain context across multiple agents in a pipeline. The link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/a2a-real-world-integration[a2a-real-world-integration example] in the {registry} repository demonstrates this pattern.
+You can chain context across multiple agents in a pipeline. The `a2a-real-world-integration` example in the {registry} repository demonstrates this pattern.
 
 .Context chaining pipeline
 [cols="1,3,3",options="header"]
@@ -665,9 +665,9 @@ You can chain context across multiple agents in a pipeline. The link:https://git
 |===
 
 ifndef::service-registry-downstream[]
-.Example commands
 To run the example application locally, clone the {registry} repository and run the following commands:
 
+.Example commands
 [source,bash]
 ----
 cd examples/a2a-real-world-integration
@@ -675,13 +675,19 @@ docker-compose up -d
 mvn clean compile exec:java
 ----
 
-The Web UI is available at http://localhost:9000.
+The Web UI is available at `localhost:9000`.
 endif::[]
 
 // ref-a2a-java-sdk-usage
-:_mod-docs-content-type: REFERENCE
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/a2a-real-world-integration[a2a-real-world-integration example]
+
 [id="a2a-java-sdk-usage_{context}"]
 == Java SDK usage for A2A
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can use the Java SDK to discover agents and register Agent Cards programmatically.
@@ -728,9 +734,10 @@ client.groups().byGroupId("ai-agents").artifacts()
 ----
 
 // ref-a2a-rest-api-reference
-:_mod-docs-content-type: REFERENCE
 [id="a2a-rest-api-reference_{context}"]
 == A2A REST API endpoints
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The following table describes the core A2A endpoints available in {registry}.
@@ -765,31 +772,33 @@ The following table describes the core A2A endpoints available in {registry}.
 |===
 
 // ref-a2a-troubleshooting
-:_mod-docs-content-type: REFERENCE
 [id="a2a-troubleshooting_{context}"]
 == A2A troubleshooting
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Use the following information to troubleshoot common issues with A2A features in {registry}.
 
-.A2A endpoints return 404
+A2A endpoints return 404::
 Ensure A2A is enabled in your configuration:
++
 [source,properties]
 ----
 apicurio.a2a.enabled=true
 ----
 
-.Agent Card validation fails
+Agent Card validation fails::
 Verify the following conditions:
-
++
 * The `name` field is present and non-empty.
 * Skills have both `id` and `name` fields.
 * Capabilities are boolean values.
 * The JSON is well-formed.
 
-.Search returns no results
+Search returns no results::
 Verify the following conditions:
-
++
 * Agent Cards are stored with type `AGENT_CARD`.
 * The registry extracted labels correctly (check artifact labels).
 * Search filters match stored values exactly.

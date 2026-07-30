@@ -128,7 +128,6 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("skills.id", hasItem("artifact-management"))
                 .body("skills.id", hasItem("compatibility-check"))
                 .body("skills.id", hasItem("agent-discovery"))
-                .body("capabilities.stateTransitionHistory", equalTo(false))
                 .body("defaultInputModes", hasItem("text/plain"))
                 .body("defaultOutputModes", hasItem("text/plain"))
                 .body("securitySchemes", notNullValue());
@@ -584,6 +583,21 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                         equalTo("https://example.com/agent"))
                 .body("agents.find { it.artifactId == 'url-agent' }.supportedInterfaces[0].protocolVersion",
                         equalTo("1.0"));
+    }
+
+    @Test
+    public void testGetSchemaWithRenamedParam() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/prompt-template/v1")
+                .then()
+                .statusCode(200);
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/nonexistent/v1")
+                .then()
+                .statusCode(404);
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {

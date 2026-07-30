@@ -5,6 +5,7 @@ import { editor } from "monaco-editor";
 import { DiffEditor } from "@monaco-editor/react";
 import { ArrowsAltHIcon } from "@patternfly/react-icons";
 import IDiffEditorConstructionOptions = editor.IDiffEditorConstructionOptions;
+import { registerCustomLanguages } from "@editors/registerLanguages.ts";
 
 /**
  * Properties
@@ -85,6 +86,7 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
             </div>
             <div className="diff-editor">
                 <DiffEditor
+                    beforeMount={registerCustomLanguages}
                     className="text-editor"
                     original={original}
                     modified={modified}

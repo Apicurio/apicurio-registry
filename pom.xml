@@ -176,7 +176,7 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.18.0</okio.version>
+    <okio.version>3.18.1</okio.version>
     <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.35.1</protobuf.version>
@@ -228,7 +228,7 @@
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
-    <commons-codec.version>1.22.0</commons-codec.version>
+    <commons-codec.version>1.22.1</commons-codec.version>
     <netty.version>4.1.135.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
@@ -291,7 +291,7 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
-    <kiota.community.version>0.0.37</kiota.community.version>
+    <kiota.community.version>0.0.38</kiota.community.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
@@ -1240,6 +1240,31 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.9.8,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                  <message>Building Apicurio Registry requires JDK 21 or newer to run the build tooling (e.g. Checkstyle). The produced artifacts still target Java ${maven.compiler.release}.</message>
+                </requireJavaVersion>
+                <banDuplicatePomDependencyVersions/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <dependencies>
           <dependency>
@@ -1263,27 +1288,6 @@
               <goal>check</goal>
             </goals>
             <phase>validate</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>enforce</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <phase>validate</phase>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>[3.9.8,)</version>
-                </requireMavenVersion>
-                <banDuplicatePomDependencyVersions/>
-              </rules>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1379,7 +1383,6 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>
         <checkstyle.skip>true</checkstyle.skip>
-        <enforcer.skip>true</enforcer.skip>
         <assembly.skipAssembly>true</assembly.skipAssembly>
       </properties>
     </profile>

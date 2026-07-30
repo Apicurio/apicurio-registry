@@ -6,6 +6,7 @@
 package io.apicurio.registry.events.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 
@@ -13,10 +14,17 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CloudEventDtoTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    /**
+     * Configured to match the production Quarkus ObjectMapper, which disables
+     * WRITE_DATES_AS_TIMESTAMPS so that Instant values are written as RFC 3339
+     * strings as required by the CloudEvents 1.0 specification.
+     */
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Test
     public void testBuilderPattern() {
@@ -56,13 +64,20 @@ public class CloudEventDtoTest {
 
         String json = objectMapper.writeValueAsString(dto);
         assertNotNull(json);
-        
+
+        // The CloudEvents 1.0 spec requires "time" to be an RFC 3339 string, not a numeric
+        // epoch timestamp. Assert the wire format explicitly so a serialization regression
+        // cannot hide behind a symmetric round trip.
+        assertTrue(json.contains("\"time\":\"2024-01-01T00:00:00Z\""),
+                "Expected time to be serialized as an RFC 3339 string, but was: " + json);
+
         CloudEventDto deserialized = objectMapper.readValue(json, CloudEventDto.class);
         assertEquals("test-id", deserialized.getId());
         assertEquals("/test-source", deserialized.getSource());
         assertEquals("io.apicurio.registry.events.TestEvent", deserialized.getType());
         assertEquals("1.0", deserialized.getSpecversion());
         assertEquals("application/json", deserialized.getDatacontenttype());
+        assertEquals(Instant.parse("2024-01-01T00:00:00Z"), deserialized.getTime());
     }
 
     @Test

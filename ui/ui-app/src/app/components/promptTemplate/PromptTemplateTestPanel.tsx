@@ -59,7 +59,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             variablesList.forEach(({ name, variable }) => {
                 if (!(name in next)) {
                     const type = (variable.type || "string").toLowerCase();
-                    next[name] = type === "boolean" ? false : (variable.default ?? "");
+                    next[name] = variable.default ?? (type === "boolean" ? false : "");
                 }
             });
             return next;

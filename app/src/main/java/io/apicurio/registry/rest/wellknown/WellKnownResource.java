@@ -171,34 +171,44 @@ public interface WellKnownResource {
             @QueryParam("limit") @DefaultValue("20") String limit);
 
     /**
-     * Returns all registered MCP tools whose {@code inputSchema} can accept the output
-     * produced by the given source tool's {@code outputSchema}.
+    /**
+     * Search for registered MCP tools compatible with a specific target tool by group and artifact ID.
+     * Tool chaining compatibility is evaluated by matching the target tool's outputSchema guaranteed
+     * (required) output properties against candidate tools' inputSchema required input parameters.
      *
-     * <p>Two tools are considered compatible when every property declared in the source
-     * tool's {@code outputSchema.properties} is also present in the candidate tool's
-     * {@code inputSchema.properties} with the same JSON Schema type. This models the
-     * pipeline chaining contract: the candidate tool can consume what the source tool
-     * produces.</p>
-     *
-     * <p>If the source tool has no {@code outputSchema}, an empty result is returned.
-     * The source tool itself is never included in the results.</p>
-     *
-     * @param groupId    the group ID of the source MCP tool artifact
-     * @param artifactId the artifact ID of the source MCP tool
-     * @param version    optional version expression (defaults to latest)
-     * @param offset     pagination offset
-     * @param limit      pagination limit
-     * @return the compatible MCP tools
+     * @param groupId the group ID of the target MCP tool
+     * @param artifactId the artifact ID of the target MCP tool
+     * @param version optional version (defaults to latest)
+     * @param offset pagination offset
+     * @param limit pagination limit
+     * @return search results containing matching compatible MCP tools
      */
     @GET
     @Path("/mcp-tools/{groupId}/{artifactId}/compatible")
     @Produces(MediaType.APPLICATION_JSON)
-    McpCompatibleToolsResults findCompatibleTools(
+    McpToolSearchResults getCompatibleMcpTools(
             @PathParam("groupId") String groupId,
             @PathParam("artifactId") String artifactId,
             @QueryParam("version") String version,
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
+
+    /**
+     * Search for registered MCP tools compatible with a given MCP tool definition content.
+     *
+     * @param mcpToolContent raw MCP tool JSON definition
+     * @param offset pagination offset
+     * @param limit pagination limit
+     * @return search results containing matching compatible MCP tools
+     */
+    @POST
+    @Path("/mcp-tools/compatible")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    McpToolSearchResults findCompatibleMcpTools(
+            String mcpToolContent,
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
 
     /**
      * Returns the JSON Schema for a specific LLM artifact type.

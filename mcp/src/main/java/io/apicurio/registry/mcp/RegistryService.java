@@ -54,7 +54,7 @@ public class RegistryService {
     @Inject
     Utils utils;
 
-    RegistryClient client;
+    private RegistryClient client;
 
     @PostConstruct
     void init() {
@@ -511,5 +511,16 @@ public class RegistryService {
         var p = new UpdateConfigurationProperty();
         p.setValue(propertyValue);
         client.admin().config().properties().byPropertyName(propertyName).put(p);
+    }
+
+    public void deleteGroup(String groupId) {
+        client.groups().byGroupId(groupId).delete();
+    }
+
+    public void createArtifactRule(String groupId, String artifactId, String ruleType, String ruleConfig) {
+        var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
+        createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType));
+        createRule.setConfig(ruleConfig);
+        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }
 }

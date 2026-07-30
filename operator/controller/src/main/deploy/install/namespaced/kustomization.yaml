@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Single-namespace, least-privilege install variant. Uses the namespace-scoped
+# RBAC (rbac/namespaced) and the operator overlay that watches only its own
+# namespace (operator/namespaced). Use install/default for an all-namespaces
+# install with cluster-wide RBAC.
+resources:
+  - ../../crd
+  - ../../rbac/namespaced
+  - ../../operator/namespaced

@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../default
+
+# Namespace-scoped variant of the operator Deployment. Without OLM the
+# `olm.targetNamespaces` annotation is empty, which makes the operator watch ALL
+# namespaces (see operator/README.md "Watched Namespaces"). That would not match
+# the namespace-scoped RBAC in rbac/namespaced, so here we pin the watched
+# namespaces to the operator's own namespace. env index 2 is
+# APICURIO_OPERATOR_WATCHED_NAMESPACES in operator/default/operator.yaml.
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/2
+        value:
+          name: APICURIO_OPERATOR_WATCHED_NAMESPACES
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace

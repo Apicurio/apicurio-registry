@@ -312,11 +312,19 @@ You can create an installation file with the resources required to run the opera
 make dist-install-file
 ```
 
+There are two install variants:
+
+- **`install.yaml`** (`make dist-install-file`) - all-namespaces install with cluster-wide RBAC. The operator watches every namespace. This is the default.
+- **`install-namespaced.yaml`** (`make dist-install-file-namespaced`) - single-namespace, least-privilege install. Namespace-scoped RBAC (plus a small ClusterRole for CR discovery), and the operator only watches the namespace it is deployed into. Apply it into a single namespace, e.g. `kubectl -n my-namespace apply -f install-namespaced.yaml`.
+
+`make dist` produces both.
+
 Available options:
 
-| Option             | Type   | Default value                                                   | Description |
-|--------------------|--------|-----------------------------------------------------------------|-------------|
-| INSTALL_FILE       | string | `install/apicurio-registry-operator-`*(current version)*`.yaml` | -           |
+| Option                  | Type   | Default value                                                              | Description |
+|-------------------------|--------|---------------------------------------------------------------------------|-------------|
+| INSTALL_FILE            | string | `install/apicurio-registry-operator-`*(current version)*`.yaml`           | Output path for the all-namespaces install file. |
+| INSTALL_NAMESPACED_FILE | string | `install/apicurio-registry-operator-namespaced-`*(current version)*`.yaml` | Output path for the single-namespace install file. |
 | INSTALL_NAMESPACE  | string | `PLACEHOLDER_NAMESPACE`                                         | -           |
 | IMAGE_REGISTRY     | string | `quay.io/apicurio`                                              | -           |
 | IMAGE_NAME         | string | `apicurio-registry-3-operator`                                    | -           |
@@ -448,7 +456,9 @@ Available options:
 
 ### Watched Namespaces
 
-Namespace that are watched by the operator are configured using `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable. Its value is configured to reflect the OLM annotation `olm.targetNamespaces` by default. This means that if the operator is not installed by OLM (e.g. using the install file), the annotation is empty, which means the operator will watch **all namespaces**. Because of this, cluster-level RBAC resources are used by default. In the future, we may release additional install file with reduced permissions, intended to be used when the operator only manages its own namespace.
+Namespace that are watched by the operator are configured using `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable. Its value is configured to reflect the OLM annotation `olm.targetNamespaces` by default. This means that if the operator is installed with the default install file (`install.yaml`) and not by OLM, the annotation is empty, which means the operator will watch **all namespaces**. Because of this, cluster-level RBAC resources are used by that install file.
+
+For a single-namespace, least-privilege deployment there is a second install file, `install-namespaced.yaml`. It uses namespace-scoped RBAC and pins `APICURIO_OPERATOR_WATCHED_NAMESPACES` to the operator's own namespace, so the operator only watches and reconciles resources in the namespace it is deployed into. See the [Install File](#install-file) section.
 
 ### RBAC
 
@@ -459,7 +469,10 @@ The RBAC consumed by the OLM bundle is split by scope so that single-namespace i
 
 How OLM materializes `permissions` depends on the OperatorGroup's install mode, not on the CSV. For SingleNamespace/OwnNamespace/MultiNamespace, OLM creates a Role + RoleBinding in the target namespace(s), so the workload verbs stay namespace-scoped. For AllNamespaces (target `*`), OLM promotes each `permissions` rule to a ClusterRole + ClusterRoleBinding, so those verbs (including `patch`/`update` on the CR) become cluster-wide. In other words the least-privilege / namespace-scoped guarantee applies to single-namespace installs; AllNamespaces is intentionally cluster-wide (as it was before this split). The read-only CR discovery verbs in `cluster-role.yaml` stay cluster-scoped and least-privilege in every mode.
 
-The install file (non-OLM) still uses the all-namespaces variant in `controller/src/main/deploy/rbac/cluster`.
+For non-OLM (manifest) installs there are two variants:
+
+- `install.yaml` uses the all-namespaces RBAC in `controller/src/main/deploy/rbac/cluster` (a single ClusterRole with all rules). Built from `controller/src/main/deploy/install/default`.
+- `install-namespaced.yaml` uses `rbac/namespaced` (the same split as the OLM bundle) and watches only its own namespace. Built from `controller/src/main/deploy/install/namespaced`.
 
 **Keep permissions in sync manually.** These rules are duplicated transitively in `olm-tests/src/test/deploy/olmv1/cluster-role.yaml` (the installer ClusterRole used by the OLM v1 tests). There is no generation step that rewrites one from the other, so any change to the operator's permissions must be applied in both places, and the RBAC files carry a comment reminding of this. Two unit tests guard against mistakes: `RbacInstallerSyncTest` fails if the installer ClusterRole is not a superset of the operator's runtime permissions, and `RbacSplitTest` fails if the cluster/namespace tier split is broken (for example a workload rule added to `cluster-role.yaml`, which OLM would then grant cluster-wide in every install mode).
 

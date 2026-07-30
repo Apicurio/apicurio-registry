@@ -62,7 +62,7 @@ jobs:
           fetch-depth: ${{ inputs.scalpel-enabled == 'true' && '0' || 1 }}
 
       - name: Fetch base branch for Scalpel
-        if: inputs.scalpel-enabled == 'true' && env.GITHUB_BASE_REF != ''
+        if: inputs.scalpel-enabled == 'true' && github.base_ref != ''
         continue-on-error: true
         run: git fetch origin "$GITHUB_BASE_REF" --no-tags
 

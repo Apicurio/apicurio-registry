@@ -3,6 +3,8 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="managing-registry-artifacts-cli_{context}"]
 = Managing {registry} content using the command-line interface
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
 You can use the {registry} command-line interface (CLI) to manage {registry} content from the command line. The CLI provides commands for managing CLI contexts and artifact groups.
 
@@ -25,19 +27,16 @@ The CLI is a Technology Preview feature. Technology Preview features are not sup
 ====
 endif::[]
 
-* xref:installing-registry-cli_{context}[]
-* xref:configuring-registry-cli-contexts_{context}[]
-* xref:managing-groups-using-registry-cli_{context}[]
-* xref:registry-cli-output-formats_{context}[]
-* xref:registry-cli-reference_{context}[]
+== Prerequisites
 
-.Prerequisites
 * You have installed {registry}.
 * You have Java 11 or higher installed.
 * You have access to a bash shell (Linux) or zsh shell (macOS).
 
 [id="installing-registry-cli_{context}"]
 == Installing the {registry} CLI
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can install the {registry} CLI to interact with {registry} from the command line. The CLI comes as a .zip file that has the executable program and required dependencies.
@@ -93,12 +92,14 @@ $ acr --help
 [role="_additional-resources"]
 .Additional resources
 ifndef::service-registry-downstream[]
-* For more information, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README] on GitHub.
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
 endif::[]
 
 
 [id="configuring-registry-cli-contexts_{context}"]
 == Configuring {registry} CLI contexts
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 An {registry} CLI context stores the registry URL and identifies the instance that the CLI commands target. You can create many contexts and switch between them as needed, similar to how you use contexts in {kubernetes}.
@@ -153,104 +154,93 @@ $ acr context delete _CONTEXT_NAME_
 [id="managing-groups-using-registry-cli_{context}"]
 == Managing groups using the CLI
 
+:_mod-docs-content-type: PROCEDURE
+
 [role="_abstract"]
 You can use the CLI to create, list, update, and delete artifact groups in {registry}. Groups offer a way to organize related artifacts.
 
 .Prerequisites
 * You have configured at least one CLI context.
 
-=== Listing groups
-
-To list all groups in the registry:
-
+.Procedure
+. List all groups in the registry:
++
 [source,bash]
 ----
 $ acr group
 ----
-
-You can use pagination options for large result sets:
-
++
+Optional: Use pagination options for large result sets:
++
 [source,bash]
 ----
 $ acr group --page 1 --size 50
 ----
-
-=== Creating a group
-
-To create a new group:
-
+. Create a new group:
++
 [source,bash,subs="+quotes"]
 ----
 $ acr group create _GROUP_ID_
 ----
-
-You can include a description and labels:
-
++
+Optional: Include a description and labels:
++
 [source,bash]
 ----
 $ acr group create my-schemas --description "Production schemas" --label env=prod --label team=platform
 ----
-
-=== Getting group details
-
-To get details for a specific group:
-
+. Get details for a specific group:
++
 [source,bash,subs="+quotes"]
 ----
 $ acr group get _GROUP_ID_
 ----
-
++
 For example:
-
++
 [source,bash]
 ----
 $ acr group get my-schemas
 ----
-
-=== Updating a group
-
-To update a group description:
-
+. Update a group description:
++
 [source,bash]
 ----
 $ acr group update my-schemas --description "Updated description"
 ----
-
-To add or update labels:
-
++
+Optional: Add or update labels:
++
 [source,bash]
 ----
 $ acr group update my-schemas --set-label env=staging --set-label owner=alice
 ----
-
-To delete labels:
-
++
+Optional: Delete labels:
++
 [source,bash]
 ----
 $ acr group update my-schemas --delete-label env
 ----
-
-=== Deleting a group
-
-To delete a group:
-
+. Delete a group:
++
 [source,bash,subs="+quotes"]
 ----
 $ acr group delete _GROUP_ID_
 ----
-
++
 [NOTE]
 ====
 You must configure {registry} with `apicurio.rest.deletion.group.enabled=true` to allow group deletions.
 ====
-
-To delete a group that has artifacts, use the `--force` option:
-
++
+Optional: To delete a group that has artifacts, use the `--force` option:
++
 [source,bash]
 ----
 $ acr group delete my-schemas --force
 ----
-
++
 [NOTE]
 ====
 Using `--force` deletes the group and all artifacts it contains. Use this option with caution.
@@ -260,10 +250,11 @@ Using `--force` deletes the group and all artifacts it contains. Use this option
 [id="registry-cli-output-formats_{context}"]
 == CLI output formats and pagination
 
+:_mod-docs-content-type: REFERENCE
+
 [role="_abstract"]
 The CLI supports different output formats and pagination options for managing large result sets.
 
-.Output formats
 The CLI supports the following output formats:
 
 * `table` (default) - Human-readable tabular format
@@ -277,19 +268,20 @@ $ acr group --output-type json
 $ acr group get my-schemas -o json
 ----
 
-.Pagination
 For commands that return lists, you can use pagination options:
 
 * `--page` - The page number (starting from 1)
 * `--size` - The number of items per page
 
 For example:
+
 [source,bash]
 ----
 $ acr group --page 2 --size 25
 ----
 
-.Selecting columns
+*Selecting columns*
+
 For commands that list results in a table (for example `acr artifact`, `acr group`, and the `acr search` commands), you can choose which columns to show by using the `--columns` option. It takes a comma-separated list of column names, matched case-insensitively:
 
 [source,bash]
@@ -304,12 +296,14 @@ An unknown column name produces an error that lists the valid columns. This opti
 [id="registry-cli-reference_{context}"]
 == CLI reference
 
+:_mod-docs-content-type: REFERENCE
+
 [role="_abstract"]
 The following tables describe CLI global options and exit codes.
 
-.Global options
 The following options are available for most CLI commands:
 
+.Global options
 [cols="2,3", options="header"]
 |===
 | Option
@@ -325,9 +319,9 @@ The following options are available for most CLI commands:
 | Set the output format. Valid values are `table` (default) and `json`.
 |===
 
-.Exit codes
 The CLI uses the following exit codes:
 
+.Exit codes
 [cols="1,3", options="header"]
 |===
 | Code
@@ -346,9 +340,9 @@ The CLI uses the following exit codes:
 | {registry} server error.
 |===
 
-.Command summary
 The following commands are currently available:
 
+.Command summary
 [cols="2,3", options="header"]
 |===
 | Command
@@ -393,5 +387,5 @@ The following commands are currently available:
 * {managing-registry-artifacts-api}
 * {rest-client}
 ifndef::service-registry-downstream[]
-* For the latest CLI documentation, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README] on GitHub.
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/cli[CLI README]
 endif::[]

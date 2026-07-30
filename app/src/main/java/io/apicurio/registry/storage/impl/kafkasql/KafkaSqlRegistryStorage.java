@@ -1324,7 +1324,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public String createEvent(OutboxEvent event) {
-        // No op, the event is created by the event processor.
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(event));
         return event.getId();
     }
 

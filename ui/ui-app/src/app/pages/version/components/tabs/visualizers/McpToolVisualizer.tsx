@@ -1,9 +1,12 @@
 import { FunctionComponent } from "react";
 import "./McpToolVisualizer.css";
-import { McpToolViewer } from "@app/components/mcpTool";
+import { McpToolViewer, CompatibleMcpToolsViewer } from "@app/components/mcpTool";
 
 export type McpToolVisualizerProps = {
     spec: any;
+    groupId?: string;
+    artifactId?: string;
+    version?: string;
     className?: string;
 };
 
@@ -14,6 +17,14 @@ export const McpToolVisualizer: FunctionComponent<McpToolVisualizerProps> = (pro
     return (
         <div className={`mcp-tool-visualizer ${props.className || ""}`}>
             <McpToolViewer spec={props.spec} />
+            {props.groupId && props.artifactId && (
+                <CompatibleMcpToolsViewer
+                    groupId={props.groupId}
+                    artifactId={props.artifactId}
+                    version={props.version}
+                />
+            )}
         </div>
     );
 };
+

@@ -60,7 +60,7 @@ public class ImportLifecycleBean {
                     importStatus = ImportStatus.ERROR;
                 } catch (ConflictException ce) {
                     log.info("Import skipped, registry not empty.");
-                    importStatus = ImportStatus.ERROR;
+                    importStatus = ImportStatus.SKIPPED;
                 } catch (Exception e) {
                     log.error("Registry import failed", e);
                     importStatus = ImportStatus.ERROR;

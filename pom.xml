@@ -1240,6 +1240,31 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.9.8,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                  <message>Building Apicurio Registry requires JDK 21 or newer to run the build tooling (e.g. Checkstyle). The produced artifacts still target Java ${maven.compiler.release}.</message>
+                </requireJavaVersion>
+                <banDuplicatePomDependencyVersions/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <dependencies>
           <dependency>
@@ -1263,27 +1288,6 @@
               <goal>check</goal>
             </goals>
             <phase>validate</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>enforce</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <phase>validate</phase>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>[3.9.8,)</version>
-                </requireMavenVersion>
-                <banDuplicatePomDependencyVersions/>
-              </rules>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1379,7 +1383,6 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>
         <checkstyle.skip>true</checkstyle.skip>
-        <enforcer.skip>true</enforcer.skip>
         <assembly.skipAssembly>true</assembly.skipAssembly>
       </properties>
     </profile>

@@ -11,6 +11,8 @@ An API/Schema registry - stores and retrieves APIs and Schemas.
 
 Build the project and run the registry with the in-memory storage variant:
 
+**Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). The produced artifacts still target Java 17.
+
  ```
  ./mvnw clean install -Dlocal -DskipTests
  cd app/

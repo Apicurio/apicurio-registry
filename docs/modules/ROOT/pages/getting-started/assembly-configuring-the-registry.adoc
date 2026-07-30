@@ -1,26 +1,21 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="configuring-the-registry_{context}"]
 = Configuring your {registry} deployment
 
-[role="_abstract"]
-You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, and observability:
+:_mod-docs-content-type: ASSEMBLY
 
-* xref:configuring-registry-ui_{context}[]
-* xref:configuring-registry-observability_{context}[]
-* xref:otel-features_{context}[]
-* xref:otel-performance_{context}[]
-* xref:configuring-liveness-readiness-probes_{context}[]
-* xref:registry-liveness-env-vars_{context}[]
+[role="_abstract"]
+You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, and observability.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
 
 // proc-configuring-registry-ui
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-registry-ui_{context}"]
 == Configuring the {registry} web console
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
@@ -44,9 +39,10 @@ In read-only mode, you cannot make changes to registered artifacts. For example,
 
 
 // ref-configuring-registry-observability
-:_mod-docs-content-type: REFERENCE
 [id="configuring-registry-observability_{context}"]
 == {registry} observability with OpenTelemetry
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure {registry} to export telemetry data using OpenTelemetry (OTel) for comprehensive observability. This includes distributed tracing, metrics export by using the OTLP protocol, and log correlation with trace context.
@@ -113,9 +109,10 @@ environment:
 
 
 // con-otel-features
-:_mod-docs-content-type: CONCEPT
 [id="otel-features_{context}"]
 == OpenTelemetry features in {registry}
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 When OpenTelemetry is enabled, {registry} provides several observability features that are fully compatible with your existing monitoring setup.
@@ -138,9 +135,10 @@ Existing monitoring endpoints continue to function:
 
 
 // ref-otel-performance
-:_mod-docs-content-type: REFERENCE
 [id="otel-performance_{context}"]
 == OpenTelemetry performance impact
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 OpenTelemetry instrumentation adds a small performance overhead. The following table shows the measured impact when all telemetry signals are enabled with 100% sampling:
@@ -211,9 +209,10 @@ endif::[]
 
 
 // proc-configuring-liveness-readiness-probes
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-liveness-readiness-probes_{context}"]
 == Configuring {registry} health checks on OpenShift
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Health check endpoints are served on the management interface (port 9000 by default), separate from the main application port (8080). Configure liveness and readiness probes to target port 9000.
@@ -258,17 +257,17 @@ Alternatively, you can complete these steps by using the OpenShift `oc` command.
 
 
 // ref-registry-liveness-env-vars
-:_mod-docs-content-type: REFERENCE
 [id="registry-liveness-env-vars_{context}"]
 == Environment variables for {registry} health checks
 
+:_mod-docs-content-type: REFERENCE
+
 [role="_abstract"]
-You can use the following environment variables to configure {registry} health checks on OpenShift. These variables control liveness and readiness probes that monitor the health of the {registry} server. For an example procedure, see xref:configuring-liveness-readiness-probes_{context}[].
+You can use the following environment variables to configure {registry} health checks on OpenShift. These variables control liveness and readiness probes that monitor the health of the {registry} server.
 
 IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases. Change these values only if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. Keep these values as low as possible to avoid unnecessary processing overhead.
 
 .Environment variables for {registry} liveness probes
-//[%header,cols="5,5,2,5"]
 [.table-expandable,width="100%",cols="5,5,2,5",options="header"]
 |===
 |Name
@@ -296,7 +295,6 @@ IMPORTANT: The following environment variables are provided for reference only. 
 NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check, the liveness settings, unlike readiness settings, do not directly affect behavior of {registry} on OpenShift.
 
 .Environment variables for {registry} readiness probes
-//[%header,cols="4,5,2,2"]
 [.table-expandable,width="100%",cols="4,5,2,2",options="header"]
 |===
 |Name

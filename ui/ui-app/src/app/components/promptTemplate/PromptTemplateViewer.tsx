@@ -216,8 +216,8 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Recommended Models</Title>
                         <LabelGroup className="section-content">
-                            {meta.recommendedModels.map((model, index) => (
-                                <Label key={index} color="purple" isCompact>
+                            {meta.recommendedModels.map((model) => (
+                                <Label key={model} color="purple" isCompact>
                                     {model}
                                 </Label>
                             ))}

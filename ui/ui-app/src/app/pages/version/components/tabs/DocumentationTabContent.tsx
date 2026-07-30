@@ -140,7 +140,12 @@ export const DocumentationTabContent: FunctionComponent<DocumentationTabContentP
                 <AgentCardVisualizer spec={parsedContent} />
             </If>
             <If condition={visualizerType === VisualizerType.MCP_TOOL}>
-                <McpToolVisualizer spec={parsedContent} />
+                <McpToolVisualizer
+                    spec={parsedContent}
+                    groupId={props.groupId}
+                    artifactId={props.artifactId}
+                    version={props.version}
+                />
             </If>
             <If condition={visualizerType === VisualizerType.JSON_SCHEMA}>
                 <JsonSchemaVisualizer spec={parsedContent} />

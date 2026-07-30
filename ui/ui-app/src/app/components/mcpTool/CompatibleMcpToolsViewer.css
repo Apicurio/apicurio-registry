@@ -1,0 +1,27 @@
+.compatible-mcp-tools-viewer {
+    padding: 1rem 0;
+}
+
+.compatible-mcp-tools-subtitle {
+    color: var(--pf-v5-global--Color--200, #6a6e73);
+    font-size: 0.875rem;
+    margin-top: -0.5rem;
+}
+
+.compatible-mcp-tools-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.compatible-mcp-tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.compatible-tool-card {
+    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+}

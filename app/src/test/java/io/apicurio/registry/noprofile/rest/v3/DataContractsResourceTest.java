@@ -34,8 +34,12 @@ import io.apicurio.registry.rest.v3.beans.ContractRuleSet;
 import io.apicurio.registry.rest.v3.beans.Params;
 import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
 import io.apicurio.registry.rest.v3.beans.EditableContractMetadata;
+import io.apicurio.registry.rest.v3.beans.CreateVersion;
+import io.apicurio.registry.rest.v3.beans.VersionContent;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import java.util.List;
 import java.util.UUID;
@@ -654,7 +658,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"contractId\":\"default\",\"compatibilityGroup\":\"my-group-v1\"}")
+                .body(Map.of("contractId", "default", "compatibilityGroup", "my-group-v1"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
@@ -685,7 +689,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"contractId\":\"mycontract\",\"compatibilityGroup\":\"compat-v2\"}")
+                .body(Map.of("contractId", "mycontract", "compatibilityGroup", "compat-v2"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
@@ -755,7 +759,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"1\",\"record\":{\"x\":42}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "1", "record", Map.of("x", 42)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));
@@ -792,7 +796,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":99.99}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", 99.99)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(true))
@@ -829,7 +833,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":-5.0}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", -5.0)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(false))
@@ -866,7 +870,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"1\",\"record\":{\"x\":42}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "1", "record", Map.of("x", 42)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));
@@ -881,7 +885,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"999\",\"record\":{\"x\":1}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "999", "record", Map.of("x", 1)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(400);
     }
@@ -901,25 +905,25 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art1)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art2)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art1)
-                .body("{\"contractId\":\"default\",\"compatibilityGroup\":\"group-A\"}")
+                .body(Map.of("contractId", "default", "compatibilityGroup", "group-A"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art2)
-                .body("{\"contractId\":\"default\",\"compatibilityGroup\":\"group-B\"}")
+                .body(Map.of("contractId", "default", "compatibilityGroup", "group-B"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
@@ -964,7 +968,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\",\"ownerTeam\":\"audit-team\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).ownerTeam("audit-team").build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
@@ -984,13 +988,13 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"STABLE\"}")
+                .body(ContractStatusTransition.builder().status(ContractStatusTransition.Status.STABLE).build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then().statusCode(200);
 
@@ -1034,7 +1038,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\",\"ownerTeam\":\"search-team\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).ownerTeam("search-team").build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
@@ -1083,7 +1087,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":-1}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", -1)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(false))
@@ -1141,7 +1145,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":50}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", 50)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));
@@ -1191,7 +1195,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":1}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", 1)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(false))
@@ -1244,15 +1248,19 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         String schema2 = "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"},{\"name\":\"y\",\"type\":\"int\",\"default\":0}]}";
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"version\":\"2\",\"content\":{\"content\":"
-                        + "\"" + schema2.replace("\"", "\\\"") + "\""
-                        + ",\"contentType\":\"application/json\"}}")
+                .body(CreateVersion.builder()
+                        .version("2")
+                        .content(VersionContent.builder()
+                                .content(schema2)
+                                .contentType("application/json")
+                                .build())
+                        .build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"2\",\"record\":{\"x\":42}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "2", "record", Map.of("x", 42)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));

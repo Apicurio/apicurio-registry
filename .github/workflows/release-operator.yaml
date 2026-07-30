@@ -344,88 +344,93 @@ jobs:
           git checkout --track origin/main
           git push -f source main
 
-      - name: Create the Openshift Community Operators PR
-        id: openshift-community-operators-pr
+      - name: Create the Openshift Community Operators Bundle PR
+        id: openshift-community-operators-bundle-pr
         continue-on-error: true
         working-directory: openshift-community-operators
         run: |
-          git checkout -b "$RELEASE_BRANCH"
+          git checkout -b "${RELEASE_BRANCH}-bundle"
           TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
           BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/main/docs/pull_request_template.md)"
-
-          # Copy the bundle directory
           cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
+          git add .
+          git commit -s -m "$TITLE"
+          git push -f source "${RELEASE_BRANCH}-bundle"
+          gh repo set-default redhat-openshift-ecosystem/community-operators-prod
+          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:${RELEASE_BRANCH}-bundle"
 
-          # Update FBC catalog templates if FBC is enabled
+      - name: Warn if Openshift Community Operators Bundle PR failed
+        if: steps.openshift-community-operators-bundle-pr.outcome == 'failure'
+        run: echo "::warning::Failed to create Openshift Community Operators Bundle PR. Please create it manually."
+
+      - name: Create the Openshift Community Operators Catalog PR
+        id: openshift-community-operators-catalog-pr
+        if: steps.openshift-community-operators-bundle-pr.outcome == 'success'
+        continue-on-error: true
+        working-directory: openshift-community-operators
+        run: |
           PKG_NAME="apicurio-registry-3"
           FBC_ENABLED=$(cd "operators/$PKG_NAME" && cat ci.yaml | grep -c "fbc:" || true)
-          if [ "$FBC_ENABLED" -gt 0 ]; then
-            echo "FBC is enabled — updating catalog templates"
-            MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-            CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
-            BUNDLE_IMG="quay.io/apicurio/apicurio-registry-3-operator-bundle:$PACKAGE_VERSION"
-
-            # Determine which channels to update
-            if [ "$BRANCH" = "main" ]; then
-              CHANNELS="3.x $MINOR_CHANNEL"
-            else
-              CHANNELS="$MINOR_CHANNEL"
-            fi
-
-            cd "operators/$PKG_NAME"
-
-            # Download yq if not present
-            if [ ! -f ../../bin/yq ]; then
-              mkdir -p ../../bin
-              curl -sLo ../../bin/yq "https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64"
-              chmod +x ../../bin/yq
-            fi
-            YQ="../../bin/yq"
-
-            # Find the current head of each channel to set as 'replaces'
-            SAMPLE_TPL=$(ls catalog-templates/v4.16.yaml 2>/dev/null || ls catalog-templates/v4.*.yaml | head -1)
-
-            for tpl in catalog-templates/v4.*.yaml; do
-              echo "  Updating $tpl"
-              for CH in $CHANNELS; do
-                # Check if channel exists in the template
-                CH_EXISTS=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .name" "$tpl" 2>/dev/null || true)
-                CH_HEAD=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries[0].name" "$tpl" 2>/dev/null || true)
-
-                if [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
-                  # Channel doesn't exist — create it (new minor release)
-                  echo "    Creating new channel $CH"
-                  $YQ -i ".entries |= . + [{\"schema\": \"olm.channel\", \"package\": \"$PKG_NAME\", \"name\": \"$CH\", \"entries\": [{\"name\": \"$CSV_NAME\"}]}]" "$tpl"
-                elif [ -n "$CH_HEAD" ] && [ "$CH_HEAD" != "null" ]; then
-                  # Channel exists with entries — prepend new version
-                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\", \"replaces\": \"$CH_HEAD\"}] + ." "$tpl"
-                else
-                  # Channel exists but empty — add first entry
-                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\"}]" "$tpl"
-                fi
-              done
-              # Add bundle image reference
-              $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$tpl"
-            done
-
-            # Regenerate and validate catalogs
-            make catalogs
-            make validate-catalogs
-            echo "FBC catalog update complete"
-            cd ../..
-          else
-            echo "FBC is not enabled — submitting bundle only"
+          if [ "$FBC_ENABLED" -eq 0 ]; then
+            echo "FBC is not enabled — skipping catalog PR"
+            exit 0
           fi
+
+          git checkout main
+          git checkout -b "${RELEASE_BRANCH}-catalog"
+          TITLE="Update FBC catalogs for Apicurio Registry Operator $PACKAGE_VERSION"
+
+          MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
+          BUNDLE_IMG="quay.io/apicurio/apicurio-registry-3-operator-bundle:$PACKAGE_VERSION"
+
+          if [ "$BRANCH" = "main" ]; then
+            CHANNELS="3.x $MINOR_CHANNEL"
+          else
+            CHANNELS="$MINOR_CHANNEL"
+          fi
+
+          cd "operators/$PKG_NAME"
+
+          if [ ! -f ../../bin/yq ]; then
+            mkdir -p ../../bin
+            curl -sLo ../../bin/yq "https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64"
+            chmod +x ../../bin/yq
+          fi
+          YQ="../../bin/yq"
+
+          for tpl in catalog-templates/v4.*.yaml; do
+            echo "  Updating $tpl"
+            for CH in $CHANNELS; do
+              CH_EXISTS=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .name" "$tpl" 2>/dev/null || true)
+              CH_HEAD=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries[0].name" "$tpl" 2>/dev/null || true)
+
+              if [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
+                echo "    Creating new channel $CH"
+                $YQ -i ".entries |= . + [{\"schema\": \"olm.channel\", \"package\": \"$PKG_NAME\", \"name\": \"$CH\", \"entries\": [{\"name\": \"$CSV_NAME\"}]}]" "$tpl"
+              elif [ -n "$CH_HEAD" ] && [ "$CH_HEAD" != "null" ]; then
+                $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\", \"replaces\": \"$CH_HEAD\"}] + ." "$tpl"
+              else
+                $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\"}]" "$tpl"
+              fi
+            done
+            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$tpl"
+          done
+
+          make catalogs
+          make validate-catalogs
+          echo "FBC catalog update complete"
+          cd ../..
 
           git add .
           git commit -s -m "$TITLE"
-          git push -f source "$RELEASE_BRANCH"
+          git push -f source "${RELEASE_BRANCH}-catalog"
           gh repo set-default redhat-openshift-ecosystem/community-operators-prod
-          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:$RELEASE_BRANCH"
+          gh pr create --title "$TITLE" --body "FBC catalog update for $PACKAGE_VERSION." --base main --head "Apicurio:${RELEASE_BRANCH}-catalog"
 
-      - name: Warn if Openshift Community Operators PR failed
-        if: steps.openshift-community-operators-pr.outcome == 'failure'
-        run: echo "::warning::Failed to create Openshift Community Operators PR. Please create it manually."
+      - name: Warn if Openshift Community Operators Catalog PR failed
+        if: steps.openshift-community-operators-catalog-pr.outcome == 'failure'
+        run: echo "::warning::Failed to create Openshift Community Operators Catalog PR. Please create it manually."
 
       - name: Prepare post-release changes
         working-directory: registry/operator

@@ -450,6 +450,17 @@ Available options:
 
 Namespace that are watched by the operator are configured using `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable. Its value is configured to reflect the OLM annotation `olm.targetNamespaces` by default. This means that if the operator is not installed by OLM (e.g. using the install file), the annotation is empty, which means the operator will watch **all namespaces**. Because of this, cluster-level RBAC resources are used by default. In the future, we may release additional install file with reduced permissions, intended to be used when the operator only manages its own namespace.
 
+### RBAC
+
+The RBAC consumed by the OLM bundle is split by scope so that single-namespace installs stay least-privilege:
+
+- `controller/src/main/deploy/rbac/namespaced/cluster-role.yaml` holds only cluster-scoped rules (watching `apicurioregistries3` CRs cluster-wide plus reading the CRD). It becomes `clusterPermissions` in the CSV.
+- `controller/src/main/deploy/rbac/namespaced/role.yaml` holds namespace-scoped workload rules (deployments, services, secrets, and mutating access to the CR it reconciles). It becomes `permissions` in the CSV, which OLM materializes as a Role + RoleBinding in the target namespace(s).
+
+The install file (non-OLM) still uses the all-namespaces variant in `controller/src/main/deploy/rbac/cluster`.
+
+**Keep permissions in sync manually.** These rules are duplicated transitively in `olm-tests/src/test/deploy/olmv1/cluster-role.yaml` (the installer ClusterRole used by the OLM v1 tests). There is no automated mechanism keeping them aligned, so any change to the operator's permissions must be applied in both places. The RBAC files carry a comment reminding of this.
+
 ### Leader Election
 
 The operator supports Kubernetes leader election to enable high availability (HA) deployments.

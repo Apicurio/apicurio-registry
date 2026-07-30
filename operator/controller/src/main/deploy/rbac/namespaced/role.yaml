@@ -10,6 +10,19 @@ metadata:
 
 rules:
 
+  # Mutating access to the ApicurioRegistry3 CR the operator reconciles: patch for spec
+  # migration (SqlCRUpdater) and status, plus update for the JOSDK finalizer. Cluster-wide
+  # get/list/watch for discovery is in cluster-role.yaml. The operator never creates or
+  # deletes the CR, so those verbs are intentionally omitted.
+  - apiGroups:
+      - registry.apicur.io
+    resources:
+      - apicurioregistries3
+      - apicurioregistries3/status
+    verbs:
+      - patch
+      - update
+
   - apiGroups:
       - apps
     resources:

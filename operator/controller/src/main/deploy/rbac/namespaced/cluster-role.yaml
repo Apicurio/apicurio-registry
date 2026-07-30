@@ -9,18 +9,17 @@ metadata:
 
 rules:
 
+  # The operator watches ApicurioRegistry3 CRs cluster-wide to discover them (informer).
+  # Mutating verbs (patch/update for spec migration, status, and the JOSDK finalizer) are
+  # namespace-scoped and live in role.yaml. The operator never creates or deletes the CR.
   - apiGroups:
       - registry.apicur.io
     resources:
       - apicurioregistries3
       - apicurioregistries3/status
     verbs:
-      - create
-      - delete
       - get
       - list
-      - patch
-      - update
       - watch
 
   - apiGroups:

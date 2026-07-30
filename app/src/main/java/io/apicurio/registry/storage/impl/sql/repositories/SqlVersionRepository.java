@@ -534,29 +534,34 @@ public class SqlVersionRepository {
 
         Long globalId = sequenceRepository.nextGlobalIdRaw(handle);
         GAV gav;
+        String sortKey = generateVersionSortKey(version);
 
         // Create a row in the "versions" table
         if (firstVersion) {
             if (version == null) {
                 version = "1";
+                sortKey = generateVersionSortKey("1");
             }
+            final String finalSortKey = sortKey;
             final String finalVersion1 = version; // Lambda requirement
             handle.createUpdate(sqlStatements.insertVersion(true)).bind(0, globalId)
                     .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, finalVersion1)
-                    .bind(4, state).bind(5, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
-                    .bind(6, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
-                    .bind(7, owner).bind(8, createdOn).bind(9, owner).bind(10, createdOn)
-                    .bind(11, labelsStr).bind(12, contentId).execute();
+                    .bind(4, finalSortKey)
+                    .bind(5, state).bind(6, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
+                    .bind(7, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
+                    .bind(8, owner).bind(9, createdOn).bind(10, owner).bind(11, createdOn)
+                    .bind(12, labelsStr).bind(13, contentId).execute();
 
             gav = new GAV(groupId, artifactId, finalVersion1);
         } else {
             handle.createUpdate(sqlStatements.insertVersion(false)).bind(0, globalId)
                     .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version)
-                    .bind(4, normalizeGroupId(groupId)).bind(5, artifactId).bind(6, state)
-                    .bind(7, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
-                    .bind(8, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
-                    .bind(9, owner).bind(10, createdOn).bind(11, owner).bind(12, createdOn)
-                    .bind(13, labelsStr).bind(14, contentId).execute();
+                    .bind(4, sortKey)
+                    .bind(5, normalizeGroupId(groupId)).bind(6, artifactId).bind(7, state)
+                    .bind(8, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
+                    .bind(9, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
+                    .bind(10, owner).bind(11, createdOn).bind(12, owner).bind(13, createdOn)
+                    .bind(14, labelsStr).bind(15, contentId).execute();
 
             // If version is null, update the row we just inserted to set the version to the generated
             // versionOrder
@@ -757,5 +762,28 @@ public class SqlVersionRepository {
             }
             return null;
         });
+    }
+
+    private String generateVersionSortKey(String version) {
+    if (version == null || version.trim().isEmpty()) {
+        return version;
+    }
+    try {
+        StringBuilder sortKey = new StringBuilder();
+        String[] baseAndQualifier = version.split("-", 2);
+        String[] numericParts = baseAndQualifier[0].split("\\.");
+
+        for (String part : numericParts) {
+            int num = Integer.parseInt(part);
+            sortKey.append(String.format("%05d", num)).append("."); 
+        }
+
+        if (baseAndQualifier.length > 1) {
+            sortKey.append("-").append(baseAndQualifier[1]);
+        }
+        return sortKey.toString();
+    } catch (NumberFormatException e) {
+        return version; 
+        }
     }
 }

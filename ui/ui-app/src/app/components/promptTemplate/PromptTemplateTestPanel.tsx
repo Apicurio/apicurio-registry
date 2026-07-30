@@ -108,7 +108,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         if (variable.enum && variable.enum.length > 0) {
             return (
                 <FormSelect
-                    value={values[name] || ""}
+                    value={values[name] ?? ""}
                     onChange={(_event, val) => setValue(name, coerceEnumValue(val, type))}
                     aria-label={name}
                 >

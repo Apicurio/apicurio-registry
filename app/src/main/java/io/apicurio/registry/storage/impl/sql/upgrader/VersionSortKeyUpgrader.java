@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
 public class VersionSortKeyUpgrader implements IDbUpgrader {
@@ -21,31 +21,32 @@ public class VersionSortKeyUpgrader implements IDbUpgrader {
         log.info("Running VersionSortKeyUpgrader to compute semantic sort keys for existing artifacts. Note: Version ordering may be unstable during this migration window for large registries.");
 
         String selectSql = "SELECT globalId, version FROM versions WHERE versionSortKey IS NULL";
+        String updateSql = "UPDATE versions SET versionSortKey = ? WHERE globalId = ?";
         
-        List<VersionRecord> records = handle.createQuery(selectSql)
+        AtomicInteger count = new AtomicInteger(0);
+
+        handle.createQuery(selectSql)
                 .map(new RowMapper<VersionRecord>() {
                     @Override
                     public VersionRecord map(ResultSet rs) throws SQLException {
                         return new VersionRecord(rs.getLong("globalId"), rs.getString("version"));
                     }
-                }).list();
+                })
+                .stream()
+                .forEach(vRecord -> {
+                    String sortKey = VersionUtil.generateVersionSortKey(vRecord.version);
+                    handle.createUpdate(updateSql)
+                            .bind(0, sortKey)
+                            .bind(1, vRecord.globalId)
+                            .execute();
+                    count.incrementAndGet();
+                });
 
-        if (records.isEmpty()) {
+        if (count.get() == 0) {
             log.info("No legacy versions found requiring a versionSortKey backfill.");
-            return;
+        } else {
+            log.info("Successfully backfilled versionSortKey for {} versions.", count.get());
         }
-
-        String updateSql = "UPDATE versions SET versionSortKey = ? WHERE globalId = ?";
-        
-        for (VersionRecord vRecord : records) {
-            String sortKey = VersionUtil.generateVersionSortKey(vRecord.version);
-            handle.createUpdate(updateSql)
-                    .bind(0, sortKey)
-                    .bind(1, vRecord.globalId)
-                    .execute();
-        }
-
-        log.info("Successfully backfilled versionSortKey for {} versions.", records.size());
     }
 
     private static class VersionRecord {

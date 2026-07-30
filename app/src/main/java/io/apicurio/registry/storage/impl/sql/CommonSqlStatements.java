@@ -433,6 +433,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateVersionSortKey()
+     */
+    @Override
+    public String updateVersionSortKey() {
+        return "UPDATE versions SET versionSortKey = ? WHERE globalId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
      */
     @Override
@@ -938,8 +946,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactVersion() {
-        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**

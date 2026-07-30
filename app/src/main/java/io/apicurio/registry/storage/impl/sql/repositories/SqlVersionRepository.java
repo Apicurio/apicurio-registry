@@ -47,6 +47,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
 import io.apicurio.registry.types.VersionState;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
+import io.apicurio.registry.utils.VersionUtil;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
@@ -439,16 +440,17 @@ public class SqlVersionRepository {
                     .bind(1, normalizeGroupId(entity.groupId))
                     .bind(2, entity.artifactId)
                     .bind(3, entity.version)
-                    .bind(4, entity.versionOrder)
-                    .bind(5, entity.state)
-                    .bind(6, entity.name)
-                    .bind(7, entity.description)
-                    .bind(8, entity.owner)
-                    .bind(9, new Date(entity.createdOn))
-                    .bind(10, entity.modifiedBy)
-                    .bind(11, new Date(entity.modifiedOn))
-                    .bind(12, RegistryContentUtils.serializeLabels(entity.labels))
-                    .bind(13, entity.contentId)
+                    .bind(4, VersionUtil.generateVersionSortKey(entity.version))
+                    .bind(5, entity.versionOrder)
+                    .bind(6, entity.state)
+                    .bind(7, entity.name)
+                    .bind(8, entity.description)
+                    .bind(9, entity.owner)
+                    .bind(10, new Date(entity.createdOn))
+                    .bind(11, entity.modifiedBy)
+                    .bind(12, new Date(entity.modifiedOn))
+                    .bind(13, RegistryContentUtils.serializeLabels(entity.labels))
+                    .bind(14, entity.contentId)
                     .execute();
 
             // Insert labels into the "version_labels" table
@@ -534,12 +536,12 @@ public class SqlVersionRepository {
 
         Long globalId = sequenceRepository.nextGlobalIdRaw(handle);
         GAV gav;
-        String sortKey = generateVersionSortKey(version);
+        String sortKey = VersionUtil.generateVersionSortKey(version);
 
         if (firstVersion) {
             if (version == null) {
                 version = "1";
-                sortKey = generateVersionSortKey("1");
+                sortKey = VersionUtil.generateVersionSortKey("1");
             }
             final String finalSortKey = sortKey;
             final String finalVersion1 = version; // Lambda requirement
@@ -567,8 +569,8 @@ public class SqlVersionRepository {
                 
                 gav = getGAVByGlobalIdRaw(handle, globalId);
                  
-                String generatedSortKey = generateVersionSortKey(gav.getRawVersionId());
-                handle.createUpdate("UPDATE versions SET versionSortKey = ? WHERE globalId = ?")
+                String generatedSortKey = VersionUtil.generateVersionSortKey(gav.getRawVersionId());
+                handle.createUpdate(sqlStatements.updateVersionSortKey())
                         .bind(0, generatedSortKey)
                         .bind(1, globalId)
                         .execute();
@@ -764,30 +766,5 @@ public class SqlVersionRepository {
             }
             return null;
         });
-    }
-
-    public String generateVersionSortKey(String version) {
-        if (version == null || version.trim().isEmpty()) {
-            return null;
-        }
-        String withoutBuild = version.split("\\+")[0];
-        String[] parts = withoutBuild.split("-", 2);
-        String core = parts[0];
-        String prerelease = parts.length > 1 ? parts[1] : "";
-
-        String[] coreParts = core.split("\\.");
-        long major = 0;
-        long minor = 0;
-        long patch = 0;
-        
-        try {
-            major = coreParts.length > 0 ? Long.parseLong(coreParts[0]) : 0;
-            minor = coreParts.length > 1 ? Long.parseLong(coreParts[1]) : 0;
-            patch = coreParts.length > 2 ? Long.parseLong(coreParts[2]) : 0;
-        } catch (NumberFormatException e) {
-            return "NON_SEMVER_" + version;
-        }
-        String prereleaseKey = prerelease.isEmpty() ? "~" : "-" + prerelease;
-        return String.format("%05d.%05d.%05d%s", major, minor, patch, prereleaseKey);
     }
 }

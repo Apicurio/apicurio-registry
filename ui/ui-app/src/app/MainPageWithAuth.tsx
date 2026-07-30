@@ -134,7 +134,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                         />
 
 
-                        <Route element={ <NotFoundPage /> } />
+                        <Route path="*" element={ <NotFoundPage /> } />
                     </Routes>
                 </Page>
             </ApplicationAuth>

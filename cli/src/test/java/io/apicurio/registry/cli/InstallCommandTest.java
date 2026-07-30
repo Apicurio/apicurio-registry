@@ -19,6 +19,7 @@ import static io.apicurio.registry.cli.InstallCommand.ACR_BINARY;
 import static io.apicurio.registry.cli.InstallCommand.ACR_ENV;
 import static io.apicurio.registry.cli.InstallCommand.ACR_HOME_PLACEHOLDER;
 import static io.apicurio.registry.cli.InstallCommand.ACR_SCRIPT;
+import static io.apicurio.registry.cli.InstallCommand.BACKUP_SUFFIX;
 import static io.apicurio.registry.cli.InstallCommand.BIN_DIR;
 import static io.apicurio.registry.cli.InstallCommand.CLI_MARKER_COMMENT;
 import static io.apicurio.registry.cli.InstallCommand.COMPLETIONS;
@@ -186,6 +187,45 @@ public class InstallCommandTest {
         assertThat(configContent)
             .as("Existing " + CONFIG_JSON + " should be preserved (not overwritten)")
             .isEqualTo(customConfig);
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testInstallRollsBackFilesWhenCopyFails() throws Exception {
+        createShellConfigFile("# existing config\n");
+
+        // Simulate an existing, working installation at the target location.
+        Files.createDirectories(installPath);
+        final String oldScript = "#!/bin/bash\necho 'old acr'";
+        final String oldBinary = "old binary content";
+        final String oldReadme = "# old readme";
+        final String oldCompletions = "# old completions";
+        Files.writeString(installPath.resolve(ACR_SCRIPT), oldScript);
+        Files.writeString(installPath.resolve(ACR_BINARY), oldBinary);
+        Files.writeString(installPath.resolve(README), oldReadme);
+        Files.writeString(installPath.resolve(COMPLETIONS), oldCompletions);
+
+        // Break the distribution so the copy fails after several files have been replaced.
+        Files.delete(acrHome.resolve(ACR_ENV));
+
+        final var acr = new Acr();
+        final var cmd = new CommandLine(acr, factory);
+        final int exitCode = cmd.execute("install");
+
+        assertThat(exitCode)
+            .as("Install should fail when the distribution is incomplete")
+            .isNotEqualTo(0);
+        // Every file overwritten before the failure should be rolled back to its previous version.
+        assertThat(Files.readString(installPath.resolve(ACR_SCRIPT))).isEqualTo(oldScript);
+        assertThat(Files.readString(installPath.resolve(ACR_BINARY))).isEqualTo(oldBinary);
+        assertThat(Files.readString(installPath.resolve(README))).isEqualTo(oldReadme);
+        assertThat(Files.readString(installPath.resolve(COMPLETIONS))).isEqualTo(oldCompletions);
+        // Backup files should be cleaned up after rollback.
+        for (final String name : new String[] {ACR_SCRIPT, ACR_BINARY, README, COMPLETIONS}) {
+            assertThat(installPath.resolve(name + BACKUP_SUFFIX))
+                .as(name + " backup should be removed after rollback")
+                .doesNotExist();
+        }
     }
 
     // ========== Helper Methods ==========

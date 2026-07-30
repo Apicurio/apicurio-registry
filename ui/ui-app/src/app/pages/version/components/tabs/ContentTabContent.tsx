@@ -6,13 +6,15 @@ import Editor from "@monaco-editor/react";
 import { detectContentType } from "@utils/content.utils.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { useResizeObserver } from "@apicurio/common-ui-components";
+import { registerCustomLanguages } from "@editors/registerLanguages.ts";
+
 
 const TYPE_MAP: any = {};
 TYPE_MAP[ContentTypes.APPLICATION_PROTOBUF] = "protobuf";
 TYPE_MAP[ContentTypes.APPLICATION_XML] = "xml";
 TYPE_MAP[ContentTypes.APPLICATION_JSON] = "json";
 TYPE_MAP[ContentTypes.APPLICATION_YAML] = "yaml";
-TYPE_MAP[ContentTypes.APPLICATION_GRAPHQL] = "graphqlschema";
+TYPE_MAP[ContentTypes.APPLICATION_GRAPHQL] = "graphql";
 TYPE_MAP[ContentTypes.APPLICATION_THRIFT] = "plaintext";
 
 
@@ -103,6 +105,7 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
             }
 
             <Editor
+                beforeMount={registerCustomLanguages}
                 className="text-editor"
                 language={editorMode}
                 value={content}

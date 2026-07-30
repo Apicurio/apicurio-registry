@@ -60,6 +60,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [rules, setRules] = useState<Rule[]>([]);
     const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState(false);
     const [versionToDelete, setVersionToDelete] = useState<SearchedVersion>();
@@ -123,6 +124,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[ArtifactPage] Enabling rule:", ruleType);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
@@ -131,22 +133,28 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
             setRuleActionError(error?.message || `Error enabling "${ ruleType }" artifact rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[ArtifactPage] Disabling rule:", ruleType);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).then(() => {
             setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
             setRuleActionError(error?.message || `Error disabling "${ ruleType }" artifact rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[ArtifactPage] Configuring rule:", ruleType, config);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         groups.updateArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
             setRules(prev => prev.map(r => {
                 if (r.ruleType === ruleType) {
@@ -157,6 +165,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             }));
         }).catch(error => {
             setRuleActionError(error?.message || `Error configuring "${ ruleType }" artifact rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
@@ -396,6 +406,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onConfigureRule={doConfigureRule}
                 actionError={ruleActionError}
                 onDismissActionError={() => setRuleActionError(undefined)}
+                pendingRuleType={pendingRuleType}
             />
         </Tab>,
         <Tab data-testid="artifact-branches-tab" eventKey="branches" title="Branches" key="branches" tabContentId="tab-branches">

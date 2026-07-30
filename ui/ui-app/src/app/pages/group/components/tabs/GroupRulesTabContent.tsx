@@ -28,6 +28,7 @@ export type GroupRulesTabContentProps = {
     onConfigureRule: (ruleType: string, config: string) => void;
     actionError?: string;
     onDismissActionError: () => void;
+    pendingRuleType?: string;
 };
 
 /**
@@ -75,6 +76,7 @@ export const GroupRulesTabContent: FunctionComponent<GroupRulesTabContentProps> 
                                 onEnableRule={props.onEnableRule}
                                 onDisableRule={props.onDisableRule}
                                 onConfigureRule={props.onConfigureRule}
+                                pendingRuleType={props.pendingRuleType}
                             />
                         </CardBody>
                     </Card>

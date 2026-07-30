@@ -16,6 +16,7 @@ export type ArtifactRulesTabContentProps = {
     onConfigureRule: (ruleType: string, config: string) => void;
     actionError?: string;
     onDismissActionError: () => void;
+    pendingRuleType?: string;
 };
 
 /**
@@ -53,6 +54,7 @@ export const ArtifactRulesTabContent: FunctionComponent<ArtifactRulesTabContentP
                             onEnableRule={props.onEnableRule}
                             onDisableRule={props.onDisableRule}
                             onConfigureRule={props.onConfigureRule}
+                            pendingRuleType={props.pendingRuleType}
                         />
                     </CardBody>
                 </Card>

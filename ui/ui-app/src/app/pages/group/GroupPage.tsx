@@ -56,6 +56,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
     const [rules, setRules] = useState<Rule[]>([]);
     const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -158,6 +159,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Enabling rule:", ruleType);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
@@ -166,22 +168,28 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
             setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
             setRuleActionError(error?.message || `Error enabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Disabling rule:", ruleType);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         groups.deleteGroupRule(groupId as string, ruleType).then(() => {
             setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
             setRuleActionError(error?.message || `Error disabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[GroupPage] Configuring rule:", ruleType, config);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         groups.updateGroupRule(groupId as string, ruleType, config).then(() => {
             setRules(prev => prev.map(r => {
                 if (r.ruleType === ruleType) {
@@ -192,6 +200,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
             }));
         }).catch(error => {
             setRuleActionError(error?.message || `Error configuring "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
@@ -284,6 +294,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 onConfigureRule={doConfigureRule}
                 actionError={ruleActionError}
                 onDismissActionError={() => setRuleActionError(undefined)}
+                pendingRuleType={pendingRuleType}
             />
         </Tab>
     ];

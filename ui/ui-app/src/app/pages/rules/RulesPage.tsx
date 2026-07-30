@@ -16,6 +16,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [rules, setRules] = useState<Rule[]>([]);
     const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
 
     const admin: AdminService = useAdminService();
     const logger: LoggerService = useLoggerService();
@@ -29,6 +30,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[RulesPage] Enabling global rule:", ruleType);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
@@ -37,22 +39,28 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
             setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
             setRuleActionError(error?.message || `Error enabling "${ ruleType }" global rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[RulesPage] Disabling global rule:", ruleType);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         admin.deleteRule(ruleType).then(() => {
             setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
             setRuleActionError(error?.message || `Error disabling "${ ruleType }" global rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[RulesPage] Configuring global rule:", ruleType, config);
         setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         admin.updateRule(ruleType, config).then(() => {
             setRules(prev => prev.map(r => {
                 if (r.ruleType === ruleType) {
@@ -63,6 +71,8 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
             }));
         }).catch(error => {
             setRuleActionError(error?.message || `Error configuring "${ ruleType }" global rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
     };
 
@@ -97,7 +107,8 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
                             rules={rules}
                             onEnableRule={doEnableRule}
                             onDisableRule={doDisableRule}
-                            onConfigureRule={doConfigureRule} />
+                            onConfigureRule={doConfigureRule}
+                            pendingRuleType={pendingRuleType} />
                     </React.Fragment>
                 </PageSection>
             </PageDataLoader>

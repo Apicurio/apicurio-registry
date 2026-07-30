@@ -403,7 +403,7 @@ a|Communicates with the MCP server by using the MCP protocol:
 == PROMPT_TEMPLATE implementation details
 
 [role="_abstract"]
-The PROMPT_TEMPLATE artifact type implementation resides in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/PromptTemplateArtifactTypeUtilProvider.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
+The PROMPT_TEMPLATE artifact type is wired in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
 
 .Schema structure
 
@@ -563,7 +563,7 @@ The canonicalization process converts PROMPT_TEMPLATE content to YAML format wit
 == MODEL_SCHEMA implementation details
 
 [role="_abstract"]
-The MODEL_SCHEMA artifact type implementation resides in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/ModelSchemaArtifactTypeUtilProvider.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
+The MODEL_SCHEMA artifact type is wired in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
 
 .Schema structure
 
@@ -807,9 +807,6 @@ You can modify the built-in LLM artifact types or use them as templates for cust
 |`schema-util/common/.../rules/compatibility/PromptTemplateCompatibilityChecker.java`
 |PROMPT_TEMPLATE backward compatibility checking
 
-|`schema-util/util-provider/.../ModelSchemaArtifactTypeUtilProvider.java`
-|MODEL_SCHEMA provider wiring
-
-|`schema-util/util-provider/.../PromptTemplateArtifactTypeUtilProvider.java`
-|PROMPT_TEMPLATE provider wiring
+|`schema-util/util-provider/.../StandardArtifactTypeProviderRegistry.java`
+|MODEL_SCHEMA and PROMPT_TEMPLATE provider wiring (along with all other built-in types)
 |===

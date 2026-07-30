@@ -3,18 +3,16 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="versioning-support-policy_{context}"]
 = Versioning and support policy
 
-[role="_abstract"]
-This chapter describes the {registry} versioning scheme, support policy, release channels, and guidance for upgrading and handling rollbacks.
+:_mod-docs-content-type: ASSEMBLY
 
-* xref:versioning-scheme_{context}[]
-* xref:support-window_{context}[]
-* xref:release-channels_{context}[]
-* xref:upgrading-registry_{context}[]
-* xref:downgrades-and-rollbacks_{context}[]
+[role="_abstract"]
+{registry} follows a defined versioning scheme and support policy, offers multiple release channels, and supports upgrading between versions with guidance for handling rollbacks.
 
 
 [id="versioning-scheme_{context}"]
-== Versioning scheme
+== Version numbering scheme
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} follows https://semver.org/[Semantic Versioning] with a clear distinction between minor and patch releases.
@@ -41,6 +39,8 @@ They are limited to changes that address known security vulnerabilities.
 [id="support-window_{context}"]
 == Support window
 
+:_mod-docs-content-type: REFERENCE
+
 [role="_abstract"]
 {registry} maintains the *two most recent minor versions* with security patches.
 
@@ -66,11 +66,21 @@ When a new minor version is released, the oldest supported minor version reaches
 [id="release-channels_{context}"]
 == Release channels
 
+:_mod-docs-content-type: CONCEPT
+
 [role="_abstract"]
 {registry} provides multiple release channels so that you can choose the update cadence that suits your deployment.
 
+Choose the channel type that matches how you deploy {registry}: container images or the {operator}.
 
-=== Docker image tags
+
+[id="docker-image-tags_{context}"]
+== Docker image tags
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} container images use several tag conventions that determine how frequently your deployment receives updates.
 
 [cols="1,3", options="header"]
 |===
@@ -93,9 +103,13 @@ When a new minor version is released, the oldest supported minor version reaches
 Use the minor-series floating tag (e.g., `3.3`) to automatically receive security patches without upgrading to a new minor version.
 
 
-=== OLM channels (Kubernetes operator)
+[id="olm-channels_{context}"]
+== OLM channels (Kubernetes operator)
 
-If you deploy {registry} using the {operator}, each minor version has its own OLM channel:
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+If you deploy {registry} using the {operator}, each minor version has its own OLM channel.
 
 [cols="1,3", options="header"]
 |===
@@ -113,7 +127,9 @@ Subscribe to a minor-version channel (e.g., `3.3.x`) for stability, or to the `3
 
 
 [id="upgrading-registry_{context}"]
-== Upgrading {registry}
+== Upgrade overview
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 {registry} supports forward upgrades.
@@ -122,12 +138,19 @@ Database schema migrations run automatically on startup and do not require manua
 [IMPORTANT]
 ====
 Always back up your database before upgrading to a new minor version.
-See xref:backup-before-upgrade_{context}[].
 ====
 
+[role="_additional-resources"]
+.Additional resources
+* xref:backup-before-upgrade_{context}[]
 
-=== Patch upgrades (within a minor version)
 
+[id="patch-upgrades_{context}"]
+== Performing patch upgrades
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
 Patch upgrades (e.g., 3.3.0 -> 3.3.1) are safe and always recommended.
 They contain only CVE fixes and do not introduce behavioral changes.
 
@@ -137,8 +160,12 @@ They contain only CVE fixes and do not introduce behavioral changes.
 . Start {registry}. Any required schema migrations run automatically.
 
 
-=== Minor upgrades
+[id="minor-upgrades_{context}"]
+== Performing minor upgrades
 
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
 Minor upgrades (e.g., 3.3.x -> 3.4.0) include new features, enhancements, and bug fixes.
 
 .Procedure
@@ -149,8 +176,12 @@ Minor upgrades (e.g., 3.3.x -> 3.4.0) include new features, enhancements, and bu
 . Verify that your client applications work correctly with the new version.
 
 
-=== Skipping minor versions
+[id="skipping-minor-versions_{context}"]
+== Upgrades across multiple minor versions
 
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
 Upgrading across multiple minor versions (e.g., 3.2.x -> 3.4.x) is supported.
 Database migrations are cumulative and applied in order on startup.
 
@@ -160,6 +191,8 @@ Review the release notes for all intermediate versions to understand the full se
 [id="downgrades-and-rollbacks_{context}"]
 == Downgrades and rollbacks
 
+:_mod-docs-content-type: CONCEPT
+
 [role="_abstract"]
 {registry} does *not* support downgrades.
 
@@ -168,36 +201,46 @@ Starting an older version of {registry} against a database that has been migrate
 
 If you deploy {registry} using the {operator}, switching to an older OLM channel is also not supported.
 
-=== Handling a failed upgrade
 
-If an upgrade introduces issues, restore from the database backup taken before the upgrade:
+[id="handling-failed-upgrade_{context}"]
+== Handling a failed upgrade
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+If an upgrade introduces issues, restore your {registry} deployment from the database backup taken before the upgrade.
 
 .Procedure
 . Stop {registry}.
 . Restore the database from the backup taken before the upgrade.
 . Deploy the previous version of {registry}.
 . Investigate the issue before attempting the upgrade again.
-
++
+[IMPORTANT]
+====
 Do *not* attempt to manually revert database schema changes.
+====
 
 
 [id="backup-before-upgrade_{context}"]
 == Backing up before an upgrade
 
+:_mod-docs-content-type: PROCEDURE
+
 [role="_abstract"]
 Before any minor version upgrade, create a backup of your {registry} database.
 
-For PostgreSQL deployments:
-
+.Procedure
+. For PostgreSQL deployments, create a database dump:
++
 [source,bash]
 ----
 pg_dump -h <host> -U <username> -d <database> -F c -f registry-backup-$(date +%Y%m%d).dump
 ----
-
++
 For KafkaSQL deployments, back up both the Kafka topic data and the SQL snapshot database.
-
-Store backups in a secure location and verify that they can be restored before proceeding with the upgrade.
-
+. Store the backup in a secure location.
+. Verify that the backup can be restored before proceeding with the upgrade.
 
 [role="_additional-resources"]
 .Additional resources

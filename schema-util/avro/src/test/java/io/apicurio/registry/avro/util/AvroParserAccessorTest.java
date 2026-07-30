@@ -49,6 +49,13 @@ class AvroParserAccessorTest {
      * independent sites, so any hardening had to be repeated eight times and one could silently be missed.
      * This asserts the invariant itself: within this module's production sources, AvroParserAccessor is the
      * only class allowed to construct a parser.
+     * <p>
+     * Scope limitation: this walks only the current module, so it does not cover the two call sites that were
+     * also routed through the accessor but live in the app module
+     * ({@code contracts/tags/AvroTagExtractor} and {@code ccompat/rest/v7/impl/SchemaFormatService}, the
+     * latter on the Confluent-compatibility path). A regression there would not fail this test. Extending the
+     * same guard to the app module is worth doing separately; do not read a pass here as repository-wide
+     * coverage.
      */
     @Test
     void noProductionCodeInThisModuleConstructsSchemaParserDirectly() throws IOException {

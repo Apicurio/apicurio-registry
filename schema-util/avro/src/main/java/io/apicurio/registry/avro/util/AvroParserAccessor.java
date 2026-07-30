@@ -80,11 +80,21 @@ public final class AvroParserAccessor {
      * Applies the registry's parser hardening. This is the single place to add future restrictions, for
      * example a nesting-depth limit to bound stack usage on deeply nested schemas.
      * <p>
-     * The settings applied here currently match the Avro library defaults, so this method is behaviour
-     * preserving. They are set explicitly so that the registry's posture is stated at one site and cannot be
-     * loosened by a change of default in a future Avro release. Note that name validation is fixed at
-     * construction time in Avro 1.12 ({@code Schema.Parser} holds it in a final field and exposes no setter),
-     * so the strict default is inherited from the no-argument constructor above.
+     * The settings applied here match the Avro library defaults, so this method is behaviour preserving. They
+     * are set explicitly so that the registry's posture is stated at one site and cannot be loosened by a
+     * change of default in a future Avro release.
+     * <p>
+     * Do not take Avro's own documentation as the authority on the {@code validateDefaults} default: in the
+     * pinned Avro 1.12.1, {@code Schema.java:1432} initialises the field to {@code true} while the
+     * {@code getValidateDefaults()} javadoc at {@code Schema.java:1480} claims "False by default". The
+     * initialiser is what runs, and it was confirmed against the pinned version rather than the docs, so
+     * passing {@code true} here changes nothing today. {@code AvroParserAccessorTest} pins the expected
+     * value so a future Avro upgrade that really does flip the default fails loudly instead of silently
+     * relaxing validation.
+     * <p>
+     * Name validation is fixed at construction time in Avro 1.12 ({@code Schema.Parser} holds it in a final
+     * field and exposes no setter), so the strict default is inherited from the no-argument constructor
+     * above.
      */
     private static Schema.Parser configure(Schema.Parser parser) {
         parser.setValidateDefaults(true);

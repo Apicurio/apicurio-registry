@@ -1,7 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useLocation, useMatch, useParams } from "react-router";
 import {
     EXPLORE_PAGE_IDX,
     GroupOverviewTabContent,
@@ -60,28 +61,29 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const groups: GroupsService = useGroupsService();
     const { groupId }= useParams();
     const location = useLocation();
+    const rulesMatch = useMatch("/explore/:groupId/rules");
 
     let activeTabKey: string = "overview";
     if (location.pathname.indexOf("/artifacts") !== -1) {
         activeTabKey = "artifacts";
     }
-    if (location.pathname.indexOf("/rules") !== -1) {
+    if (rulesMatch) {
         activeTabKey = "rules";
     }
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         logger.info("Loading data for group: ", groupId);
         return [
             groups.getGroupMetaData(groupId as string)
-                .then(setGroup)
-                .catch(error => {
+                .then(guard.wrap(setGroup))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getGroupRules(groupId as string)
-                .then(setRules)
-                .catch(error => {
+                .then(guard.wrap(setRules))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
         ];
     };
 
@@ -251,7 +253,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        setLoaders(createLoaders());
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [groupId]);
 
     const tabs: any[] = [

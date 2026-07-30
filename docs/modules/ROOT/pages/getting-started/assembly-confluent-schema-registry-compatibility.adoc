@@ -1,23 +1,17 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
-
 [id="confluent-schema-registry-compatibility_{context}"]
 = Confluent Schema Registry compatibility API
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
-{registry} provides a compatibility API layer so that applications with Confluent Schema Registry clients can work with {registry}. Review the supported features, behavioral differences, unsupported features, and migration considerations:
-
-* xref:ccompat-overview_{context}[]
-* xref:ccompat-supported-features_{context}[]
-* xref:ccompat-behavioral-differences_{context}[]
-* xref:ccompat-unsupported-features_{context}[]
-* xref:ccompat-migration-considerations_{context}[]
-
-:_mod-docs-content-type: CONCEPT
+{registry} provides a compatibility API layer so that applications with Confluent Schema Registry clients can work with {registry}. Review the supported features, behavioral differences, unsupported features, and migration considerations.
 
 [id="ccompat-overview_{context}"]
 == Overview of the compatibility API
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 {registry} implements the Confluent Schema Registry REST API to provide drop-in compatibility for applications and tools designed for Confluent Schema Registry.
@@ -47,10 +41,10 @@ Applications that use Confluent Schema Registry client libraries can use {regist
 schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 ----
 
-:_mod-docs-content-type: REFERENCE
-
 [id="ccompat-supported-features_{context}"]
 == Supported features
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} fully supports the following Confluent Schema Registry features:
@@ -163,10 +157,10 @@ For most use cases, use the default content ID mode, because it matches the Conf
 |Separator character used when you enable group concatenation.
 |===
 
-:_mod-docs-content-type: REFERENCE
-
 [id="ccompat-behavioral-differences_{context}"]
 == Behavioral differences from Confluent
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Although the ccompat API provides broad compatibility, some behavioral differences exist when you migrate from Confluent Schema Registry.
@@ -254,10 +248,10 @@ Error responses use Confluent-compatible error codes and message formats:
 
 List endpoints (`GET /subjects`, `GET /schemas/ids/{id}/subjects`, `GET /schemas/ids/{id}/versions`) return results in sorted order (alphabetical for subjects, numerical for versions).
 
-:_mod-docs-content-type: REFERENCE
-
 [id="ccompat-unsupported-features_{context}"]
 == Unsupported features
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} does not support the following Confluent Schema Registry features. Applications that rely on these features must use alternative approaches.
@@ -287,7 +281,7 @@ List endpoints (`GET /subjects`, `GET /schemas/ids/{id}/subjects`, `GET /schemas
 
 |*Data Contracts - Rules Enforcement*
 |The ccompat API accepts `metadata` and `ruleSet` fields in requests but does not enforce or store them. The API does not execute schema rules.
-|Use {registry} native Data Contracts feature (`apicurio.contracts.enabled=true`) for contract metadata and rulesets. See xref:getting-started/assembly-data-contracts.adoc[Data Contracts].
+|Use {registry} native Data Contracts feature (`apicurio.contracts.enabled=true`) for contract metadata and rulesets.
 |===
 
 **Schema Linking / Exporters**
@@ -314,12 +308,14 @@ Confluent Data Contracts provide the following governance features:
 * *Content Rules*: Validity, compatibility, and integrity rule configuration
 * *Groups*: Artifact organization by group for governance
 
-See xref:getting-started/assembly-data-contracts.adoc[Data Contracts] for full documentation about the native data contracts feature.
-
-:_mod-docs-content-type: REFERENCE
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-data-contracts.adoc[Data Contracts]
 
 [id="ccompat-migration-considerations_{context}"]
 == Migration considerations
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you migrate from Confluent Schema Registry to {registry}, consider the following areas:

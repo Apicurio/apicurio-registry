@@ -13,6 +13,7 @@ import io.apicurio.registry.contracts.odcs.OdcsParseException;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionEngine;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionResult;
 import io.apicurio.registry.contracts.odcs.OdcsSchema;
+import io.apicurio.registry.contracts.odcs.OdcsSchemaLocations;
 import io.apicurio.registry.rest.v3.beans.OdcsContractResult;
 import io.apicurio.registry.rest.v3.beans.OdcsContractSummary;
 import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
@@ -68,6 +69,7 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -942,6 +944,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
 
+        String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
+        String filename = artifactId + ext;
+
         if (Boolean.TRUE.equals(canonical)) {
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(artifactCell.get().getReferences(),
@@ -951,7 +956,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         var builder = Response.ok().entity(contentToReturn.getContent())
-                .type(contentToReturn.getContentType());
+                .type(contentToReturn.getContentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename));
 
         checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();
@@ -2422,8 +2428,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 continue;
             }
 
-            String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
-            if (parsed == null) {
+            String[] parsed = OdcsSchemaLocations.parse(schema.getLocation(), groupId);
+            if (!OdcsSchemaLocations.isValid(parsed)) {
                 combined.addWarning("Invalid schema location: " + schema.getLocation());
                 continue;
             }
@@ -2445,38 +2451,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
         return combined;
-    }
-
-    private String[] parseSchemaLocation(String location, String defaultGroupId) {
-        if (location == null || location.isBlank()) {
-            return null;
-        }
-        String withoutVersion = location.contains(":")
-                ? location.substring(0, location.indexOf(':'))
-                : location;
-        if (withoutVersion.isBlank()) {
-            return null;
-        }
-
-        String schemaGroupId;
-        String schemaArtifactId;
-        int slashIdx = withoutVersion.indexOf('/');
-        if (slashIdx >= 0) {
-            schemaGroupId = withoutVersion.substring(0, slashIdx);
-            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
-            if (schemaArtifactId.contains("/")) {
-                return null;
-            }
-        } else {
-            schemaGroupId = defaultGroupId;
-            schemaArtifactId = withoutVersion;
-        }
-
-        if (schemaGroupId == null || schemaGroupId.isBlank()
-                || schemaArtifactId.isBlank()) {
-            return null;
-        }
-        return new String[] { schemaGroupId, schemaArtifactId };
     }
 
     private OdcsContractResult toOdcsContractResult(String contractId, OdcsContract contract,

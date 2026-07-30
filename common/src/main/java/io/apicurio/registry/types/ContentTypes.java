@@ -15,4 +15,33 @@ public class ContentTypes {
         return APPLICATION_EMPTY.equals(contentType);
     }
 
+    /**
+     * Returns the conventional file extension for a given MIME content type.
+     * Falls back to ".bin" for unknown types.
+     */
+    public static String getFileExtension(String contentType) {
+        if (contentType == null) {
+            return ".bin";
+        }
+        
+        String bareType = contentType;
+        int semicolonIdx = bareType.indexOf(';');
+        if (semicolonIdx != -1) {
+            bareType = bareType.substring(0, semicolonIdx);
+        }
+        bareType = bareType.trim().toLowerCase();
+
+        return switch (bareType) {
+            case APPLICATION_JSON -> ".json";
+            case APPLICATION_YAML -> ".yaml";
+            case APPLICATION_XML -> ".xml";
+            case APPLICATION_PROTOBUF -> ".proto";
+            case APPLICATION_GRAPHQL -> ".graphql";
+            case APPLICATION_THRIFT -> ".thrift";
+            case TEXT_PROMPT_TEMPLATE -> ".txt";
+            case APPLICATION_EMPTY -> "";
+            default -> ".bin";
+        };
+    }
+
 }

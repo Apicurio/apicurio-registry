@@ -2,19 +2,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-managing-registry-artifacts-api
 [id="managing-registry-artifacts-api_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Managing {registry} content using the REST API
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
 Client applications can use {registry} REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Core Registry API v3 provides operations for artifacts, versions, metadata, and rules stored in {registry}. For detailed information, see the {registry-rest-api}.
-
-Use the Core Registry API v3 to perform the following tasks:
-
-* xref:managing-artifacts-using-rest-api_{context}[]
-* xref:managing-artifact-versions-using-rest-api_{context}[]
-* xref:managing-artifact-references-using-rest-api_{context}[]
-* xref:exporting-importing-using-rest-api_{context}[]
 
 **Prerequisites**
 
@@ -32,8 +26,9 @@ Use the Core Registry API v3 to perform the following tasks:
 
 // proc-managing-artifacts-using-rest-api
 [id="managing-artifacts-using-rest-api_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifacts using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Use the Core Registry API v3 to add and retrieve a schema artifact in {registry}.
@@ -98,8 +93,9 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 // proc-managing-artifact-versions-using-rest-api
 [id="managing-artifact-versions-using-rest-api_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifact versions using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 If you do not specify an artifact version number when adding schema and API artifacts using the Core Registry API v3, {registry} generates a version number automatically. The default version when creating a new artifact is `1`.
@@ -169,8 +165,9 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 // proc-managing-artifact-references-using-rest-api
 [id="managing-artifact-references-using-rest-api_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifact references using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
@@ -337,8 +334,9 @@ NOTE: Some artifact types (for example, JSON Schema) allow circular dependencies
 
 // proc-exporting-importing-using-rest-api
 [id="exporting-importing-using-rest-api_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Exporting and importing registry data using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 As an administrator, you can use the Core Registry API v3 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.

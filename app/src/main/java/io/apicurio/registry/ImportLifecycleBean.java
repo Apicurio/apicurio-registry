@@ -38,7 +38,7 @@ public class ImportLifecycleBean {
     @Inject
     AdminResourceImpl v3Admin;
 
-    private ImportStatus importStatus = ImportStatus.UNKNOWN;
+    private volatile ImportStatus importStatus = ImportStatus.UNKNOWN;
 
     void onStorageReady(@ObservesAsync StorageEvent ev) {
         if (StorageEventType.READY.equals(ev.getType())) {

@@ -8,6 +8,8 @@ import java.util.List;
  */
 public interface SqlStatements {
 
+    public static final String COMPRESSED_SNAPSHOT_EXTENSION = ".sql.gz";
+
     /**
      * Gets the database type associated with these statements.
      */

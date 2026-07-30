@@ -16,6 +16,8 @@ import io.apicurio.registry.events.GroupDeleted;
 import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.apicurio.registry.events.GroupRuleConfigured;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.impl.sql.SqlStatements;
+import io.apicurio.registry.storage.metrics.StorageMetricsEvent;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
@@ -1273,7 +1275,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // First we generate an identifier for the snapshot, then we send a snapshot marker to the journal
         // topic.
         String snapshotId = UUID.randomUUID().toString();
-        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + ".sql.gz");
+        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + SqlStatements.COMPRESSED_SNAPSHOT_EXTENSION);
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
         this.lastTriggeredSnapshot = snapshotId;
         log.debug("Snapshot with id {} triggered.", snapshotId);
@@ -1285,16 +1287,29 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 snapshotId, snapshotLocation, Collections.emptyList());
         RecordMetadata recordMetadata = blockOnResult(snapshotsProducer.apply(record));
         
-        // Cleanup old local dumps to save disk space
+        // Cleanup old local dumps to save disk space, keeping the most recent 3 backups.
+        // We only clean up if the new snapshot actually exists on disk (successful generation).
         try {
             Path storeDir = Path.of(configuration.getSnapshotStoreLocation());
-            if (java.nio.file.Files.isDirectory(storeDir)) {
+            if (java.nio.file.Files.exists(path) && java.nio.file.Files.isDirectory(storeDir)) {
+                List<Path> snapshotFiles = new ArrayList<>();
                 try (java.nio.file.DirectoryStream<Path> stream = java.nio.file.Files.newDirectoryStream(storeDir, "*.{sql,sql.gz}")) {
                     for (Path p : stream) {
-                        if (!p.getFileName().toString().startsWith(snapshotId)) {
-                            java.nio.file.Files.deleteIfExists(p);
-                        }
+                        snapshotFiles.add(p);
                     }
+                }
+                // Sort by last modified time descending (newest first)
+                snapshotFiles.sort((p1, p2) -> {
+                    try {
+                        return java.nio.file.Files.getLastModifiedTime(p2).compareTo(java.nio.file.Files.getLastModifiedTime(p1));
+                    } catch (Exception e) {
+                        return 0;
+                    }
+                });
+                
+                // Delete everything except the 3 most recent files
+                for (int i = 3; i < snapshotFiles.size(); i++) {
+                    java.nio.file.Files.deleteIfExists(snapshotFiles.get(i));
                 }
             }
         } catch (Exception e) {

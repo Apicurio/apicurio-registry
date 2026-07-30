@@ -58,7 +58,7 @@ KubernetesOps storage is ideal when:
 |KubernetesOps Storage
 
 |Data source
-|Database (PostgreSQL, etc.)
+|Database (PostgreSQL and others)
 |Git repository
 |Kubernetes ConfigMaps
 
@@ -124,7 +124,7 @@ Configure {registry} to use KubernetesOps storage, including the required enviro
 
 |`APICURIO_POLLING_STORAGE_POLL_PERIOD`
 |`PT10S`
-|Minimum period between polls for ConfigMap changes. Uses ISO 8601 duration format (e.g., `PT10S`, `PT1M`).
+|Minimum period between polls for ConfigMap changes. Uses ISO 8601 duration format (for example, `PT10S` or `PT1M`).
 
 |`APICURIO_KUBERNETESOPS_LABEL_REGISTRY_ID`
 |`apicurio.io/registry-id`
@@ -199,9 +199,9 @@ ConfigMaps for KubernetesOps storage must use a specific YAML format with `$type
 
 *ConfigMap requirements*
 
-* ConfigMaps must have the registry ID label (e.g., `apicurio.io/registry-id: my-registry`)
-* Each data entry key is treated as a relative path (e.g., `test/artifact.registry.yaml`)
-* Metadata files (registry, group, artifact, content definitions) should use a recognized file suffix in their data key name. By default, the suffixes `registry` and `ar` are recognized, matching patterns like `*.registry.yaml`, `*.registry.yml`, `*.registry.json`, `*.ar.yaml`, etc. Using recognized suffixes enables better error reporting when files fail to parse. Data keys that do not match a recognized suffix are treated as raw content files (e.g., schema data).
+* ConfigMaps must have the registry ID label (for example, `apicurio.io/registry-id: my-registry`)
+* Each data entry key is treated as a relative path (for example, `test/artifact.registry.yaml`)
+* Metadata files (registry, group, artifact, content definitions) should use a recognized file suffix in their data key name. By default, the suffixes `registry` and `ar` are recognized, matching patterns such as `*.registry.yaml`, `*.registry.yml`, `*.registry.json`, and `*.ar.yaml`. Using recognized suffixes enables better error reporting when files fail to parse. Data keys that do not match a recognized suffix are treated as raw content files (for example, schema data).
 * Metadata YAML files must contain a `$type` field identifying the entity type
 
 The following `$type` values are supported:
@@ -303,7 +303,7 @@ data:
     }
 ----
 
-NOTE: The `content` field in a version uses a relative path that references another data key in the ConfigMap (or across ConfigMaps). Content data keys should *not* use a metadata suffix (e.g., `.registry.yaml`) since they contain raw schema/API data, not registry metadata.
+NOTE: The `content` field in a version uses a relative path that references another data key in the ConfigMap (or across ConfigMaps). Content data keys should *not* use a metadata suffix (for example, `.registry.yaml`) since they contain raw schema/API data, not registry metadata.
 
 For advanced use cases, you can use `content-v0` metadata to set an explicit `contentId` or define content references. The version's `contentMetadata` field points to a `content-v0` entry, which in turn points to the actual content via its own `content` field.
 
@@ -349,7 +349,7 @@ data:
     }
 ----
 
-Content references allow one artifact to reference another (e.g., an Avro schema that imports another record type). Use the `references` field in a `content-v0` entry to declare these relationships.
+Content references allow one artifact to reference another (for example, an Avro schema that imports another record type). Use the `references` field in a `content-v0` entry to declare these relationships.
 
 .Example: Content references
 [source,yaml]
@@ -452,7 +452,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`globalRules`
 |list of rules
-|Global validation/compatibility rules. Each rule has `ruleType` (e.g., `VALIDITY`, `COMPATIBILITY`) and `config`.
+|Global validation/compatibility rules. Each rule has `ruleType` (for example, `VALIDITY` or `COMPATIBILITY`) and `config`.
 
 |`properties`
 |list of properties
@@ -488,11 +488,11 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`owner`
 |string
-|Owner of the group (e.g., username or team name).
+|Owner of the group (for example, a username or team name).
 
 |`artifactsType`
 |string
-|Constrains all artifacts in this group to a specific type (e.g., `AVRO`, `PROTOBUF`).
+|Constrains all artifacts in this group to a specific type (for example, `AVRO` or `PROTOBUF`).
 
 |`rules`
 |list of rules
@@ -540,7 +540,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`owner`
 |string
-|Owner of the artifact (e.g., username or team name).
+|Owner of the artifact (for example, a username or team name).
 
 |`versions`
 |list of versions
@@ -560,7 +560,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`version`
 |string
-|*Required*. Version identifier (e.g., `"1"`, `"2.0.0"`).
+|*Required*. Version identifier (for example, `"1"` or `"2.0.0"`).
 
 |`state`
 |string
@@ -580,7 +580,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`content`
 |string
-|*Required*. Relative path to the content data key (e.g., `my-schema.avsc`).
+|*Required*. Relative path to the content data key (for example, `my-schema.avsc`).
 
 |`contentMetadata`
 |string
@@ -592,7 +592,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`owner`
 |string
-|Owner of this version (e.g., username or team name).
+|Owner of this version (for example, a username or team name).
 |===
 
 .content-v0 fields
@@ -632,7 +632,7 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 
 |`config`
 |string
-|Rule configuration value (e.g., `FULL`, `BACKWARD`, `FORWARD`).
+|Rule configuration value (for example, `FULL`, `BACKWARD`, or `FORWARD`).
 |===
 
 

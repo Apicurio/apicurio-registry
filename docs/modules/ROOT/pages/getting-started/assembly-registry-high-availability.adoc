@@ -22,14 +22,9 @@ This chapter explains how to configure {registry} for high availability in a sin
 [role="_abstract"]
 A highly available {registry} deployment consists of the following components:
 
-* *Application (backend) pods* - Multiple stateless replicas that process REST API requests. These pods can
-scale horizontally and are distributed across cluster nodes for fault tolerance.
-
-* *UI pods* - Multiple stateless replicas serving the web console (static files). Typically fewer replicas are
-needed compared to the backend.
-
-* *Storage layer* - The stateful component requiring HA configuration. Strategy depends on whether you use SQL
-database or KafkaSQL storage.
+Application (backend) pods:: Multiple stateless replicas that process REST API requests. These pods can scale horizontally and are distributed across cluster nodes for fault tolerance.
+UI pods:: Multiple stateless replicas serving the web console (static files). Typically fewer replicas are needed compared to the backend.
+Storage layer:: The stateful component requiring HA configuration. The strategy depends on whether you use SQL database or KafkaSQL storage.
 
 The application and UI components are stateless and can be scaled horizontally. High availability is achieved
 by running multiple replicas distributed across failure domains (availability zones) and implementing a highly
@@ -213,11 +208,10 @@ These settings ensure that:
 [role="_abstract"]
 When using SQL database storage, consider these database high availability strategies.
 
-* *PostgreSQL with streaming replication* - Primary-replica configuration with automatic failover using tools
-like Patroni, CloudNativePG, or Crunchy PostgreSQL Operator
-* *PostgreSQL with synchronous replication* - Ensures zero data loss but may impact performance
-* *MySQL with Group Replication* - Multi-primary or single-primary mode with automatic failover
-* *Managed database services* - Cloud provider managed databases (RDS, Cloud SQL, Azure Database) with built-in HA
+PostgreSQL with streaming replication:: Primary-replica configuration with automatic failover using tools such as Patroni, CloudNativePG, or Crunchy PostgreSQL Operator.
+PostgreSQL with synchronous replication:: Ensures zero data loss but might impact performance.
+MySQL with Group Replication:: Multi-primary or single-primary mode with automatic failover.
+Managed database services:: Cloud provider managed databases (RDS, Cloud SQL, Azure Database) with built-in HA.
 
 [id="ha-sql-storage-cloudnativepg-example_{context}"]
 == Example: PostgreSQL high availability with CloudNativePG
@@ -305,9 +299,9 @@ spec:
 +
 Key configuration for HA:
 +
-* *Kafka replicas: 3* - Provides fault tolerance for broker failures
-* *Replication factor: 3* - Each partition has 3 copies
-* *min.insync.replicas: 2* - Requires at least 2 replicas to acknowledge writes
+Kafka replicas set to 3:: Provides fault tolerance for broker failures.
+Replication factor set to 3:: Each partition has three copies.
+`min.insync.replicas` set to 2:: Requires at least two replicas to acknowledge writes.
 
 [id="ha-kafkasql-topics_{context}"]
 == KafkaSQL topic configuration
@@ -510,12 +504,12 @@ strategy ensures the following.
 [role="_abstract"]
 Follow these practices to update your {registry} deployment safely and minimize risk.
 
-* *Test in non-production first* - Validate the new version in a test environment
-* *Monitor during rollout* - Watch metrics and logs during the update
-* *Maintain minimum replicas* - Keep at least 2 replicas to ensure availability during updates
-* *Review release notes* - Check for breaking changes or migration steps
+Test in non-production first:: Validate the new version in a test environment.
+Monitor during rollout:: Watch metrics and logs during the update.
+Maintain minimum replicas:: Keep at least two replicas to ensure availability during updates.
+Review release notes:: Check for breaking changes or migration steps.
 
-IMPORTANT: For patch releases (e.g., 3.1.0 to 3.1.1), rolling updates typically complete without issues. For major or minor version updates, always review the migration guide.
+IMPORTANT: For patch releases (for example, 3.1.0 to 3.1.1), rolling updates typically complete without issues. For major or minor version updates, always review the migration guide.
 
 [id="ha-rolling-updates-management-interface_{context}"]
 == Upgrading to the management interface (port 9000)

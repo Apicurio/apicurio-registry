@@ -1,6 +1,7 @@
 -- *********************************************************************
 -- DDL for the Apicurio Registry - Database: postgresql
--- Upgrade Script from 107 to 108
+-- Upgrade Script from 108 to 109
 -- *********************************************************************
 ALTER TABLE versions ADD COLUMN versionSortKey VARCHAR(512);
-UPDATE apicurio SET propValue = 108 WHERE propName = 'db_version';
+UPDATE apicurio SET propValue = 109 WHERE propName = 'db_version';
+UPGRADER:io.apicurio.registry.storage.impl.sql.upgrader.VersionSortKeyUpgrader;

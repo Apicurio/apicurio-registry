@@ -1090,12 +1090,11 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     public void testVersionSortingAndSemver() throws Exception {
         String artifactId = "testSemverSorting-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
-
         storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
                 ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
                 null, Collections.emptyList(), false, false, null);
 
-        String[] versionsToInsert = { "2.0.0", "1.0.0-alpha", "1.0.1", "latest" };
+        String[] versionsToInsert = { "2", "10", "1.0.0-10", "1.0.0-9", "1.0.0-alpha", "1.0.1", "latest", "zzz-custom" };
         
         for (String ver : versionsToInsert) {
             storage().createArtifactVersion(GROUP_ID, artifactId, ver, ArtifactType.OPENAPI,
@@ -1109,15 +1108,20 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                     OrderBy.version, OrderDirection.asc, 0, 10, false);
 
             Assertions.assertNotNull(results);
-            Assertions.assertEquals(5, results.getCount());
+            Assertions.assertEquals(9, results.getCount());
             
             List<SearchedVersionDto> sortedVersions = results.getVersions();
             
-            Assertions.assertEquals("1.0.0-alpha", sortedVersions.get(0).getVersion());
-            Assertions.assertEquals("1", sortedVersions.get(1).getVersion());
-            Assertions.assertEquals("1.0.1", sortedVersions.get(2).getVersion());
-            Assertions.assertEquals("2.0.0", sortedVersions.get(3).getVersion());
-            Assertions.assertEquals("latest", sortedVersions.get(4).getVersion());
+            // Validate the mathematically correct SemVer sorting order:
+            Assertions.assertEquals("1.0.0-9", sortedVersions.get(0).getVersion());
+            Assertions.assertEquals("1.0.0-10", sortedVersions.get(1).getVersion());
+            Assertions.assertEquals("1.0.0-alpha", sortedVersions.get(2).getVersion());
+            Assertions.assertEquals("1", sortedVersions.get(3).getVersion());
+            Assertions.assertEquals("1.0.1", sortedVersions.get(4).getVersion());
+            Assertions.assertEquals("2", sortedVersions.get(5).getVersion());
+            Assertions.assertEquals("10", sortedVersions.get(6).getVersion());
+            Assertions.assertEquals("latest", sortedVersions.get(7).getVersion());
+            Assertions.assertEquals("zzz-custom", sortedVersions.get(8).getVersion());
         });
     }
 

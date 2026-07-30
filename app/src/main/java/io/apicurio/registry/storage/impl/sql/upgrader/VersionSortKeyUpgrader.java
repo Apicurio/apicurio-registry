@@ -3,7 +3,7 @@ package io.apicurio.registry.storage.impl.sql.upgrader;
 import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
-import io.apicurio.registry.util.VersionUtil;
+import io.apicurio.registry.utils.VersionUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

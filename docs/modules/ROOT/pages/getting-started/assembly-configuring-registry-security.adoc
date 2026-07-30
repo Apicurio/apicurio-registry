@@ -375,7 +375,7 @@ By deploying Dex between {registry} and your identity provider, all three featur
 
 . Deploy Dex on your cluster by using Helm:
 +
-[source,bash]
+[source,bash,subs="attributes+"]
 ----
 helm repo add dex https://charts.dexidp.io
 helm repo update

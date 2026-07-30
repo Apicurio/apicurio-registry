@@ -305,9 +305,7 @@ The following artifact types support artifact references:
 
 This section shows a simple example of using the {registry} Maven plug-in to manually register an artifact reference to a simple Avro schema artifact stored in {registry}. This example assumes that the following `Exchange` schema artifact has already been created in {registry}:
 
-+
 The following example shows the `Exchange` schema:
-+
 [source,json]
 ----
 {
@@ -320,9 +318,7 @@ The following example shows the `Exchange` schema:
 
 This example then creates a `TradeKey` schema artifact, which includes a reference to the nested `Exchange` schema artifact:
 
-+
 The following `TradeKey` schema contains a nested reference to the `Exchange` schema:
-+
 [source,json]
 ----
 {
@@ -450,9 +446,7 @@ For more information about the support scope of Red{nbsp}Hat Technology Preview 
 
 This section shows a simple example of using the Maven plug-in to register an Avro schema and automatically detect and register an artifact reference to a simple schema artifact. This example assumes that the parent `TradeKey` artifact and the nested `Exchange` schema artifact are both available in the same directory:
 
-+
 The following `TradeKey` schema contains a nested reference to the `Exchange` schema:
-+
 [source,json]
 ----
 {
@@ -472,9 +466,7 @@ The following `TradeKey` schema contains a nested reference to the `Exchange` sc
 }
 ----
 
-+
 The following example shows the `Exchange` schema:
-+
 [source,json]
 ----
 {

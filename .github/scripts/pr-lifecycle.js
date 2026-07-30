@@ -419,8 +419,40 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
 // Reconciler
 // ---------------------------------------------------------------------------
 
+// Cleans up PRs still carrying labels from before the WIP/smoke-test removal,
+// so they don't get stuck with a stale lifecycle/wip label nobody recognizes.
+const LEGACY_WIP_LABEL = 'lifecycle/wip';
+const LEGACY_SMOKE_TESTED_LABEL = 'lifecycle/smoke-tested';
+const LEGACY_TESTS_DISABLED_LABEL = 'orchestrator/tests-disabled';
+
+async function migrateLegacyLabels(api, pr, core) {
+  const labels = getLabelNames(pr);
+  const hasLegacyWip = labels.includes(LEGACY_WIP_LABEL);
+  if (labels.includes(LEGACY_SMOKE_TESTED_LABEL)) {
+    await api.removeLabel(pr.number, LEGACY_SMOKE_TESTED_LABEL);
+  }
+  if (labels.includes(LEGACY_TESTS_DISABLED_LABEL)) {
+    await api.removeLabel(pr.number, LEGACY_TESTS_DISABLED_LABEL);
+  }
+  if (!hasLegacyWip) return false;
+
+  await api.removeLabel(pr.number, LEGACY_WIP_LABEL);
+  await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
+  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+  await api.postComment(pr.number,
+    `**Lifecycle update:** the \`lifecycle/wip\` stage has been removed. This PR has been ` +
+    `migrated to \`lifecycle/ready-for-review\` and the full test suite will run.`
+  );
+  await retriggerVerify(api, pr, core, { waitForRun: true });
+  core.warning(`PR #${pr.number} migrated from legacy lifecycle/wip to ${LABELS.READY_FOR_REVIEW}`);
+  return true;
+}
+
 async function reconcile(github, api, pr, core) {
   const config = loadConfig();
+
+  if (await migrateLegacyLabels(api, pr, core)) return;
+
   const state = getLifecycleState(pr);
 
   // 1. No lifecycle label at all → initialize as new PR
@@ -489,10 +521,8 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
   return prs.filter(p => p.user.login === author && p.number !== excludePr);
 }
 
-// Shared entry point for a PR that should start (or restart, after leaving
-// draft) at the top of the lifecycle. Never called for draft PRs — the
-// orchestrator ignores those entirely (no labels, no CI) until they're
-// marked ready for review.
+// Puts a PR at the top of the lifecycle, fresh or after leaving draft.
+// Drafts never reach here — they're ignored until marked ready for review.
 async function initNewPr(github, owner, repo, api, config, pr, core) {
   if (!isAutoAccepted(config, pr.user.login)) {
     const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
@@ -614,9 +644,8 @@ async function handlePrSynchronize({ github, context, core }) {
   await reconcile(github, api, freshPr, core);
 }
 
-// Fires when a draft PR is converted to non-draft. The orchestrator ignored
-// it entirely while draft, so this is its first contact — it enters the
-// lifecycle exactly like a freshly opened PR.
+// Fires when a draft PR goes ready — its first contact with the orchestrator,
+// so it enters the lifecycle just like a freshly opened PR.
 async function handlePrReadyForReview({ github, context, core }) {
   const pr = context.payload.pull_request;
   const { owner, repo } = context.repo;
@@ -1348,8 +1377,14 @@ async function handleStale({ github, context, core }) {
       }
     } else if (daysSinceUpdate >= daysUntilStale) {
       await api.addLabel(pr.number, LABELS.STALE);
+      // waiting-on-author PRs may close almost immediately — tell the author
+      const graceDays = Math.max(0, (hasLabel(pr, LABELS.WAITING_ON_AUTHOR) ? daysUntilCloseWaitingOnAuthor : daysUntilClose) - daysUntilStale);
+      const closeWindow = graceDays <= 0
+        ? 'as soon as the next check'
+        : `in ${graceDays} more day${graceDays === 1 ? '' : 's'}`;
       const staleMessage = (config.stale?.stale_message || 'This PR is stale.')
-        .replace(/\{author\}/g, pr.user.login);
+        .replace(/\{author\}/g, pr.user.login)
+        .replace(/\{close_window\}/g, closeWindow);
       await api.postComment(pr.number, staleMessage);
       core.info(`PR #${pr.number} marked as stale`);
     }

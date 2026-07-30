@@ -26,7 +26,7 @@ stale:
   days_until_close_waiting_on_author: 7
   stale_message: |
     This PR has been inactive for 7 days. @{author}, please update or comment
-    to keep it open. It will be closed if no activity occurs.
+    to keep it open. It will be closed {close_window} if no activity occurs.
     Use `/unstale` to remove this label.
   close_message: |
     Closing this PR due to inactivity. Feel free to reopen if you

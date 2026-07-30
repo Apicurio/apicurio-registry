@@ -13,11 +13,18 @@ ifdef::service-registry-downstream[]
 WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
 endif::[]
 
+ifndef::service-registry-downstream[]
 NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance. For information about storing MCP tool definitions as artifacts in {registry}, see the Additional resources section.
+endif::[]
+ifdef::service-registry-downstream[]
+NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance.
+endif::[]
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+endif::[]
 
 // con-mcp-server-overview
 [id="mcp-server-overview_{context}"]
@@ -624,7 +631,9 @@ Replace `<path-to-log-dir>` with the directory where you want to store the log f
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+endif::[]
 * xref:getting-started/assembly-a2a-features.adoc[A2A agent features]
 * xref:getting-started/assembly-agent-registry-quickstart.adoc[Agent registry quick start]
 * link:https://modelcontextprotocol.io/introduction[Introduction to MCP]

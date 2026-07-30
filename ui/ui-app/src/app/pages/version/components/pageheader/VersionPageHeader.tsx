@@ -98,7 +98,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             }
         }
     ];
-    const visibleActions: any[] = actions.filter(action => action.isVisible());
+    const visibleActions = actions.filter(action => action.isVisible());
 
     return (
         <Flex className="example-border">

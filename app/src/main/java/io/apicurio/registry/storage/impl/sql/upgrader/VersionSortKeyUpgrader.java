@@ -18,7 +18,7 @@ public class VersionSortKeyUpgrader implements IDbUpgrader {
 
     @Override
     public void upgrade(Handle handle) throws Exception {
-        log.info("Running VersionSortKeyUpgrader to compute semantic sort keys for existing artifacts.");
+        log.info("Running VersionSortKeyUpgrader to compute semantic sort keys for existing artifacts. Note: Version ordering may be unstable during this migration window for large registries.");
 
         String selectSql = "SELECT globalId, version FROM versions WHERE versionSortKey IS NULL";
         

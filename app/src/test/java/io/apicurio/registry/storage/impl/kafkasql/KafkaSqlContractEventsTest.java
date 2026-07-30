@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage.GLOBAL_CONTRACT_RULESET_COORDINATE;
 import static io.restassured.RestAssured.given;
 
 @QuarkusTest
@@ -36,6 +37,7 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
 
     private static final String EVENTS_TOPIC = "registry-events";
     private static final String GROUP = "default";
+    private static final Duration DUPLICATE_DETECTION_WINDOW = Duration.ofSeconds(1);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Inject
@@ -101,8 +103,10 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
             assertRulesetEvent(events, GROUP, artifactId, null, "DELETE");
             assertRulesetEvent(events, GROUP, artifactId, "1", "SET");
             assertRulesetEvent(events, GROUP, artifactId, "1", "DELETE");
-            assertRulesetEvent(events, "__GLOBAL__", "__GLOBAL__", null, "SET");
-            assertRulesetEvent(events, "__GLOBAL__", "__GLOBAL__", null, "DELETE");
+            assertRulesetEvent(events, GLOBAL_CONTRACT_RULESET_COORDINATE,
+                    GLOBAL_CONTRACT_RULESET_COORDINATE, null, "SET");
+            assertRulesetEvent(events, GLOBAL_CONTRACT_RULESET_COORDINATE,
+                    GLOBAL_CONTRACT_RULESET_COORDINATE, null, "DELETE");
         } finally {
             consumer.close();
         }
@@ -131,7 +135,8 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
             String artifactId, int expectedCount) throws Exception {
         List<JsonNode> events = new ArrayList<>();
         long deadline = System.currentTimeMillis() + 20000;
-        while (System.currentTimeMillis() < deadline && events.size() < expectedCount) {
+        boolean expectedCountReached = false;
+        while (System.currentTimeMillis() < deadline) {
             for (ConsumerRecord<String, String> consumerRecord : consumer.poll(Duration.ofMillis(500))) {
                 JsonNode event = readEvent(consumerRecord);
                 if (artifactId.equals(textValue(event, "artifactId"))
@@ -139,6 +144,10 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
                                 .contains(textValue(event, "eventType"))) {
                     events.add(event);
                 }
+            }
+            if (!expectedCountReached && events.size() >= expectedCount) {
+                expectedCountReached = true;
+                deadline = System.currentTimeMillis() + DUPLICATE_DETECTION_WINDOW.toMillis();
             }
         }
         Assertions.assertEquals(expectedCount, events.size(),
@@ -154,8 +163,10 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
                 eventKey(GROUP, artifactId, null, "DELETE"),
                 eventKey(GROUP, artifactId, "1", "SET"),
                 eventKey(GROUP, artifactId, "1", "DELETE"),
-                eventKey("__GLOBAL__", "__GLOBAL__", null, "SET"),
-                eventKey("__GLOBAL__", "__GLOBAL__", null, "DELETE"));
+                eventKey(GLOBAL_CONTRACT_RULESET_COORDINATE,
+                        GLOBAL_CONTRACT_RULESET_COORDINATE, null, "SET"),
+                eventKey(GLOBAL_CONTRACT_RULESET_COORDINATE,
+                        GLOBAL_CONTRACT_RULESET_COORDINATE, null, "DELETE"));
         Set<String> found = new HashSet<>();
 
         long deadline = System.currentTimeMillis() + 20000;

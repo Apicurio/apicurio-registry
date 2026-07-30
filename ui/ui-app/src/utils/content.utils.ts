@@ -132,6 +132,47 @@ export function detectContentType(artifactType: string | undefined | null, conte
 }
 
 
+/**
+ * Detects the version of an API specification from its content.  Supports JSON or YAML
+ * content that declares a top level "openapi", "asyncapi", or "swagger" property (so that
+ * arbitrary content with an unrelated "info" section is not matched).  Returns the value
+ * of the "info.version" property, or undefined if it is not present.
+ * @param content the content to inspect
+ */
+export function detectVersionInContent(content: string | undefined): string | undefined {
+    if (isStringEmptyOrUndefined(content)) {
+        return undefined;
+    }
+    // Parse the content only once (this runs on every content change): try JSON first,
+    // then fall back to YAML.
+    let parsed: any;
+    try {
+        parsed = JSON.parse(content as string);
+    } catch {
+        try {
+            parsed = YAML.parse(content as string);
+        } catch {
+            return undefined;
+        }
+    }
+    if (parsed === null || typeof parsed !== "object") {
+        return undefined;
+    }
+    const isApiSpec: boolean = parsed.openapi !== undefined || parsed.asyncapi !== undefined || parsed.swagger !== undefined;
+    if (!isApiSpec) {
+        return undefined;
+    }
+    // Both OpenAPI and AsyncAPI require "info.version" to be a string.  Anything else is
+    // ignored - e.g. an unquoted YAML number like "version: 1.0" parses (lossily) to the
+    // number 1, so prefilling from it would be misleading.
+    const version: any = parsed.info?.version;
+    if (typeof version === "string" && version.trim().length > 0) {
+        return version.trim();
+    }
+    return undefined;
+}
+
+
 export function contentTypeForDraft(draft: Draft, content: DraftContent): string {
     if (content.contentType) {
         return content.contentType;

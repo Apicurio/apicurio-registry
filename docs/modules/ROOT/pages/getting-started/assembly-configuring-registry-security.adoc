@@ -47,13 +47,7 @@ endif::[]
 
 .Procedure
 
-. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For details on creating realms, see the
-ifdef::apicurio-registry[]
-link:https://www.keycloak.org/documentation[{keycloak} user documentation].
-endif::[]
-ifdef::rh-service-registry[]
-the link:https://access.redhat.com/documentation/en-us/red_hat_single_sign-on/{keycloak-version}[{keycloak} user documentation].
-endif::[]
+. In the {keycloak} Admin Console, create a {keycloak} realm for {registry}. By default, {registry} expects a realm name of `registry`. For details on creating realms, see the {keycloak} user documentation in the additional resources.
 
 . Create a {keycloak} client for the {registry} API. By default, {registry} expects the following settings:
 ** *Client ID*: `registry-api`
@@ -100,7 +94,7 @@ You can use the defaults for the other client settings.
 |`apicurio-registry`
 |===
 +
-TIP: For an example of setting environment variables on OpenShift, see xref:configuring-liveness-readiness-probes_{context}[].
+TIP: For an example of setting environment variables on OpenShift, see the health checks procedure in the additional resources.
 
 . Set the following option to `true` to enable {registry} user roles in {keycloak}:
 +
@@ -163,6 +157,7 @@ TIP: For an example of setting environment variables on OpenShift, see xref:conf
 [role="_additional-resources"]
 .Additional resources
 * xref:registry-security-settings_{context}[]
+* xref:configuring-liveness-readiness-probes_{context}[]
 * https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/distro/docker-compose[Docker Compose example of Apicurio Registry with Keycloak]
 ifdef::apicurio-registry[]
 * link:https://www.keycloak.org/documentation[Keycloak documentation]
@@ -468,7 +463,7 @@ curl -sk https://dex.<cluster-domain>/.well-known/openid-configuration | jq .iss
 # Expected: "https://dex.<cluster-domain>"
 ----
 
-. Configure a connector for your upstream identity provider. Add the connector configuration to the `connectors` section in your `dex-values.yaml` file. See xref:registry-security-dex-connectors_{context}[Dex connector examples] for configuration examples.
+. Configure a connector for your upstream identity provider. Add the connector configuration to the `connectors` section in your `dex-values.yaml` file. For configuration examples, see the Dex connector examples reference in the additional resources.
 
 . Upgrade the Dex Helm release after updating the connector configuration:
 +
@@ -613,7 +608,7 @@ The mapping between upstream provider groups and {registry} roles works as follo
 APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION=true
 ----
 +
-With this setting, only the user who created an artifact can modify or delete it. For more details on owner-only authorization, see xref:registry-security-obac-enabled_{context}[].
+With this setting, only the user who created an artifact can modify or delete it. For more details, see the owner-only authorization reference in the additional resources.
 
 . If you use the {registry} Operator on {kubernetes}, configure all of the preceding settings in the `ApicurioRegistry3` custom resource. The `spec.app.auth` section covers the standard OIDC settings, and you must set Dex-specific properties by using `spec.app.env`. Use `spec.app.ingress` with TLS annotations instead of the bare `host` field:
 +
@@ -693,7 +688,7 @@ Note the following important details in this CR:
 +
 *Explicit `redirectUri`:* Without this, `oidc-client-ts` uses `window.location.href` as the redirect URI for silent token refresh. After the initial login, the URL might still contain `?code=...&state=...` query parameters, which do not match any registered redirect URI in Dex, causing a 400 error.
 +
-NOTE: A complete example CR is available in the link:{attachmentsdir}/apicurio-registry-dex-cr.yaml[Dex example CR].
+NOTE: A complete example CR is available in the Dex example CR file listed in the additional resources.
 
 . Verify that all features work correctly:
 +
@@ -713,6 +708,12 @@ curl -sk https://<registry-app-route>/apis/registry/v3/groups/my-group \
   -H "Authorization: Bearer $TOKEN" | jq .owner
 # Expected: the user's email address, NOT empty
 ----
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-security-dex-connectors_{context}[]
+* xref:registry-security-obac-enabled_{context}[]
+* link:{attachmentsdir}/apicurio-registry-dex-cr.yaml[Dex example CR]
 
 // ref-registry-security-dex-connectors
 [id="registry-security-dex-connectors_{context}"]

@@ -86,7 +86,7 @@ You can install {registry} in an existing Kafka cluster or create a new Kafka cl
 .. Under *Provided APIs* and then *Kafka*, click *Create Instance* to create a new Kafka cluster.
 .. Edit the custom resource definition as appropriate, and click *Create*.
 +
-WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
+WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see {NameDeployStreamsOpenShift} in the additional resources.
 
 . After the cluster is ready, click *Provided APIs* > *Kafka* > *my-cluster* > *YAML*.
 
@@ -162,7 +162,7 @@ WARNING: The journal topic must use `cleanup.policy: delete` with infinite reten
 
 [role="_additional-resources"]
 .Additional resources
-
+* link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]
 ifdef::apicurio-registry[]
 * https://strimzi.io/docs/overview/latest/[Strimzi documentation]
 endif::[]

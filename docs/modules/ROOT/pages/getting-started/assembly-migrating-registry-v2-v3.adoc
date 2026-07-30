@@ -183,7 +183,7 @@ NOTE: Test as much of the migration as possible in a staging environment before 
 
 .Procedure
 
-. Prepare the migration environment:
+. *Phase 1: Preparation.* Prepare the migration environment:
 .. Deploy the load balancer.
 +
 --
@@ -194,7 +194,7 @@ If you do not already use a load balancer, complete the following steps:
 ... Update client applications to connect through the load balancer.
 ... Validate that all traffic flows correctly.
 
-See xref:migrating-registry-configuration_{context}[Updating registry configuration] for load balancer configuration examples.
+For load balancer configuration examples, see the configuration property changes reference.
 --
 
 .. Prepare the {registry} 3.x infrastructure.
@@ -207,13 +207,13 @@ Deploy the infrastructure for {registry} 3.x without starting the registry appli
 * Prepare TLS certificates. You can reuse {registry-v2} certificates.
 * Configure the OAuth2/OIDC authentication provider.
 
-See xref:migrating-registry-configuration_{context}[Updating registry configuration] for detailed configuration changes.
+For detailed configuration changes, see the configuration property changes reference.
 
 *Checkpoint:* v2 traffic flows through the load balancer and v3 infrastructure is ready.
 --
 
 
-. Validate the environment before you migrate:
+. *Phase 2: Pre-migration validation.* Freeze writes and capture a baseline:
 .. Enable read-only mode.
 +
 --
@@ -245,18 +245,18 @@ Reload the load balancer configuration and verify that read-only mode works corr
 --
 Record the current state of your {registry-v2} deployment for comparison after migration.
 
-For the metrics capture procedure, see xref:migration-scripts_{context}[Migration scripts reference].
+For the metrics capture procedure, see the migration scripts reference.
 
 *Checkpoint:* Read-only mode is active and write operations are blocked. Baseline is documented and ready for data migration.
 --
 
-. Migrate the data:
+. *Phase 3: Data migration.* Move the data to {registry} 3.x:
 .. Export data from {registry-v2}.
 +
 --
 Export all artifacts, versions, metadata, and rules from {registry-v2} while the registry is in read-only mode.
 
-For the export procedure, see xref:migrating-registry-data_{context}[Migrating {registry} data].
+For the export procedure, see the data migration procedure.
 
 IMPORTANT: Access the registry directly (not through the load balancer) to bypass read-only restrictions on admin endpoints if needed.
 
@@ -267,7 +267,7 @@ IMPORTANT: Access the registry directly (not through the load balancer) to bypas
 --
 Deploy {registry} 3.x by using the infrastructure that you prepared in Step 2. Configure the v3 deployment similarly to the previous v2 deployment. Note that various configuration parameters are renamed or changed.
 
-See xref:migrating-registry-configuration_{context}[Updating registry configuration] for v3 configuration information and examples.
+For v3 configuration information and examples, see the configuration property changes reference.
 
 *Checkpoint:* {registry} 3.x is deployed and healthy (empty, awaiting import).
 --
@@ -276,7 +276,7 @@ See xref:migrating-registry-configuration_{context}[Updating registry configurat
 --
 Import the exported ZIP archive into the 3.x deployment.
 
-For the import procedure, see xref:migrating-registry-data_{context}[Migrating {registry} data].
+For the import procedure, see the data migration procedure.
 
 NOTE: The import adds to existing data and does not replace it. For best results, import into an empty v3 registry.
 
@@ -288,14 +288,14 @@ NOTE: The import adds to existing data and does not replace it. For best results
 --
 Verify the {registry} 3.x deployment and confirm that the data migration succeeded.
 
-For the validation procedure, see xref:migrating-registry-data_{context}[Migrating {registry} data].
+For the validation procedure, see the data migration procedure.
 
 If validation fails, investigate import logs and retry if necessary. Do not proceed to the traffic switch until all checks pass.
 
 *Checkpoint:* v3 has all data, data metrics match v2, and the deployment is ready for traffic switch.
 --
 
-. Switch traffic to {registry} 3.x:
+. *Phase 4: Traffic switch.* Route traffic to {registry} 3.x:
 .. Switch the load balancer to {registry} 3.x.
 +
 --
@@ -330,18 +330,18 @@ Reload the load balancer.
 --
 Confirm that traffic flows to {registry} 3.x through the load balancer. Verify that the registry is accessible, the version is 3.x, health checks pass, and write operations are enabled.
 
-For the verification procedure, see xref:migration-scripts_{context}[Migration scripts reference].
+For the verification procedure, see the migration scripts reference.
 
 *Checkpoint:* v3 is accessible, write operations work, and no errors appear in the logs.
 --
 
-. Validate the migrated deployment:
+. *Phase 5: Post-migration validation.* Validate the migrated deployment:
 .. Test v2 API backward compatibility.
 +
 --
 Verify that existing v2 clients can access the 3.x registry through the v2 API compatibility layer.
 
-For backward compatibility details and client migration guidance, see xref:migrating-registry-applications_{context}[Migrating {registry} client applications].
+For backward compatibility details and client migration guidance, see the client migration information.
 
 *Checkpoint:* v2 clients work correctly against the v3 registry.
 --
@@ -351,7 +351,7 @@ For backward compatibility details and client migration guidance, see xref:migra
 --
 Verify that v3-specific API features work correctly, including system endpoints, search endpoints, admin endpoints, and the Branch API.
 
-For the v3 API verification procedure, see xref:migration-scripts_{context}[Migration scripts reference].
+For the v3 API verification procedure, see the migration scripts reference.
 
 *Checkpoint:* v3 Core API features work correctly.
 --
@@ -370,7 +370,7 @@ Execute production smoke tests to validate critical functionality:
 *Checkpoint:* All smoke tests passed and production traffic is stable.
 --
 
-. Monitor the new deployment and keep {registry-v2} available for rollback.
+. *Phase 6: Stabilization.* Monitor the new deployment and keep {registry-v2} available for rollback.
 +
 --
 Keep {registry-v2} running but not serving traffic for rollback capability:
@@ -380,12 +380,12 @@ Keep {registry-v2} running but not serving traffic for rollback capability:
 * Prepare for immediate rollback if critical issues arise by switching the load balancer back to v2.
 * Begin planning gradual client application migration to v3 SDKs.
 
-See xref:migrating-registry-applications_{context}[Migrating registry client applications] for guidance on updating client applications.
+For guidance on updating client applications, see the client migration information.
 
 *Checkpoint:* v3 is stable for 1-7 days and no rollback is needed.
 --
 
-. Decommission {registry-v2}.
+. *Phase 7: Cleanup.* Decommission {registry-v2}.
 +
 --
 After 1-7 days of successful operation on {registry} 3.x, decommission v2 infrastructure.
@@ -437,6 +437,13 @@ a|
 | Reduces the likelihood that a rollback is required.
 |===
 
+[role="_additional-resources"]
+.Additional resources
+* xref:migrating-registry-data_{context}[]
+* xref:migrating-registry-configuration_{context}[]
+* xref:migrating-registry-applications_{context}[]
+* xref:migration-scripts_{context}[]
+
 
 // proc-migrating-maintenance-window
 [id="migrating-maintenance-window_{context}"]
@@ -454,12 +461,12 @@ For environments where downtime is acceptable, you can follow this simpler seque
 .Procedure
 
 . Stop all client applications that connect to {registry} {registry-v2}.
-. Export data from {registry} {registry-v2} by using the export script. See xref:migration-scripts_{context}[Migration scripts reference].
+. Export data from {registry} {registry-v2} by using the export script.
 . Shut down {registry} {registry-v2}.
-. Deploy {registry} 3.x with updated configuration. See xref:migrating-registry-configuration_{context}[Updating registry configuration].
-. Import data into {registry} 3.x by using the import script. See xref:migration-scripts_{context}[Migration scripts reference].
-. Validate the import by using the verification scripts. See xref:migration-scripts_{context}[Migration scripts reference].
-. Update client application configurations to point to {registry} 3.x. See xref:migrating-registry-applications_{context}[Migrating {registry} client applications].
+. Deploy {registry} 3.x with updated configuration.
+. Import data into {registry} 3.x by using the import script.
+. Validate the import by using the verification scripts.
+. Update client application configurations to point to {registry} 3.x.
 . Start client applications.
 
 .Verification
@@ -467,6 +474,12 @@ For environments where downtime is acceptable, you can follow this simpler seque
 * Verify that all client applications connect to {registry} 3.x successfully.
 * Verify that artifact counts match the pre-migration baseline.
 * Verify that no increase in error rates occurs.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:migrating-registry-configuration_{context}[]
+* xref:migrating-registry-applications_{context}[]
+* xref:migration-scripts_{context}[]
 
 
 // proc-migrating-registry-data
@@ -678,7 +691,7 @@ props.put(SerdeConfig.AUTH_CLIENT_ID, "kafka-client");
 props.put(SerdeConfig.AUTH_CLIENT_SECRET, "secret");
 ----
 +
-For a detailed comparison of all changed properties, see xref:client-migration-reference_{context}[Client migration configuration reference].
+For a detailed comparison of all changed properties, see the client migration configuration reference.
 
 . Update your TLS configuration.
 +
@@ -815,7 +828,7 @@ RegistryClientOptions options = RegistryClientOptions.create(registryUrl)
 RegistryClient client = RegistryClientFactory.create(options);
 ----
 +
-For a detailed comparison of all authentication changes, see xref:client-migration-reference_{context}[Client migration configuration reference].
+For a detailed comparison of all authentication changes, see the client migration configuration reference.
 
 .Verification
 
@@ -1563,7 +1576,7 @@ Benefits: single domain for users, simpler certificate management, avoids CORS c
 
 . Configure UI settings on the application (API) container by using `apicurio.ui.*` properties.
 +
-For a complete list of available properties, see xref:ui-configuration-properties_{context}[User interface configuration properties].
+For a complete list of available properties, see the user interface configuration properties reference.
 
 . Optional: Enable Designer functionality.
 +

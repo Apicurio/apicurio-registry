@@ -161,7 +161,7 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 ... *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
 ... *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
 .. Click *Create* to create the new version.
-. To delete a group, artifact, or artifact version, see xref:deleting-artifacts-using-console_{context}[].
+. To delete a group, artifact, or artifact version, see the deletion procedures listed in the additional resources.
 
 [role="_additional-resources"]
 .Additional resources
@@ -190,12 +190,15 @@ IMPORTANT: The {registry} web console disables deletion of groups, artifacts, an
 * Artifacts have been added to {registry}.
 
 .Procedure
-. xref:enabling-deletion-using-console_{context}[Enable deletion] in the {registry} web console *Settings* before you delete any content.
-. Follow the relevant procedure:
-+
-** xref:deleting-group-using-console_{context}[Delete a group]
-** xref:deleting-artifact-using-console_{context}[Delete an artifact]
-** xref:deleting-artifact-version-using-console_{context}[Delete an artifact version]
+. Enable deletion in the {registry} web console *Settings* before you delete any content.
+. Delete the group, artifact, or artifact version by following the relevant procedure.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:enabling-deletion-using-console_{context}[]
+* xref:deleting-group-using-console_{context}[]
+* xref:deleting-artifact-using-console_{context}[]
+* xref:deleting-artifact-version-using-console_{context}[]
 
 
 [id="enabling-deletion-using-console_{context}"]
@@ -219,11 +222,17 @@ WARNING: When you enable deletion, users can permanently remove groups, artifact
 NOTE: All three settings are disabled by default. You can enable any combination of these settings depending on your requirements.
 ifndef::service-registry-downstream[]
 +
-TIP: Alternatively, if you are deploying {registry} on Kubernetes by using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference].
+TIP: Alternatively, if you are deploying {registry} on Kubernetes by using the {operator}, you can enable deletion by configuring the `ApicurioRegistry3` custom resource. For more information, see the {operator} configuration reference in the additional resources.
 endif::[]
 ifdef::service-registry-downstream[]
 +
 TIP: Alternatively, if you are deploying {registry} on OpenShift by using the {operator}, you can enable deletion by setting `resourceDeleteEnabled` to `true` in the `ApicurioRegistry3` custom resource.
+endif::[]
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-operator-config-reference.adoc[{operator} configuration reference]
 endif::[]
 
 

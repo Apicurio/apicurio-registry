@@ -1,12 +1,5 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -15,15 +8,23 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
-import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
-import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import io.apicurio.registry.storage.impl.sql.SqlStatementVariableBinder;
 import io.apicurio.registry.storage.impl.sql.jdb.Query;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedArtifactMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.SearchedVersionMapper;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 
 /**
  * Repository handling search operations in the SQL storage layer.

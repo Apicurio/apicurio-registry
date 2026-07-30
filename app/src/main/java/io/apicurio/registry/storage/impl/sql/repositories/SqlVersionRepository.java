@@ -47,7 +47,7 @@ import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
 import io.apicurio.registry.types.VersionState;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
-import io.apicurio.registry.utils.VersionUtil;
+import io.apicurio.registry.util.VersionUtil;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;

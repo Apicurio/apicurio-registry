@@ -1303,7 +1303,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     try {
                         return java.nio.file.Files.getLastModifiedTime(p2).compareTo(java.nio.file.Files.getLastModifiedTime(p1));
                     } catch (Exception e) {
-                        return 0;
+                        throw new RuntimeException(e);
                     }
                 });
                 

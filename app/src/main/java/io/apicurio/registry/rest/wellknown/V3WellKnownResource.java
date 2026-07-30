@@ -74,8 +74,8 @@ public class V3WellKnownResource implements WellResource {
     @Override
     public McpToolSearchResults searchMcpTools(BigInteger offset, BigInteger limit,
             String name, List<String> parameter) {
-        int off = offset != null ? offset.intValue() : 0;
-        int lim = limit != null ? limit.intValue() : 20;
+        String off = offset != null ? offset.toString() : "0";
+        String lim = limit != null ? limit.toString() : "20";
         return delegate.searchMcpTools(name, parameter, off, lim);
     }
 

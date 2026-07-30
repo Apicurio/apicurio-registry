@@ -50,6 +50,20 @@ public class DateTimeConversionsTest {
         assertMatchesIndependentlyComputedLocalDateTime(ts.toInstant(), result);
     }
 
+    @Test
+    public void testToIsoLocalDateTimeString_nullOffsetDateTime() {
+        String result = DateTimeConversions.toIsoLocalDateTimeString((OffsetDateTime) null);
+
+        assertEquals("", result);
+    }
+
+    @Test
+    public void testToIsoLocalDateTimeString_nullDate() {
+        String result = DateTimeConversions.toIsoLocalDateTimeString((Date) null);
+
+        assertEquals("", result);
+    }
+
     /**
      * Verifies the formatted string against a value assembled by hand from the
      * individual {@link LocalDateTime} fields (year/month/day/hour/minute/second),

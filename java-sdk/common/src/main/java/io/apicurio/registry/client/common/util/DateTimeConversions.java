@@ -34,10 +34,13 @@ public final class DateTimeConversions {
      * Formats an {@link OffsetDateTime} as an ISO local date-time string (using the JVM's
      * default time zone), e.g. {@code 2026-07-16T10:15:30}.
      *
-     * @param timestamp the timestamp to format, must not be {@code null}
-     * @return the formatted date-time string
+     * @param timestamp the timestamp to format, may be {@code null}
+     * @return the formatted date-time string, or an empty string if {@code timestamp} is {@code null}
      */
     public static String toIsoLocalDateTimeString(OffsetDateTime timestamp) {
+        if (timestamp == null) {
+            return "";
+        }
         return timestamp.atZoneSameInstant(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
@@ -46,10 +49,13 @@ public final class DateTimeConversions {
      * Formats a {@link Date} as an ISO local date-time string (using the JVM's default time
      * zone), e.g. {@code 2026-07-16T10:15:30}.
      *
-     * @param timestamp the timestamp to format, must not be {@code null}
-     * @return the formatted date-time string
+     * @param timestamp the timestamp to format, may be {@code null}
+     * @return the formatted date-time string, or an empty string if {@code timestamp} is {@code null}
      */
     public static String toIsoLocalDateTimeString(Date timestamp) {
+        if (timestamp == null) {
+            return "";
+        }
         return timestamp.toInstant()
                 .atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);

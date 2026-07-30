@@ -34,7 +34,7 @@ opened PR.
 | `lifecycle/review-approved` | PR has an approved review. Removed on new pushes or when changes are requested. |
 | `lifecycle/waiting-on-author` | PR needs action from the author (failed tests or changes requested). |
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
-| `lifecycle/stale` | No activity for 7 days. PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). |
+| `lifecycle/stale` | No activity for 4+ days (waiting on author) or 7+ days (otherwise). PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). |
 
 ## For Contributors
 

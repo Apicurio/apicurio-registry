@@ -170,6 +170,46 @@ public interface WellKnownResource {
             @QueryParam("limit") @DefaultValue("20") String limit);
 
     /**
+     * Search for registered MCP tools compatible with a specific target tool by group and artifact ID.
+     * Tool chaining compatibility is evaluated by matching the target tool's outputSchema guaranteed
+     * (required) output properties against candidate tools' inputSchema required input parameters.
+     *
+     * @param groupId the group ID of the target MCP tool
+     * @param artifactId the artifact ID of the target MCP tool
+     * @param version optional version (defaults to latest)
+     * @param offset pagination offset
+     * @param limit pagination limit
+     * @return search results containing matching compatible MCP tools
+     */
+    @GET
+    @Path("/mcp-tools/{groupId}/{artifactId}/compatible")
+    @Produces(MediaType.APPLICATION_JSON)
+    McpToolSearchResults getCompatibleMcpTools(
+            @PathParam("groupId") String groupId,
+            @PathParam("artifactId") String artifactId,
+            @QueryParam("version") String version,
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
+
+    /**
+     * Search for registered MCP tools compatible with a given MCP tool definition content.
+     *
+     * @param mcpToolContent raw MCP tool JSON definition
+     * @param offset pagination offset
+     * @param limit pagination limit
+     * @return search results containing matching compatible MCP tools
+     */
+    @POST
+    @Path("/mcp-tools/compatible")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    McpToolSearchResults findCompatibleMcpTools(
+            String mcpToolContent,
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
+
+
+    /**
      * Returns the JSON Schema for a specific LLM artifact type.
      * This enables IDE autocompletion and validation for PROMPT_TEMPLATE, MODEL_SCHEMA,
      * and MCP_TOOL artifacts.

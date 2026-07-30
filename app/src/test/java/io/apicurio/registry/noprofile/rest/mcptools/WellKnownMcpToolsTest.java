@@ -328,6 +328,194 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(404);
     }
 
+    @Test
+    public void testGetCompatibleMcpTools() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String unique = TestUtils.generateArtifactId().replace("-", "");
+        String targetId = "target-tool-" + unique;
+        String compatId = "compat-tool-" + unique;
+        String incompatId = "incompat-tool-" + unique;
+
+        // Target tool: outputSchema defines { "result": string, "count": integer }
+        String baseTargetTool = """
+                {
+                    "name": "base_search",
+                    "title": "Base Search",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "result": { "type": "string" },
+                            "count": { "type": "integer" }
+                        },
+                        "required": ["result"]
+                    }
+                }
+                """;
+
+        // Compatible candidate: requires input { "result": string }, which target produces
+        String compatibleTool = """
+                {
+                    "name": "result_formatter",
+                    "title": "Result Formatter",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "result": { "type": "string" }
+                        },
+                        "required": ["result"]
+                    }
+                }
+                """;
+
+        // Incompatible candidate: requires input { "result": string, "missing_field": string }, where missing_field is not in target output
+        String incompatibleTool = """
+                {
+                    "name": "strict_consumer",
+                    "title": "Strict Consumer",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "result": { "type": "string" },
+                            "missing_field": { "type": "string" }
+                        },
+                        "required": ["result", "missing_field"]
+                    }
+                }
+                """;
+
+        createMcpTool(groupId, targetId, baseTargetTool);
+        createMcpTool(groupId, compatId, compatibleTool);
+        createMcpTool(groupId, incompatId, incompatibleTool);
+
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", targetId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("tools", hasSize(1))
+                .body("tools[0].artifactId", equalTo(compatId));
+    }
+
+    @Test
+    public void testGetCompatibleMcpToolsNotFound() {
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", "nonexistent-group")
+                .pathParam("artifactId", "nonexistent-tool")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testFindCompatibleMcpToolsPost() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String unique = TestUtils.generateArtifactId().replace("-", "");
+        String compatId = "post-compat-" + unique;
+
+        // Raw target content: produces output { "payload": string }
+        String rawContent = """
+                {
+                    "name": "raw_tool",
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "payload": { "type": "string" }
+                        },
+                        "required": ["payload"]
+                    }
+                }
+                """;
+
+        // Candidate tool: requires input { "payload": string }
+        String compatContent = """
+                {
+                    "name": "payload_processor",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "payload": { "type": "string" }
+                        },
+                        "required": ["payload"]
+                    }
+                }
+                """;
+
+        createMcpTool(groupId, compatId, compatContent);
+
+        givenAtRoot()
+                .when()
+                .contentType("application/json")
+                .body(rawContent)
+                .post("/.well-known/mcp-tools/compatible")
+                .then()
+                .statusCode(200)
+                .body("tools.artifactId", hasItem(compatId));
+    }
+
+    @Test
+    public void testOptionalOutputFieldNotSatisfyingRequiredInput() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String unique = TestUtils.generateArtifactId().replace("-", "");
+        String targetId = "opt-target-" + unique;
+        String candidateId = "opt-consumer-" + unique;
+
+        // Target tool: outputSchema has "count" in properties, but NOT in required list (only "result" is required)
+        String targetTool = """
+                {
+                    "name": "optional_output_tool",
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "result": { "type": "string" },
+                            "count": { "type": "integer" }
+                        },
+                        "required": ["result"]
+                    }
+                }
+                """;
+
+        // Candidate tool: requires "count" as input
+        String candidateTool = """
+                {
+                    "name": "requires_count_consumer",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "count": { "type": "integer" }
+                        },
+                        "required": ["count"]
+                    }
+                }
+                """;
+
+        createMcpTool(groupId, targetId, targetTool);
+        createMcpTool(groupId, candidateId, candidateTool);
+
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", targetId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0))
+                .body("tools", hasSize(0));
+    }
+
+
+
+
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

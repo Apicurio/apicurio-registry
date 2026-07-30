@@ -558,6 +558,197 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return McpToolSearchResults.builder().count(results.getCount()).tools(tools).build();
     }
 
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public McpToolSearchResults getCompatibleMcpTools(String groupId, String artifactId,
+            String version, String offset, String limit) {
+        if (!mcpToolsConfig.isEnabled()) {
+            throw new NotFoundException("MCP tools support is disabled");
+        }
+
+        int safeOffset = Math.max(0, parsePaginationParam(offset, "offset", 0));
+        int safeLimit = Math.max(1, Math.min(parsePaginationParam(limit, "limit", 20), 500));
+
+        GroupId gid = new GroupId(groupId);
+        String rawGroupId = gid.getRawGroupIdWithNull();
+        GA ga = new GA(rawGroupId, artifactId);
+
+        StoredArtifactVersionDto targetArtifact;
+        try {
+            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            GAV gav = VersionExpressionParser.parse(ga, versionExpression,
+                    (g, branchId) -> storage.getBranchTip(g, branchId,
+                            RetrievalBehavior.SKIP_DISABLED_LATEST));
+
+            targetArtifact = storage.getArtifactVersionContent(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(
+                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+            if (!ArtifactType.MCP_TOOL.equals(metadata.getArtifactType())) {
+                throw new NotFoundException("Artifact is not an MCP tool definition");
+            }
+        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+            throw new NotFoundException("MCP tool not found: " + groupId + "/" + artifactId);
+        }
+
+        String targetContentStr = targetArtifact.getContent().content();
+        return findCompatibleToolsForContent(targetContentStr, ga, safeOffset, safeLimit);
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public McpToolSearchResults findCompatibleMcpTools(String mcpToolContent, String offset, String limit) {
+        if (!mcpToolsConfig.isEnabled()) {
+            throw new NotFoundException("MCP tools support is disabled");
+        }
+
+        if (StringUtil.isEmpty(mcpToolContent)) {
+            throw new BadRequestException("MCP tool content must not be empty");
+        }
+
+        int safeOffset = Math.max(0, parsePaginationParam(offset, "offset", 0));
+        int safeLimit = Math.max(1, Math.min(parsePaginationParam(limit, "limit", 20), 500));
+
+        return findCompatibleToolsForContent(mcpToolContent, null, safeOffset, safeLimit);
+    }
+
+    private McpToolSearchResults findCompatibleToolsForContent(String targetContentStr, GA targetGa,
+            int safeOffset, int safeLimit) {
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+
+        JsonNode targetOutputSchema = null;
+        try {
+            JsonNode targetRoot = mapper.readTree(targetContentStr);
+            targetOutputSchema = targetRoot.get("outputSchema");
+        } catch (Exception e) {
+            log.warn("Failed to parse target MCP tool content: {}", e.getMessage());
+        }
+
+        List<McpToolSearchResult> compatibleTools = new ArrayList<>();
+
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            // Exclude the target artifact itself if targetGa is specified
+            if (targetGa != null
+                    && java.util.Objects.equals(artifact.getGroupId(), targetGa.getRawGroupIdWithNull())
+                    && java.util.Objects.equals(artifact.getArtifactId(), targetGa.getRawArtifactId())) {
+                continue;
+            }
+
+            try {
+                GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
+                GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+                        (g, branchId) -> storage.getBranchTip(g, branchId,
+                                RetrievalBehavior.SKIP_DISABLED_LATEST));
+                StoredArtifactVersionDto candidateStored = storage.getArtifactVersionContent(
+                        gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+                JsonNode candidateRoot = mapper.readTree(candidateStored.getContent().content());
+                JsonNode candidateInputSchema = candidateRoot.get("inputSchema");
+
+                if (isOutputCompatibleWithInput(targetOutputSchema, candidateInputSchema)) {
+                    compatibleTools.add(convertToMcpToolSearchResult(artifact));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to check output->input compatibility for MCP tool {}/{}: {}",
+                        artifact.getGroupId(), artifact.getArtifactId(), e.getMessage());
+            }
+        }
+
+        int total = compatibleTools.size();
+        int fromIndex = Math.min(safeOffset, total);
+        int toIndex = Math.min(fromIndex + safeLimit, total);
+        List<McpToolSearchResult> page = compatibleTools.subList(fromIndex, toIndex);
+
+        return McpToolSearchResults.builder()
+                .count((long) total)
+                .tools(page)
+                .build();
+    }
+
+    private boolean isOutputCompatibleWithInput(JsonNode targetOutputSchema, JsonNode candidateInputSchema) {
+        if (candidateInputSchema == null || candidateInputSchema.isMissingNode() || !candidateInputSchema.isObject()) {
+            return true;
+        }
+
+        JsonNode candidateRequiredNode = candidateInputSchema.get("required");
+        Set<String> candidateRequiredParams = new HashSet<>();
+        if (candidateRequiredNode != null && candidateRequiredNode.isArray()) {
+            for (JsonNode item : candidateRequiredNode) {
+                if (item.isTextual()) {
+                    candidateRequiredParams.add(item.asText());
+                }
+            }
+        }
+
+        if (candidateRequiredParams.isEmpty()) {
+            return true;
+        }
+
+        if (targetOutputSchema == null || targetOutputSchema.isMissingNode() || !targetOutputSchema.isObject()) {
+            return false;
+        }
+
+        JsonNode targetRequiredNode = targetOutputSchema.get("required");
+        Set<String> targetRequiredOutputs = new HashSet<>();
+        if (targetRequiredNode != null && targetRequiredNode.isArray()) {
+            for (JsonNode item : targetRequiredNode) {
+                if (item.isTextual()) {
+                    targetRequiredOutputs.add(item.asText());
+                }
+            }
+        }
+
+        if (targetRequiredOutputs.isEmpty()) {
+            return false;
+        }
+
+        JsonNode targetProps = targetOutputSchema.get("properties");
+        if (targetProps == null || !targetProps.isObject()) {
+            return false;
+        }
+
+        JsonNode candidateProps = candidateInputSchema.get("properties");
+
+        for (String reqParam : candidateRequiredParams) {
+            if (!targetRequiredOutputs.contains(reqParam) || !targetProps.has(reqParam)) {
+                return false;
+            }
+
+            if (candidateProps != null && candidateProps.isObject()) {
+                JsonNode targetProp = targetProps.get(reqParam);
+                JsonNode candidateProp = candidateProps.get(reqParam);
+
+                if (targetProp != null && candidateProp != null) {
+                    JsonNode targetType = targetProp.get("type");
+                    JsonNode candidateType = candidateProp.get("type");
+
+                    if (targetType != null && candidateType != null
+                            && targetType.isTextual() && candidateType.isTextual()) {
+                        String tType = targetType.asText();
+                        String cType = candidateType.asText();
+
+                        if (!tType.equals(cType)) {
+                            // integer output is compatible with number input
+                            if (!("integer".equals(tType) && "number".equals(cType))) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+
+
     private int parsePaginationParam(String value, String name, int defaultValue) {
         if (StringUtil.isEmpty(value)) {
             return defaultValue;

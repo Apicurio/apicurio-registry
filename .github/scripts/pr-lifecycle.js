@@ -1318,8 +1318,8 @@ async function handleStale({ github, context, core }) {
   const config = loadConfig();
   const daysUntilStale = config.stale?.days_until_stale || 7;
   const daysUntilClose = config.stale?.days_until_close || 14;
-  // PRs blocked on the author warn and close sooner (4/7 vs 7/14), but keep
-  // the same 3-day grace after the warning.
+  // PRs blocked on the author warn and close sooner (4/7 vs 7/14), with a
+  // shorter 3-day post-warning grace — intentional, they're already stalled.
   const daysUntilStaleWaitingOnAuthor = config.stale?.days_until_stale_waiting_on_author || 4;
   const daysUntilCloseWaitingOnAuthor = config.stale?.days_until_close_waiting_on_author || 7;
   const now = new Date();

@@ -25,6 +25,7 @@ import io.apicurio.registry.storage.error.BranchAlreadyExistsException;
 import io.apicurio.registry.storage.error.BranchNotFoundException;
 import io.apicurio.registry.storage.error.CommentNotFoundException;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
+import io.apicurio.registry.storage.error.ContentAlreadyExistsException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.DownloadNotFoundException;
@@ -92,6 +93,7 @@ public class HttpStatusCodeMap {
         map.put(CommentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
+        map.put(ContentAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ContentNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ContentSearchNotSupportedException.class, HTTP_BAD_REQUEST);
         map.put(DefaultRuleDeletionException.class, HTTP_CONFLICT);
@@ -142,7 +144,18 @@ public class HttpStatusCodeMap {
     }
 
     public int getCode(Class<?> exceptionClass) {
-        return codeMap.getOrDefault(exceptionClass, HTTP_INTERNAL_ERROR);
+        // Walk the superclass chain so that a subclass of a mapped exception (e.g. a new
+        // AlreadyExistsException variant that wasn't registered explicitly) still resolves
+        // to its ancestor's status code instead of silently falling back to 500.
+        Class<?> clazz = exceptionClass;
+        while (clazz != null && clazz != Object.class) {
+            Integer code = codeMap.get(clazz);
+            if (code != null) {
+                return code;
+            }
+            clazz = clazz.getSuperclass();
+        }
+        return HTTP_INTERNAL_ERROR;
     }
 
     public boolean isIgnored(Class<? extends Throwable> aClass) {

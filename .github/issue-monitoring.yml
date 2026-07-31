@@ -17,7 +17,7 @@ assigned_stale:
   days_until_unassign: 21
   stale_label: lifecycle/stale-assigned
   ping_message: |
-    @{assignee} This issue has been assigned to you for {days} days with no
+    {assignee} This issue has been assigned to you for {days} days with no
     linked or referenced pull request. Please push an update — link a PR,
     or leave a comment describing your progress — to keep it assigned.
 
@@ -25,7 +25,7 @@ assigned_stale:
     for someone else. Otherwise, it will be automatically unassigned in
     {days_until_unassign_remaining} days if there's no activity.
   unassign_message: |
-    This issue has been unassigned from @{assignee} due to {days} days of
+    This issue has been unassigned from {assignee} due to {days} days of
     inactivity with no linked or referenced pull request.
 
     The issue is available again. Comment below if you'd like to pick it

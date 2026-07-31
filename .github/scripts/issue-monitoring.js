@@ -222,7 +222,7 @@ async function processAssignedIssue(api, config, issue, core) {
     const body = renderTemplate(config.assigned_stale.ping_message, {
       assignee: formatMentions(assignees),
       days: daysUntilPing,
-      days_until_unassign_remaining: daysUntilUnassign - daysUntilPing,
+      days_until_unassign_remaining: Math.ceil(daysUntilUnassign - daysSinceClockStart),
     });
     await api.addLabel(issue.number, staleLabel, STALE_ASSIGNED_LABEL_DEF);
     await api.postComment(issue.number, body);

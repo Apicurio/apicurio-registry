@@ -27,7 +27,9 @@ public class AppAuthenticationMechanismTest {
         mechanism.authConfig = authConfig;
         
         mechanism.log = Mockito.mock(Logger.class);
-        mechanism.basicAuthenticationMechanism = Mockito.mock(BasicAuthenticationMechanism.class);
+        mechanism.basicAuthenticationMechanism = Mockito.mock(Instance.class);
+        when(mechanism.basicAuthenticationMechanism.isResolvable()).thenReturn(true);
+        when(mechanism.basicAuthenticationMechanism.get()).thenReturn(Mockito.mock(BasicAuthenticationMechanism.class));
         mechanism.formAuthenticationMechanism = Mockito.mock(Instance.class);
         when(mechanism.formAuthenticationMechanism.isResolvable()).thenReturn(true);
         when(mechanism.formAuthenticationMechanism.get()).thenReturn(Mockito.mock(FormAuthenticationMechanism.class));
@@ -44,6 +46,7 @@ public class AppAuthenticationMechanismTest {
         authConfig.formAuthEnabled = true;
         authConfig.proxyHeaderAuthEnabled = true;
         authConfig.oidcAuthEnabled = true;
+        authConfig.oidcTokenPath = "/protocol/openid-connect/token";
         authConfig.mechanismPriority = "basic,form,proxy-header,oidc";
         
         List<AuthenticationStrategy> chain = mechanism.buildAuthChain();
@@ -62,6 +65,7 @@ public class AppAuthenticationMechanismTest {
         authConfig.formAuthEnabled = true;
         authConfig.proxyHeaderAuthEnabled = true;
         authConfig.oidcAuthEnabled = true;
+        authConfig.oidcTokenPath = "/protocol/openid-connect/token";
         authConfig.mechanismPriority = "oidc,proxy-header,form,basic";
         
         List<AuthenticationStrategy> chain = mechanism.buildAuthChain();
@@ -80,6 +84,7 @@ public class AppAuthenticationMechanismTest {
         authConfig.formAuthEnabled = true;
         authConfig.proxyHeaderAuthEnabled = false;
         authConfig.oidcAuthEnabled = true;
+        authConfig.oidcTokenPath = "/protocol/openid-connect/token";
         authConfig.mechanismPriority = "basic,form,proxy-header,oidc";
         
         List<AuthenticationStrategy> chain = mechanism.buildAuthChain();

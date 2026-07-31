@@ -67,7 +67,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     AuthConfig authConfig;
 
     @Inject
-    BasicAuthenticationMechanism basicAuthenticationMechanism;
+    Instance<BasicAuthenticationMechanism> basicAuthenticationMechanism;
 
     @Inject
     Instance<FormAuthenticationMechanism> formAuthenticationMechanism;
@@ -124,12 +124,15 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         }
 
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
-        strategyFactories.put("basic", () -> authConfig.isBasicAuthEnabled()
-                ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)
+        strategyFactories.put("basic", () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
+                ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism.get())
                 : null);
-        strategyFactories.put("form", () -> authConfig.isFormAuthEnabled() && formAuthenticationMechanism.isResolvable()
+        strategyFactories.put("form", () -> {
+            log.info("Checking form auth. isFormAuthEnabled={}, isResolvable={}", authConfig.isFormAuthEnabled(), formAuthenticationMechanism.isResolvable());
+            return authConfig.isFormAuthEnabled() && formAuthenticationMechanism.isResolvable()
                 ? new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism.get())
-                : null);
+                : null;
+        });
         strategyFactories.put("proxy-header", () -> authConfig.isProxyHeaderAuthEnabled()
                 ? new DelegatingAuthenticationStrategy("proxy-header",
                         proxyHeaderAuthenticationMechanism)
@@ -155,6 +158,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         });
 
         List<AuthenticationStrategy> chain = new ArrayList<>();
+        log.info("Mechanism priority list: {}", authConfig.getMechanismPriorityList());
         for (String name : authConfig.getMechanismPriorityList()) {
             Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
             if (factory == null) {

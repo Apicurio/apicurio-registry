@@ -47,7 +47,7 @@ public class AuthConfig {
     boolean basicAuthEnabled;
 
     @ConfigProperty(name = "quarkus.http.auth.form.enabled", defaultValue = "false")
-    @Info(category = CATEGORY_AUTH, description = "Enable form auth. Requires configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm).", availableSince = "3.3.1")
+    @Info(category = CATEGORY_AUTH, description = "Enable form auth. Requires adding 'form' to apicurio.authn.mechanism.priority and configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm).", availableSince = "3.3.1")
     boolean formAuthEnabled;
 
     // TODO: Add suffix?

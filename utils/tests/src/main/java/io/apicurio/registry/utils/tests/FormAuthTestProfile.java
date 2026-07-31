@@ -19,8 +19,8 @@ public class FormAuthTestProfile implements QuarkusTestProfile {
         Map<String, String> props = new HashMap<>();
 
         // Enable form authentication
-        props.put("apicurio.authn.form.enabled", "true");
         props.put("quarkus.http.auth.form.enabled", "true");
+        props.put("apicurio.authn.mechanism.priority", "form");
 
         // Enable role-based authorization to test group/role mapping
         props.put("apicurio.auth.role-based-authorization", "true");

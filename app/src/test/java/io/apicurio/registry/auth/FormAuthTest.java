@@ -43,7 +43,7 @@ public class FormAuthTest extends AbstractResourceTestBase {
             .formParam("j_username", username)
             .formParam("j_password", password)
             .when()
-                .post("/j_security_check")
+                .post("http://localhost:" + testPort + "/j_security_check")
             .then()
                 .statusCode(302)
                 .extract().response();
@@ -56,7 +56,7 @@ public class FormAuthTest extends AbstractResourceTestBase {
         // Request without cookie should fail (either 401 or 302 redirect to login)
         Response response = given()
             .when()
-                .get("/registry/v3/users/me")
+                .get("/registry/v3/search/artifacts")
             .then()
                 .extract().response();
         
@@ -127,7 +127,7 @@ public class FormAuthTest extends AbstractResourceTestBase {
             .formParam("j_username", "admin")
             .formParam("j_password", "wrongpassword")
             .when()
-                .post("/j_security_check")
+                .post("http://localhost:" + testPort + "/j_security_check")
             .then()
                 .extract().response();
         

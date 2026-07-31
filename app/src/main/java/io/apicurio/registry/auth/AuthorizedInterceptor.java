@@ -75,7 +75,8 @@ public class AuthorizedInterceptor {
 
         // If authentication is not enabled, just do it.
         if (!authConfig.oidcAuthEnabled && !authConfig.basicAuthEnabled
-                && !authConfig.proxyHeaderAuthEnabled && !authConfig.kubernetesAuthEnabled) {
+                && !authConfig.proxyHeaderAuthEnabled && !authConfig.kubernetesAuthEnabled
+                && !authConfig.isFormAuthEnabled()) {
             return context.proceed();
         }
 

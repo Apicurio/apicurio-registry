@@ -8,6 +8,7 @@ package io.apicurio.registry.events.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import org.json.JSONObject;
 
@@ -174,7 +175,7 @@ public class CloudEventDto {
      * @param eventType the CloudEvent type string (e.g., "io.apicurio.registry.events.ArtifactCreated")
      * @return the CloudEventDto
      */
-    public static CloudEventDto from(io.apicurio.registry.storage.dto.OutboxEvent event, String source, String eventType) {
+    public static CloudEventDto from(OutboxEvent event, String source, String eventType) {
         return new CloudEventDto()
                 .withId(event.getId())
                 .withSource(source)

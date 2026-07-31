@@ -6,6 +6,7 @@
 package io.apicurio.registry.webhook;
 
 import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.events.dto.CloudEventConverter;
 import io.apicurio.registry.events.dto.CloudEventDto;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.SqlOutboxEvent;
@@ -13,6 +14,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
@@ -33,8 +36,9 @@ public class WebhookDeliveryServiceTest {
         ArtifactCreated event = ArtifactCreated.of(metaDataDto);
         SqlOutboxEvent sqlOutboxEvent = SqlOutboxEvent.of(event);
 
-        // Should not throw and should complete without error
-        deliveryService.onOutboxEvent(sqlOutboxEvent);
+        // Smoke test: the observer path converts and logs the event without throwing.
+        // Intentionally assertion-free beyond this until actual webhook delivery is wired.
+        assertDoesNotThrow(() -> deliveryService.onOutboxEvent(sqlOutboxEvent));
     }
 
     @Test
@@ -47,8 +51,12 @@ public class WebhookDeliveryServiceTest {
         metaDataDto.setCreatedOn(createdOn);
 
         ArtifactCreated event = ArtifactCreated.of(metaDataDto);
-        CloudEventDto cloudEvent = io.apicurio.registry.events.dto.CloudEventConverter.toCloudEvent(event, "/apicurio-registry");
+        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(event, "/apicurio-registry");
 
         assertNotNull(cloudEvent);
+        assertEquals("io.apicurio.registry.events.ArtifactCreated", cloudEvent.getType());
+        assertEquals("/apicurio-registry", cloudEvent.getSource());
+        assertEquals(event.getId(), cloudEvent.getId());
+        assertEquals("1.0", cloudEvent.getSpecversion());
     }
 }

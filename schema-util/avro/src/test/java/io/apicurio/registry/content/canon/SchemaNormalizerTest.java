@@ -13,7 +13,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -960,6 +962,148 @@ class SchemaNormalizerTest {
 
         assertEquals(normalized1.getContent().content(), normalized2.getContent().content(),
                 "Unions with more than two members starting with null must still be normalized");
+    }
+
+    @Test
+    void canonicalize_SchemaWithReference_ResolvesReferencedType() {
+        String addressSchema = """
+                {
+                  "type": "record",
+                  "name": "Address",
+                  "namespace": "com.example",
+                  "fields": [{"name": "city", "type": "string"}]
+                }""";
+        String personSchema = """
+                {
+                  "type": "record",
+                  "name": "Person",
+                  "namespace": "com.example",
+                  "fields": [{"name": "address", "type": "com.example.Address"}]
+                }""";
+
+        Map<String, TypedContent> resolvedReferences = new HashMap<>();
+        resolvedReferences.put("com.example.Address", toTypedContent(addressSchema));
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        // Without the resolved reference being seeded into the parser this throws AvroTypeException
+        // ("Undefined schema: com.example.Address").
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(personSchema),
+                resolvedReferences);
+
+        Schema parsed = new Schema.Parser().parse(normalized.getContent().content());
+        assertEquals("com.example.Person", parsed.getFullName());
+        // The referenced record is inlined into the canonical form, so it is self-contained.
+        assertEquals(Schema.Type.RECORD, parsed.getField("address").schema().getType());
+        assertEquals("com.example.Address", parsed.getField("address").schema().getFullName());
+    }
+
+    @Test
+    void canonicalize_SchemaWithReference_IgnoresFormattingAndDoc() {
+        String addressSchema = """
+                {
+                  "type": "record",
+                  "name": "Address",
+                  "namespace": "com.example",
+                  "fields": [{"name": "city", "type": "string"}]
+                }""";
+        String personSchema = """
+                {
+                  "type": "record",
+                  "name": "Person",
+                  "namespace": "com.example",
+                  "fields": [{"name": "address", "type": "com.example.Address"}]
+                }""";
+        // Same schema, but reformatted and carrying a "doc" attribute.
+        String personSchemaFormatted = """
+                {"type":"record","name":"Person","doc":"a person",\
+                "namespace":"com.example",\
+                "fields":[{"name":"address","type":"com.example.Address"}]}""";
+
+        Map<String, TypedContent> resolvedReferences = new HashMap<>();
+        resolvedReferences.put("com.example.Address", toTypedContent(addressSchema));
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(personSchema),
+                resolvedReferences);
+        TypedContent normalizedFormatted = canonicalizer
+                .canonicalize(toTypedContent(personSchemaFormatted), resolvedReferences);
+
+        // Previously both canonicalize calls threw, callers silently fell back to the raw content, and
+        // these two equivalent schemas produced different canonical hashes.
+        assertEquals(normalized.getContent().content(), normalizedFormatted.getContent().content(),
+                "Referenced Avro schemas differing only in formatting must canonicalize identically");
+    }
+
+    @Test
+    void canonicalize_InterdependentReferencesInAnyOrder_Resolves() {
+        // Country is referenced by Address, which is referenced by the main schema. The map deliberately
+        // yields Address before Country to exercise the retry pass.
+        String countrySchema = """
+                {
+                  "type": "record",
+                  "name": "Country",
+                  "namespace": "com.example",
+                  "fields": [{"name": "code", "type": "string"}]
+                }""";
+        String addressSchema = """
+                {
+                  "type": "record",
+                  "name": "Address",
+                  "namespace": "com.example",
+                  "fields": [{"name": "country", "type": "com.example.Country"}]
+                }""";
+        String personSchema = """
+                {
+                  "type": "record",
+                  "name": "Person",
+                  "namespace": "com.example",
+                  "fields": [{"name": "address", "type": "com.example.Address"}]
+                }""";
+
+        Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+        resolvedReferences.put("com.example.Address", toTypedContent(addressSchema));
+        resolvedReferences.put("com.example.Country", toTypedContent(countrySchema));
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(personSchema),
+                resolvedReferences);
+
+        Schema parsed = new Schema.Parser().parse(normalized.getContent().content());
+        assertEquals("com.example.Country",
+                parsed.getField("address").schema().getField("country").schema().getFullName());
+    }
+
+    @Test
+    void canonicalize_PermutedFields_RemainDistinct() {
+        // Locks in the documented, intentional behaviour: this canonicalizer does not reorder fields.
+        String schema = """
+                {
+                  "type": "record",
+                  "name": "Person",
+                  "namespace": "com.example",
+                  "fields": [
+                    {"name": "a", "type": "string"},
+                    {"name": "b", "type": "string"}
+                  ]
+                }""";
+        String permuted = """
+                {
+                  "type": "record",
+                  "name": "Person",
+                  "namespace": "com.example",
+                  "fields": [
+                    {"name": "b", "type": "string"},
+                    {"name": "a", "type": "string"}
+                  ]
+                }""";
+
+        EnhancedAvroContentCanonicalizer canonicalizer = new EnhancedAvroContentCanonicalizer();
+        TypedContent normalized = canonicalizer.canonicalize(toTypedContent(schema), new HashMap<>());
+        TypedContent normalizedPermuted = canonicalizer.canonicalize(toTypedContent(permuted),
+                new HashMap<>());
+
+        assertNotEquals(normalized.getContent().content(), normalizedPermuted.getContent().content(),
+                "Avro field order is significant and must not be normalized away");
     }
 
     private String getSchemaFromResource(String resourcePath) throws IOException {

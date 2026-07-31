@@ -37,7 +37,12 @@ class CredentialEncryption {
     private static final int KEY_SIZE_BITS = 256;
     private static final int GCM_IV_LENGTH_BYTES = 12;
     private static final int GCM_TAG_LENGTH_BITS = 128;
-    private static final SecureRandom RANDOM = new SecureRandom();
+
+    // Deliberately an instance field, not a static final constant: a static SecureRandom is
+    // initialized during native-image class-init (build time), which GraalVM rejects — building
+    // it in the image heap would bake in a fixed/cached seed. Constructing it per-instance keeps
+    // initialization at runtime, after the image has started.
+    private final SecureRandom random = new SecureRandom();
 
     private final Path keyPath;
     private SecretKey key;
@@ -53,7 +58,7 @@ class CredentialEncryption {
     String encrypt(final String plaintext) {
         try {
             final var iv = new byte[GCM_IV_LENGTH_BYTES];
-            RANDOM.nextBytes(iv);
+            random.nextBytes(iv);
             final var cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, loadOrCreateKey(), new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
             final var ciphertext = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
@@ -62,20 +67,29 @@ class CredentialEncryption {
                     + ":"
                     + Base64.getEncoder().encodeToString(ciphertext);
         } catch (GeneralSecurityException | IOException ex) {
-            throw new CredentialStoreException("Failed to encrypt credential: " + ex.getMessage(), ex);
+            throw new CredentialStoreException("Failed to encrypt credential", ex);
         }
     }
 
     String decrypt(final String encoded) {
+        final byte[] iv;
+        final byte[] ciphertext;
         try {
             final var parts = encoded.substring(ENCRYPTED_PREFIX.length()).split(":", 2);
-            final var iv = Base64.getDecoder().decode(parts[0]);
-            final var ciphertext = Base64.getDecoder().decode(parts[1]);
+            if (parts.length != 2) {
+                throw new CredentialStoreException("Corrupted encrypted credential — re-run login");
+            }
+            iv = Base64.getDecoder().decode(parts[0]);
+            ciphertext = Base64.getDecoder().decode(parts[1]);
+        } catch (IllegalArgumentException ex) {
+            throw new CredentialStoreException("Corrupted encrypted credential — re-run login", ex);
+        }
+        try {
             final var cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, loadOrCreateKey(), new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
             return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
         } catch (GeneralSecurityException | IOException ex) {
-            throw new CredentialStoreException("Failed to decrypt credential: " + ex.getMessage(), ex);
+            throw new CredentialStoreException("Failed to decrypt credential", ex);
         }
     }
 

@@ -47,7 +47,14 @@ class FileCredentialProvider implements CredentialProvider {
             return null;
         }
         if (CredentialEncryption.isEncrypted(stored)) {
-            return encryption().decrypt(stored);
+            try {
+                return encryption().decrypt(stored);
+            } catch (CredentialStoreException ex) {
+                log.warnf("Could not decrypt stored credential for '%s' (%s)."
+                        + " The stored value may be corrupted — please log in again.",
+                        account, ex.getMessage());
+                return null;
+            }
         }
         // Legacy plain text entry — migrate it to encrypted storage before returning it.
         // Migration is best-effort: if the config directory can't be written to (read-only

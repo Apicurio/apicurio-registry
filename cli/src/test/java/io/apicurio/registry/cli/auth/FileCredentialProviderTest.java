@@ -1,11 +1,13 @@
 package io.apicurio.registry.cli.auth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.cli.config.Config;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -99,5 +101,47 @@ public class FileCredentialProviderTest {
         provider.delete(ACCOUNT);
 
         assertThat(provider.retrieve(ACCOUNT)).isNull();
+    }
+
+    @Test
+    public void testRetrieveReturnsNullForTamperedCiphertext() throws Exception {
+        newProvider().store(ACCOUNT, SECRET);
+
+        var path = home.resolve("credentials.json");
+        Map<String, String> credentials = new ObjectMapper().readValue(path.toFile(), new TypeReference<>() {});
+        var encrypted = credentials.get(ACCOUNT);
+        var prefixEnd = CredentialEncryption.ENCRYPTED_PREFIX.length();
+        var separator = encrypted.indexOf(':', prefixEnd);
+        var iv = encrypted.substring(prefixEnd, separator);
+        var ciphertext = encrypted.substring(separator + 1);
+        // Flip a byte inside the ciphertext (keeping base64 length/padding intact) so
+        // GCM tag verification fails on decrypt rather than base64 decoding.
+        var decoded = Base64.getDecoder().decode(ciphertext);
+        decoded[0] ^= 0x01;
+        var tamperedCiphertext = Base64.getEncoder().encodeToString(decoded);
+        credentials.put(ACCOUNT, CredentialEncryption.ENCRYPTED_PREFIX + iv + ":" + tamperedCiphertext);
+        Files.writeString(path, new ObjectMapper().writeValueAsString(credentials));
+
+        // A corrupted/tampered credential must not surface a stack trace to the caller —
+        // retrieve() reports it as absent so the CLI can prompt the user to log in again.
+        assertThat(newProvider().retrieve(ACCOUNT)).isNull();
+    }
+
+    @Test
+    public void testRetrieveReturnsNullForMalformedEncryptedValueMissingSeparator() throws Exception {
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put(ACCOUNT, CredentialEncryption.ENCRYPTED_PREFIX + "not-a-valid-payload");
+        Files.writeString(home.resolve("credentials.json"), new ObjectMapper().writeValueAsString(credentials));
+
+        assertThat(newProvider().retrieve(ACCOUNT)).isNull();
+    }
+
+    @Test
+    public void testRetrieveReturnsNullForMalformedEncryptedValueInvalidBase64() throws Exception {
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put(ACCOUNT, CredentialEncryption.ENCRYPTED_PREFIX + "not-base64!!:also-not-base64!!");
+        Files.writeString(home.resolve("credentials.json"), new ObjectMapper().writeValueAsString(credentials));
+
+        assertThat(newProvider().retrieve(ACCOUNT)).isNull();
     }
 }

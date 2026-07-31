@@ -83,20 +83,20 @@ async function handleIssueComment({ github, context, core }) {
   const assigneeLogins = currentAssignees.map(a => a.login.toLowerCase());
 
   if (assignMatch) {
-    await handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, assigneeLogins);
+    await handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, currentAssignees, assigneeLogins);
   } else if (unassignMatch) {
     await handleUnassign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, assigneeLogins);
   }
 }
 
-async function handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, assigneeLogins) {
+async function handleAssign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, currentAssignees, assigneeLogins) {
   // If already assigned
   if (assigneeLogins.length > 0) {
     if (assigneeLogins.includes(commenter)) {
       core.info(`User ${commenterOriginal} is already assigned to issue #${issueNumber}.`);
       await postComment(github, owner, repo, issueNumber, `@${commenterOriginal} You are already assigned to this issue.`);
     } else {
-      const mentionList = assigneeLogins.map(l => `@${l}`).join(', ');
+      const mentionList = currentAssignees.map(a => `@${a.login}`).join(', ');
       core.info(`Issue #${issueNumber} is already assigned to ${mentionList}.`);
       await postComment(github, owner, repo, issueNumber, `This issue is already claimed by ${mentionList}.`);
     }

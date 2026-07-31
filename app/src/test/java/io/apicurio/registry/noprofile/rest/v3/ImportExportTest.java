@@ -1,6 +1,10 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.v3.beans.ContractRule;
+import io.apicurio.registry.rest.v3.beans.ContractRuleSet;
+import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
@@ -26,8 +30,10 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.core.StreamingOutput;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -37,14 +43,19 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 
 @QuarkusTest
 public class ImportExportTest extends AbstractResourceTestBase {
@@ -54,6 +65,9 @@ public class ImportExportTest extends AbstractResourceTestBase {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    DataExporter exporter;
 
     @Test
     public void testExportImport() throws Exception {
@@ -84,6 +98,8 @@ public class ImportExportTest extends AbstractResourceTestBase {
         createGroup.getLabels().setAdditionalData(Map.of("isPrimary", "false"));
         clientV3.groups().post(createGroup);
 
+        String secondaryGroupId = "SecondaryTestGroup";
+
         // Configure a group rule
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.INTEGRITY);
@@ -103,6 +119,10 @@ public class ImportExportTest extends AbstractResourceTestBase {
             String artifactId = "TestArtifact-" + idx;
             createArtifact(groupId, artifactId, ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
         }
+
+        String secondaryArtifactId = "SecondaryArtifact";
+        createArtifact(secondaryGroupId, secondaryArtifactId, ArtifactType.JSON, "{}",
+                ContentTypes.APPLICATION_JSON);
 
         // Set artifact metadata
         for (int idx = 1; idx <= 10; idx++) {
@@ -176,6 +196,38 @@ public class ImportExportTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactIdWithRules).rules()
                 .post(createRule);
 
+        String artifactIdWithContractRules = "TestArtifact-8";
+        setContractRules("/registry/v3/admin/contracts/ruleset", "global-contract-rule");
+        setContractRules(
+                "/registry/v3/groups/" + groupId + "/artifacts/" + artifactIdWithContractRules
+                        + "/contract/ruleset",
+                "artifact-contract-rule");
+        setContractRules(
+                "/registry/v3/groups/" + groupId + "/artifacts/" + artifactIdWithContractRules
+                        + "/versions/1/contract/ruleset",
+                "version-contract-rule");
+        setContractRules(
+                "/registry/v3/groups/" + secondaryGroupId + "/artifacts/" + secondaryArtifactId
+                        + "/contract/ruleset",
+                "secondary-contract-rule");
+
+        Long originalVersionGlobalId = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactIdWithContractRules).versions().byVersionExpression("1").get()
+                .getGlobalId();
+
+        DownloadRef groupDownloadRef = clientV3.admin().export().get(config -> {
+            config.queryParameters.groupId = groupId;
+        });
+        File groupExport = File.createTempFile(ImportExportTest.class.getSimpleName(), ".zip");
+        downloadTo(new URL(String.format("http://localhost:%s%s", testPort, groupDownloadRef.getHref())),
+                groupExport);
+        List<ContractRuleEntity> groupContractRules = readContractRules(groupExport);
+        Assertions.assertEquals(2, groupContractRules.size());
+        Assertions.assertEquals(Set.of("artifact-contract-rule", "version-contract-rule"),
+                groupContractRules.stream().map(ruleEntity -> ruleEntity.ruleName)
+                        .collect(Collectors.toSet()));
+        Files.delete(groupExport.toPath());
+
         // Add some comments
         // TODO add comments
 
@@ -192,6 +244,7 @@ public class ImportExportTest extends AbstractResourceTestBase {
         System.out.println("Temp export file: " + tempFile.toPath());
         downloadTo(url, tempFile);
         listFiles(tempFile);
+        assertContractRuleEntries(tempFile, 4);
 
         /**
          * Delete all the data.
@@ -201,13 +254,7 @@ public class ImportExportTest extends AbstractResourceTestBase {
         /**
          * Import the data back into the (now empty) registry
          */
-        try (FileInputStream fis = new FileInputStream(tempFile)) {
-            clientV3.admin().importEscaped().post(fis, config -> {
-                config.headers.putIfAbsent("Content-Type", Set.of("application/zip"));
-            });
-            // Clean up the temp file
-            Files.delete(tempFile.toPath());
-        }
+        importData(tempFile, true);
 
         /**
          * Assertions!
@@ -323,9 +370,103 @@ public class ImportExportTest extends AbstractResourceTestBase {
                 .byRuleType(RuleType.INTEGRITY.name()).get();
         Assertions.assertEquals(IntegrityLevel.FULL.name(), rule.getConfig());
 
+        assertContractRules(groupId, artifactIdWithContractRules);
+        Long preservedVersionGlobalId = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactIdWithContractRules).versions().byVersionExpression("1").get()
+                .getGlobalId();
+        Assertions.assertEquals(originalVersionGlobalId, preservedVersionGlobalId);
+
+        storage.deleteAllUserData();
+        storage.nextGlobalId();
+        importData(tempFile, false);
+
+        Long remappedVersionGlobalId = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactIdWithContractRules).versions().byVersionExpression("1").get()
+                .getGlobalId();
+        Assertions.assertNotEquals(originalVersionGlobalId, remappedVersionGlobalId);
+        assertContractRules(groupId, artifactIdWithContractRules);
+
+        Files.delete(tempFile.toPath());
+
         // Assert artifact comments
         // TODO add comments
 
+    }
+
+    @Test
+    public void testExportFailsWhenAnEntityCannotBeWritten() {
+        StreamingOutput stream = (StreamingOutput) exporter.exportData().getEntity();
+
+        IOException exception = Assertions.assertThrows(IOException.class,
+                () -> stream.write(new OutputStream() {
+                    @Override
+                    public void write(int value) throws IOException {
+                        throw new IOException("Output stream failure");
+                    }
+                }));
+
+        Assertions.assertEquals("Error writing entity", exception.getCause().getMessage());
+    }
+
+    private static void setContractRules(String path, String ruleName) {
+        ContractRule contractRule = new ContractRule();
+        contractRule.setName(ruleName);
+        contractRule.setKind(ContractRule.Kind.CONDITION);
+        contractRule.setType("CEL");
+        contractRule.setMode(ContractRule.Mode.WRITE);
+        contractRule.setExpr("true");
+        contractRule.setOnFailure(ContractRule.OnFailure.ERROR);
+
+        ContractRuleSet ruleset = new ContractRuleSet();
+        ruleset.setDomainRules(List.of(contractRule));
+        ruleset.setMigrationRules(List.of());
+
+        given().contentType("application/json").body(ruleset).put(path).then().statusCode(200);
+    }
+
+    private static void assertContractRules(String groupId, String artifactId) {
+        given().get("/registry/v3/admin/contracts/ruleset").then().statusCode(200)
+                .body("domainRules[0].name", equalTo("global-contract-rule"));
+        given().pathParam("groupId", groupId).pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset").then()
+                .statusCode(200).body("domainRules[0].name", equalTo("artifact-contract-rule"));
+        given().pathParam("groupId", groupId).pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/1/contract/ruleset")
+                .then().statusCode(200).body("domainRules[0].name", equalTo("version-contract-rule"));
+    }
+
+    private void importData(File export, boolean preserveGlobalId) throws IOException {
+        try (FileInputStream fis = new FileInputStream(export)) {
+            clientV3.admin().importEscaped().post(fis, config -> {
+                config.headers.putIfAbsent("Content-Type", Set.of("application/zip"));
+                config.headers.putIfAbsent("X-Registry-Preserve-GlobalId",
+                        Set.of(Boolean.toString(preserveGlobalId)));
+            });
+        }
+    }
+
+    private static void assertContractRuleEntries(File export, int expectedCount) throws IOException {
+        try (ZipFile zipFile = new ZipFile(export)) {
+            List<String> entryNames = zipFile.stream().map(ZipEntry::getName)
+                    .filter(name -> name.endsWith(".ContractRule.json")).toList();
+            Assertions.assertEquals(expectedCount, entryNames.size());
+            Assertions.assertTrue(entryNames.stream()
+                    .allMatch(name -> name.matches("contractRules/\\d+\\.ContractRule\\.json")));
+        }
+    }
+
+    private static List<ContractRuleEntity> readContractRules(File export) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        try (ZipFile zipFile = new ZipFile(export)) {
+            return zipFile.stream().filter(entry -> entry.getName().endsWith(".ContractRule.json"))
+                    .map(entry -> {
+                        try (InputStream input = zipFile.getInputStream(entry)) {
+                            return mapper.readValue(input, ContractRuleEntity.class);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }).toList();
+        }
     }
 
     private static void downloadTo(URL url, File tempFile) {

@@ -190,6 +190,14 @@ public class SqlDataImporter extends AbstractDataImporter {
     @Override
     protected void importContractRule(ContractRuleEntity entity) {
         try {
+            if (!preserveGlobalId && entity.globalId != null) {
+                Long mappedGlobalId = globalIdMapping.get(entity.globalId);
+                if (mappedGlobalId == null) {
+                    throw new RegistryException(
+                            "Could not remap contract rule globalId: " + entity.globalId);
+                }
+                entity.globalId = mappedGlobalId;
+            }
             storage.importContractRule(entity);
             log.debug("Contract rule imported successfully: {}", entity);
         } catch (Exception ex) {

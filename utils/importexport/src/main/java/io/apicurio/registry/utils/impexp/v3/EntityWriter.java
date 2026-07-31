@@ -21,6 +21,7 @@ public class EntityWriter {
     }
 
     private final transient ZipOutputStream zip;
+    private int contractRuleIndex = 0;
 
     /**
      * Constructor.
@@ -65,6 +66,9 @@ public class EntityWriter {
                 break;
             case Branch:
                 writeEntity((BranchEntity) entity);
+                break;
+            case ContractRule:
+                writeEntity((ContractRuleEntity) entity);
                 break;
             case Manifest:
                 writeEntity((ManifestEntity) entity);
@@ -138,6 +142,12 @@ public class EntityWriter {
         write(mdEntry, entity, BranchEntity.class);
     }
 
+    private void writeEntity(ContractRuleEntity entity) throws IOException {
+        ZipEntry mdEntry = createZipEntry(EntityType.ContractRule,
+                Integer.toString(contractRuleIndex++), "json");
+        write(mdEntry, entity, ContractRuleEntity.class);
+    }
+
     private ZipEntry createZipEntry(EntityType type, String fileName, String fileExt) {
         return createZipEntry(type, null, null, fileName, fileExt);
     }
@@ -182,6 +192,9 @@ public class EntityWriter {
                 break;
             case Comment:
                 path = String.format("comments/%s.%s.%s", fileName, type.name(), fileExt);
+                break;
+            case ContractRule:
+                path = String.format("contractRules/%s.%s.%s", fileName, type.name(), fileExt);
                 break;
             case Manifest:
                 path = String.format("%s.%s.%s", fileName, type.name(), fileExt);

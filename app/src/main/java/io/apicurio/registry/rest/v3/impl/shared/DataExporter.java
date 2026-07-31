@@ -7,11 +7,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
-import org.slf4j.Logger;
-
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -19,9 +17,6 @@ import java.util.zip.ZipOutputStream;
  */
 @ApplicationScoped
 public class DataExporter {
-
-    @Inject
-    Logger log;
 
     @Inject
     @Current
@@ -41,24 +36,17 @@ public class DataExporter {
      */
     public Response exportData(String groupId) {
         StreamingOutput stream = os -> {
-            try {
-                ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
+            try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
                 EntityWriter writer = new EntityWriter(zip);
-                AtomicInteger errorCounter = new AtomicInteger(0);
                 storage.exportData(groupId, entity -> {
                     try {
                         writer.writeEntity(entity);
-                    } catch (Exception e) {
-                        log.error("Error writing entity", e);
-                        errorCounter.incrementAndGet();
+                    } catch (IOException e) {
+                        throw new UncheckedIOException("Error writing entity", e);
                     }
                     return null;
                 });
-
-                // TODO if the errorCounter > 0, then what?
-
                 zip.flush();
-                zip.close();
             } catch (IOException e) {
                 throw e;
             } catch (Exception e) {

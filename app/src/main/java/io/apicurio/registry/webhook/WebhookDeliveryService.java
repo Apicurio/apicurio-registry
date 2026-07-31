@@ -20,6 +20,12 @@ import org.slf4j.LoggerFactory;
  * Consumes registry outbox events and converts them to CloudEvents for
  * webhook delivery. Actual delivery to configured webhook subscriptions
  * will be wired once the subscription storage layer is available.
+ * <p>
+ * The {@link SqlOutboxEvent} CDI event is fired by SQL storage repositories
+ * (e.g., {@code SqlArtifactRepository}, {@code SqlVersionRepository},
+ * {@code SqlRuleRepository}) when registry data changes (artifacts created,
+ * deleted, rules configured, etc.). This service observes those events and
+ * converts them to CloudEvents format.
  */
 @ApplicationScoped
 public class WebhookDeliveryService {

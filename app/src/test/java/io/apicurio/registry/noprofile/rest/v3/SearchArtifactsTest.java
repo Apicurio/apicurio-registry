@@ -171,6 +171,53 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchArtifactsByLabelsNamespaceAndColonInValue() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Artifact 1: Namespaced label key (env:tag = production)
+        String artifactId1 = "Artifact-Namespace";
+        this.createArtifact(group, artifactId1, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData1 = new EditableArtifactMetaData();
+        metaData1.setLabels(Map.of("env:tag", "production"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId1).body(metaData1)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // Artifact 2: Colon in label value (color = red:dark)
+        String artifactId2 = "Artifact-ColonInValue";
+        this.createArtifact(group, artifactId2, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData2 = new EditableArtifactMetaData();
+        metaData2.setLabels(Map.of("color", "red:dark"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId2).body(metaData2)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // --- 1. Namespace Key Regression Checks ---
+
+        // Query "env:tag:" (trailing colon) -> matches key "env:tag" with any value
+        given().when().queryParam("labels", "env:tag:").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // Query "env:tag:production" -> matches key "env:tag" and value "production"
+        given().when().queryParam("labels", "env:tag:production").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // --- 2. Colon-in-Value Behavior Tradeoff Check ---
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Artifact 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        given().when().queryParam("labels", "color:red:dark").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+
+        // Querying key-only "color" matches Artifact 2
+        given().when().queryParam("labels", "color").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId2));
+    }
+
+
+
+    @Test
     public void testSearchArtifactsOrderBy() throws Exception {
         String group = UUID.randomUUID().toString();
         String artifactContent = resourceToString("openapi-empty.json");

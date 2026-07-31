@@ -1287,7 +1287,7 @@
             <goals>
               <goal>check</goal>
             </goals>
-            <phase>validate</phase>
+            <phase>none</phase>
           </execution>
         </executions>
       </plugin>

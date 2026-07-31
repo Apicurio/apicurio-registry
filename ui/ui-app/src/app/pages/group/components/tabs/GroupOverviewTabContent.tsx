@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./GroupOverviewTabContent.css";
 import "@app/styles/empty.css";
-import { IfAuth, IfFeature } from "@app/components";
+import { IfAuth, IfFeature, ResizableOverviewDrawer } from "@app/components";
 import {
     Alert,
     Button,
@@ -11,9 +11,6 @@ import {
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Drawer,
-    DrawerContent,
-    DrawerContentBody,
     DrawerHead,
     DrawerPanelContent,
     EmptyState,
@@ -159,7 +156,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
     );
 
     const panelContent = (
-        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
+        <DrawerPanelContent>
             <DrawerHead className="__drawer-head">
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="group-basics">
@@ -294,11 +291,7 @@ export const GroupOverviewTabContent: FunctionComponent<GroupOverviewTabContentP
         <div className="group-overview-tab-content">
             <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
-                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
-                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
-                        </DrawerContent>
-                    </Drawer>
+                    <ResizableOverviewDrawer panelContent={panelContent}>{drawerContent}</ResizableOverviewDrawer>
                 </CardBody>
             </Card>
         </div>

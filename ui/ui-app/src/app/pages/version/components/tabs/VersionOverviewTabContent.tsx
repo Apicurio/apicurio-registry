@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useState } from "react";
 import "./VersionOverviewTabContent.css";
 import "@app/styles/empty.css";
-import { ArtifactTypeIcon, IfAuth, IfFeature, VersionStateBadge } from "@app/components";
+import { ArtifactTypeIcon, IfAuth, IfFeature, ResizableOverviewDrawer, VersionStateBadge } from "@app/components";
 import {
     Button,
     Card,
@@ -10,9 +10,6 @@ import {
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Drawer,
-    DrawerContent,
-    DrawerContentBody,
     DrawerHead,
     DrawerPanelContent,
     Flex,
@@ -55,7 +52,7 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
     const labels: any = labelsToAny(props.version.labels);
 
     const panelContent = (
-        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
+        <DrawerPanelContent>
             <DrawerHead className="__drawer-head">
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="version-basics">
@@ -191,11 +188,7 @@ export const VersionOverviewTabContent: FunctionComponent<VersionOverviewTabCont
         <div className="version-overview-tab-content">
             <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
-                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
-                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
-                        </DrawerContent>
-                    </Drawer>
+                    <ResizableOverviewDrawer panelContent={panelContent}>{drawerContent}</ResizableOverviewDrawer>
                 </CardBody>
             </Card>
         </div>

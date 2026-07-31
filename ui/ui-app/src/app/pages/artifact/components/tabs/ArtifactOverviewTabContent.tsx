@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactOverviewTabContent.css";
 import "@app/styles/empty.css";
-import { ArtifactTypeIcon, IfAuth, IfFeature, VersionCompareModal } from "@app/components";
+import { ArtifactTypeIcon, IfAuth, IfFeature, ResizableOverviewDrawer, VersionCompareModal } from "@app/components";
 import {
     Button,
     Card,
@@ -10,9 +10,6 @@ import {
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Drawer,
-    DrawerContent,
-    DrawerContentBody,
     DrawerHead,
     DrawerPanelContent,
     EmptyState,
@@ -203,7 +200,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
     );
 
     const panelContent = (
-        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
+        <DrawerPanelContent>
             <DrawerHead className="__drawer-head">
                 <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
                     <div className="artifact-basics">
@@ -344,11 +341,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         <div className="artifact-overview-tab-content">
             <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
-                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
-                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
-                        </DrawerContent>
-                    </Drawer>
+                    <ResizableOverviewDrawer panelContent={panelContent}>{drawerContent}</ResizableOverviewDrawer>
                 </CardBody>
             </Card>
             <VersionCompareModal

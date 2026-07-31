@@ -66,7 +66,7 @@ public final class V2ApiUtil {
         if (artifactType != null) {
             metaData.setType(artifactType);
         } else {
-            metaData.setType(dto.getArtifactType());
+            metaData.setType(dto.getArtifactType() == null ? null : dto.getArtifactType().value());
         }
         metaData.setState(ArtifactState.ENABLED); // TODO artifact state has gone away from the storage layer
         metaData.setLabels(toV2Labels(dto.getLabels()));
@@ -155,7 +155,7 @@ public final class V2ApiUtil {
         if (artifactType != null) {
             metaData.setType(artifactType);
         } else {
-            metaData.setType(dto.getArtifactType());
+            metaData.setType(dto.getArtifactType() == null ? null : dto.getArtifactType().value());
         }
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
@@ -256,7 +256,7 @@ public final class V2ApiUtil {
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
             sa.setState(ArtifactState.ENABLED);
-            sa.setType(artifact.getArtifactType());
+            sa.setType(artifact.getArtifactType().value());
             results.getArtifacts().add(sa);
         });
         return results;
@@ -292,7 +292,7 @@ public final class V2ApiUtil {
             sv.setContentId(version.getContentId());
             sv.setName(version.getName());
             sv.setState(ArtifactState.fromValue(version.getState().name()));
-            sv.setType(version.getArtifactType());
+            sv.setType(version.getArtifactType().value());
             sv.setVersion(version.getVersion());
             results.getVersions().add(sv);
         });

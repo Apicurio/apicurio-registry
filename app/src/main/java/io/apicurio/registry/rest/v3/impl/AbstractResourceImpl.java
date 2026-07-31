@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.apicurio.registry.types.ArtifactType;
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 
 public abstract class AbstractResourceImpl {
@@ -53,7 +54,7 @@ public abstract class AbstractResourceImpl {
      * Handle the content references based on the value of "HandleReferencesType" - this can either mean we
      * need to fully dereference the content, or we need to rewrite the references, or we do nothing.
      */
-    protected TypedContent handleContentReferences(HandleReferencesType referencesType, String artifactType,
+    protected TypedContent handleContentReferences(HandleReferencesType referencesType, ArtifactType artifactType,
             TypedContent content, List<ArtifactReferenceDto> references) {
         if (!references.isEmpty()) {
             if (referencesType == HandleReferencesType.DEREFERENCE) {
@@ -61,7 +62,7 @@ public abstract class AbstractResourceImpl {
 
                 if (artifactTypeProvider.supportsReferencesWithContext()) {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
-                            .recursivelyResolveReferencesWithContext(factory, content, artifactType, references,
+                            .recursivelyResolveReferencesWithContext(factory, content, artifactType.value(), references,
                                     storage::getContentByReference);
 
                     content = artifactTypeProvider.getContentDereferencer().dereference(

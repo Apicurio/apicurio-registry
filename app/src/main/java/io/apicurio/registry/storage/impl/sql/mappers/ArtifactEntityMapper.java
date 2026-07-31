@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
@@ -25,7 +26,7 @@ public class ArtifactEntityMapper implements RowMapper<ArtifactEntity> {
         ArtifactEntity entity = new ArtifactEntity();
         entity.groupId = RegistryContentUtils.denormalizeGroupId(rs.getString("groupId"));
         entity.artifactId = rs.getString("artifactId");
-        entity.artifactType = rs.getString("type");
+        entity.artifactType = ArtifactType.fromValue(rs.getString("type"));
         entity.name = rs.getString("name");
         entity.description = rs.getString("description");
         entity.labels = RegistryContentUtils.deserializeLabels(rs.getString("labels"));

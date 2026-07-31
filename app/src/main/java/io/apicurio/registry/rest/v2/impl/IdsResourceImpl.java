@@ -96,7 +96,7 @@ public class IdsResourceImpl implements IdsResource {
         if (dereference && !artifact.getReferences().isEmpty()) {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
-                        .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
+                        .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType().value(),
                                 artifact.getReferences(), storage::getContentByReference);
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(

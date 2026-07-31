@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.VersionState;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,10 +28,11 @@ public class SearchedVersionDto {
     private String name;
     private String description;
     private Date createdOn;
+
     private String owner;
     private String modifiedBy;
     private Date modifiedOn;
-    private String artifactType;
+    private ArtifactType artifactType;
     private VersionState state;
     private long globalId;
     private long contentId;

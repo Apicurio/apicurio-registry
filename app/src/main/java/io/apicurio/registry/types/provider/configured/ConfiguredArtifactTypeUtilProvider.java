@@ -1,5 +1,6 @@
 package io.apicurio.registry.types.provider.configured;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.AbstractArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 
@@ -42,8 +43,8 @@ public class ConfiguredArtifactTypeUtilProvider extends AbstractArtifactTypeUtil
     }
 
     @Override
-    public String getArtifactType() {
-        return this.artifactType.getArtifactType();
+    public ArtifactType getArtifactType() {
+        return ArtifactType.fromValue(this.artifactType.getArtifactType());
     }
 
     @Override

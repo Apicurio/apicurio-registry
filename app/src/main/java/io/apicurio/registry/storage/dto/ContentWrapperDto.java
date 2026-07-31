@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils.HasReferences;
 import lombok.AllArgsConstructor;
@@ -27,7 +28,8 @@ public class ContentWrapperDto implements HasReferences {
 
     private String contentType;
     private ContentHandle content;
+
     private List<ArtifactReferenceDto> references;
-    private String artifactType;
+    private ArtifactType artifactType;
     private transient String contentHash;
 }

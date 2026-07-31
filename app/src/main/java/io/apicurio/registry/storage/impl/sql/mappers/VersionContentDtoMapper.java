@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
@@ -36,7 +37,7 @@ public class VersionContentDtoMapper implements RowMapper<VersionContentDto> {
         dto.setCreatedOn(rs.getTimestamp("createdOn").getTime());
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn").getTime());
-        dto.setArtifactType(rs.getString("type"));
+        dto.setArtifactType(ArtifactType.fromValue(rs.getString("type")));
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
         dto.setContent(ContentHandle.create(rs.getBytes("content")));
         return dto;

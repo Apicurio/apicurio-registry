@@ -27,6 +27,7 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
@@ -57,7 +58,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
-            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String artifactId, ArtifactType artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
@@ -67,7 +68,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            ArtifactType artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         readOnlyViolation();
@@ -76,7 +77,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
-            String version, String artifactType, ContentWrapperDto content,
+            String version, ArtifactType artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
             int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
             throws RegistryStorageException {
@@ -86,7 +87,7 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
+            ArtifactType artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
         readOnlyViolation();
     }
 

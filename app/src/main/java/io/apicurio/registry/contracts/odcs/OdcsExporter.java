@@ -208,7 +208,7 @@ public class OdcsExporter {
                 : artifactId + ":" + latest;
         return List.of(OdcsSchema.builder()
                 .name(meta.getName())
-                .type(lowerOrNull(meta.getArtifactType()))
+                .type(lowerOrNull(meta.getArtifactType().value()))
                 .location(location)
                 .fields(fields)
                 .build());

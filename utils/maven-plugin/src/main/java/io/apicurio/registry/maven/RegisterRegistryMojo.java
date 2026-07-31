@@ -488,7 +488,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
         // Find all references in the content
         ArtifactTypeUtilProvider provider = this.utilProviderFactory
-                .getArtifactTypeProvider(artifact.getArtifactType());
+                .getArtifactTypeProvider(ArtifactType.fromValue(artifact.getArtifactType()));
         ReferenceFinder referenceFinder = provider.getReferenceFinder();
         var referenceArtifactIdentifierExtractor = provider.getReferenceArtifactIdentifierExtractor();
         Set<ExternalReference> externalReferences = referenceFinder

@@ -55,7 +55,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
-            artifactType = vmd.getArtifactType();
+            artifactType = vmd.getArtifactType().value();
         } else {
             ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
@@ -65,7 +65,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = versions.get(0).getArtifactType().value();
         }
 
         // Apply default format if configured and no format was explicitly provided
@@ -100,7 +100,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             contentHandle = artifactVersion.getContent();
             references = artifactVersion.getReferences();
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
-            artifactType = vmd.getArtifactType();
+            artifactType = vmd.getArtifactType().value();
         } else {
             ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
             contentHandle = contentWrapper.getContent();
@@ -110,7 +110,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 //the contentId points to an orphaned content
                 throw new ArtifactNotFoundException("ContentId: " + id);
             }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = versions.get(0).getArtifactType().value();
         }
 
         // Apply default format if configured and no format was explicitly provided
@@ -138,7 +138,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<String> getSchemaTypes() {
-        return Arrays.asList(ArtifactType.JSON, ArtifactType.PROTOBUF, ArtifactType.AVRO);
+        return Arrays.asList(ArtifactType.BuiltIn.JSON.value(), ArtifactType.BuiltIn.PROTOBUF.value(), ArtifactType.BuiltIn.AVRO.value());
     }
 
     @Override
@@ -183,7 +183,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             try {
                 ContentWrapperDto contentWrapper = storage.getContentById(contentId);
                 Schema schema = converter.convert(contentWrapper.getContent(),
-                        version.getArtifactType(), contentWrapper.getReferences());
+                        version.getArtifactType().value(), contentWrapper.getReferences());
                 schemas.add(schema);
             } catch (Exception e) {
                 // Skip schemas that can't be loaded

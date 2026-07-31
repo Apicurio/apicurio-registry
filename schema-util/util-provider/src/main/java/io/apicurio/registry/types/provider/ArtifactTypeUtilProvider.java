@@ -13,13 +13,15 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 
 import java.util.Set;
 
+import io.apicurio.registry.types.ArtifactType;
+
 /**
  * Interface providing different utils per artifact type * compatibility checker * content canonicalizer *
  * content validator * rules * etc ...
  */
 public interface ArtifactTypeUtilProvider {
 
-    String getArtifactType();
+    ArtifactType getArtifactType();
 
     Set<String> getContentTypes();
 

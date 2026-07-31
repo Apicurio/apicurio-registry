@@ -12,6 +12,7 @@ import lombok.ToString;
 import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
+import io.apicurio.registry.types.ArtifactType;
 
 @Builder
 @NoArgsConstructor
@@ -23,7 +24,7 @@ public class ArtifactEntity extends Entity {
 
     public String groupId;
     public String artifactId;
-    public String artifactType;
+    public ArtifactType artifactType;
     public String name;
     public String description;
     public Map<String, String> labels;

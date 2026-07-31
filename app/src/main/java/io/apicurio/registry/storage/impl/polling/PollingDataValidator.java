@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.polling;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -130,7 +131,7 @@ public class PollingDataValidator {
 
             try {
                 rulesService.applyRules(storage,
-                        artifact.getGroupId(), artifact.getArtifactId(), artifact.getArtifactType(),
+                        artifact.getGroupId(), artifact.getArtifactId(), ArtifactType.fromValue(artifact.getArtifactType()),
                         currentContent, existingContent,
                         references, resolvedReferences);
             } catch (RuleViolationException e) {

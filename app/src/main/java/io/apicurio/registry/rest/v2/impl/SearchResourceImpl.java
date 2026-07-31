@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v2.impl;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.rest.v2.SearchResource;
 
 import io.apicurio.registry.auth.Authorized;
@@ -204,7 +205,7 @@ public class SearchResourceImpl implements SearchResource {
 
     protected TypedContent canonicalizeContent(String artifactType, TypedContent content) {
         try {
-            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+            ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.fromValue(artifactType));
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             TypedContent canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
             return canonicalContent;

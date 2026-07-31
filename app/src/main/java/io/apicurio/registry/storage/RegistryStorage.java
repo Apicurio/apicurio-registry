@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage;
 
+import io.apicurio.registry.types.ArtifactType;
+
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
 import io.apicurio.registry.content.TypedContent;
@@ -123,7 +125,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * metadata of the first version.
      */
     Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
-            String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
+            ArtifactType artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
             ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws ArtifactAlreadyExistsException, RegistryStorageException;
@@ -202,7 +204,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param dryRun
      */
     ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            ArtifactType artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, RegistryStorageException;
 
@@ -225,7 +227,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws CommitFailedException if the current versionOrder does not match expectedBaseVersionOrder
      */
     ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
-            String version, String artifactType, ContentWrapperDto content,
+            String version, ArtifactType artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
             int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, CommitFailedException,
@@ -635,7 +637,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws VersionNotFoundException
      * @throws RegistryStorageException
      */
-    void updateArtifactVersionContent(String groupId, String artifactId, String version, String artifactType,
+    void updateArtifactVersionContent(String groupId, String artifactId, String version, ArtifactType artifactType,
             ContentWrapperDto content)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
 

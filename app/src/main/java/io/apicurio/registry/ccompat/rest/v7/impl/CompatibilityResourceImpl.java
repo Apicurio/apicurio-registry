@@ -61,11 +61,11 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
         return rulesProperties.isDefaultGlobalRuleConfigured(RuleType.COMPATIBILITY);
     }
 
-    private void validateSchemaContent(String schema, String artifactType) {
+    private void validateSchemaContent(String schema, ArtifactType artifactType) {
         if (schema == null || artifactType == null) {
             throw new UnprocessableEntityException("Schema and artifact type must not be null");
         }
-        String contentType = artifactType.equals(ArtifactType.PROTOBUF)
+        String contentType = artifactType.equals(ArtifactType.BuiltIn.PROTOBUF)
                 ? ContentTypes.APPLICATION_PROTOBUF : ContentTypes.APPLICATION_JSON;
         TypedContent typedContent = TypedContent.create(ContentHandle.create(schema), contentType);
         try {
@@ -89,7 +89,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                 final ArtifactVersionMetaDataDto artifactVersionMetaData = storage.getArtifactVersionMetaData(
                         ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
                 String contentType = ContentTypes.APPLICATION_JSON;
-                if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.PROTOBUF)) {
+                if (artifactVersionMetaData.getArtifactType().equals(ArtifactType.BuiltIn.PROTOBUF)) {
                     contentType = ContentTypes.APPLICATION_PROTOBUF;
                 }
 
@@ -136,7 +136,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                             final ArtifactVersionMetaDataDto artifact = storage.getArtifactVersionMetaData(
                                     ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version);
                             String contentType = ContentTypes.APPLICATION_JSON;
-                            if (artifact.getArtifactType().equals(ArtifactType.PROTOBUF)) {
+                            if (artifact.getArtifactType().equals(ArtifactType.BuiltIn.PROTOBUF)) {
                                 contentType = ContentTypes.APPLICATION_PROTOBUF;
                             }
 

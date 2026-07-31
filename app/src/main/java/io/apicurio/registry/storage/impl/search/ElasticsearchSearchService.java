@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.search;
 
+import io.apicurio.registry.types.ArtifactType;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldSort;
 import co.elastic.clients.elasticsearch._types.SortOptions;
@@ -420,7 +421,7 @@ public class ElasticsearchSearchService {
         builder.groupId(toStr(source.get("groupId")));
         builder.artifactId(toStr(source.get("artifactId")));
         builder.version(toStr(source.get("version")));
-        builder.artifactType(toStr(source.get("artifactType")));
+        builder.artifactType(ArtifactType.fromValue(toStr(source.get("artifactType"))));
         builder.name(toStr(source.get("name")));
         builder.description(toStr(source.get("description")));
         builder.owner(toStr(source.get("owner")));

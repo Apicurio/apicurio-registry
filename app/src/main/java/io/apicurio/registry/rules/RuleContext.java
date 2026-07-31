@@ -1,5 +1,6 @@
 package io.apicurio.registry.rules;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -22,7 +23,7 @@ import java.util.Map;
 public class RuleContext {
     private final String groupId;
     private final String artifactId;
-    private final String artifactType;
+    private final ArtifactType artifactType;
     private final String configuration;
     private final List<TypedContent> currentContent;
     private final TypedContent updatedContent;

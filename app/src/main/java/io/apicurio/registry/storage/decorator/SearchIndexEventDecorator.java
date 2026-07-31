@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.decorator;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -76,7 +77,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
     }
 
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
-            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String artifactId, ArtifactType artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
@@ -97,7 +98,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
     }
 
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId,
-            String version, String artifactType, ContentWrapperDto content,
+            String version, ArtifactType artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft,
             boolean dryRun, String owner) throws RegistryStorageException {
 
@@ -115,7 +116,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
     }
 
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
-            String version, String artifactType, ContentWrapperDto content,
+            String version, ArtifactType artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
             int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
             throws ArtifactNotFoundException, VersionAlreadyExistsException, CommitFailedException,

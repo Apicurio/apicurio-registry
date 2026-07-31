@@ -12,6 +12,8 @@ import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.validity.ContentValidator;
 
+import io.apicurio.registry.types.ArtifactType;
+
 /**
  * {@link ArtifactTypeUtilProvider} implementation backed by a {@link ProviderConfig}.
  * <p>
@@ -21,7 +23,7 @@ import io.apicurio.registry.rules.validity.ContentValidator;
  */
 public class ConfigurableArtifactTypeUtilProvider extends AbstractArtifactTypeUtilProvider {
 
-    private final String artifactType;
+    private final ArtifactType artifactType;
     private final ProviderConfig config;
 
     /**
@@ -30,7 +32,7 @@ public class ConfigurableArtifactTypeUtilProvider extends AbstractArtifactTypeUt
      * @param artifactType the artifact type identifier
      * @param config the provider configuration
      */
-    public ConfigurableArtifactTypeUtilProvider(String artifactType, ProviderConfig config) {
+    public ConfigurableArtifactTypeUtilProvider(ArtifactType artifactType, ProviderConfig config) {
         this.artifactType = artifactType;
         this.config = config;
     }
@@ -41,7 +43,7 @@ public class ConfigurableArtifactTypeUtilProvider extends AbstractArtifactTypeUt
      * @return the artifact type identifier
      */
     @Override
-    public String getArtifactType() {
+    public ArtifactType getArtifactType() {
         return artifactType;
     }
 

@@ -27,6 +27,7 @@ import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
@@ -484,7 +485,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
-            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String artifactId, ArtifactType artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
@@ -529,7 +530,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Create a row in the artifacts table.
                 handle.createUpdate(sqlStatements.insertArtifact()).bind(0, normalizeGroupId(groupId))
-                        .bind(1, artifactId).bind(2, artifactType).bind(3, owner).bind(4, createdOn)
+                        .bind(1, artifactId).bind(2, artifactType != null ? artifactType.value() : null).bind(3, owner).bind(4, createdOn)
                         .bind(5, owner) // modifiedBy
                         .bind(6, createdOn) // modifiedOn
                         .bind(7, limitStr(amd.getName(), 512))
@@ -582,7 +583,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 metaData, owner, createdOn, contentId, branches, isDraft);
     }
 
-    private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
+    private Long ensureContentAndGetId(ArtifactType artifactType, ContentWrapperDto contentDto, boolean isDraft) {
         return contentRepository.ensureContentAndGetId(artifactType, contentDto, isDraft,
                 restConfig.isDraftProductionModeEnabled());
     }
@@ -602,7 +603,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            ArtifactType artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws VersionAlreadyExistsException, RegistryStorageException {
 
@@ -640,7 +641,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
-            String version, String artifactType, ContentWrapperDto content,
+            String version, ArtifactType artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
             int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData) {
 
@@ -1039,7 +1040,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+            ArtifactType artifactType, ContentWrapperDto content) throws RegistryStorageException {
 
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
@@ -1166,7 +1167,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     artifactId, version);
             ContentWrapperDto contentDto = contentRepository.getContentById(versionMeta.getContentId());
             if (contentDto.getContentHash() != null && contentDto.getContentHash().startsWith("draft:")) {
-                String artifactType = versionMeta.getArtifactType();
+                ArtifactType artifactType = versionMeta.getArtifactType();
                 long newContentId = ensureContentAndGetId(artifactType, contentDto, false);
                 if (newContentId != versionMeta.getContentId()) {
                     versionRepository.updateArtifactVersionContent(groupId, artifactId, version,

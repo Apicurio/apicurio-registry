@@ -16,6 +16,7 @@ import io.apicurio.registry.storage.impl.polling.model.v0.Version;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -229,7 +230,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                         ArtifactEntity artifactEntity = new ArtifactEntity();
                         artifactEntity.groupId = artifact.getGroupId();
                         artifactEntity.artifactId = artifact.getArtifactId();
-                        artifactEntity.artifactType = artifact.getArtifactType();
+                        artifactEntity.artifactType = ArtifactType.fromValue(artifact.getArtifactType());
                         artifactEntity.name = artifact.getName();
                         artifactEntity.description = artifact.getDescription();
                         artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
@@ -429,7 +430,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             var typedContent = TypedContent.create(data, contentType);
 
             // Determine artifact type from content if not specified
-            String resolvedArtifactType = utils.determineArtifactType(typedContent, artifactType);
+            ArtifactType resolvedArtifactType = utils.determineArtifactType(typedContent, ArtifactType.fromValue(artifactType));
 
             // Calculate content hash for deduplication
             String contentHash = utils.getContentHash(typedContent, null);
@@ -457,7 +458,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             e.contentHash = contentHash;
             e.contentBytes = data.bytes();
             e.canonicalHash = utils.getCanonicalContentHash(typedContent, resolvedArtifactType, null, null);
-            e.artifactType = resolvedArtifactType;
+            e.artifactType = resolvedArtifactType.value();
             e.contentType = contentType;
 
             if (contentMetadata != null && contentMetadata.getReferences() != null

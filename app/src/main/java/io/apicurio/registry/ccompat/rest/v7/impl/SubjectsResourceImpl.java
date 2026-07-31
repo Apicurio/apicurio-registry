@@ -147,7 +147,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
+                                storedArtifact.getContent(), amd.getArtifactType().value(), effectiveFormat,
                                 resolvedReferences);
 
                         StoredArtifactVersionDto formattedArtifact = StoredArtifactVersionDto.builder()
@@ -321,9 +321,9 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             TypedContent typedSchemaContent = TypedContent.create(schemaContent, contentType);
 
             // We validate the schema at creation time by inferring the type from the content
-            final String artifactType = ArtifactTypeUtil.determineArtifactType(typedSchemaContent, null,
+            final ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(typedSchemaContent, null,
                     resolvedReferences, factory);
-            if (request.getSchemaType() != null && !artifactType.equals(request.getSchemaType())) {
+            if (request.getSchemaType() != null && !artifactType.value().equals(request.getSchemaType())) {
                 throw new UnprocessableEntityException(
                         String.format("Given schema is not from type: %s", request.getSchemaType()));
             }
@@ -468,7 +468,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
                     StoredArtifactVersionDto storedArtifact = storage.getArtifactVersionContent(
                             ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), amd.getVersion());
-                    return converter.convert(ga.getRawArtifactId(), storedArtifact, amd.getArtifactType());
+                    return converter.convert(ga.getRawArtifactId(), storedArtifact, amd.getArtifactType().value());
                 });
     }
 
@@ -521,7 +521,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                         Map<String, TypedContent> resolvedReferences = resolveReferenceDtos(
                                 storedArtifact.getReferences());
                         ContentHandle formattedContent = formatService.applyFormat(
-                                storedArtifact.getContent(), amd.getArtifactType(), effectiveFormat,
+                                storedArtifact.getContent(), amd.getArtifactType().value(), effectiveFormat,
                                 resolvedReferences);
 
                         // Create a new StoredArtifactVersionDto with the formatted content
@@ -530,10 +530,10 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                                 .versionOrder(storedArtifact.getVersionOrder())
                                 .contentId(storedArtifact.getContentId()).content(formattedContent)
                                 .references(storedArtifact.getReferences()).build();
-                        return converter.convert(artifactId, formattedArtifact, amd.getArtifactType());
+                        return converter.convert(artifactId, formattedArtifact, amd.getArtifactType().value());
                     }
 
-                    return converter.convert(artifactId, storedArtifact, amd.getArtifactType());
+                    return converter.convert(artifactId, storedArtifact, amd.getArtifactType().value());
                 } else {
                     throw new VersionNotFoundException(groupId, artifactId, version);
                 }

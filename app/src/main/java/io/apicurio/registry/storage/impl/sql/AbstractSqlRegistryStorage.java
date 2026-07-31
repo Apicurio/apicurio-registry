@@ -842,34 +842,40 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void updateContractMetadata(String groupId, String artifactId, String contractId,
             EditableContractMetadataDto metadata) throws RegistryStorageException {
-        String prefix = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
-        mergeArtifactLabels(groupId, artifactId, prefix,
-                contractMetadataMapper.toLabels(metadata, prefix));
-        outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+        handles.withHandle(handle -> {
+            String prefix = contractId != null
+                    ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+            mergeArtifactLabels(groupId, artifactId, prefix,
+                    contractMetadataMapper.toLabels(metadata, prefix));
+            outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+            return null;
+        });
     }
 
     @Override
     public void transitionContractStatus(String groupId, String artifactId, String contractId,
             ContractStatus fromStatus, ContractStatus toStatus, String transitionDate)
             throws RegistryStorageException {
-        String prefix = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
-        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
-        mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus.name()));
+        handles.withHandle(handle -> {
+            String prefix = contractId != null
+                    ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+            String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+            mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus.name()));
 
-        if (toStatus == ContractStatus.STABLE) {
-            String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
-            mergeArtifactLabels(groupId, artifactId, stableDateKey,
-                    Map.of(stableDateKey, transitionDate));
-        } else if (toStatus == ContractStatus.DEPRECATED) {
-            String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
-            mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
-                    Map.of(deprecatedDateKey, transitionDate));
-        }
+            if (toStatus == ContractStatus.STABLE) {
+                String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
+                mergeArtifactLabels(groupId, artifactId, stableDateKey,
+                        Map.of(stableDateKey, transitionDate));
+            } else if (toStatus == ContractStatus.DEPRECATED) {
+                String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
+                mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
+                        Map.of(deprecatedDateKey, transitionDate));
+            }
 
-        outboxEvent.fire(SqlOutboxEvent.of(ContractStatusChanged.of(groupId, artifactId,
-                fromStatus != null ? fromStatus.name() : null, toStatus.name())));
+            outboxEvent.fire(SqlOutboxEvent.of(ContractStatusChanged.of(groupId, artifactId,
+                    fromStatus != null ? fromStatus.name() : null, toStatus.name())));
+            return null;
+        });
     }
 
     @Override

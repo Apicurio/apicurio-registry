@@ -160,13 +160,19 @@ async function processAssignedIssue(api, config, issue, core) {
 
   const staleLabel = config.assigned_stale.stale_label;
 
-  // A PR that references this issue (via #number/URL mention, or the
-  // "Link a pull request" UI) after the current assignment counts as progress.
+  // A PR that references this issue (via #number/URL mention) after the
+  // current assignment counts as progress, but only while the PR is still
+  // open or was merged — a closed-unmerged PR is an abandoned attempt, not
+  // an active link. `source.issue` reflects the referenced PR's current
+  // state (GitHub recomputes it on each timeline fetch, it is not a
+  // snapshot from when the cross-reference was created), so no separate
+  // pulls.get call is needed to check freshness.
   const hasLinkedPr = timeline.some(e => {
     if (new Date(e.created_at) <= assignedAt) return false;
-    if (e.event === 'cross-referenced') return !!e.source?.issue?.pull_request;
-    if (e.event === 'connected') return true;
-    return false;
+    if (e.event !== 'cross-referenced') return false;
+    const prRef = e.source?.issue?.pull_request;
+    if (!prRef) return false;
+    return e.source.issue.state === 'open' || !!prRef.merged_at;
   });
 
   if (hasLinkedPr) {
@@ -218,7 +224,19 @@ async function processAssignedIssue(api, config, issue, core) {
     return;
   }
 
-  if (daysSinceClockStart >= daysUntilPing) {
+  if (daysSinceClockStart >= daysUntilUnassign) {
+    // Never pinged (no stale label yet) but already past the unassign
+    // threshold — e.g. first run after deploy, or a scheduling gap that let
+    // the clock run past both thresholds between scans. Unassign directly
+    // rather than pinging first, mirroring the labeled branch above.
+    const body = renderTemplate(config.assigned_stale.unassign_message, {
+      assignee: formatMentions(assignees),
+      days: daysUntilUnassign,
+    });
+    await api.removeAssignees(issue.number, assignees);
+    await api.postComment(issue.number, body);
+    core.info(`Issue #${issue.number} auto-unassigned after ${Math.floor(daysSinceClockStart)} days of inactivity (threshold already passed, never pinged)`);
+  } else if (daysSinceClockStart >= daysUntilPing) {
     const body = renderTemplate(config.assigned_stale.ping_message, {
       assignee: formatMentions(assignees),
       days: daysUntilPing,

@@ -6,7 +6,9 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffContext;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import org.everit.json.schema.Schema;
+import org.everit.json.schema.SchemaException;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.everit.json.schema.loader.SpecificationVersion;
 import org.everit.json.schema.loader.internal.ReferenceResolver;
@@ -57,6 +59,8 @@ public class JsonSchemaDiffLibrary {
 
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
+        } catch (SchemaException e) {
+            throw new UnprocessableSchemaException("Unsupported JSON Schema version for compatibility check: " + e.getMessage(), e);
         }
     }
 

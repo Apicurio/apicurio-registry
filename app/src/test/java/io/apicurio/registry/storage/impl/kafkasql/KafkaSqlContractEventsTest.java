@@ -45,20 +45,21 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
 
     @Test
     public void testContractEventsArePublished() throws Exception {
+        String groupId = "contract-events-group-" + UUID.randomUUID();
         String artifactId = "contract-events-" + UUID.randomUUID();
 
         KafkaConsumer<String, String> consumer = createConsumerAtEnd();
         try {
-            createArtifact(GROUP, artifactId, ArtifactType.JSON, "{\"type\":\"object\"}",
+            createArtifact(groupId, artifactId, ArtifactType.JSON, "{\"type\":\"object\"}",
                     ContentTypes.APPLICATION_JSON);
 
-            given().when().contentType("application/json").pathParam("groupId", GROUP)
+            given().when().contentType("application/json").pathParam("groupId", groupId)
                     .pathParam("artifactId", artifactId)
                     .body("{\"status\": \"STABLE\", \"ownerTeam\": \"events-test\"}")
                     .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata").then()
                     .statusCode(200);
 
-            given().when().contentType("application/json").pathParam("groupId", GROUP)
+            given().when().contentType("application/json").pathParam("groupId", groupId)
                     .pathParam("artifactId", artifactId).body("{\"status\": \"DEPRECATED\"}")
                     .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status").then()
                     .statusCode(200);
@@ -66,11 +67,11 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
             List<JsonNode> events = consumeContractEvents(consumer, artifactId, 2);
 
             JsonNode metadataEvent = findEvent(events, "CONTRACT_METADATA_UPDATED", null);
-            Assertions.assertEquals(GROUP, metadataEvent.get("groupId").asText());
+            Assertions.assertEquals(groupId, metadataEvent.get("groupId").asText());
             Assertions.assertEquals(artifactId, metadataEvent.get("artifactId").asText());
 
             JsonNode statusEvent = findEvent(events, "CONTRACT_STATUS_CHANGED", null);
-            Assertions.assertEquals(GROUP, statusEvent.get("groupId").asText());
+            Assertions.assertEquals(groupId, statusEvent.get("groupId").asText());
             Assertions.assertEquals(artifactId, statusEvent.get("artifactId").asText());
             Assertions.assertEquals("STABLE", statusEvent.get("fromStatus").asText());
             Assertions.assertEquals("DEPRECATED", statusEvent.get("toStatus").asText());

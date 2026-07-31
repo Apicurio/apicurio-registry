@@ -92,7 +92,7 @@ export const BranchVersionsTable: FunctionComponent<BranchVersionsTableProps> = 
                 expectedLength={props.versions.length}
                 minimumColumnWidth={350}
                 onRowClick={(row) => {
-                    console.log(row);
+                    props.onView(row as SearchedVersion);
                 }}
                 renderHeader={({ column, Th }) => (
                     <Th

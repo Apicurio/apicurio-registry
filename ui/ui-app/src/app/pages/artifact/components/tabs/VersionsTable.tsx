@@ -195,7 +195,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                 expectedLength={props.versions.length}
                 minimumColumnWidth={350}
                 onRowClick={(row) => {
-                    console.log(row);
+                    props.onView(row as SearchedVersion);
                 }}
                 renderHeader={({ column, Th }) => (
                     <Th sort={sortParams(column)}

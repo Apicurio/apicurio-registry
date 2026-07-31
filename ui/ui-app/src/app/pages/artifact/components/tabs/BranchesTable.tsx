@@ -97,7 +97,7 @@ export const BranchesTable: FunctionComponent<BranchesTableProps> = (props: Bran
                 expectedLength={props.branches.length}
                 minimumColumnWidth={350}
                 onRowClick={(row) => {
-                    console.log(row);
+                    props.onView(row as SearchedBranch);
                 }}
                 renderHeader={({ column, Th }) => (
                     <Th className="branches-table-header"

@@ -517,6 +517,12 @@ When you use Avro to serialize data, you can use the Avro binary encoding format
 
 You can set the Avro encoding by configuring the `apicurio.registry.avro.encoding` property with a value of `JSON` or `BINARY`. The default is `BINARY`.
 
+**Avro writer schema validation**
+
+Before writing a record, the Avro serializer verifies that the schema resolved from {registry} structurally matches the schema of the record being serialized. The schemas are compared by Avro parsing canonical form, so differences in properties that do not affect the binary encoding, such as `connect.*` metadata added by Kafka Connect, are tolerated. A structural mismatch, for example a stale latest artifact version when `apicurio.registry.find-latest` is enabled without `apicurio.registry.auto-register`, would otherwise silently write field values under the wrong fields. When a mismatch is detected, serialization fails with a descriptive error. Validation applies when the serialized object carries its own schema, as Avro generic and specific containers do, or when the resolved schema is a record and the configured datum provider can derive the object's schema, as with the reflect provider. Plain Java collections without an attached schema are not validated.
+
+You can disable this validation by setting the `apicurio.registry.avro.validate-writer-schema` property to `false`. The default is `true`.
+
 **Avro deserializer configuration**
 
 You must configure the Avro deserializer class to match the following configuration settings of the serializer:

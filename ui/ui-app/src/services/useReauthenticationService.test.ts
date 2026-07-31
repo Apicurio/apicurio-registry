@@ -1,9 +1,10 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { getReauthenticationService } from "./useReauthenticationService";
 import { AuthService } from "@apicurio/common-ui-components";
 
 describe("useReauthenticationService", () => {
     const service = getReauthenticationService();
+    let cleanups: Array<() => void> = [];
 
     // Helper mock for AuthService
     const mockAuth = {
@@ -13,7 +14,20 @@ describe("useReauthenticationService", () => {
 
     beforeEach(() => {
         service.cancelReauthentication();
+        cleanups = [];
     });
+
+    afterEach(() => {
+        cleanups.forEach(fn => fn());
+        cleanups = [];
+        service.cancelReauthentication();
+    });
+
+    const registerInterceptor = (interceptor: any) => {
+        const unregister = service.registerReauthenticationInterceptor(interceptor);
+        cleanups.push(unregister);
+        return unregister;
+    };
 
     it("should initially not be pending", () => {
         expect(service.isReauthenticationPending()).toBe(false);
@@ -21,7 +35,7 @@ describe("useReauthenticationService", () => {
 
     it("should become pending when requesting re-authentication and invoke the interceptor", async () => {
         const interceptor = vi.fn().mockResolvedValue(true);
-        const unregister = service.registerReauthenticationInterceptor(interceptor);
+        registerInterceptor(interceptor);
 
         const promise = service.requestReauthentication(mockAuth);
         expect(service.isReauthenticationPending()).toBe(true);
@@ -30,13 +44,11 @@ describe("useReauthenticationService", () => {
         expect(result).toBe(true);
         expect(interceptor).toHaveBeenCalledTimes(1);
         expect(service.isReauthenticationPending()).toBe(true); // remains pending until explicitly dismissed
-
-        unregister();
     });
 
     it("should cancel pending state when interceptor is unregistered while pending", async () => {
         const interceptor = vi.fn().mockResolvedValue(true);
-        const unregister = service.registerReauthenticationInterceptor(interceptor);
+        const unregister = registerInterceptor(interceptor);
 
         const promise = service.requestReauthentication(mockAuth);
         expect(service.isReauthenticationPending()).toBe(true);
@@ -46,6 +58,9 @@ describe("useReauthenticationService", () => {
 
         expect(service.isReauthenticationPending()).toBe(false);
         await promise;
+
+        // Post-await assertion to ensure it remains false
+        expect(service.isReauthenticationPending()).toBe(false);
     });
 
     it("should trigger redirect if no interceptor is registered", async () => {

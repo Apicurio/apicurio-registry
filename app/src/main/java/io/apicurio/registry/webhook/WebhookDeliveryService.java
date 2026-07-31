@@ -5,12 +5,14 @@
  */
 package io.apicurio.registry.webhook;
 
+import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.events.dto.CloudEventConverter;
 import io.apicurio.registry.events.dto.CloudEventDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.impl.sql.SqlOutboxEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,11 +26,15 @@ public class WebhookDeliveryService {
 
     private static final Logger log = LoggerFactory.getLogger(WebhookDeliveryService.class);
 
-    private static final String EVENT_SOURCE = "/apicurio-registry";
+    private static final String CATEGORY_WEBHOOK = "Webhook";
+
+    @ConfigProperty(name = "apicurio.events.cloud-events-source", defaultValue = "/apicurio-registry")
+    @Info(category = CATEGORY_WEBHOOK, description = "CloudEvents source URI for webhook delivery", availableSince = "3.0.0")
+    String eventSource;
 
     public void onOutboxEvent(@Observes SqlOutboxEvent sqlOutboxEvent) {
         OutboxEvent outboxEvent = sqlOutboxEvent.getOutboxEvent();
-        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(outboxEvent, EVENT_SOURCE);
+        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(outboxEvent, eventSource);
         if (cloudEvent == null) {
             // Unsupported or unknown event type; already logged at WARN by the converter.
             return;

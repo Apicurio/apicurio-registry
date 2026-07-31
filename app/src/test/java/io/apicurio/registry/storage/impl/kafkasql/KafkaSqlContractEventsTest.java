@@ -189,8 +189,8 @@ public class KafkaSqlContractEventsTest extends AbstractResourceTestBase {
         return events;
     }
 
-    private JsonNode readEvent(ConsumerRecord<String, String> record) throws Exception {
-        return OBJECT_MAPPER.readTree(record.value());
+    private JsonNode readEvent(ConsumerRecord<String, String> consumerRecord) throws Exception {
+        return OBJECT_MAPPER.readTree(consumerRecord.value());
     }
 
     private JsonNode findEvent(List<JsonNode> events, String eventType, String action) {

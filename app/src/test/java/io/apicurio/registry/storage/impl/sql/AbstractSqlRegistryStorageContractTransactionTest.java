@@ -85,6 +85,8 @@ class AbstractSqlRegistryStorageContractTransactionTest {
 
         @Override
         public void initialize() {
+            // This focused unit test supplies only the collaborators used by the tested methods.
+            // Production initialization would require unrelated SQL repositories and configuration.
         }
 
         @Override
@@ -138,8 +140,8 @@ class AbstractSqlRegistryStorageContractTransactionTest {
 
         @Override
         public <X extends Exception> void withHandleNoException(HandleAction<X> callback) {
-            withHandleNoException(handle -> {
-                callback.withHandle(handle);
+            withHandleNoException(currentHandle -> {
+                callback.withHandle(currentHandle);
                 return null;
             });
         }

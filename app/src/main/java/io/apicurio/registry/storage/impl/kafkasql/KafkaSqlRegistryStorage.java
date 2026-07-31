@@ -103,6 +103,8 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implements RegistryStorage {
 
+    private static final String DELETE_ACTION = "DELETE";
+
     static final String GLOBAL_CONTRACT_RULESET_COORDINATE = "__GLOBAL__";
 
     @Inject
@@ -728,7 +730,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
         outboxEvent.fire(KafkaSqlOutboxEvent.of(
-                ContractRulesetConfigured.of(groupId, artifactId, null, "DELETE")));
+                ContractRulesetConfigured.of(groupId, artifactId, null, DELETE_ACTION)));
     }
 
     @Override
@@ -754,7 +756,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
         outboxEvent.fire(KafkaSqlOutboxEvent.of(
-                ContractRulesetConfigured.of(groupId, artifactId, version, "DELETE")));
+                ContractRulesetConfigured.of(groupId, artifactId, version, DELETE_ACTION)));
     }
 
     @Override
@@ -787,7 +789,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         coordinator.waitForResponse(uuid);
         outboxEvent.fire(KafkaSqlOutboxEvent.of(
                 ContractRulesetConfigured.of(GLOBAL_CONTRACT_RULESET_COORDINATE,
-                        GLOBAL_CONTRACT_RULESET_COORDINATE, null, "DELETE")));
+                        GLOBAL_CONTRACT_RULESET_COORDINATE, null, DELETE_ACTION)));
     }
 
     @Override

@@ -94,12 +94,3 @@
     background-color: var(--pf-t--global--background--color--secondary--default);
     border-radius: 3px;
 }
-
-.prompt-template-viewer .model-link {
-    color: inherit;
-    text-decoration: none;
-}
-
-.prompt-template-viewer .model-link:hover {
-    text-decoration: underline;
-}

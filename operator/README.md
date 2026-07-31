@@ -455,7 +455,9 @@ Namespace that are watched by the operator are configured using `APICURIO_OPERAT
 The RBAC consumed by the OLM bundle is split by scope so that single-namespace installs stay least-privilege:
 
 - `controller/src/main/deploy/rbac/namespaced/cluster-role.yaml` holds only cluster-scoped rules (watching `apicurioregistries3` CRs cluster-wide plus reading the CRD). It becomes `clusterPermissions` in the CSV.
-- `controller/src/main/deploy/rbac/namespaced/role.yaml` holds namespace-scoped workload rules (deployments, services, secrets, and mutating access to the CR it reconciles). It becomes `permissions` in the CSV, which OLM materializes as a Role + RoleBinding in the target namespace(s).
+- `controller/src/main/deploy/rbac/namespaced/role.yaml` holds workload rules (deployments, services, secrets, and mutating access to the CR it reconciles). It becomes `permissions` in the CSV.
+
+How OLM materializes `permissions` depends on the OperatorGroup's install mode, not on the CSV. For SingleNamespace/OwnNamespace/MultiNamespace, OLM creates a Role + RoleBinding in the target namespace(s), so the workload verbs stay namespace-scoped. For AllNamespaces (target `*`), OLM promotes each `permissions` rule to a ClusterRole + ClusterRoleBinding, so those verbs (including `patch`/`update` on the CR) become cluster-wide. In other words the least-privilege / namespace-scoped guarantee applies to single-namespace installs; AllNamespaces is intentionally cluster-wide (as it was before this split). The read-only CR discovery verbs in `cluster-role.yaml` stay cluster-scoped and least-privilege in every mode.
 
 The install file (non-OLM) still uses the all-namespaces variant in `controller/src/main/deploy/rbac/cluster`.
 

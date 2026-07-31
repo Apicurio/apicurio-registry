@@ -68,7 +68,7 @@ async function handleIssueComment({ github, context, core }) {
     });
     freshIssue = response.data;
   } catch (error) {
-    core.warn(`Could not fetch live issue #${issueNumber}: ${error.message}. Falling back to payload issue data.`);
+    core.warning(`Could not fetch live issue #${issueNumber}: ${error.message}. Falling back to payload issue data.`);
     freshIssue = issue;
   }
 
@@ -150,7 +150,7 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
   );
 
   if (!isAssigned) {
-    core.warn(`User ${commenterOriginal} could not be assigned to issue #${issueNumber}. User may lack collaborator permissions.`);
+    core.warning(`User ${commenterOriginal} could not be assigned to issue #${issueNumber}. User may lack collaborator permissions.`);
     await postComment(
       github,
       owner,

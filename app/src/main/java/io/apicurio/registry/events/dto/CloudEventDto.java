@@ -165,4 +165,21 @@ public class CloudEventDto {
     public void setTime(Instant time) {
         this.time = time;
     }
+
+    /**
+     * Factory method to create a CloudEventDto from an OutboxEvent.
+     *
+     * @param event the outbox event
+     * @param source the event source URI
+     * @param eventType the CloudEvent type string (e.g., "io.apicurio.registry.events.ArtifactCreated")
+     * @return the CloudEventDto
+     */
+    public static CloudEventDto from(io.apicurio.registry.storage.dto.OutboxEvent event, String source, String eventType) {
+        return new CloudEventDto()
+                .withId(event.getId())
+                .withSource(source)
+                .withType(eventType)
+                .withTime(event.getTimestamp())
+                .withData(event.getPayload());
+    }
 }

@@ -5,14 +5,6 @@
  */
 package io.apicurio.registry.events.dto;
 
-import io.apicurio.registry.events.ArtifactCreated;
-import io.apicurio.registry.events.ArtifactDeleted;
-import io.apicurio.registry.events.ArtifactMetadataUpdated;
-import io.apicurio.registry.events.ArtifactRuleConfigured;
-import io.apicurio.registry.events.ArtifactVersionCreated;
-import io.apicurio.registry.events.ArtifactVersionStateChanged;
-import io.apicurio.registry.events.GlobalRuleConfigured;
-import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import org.slf4j.Logger;
@@ -50,14 +42,14 @@ public class CloudEventConverter {
             return null;
         }
         return switch (eventType) {
-            case ARTIFACT_CREATED -> ArtifactCreatedCloudEvent.from((ArtifactCreated) event, source).getCloudEvent();
-            case ARTIFACT_DELETED -> ArtifactDeletedCloudEvent.from((ArtifactDeleted) event, source).getCloudEvent();
-            case ARTIFACT_METADATA_UPDATED -> ArtifactMetadataUpdatedCloudEvent.from((ArtifactMetadataUpdated) event, source).getCloudEvent();
-            case ARTIFACT_RULE_CONFIGURED -> ArtifactRuleConfiguredCloudEvent.from((ArtifactRuleConfigured) event, source).getCloudEvent();
-            case ARTIFACT_VERSION_CREATED -> ArtifactVersionCreatedCloudEvent.from((ArtifactVersionCreated) event, source).getCloudEvent();
-            case ARTIFACT_VERSION_STATE_CHANGED -> ArtifactVersionStateChangedCloudEvent.from((ArtifactVersionStateChanged) event, source).getCloudEvent();
-            case GLOBAL_RULE_CONFIGURED -> GlobalRuleConfiguredCloudEvent.from((GlobalRuleConfigured) event, source).getCloudEvent();
-            case GROUP_CREATED -> GroupCreatedCloudEvent.from((GroupCreated) event, source).getCloudEvent();
+            case ARTIFACT_CREATED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.ArtifactCreated");
+            case ARTIFACT_DELETED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.ArtifactDeleted");
+            case ARTIFACT_METADATA_UPDATED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.ArtifactMetadataUpdated");
+            case ARTIFACT_RULE_CONFIGURED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.ArtifactRuleConfigured");
+            case ARTIFACT_VERSION_CREATED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.ArtifactVersionCreated");
+            case ARTIFACT_VERSION_STATE_CHANGED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.ArtifactVersionStateChanged");
+            case GLOBAL_RULE_CONFIGURED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.GlobalRuleConfigured");
+            case GROUP_CREATED -> CloudEventDto.from(event, source, "io.apicurio.registry.events.GroupCreated");
             default -> {
                 log.warn("No CloudEvent mapping for event type: {}, dropping event {}", eventType, event.getId());
                 yield null;

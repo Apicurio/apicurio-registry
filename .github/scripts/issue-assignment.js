@@ -46,7 +46,7 @@ async function handleIssueComment({ github, context, core }) {
   const firstLine = commentBody.split('\n')[0].trim();
 
   // Match commands using whitespace/line-end boundaries to prevent hyphenated matches (e.g. /assign-foo)
-  const assignMatch = /^\/(assign-me|assign|claim)(?:\s|$)/i.test(firstLine);
+  const assignMatch = /^\/(assign-me|claim)(?:\s|$)/i.test(firstLine);
   const unassignMatch = /^\/(unassign-me|unassign)(?:\s|$)/i.test(firstLine);
 
   if (!assignMatch && !unassignMatch) {
@@ -137,12 +137,26 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
 
   // Assign contributor
   core.info(`Assigning ${commenterOriginal} to issue #${issueNumber}.`);
-  const { data: updatedIssue } = await github.rest.issues.addAssignees({
-    owner,
-    repo,
-    issue_number: issueNumber,
-    assignees: [commenterOriginal],
-  });
+  let updatedIssue;
+  try {
+    const response = await github.rest.issues.addAssignees({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      assignees: [commenterOriginal],
+    });
+    updatedIssue = response.data;
+  } catch (error) {
+    core.warning(`Failed to assign ${commenterOriginal} to issue #${issueNumber}: ${error.message}`);
+    await postComment(
+      github,
+      owner,
+      repo,
+      issueNumber,
+      `@${commenterOriginal} Thank you for volunteering! However, an error occurred while assigning this issue. A maintainer will need to review and assign this issue to you manually.`
+    );
+    return;
+  }
 
   // Verify contributor was actually assigned (external non-collaborator users cannot be assigned directly by GH API)
   const isAssigned = (updatedIssue.assignees || []).some(
@@ -178,12 +192,24 @@ async function handleUnassign(github, core, owner, repo, issueNumber, commenterO
   }
 
   core.info(`Unassigning ${commenterOriginal} from issue #${issueNumber}.`);
-  await github.rest.issues.removeAssignees({
-    owner,
-    repo,
-    issue_number: issueNumber,
-    assignees: [commenterOriginal],
-  });
+  try {
+    await github.rest.issues.removeAssignees({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      assignees: [commenterOriginal],
+    });
+  } catch (error) {
+    core.warning(`Failed to unassign ${commenterOriginal} from issue #${issueNumber}: ${error.message}`);
+    await postComment(
+      github,
+      owner,
+      repo,
+      issueNumber,
+      `@${commenterOriginal} Could not unassign you from this issue due to an error. A maintainer can update the assignment manually.`
+    );
+    return;
+  }
 
   await postComment(github, owner, repo, issueNumber, `@${commenterOriginal} You have been unassigned from this issue.`);
 }

@@ -1285,13 +1285,21 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // message.
         ProducerRecord<String, String> record = new ProducerRecord<>(configuration.getSnapshotsTopic(), 0,
                 snapshotId, snapshotLocation, Collections.emptyList());
-        RecordMetadata recordMetadata = blockOnResult(snapshotsProducer.apply(record));
+        blockOnResult(snapshotsProducer.apply(record));
         
-        // Cleanup old local dumps to save disk space, keeping the most recent 3 backups.
-        // We only clean up if the new snapshot actually exists on disk (successful generation).
+        cleanupOldSnapshots(path);
+
+        return snapshotLocation;
+    }
+
+    /**
+     * Cleans up old local dumps to save disk space, keeping the most recent 3 backups.
+     * We only clean up if the new snapshot actually exists on disk (successful generation).
+     */
+    private void cleanupOldSnapshots(Path newSnapshotPath) {
         try {
             Path storeDir = Path.of(configuration.getSnapshotStoreLocation());
-            if (java.nio.file.Files.exists(path) && java.nio.file.Files.isDirectory(storeDir)) {
+            if (java.nio.file.Files.exists(newSnapshotPath) && java.nio.file.Files.isDirectory(storeDir)) {
                 List<Path> snapshotFiles = new ArrayList<>();
                 try (java.nio.file.DirectoryStream<Path> stream = java.nio.file.Files.newDirectoryStream(storeDir, "*.{sql,sql.gz}")) {
                     for (Path p : stream) {
@@ -1315,8 +1323,6 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         } catch (Exception e) {
             log.warn("Error cleaning up old snapshot files", e);
         }
-
-        return snapshotLocation;
     }
 
     @Override

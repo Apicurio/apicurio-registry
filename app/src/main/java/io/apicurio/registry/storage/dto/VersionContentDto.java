@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.VersionState;
 import lombok.AllArgsConstructor;
@@ -27,6 +28,7 @@ import java.util.Map;
 public class VersionContentDto {
 
     private String groupId;
+
     private String artifactId;
     private String version;
     private int versionOrder;
@@ -38,7 +40,7 @@ public class VersionContentDto {
     private long createdOn;
     private String modifiedBy;
     private long modifiedOn;
-    private String artifactType;
+    private ArtifactType artifactType;
     private VersionState state;
     private Map<String, String> labels;
     private ContentHandle content;

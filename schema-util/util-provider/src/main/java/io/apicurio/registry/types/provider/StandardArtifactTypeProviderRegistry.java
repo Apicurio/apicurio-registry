@@ -119,10 +119,10 @@ import io.apicurio.registry.xsd.rules.validity.XsdContentValidator;
  */
 public class StandardArtifactTypeProviderRegistry {
 
-    private static final Map<String, ProviderConfig> PROVIDERS = new LinkedHashMap<>();
+    private static final Map<ArtifactType, ProviderConfig> PROVIDERS = new LinkedHashMap<>();
 
     static {
-        PROVIDERS.put(ArtifactType.PROTOBUF, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.PROTOBUF, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_PROTOBUF))
                 .accepter(ProtobufContentAccepter::new)
                 .compatibilityChecker(ProtobufCompatibilityChecker::new)
@@ -132,7 +132,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .referenceFinder(ProtobufReferenceFinder::new)
                 .structuredContentExtractor(ProtobufStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.OPENAPI, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.OPENAPI, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))
                 .accepter(OpenApiContentAccepter::new)
                 .compatibilityChecker(OpenApiCompatibilityChecker::new)
@@ -144,7 +144,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .structuredContentExtractor(OpenApiStructuredContentExtractor::new)
                 .supportsReferencesWithContext(true)
                 .build());
-        PROVIDERS.put(ArtifactType.ASYNCAPI, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.ASYNCAPI, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))
                 .accepter(AsyncApiContentAccepter::new)
                 .canonicalizer(AsyncApiContentCanonicalizer::new)
@@ -155,7 +155,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .structuredContentExtractor(AsyncApiStructuredContentExtractor::new)
                 .supportsReferencesWithContext(true)
                 .build());
-        PROVIDERS.put(ArtifactType.JSON, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.JSON, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(JsonSchemaContentAccepter::new)
                 .compatibilityChecker(JsonSchemaCompatibilityChecker::new)
@@ -167,7 +167,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .structuredContentExtractor(JsonSchemaStructuredContentExtractor::new)
                 .supportsReferencesWithContext(true)
                 .build());
-        PROVIDERS.put(ArtifactType.AVRO, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.AVRO, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(AvroContentAccepter::new)
                 .compatibilityChecker(AvroCompatibilityChecker::new)
@@ -179,19 +179,19 @@ public class StandardArtifactTypeProviderRegistry {
                 .referenceArtifactIdentifierExtractor(AvroReferenceArtifactIdentifierExtractor::new)
                 .structuredContentExtractor(AvroStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.GRAPHQL, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.GRAPHQL, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_GRAPHQL))
                 .accepter(GraphQLContentAccepter::new)
                 .canonicalizer(GraphQLContentCanonicalizer::new)
                 .validator(GraphQLContentValidator::new)
                 .structuredContentExtractor(GraphQLStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.KCONNECT, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.KCONNECT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .canonicalizer(KafkaConnectContentCanonicalizer::new)
                 .validator(KafkaConnectContentValidator::new)
                 .build());
-        PROVIDERS.put(ArtifactType.WSDL, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.WSDL, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
                 .accepter(WsdlContentAccepter::new)
                 .canonicalizer(XmlContentCanonicalizer::new)
@@ -199,7 +199,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .extractor(WsdlOrXsdContentExtractor::new)
                 .structuredContentExtractor(WsdlStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.XSD, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.XSD, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
                 .accepter(XsdContentAccepter::new)
                 .compatibilityChecker(XsdCompatibilityChecker::new)
@@ -208,14 +208,14 @@ public class StandardArtifactTypeProviderRegistry {
                 .extractor(WsdlOrXsdContentExtractor::new)
                 .structuredContentExtractor(XsdStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.XML, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.XML, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
                 .accepter(XmlContentAccepter::new)
                 .canonicalizer(XmlContentCanonicalizer::new)
                 .validator(XmlContentValidator::new)
                 .structuredContentExtractor(XmlStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.AGENT_CARD, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.AGENT_CARD, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(AgentCardContentAccepter::new)
                 .compatibilityChecker(AgentCardCompatibilityChecker::new)
@@ -224,7 +224,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .extractor(AgentCardContentExtractor::new)
                 .structuredContentExtractor(AgentCardStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.MCP_TOOL, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.MCP_TOOL, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(McpToolContentAccepter::new)
                 .compatibilityChecker(McpToolCompatibilityChecker::new)
@@ -233,7 +233,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .extractor(McpToolContentExtractor::new)
                 .structuredContentExtractor(McpToolStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.ICEBERG_TABLE, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.ICEBERG_TABLE, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(IcebergTableContentAccepter::new)
                 .compatibilityChecker(IcebergCompatibilityChecker::new)
@@ -242,7 +242,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .extractor(() -> new IcebergContentExtractor(true))
                 .structuredContentExtractor(() -> new IcebergStructuredContentExtractor(true))
                 .build());
-        PROVIDERS.put(ArtifactType.ICEBERG_VIEW, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.ICEBERG_VIEW, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(IcebergViewContentAccepter::new)
                 .compatibilityChecker(IcebergCompatibilityChecker::new)
@@ -251,7 +251,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .extractor(() -> new IcebergContentExtractor(false))
                 .structuredContentExtractor(() -> new IcebergStructuredContentExtractor(false))
                 .build());
-        PROVIDERS.put(ArtifactType.OPENRPC, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.OPENRPC, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))
                 .accepter(OpenRpcContentAccepter::new)
                 .canonicalizer(OpenRpcContentCanonicalizer::new)
@@ -261,7 +261,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .referenceFinder(OpenRpcReferenceFinder::new)
                 .supportsReferencesWithContext(true)
                 .build());
-        PROVIDERS.put(ArtifactType.MODEL_SCHEMA, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.MODEL_SCHEMA, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))
                 .accepter(ModelSchemaContentAccepter::new)
                 .compatibilityChecker(ModelSchemaCompatibilityChecker::new)
@@ -273,7 +273,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .structuredContentExtractor(ModelSchemaStructuredContentExtractor::new)
                 .supportsReferencesWithContext(true)
                 .build());
-        PROVIDERS.put(ArtifactType.PROMPT_TEMPLATE, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.PROMPT_TEMPLATE, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML, ContentTypes.TEXT_PROMPT_TEMPLATE))
                 .accepter(PromptTemplateContentAccepter::new)
                 .compatibilityChecker(PromptTemplateCompatibilityChecker::new)
@@ -285,14 +285,14 @@ public class StandardArtifactTypeProviderRegistry {
                 .structuredContentExtractor(PromptTemplateStructuredContentExtractor::new)
                 .supportsReferencesWithContext(true)
                 .build());
-        PROVIDERS.put(ArtifactType.ODCS_CONTRACT, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.ODCS_CONTRACT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_YAML))
                 .accepter(OdcsContractContentAccepter::new)
                 .canonicalizer(YamlContentCanonicalizer::new)
                 .validator(OdcsContractContentValidator::new)
                 .referenceFinder(OdcsContractReferenceFinder::new)
                 .build());
-        PROVIDERS.put(ArtifactType.THRIFT, new ProviderConfig.Builder()
+        PROVIDERS.put(ArtifactType.BuiltIn.THRIFT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_THRIFT))
                 .accepter(ThriftContentAccepter::new)
                 .canonicalizer(ThriftContentCanonicalizer::new)

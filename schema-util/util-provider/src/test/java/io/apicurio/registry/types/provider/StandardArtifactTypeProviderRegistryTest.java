@@ -35,26 +35,26 @@ import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
  */
 class StandardArtifactTypeProviderRegistryTest {
 
-    private static final List<String> EXPECTED_PROVIDER_ORDER = List.of(
-            ArtifactType.PROTOBUF,
-            ArtifactType.OPENAPI,
-            ArtifactType.ASYNCAPI,
-            ArtifactType.JSON,
-            ArtifactType.AVRO,
-            ArtifactType.GRAPHQL,
-            ArtifactType.KCONNECT,
-            ArtifactType.WSDL,
-            ArtifactType.XSD,
-            ArtifactType.XML,
-            ArtifactType.AGENT_CARD,
-            ArtifactType.MCP_TOOL,
-            ArtifactType.ICEBERG_TABLE,
-            ArtifactType.ICEBERG_VIEW,
-            ArtifactType.OPENRPC,
-            ArtifactType.MODEL_SCHEMA,
-            ArtifactType.PROMPT_TEMPLATE,
-            ArtifactType.ODCS_CONTRACT,
-            ArtifactType.THRIFT
+    private static final List<ArtifactType> EXPECTED_PROVIDER_ORDER = List.of(
+            ArtifactType.BuiltIn.PROTOBUF,
+            ArtifactType.BuiltIn.OPENAPI,
+            ArtifactType.BuiltIn.ASYNCAPI,
+            ArtifactType.BuiltIn.JSON,
+            ArtifactType.BuiltIn.AVRO,
+            ArtifactType.BuiltIn.GRAPHQL,
+            ArtifactType.BuiltIn.KCONNECT,
+            ArtifactType.BuiltIn.WSDL,
+            ArtifactType.BuiltIn.XSD,
+            ArtifactType.BuiltIn.XML,
+            ArtifactType.BuiltIn.AGENT_CARD,
+            ArtifactType.BuiltIn.MCP_TOOL,
+            ArtifactType.BuiltIn.ICEBERG_TABLE,
+            ArtifactType.BuiltIn.ICEBERG_VIEW,
+            ArtifactType.BuiltIn.OPENRPC,
+            ArtifactType.BuiltIn.MODEL_SCHEMA,
+            ArtifactType.BuiltIn.PROMPT_TEMPLATE,
+            ArtifactType.BuiltIn.ODCS_CONTRACT,
+            ArtifactType.BuiltIn.THRIFT
     );
 
     @Test
@@ -66,7 +66,7 @@ class StandardArtifactTypeProviderRegistryTest {
     @Test
     void testCreateStandardProviders_order() {
         List<ArtifactTypeUtilProvider> providers = StandardArtifactTypeProviderRegistry.createStandardProviders();
-        List<String> types = providers.stream().map(ArtifactTypeUtilProvider::getArtifactType).collect(Collectors.toList());
+        List<ArtifactType> types = providers.stream().map(ArtifactTypeUtilProvider::getArtifactType).collect(Collectors.toList());
         assertEquals(EXPECTED_PROVIDER_ORDER, types);
     }
 
@@ -83,28 +83,28 @@ class StandardArtifactTypeProviderRegistryTest {
         DefaultArtifactTypeUtilProviderImpl factory = new DefaultArtifactTypeUtilProviderImpl(true);
         assertEquals(EXPECTED_PROVIDER_ORDER, factory.getAllArtifactTypes());
         assertInstanceOf(ConfigurableArtifactTypeUtilProvider.class,
-                factory.getArtifactTypeProvider(ArtifactType.AVRO));
+                factory.getArtifactTypeProvider(ArtifactType.BuiltIn.AVRO));
     }
 
     @Test
     void testDefaultArtifactTypeUtilProviderImpl_unknownType() {
         DefaultArtifactTypeUtilProviderImpl factory = new DefaultArtifactTypeUtilProviderImpl(true);
-        assertThrows(IllegalStateException.class, () -> factory.getArtifactTypeProvider("GARBAGE"));
+        assertThrows(IllegalStateException.class, () -> factory.getArtifactTypeProvider(ArtifactType.fromValue("GARBAGE")));
     }
 
     @Test
     void testSupportsReferencesWithContext() {
         List<ArtifactTypeUtilProvider> providers = StandardArtifactTypeProviderRegistry.createStandardProviders();
-        assertTrue(findProvider(providers, ArtifactType.JSON).supportsReferencesWithContext());
-        assertFalse(findProvider(providers, ArtifactType.AVRO).supportsReferencesWithContext());
-        assertTrue(findProvider(providers, ArtifactType.OPENRPC).supportsReferencesWithContext());
-        assertFalse(findProvider(providers, ArtifactType.PROTOBUF).supportsReferencesWithContext());
+        assertTrue(findProvider(providers, ArtifactType.BuiltIn.JSON).supportsReferencesWithContext());
+        assertFalse(findProvider(providers, ArtifactType.BuiltIn.AVRO).supportsReferencesWithContext());
+        assertTrue(findProvider(providers, ArtifactType.BuiltIn.OPENRPC).supportsReferencesWithContext());
+        assertFalse(findProvider(providers, ArtifactType.BuiltIn.PROTOBUF).supportsReferencesWithContext());
     }
 
     @Test
     void testAvroCanonicalizer() {
         ArtifactTypeUtilProvider avro = findProvider(
-                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.AVRO);
+                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.BuiltIn.AVRO);
         ContentCanonicalizer canonicalizer = avro.getContentCanonicalizer();
         assertInstanceOf(EnhancedAvroContentCanonicalizer.class, canonicalizer);
     }
@@ -112,7 +112,7 @@ class StandardArtifactTypeProviderRegistryTest {
     @Test
     void testProtobufStructuredContentExtractor() {
         ArtifactTypeUtilProvider protobuf = findProvider(
-                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.PROTOBUF);
+                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.BuiltIn.PROTOBUF);
         StructuredContentExtractor extractor = protobuf.getStructuredContentExtractor();
         assertInstanceOf(ProtobufStructuredContentExtractor.class, extractor);
     }
@@ -120,7 +120,7 @@ class StandardArtifactTypeProviderRegistryTest {
     @Test
     void testKConnectUsesNoopDefaults() {
         ArtifactTypeUtilProvider kconnect = findProvider(
-                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.KCONNECT);
+                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.BuiltIn.KCONNECT);
         ContentAccepter accepter = kconnect.getContentAccepter();
         assertSame(NoOpContentAccepter.INSTANCE, accepter);
         assertInstanceOf(NoopContentExtractor.class, kconnect.getContentExtractor());
@@ -129,7 +129,7 @@ class StandardArtifactTypeProviderRegistryTest {
     @Test
     void testOpenRpcContentTypes() {
         ArtifactTypeUtilProvider openRpc = findProvider(
-                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.OPENRPC);
+                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.BuiltIn.OPENRPC);
         assertEquals(
                 Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML),
                 openRpc.getContentTypes());
@@ -138,14 +138,14 @@ class StandardArtifactTypeProviderRegistryTest {
     @Test
     void testOpenRpcUsesNoopCompatibilityChecker() {
         ArtifactTypeUtilProvider openRpc = findProvider(
-                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.OPENRPC);
+                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.BuiltIn.OPENRPC);
         assertInstanceOf(NoopCompatibilityChecker.class, openRpc.getCompatibilityChecker());
     }
 
     @Test
     void testXsdCompatibilityChecker() {
         ArtifactTypeUtilProvider xsd = findProvider(
-                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.XSD);
+                StandardArtifactTypeProviderRegistry.createStandardProviders(), ArtifactType.BuiltIn.XSD);
         assertInstanceOf(XsdCompatibilityChecker.class, xsd.getCompatibilityChecker());
     }
 
@@ -153,15 +153,15 @@ class StandardArtifactTypeProviderRegistryTest {
     void testIcebergTableAndViewValidators() {
         List<ArtifactTypeUtilProvider> providers = StandardArtifactTypeProviderRegistry.createStandardProviders();
         IcebergContentValidator tableValidator = (IcebergContentValidator) findProvider(providers,
-                ArtifactType.ICEBERG_TABLE).getContentValidator();
+                ArtifactType.BuiltIn.ICEBERG_TABLE).getContentValidator();
         IcebergContentValidator viewValidator = (IcebergContentValidator) findProvider(providers,
-                ArtifactType.ICEBERG_VIEW).getContentValidator();
+                ArtifactType.BuiltIn.ICEBERG_VIEW).getContentValidator();
         assertInstanceOf(IcebergContentValidator.class, tableValidator);
         assertInstanceOf(IcebergContentValidator.class, viewValidator);
         assertNotSame(tableValidator, viewValidator);
     }
 
-    private static ArtifactTypeUtilProvider findProvider(List<ArtifactTypeUtilProvider> providers, String type) {
+    private static ArtifactTypeUtilProvider findProvider(List<ArtifactTypeUtilProvider> providers, ArtifactType type) {
         return providers.stream()
                 .filter(p -> type.equals(p.getArtifactType()))
                 .findFirst()

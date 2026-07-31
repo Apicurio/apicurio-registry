@@ -1,5 +1,6 @@
 package io.apicurio.registry.rules;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -27,7 +28,8 @@ public interface RulesService {
      * @param resolvedReferences
      * @throws RuleViolationException
      */
-    public void applyRules(String groupId, String artifactId, String artifactType, TypedContent content,
+    @SuppressWarnings("java:S107")
+    public void applyRules(String groupId, String artifactId, ArtifactType artifactType, TypedContent content,
             RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
 
@@ -45,7 +47,8 @@ public interface RulesService {
      * @param resolvedReferences
      * @throws RuleViolationException
      */
-    public void applyRule(String groupId, String artifactId, String artifactType, TypedContent content,
+    @SuppressWarnings("java:S107")
+    public void applyRule(String groupId, String artifactId, ArtifactType artifactType, TypedContent content,
             RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException;
@@ -62,7 +65,8 @@ public interface RulesService {
      * @param resolvedReferences
      * @throws RuleViolationException
      */
-    public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
+    @SuppressWarnings("java:S107")
+    public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType,
             TypedContent updatedContent, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
 
@@ -71,7 +75,8 @@ public interface RulesService {
      * This allows validation against a different storage (e.g., the inactive database
      * during GitOps blue-green loading).
      */
-    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String artifactType,
+    @SuppressWarnings("java:S107")
+    public void applyRules(RegistryStorage storage, String groupId, String artifactId, ArtifactType artifactType,
             TypedContent content, RuleApplicationType ruleApplicationType,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException;
@@ -81,7 +86,8 @@ public interface RulesService {
      * existing content for comparison (e.g., for compatibility checks during GitOps loading
      * where all versions are already imported into the same storage).
      */
-    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String artifactType,
+    @SuppressWarnings("java:S107")
+    public void applyRules(RegistryStorage storage, String groupId, String artifactId, ArtifactType artifactType,
             TypedContent content, List<TypedContent> existingContent,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException;

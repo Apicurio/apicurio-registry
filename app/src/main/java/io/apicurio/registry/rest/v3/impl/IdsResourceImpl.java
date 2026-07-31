@@ -126,7 +126,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
                 .type(contentToReturn.getContentType())
                 .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename));
         if (returnArtifactType != null && returnArtifactType) {
-            builder.header("X-Registry-ArtifactType", metaData.getArtifactType());
+            builder.header("X-Registry-ArtifactType", metaData.getArtifactType().value());
         }
         checkIfDeprecated(metaData::getState, null, metaData.getArtifactId(), metaData.getVersion(), builder);
         return builder.build();

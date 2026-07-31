@@ -278,7 +278,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .groupId(groupId != null ? groupId : "default")
                 .artifactId(artifactId)
                 .version(version)
-                .artifactType(rootMetadata.getArtifactType())
+                .artifactType(rootMetadata.getArtifactType().value())
                 .name(rootMetadata.getName())
                 .isRoot(true)
                 .isCycleNode(false)
@@ -387,7 +387,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                             .groupId(refGroupId != null ? refGroupId : "default")
                             .artifactId(refArtifactId)
                             .version(refVersion)
-                            .artifactType(refMetadata.getArtifactType())
+                            .artifactType(refMetadata.getArtifactType().value())
                             .name(refMetadata.getName())
                             .isRoot(false)
                             .isCycleNode(isArtifactCycle)
@@ -480,7 +480,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                             .groupId(refGroupId != null ? refGroupId : "default")
                             .artifactId(refArtifactId)
                             .version(refVersion)
-                            .artifactType(refMetadata.getArtifactType())
+                            .artifactType(refMetadata.getArtifactType().value())
                             .name(refMetadata.getName())
                             .isRoot(false)
                             .isCycleNode(isArtifactCycle)
@@ -552,7 +552,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String artifactType = null;
         try {
-            artifactType = storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType();
+            artifactType = storage.getArtifactMetaData(rawGroupId, artifactId).getArtifactType().value();
         } catch (ArtifactNotFoundException e) {
             // Artifact may already be gone; proceed with delete and record with null type
         }
@@ -1010,7 +1010,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         // Check if the artifact type allows empty content
-        String artifactType = vmd.getArtifactType();
+        ArtifactType artifactType = vmd.getArtifactType();
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
         boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
         ContentHandle content = ContentHandle.create(resolveContent(data));
@@ -1163,7 +1163,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             TypedContent typedContent = TypedContent.create(artifact.getContent(), artifact.getContentType());
             rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
-                    vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
+                    ArtifactType.fromValue(vmd.getArtifactType()), typedContent, RuleApplicationType.UPDATE, references,
                     resolvedReferences);
         }
 
@@ -1316,7 +1316,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (data.getFirstVersion() != null) {
             boolean contentRequired = true;
             if (data.getArtifactType() != null) {
-                Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
+                Set<String> contentTypes = factory.getArtifactTypeProvider(ArtifactType.fromValue(data.getArtifactType())).getContentTypes();
                 contentRequired = !contentTypes.isEmpty();
             }
             if (contentRequired) {
@@ -1397,7 +1397,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
             TypedContent typedContent = TypedContent.create(content, contentType);
 
-            String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(), factory);
+            ArtifactType artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, ArtifactType.fromValue(data.getArtifactType()), factory);
 
             final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1405,7 +1405,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             ContentHandle effectiveContent = content;
             String effectiveContentType = contentType;
             List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
-            if ("MODEL_SCHEMA".equals(artifactType)) {
+            if (ArtifactType.BuiltIn.MODEL_SCHEMA.equals(artifactType)) {
                 var extraction = embeddedSchemaService.extractModelSchemaEmbeddedSchemas(
                         storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                         content, contentType, owner);
@@ -1414,7 +1414,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     effectiveContentType = extraction.getContentType();
                     autoReferences.addAll(extraction.getReferences());
                 }
-            } else if ("PROMPT_TEMPLATE".equals(artifactType)) {
+            } else if (ArtifactType.BuiltIn.PROMPT_TEMPLATE.equals(artifactType)) {
                 var extraction = embeddedSchemaService.extractPromptTemplateEmbeddedSchemas(
                         storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                         content, contentType, owner);
@@ -1469,9 +1469,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             if (dryRun == null || !dryRun) {
                 String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-                otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
+                otelMetrics.recordArtifactCreated(rawGroupId, artifactType == null ? null : artifactType.value());
                 if (storageResult.getRight() != null) {
-                    otelMetrics.recordVersionCreated(rawGroupId, artifactType);
+                    otelMetrics.recordVersionCreated(rawGroupId, artifactType == null ? null : artifactType.value());
                 }
             }
 
@@ -1530,7 +1530,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
-        String artifactType = lookupArtifactType(groupId, artifactId);
+        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
         boolean isEmptyContent = artifactTypeProvider.getContentTypes().isEmpty();
         if (!isEmptyContent) {
@@ -1558,7 +1558,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentHandle effectiveContent = content;
         String effectiveContentType = ct;
         List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
-        if ("MODEL_SCHEMA".equals(artifactType)) {
+        if (ArtifactType.BuiltIn.MODEL_SCHEMA.equals(artifactType)) {
             var extraction = embeddedSchemaService.extractModelSchemaEmbeddedSchemas(
                     storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                     content, ct, owner);
@@ -1567,7 +1567,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 effectiveContentType = extraction.getContentType();
                 autoReferences.addAll(extraction.getReferences());
             }
-        } else if ("PROMPT_TEMPLATE".equals(artifactType)) {
+        } else if (ArtifactType.BuiltIn.PROMPT_TEMPLATE.equals(artifactType)) {
             var extraction = embeddedSchemaService.extractPromptTemplateEmbeddedSchemas(
                     storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                     content, ct, owner);
@@ -1605,7 +1605,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun, owner);
 
         if (dryRun == null || !dryRun) {
-            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
+            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType.value());
         }
 
         return V3ApiUtil.dtoToVersionMetaData(vmd);
@@ -1757,7 +1757,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @param groupId
      * @param artifactId
      */
-    private String lookupArtifactType(String groupId, String artifactId) {
+    private ArtifactType lookupArtifactType(String groupId, String artifactId) {
         return storage.getArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId)
                 .getArtifactType();
     }
@@ -1857,7 +1857,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
-        String artifactType = lookupArtifactType(groupId, artifactId);
+        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
 
         final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1882,7 +1882,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
 
         if (dryRun == null || !dryRun) {
-            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
+            otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType.value());
         }
 
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
@@ -1926,8 +1926,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-        String artifactType = versionMetaData.getArtifactType();
-        if (!"PROMPT_TEMPLATE".equals(artifactType)) {
+        ArtifactType artifactType = versionMetaData.getArtifactType();
+        if (!ArtifactType.BuiltIn.PROMPT_TEMPLATE.equals(artifactType)) {
             throw new BadRequestException(
                     "Artifact type must be PROMPT_TEMPLATE, but was: " + artifactType);
         }
@@ -1966,8 +1966,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-        String artifactType = versionMetaData.getArtifactType();
-        if (!"PROTOBUF".equals(artifactType)) {
+        ArtifactType artifactType = versionMetaData.getArtifactType();
+        if (!ArtifactType.BuiltIn.PROTOBUF.equals(artifactType)) {
             throw new BadRequestException(
                     "Export as ZIP is only supported for PROTOBUF artifacts, but artifact type was: " + artifactType);
         }
@@ -2316,7 +2316,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
 
         try {
-            storage.createArtifact(rawGroupId, contractId, ArtifactType.ODCS_CONTRACT,
+            storage.createArtifact(rawGroupId, contractId, ArtifactType.BuiltIn.ODCS_CONTRACT,
                     EditableArtifactMetaDataDto.builder()
                             .name(contract.getInfo() != null ? contract.getInfo().getTitle() : contractId)
                             .description(
@@ -2331,7 +2331,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     List.of(), false, false, null);
         } catch (ArtifactAlreadyExistsException e) {
             storage.createArtifactVersion(rawGroupId, contractId, version,
-                    ArtifactType.ODCS_CONTRACT,
+                    ArtifactType.BuiltIn.ODCS_CONTRACT,
                     ContentWrapperDto.builder()
                             .contentType(ContentTypes.APPLICATION_YAML)
                             .content(ContentHandle.create(data))
@@ -2365,7 +2365,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         Set<SearchFilter> filters = Set.of(
                 SearchFilter.ofGroupId(rawGroupId),
-                SearchFilter.ofArtifactType(ArtifactType.ODCS_CONTRACT));
+                SearchFilter.ofArtifactType(ArtifactType.BuiltIn.ODCS_CONTRACT.value()));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
                 OrderBy.createdOn, OrderDirection.desc, effectiveOffset,
@@ -2415,7 +2415,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
         storage.createArtifactVersion(rawGroupId, contractId, version,
-                ArtifactType.ODCS_CONTRACT,
+                ArtifactType.BuiltIn.ODCS_CONTRACT,
                 ContentWrapperDto.builder()
                         .contentType(ContentTypes.APPLICATION_YAML)
                         .content(ContentHandle.create(data))

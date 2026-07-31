@@ -72,9 +72,9 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         ContentWrapperDto data = ContentWrapperDto.builder()
                 .content(ContentHandle.create(entity.contentEntity.contentBytes))
                 .contentType(entity.contentEntity.contentType).references(references)
-                .artifactType(entity.type).build();
+                .artifactType(ArtifactType.fromValue(entity.type)).build();
 
-        String newCanonicalHash = RegistryContentUtils.canonicalContentHash(factory, entity.type, data,
+        String newCanonicalHash = RegistryContentUtils.canonicalContentHash(factory, ArtifactType.fromValue(entity.type), data,
                 ref -> resolveReference(handle, ref));
 
         if (!newCanonicalHash.equals(entity.contentEntity.canonicalHash)) {
@@ -105,7 +105,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         return ContentWrapperDto.builder().content(ContentHandle.create(result.contentEntity.contentBytes))
                 .contentType(result.contentEntity.contentType)
                 .references(RegistryContentUtils.deserializeReferences(result.contentEntity.serializedReferences))
-                .artifactType(result.type).build();
+                .artifactType(ArtifactType.fromValue(result.type)).build();
     }
 
     private static class ContentWithType {

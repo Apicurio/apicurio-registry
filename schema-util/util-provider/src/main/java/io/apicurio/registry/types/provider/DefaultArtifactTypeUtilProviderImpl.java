@@ -8,9 +8,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.apicurio.registry.types.ArtifactType;
+
 public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProviderFactory {
 
-    protected Map<String, ArtifactTypeUtilProvider> providerMap = new ConcurrentHashMap<>();
+    protected Map<ArtifactType, ArtifactTypeUtilProvider> providerMap = new ConcurrentHashMap<>();
 
     // Intentionally per-factory, not a shared static list: AbstractArtifactTypeUtilProvider caches
     // lazily-created components in mutable fields, so sharing one provider across factories would alias that cache.
@@ -32,14 +34,14 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
     }
 
     @Override
-    public ArtifactTypeUtilProvider getArtifactTypeProvider(String type) {
+    public ArtifactTypeUtilProvider getArtifactTypeProvider(ArtifactType type) {
         return providerMap.computeIfAbsent(type,
                 t -> providers.stream().filter(a -> a.getArtifactType().equals(t)).findFirst().orElseThrow(
                         () -> new IllegalStateException("No such artifact type provider: " + t)));
     }
 
     @Override
-    public List<String> getAllArtifactTypes() {
+    public List<ArtifactType> getAllArtifactTypes() {
         return providers.stream().map(a -> a.getArtifactType()).collect(Collectors.toList());
     }
 

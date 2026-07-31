@@ -155,7 +155,7 @@ public class GroupsResourceImpl implements GroupsResource {
                 if (artifactTypeProvider.supportsReferencesWithContext()) {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                             .recursivelyResolveReferencesWithContext(factory, contentToReturn,
-                                    metaData.getArtifactType(), artifact.getReferences(),
+                                    metaData.getArtifactType().value(), artifact.getReferences(),
                                     storage::getContentByReference);
 
                     contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
@@ -295,7 +295,7 @@ public class GroupsResourceImpl implements GroupsResource {
                 latestGAV.getRawGroupIdWithNull(), latestGAV.getRawArtifactId(), latestGAV.getRawVersionId());
 
         ArtifactMetaData amd = V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId,
-                dto.getArtifactType(), dto);
+                dto.getArtifactType().value(), dto);
         amd.setContentId(vdto.getContentId());
         amd.setGlobalId(vdto.getGlobalId());
         amd.setVersion(vdto.getVersion());
@@ -470,7 +470,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaDataByContent(
                 defaultGroupIdToNull(groupId), artifactId, canonical, typedContent, artifactReferenceDtos);
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId,
-                dto.getArtifactType(), dto);
+                dto.getArtifactType().value(), dto);
     }
 
     /**
@@ -624,7 +624,7 @@ public class GroupsResourceImpl implements GroupsResource {
             ct = ContentTypes.APPLICATION_JSON;
         }
 
-        String artifactType = lookupArtifactType(groupId, artifactId);
+        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
                 RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); // TODO:references
@@ -678,7 +678,7 @@ public class GroupsResourceImpl implements GroupsResource {
         if (dereference && !artifact.getReferences().isEmpty()) {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
-                        .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
+                        .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType().value(),
                                 artifact.getReferences(), storage::getContentByReference);
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
@@ -735,7 +735,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ArtifactVersionMetaDataDto dto = storage.getArtifactVersionMetaData(defaultGroupIdToNull(groupId),
                 artifactId, version);
         return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId,
-                dto.getArtifactType(), dto);
+                dto.getArtifactType().value(), dto);
     }
 
     /**
@@ -1070,9 +1070,9 @@ public class GroupsResourceImpl implements GroupsResource {
             }
 
             TypedContent typedContent = TypedContent.create(content, ct);
-            String artifactType = ArtifactType.AVRO;
+            ArtifactType artifactType = ArtifactType.BuiltIn.AVRO;
             try {
-                artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, xRegistryArtifactType,
+                artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, ArtifactType.fromValue(xRegistryArtifactType),
                         factory);
             } catch (InvalidArtifactTypeException e) {
                 // Ignore this exception and default to AVRO.  This is what v2 did.
@@ -1088,7 +1088,7 @@ public class GroupsResourceImpl implements GroupsResource {
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
 
             // Extract metadata from content, then override extracted values with provided values.
-            EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
+            EditableArtifactMetaDataDto metaData = extractMetaData(artifactType.value(), content);
             if (artifactName != null && !artifactName.trim().isEmpty()) {
                 metaData.setName(artifactName);
             }
@@ -1105,7 +1105,7 @@ public class GroupsResourceImpl implements GroupsResource {
                     defaultGroupIdToNull(groupId), artifactId, artifactType, metaData, xRegistryVersion,
                     contentDto, versionMetaData, List.of(), false, false, owner);
 
-            return V2ApiUtil.dtoToMetaData(groupId, artifactId, artifactType, createResult.getRight());
+            return V2ApiUtil.dtoToMetaData(groupId, artifactId, artifactType.value(), createResult.getRight());
         } catch (ArtifactAlreadyExistsException ex) {
             return handleIfExists(groupId, xRegistryArtifactId, xRegistryVersion, ifExists, artifactName,
                     artifactDescription, content, ct, fcanonical, references);
@@ -1232,7 +1232,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         final String owner = securityIdentity.getPrincipal().getName();
 
-        String artifactType = lookupArtifactType(groupId, artifactId);
+        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
                 RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
@@ -1251,7 +1251,7 @@ public class GroupsResourceImpl implements GroupsResource {
                 .build();
         storage.updateArtifactMetaData(defaultGroupIdToNull(groupId), artifactId, artifactMD);
 
-        return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType,
+        return V2ApiUtil.dtoToVersionMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType.value(),
                 vmdDto);
     }
 
@@ -1261,7 +1261,7 @@ public class GroupsResourceImpl implements GroupsResource {
      * @param groupId
      * @param artifactId
      */
-    private String lookupArtifactType(String groupId, String artifactId) {
+    private ArtifactType lookupArtifactType(String groupId, String artifactId) {
         return storage.getArtifactMetaData(defaultGroupIdToNull(groupId), artifactId).getArtifactType();
     }
 
@@ -1333,7 +1333,7 @@ public class GroupsResourceImpl implements GroupsResource {
             contentType = ContentTypes.APPLICATION_JSON;
         }
 
-        String artifactType = lookupArtifactType(groupId, artifactId);
+        ArtifactType artifactType = lookupArtifactType(groupId, artifactId);
 
         // Transform the given references into dtos and set the contentId, this will also detect if any of the
         // passed references does not exist.
@@ -1347,7 +1347,7 @@ public class GroupsResourceImpl implements GroupsResource {
                 RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
 
         // Extract metadata from content, then override extracted values with provided values.
-        EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType, content);
+        EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType.value(), content);
         if (name != null && !name.trim().isEmpty()) {
             artifactMD.setName(name);
         }
@@ -1369,7 +1369,7 @@ public class GroupsResourceImpl implements GroupsResource {
         // those are the semantics of the v2 API. :(
         storage.updateArtifactMetaData(defaultGroupIdToNull(groupId), artifactId, artifactMD);
 
-        return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType, dto);
+        return V2ApiUtil.dtoToMetaData(defaultGroupIdToNull(groupId), artifactId, artifactType.value(), dto);
     }
 
     private EditableArtifactMetaDataDto getEditableArtifactMetaData(String name, String description) {
@@ -1409,7 +1409,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     protected EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(ArtifactType.fromValue(artifactType));
         ContentExtractor extractor = provider.getContentExtractor();
         ExtractedMetaData emd = extractor.extract(content);
         EditableArtifactMetaDataDto metaData;

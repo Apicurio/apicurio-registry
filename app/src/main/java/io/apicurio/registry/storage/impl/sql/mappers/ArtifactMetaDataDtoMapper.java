@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
@@ -32,7 +33,7 @@ public class ArtifactMetaDataDtoMapper implements RowMapper<ArtifactMetaDataDto>
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn").getTime());
-        dto.setArtifactType(rs.getString("type"));
+        dto.setArtifactType(ArtifactType.fromValue(rs.getString("type")));
         return dto;
     }
 

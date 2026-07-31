@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
@@ -37,7 +38,7 @@ public class SearchedVersionMapper implements RowMapper<SearchedVersionDto> {
         dto.setModifiedOn(rs.getTimestamp("modifiedOn"));
         dto.setName(rs.getString("name"));
         dto.setDescription(rs.getString("description"));
-        dto.setArtifactType(rs.getString("type"));
+        dto.setArtifactType(ArtifactType.fromValue(rs.getString("type")));
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
         return dto;
     }

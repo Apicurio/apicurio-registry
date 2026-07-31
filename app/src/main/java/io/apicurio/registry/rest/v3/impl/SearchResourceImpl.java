@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.rest.v3.SearchResource;
 
 import io.apicurio.registry.auth.Authorized;
@@ -176,7 +177,8 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (canonical && artifactType != null) {
-            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null,
+            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent,
+                    ArtifactType.fromValue(artifactType), null,
                     null);
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {
@@ -376,7 +378,8 @@ public class SearchResourceImpl implements SearchResource {
         TypedContent typedContent = TypedContent.create(content, ct);
 
         if (canonical && artifactType != null) {
-            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null,
+            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent,
+                    ArtifactType.fromValue(artifactType), null,
                     null);
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
         } else if (!canonical) {

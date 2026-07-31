@@ -1,5 +1,6 @@
 package io.apicurio.registry.rules;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -48,7 +49,8 @@ public class RulesServiceImpl implements RulesService {
      *      RuleApplicationType, List, Map)
      */
     @Override
-    public void applyRules(String groupId, String artifactId, String artifactType, TypedContent content,
+    @SuppressWarnings("java:S107")
+    public void applyRules(String groupId, String artifactId, ArtifactType artifactType, TypedContent content,
             RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         applyRules(storage, groupId, artifactId, artifactType, content, ruleApplicationType,
@@ -56,8 +58,9 @@ public class RulesServiceImpl implements RulesService {
     }
 
     @Override
+    @SuppressWarnings("java:S107")
     public void applyRules(RegistryStorage storageToUse, String groupId, String artifactId,
-            String artifactType, TypedContent content, RuleApplicationType ruleApplicationType,
+            ArtifactType artifactType, TypedContent content, RuleApplicationType ruleApplicationType,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
         @SuppressWarnings("unchecked")
@@ -78,8 +81,9 @@ public class RulesServiceImpl implements RulesService {
     }
 
     @Override
+    @SuppressWarnings("java:S107")
     public void applyRules(RegistryStorage storageToUse, String groupId, String artifactId,
-            String artifactType, TypedContent content, List<TypedContent> existingContent,
+            ArtifactType artifactType, TypedContent content, List<TypedContent> existingContent,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
         Set<RuleType> artifactRules = new HashSet<>(storageToUse.getArtifactRules(groupId, artifactId));
@@ -88,7 +92,7 @@ public class RulesServiceImpl implements RulesService {
     }
 
     private void applyAllRules(RegistryStorage storageToUse, String groupId, String artifactId,
-            String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
+            ArtifactType artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
             Set<RuleType> artifactRules, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) {
 
@@ -124,7 +128,8 @@ public class RulesServiceImpl implements RulesService {
     }
 
     @Override
-    public void applyRule(String groupId, String artifactId, String artifactType, TypedContent content,
+    @SuppressWarnings("java:S107")
+    public void applyRule(String groupId, String artifactId, ArtifactType artifactType, TypedContent content,
             RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
@@ -140,7 +145,7 @@ public class RulesServiceImpl implements RulesService {
     // Metrics are recorded here even during dry-run requests because rule evaluation genuinely
     // executes during dry-run — only artifact/version creation metrics are suppressed.
     private void applyRule(RegistryStorage storageToUse, String groupId, String artifactId,
-            String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
+            ArtifactType artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
             RuleType ruleType, String ruleConfiguration, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) {
         RuleExecutor executor = factory.createExecutor(ruleType);
@@ -152,19 +157,20 @@ public class RulesServiceImpl implements RulesService {
             executor.execute(context);
             otelMetrics.recordRuleEvaluation(ruleType.value(), true);
             if (ruleType == RuleType.VALIDITY) {
-                otelMetrics.recordSchemaValidation(artifactType, true);
+                otelMetrics.recordSchemaValidation(artifactType.value(), true);
             }
         } catch (Exception e) {
             otelMetrics.recordRuleEvaluation(ruleType.value(), false);
             if (ruleType == RuleType.VALIDITY) {
-                otelMetrics.recordSchemaValidation(artifactType, false);
+                otelMetrics.recordSchemaValidation(artifactType.value(), false);
             }
             throw e;
         }
     }
 
     @Override
-    public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
+    @SuppressWarnings("java:S107")
+    public void applyRules(String groupId, String artifactId, String artifactVersion, ArtifactType artifactType,
             TypedContent updatedContent, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId,

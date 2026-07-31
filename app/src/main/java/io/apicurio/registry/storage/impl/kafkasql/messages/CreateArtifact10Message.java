@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.kafkasql.messages;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -29,7 +30,7 @@ public class CreateArtifact10Message extends AbstractMessage {
 
     private String groupId;
     private String artifactId;
-    private String artifactType;
+    private ArtifactType artifactType;
     private EditableArtifactMetaDataDto artifactMetaDataDto;
     private String version;
     private String contentType;

@@ -1,6 +1,7 @@
 package io.apicurio.registry.limits;
 
 import io.apicurio.registry.storage.decorator.RegistryStorageDecorator;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorBase;
 import io.apicurio.registry.storage.decorator.RegistryStorageDecoratorOrderConstants;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -56,7 +57,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     }
 
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
-            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String artifactId, ArtifactType artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
@@ -70,7 +71,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
     }
 
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            ArtifactType artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         ArtifactVersionMetaDataDto dto = withLimitsCheck(

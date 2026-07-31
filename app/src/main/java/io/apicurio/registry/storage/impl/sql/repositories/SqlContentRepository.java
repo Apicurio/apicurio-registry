@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import io.apicurio.registry.types.ArtifactType;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -566,7 +567,7 @@ public class SqlContentRepository {
      * @param isDraft Whether this is draft content
      * @param draftProductionMode When true and isDraft is true, use real content hashes instead of draft: prefix
      */
-    public Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft,
+    public Long ensureContentAndGetId(ArtifactType artifactType, ContentWrapperDto contentDto, boolean isDraft,
             boolean draftProductionMode) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
 

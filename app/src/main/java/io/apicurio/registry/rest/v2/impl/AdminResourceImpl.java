@@ -97,7 +97,7 @@ public class AdminResourceImpl implements AdminResource {
     public List<ArtifactTypeInfo> listArtifactTypes() {
         return factory.getAllArtifactTypes().stream().map(t -> {
             ArtifactTypeInfo ati = new ArtifactTypeInfo();
-            ati.setName(t);
+            ati.setName(t.value());
             return ati;
         }).collect(Collectors.toList());
     }

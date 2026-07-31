@@ -324,7 +324,7 @@ public class SqlArtifactRepository {
                 handle.createUpdate(sqlStatements.insertArtifact())
                         .bind(0, normalizeGroupId(entity.groupId))
                         .bind(1, entity.artifactId)
-                        .bind(2, entity.artifactType)
+                        .bind(2, entity.artifactType.value())
                         .bind(3, entity.owner)
                         .bind(4, new Date(entity.createdOn))
                         .bind(5, entity.modifiedBy)

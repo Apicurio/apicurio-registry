@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.decorator;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.common.apps.config.Dynamic;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
@@ -69,7 +70,7 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
     }
 
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
-            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String artifactId, ArtifactType artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean isVersionDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
@@ -90,7 +91,7 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
     }
 
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            ArtifactType artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         checkReadOnly();
@@ -99,7 +100,7 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
     }
 
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
-            String version, String artifactType, ContentWrapperDto content,
+            String version, ArtifactType artifactType, ContentWrapperDto content,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
             int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData) {
         checkReadOnly();
@@ -338,7 +339,7 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
     }
 
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto content) throws RegistryStorageException {
+            ArtifactType artifactType, ContentWrapperDto content) throws RegistryStorageException {
         checkReadOnly();
         delegate.updateArtifactVersionContent(groupId, artifactId, version, artifactType, content);
     }

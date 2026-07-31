@@ -336,7 +336,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(groupId));
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.ICEBERG_TABLE));
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.BuiltIn.ICEBERG_TABLE.value()));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
                 OrderDirection.asc, offset, limit, false);
@@ -440,7 +440,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        storage.createArtifact(groupId, tableName, ArtifactType.ICEBERG_TABLE, artifactMetaData, null,
+        storage.createArtifact(groupId, tableName, ArtifactType.BuiltIn.ICEBERG_TABLE, artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
         metricsService.recordTableCreated();
 
@@ -574,7 +574,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 currentMetadata, newMetadata);
 
         storage.createArtifactVersionIfLatest(groupId, table,
-                null, ArtifactType.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
+                null, ArtifactType.BuiltIn.ICEBERG_TABLE, content, EditableVersionMetaDataDto.builder().build(),
                 null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
 
         metricsService.recordTableCommitted();
@@ -694,7 +694,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        storage.createArtifact(destGroupId, destTable, ArtifactType.ICEBERG_TABLE,
+        storage.createArtifact(destGroupId, destTable, ArtifactType.BuiltIn.ICEBERG_TABLE,
                 EditableArtifactMetaDataDto.builder().build(), null, content,
                 EditableVersionMetaDataDto.builder().build(), null, false, false, getCurrentUser());
 
@@ -729,7 +729,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(groupId));
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.ICEBERG_VIEW));
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.BuiltIn.ICEBERG_VIEW.value()));
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
                 OrderDirection.asc, offset, limit, false);
@@ -839,7 +839,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        storage.createArtifact(groupId, viewName, ArtifactType.ICEBERG_VIEW, artifactMetaData, null,
+        storage.createArtifact(groupId, viewName, ArtifactType.BuiltIn.ICEBERG_VIEW, artifactMetaData, null,
                 content, versionMetaData, null, false, false, getCurrentUser());
         metricsService.recordViewCreated();
 
@@ -959,7 +959,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 currentMetadata, newMetadata);
 
         storage.createArtifactVersionIfLatest(groupId, view,
-                null, ArtifactType.ICEBERG_VIEW, content, EditableVersionMetaDataDto.builder().build(),
+                null, ArtifactType.BuiltIn.ICEBERG_VIEW, content, EditableVersionMetaDataDto.builder().build(),
                 null, false, getCurrentUser(), baseVersionOrder, artifactMetaData);
 
         metricsService.recordViewReplaced();
@@ -1012,7 +1012,7 @@ public class IcebergApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
-        storage.createArtifact(destGroupId, destView, ArtifactType.ICEBERG_VIEW,
+        storage.createArtifact(destGroupId, destView, ArtifactType.BuiltIn.ICEBERG_VIEW,
                 EditableArtifactMetaDataDto.builder().build(), null, content,
                 EditableVersionMetaDataDto.builder().build(), null, false, false, getCurrentUser());
 

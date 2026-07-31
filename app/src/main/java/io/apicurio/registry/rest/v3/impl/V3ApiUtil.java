@@ -64,7 +64,7 @@ public final class V3ApiUtil {
         metaData.setModifiedBy(dto.getModifiedBy());
         metaData.setModifiedOn(new Date(dto.getModifiedOn()));
         metaData.setName(dto.getName());
-        metaData.setArtifactType(dto.getArtifactType());
+        metaData.setArtifactType(dto.getArtifactType() == null ? null : dto.getArtifactType().value());
         metaData.setLabels(dto.getLabels());
         metaData.setContractMetadata(projectContractMetadata(dto.getLabels()));
         return metaData;
@@ -148,7 +148,7 @@ public final class V3ApiUtil {
         metaData.setModifiedOn(new Date(dto.getModifiedOn()));
         metaData.setDescription(dto.getDescription());
         metaData.setName(dto.getName());
-        metaData.setArtifactType(dto.getArtifactType());
+        metaData.setArtifactType(dto.getArtifactType() == null ? null : dto.getArtifactType().value());
         metaData.setVersion(dto.getVersion());
         metaData.setGlobalId(dto.getGlobalId());
         metaData.setContentId(dto.getContentId());
@@ -195,7 +195,7 @@ public final class V3ApiUtil {
             sa.setModifiedBy(artifact.getModifiedBy());
             sa.setModifiedOn(artifact.getModifiedOn());
             sa.setName(artifact.getName());
-            sa.setArtifactType(artifact.getArtifactType());
+            sa.setArtifactType(artifact.getArtifactType() == null ? null : artifact.getArtifactType().value());
             sa.setLabels(artifact.getLabels());
             results.getArtifacts().add(sa);
         });
@@ -256,7 +256,7 @@ public final class V3ApiUtil {
             sv.setContentId(version.getContentId());
             sv.setName(version.getName());
             sv.setState(version.getState());
-            sv.setArtifactType(version.getArtifactType());
+            sv.setArtifactType(version.getArtifactType() == null ? null : version.getArtifactType().value());
             sv.setLabels(version.getLabels());
             results.getVersions().add(sv);
         });

@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.sql.mappers;
 
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
@@ -38,7 +39,7 @@ public class ArtifactVersionMetaDataDtoMapper implements RowMapper<ArtifactVersi
         dto.setDescription(rs.getString("description"));
         dto.setVersion(rs.getString("version"));
         dto.setVersionOrder(rs.getInt("versionOrder"));
-        dto.setArtifactType(rs.getString("type"));
+        dto.setArtifactType(ArtifactType.fromValue(rs.getString("type")));
         dto.setLabels(RegistryContentUtils.deserializeLabels(rs.getString("labels")));
         dto.setModifiedBy(rs.getString("modifiedBy"));
         dto.setModifiedOn(rs.getTimestamp("modifiedOn").getTime());

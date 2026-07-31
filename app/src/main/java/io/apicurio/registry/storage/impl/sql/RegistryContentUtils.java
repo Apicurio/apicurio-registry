@@ -1,4 +1,5 @@
 package io.apicurio.registry.storage.impl.sql;
+import io.apicurio.registry.types.ArtifactType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -121,7 +122,7 @@ public class RegistryContentUtils {
                 () -> references,
                 ArtifactReferenceDto::getName,
                 loader,
-                cw -> TypedContent.create(cw.getContent(), cw.getArtifactType())
+                cw -> TypedContent.create(cw.getContent(), cw.getArtifactType().value())
         );
     }
 
@@ -204,8 +205,8 @@ public class RegistryContentUtils {
                                         .getArtifactTypeProvider(nested.getArtifactType());
                                 RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
                                         artifactTypeUtilProviderFactory,
-                                        TypedContent.create(nested.getContent(), nested.getArtifactType()),
-                                        nested.getArtifactType(), partialRecursivelyResolvedReferences,
+                                        TypedContent.create(nested.getContent(), nested.getArtifactType().value()),
+                                        nested.getArtifactType().value(), partialRecursivelyResolvedReferences,
                                         nested.getReferences(), loader, referencesRewrites);
                                 referencesRewrites.put(refName, newRefName);
                                 TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
@@ -220,7 +221,7 @@ public class RegistryContentUtils {
                 }
             }
         }
-        ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory.getArtifactTypeProvider(schemaType);
+        ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory.getArtifactTypeProvider(ArtifactType.fromValue(schemaType));
         TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
                 .rewriteReferences(mainContent, referencesRewrites);
         return new RewrittenContentHolder(rewrittenContent, partialRecursivelyResolvedReferences);
@@ -232,7 +233,7 @@ public class RegistryContentUtils {
      * WARNING: Fails silently.
      */
     private static TypedContent canonicalizeContent(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-                                                    String artifactType, TypedContent content,
+                                                    ArtifactType artifactType, TypedContent content,
                                                     Map<String, TypedContent> recursivelyResolvedReferences) {
         try {
             return artifactTypeUtilProviderFactory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
@@ -251,11 +252,11 @@ public class RegistryContentUtils {
      * @throws RegistryException in the case of an error.
      */
     public static TypedContent canonicalizeContent(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-                                                   String artifactType, ContentWrapperDto data,
+                                                   ArtifactType artifactType, ContentWrapperDto data,
                                                    Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         try {
             return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
-                    TypedContent.create(data.getContent(), data.getArtifactType()),
+                    TypedContent.create(data.getContent(), data.getArtifactType().value()),
                     recursivelyResolveReferences(data.getReferences(), loader));
         } catch (Exception ex) {
             throw new RegistryException("Failed to canonicalize content.", ex);
@@ -266,7 +267,7 @@ public class RegistryContentUtils {
      * @param loader can be null *if and only if* references are empty.
      */
     public static String canonicalContentHash(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
-                                              String artifactType, ContentWrapperDto data,
+                                              ArtifactType artifactType, ContentWrapperDto data,
                                               Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         try {
             if (notEmpty(data.getReferences())) {
@@ -276,7 +277,7 @@ public class RegistryContentUtils {
                         serializedReferences));
             } else {
                 TypedContent canonicalContent = canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
-                        TypedContent.create(data.getContent(), data.getArtifactType()), Map.of());
+                        TypedContent.create(data.getContent(), data.getArtifactType().value()), Map.of());
                 return DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             }
         } catch (IOException ex) {

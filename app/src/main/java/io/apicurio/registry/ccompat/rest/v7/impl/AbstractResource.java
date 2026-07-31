@@ -111,7 +111,7 @@ public abstract class AbstractResource {
     }
 
     protected ArtifactVersionMetaDataDto createOrUpdateArtifact(String artifactId, String schema,
-                                                                String artifactType, List<SchemaReference> references, String groupId, boolean normalize) {
+                                                                ArtifactType artifactType, List<SchemaReference> references, String groupId, boolean normalize) {
         ArtifactVersionMetaDataDto res;
         final List<ArtifactReferenceDto> parsedReferences = parseReferences(references, groupId);
         final List<ArtifactReference> artifactReferences = parsedReferences.stream()
@@ -197,7 +197,7 @@ public abstract class AbstractResource {
                 : ContentTypes.APPLICATION_JSON;
             TypedContent typedSchemaContent = TypedContent.create(ContentHandle.create(schema), contentType);
             final List<ArtifactReferenceDto> artifactReferences = parseReferences(schemaReferences, groupId);
-            ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(type);
+            ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(ArtifactType.fromValue(type));
             ArtifactVersionMetaDataDto amd;
 
             if (cconfig.canonicalHashModeEnabled.get() || normalize) {
@@ -380,7 +380,7 @@ public abstract class AbstractResource {
         }
     }
 
-    protected boolean isCcompatManagedType(String artifactType) {
+    protected boolean isCcompatManagedType(ArtifactType artifactType) {
         return artifactType.equals(ArtifactType.AVRO) || artifactType.equals(ArtifactType.PROTOBUF)
                 || artifactType.equals(ArtifactType.JSON);
     }

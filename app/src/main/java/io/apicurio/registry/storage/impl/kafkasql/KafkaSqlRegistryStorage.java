@@ -28,6 +28,7 @@ import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.decorator.ReadOnlyDelegatingStorage;
 import io.apicurio.registry.storage.dto.*;
@@ -445,7 +446,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId,
-            String artifactId, String artifactType, EditableArtifactMetaDataDto artifactMetaData,
+            String artifactId, ArtifactType artifactType, EditableArtifactMetaDataDto artifactMetaData,
             String version, ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
             List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
@@ -498,7 +499,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData,
+            ArtifactType artifactType, ContentWrapperDto contentDto, EditableVersionMetaDataDto metaData,
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;
@@ -517,7 +518,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
-            String version, String artifactType, ContentWrapperDto contentDto,
+            String version, ArtifactType artifactType, ContentWrapperDto contentDto,
             EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
             int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
             throws RegistryStorageException {
@@ -536,7 +537,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
-            String artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
+            ArtifactType artifactType, ContentWrapperDto contentDto) throws RegistryStorageException {
         String content = contentDto != null ? contentDto.getContent().content() : null;
         String contentType = contentDto != null ? contentDto.getContentType() : null;
         List<ArtifactReferenceDto> references = contentDto != null ? contentDto.getReferences() : null;

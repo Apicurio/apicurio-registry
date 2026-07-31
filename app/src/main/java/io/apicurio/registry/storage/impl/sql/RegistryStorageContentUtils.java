@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
+import io.apicurio.registry.types.ArtifactType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -35,7 +36,7 @@ public class RegistryStorageContentUtils {
      *
      * @throws RegistryException in the case of an error.
      */
-    public TypedContent canonicalizeContent(String artifactType, TypedContent content,
+    public TypedContent canonicalizeContent(ArtifactType artifactType, TypedContent content,
             Map<String, TypedContent> resolvedReferences) {
         try {
             return factory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
@@ -53,7 +54,7 @@ public class RegistryStorageContentUtils {
      *
      * @throws RegistryException in the case of an error.
      */
-    public TypedContent canonicalizeContent(String artifactType, TypedContent content,
+    public TypedContent canonicalizeContent(ArtifactType artifactType, TypedContent content,
             List<ArtifactReferenceDto> references,
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
         try {
@@ -67,7 +68,7 @@ public class RegistryStorageContentUtils {
      * @param references may be null
      * @param referenceResolver may be null if references is null
      */
-    public String getCanonicalContentHash(TypedContent content, String artifactType,
+    public String getCanonicalContentHash(TypedContent content, ArtifactType artifactType,
             List<ArtifactReferenceDto> references,
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
         try {
@@ -116,11 +117,11 @@ public class RegistryStorageContentUtils {
         }
     }
 
-    public String determineArtifactType(TypedContent content, String artifactTypeHint) {
+    public ArtifactType determineArtifactType(TypedContent content, ArtifactType artifactTypeHint) {
         return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, null, factory);
     }
 
-    public String determineArtifactType(TypedContent content, String artifactTypeHint,
+    public ArtifactType determineArtifactType(TypedContent content, ArtifactType artifactTypeHint,
             Map<String, TypedContent> resolvedReferences) {
         return ArtifactTypeUtil.determineArtifactType(content, artifactTypeHint, resolvedReferences, factory);
     }

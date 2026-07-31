@@ -14,6 +14,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.VersionState;
@@ -38,16 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static io.apicurio.registry.types.ArtifactType.ASYNCAPI;
-import static io.apicurio.registry.types.ArtifactType.AVRO;
-import static io.apicurio.registry.types.ArtifactType.GRAPHQL;
-import static io.apicurio.registry.types.ArtifactType.JSON;
-import static io.apicurio.registry.types.ArtifactType.OPENAPI;
-import static io.apicurio.registry.types.ArtifactType.PROTOBUF;
-import static io.apicurio.registry.types.ArtifactType.THRIFT;
-import static io.apicurio.registry.types.ArtifactType.WSDL;
-import static io.apicurio.registry.types.ArtifactType.XML;
-import static io.apicurio.registry.types.ArtifactType.XSD;
 
 /**
  * This class takes a stream of Registry v2 entities and imports them into the application using
@@ -128,7 +119,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             // If the version being imported is the first one, we have to create the artifact first
             if (!storage.isArtifactExists(entity.groupId, entity.artifactId)) {
                 ArtifactEntity artifactEntity = ArtifactEntity.builder().artifactId(entity.artifactId)
-                        .artifactType(entity.artifactType).createdOn(entity.createdOn)
+                        .artifactType(ArtifactType.fromValue(entity.artifactType)).createdOn(entity.createdOn)
                         .description(entity.description).groupId(entity.groupId).labels(artifactVersionLabels)
                         .modifiedBy(entity.createdBy).modifiedOn(entity.createdOn).name(entity.name)
                         .owner(entity.createdBy).build();
@@ -195,10 +186,10 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             try {
                 Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                         .recursivelyResolveReferences(references, storage::getContentByReference);
-                entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
+                entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences).value();
 
                 // First we have to recalculate both the canonical hash and the contentHash
-                TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
+                TypedContent canonicalContent = utils.canonicalizeContent(ArtifactType.fromValue(entity.artifactType), typedContent,
                         resolvedReferences);
 
                 entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
@@ -218,7 +209,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
                 // If this assumption is wrong (e.g. for PROTOBUF) then we'll need an extra step here to
                 // figure
                 // out if the core content is JSON or PROTO.
-                entity.artifactType = AVRO;
+                entity.artifactType = ArtifactType.BuiltIn.AVRO.value();
             }
 
             // Finally, using the information from the old content, a V3 content entity is created.
@@ -323,10 +314,10 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             }
 
             TypedContent content = TypedContent.create(wrapperDto.getContent(), wrapperDto.getContentType());
-            String artifactType = versions.get(0).getArtifactType();
+            String artifactType = versions.get(0).getArtifactType().value();
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(references, storage::getContentByReference);
-            TypedContent canonicalContent = utils.canonicalizeContent(artifactType, content,
+            TypedContent canonicalContent = utils.canonicalizeContent(ArtifactType.fromValue(artifactType), content,
                     resolvedReferences);
             String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             String contentHash = utils.getContentHash(content, references);
@@ -342,24 +333,21 @@ public class SqlDataUpgrader extends AbstractDataImporter {
         if (content.getContentType() != null) {
             return content.getContentType();
         } else {
-            switch (artifactTypeHint) {
-                case ASYNCAPI:
-                case JSON:
-                case OPENAPI:
-                case AVRO:
-                    // WARNING: This is only safe here. We can safely return JSON because in V2 we were
-                    // transforming all YAML to JSON before storing the content in the database.
-                    return ContentTypes.APPLICATION_JSON;
-                case PROTOBUF:
-                    return ContentTypes.APPLICATION_PROTOBUF;
-                case GRAPHQL:
-                    return ContentTypes.APPLICATION_GRAPHQL;
-                case THRIFT:
-                    return ContentTypes.APPLICATION_THRIFT;
-                case XML:
-                case XSD:
-                case WSDL:
-                    return ContentTypes.APPLICATION_XML;
+            if (ArtifactType.BuiltIn.ASYNCAPI.value().equals(artifactTypeHint) ||
+                ArtifactType.BuiltIn.JSON.value().equals(artifactTypeHint) ||
+                ArtifactType.BuiltIn.OPENAPI.value().equals(artifactTypeHint) ||
+                ArtifactType.BuiltIn.AVRO.value().equals(artifactTypeHint)) {
+                return ContentTypes.APPLICATION_JSON;
+            } else if (ArtifactType.BuiltIn.PROTOBUF.value().equals(artifactTypeHint)) {
+                return ContentTypes.APPLICATION_PROTOBUF;
+            } else if (ArtifactType.BuiltIn.GRAPHQL.value().equals(artifactTypeHint)) {
+                return ContentTypes.APPLICATION_GRAPHQL;
+            } else if (ArtifactType.BuiltIn.THRIFT.value().equals(artifactTypeHint)) {
+                return ContentTypes.APPLICATION_THRIFT;
+            } else if (ArtifactType.BuiltIn.XML.value().equals(artifactTypeHint) ||
+                       ArtifactType.BuiltIn.XSD.value().equals(artifactTypeHint) ||
+                       ArtifactType.BuiltIn.WSDL.value().equals(artifactTypeHint)) {
+                return ContentTypes.APPLICATION_XML;
             }
         }
         throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + artifactTypeHint);

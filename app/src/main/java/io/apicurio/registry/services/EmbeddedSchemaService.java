@@ -1,5 +1,6 @@
 package io.apicurio.registry.services;
 
+import io.apicurio.registry.types.ArtifactType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -217,7 +218,7 @@ public class EmbeddedSchemaService {
                     .references(Collections.emptyList())
                     .build();
 
-            storage.createArtifact(groupId, schemaArtifactId, "JSON", artifactMeta,
+            storage.createArtifact(groupId, schemaArtifactId, ArtifactType.BuiltIn.JSON, artifactMeta,
                     "1", contentWrapper, versionMeta, Collections.emptyList(),
                     false, false, owner);
 

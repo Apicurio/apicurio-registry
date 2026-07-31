@@ -61,7 +61,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
         if (useApitomyJsonSchemaChecker) {
             log.info("Using Apitomy Data Models JSON Schema compatibility checker (experimental).");
             providers.stream()
-                    .filter(p -> ArtifactType.JSON.equals(p.getArtifactType()))
+                    .filter(p -> ArtifactType.BuiltIn.JSON.equals(p.getArtifactType()))
                     .filter(AbstractArtifactTypeUtilProvider.class::isInstance)
                     .map(AbstractArtifactTypeUtilProvider.class::cast)
                     .findFirst()
@@ -88,7 +88,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     }
 
     private void loadConfiguredProviders(ArtifactTypesConfiguration config) {
-        Set<String> artifactTypes = new HashSet<>();
+        Set<ArtifactType> artifactTypes = new HashSet<>();
 
         if (config.getIncludeStandardArtifactTypes()) {
             loadStandardProviders();
@@ -103,8 +103,8 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
                     throw new IllegalArgumentException("Invalid configuration: Artifact type '" + artifactType.getArtifactType() + "' found with missing or empty 'name'.");
                 }
 
-                String type = artifactType.getArtifactType();
-                if (Objects.isNull(type) || type.trim().isEmpty()) {
+                ArtifactType type = ArtifactType.fromValue(artifactType.getArtifactType());
+                if (Objects.isNull(type) || type.value().trim().isEmpty()) {
                     throw new IllegalArgumentException("Invalid configuration: Artifact type named '" + artifactType.getName() + "' has missing or empty 'artifactType' property.");
                 }
 

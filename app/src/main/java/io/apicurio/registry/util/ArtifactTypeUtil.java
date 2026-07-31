@@ -5,6 +5,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.types.ArtifactType;
 
 import java.util.Collections;
 import java.util.Map;
@@ -25,23 +26,20 @@ public final class ArtifactTypeUtil {
      * @param content the content
      * @param artifactType the artifact type
      */
-    public static String determineArtifactType(TypedContent content, String artifactType,
+    public static ArtifactType determineArtifactType(TypedContent content, ArtifactType artifactType,
             ArtifactTypeUtilProviderFactory artifactTypeProviderFactory) {
         return determineArtifactType(content, artifactType, Collections.emptyMap(),
                 artifactTypeProviderFactory);
     }
 
-    public static String determineArtifactType(TypedContent content, String artifactType,
+    public static ArtifactType determineArtifactType(TypedContent content, ArtifactType artifactType,
             Map<String, TypedContent> resolvedReferences,
             ArtifactTypeUtilProviderFactory artifactTypeProviderFactory) {
-        if ("".equals(artifactType)) {
-            artifactType = null;
-        }
         if (artifactType == null && content != null) {
             artifactType = ArtifactTypeUtil.discoverType(content, resolvedReferences,
                     artifactTypeProviderFactory);
         }
-        if (!artifactTypeProviderFactory.getAllArtifactTypes().contains(artifactType)) {
+        if (artifactType != null && !artifactTypeProviderFactory.getAllArtifactTypes().contains(artifactType)) {
             throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + artifactType);
         }
         return artifactType;
@@ -62,7 +60,7 @@ public final class ArtifactTypeUtil {
      * @param resolvedReferences
      */
     @SuppressWarnings("deprecation")
-    private static String discoverType(TypedContent content, Map<String, TypedContent> resolvedReferences,
+    private static ArtifactType discoverType(TypedContent content, Map<String, TypedContent> resolvedReferences,
             ArtifactTypeUtilProviderFactory artifactTypeProviderFactory) throws InvalidArtifactTypeException {
         for (ArtifactTypeUtilProvider provider : artifactTypeProviderFactory.getAllArtifactTypeProviders()) {
             ContentAccepter contentAccepter = provider.getContentAccepter();

@@ -14,6 +14,7 @@ import io.apicurio.registry.rest.v3.ContentResource;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.VersionContent;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.util.ArtifactTypeUtil;
@@ -60,11 +61,14 @@ public class ContentResourceImpl implements ContentResource {
         TypedContent typedContent = TypedContent.create(content, contentType);
 
         // Auto-detect artifact type if not provided
+        ArtifactType resolvedType;
         if (artifactType == null || artifactType.isBlank()) {
-            artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, null, factory);
+            resolvedType = ArtifactTypeUtil.determineArtifactType(typedContent, null, factory);
+        } else {
+            resolvedType = ArtifactType.fromValue(artifactType);
         }
 
-        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(resolvedType);
         ReferenceFinder referenceFinder = provider.getReferenceFinder();
         Set<ExternalReference> externalRefs = referenceFinder.findExternalReferences(typedContent);
 
@@ -85,12 +89,13 @@ public class ContentResourceImpl implements ContentResource {
         if (content.bytes().length == 0) {
             throw new BadRequestException("Empty content is not allowed.");
         }
-        if (!factory.getAllArtifactTypes().contains(artifactType)) {
+        ArtifactType resolvedType = ArtifactType.fromValue(artifactType);
+        if (!factory.getAllArtifactTypes().contains(resolvedType)) {
             throw new BadRequestException("Unknown artifact type: " + artifactType);
         }
         String ct = httpHeaders.getMediaType() != null ? httpHeaders.getMediaType().toString() : null;
         TypedContent typedContent = TypedContent.create(content, ct);
-        TypedContent canonicalized = contentUtils.canonicalizeContent(artifactType, typedContent,
+        TypedContent canonicalized = contentUtils.canonicalizeContent(resolvedType, typedContent,
                 Map.of());
         return Response.ok(canonicalized.getContent()).type(canonicalized.getContentType()).build();
     }

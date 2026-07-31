@@ -56,16 +56,15 @@ public class SchemaFormatService {
 
         validateFormat(artifactType, format);
 
-        switch (artifactType) {
-            case ArtifactType.AVRO:
-                return applyAvroFormat(content, format, resolvedReferences);
-            case ArtifactType.PROTOBUF:
-                return applyProtobufFormat(content, format, resolvedReferences);
-            case ArtifactType.JSON:
-                // JSON schemas don't support format transformations
-                return content;
-            default:
-                return content;
+        if (ArtifactType.BuiltIn.AVRO.value().equals(artifactType)) {
+            return applyAvroFormat(content, format, resolvedReferences);
+        } else if (ArtifactType.BuiltIn.PROTOBUF.value().equals(artifactType)) {
+            return applyProtobufFormat(content, format, resolvedReferences);
+        } else if (ArtifactType.BuiltIn.JSON.value().equals(artifactType)) {
+            // JSON schemas don't support format transformations
+            return content;
+        } else {
+            return content;
         }
     }
 

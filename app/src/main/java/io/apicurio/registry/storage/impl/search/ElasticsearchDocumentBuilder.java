@@ -112,7 +112,7 @@ public class ElasticsearchDocumentBuilder {
 
         // Structured content extraction
         if (extractor != null && versionMetadata.getArtifactType() != null) {
-            indexStructuredElements(doc, contentBytes, versionMetadata.getArtifactType(),
+            indexStructuredElements(doc, contentBytes, versionMetadata.getArtifactType().value(),
                     extractor);
         }
 

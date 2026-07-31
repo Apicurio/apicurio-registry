@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
@@ -427,13 +428,15 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSearchVersionsByLabels() throws Exception {
+    public void testSearchVersionsByLabelsTrailingColonAndNamespace() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String group = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
 
         CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
-        createArtifact.setLabels(EditableArtifactMetaDataDto.builder().labels(java.util.Map.of("byLabels", "byLabels-value", "byLabels-3", "byLabels-value-3", "env:tag", "production")).build().getLabels());
+        Labels labels = new Labels();
+        labels.setAdditionalData(Map.of("byLabels", "byLabels-value", "byLabels-3", "byLabels-value-3", "env:tag", "production"));
+        createArtifact.setLabels(labels);
         clientV3.groups().byGroupId(group).artifacts().post(createArtifact);
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {

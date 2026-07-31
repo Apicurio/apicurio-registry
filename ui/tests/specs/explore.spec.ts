@@ -68,7 +68,7 @@ test("Explore - Group specific rules, enable failure keeps the page intact", asy
             await route.fulfill({
                 status: 500,
                 contentType: "application/json",
-                body: JSON.stringify({ message: "Simulated failure" })
+                body: JSON.stringify({ detail: "Simulated failure" })
             });
         } else {
             await route.continue();
@@ -84,7 +84,7 @@ test("Explore - Group specific rules, enable failure keeps the page intact", asy
 
     // The page must remain intact - no full-page error, the group header/tabs are still there.
     await expect(page.getByTestId("group-rules-tab")).toBeVisible();
-    await expect(page.getByTestId("rule-action-error")).toBeVisible();
+    await expect(page.getByTestId("rule-action-error")).toContainText("Simulated failure");
 
     // The rule must NOT show as enabled - the failed request must not have been applied optimistically.
     await expect(page.getByTestId("rules-compatibility-enable")).toBeVisible();
@@ -211,7 +211,7 @@ test("Explore - Artifact specific rules, enable failure keeps the page intact", 
             await route.fulfill({
                 status: 500,
                 contentType: "application/json",
-                body: JSON.stringify({ message: "Simulated failure" })
+                body: JSON.stringify({ detail: "Simulated failure" })
             });
         } else {
             await route.continue();
@@ -227,7 +227,7 @@ test("Explore - Artifact specific rules, enable failure keeps the page intact", 
 
     // The page must remain intact - no full-page error, the artifact header/tabs are still there.
     await expect(page.getByTestId("artifact-rules-tab")).toBeVisible();
-    await expect(page.getByTestId("rule-action-error")).toBeVisible();
+    await expect(page.getByTestId("rule-action-error")).toContainText("Simulated failure");
 
     // The rule must NOT show as enabled - the failed request must not have been applied optimistically.
     await expect(page.getByTestId("rules-compatibility-enable")).toBeVisible();

@@ -132,7 +132,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         groups.createArtifactRule(groupId as string, artifactId as string, ruleType, config).then(() => {
             setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
-            setRuleActionError(error?.message || `Error enabling "${ ruleType }" artifact rule. Please try again.`);
+            setRuleActionError(error?.detail || error?.title || `Error enabling "${ ruleType }" artifact rule. Please try again.`);
         }).finally(() => {
             setPendingRuleType(undefined);
         });
@@ -145,7 +145,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         groups.deleteArtifactRule(groupId as string, artifactId as string, ruleType).then(() => {
             setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
-            setRuleActionError(error?.message || `Error disabling "${ ruleType }" artifact rule. Please try again.`);
+            setRuleActionError(error?.detail || error?.title || `Error disabling "${ ruleType }" artifact rule. Please try again.`);
         }).finally(() => {
             setPendingRuleType(undefined);
         });
@@ -164,7 +164,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 }
             }));
         }).catch(error => {
-            setRuleActionError(error?.message || `Error configuring "${ ruleType }" artifact rule. Please try again.`);
+            setRuleActionError(error?.detail || error?.title || `Error configuring "${ ruleType }" artifact rule. Please try again.`);
         }).finally(() => {
             setPendingRuleType(undefined);
         });

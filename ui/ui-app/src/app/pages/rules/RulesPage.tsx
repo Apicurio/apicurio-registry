@@ -38,7 +38,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
         admin.createRule(ruleType, config).then(() => {
             setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
         }).catch(error => {
-            setRuleActionError(error?.message || `Error enabling "${ ruleType }" global rule. Please try again.`);
+            setRuleActionError(error?.detail || error?.title || `Error enabling "${ ruleType }" global rule. Please try again.`);
         }).finally(() => {
             setPendingRuleType(undefined);
         });
@@ -51,7 +51,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
         admin.deleteRule(ruleType).then(() => {
             setRules(prev => prev.filter(r => r.ruleType !== ruleType));
         }).catch(error => {
-            setRuleActionError(error?.message || `Error disabling "${ ruleType }" global rule. Please try again.`);
+            setRuleActionError(error?.detail || error?.title || `Error disabling "${ ruleType }" global rule. Please try again.`);
         }).finally(() => {
             setPendingRuleType(undefined);
         });
@@ -70,7 +70,7 @@ export const RulesPage: FunctionComponent<PageProperties> = () => {
                 }
             }));
         }).catch(error => {
-            setRuleActionError(error?.message || `Error configuring "${ ruleType }" global rule. Please try again.`);
+            setRuleActionError(error?.detail || error?.title || `Error configuring "${ ruleType }" global rule. Please try again.`);
         }).finally(() => {
             setPendingRuleType(undefined);
         });

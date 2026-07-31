@@ -81,7 +81,7 @@ test("Global Rules - Enable Validity Rule failure keeps the page intact", async 
             await route.fulfill({
                 status: 500,
                 contentType: "application/json",
-                body: JSON.stringify({ message: "Simulated failure" })
+                body: JSON.stringify({ detail: "Simulated failure" })
             });
         } else {
             await route.continue();
@@ -95,7 +95,7 @@ test("Global Rules - Enable Validity Rule failure keeps the page intact", async 
 
     // The page must remain intact - no full-page error, the other rules are still there.
     await expect(page.locator("div.rule")).toHaveCount(3);
-    await expect(page.getByTestId("rule-action-error")).toBeVisible();
+    await expect(page.getByTestId("rule-action-error")).toContainText("Simulated failure");
 
     // The rule must NOT show as enabled - the failed request must not have been applied optimistically.
     await expect(page.getByTestId("rules-validity-enable")).toBeVisible();

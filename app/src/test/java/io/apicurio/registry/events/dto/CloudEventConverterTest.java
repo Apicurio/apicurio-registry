@@ -7,6 +7,7 @@ package io.apicurio.registry.events.dto;
 
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.events.ArtifactDeleted;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import org.json.JSONObject;
@@ -72,6 +73,25 @@ public class CloudEventConverterTest {
         };
 
         CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(unsupportedEvent, "/apicurio-registry");
+
+        assertNull(cloudEvent);
+    }
+
+    @Test
+    public void testConvertUnmappedStorageEventType() {
+        OutboxEvent unmappedEvent = new OutboxEvent("test-id", "test-aggregate", Instant.now()) {
+            @Override
+            public JSONObject getPayload() {
+                return new JSONObject();
+            }
+
+            @Override
+            public String getType() {
+                return StorageEventType.READY.name();
+            }
+        };
+
+        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(unmappedEvent, "/apicurio-registry");
 
         assertNull(cloudEvent);
     }

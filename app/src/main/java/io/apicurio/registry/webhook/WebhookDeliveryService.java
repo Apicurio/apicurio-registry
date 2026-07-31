@@ -30,7 +30,7 @@ public class WebhookDeliveryService {
         OutboxEvent outboxEvent = sqlOutboxEvent.getOutboxEvent();
         CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(outboxEvent, EVENT_SOURCE);
         if (cloudEvent == null) {
-            log.debug("No CloudEvent mapping for event type: {}", outboxEvent.getType());
+            // Unsupported or unknown event type; already logged at WARN by the converter.
             return;
         }
         log.debug("Converted outbox event {} to CloudEvent type {}", cloudEvent.getId(), cloudEvent.getType());

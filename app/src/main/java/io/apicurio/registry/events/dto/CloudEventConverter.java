@@ -13,7 +13,10 @@ import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionStateChanged;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
+import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Function;
 
@@ -26,6 +29,8 @@ import java.util.function.Function;
  */
 public class CloudEventConverter {
 
+    private static final Logger log = LoggerFactory.getLogger(CloudEventConverter.class);
+
     private CloudEventConverter() {
     }
 
@@ -37,16 +42,26 @@ public class CloudEventConverter {
      * @return the CloudEvent DTO, or null if the event type is not supported
      */
     public static CloudEventDto toCloudEvent(OutboxEvent event, String source) {
-        return switch (event.getType()) {
-            case "ARTIFACT_CREATED" -> ArtifactCreatedCloudEvent.from((ArtifactCreated) event, source).getCloudEvent();
-            case "ARTIFACT_DELETED" -> ArtifactDeletedCloudEvent.from((ArtifactDeleted) event, source).getCloudEvent();
-            case "ARTIFACT_METADATA_UPDATED" -> ArtifactMetadataUpdatedCloudEvent.from((ArtifactMetadataUpdated) event, source).getCloudEvent();
-            case "ARTIFACT_RULE_CONFIGURED" -> ArtifactRuleConfiguredCloudEvent.from((ArtifactRuleConfigured) event, source).getCloudEvent();
-            case "ARTIFACT_VERSION_CREATED" -> ArtifactVersionCreatedCloudEvent.from((ArtifactVersionCreated) event, source).getCloudEvent();
-            case "ARTIFACT_VERSION_STATE_CHANGED" -> ArtifactVersionStateChangedCloudEvent.from((ArtifactVersionStateChanged) event, source).getCloudEvent();
-            case "GLOBAL_RULE_CONFIGURED" -> GlobalRuleConfiguredCloudEvent.from((GlobalRuleConfigured) event, source).getCloudEvent();
-            case "GROUP_CREATED" -> GroupCreatedCloudEvent.from((GroupCreated) event, source).getCloudEvent();
-            default -> null;
+        StorageEventType eventType;
+        try {
+            eventType = StorageEventType.valueOf(event.getType());
+        } catch (IllegalArgumentException e) {
+            log.warn("Dropping outbox event {} with unknown type: {}", event.getId(), event.getType());
+            return null;
+        }
+        return switch (eventType) {
+            case ARTIFACT_CREATED -> ArtifactCreatedCloudEvent.from((ArtifactCreated) event, source).getCloudEvent();
+            case ARTIFACT_DELETED -> ArtifactDeletedCloudEvent.from((ArtifactDeleted) event, source).getCloudEvent();
+            case ARTIFACT_METADATA_UPDATED -> ArtifactMetadataUpdatedCloudEvent.from((ArtifactMetadataUpdated) event, source).getCloudEvent();
+            case ARTIFACT_RULE_CONFIGURED -> ArtifactRuleConfiguredCloudEvent.from((ArtifactRuleConfigured) event, source).getCloudEvent();
+            case ARTIFACT_VERSION_CREATED -> ArtifactVersionCreatedCloudEvent.from((ArtifactVersionCreated) event, source).getCloudEvent();
+            case ARTIFACT_VERSION_STATE_CHANGED -> ArtifactVersionStateChangedCloudEvent.from((ArtifactVersionStateChanged) event, source).getCloudEvent();
+            case GLOBAL_RULE_CONFIGURED -> GlobalRuleConfiguredCloudEvent.from((GlobalRuleConfigured) event, source).getCloudEvent();
+            case GROUP_CREATED -> GroupCreatedCloudEvent.from((GroupCreated) event, source).getCloudEvent();
+            default -> {
+                log.warn("No CloudEvent mapping for event type: {}, dropping event {}", eventType, event.getId());
+                yield null;
+            }
         };
     }
 

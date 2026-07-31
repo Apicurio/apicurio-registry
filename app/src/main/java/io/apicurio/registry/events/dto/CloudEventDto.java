@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.json.JSONObject;
 
 import java.time.Instant;
 
@@ -68,7 +69,7 @@ public class CloudEventDto {
     }
 
     public CloudEventDto withData(Object data) {
-        this.data = data;
+        this.data = normalizeData(data);
         return this;
     }
 
@@ -139,7 +140,20 @@ public class CloudEventDto {
 
     @JsonProperty("data")
     public void setData(Object data) {
-        this.data = data;
+        this.data = normalizeData(data);
+    }
+
+    /**
+     * Registry events carry their payload as an {@link JSONObject}, which Jackson does not
+     * understand: it introspects the bean properties and emits {@code {"mapType":...,"empty":...}}
+     * instead of the payload. Convert to a plain {@link java.util.Map} so the payload survives
+     * serialization by any Jackson {@code ObjectMapper}.
+     */
+    private static Object normalizeData(Object data) {
+        if (data instanceof JSONObject jsonObject) {
+            return jsonObject.toMap();
+        }
+        return data;
     }
 
     @JsonProperty("time")

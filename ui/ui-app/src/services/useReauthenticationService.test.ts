@@ -47,20 +47,35 @@ describe("useReauthenticationService", () => {
     });
 
     it("should cancel pending state when interceptor is unregistered while pending", async () => {
-        const interceptor = vi.fn().mockResolvedValue(true);
-        const unregister = registerInterceptor(interceptor);
+        // 1. Return a never-resolving promise to simulate a truly in-flight re-authentication flow
+        const pendingPromise = new Promise<boolean>(() => {});
+        const firstInterceptor = vi.fn().mockReturnValue(pendingPromise);
+        const unregisterFirst = registerInterceptor(firstInterceptor);
 
-        const promise = service.requestReauthentication(mockAuth);
+        // 2. Trigger requestReauthentication
+        service.requestReauthentication(mockAuth);
         expect(service.isReauthenticationPending()).toBe(true);
+        expect(firstInterceptor).toHaveBeenCalledTimes(1);
 
-        // Unregister the interceptor while re-auth is pending
-        unregister();
+        // 3. Unregister the interceptor while the promise is still pending
+        unregisterFirst();
 
+        // Verify the pending state is cleaned up as expected
         expect(service.isReauthenticationPending()).toBe(false);
-        await promise;
 
-        // Post-await assertion to ensure it remains false
-        expect(service.isReauthenticationPending()).toBe(false);
+        // 4. Register a new interceptor
+        const secondInterceptor = vi.fn().mockResolvedValue(true);
+        registerInterceptor(secondInterceptor);
+
+        // 5. Trigger a second requestReauthentication and assert a fresh flow starts
+        const promise2 = service.requestReauthentication(mockAuth);
+        expect(service.isReauthenticationPending()).toBe(true);
+        expect(secondInterceptor).toHaveBeenCalledTimes(1);
+
+        await expect(promise2).resolves.toBe(true);
+
+        // Ensure the first interceptor was not invoked again
+        expect(firstInterceptor).toHaveBeenCalledTimes(1);
     });
 
     it("should trigger redirect if no interceptor is registered", async () => {

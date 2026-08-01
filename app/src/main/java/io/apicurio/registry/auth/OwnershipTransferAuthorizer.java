@@ -27,6 +27,12 @@ import java.util.Objects;
 /**
  * Authorizes ownership transfers for artifacts and groups.
  *
+ * <p>Wired into the only V3 client-writable owner paths:
+ * {@code GroupsResourceImpl#updateArtifactMetaData} and
+ * {@code GroupsResourceImpl#updateGroupById}. Version metadata has no owner field;
+ * import/bulk paths are Admin-only. V2 uses a dedicated
+ * {@code updateArtifactOwner} with {@link AuthorizedLevel#AdminOrOwner}.
+ *
  * <p>Metadata update endpoints use {@link AuthorizedLevel#Write} so non-owners can still
  * change name/description/labels. Ownership changes require Admin or the current owner
  * (mirrors V2 {@code updateArtifactOwner} / {@link AuthorizedLevel#AdminOrOwner}).
@@ -68,7 +74,7 @@ public class OwnershipTransferAuthorizer {
      * @param requestedOwner the non-empty owner value from the request
      */
     public void authorizeOwnerChange(String currentOwner, String requestedOwner) {
-        if (!isAuthenticationEnabled()) {
+        if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
 
@@ -93,10 +99,5 @@ public class OwnershipTransferAuthorizer {
 
     private boolean isAdmin() {
         return adminOverride.isAdmin() || (authConfig.isRbacEnabled() && rbac.isAdmin());
-    }
-
-    private boolean isAuthenticationEnabled() {
-        return authConfig.isOidcAuthEnabled() || authConfig.isBasicAuthEnabled()
-                || authConfig.isProxyHeaderAuthEnabled() || authConfig.isKubernetesAuthEnabled();
     }
 }

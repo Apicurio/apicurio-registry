@@ -35,49 +35,52 @@ public class OwnershipTransferAuthorizerTest {
 
     @Test
     public void ownerCanTransfer() {
-        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob1", false, true);
+        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob1", false, false, true);
         assertDoesNotThrow(() -> authorizer.authorizeOwnerChange("bob1", "bob2"));
     }
 
     @Test
     public void nonOwnerCannotTransfer() {
-        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, true);
+        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, false, true);
         assertThrows(ForbiddenException.class, () -> authorizer.authorizeOwnerChange("bob1", "bob2"));
     }
 
     @Test
-    public void adminCanTransfer() {
-        OwnershipTransferAuthorizer authorizer = newAuthorizer("alice", true, true);
+    public void adminOverrideCanTransfer() {
+        OwnershipTransferAuthorizer authorizer = newAuthorizer("alice", true, false, true);
+        assertDoesNotThrow(() -> authorizer.authorizeOwnerChange("bob1", "bob2"));
+    }
+
+    @Test
+    public void rbacAdminCanTransfer() {
+        OwnershipTransferAuthorizer authorizer = newAuthorizer("alice", false, true, true);
         assertDoesNotThrow(() -> authorizer.authorizeOwnerChange("bob1", "bob2"));
     }
 
     @Test
     public void unownedCanBeClaimed() {
-        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, true);
+        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, false, true);
         assertDoesNotThrow(() -> authorizer.authorizeOwnerChange(null, "bob2"));
     }
 
     @Test
     public void noopSameOwnerAllowed() {
-        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, true);
+        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, false, true);
         assertDoesNotThrow(() -> authorizer.authorizeOwnerChange("bob1", "bob1"));
     }
 
     @Test
     public void skippedWhenAuthDisabled() {
-        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, false);
+        OwnershipTransferAuthorizer authorizer = newAuthorizer("bob2", false, false, false);
         assertDoesNotThrow(() -> authorizer.authorizeOwnerChange("bob1", "bob2"));
     }
 
     private OwnershipTransferAuthorizer newAuthorizer(String username, boolean adminOverrideActive,
-            boolean authEnabled) {
+            boolean rbacAdmin, boolean authEnabled) {
         OwnershipTransferAuthorizer authorizer = new OwnershipTransferAuthorizer();
 
         AuthConfig authConfig = mock(AuthConfig.class);
-        when(authConfig.isOidcAuthEnabled()).thenReturn(false);
-        when(authConfig.isBasicAuthEnabled()).thenReturn(authEnabled);
-        when(authConfig.isProxyHeaderAuthEnabled()).thenReturn(false);
-        when(authConfig.isKubernetesAuthEnabled()).thenReturn(false);
+        when(authConfig.isAuthenticationEnabled()).thenReturn(authEnabled);
         when(authConfig.isRbacEnabled()).thenReturn(true);
         authorizer.authConfig = authConfig;
 
@@ -86,7 +89,7 @@ public class OwnershipTransferAuthorizerTest {
         authorizer.adminOverride = adminOverride;
 
         RoleBasedAccessController rbac = mock(RoleBasedAccessController.class);
-        when(rbac.isAdmin()).thenReturn(false);
+        when(rbac.isAdmin()).thenReturn(rbacAdmin);
         authorizer.rbac = rbac;
 
         Principal principal = mock(Principal.class);

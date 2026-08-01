@@ -445,6 +445,10 @@ async function migrateLegacyLabels(api, pr, core) {
   }
 
   await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
+  // A legacy WIP PR whose smoke tests failed still carries waiting-on-author;
+  // clear it so the PR doesn't end up with both waiting-on-* labels until the
+  // retriggered suite reports back.
+  await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.postComment(pr.number,
     `**Lifecycle update:** the \`lifecycle/wip\` stage has been removed. This PR has been ` +

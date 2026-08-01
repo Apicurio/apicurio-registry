@@ -34,8 +34,8 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
 public class SqlSearchRepository {
 
     private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
-            "Content search requires the search index, which is not enabled. "
-            + "Enable the search index to use content search.";
+            "Content search is not supported by the SQL storage implementation.  Please use Elasticsearch if you need this feature.";
+    private static final String V_STATE_FIELD = "v.state ";
 
     private final Logger log;
 
@@ -159,7 +159,7 @@ public class SqlSearchRepository {
                         op = filter.isNot() ? "!=" : "=";
                         where.append(
                                 "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append("v.state " + op + " ?");
+                        where.append(V_STATE_FIELD + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
                         });
@@ -290,7 +290,7 @@ public class SqlSearchRepository {
                         break;
                     case state:
                         if (filter.isList()) {
-                            where.append("v.state ");
+                            where.append(V_STATE_FIELD);
                             where.append(filter.isNot() ? "NOT IN (" : "IN (");
                             for (int i = 0; i < filter.getListValue().size(); i++) {
                                 where.append("?");
@@ -306,7 +306,7 @@ public class SqlSearchRepository {
                             }
                         } else {
                             op = filter.isNot() ? "!=" : "=";
-                            where.append("v.state ");
+                            where.append(V_STATE_FIELD);
                             where.append(op);
                             where.append(" ?");
                             binders.add((query, idx) -> {

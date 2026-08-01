@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -50,6 +51,8 @@ public class ElasticsearchSearchService {
      */
     private static final Set<SearchFilterType> INDEX_ONLY_FILTER_TYPES = EnumSet.of(
             SearchFilterType.content, SearchFilterType.structure);
+
+    private static final String STATE_FIELD = "state";
 
     @Inject
     ElasticsearchClient client;
@@ -215,14 +218,14 @@ public class ElasticsearchSearchService {
         case state:
             if (filter.isList()) {
                 return Query.of(q -> q.terms(t -> t
-                    .field("state")
+                    .field(STATE_FIELD)
                     .terms(t2 -> t2.value(filter.getListValue().stream()
-                        .map(String::toUpperCase)
+                        .map(s -> s.toUpperCase(Locale.ROOT))
                         .map(FieldValue::of)
                         .collect(Collectors.toList())))));
             } else {
                 return Query.of(q -> q.term(t -> t
-                    .field("state").value(filter.getStringValue().toUpperCase())));
+                    .field(STATE_FIELD).value(filter.getStringValue().toUpperCase(Locale.ROOT))));
             }
 
         case globalId:

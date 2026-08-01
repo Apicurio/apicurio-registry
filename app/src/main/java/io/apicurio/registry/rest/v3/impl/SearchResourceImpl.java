@@ -354,8 +354,7 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         final OrderBy oBy = OrderBy.valueOf(orderby.name());
-        final OrderDirection oDir = (order == null || order == SortOrder.asc) ? OrderDirection.asc
-            : OrderDirection.desc;
+        final OrderDirection oDir = order == SortOrder.desc ? OrderDirection.desc : OrderDirection.asc;
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(groupId)) {
@@ -368,9 +367,7 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofStates(state));
         }
 
-        if (canonical == null) {
-            canonical = Boolean.FALSE;
-        }
+        boolean isCanonical = Boolean.TRUE.equals(canonical);
         ContentHandle content = ContentHandle.create(data);
         if (content.bytes().length == 0) {
             throw new BadRequestException(EMPTY_CONTENT_ERROR_MESSAGE);
@@ -378,11 +375,10 @@ public class SearchResourceImpl implements SearchResource {
         String ct = getContentType();
         TypedContent typedContent = TypedContent.create(content, ct);
 
-        if (canonical && artifactType != null) {
-            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null,
-                    null);
+        if (isCanonical && artifactType != null) {
+            String canonicalHash = contentUtils.getCanonicalContentHash(typedContent, artifactType, null, null);
             filters.add(SearchFilter.ofCanonicalHash(canonicalHash));
-        } else if (!canonical) {
+        } else if (!isCanonical) {
             String contentHash = content.getSha256Hash();
             filters.add(SearchFilter.ofContentHash(contentHash));
         } else {
@@ -390,7 +386,7 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, normalizeOffset(offset),
-                normalizeLimit(limit), skipCount != null && skipCount);
+                normalizeLimit(limit), Boolean.TRUE.equals(skipCount));
         otelMetrics.recordSearchRequest("versionsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }

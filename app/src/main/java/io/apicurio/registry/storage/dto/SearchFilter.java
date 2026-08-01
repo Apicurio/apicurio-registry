@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.dto;
 import io.apicurio.registry.types.VersionState;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -130,7 +131,7 @@ public class SearchFilter {
     @SuppressWarnings("unchecked")
     public List<String> getListValue() {
         if (value == null) {
-            return null;
+            return Collections.emptyList();
         }
         if (value instanceof List) {
             return (List<String>) value;

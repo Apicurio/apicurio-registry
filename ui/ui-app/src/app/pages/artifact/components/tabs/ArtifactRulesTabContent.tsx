@@ -2,7 +2,7 @@ import { FunctionComponent } from "react";
 import "./ArtifactRulesTabContent.css";
 import "@app/styles/empty.css";
 import { RuleList, RuleListType } from "@app/components";
-import { Card, CardBody, CardTitle, Divider } from "@patternfly/react-core";
+import { Alert, AlertActionCloseButton, Card, CardBody, CardTitle, Divider } from "@patternfly/react-core";
 import { ArtifactMetaData, Rule } from "@sdk/lib/generated-client/models";
 
 /**
@@ -14,6 +14,9 @@ export type ArtifactRulesTabContentProps = {
     onEnableRule: (ruleType: string) => void;
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
+    actionError?: string;
+    onDismissActionError: () => void;
+    pendingRuleType?: string;
 };
 
 /**
@@ -35,6 +38,15 @@ export const ArtifactRulesTabContent: FunctionComponent<ArtifactRulesTabContentP
                             individually enabled, configured, and disabled. Artifact-specific rules override
                             the equivalent global rules.
                         </p>
+                        {props.actionError && (
+                            <Alert
+                                variant="danger"
+                                title={props.actionError}
+                                actionClose={<AlertActionCloseButton onClose={props.onDismissActionError} />}
+                                isInline
+                                style={{ marginBottom: "15px" }}
+                                data-testid="rule-action-error" />
+                        )}
                         <RuleList
                             type={RuleListType.Artifact}
                             resourceOwner={props.artifact.owner}
@@ -42,6 +54,7 @@ export const ArtifactRulesTabContent: FunctionComponent<ArtifactRulesTabContentP
                             onEnableRule={props.onEnableRule}
                             onDisableRule={props.onDisableRule}
                             onConfigureRule={props.onConfigureRule}
+                            pendingRuleType={props.pendingRuleType}
                         />
                     </CardBody>
                 </Card>

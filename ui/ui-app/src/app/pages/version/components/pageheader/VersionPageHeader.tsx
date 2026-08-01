@@ -98,6 +98,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             }
         }
     ];
+    const visibleActions = actions.filter(action => action.isVisible());
 
     return (
         <Flex className="example-border">
@@ -128,21 +129,22 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                             </IfFeature>
                         </IfFeature>
                     </ActionListItem>
-                    <ActionListItem key="actions">
-                        <ObjectDropdown
-                            label=""
-                            items={actions}
-                            onSelect={item => item.onSelect()}
-                            itemToString={item => item.label}
-                            itemToTestId={item => item.testId}
-                            itemIsVisible={item => item.isVisible()}
-                            itemIsDivider={item => item.divider}
-                            popperProps={{
-                                position: "right"
-                            }}
-                            isKebab={true}
-                        />
-                    </ActionListItem>
+                    <If condition={visibleActions.length > 0}>
+                        <ActionListItem key="actions">
+                            <ObjectDropdown
+                                label=""
+                                items={visibleActions}
+                                onSelect={item => item.onSelect()}
+                                itemToString={item => item.label}
+                                itemToTestId={item => item.testId}
+                                itemIsDivider={item => item.divider}
+                                popperProps={{
+                                    position: "right"
+                                }}
+                                isKebab={true}
+                            />
+                        </ActionListItem>
+                    </If>
                 </ActionList>
             </FlexItem>
         </Flex>

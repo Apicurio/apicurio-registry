@@ -25,33 +25,36 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
     private MessageTypeSerdeHeaders serdeHeaders;
 
     public JsonSchemaKafkaSerializer() {
-        super(new JsonSchemaSerializer<>());
+        super(JsonSchemaSerializer::new);
     }
 
+    @Deprecated
     public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade) {
-        super(new JsonSchemaSerializer<>(clientFacade));
+        super(() -> new JsonSchemaSerializer<>(clientFacade));
     }
 
+    @Deprecated
     public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(schemaResolver));
+        super(() -> new JsonSchemaSerializer<>(schemaResolver));
     }
 
+    @Deprecated
     public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(clientFacade, schemaResolver));
+        super(() -> new JsonSchemaSerializer<>(clientFacade, schemaResolver));
     }
 
+    @Deprecated
     public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
                                      ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
                                      SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
+        super(()-> new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
     /**
      * @see KafkaSerializer#configure(java.util.Map, boolean)
      */
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
         serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
     }
 

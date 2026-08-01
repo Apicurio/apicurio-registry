@@ -18,31 +18,33 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
     private MessageTypeSerdeHeaders serdeHeaders;
 
     public JsonSchemaKafkaDeserializer() {
-        super(new JsonSchemaDeserializer<>());
+        super(JsonSchemaDeserializer::new);
     }
 
+    @Deprecated
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade) {
-        super(new JsonSchemaDeserializer<>(clientFacade));
+        super(() -> new JsonSchemaDeserializer<>(clientFacade));
     }
 
+    @Deprecated
     public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(schemaResolver));
+        super(() -> new JsonSchemaDeserializer<>(schemaResolver));
     }
 
+    @Deprecated
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
+        super(() -> new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
     }
 
+    @Deprecated
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
                                        ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
                                        SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaDeserializer<>(clientFacade, schemaResolver, strategy));
+        super(() -> new JsonSchemaDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
         this.serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
     }
 

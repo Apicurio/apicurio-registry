@@ -3832,9 +3832,14 @@
             "name": "state",
             "description": "Filter by version state.",
             "schema": {
-              "$ref": "#/components/schemas/VersionState"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/VersionState"
+              }
             },
-            "in": "query"
+            "in": "query",
+            "explode": true,
+            "style": "form"
           },
           {
             "name": "artifactType",
@@ -3985,9 +3990,14 @@
             "name": "state",
             "description": "Filter by version state.",
             "schema": {
-              "$ref": "#/components/schemas/VersionState"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/VersionState"
+              }
             },
-            "in": "query"
+            "in": "query",
+            "explode": true,
+            "style": "form"
           },
           {
             "name": "skipCount",

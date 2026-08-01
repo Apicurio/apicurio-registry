@@ -289,11 +289,34 @@ public class SqlSearchRepository {
                         });
                         break;
                     case state:
+                        if (filter.isList()) {
+                            where.append("v.state ");
+                            where.append(filter.isNot() ? "NOT IN (" : "IN (");
+                            for (int i = 0; i < filter.getListValue().size(); i++) {
+                                where.append("?");
+                                if (i < filter.getListValue().size() - 1) {
+                                    where.append(", ");
+                                }
+                            }
+                            where.append(")");
+                            for (String val : filter.getListValue()) {
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, val);
+                                });
+                            }
+                        } else {
+                            op = filter.isNot() ? "!=" : "=";
+                            where.append("v.state ");
+                            where.append(op);
+                            where.append(" ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, filter.getStringValue());
+                            });
+                        }
+                        break;
                     case version:
                         op = filter.isNot() ? "!=" : "=";
-                        where.append("v.");
-                        where.append(filter.getType().name());
-                        where.append(" ");
+                        where.append("v.version ");
                         where.append(op);
                         where.append(" ?");
                         binders.add((query, idx) -> {

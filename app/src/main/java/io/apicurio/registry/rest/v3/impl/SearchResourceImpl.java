@@ -256,7 +256,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
-            Long globalId, Long contentId, String artifactId, String name, VersionState state,
+            Long globalId, Long contentId, String artifactId, String name, List<VersionState> state,
             String artifactType, String content, String structure, Boolean skipCount) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
@@ -321,8 +321,8 @@ public class SearchResourceImpl implements SearchResource {
         if (contentId != null && contentId > 0) {
             filters.add(SearchFilter.ofContentId(contentId));
         }
-        if (state != null) {
-            filters.add(SearchFilter.ofState(state));
+        if (state != null && !state.isEmpty()) {
+            filters.add(SearchFilter.ofStates(state));
         }
         if (!StringUtil.isEmpty(content)) {
             filters.add(SearchFilter.ofContent(content));
@@ -341,7 +341,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType,
             BigInteger offset, BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId,
-            String artifactId, VersionState state, Boolean skipCount, InputStream data) {
+            String artifactId, List<VersionState> state, Boolean skipCount, InputStream data) {
 
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
@@ -364,8 +364,8 @@ public class SearchResourceImpl implements SearchResource {
         if (!StringUtil.isEmpty(artifactId)) {
             filters.add(SearchFilter.ofArtifactId(artifactId));
         }
-        if (state != null) {
-            filters.add(SearchFilter.ofState(state));
+        if (state != null && !state.isEmpty()) {
+            filters.add(SearchFilter.ofStates(state));
         }
 
         if (canonical == null) {

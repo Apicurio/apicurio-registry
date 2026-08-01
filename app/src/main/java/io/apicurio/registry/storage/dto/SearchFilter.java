@@ -3,6 +3,9 @@ package io.apicurio.registry.storage.dto;
 import io.apicurio.registry.types.VersionState;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * Represents a single filter criterion used in search operations for artifacts and versions. Each filter has
  * a type (the field to match against), a value, and an optional negation flag.
@@ -90,6 +93,10 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.state, state.name());
     }
 
+    public static SearchFilter ofStates(List<VersionState> states) {
+        return new SearchFilter(SearchFilterType.state, states.stream().map(VersionState::name).collect(Collectors.toList()));
+    }
+
     @SuppressWarnings("unchecked")
     public Pair<String, String> getLabelFilterValue() {
         if (value == null) {
@@ -114,6 +121,21 @@ public class SearchFilter {
             return value.toString();
         }
         throw new IllegalStateException("value is not of type string");
+    }
+
+    public boolean isList() {
+        return value instanceof List;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getListValue() {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof List) {
+            return (List<String>) value;
+        }
+        throw new IllegalStateException("value is not of type list");
     }
 
     /**

@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.search;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldSort;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
@@ -29,6 +30,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Service that bridges the existing SearchFilter/OrderBy abstraction with Elasticsearch queries.
@@ -211,8 +213,17 @@ public class ElasticsearchSearchService {
                     .field("artifactType").value(filter.getStringValue())));
 
         case state:
-            return Query.of(q -> q.term(t -> t
+            if (filter.isList()) {
+                return Query.of(q -> q.terms(t -> t
+                    .field("state")
+                    .terms(t2 -> t2.value(filter.getListValue().stream()
+                        .map(String::toUpperCase)
+                        .map(FieldValue::of)
+                        .collect(Collectors.toList())))));
+            } else {
+                return Query.of(q -> q.term(t -> t
                     .field("state").value(filter.getStringValue().toUpperCase())));
+            }
 
         case globalId:
             return Query.of(q -> q.term(t -> t

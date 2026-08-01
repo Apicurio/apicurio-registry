@@ -2,18 +2,17 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
-import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.kafka.KafkaSerializer;
-import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
+
 import org.apache.kafka.common.header.Headers;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.serde.kafka.KafkaSerializer;
+import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -26,28 +25,6 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
 
     public JsonSchemaKafkaSerializer() {
         super(JsonSchemaSerializer::new);
-    }
-
-    @Deprecated
-    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade) {
-        super(() -> new JsonSchemaSerializer<>(clientFacade));
-    }
-
-    @Deprecated
-    public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(() -> new JsonSchemaSerializer<>(schemaResolver));
-    }
-
-    @Deprecated
-    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(() -> new JsonSchemaSerializer<>(clientFacade, schemaResolver));
-    }
-
-    @Deprecated
-    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
-                                     ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-                                     SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(()-> new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
     /**

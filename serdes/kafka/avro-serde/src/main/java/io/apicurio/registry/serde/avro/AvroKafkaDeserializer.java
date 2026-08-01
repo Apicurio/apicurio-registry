@@ -5,9 +5,6 @@ import org.apache.kafka.common.header.Headers;
 
 import java.util.Map;
 
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.kafka.KafkaDeserializer;
 
 public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
@@ -16,26 +13,6 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
 
     public AvroKafkaDeserializer() {
         super(AvroDeserializer::new);
-    }
-
-    public AvroKafkaDeserializer(RegistryClientFacade clientFacade) {
-        super(() -> new AvroDeserializer<>(clientFacade));
-    }
-
-    @Deprecated
-    public AvroKafkaDeserializer(SchemaResolver<Schema, U> schemaResolver) {
-        super(() -> new AvroDeserializer<>(schemaResolver));
-    }
-
-    @Deprecated
-    public AvroKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
-        super(() -> new AvroDeserializer<>(clientFacade, schemaResolver));
-    }
-
-    @Deprecated
-    public AvroKafkaDeserializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<Schema, U> strategy,
-                                 SchemaResolver<Schema, U> schemaResolver) {
-        super(() -> new AvroDeserializer<>(clientFacade, strategy, schemaResolver));
     }
 
     @Override

@@ -10,9 +10,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.kafka.KafkaSerializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
@@ -22,27 +19,6 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
 
     public ProtobufKafkaSerializer() {
         super(ProtobufSerializer::new);
-    }
-
-    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade) {
-        super(() -> new ProtobufSerializer<>(clientFacade));
-    }
-
-    @Deprecated
-    public ProtobufKafkaSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(() -> new ProtobufSerializer<>(schemaResolver));
-    }
-
-    @Deprecated
-    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(() -> new ProtobufSerializer<>(clientFacade, schemaResolver));
-    }
-
-    @Deprecated
-    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade,
-                                   ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
-                                   SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(() -> new ProtobufSerializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override

@@ -2,16 +2,15 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.resolver.utils.Utils;
-import io.apicurio.registry.serde.kafka.KafkaDeserializer;
-import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
+
 import org.apache.kafka.common.header.Headers;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import io.apicurio.registry.resolver.utils.Utils;
+import io.apicurio.registry.serde.kafka.KafkaDeserializer;
+import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
 
 public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema, T> {
 
@@ -19,27 +18,6 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
 
     public JsonSchemaKafkaDeserializer() {
         super(JsonSchemaDeserializer::new);
-    }
-
-    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade) {
-        super(() -> new JsonSchemaDeserializer<>(clientFacade));
-    }
-
-    @Deprecated
-    public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(() -> new JsonSchemaDeserializer<>(schemaResolver));
-    }
-
-    @Deprecated
-    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(() -> new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
-    }
-
-    @Deprecated
-    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
-                                       ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
-                                       SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(() -> new JsonSchemaDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override

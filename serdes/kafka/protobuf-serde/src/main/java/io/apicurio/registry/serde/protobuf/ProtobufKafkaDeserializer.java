@@ -7,9 +7,6 @@ import org.apache.kafka.common.header.Headers;
 import java.util.HashMap;
 import java.util.Map;
 
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.kafka.KafkaDeserializer;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
@@ -19,29 +16,6 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
 
     public ProtobufKafkaDeserializer() {
         super(ProtobufDeserializer::new);
-    }
-
-    @Deprecated
-    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade) {
-        super(() -> new ProtobufDeserializer<>(clientFacade));
-    }
-
-    @Deprecated
-    public ProtobufKafkaDeserializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(() -> new ProtobufDeserializer<>(schemaResolver));
-    }
-
-    @Deprecated
-    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
-                                     SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(() -> new ProtobufDeserializer<>(clientFacade, schemaResolver));
-    }
-
-    @Deprecated
-    public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
-                                     ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
-                                     SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(() -> new ProtobufDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override

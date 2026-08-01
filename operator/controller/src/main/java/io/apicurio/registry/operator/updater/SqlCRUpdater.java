@@ -10,14 +10,18 @@ import io.apicurio.registry.operator.api.v1.spec.SecretKeyRef;
 import io.apicurio.registry.operator.api.v1.spec.SqlSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageType;
+import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Optional;
+
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
-import static java.util.UUID.randomUUID;
 
 public class SqlCRUpdater {
 
@@ -105,33 +109,48 @@ public class SqlCRUpdater {
             log.warn("CR field `app.sql.dataSource.password` is DEPRECATED and should not be used.");
 
             // Get existing Secret, if it exists. We need to handle a situation where the fields are partially migrated.
-            var newPasswordValue = newPassword
+            var existingSecret = newPassword
                     .map(x -> context.getClient()
                             .secrets()
                             .inNamespace(primary.getMetadata().getNamespace())
                             .withName(x.getName())
                             .get()
-                    )
-                    .map(x -> x.getData().get(DEFAULT_SECRET_PASSWORD_FIELD));
+                    );
+            var newPasswordValue = existingSecret
+                    .map(x -> x.getData().get(DEFAULT_SECRET_PASSWORD_FIELD))
+                    .flatMap(SqlCRUpdater::decodeBase64);
 
             if (newPassword.isEmpty() || oldPassword.equals(newPasswordValue)) {
                 if (storageType.isEmpty() || storageType.orElse(null).isSql()) {
 
                     log.info("Performing automatic CR update from `app.sql.dataSource.password` to `app.storage.sql.dataSource.password`.");
                     primary.getSpec().withApp().withStorage().setType(storageType.orElse(StorageType.POSTGRESQL));
-                    if (newPasswordValue.isEmpty()) {
-                        // Create the Secret
-                        var secretName = primary.getMetadata().getName() + "-datasource-password-" + randomUUID().toString().substring(0, 7);
-                        // @formatter:off
-                        var secret = new SecretBuilder()
-                                .withNewMetadata()
-                                    .withNamespace(primary.getMetadata().getNamespace())
-                                    .withName(secretName)
-                                .endMetadata()
-                                .addToData(DEFAULT_SECRET_PASSWORD_FIELD, oldPassword.get())
-                                .build();
-                        // @formatter:on
-                        context.getClient().resource(secret).create();
+                    if (existingSecret.isEmpty()) {
+                        // Use a deterministic name so a retried reconcile reuses the same Secret instead of leaking a new one.
+                        var secretName = primary.getMetadata().getName() + "-datasource-password";
+                        var secretAlreadyPresent = context.getClient().secrets()
+                                .inNamespace(primary.getMetadata().getNamespace())
+                                .withName(secretName).get() != null;
+                        if (!secretAlreadyPresent) {
+                            // @formatter:off
+                            var secret = new SecretBuilder()
+                                    .withNewMetadata()
+                                        .withNamespace(primary.getMetadata().getNamespace())
+                                        .withName(secretName)
+                                        .withOwnerReferences(new OwnerReferenceBuilder()
+                                                .withApiVersion(primary.getApiVersion())
+                                                .withKind(primary.getKind())
+                                                .withName(primary.getMetadata().getName())
+                                                .withUid(primary.getMetadata().getUid())
+                                                .withController(true)
+                                                .withBlockOwnerDeletion(true)
+                                                .build())
+                                    .endMetadata()
+                                    .addToStringData(DEFAULT_SECRET_PASSWORD_FIELD, oldPassword.get())
+                                    .build();
+                            // @formatter:on
+                            context.getClient().resource(secret).create();
+                        }
                         primary.getSpec().getApp().getStorage().withSql().withDataSource().setPassword(SecretKeyRef.builder().name(secretName).build());
                     }
                     primary.getSpec().getApp().getSql().getDataSource().setPassword(null);
@@ -169,5 +188,18 @@ public class SqlCRUpdater {
 
     private static void storageTypeWarn() {
         log.warn("Automatic update cannot be performed, because the field `app.storage.type` is already set and is not a SQL storage type (postgresql or mysql).");
+    }
+
+    /**
+     * Secret data values are base64-encoded by the Kubernetes API. Decode so they can be compared against
+     * the plaintext value of the deprecated CR field.
+     */
+    private static Optional<String> decodeBase64(String value) {
+        try {
+            return Optional.of(new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Could not decode existing Secret password value, it does not appear to be base64-encoded.");
+            return Optional.empty();
+        }
     }
 }

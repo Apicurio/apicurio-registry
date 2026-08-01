@@ -18,6 +18,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -79,7 +80,8 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
         byte[] compressedBody = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
-                .then().statusCode(200).header("Content-Encoding", equalTo("gzip")).extract().asByteArray();
+                .then().statusCode(200).header("Content-Encoding", equalTo("gzip"))
+                .header("Vary", containsString("Accept-Encoding")).extract().asByteArray();
 
         byte[] uncompressedBody = content.getBytes(StandardCharsets.UTF_8);
         byte[] decompressedBody = gunzip(compressedBody);

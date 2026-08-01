@@ -2,6 +2,7 @@ package io.apicurio.registry.rest;
 
 import io.apicurio.registry.util.Priorities;
 import jakarta.annotation.Priority;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -9,10 +10,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.ext.Provider;
 import jakarta.ws.rs.ext.WriterInterceptor;
 import jakarta.ws.rs.ext.WriterInterceptorContext;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.zip.GZIPOutputStream;
@@ -31,8 +33,10 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
     @Context
     HttpHeaders httpHeaders;
 
-    @ConfigProperty(name = "quarkus.http.compress-media-types")
-    List<String> compressMediaTypes;
+    @Inject
+    RestConfig restConfig;
+
+    private volatile List<String> compressMediaTypes;
 
     @Override
     public void aroundWriteTo(WriterInterceptorContext context) throws IOException, WebApplicationException {
@@ -43,6 +47,7 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
 
         context.getHeaders().putSingle(HttpHeaders.CONTENT_ENCODING, "gzip");
         context.getHeaders().remove(HttpHeaders.CONTENT_LENGTH);
+        context.getHeaders().add(HttpHeaders.VARY, "Accept-Encoding");
 
         OutputStream originalStream = context.getOutputStream();
         GZIPOutputStream gzipStream = new GZIPOutputStream(originalStream);
@@ -55,6 +60,9 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
     }
 
     private boolean isCompressible(WriterInterceptorContext context) {
+        if (!restConfig.isCompressionEnabled()) {
+            return false;
+        }
         String acceptEncoding = httpHeaders.getHeaderString(HttpHeaders.ACCEPT_ENCODING);
         if (!clientAcceptsGzip(acceptEncoding)) {
             return false;
@@ -66,7 +74,15 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
         if (mediaType == null) {
             return false;
         }
-        return compressMediaTypes.contains(mediaType.getType() + "/" + mediaType.getSubtype());
+        return getCompressMediaTypes().contains(mediaType.getType() + "/" + mediaType.getSubtype());
+    }
+
+    private List<String> getCompressMediaTypes() {
+        if (compressMediaTypes == null) {
+            compressMediaTypes = Arrays.asList(ConfigProvider.getConfig()
+                    .getValue("quarkus.http.compress-media-types", String.class).split(","));
+        }
+        return compressMediaTypes;
     }
 
     /**

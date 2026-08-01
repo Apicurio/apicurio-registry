@@ -460,13 +460,20 @@ async function reconcile(github, api, pr, core) {
 
   if (await migrateLegacyLabels(api, pr, core)) return;
 
+  // The orchestrator ignores draft PRs entirely — nothing to reconcile,
+  // whether or not the PR still carries lifecycle labels from before it was
+  // converted back to draft. Stripping those labels is handled by
+  // handlePrConvertedToDraft.
+  if (pr.draft) {
+    core.info(`PR #${pr.number} is a draft — skipping reconcile`);
+    return;
+  }
+
   const state = getLifecycleState(pr);
 
   // 1. No lifecycle label at all → initialize as new PR
   if (!state) {
     if (hasLabel(pr, LABELS.DISABLED)) return;
-    // The orchestrator ignores draft PRs entirely — nothing to reconcile.
-    if (pr.draft) return;
 
     if (isAutoAccepted(config, pr.user.login)) {
       await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
@@ -597,6 +604,12 @@ async function handlePrSynchronize({ github, context, core }) {
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
 
+  // Drafts are outside the lifecycle — pushes to a draft are not our business.
+  if (pr.draft) {
+    core.info(`PR #${pr.number} is a draft — ignoring push`);
+    return;
+  }
+
   // Orchestrator-initiated branch update for merge — preserve state.
   // Only honour for bot-triggered syncs; if a human pushes while the
   // label is set, abort the fast-merge flow and proceed normally.
@@ -649,6 +662,34 @@ async function handlePrSynchronize({ github, context, core }) {
 
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
+}
+
+// Fires when a PR is converted back to draft. Drafts are outside the lifecycle
+// (no labels, no CI), so strip every lifecycle label the PR accumulated —
+// otherwise verify.yaml would keep seeing ready-for-review and running the full
+// suite on every push to a draft.
+async function handlePrConvertedToDraft({ github, context, core }) {
+  const pr = context.payload.pull_request;
+  const { owner, repo } = context.repo;
+  const api = createApi(github, owner, repo);
+
+  const toRemove = getLabelNames(pr).filter(l => l.startsWith('lifecycle/'));
+  if (toRemove.length === 0) {
+    core.info(`PR #${pr.number} converted to draft with no lifecycle labels, nothing to do`);
+    return;
+  }
+
+  for (const label of toRemove) {
+    await api.removeLabel(pr.number, label);
+  }
+
+  await api.postComment(pr.number,
+    `Converted to draft — the orchestrator ignores draft PRs, so lifecycle labels ` +
+    `have been removed and CI will not run on new pushes.\n\n` +
+    `Mark the PR as ready for review to re-enter the lifecycle at \`lifecycle/new\`. ` +
+    `Note that a maintainer will need to \`/accept\` it again.`
+  );
+  core.info(`PR #${pr.number} converted to draft, removed: ${toRemove.join(', ')}`);
 }
 
 // Fires when a draft PR goes ready — its first contact with the orchestrator,
@@ -1416,6 +1457,7 @@ module.exports = {
   handlePrOpened,
   handlePrSynchronize,
   handlePrReadyForReview,
+  handlePrConvertedToDraft,
   handleComment,
   handleReview,
   handleLabelChange,

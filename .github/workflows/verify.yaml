@@ -128,10 +128,25 @@ jobs:
               fi
             fi
 
-            # Fetch current labels from the API (event payload can be stale)
+            # Fetch current labels and draft status from the API (event payload
+            # can be stale)
             PR_NUMBER='${{ github.event.pull_request.number }}'
-            LABELS=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '[.labels[].name]')
+            PR_JSON=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '{labels: [.labels[].name], draft: .draft}')
+            LABELS=$(echo "$PR_JSON" | jq -c '.labels')
+            IS_DRAFT=$(echo "$PR_JSON" | jq -r '.draft')
             has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
+
+            # Drafts are outside the lifecycle — no CI, regardless of any
+            # lifecycle labels left over from before the PR was converted back
+            # to draft (the orchestrator strips them, but that races with this).
+            if [ "$IS_DRAFT" = "true" ]; then
+              echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
+              for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
+                echo "$out=false" >> "$GITHUB_OUTPUT"
+              done
+              echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
 
             # Orchestrator-initiated branch update for merge — skip all tests.
             # Only honour for bot-triggered syncs to prevent skipping tests

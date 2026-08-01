@@ -26,6 +26,11 @@ Push commits and test locally as normal during draft development. Once you mark 
 PR as ready for review (non-draft), it enters `lifecycle/new` exactly like a freshly
 opened PR.
 
+Converting a PR **back** to draft removes all of its `lifecycle/*` labels and stops
+CI from running on subsequent pushes — useful if you need to iterate without burning
+CI capacity. Marking it ready for review again re-enters the lifecycle at
+`lifecycle/new`, so a maintainer has to `/accept` it a second time.
+
 ### Additional labels
 
 | Label | Meaning |

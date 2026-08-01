@@ -1538,5 +1538,31 @@
         </repository>
       </repositories>
     </profile>
+    <!-- Report-only reactor-wide dependency analysis, see DEVELOPING.md for the required
+         two-step procedure (https://github.com/Apicurio/apicurio-registry/issues/9136). -->
+    <profile>
+      <id>dependency-check</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>analyze-dependencies</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>analyze-only</goal>
+                </goals>
+                <configuration>
+                  <ignoreNonCompile>true</ignoreNonCompile>
+                  <failOnWarning>false</failOnWarning>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
 </project>

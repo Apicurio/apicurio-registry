@@ -51,7 +51,7 @@ public class RestConfig {
     boolean legacyErrorCodesEnabled;
 
     @ConfigProperty(name = "apicurio.rest.compression.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_REST, description = "Enable gzip compression of REST API responses", availableSince = "3.0.0")
+    @Info(category = CATEGORY_REST, description = "Enable gzip compression of REST API responses", availableSince = "3.3.2")
     boolean compressionEnabled;
 
     public int getLabelsInSearchResultsMaxSize() {

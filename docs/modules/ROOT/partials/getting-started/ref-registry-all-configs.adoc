@@ -977,7 +977,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.rest.compression.enabled`
 |`boolean`
 |`true`
-|`3.0.0`
+|`3.3.2`
 |Enable gzip compression of REST API responses
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`

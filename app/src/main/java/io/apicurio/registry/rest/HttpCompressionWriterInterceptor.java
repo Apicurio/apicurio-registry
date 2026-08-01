@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -79,8 +80,9 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
 
     private List<String> getCompressMediaTypes() {
         if (compressMediaTypes == null) {
-            compressMediaTypes = Arrays.asList(ConfigProvider.getConfig()
-                    .getValue("quarkus.http.compress-media-types", String.class).split(","));
+            compressMediaTypes = Arrays.stream(ConfigProvider.getConfig()
+                    .getValue("quarkus.http.compress-media-types", String.class).split(","))
+                    .map(String::trim).collect(Collectors.toList());
         }
         return compressMediaTypes;
     }

@@ -12,6 +12,7 @@ import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageType;
 import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,28 +129,31 @@ public class SqlCRUpdater {
                     if (existingSecret.isEmpty()) {
                         // Use a deterministic name so a retried reconcile reuses the same Secret instead of leaking a new one.
                         var secretName = primary.getMetadata().getName() + "-datasource-password";
-                        var secretAlreadyPresent = context.getClient().secrets()
-                                .inNamespace(primary.getMetadata().getNamespace())
-                                .withName(secretName).get() != null;
-                        if (!secretAlreadyPresent) {
-                            // @formatter:off
-                            var secret = new SecretBuilder()
-                                    .withNewMetadata()
-                                        .withNamespace(primary.getMetadata().getNamespace())
-                                        .withName(secretName)
-                                        .withOwnerReferences(new OwnerReferenceBuilder()
-                                                .withApiVersion(primary.getApiVersion())
-                                                .withKind(primary.getKind())
-                                                .withName(primary.getMetadata().getName())
-                                                .withUid(primary.getMetadata().getUid())
-                                                .withController(true)
-                                                .withBlockOwnerDeletion(true)
-                                                .build())
-                                    .endMetadata()
-                                    .addToStringData(DEFAULT_SECRET_PASSWORD_FIELD, oldPassword.get())
-                                    .build();
-                            // @formatter:on
+                        // @formatter:off
+                        var secret = new SecretBuilder()
+                                .withNewMetadata()
+                                    .withNamespace(primary.getMetadata().getNamespace())
+                                    .withName(secretName)
+                                    .withOwnerReferences(new OwnerReferenceBuilder()
+                                            .withApiVersion(primary.getApiVersion())
+                                            .withKind(primary.getKind())
+                                            .withName(primary.getMetadata().getName())
+                                            .withUid(primary.getMetadata().getUid())
+                                            .withController(true)
+                                            .withBlockOwnerDeletion(true)
+                                            .build())
+                                .endMetadata()
+                                .addToStringData(DEFAULT_SECRET_PASSWORD_FIELD, oldPassword.get())
+                                .build();
+                        // @formatter:on
+                        try {
                             context.getClient().resource(secret).create();
+                        } catch (KubernetesClientException ex) {
+                            if (ex.getCode() != 409) {
+                                throw ex;
+                            }
+                            // A concurrent reconcile created the same deterministically-named Secret first; nothing left to do here.
+                            log.debug("Secret '{}' already exists, a concurrent reconcile created it first.", secretName);
                         }
                         primary.getSpec().getApp().getStorage().withSql().withDataSource().setPassword(SecretKeyRef.builder().name(secretName).build());
                     }

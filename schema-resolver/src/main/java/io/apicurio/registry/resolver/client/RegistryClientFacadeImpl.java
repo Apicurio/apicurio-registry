@@ -140,9 +140,11 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
             config.queryParameters.orderby = VersionSortBy.GlobalId;
             config.queryParameters.order = SortOrder.Desc;
             config.queryParameters.limit = 100;
-            // We explicitly search for ENABLED and DEPRECATED versions to preserve original client semantics
+            // We exclude DISABLED versions to preserve original client semantics
             // while moving the filtering logic to the server side (avoiding client-side filtering penalties).
-            config.queryParameters.state = new VersionState[] { VersionState.ENABLED, VersionState.DEPRECATED };
+            config.queryParameters.state = java.util.Arrays.stream(VersionState.values())
+                    .filter(s -> s != VersionState.DISABLED)
+                    .toArray(VersionState[]::new);
         });
 
         // The client-side filter acts as a defensive guard against older registries that do not support the state query parameter.

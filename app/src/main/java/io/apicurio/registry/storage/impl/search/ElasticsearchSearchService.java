@@ -441,7 +441,7 @@ public class ElasticsearchSearchService {
         builder.modifiedBy(toStr(source.get("modifiedBy")));
 
         // State
-        Object state = source.get("state");
+        Object state = source.get(STATE_FIELD);
         if (state != null) {
             builder.state(io.apicurio.registry.types.VersionState.valueOf(toStr(state)));
         }

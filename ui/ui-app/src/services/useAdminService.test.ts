@@ -44,6 +44,7 @@ describe("useAdminService pagination", () => {
             await service.getRoleMappings(paging);
         }
 
+        expect(get).toHaveBeenCalledTimes(pagesToCheck.length);
         const queryParams = get.mock.calls.map(call => call[0].queryParameters);
         queryParams.forEach((params: any, i: number) => {
             expect(params.limit).toBe(10);

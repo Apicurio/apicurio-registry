@@ -45,6 +45,7 @@ describe("useSearchService pagination", () => {
             await service.searchGroups([], "groupId" as any, "asc" as any, paging);
         }
 
+        expect(get).toHaveBeenCalledTimes(pagesToCheck.length);
         const queryParams = get.mock.calls.map(call => call[0].queryParameters);
         queryParams.forEach((params: any, i: number) => {
             expect(params.limit).toBe(10);
@@ -64,6 +65,7 @@ describe("useSearchService pagination", () => {
             );
         }
 
+        expect(get).toHaveBeenCalledTimes(pagesToCheck.length);
         const queryParams = get.mock.calls.map(call => call[0].queryParameters);
         queryParams.forEach((params: any, i: number) => {
             expect(params.limit).toBe(10);
@@ -81,6 +83,7 @@ describe("useSearchService pagination", () => {
             await service.searchVersions([], "version" as any, "asc" as any, paging);
         }
 
+        expect(get).toHaveBeenCalledTimes(pagesToCheck.length);
         const queryParams = get.mock.calls.map(call => call[0].queryParameters);
         queryParams.forEach((params: any, i: number) => {
             expect(params.limit).toBe(10);

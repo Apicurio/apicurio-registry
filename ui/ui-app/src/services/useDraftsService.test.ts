@@ -44,6 +44,7 @@ describe("useDraftsService pagination", () => {
             await service.searchDrafts([], "name" as any, "asc" as any, paging);
         }
 
+        expect(get).toHaveBeenCalledTimes(pagesToCheck.length);
         const queryParams = get.mock.calls.map(call => call[0].queryParameters);
         queryParams.forEach((params: any, i: number) => {
             expect(params.limit).toBe(10);

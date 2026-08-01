@@ -32,6 +32,7 @@ const PAGES_TO_CHECK: { page: number; expectedOffset: number }[] = [
 ];
 
 function assertConstantLimit(get: ReturnType<typeof vi.fn>): void {
+    expect(get).toHaveBeenCalledTimes(PAGES_TO_CHECK.length);
     const queryParams = get.mock.calls.map(call => call[0].queryParameters);
     queryParams.forEach((params: any, i: number) => {
         expect(params.limit).toBe(10);

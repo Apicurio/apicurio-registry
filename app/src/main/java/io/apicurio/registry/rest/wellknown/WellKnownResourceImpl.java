@@ -170,7 +170,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         int total = visible.size();
         int safeOffset = Math.max(0, Math.min(offset, total));
-        int safeLimit = Math.max(0, limit);
+        int safeLimit = Math.max(0, Math.min(limit, 500));
         int toIndex = Math.min(safeOffset + safeLimit, total);
         List<SearchedArtifactDto> page = visible.subList(safeOffset, toIndex);
 

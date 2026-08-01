@@ -1,5 +1,6 @@
 package io.apicurio.registry.avro.content.canon;
 
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -10,7 +11,6 @@ import org.apache.avro.Schema;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -43,32 +43,9 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
      */
     public static Schema normalizeSchema(String schemaString,
             Map<String, TypedContent> resolvedReferences) {
-        Schema.Parser parser = new Schema.Parser();
-
-        // Seed the parser with the referenced schemas, so that the named types they declare are already
-        // known once the main schema is parsed. Without this, a schema that references another artifact
-        // fails to parse at all. References may depend on each other and the map imposes no ordering, so
-        // re-attempt the ones that fail until a full pass resolves nothing further. Anything still
-        // unresolved is left to the main parse below, which reports the offending type name.
-        List<String> pending = new ArrayList<>(resolvedReferences.size());
-        for (TypedContent referencedContent : resolvedReferences.values()) {
-            pending.add(referencedContent.getContent().content());
-        }
-        boolean progressed = true;
-        while (progressed && !pending.isEmpty()) {
-            progressed = false;
-            Iterator<String> iter = pending.iterator();
-            while (iter.hasNext()) {
-                try {
-                    parser.parse(iter.next());
-                    iter.remove();
-                    progressed = true;
-                } catch (AvroRuntimeException e) {
-                    // Either this reference depends on another one not parsed yet (retried on the next
-                    // pass), or it cannot be parsed on its own. Neither is fatal here.
-                }
-            }
-        }
+        // The parser is seeded with the referenced schemas so that the named types they declare are already
+        // known once the main schema is parsed; see AvroParserAccessor#newParser(Map).
+        Schema.Parser parser = AvroParserAccessor.newParser(resolvedReferences);
 
         return normalizeSchema(parser.parse(schemaString));
     }

@@ -21,7 +21,6 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
         super(JsonSchemaDeserializer::new);
     }
 
-    @Deprecated
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade) {
         super(() -> new JsonSchemaDeserializer<>(clientFacade));
     }

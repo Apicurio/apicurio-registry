@@ -148,15 +148,20 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 );
             }
             case "integer":
-            case "number":
+            case "number": {
+                const handleNumberChange = (_event: React.FormEvent<HTMLInputElement>, val: string) => {
+                    const n = type === "integer" ? parseInt(val) : parseFloat(val);
+                    setValue(name, Number.isNaN(n) ? "" : n);
+                };
                 return (
                     <TextInput
                         type="number"
                         value={values[name] ?? ""}
-                        onChange={(_event, val) => setValue(name, type === "integer" ? parseInt(val) ?? "" : parseFloat(val) ?? "")}
+                        onChange={handleNumberChange}
                         aria-label={name}
                     />
                 );
+            }
             case "array":
             case "object":
                 return (

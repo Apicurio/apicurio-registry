@@ -1,5 +1,5 @@
 export interface RenderPromptValidationError {
-    variableName: string;
+    variableName?: string;
     message: string;
     expectedType?: string;
     actualType?: string;

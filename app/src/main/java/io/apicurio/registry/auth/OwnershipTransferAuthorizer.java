@@ -29,9 +29,14 @@ import java.util.Objects;
  *
  * <p>Wired into the only V3 client-writable owner paths:
  * {@code GroupsResourceImpl#updateArtifactMetaData} and
- * {@code GroupsResourceImpl#updateGroupById}. Version metadata has no owner field;
- * import/bulk paths are Admin-only. V2 uses a dedicated
- * {@code updateArtifactOwner} with {@link AuthorizedLevel#AdminOrOwner}.
+ * {@code GroupsResourceImpl#updateGroupById}. Confirmed by grepping
+ * {@code rest/v3/impl} for {@code data.getOwner()} / {@code setOwner} and checking
+ * OpenAPI {@code Editable*} schemas in {@code common/.../openapi.json}: only
+ * {@code EditableArtifactMetaData} and {@code EditableGroupMetaData} expose
+ * {@code owner}; {@code EditableVersionMetaData} / {@code CreateArtifact} /
+ * {@code CreateGroup} do not (create stamps owner from the principal); import is
+ * Admin-only. V2 uses dedicated {@code updateArtifactOwner} with
+ * {@link AuthorizedLevel#AdminOrOwner}.
  *
  * <p>Metadata update endpoints use {@link AuthorizedLevel#Write} so non-owners can still
  * change name/description/labels. Ownership changes require Admin or the current owner

@@ -592,6 +592,57 @@ public class FileDescriptorUtilsTest {
     }
 
     /**
+     * An enum map value must be classified as TYPE_ENUM, not TYPE_MESSAGE, and a
+     * cross-package enum value must resolve through the fully qualified name that
+     * toString() now preserves (previously unreachable: name resolution failed first).
+     */
+    @Test
+    public void testToDescriptorMapWithEnumValueType() {
+        String depSchema = """
+                syntax = "proto3";
+                package test.common;
+                enum Status {
+                  STATUS_UNSPECIFIED = 0;
+                  STATUS_ACTIVE = 1;
+                }
+                """;
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "test/common/status.proto";
+                enum Priority {
+                  PRIORITY_UNSPECIFIED = 0;
+                  PRIORITY_HIGH = 1;
+                }
+                message Config {
+                  map<string, Priority> priorities = 1;
+                  map<string, test.common.Status> statuses = 2;
+                }
+                """;
+        ProtoFileElement depElement = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                depSchema);
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Config", element,
+                Map.of("test/common/status.proto", depElement));
+
+        assertNotNull(descriptor);
+
+        Descriptors.FieldDescriptor priorities = descriptor.findFieldByName("priorities");
+        assertTrue(priorities.isMapField());
+        Descriptors.FieldDescriptor priorityValue = priorities.getMessageType().findFieldByName("value");
+        assertEquals(Descriptors.FieldDescriptor.Type.ENUM, priorityValue.getType());
+        assertEquals("test.maps.Priority", priorityValue.getEnumType().getFullName());
+
+        Descriptors.FieldDescriptor statuses = descriptor.findFieldByName("statuses");
+        assertTrue(statuses.isMapField());
+        Descriptors.FieldDescriptor statusValue = statuses.getMessageType().findFieldByName("value");
+        assertEquals(Descriptors.FieldDescriptor.Type.ENUM, statusValue.getType());
+        assertEquals("test.common.Status", statusValue.getEnumType().getFullName());
+    }
+
+    /**
      * The full text round trip a registry client performs: descriptor to .proto text
      * (fileDescriptorToProtoFile, which since #8771 emits real map&lt;K, V&gt; syntax with
      * relative type names) and back through toDescriptor. Before this fix the re-parse

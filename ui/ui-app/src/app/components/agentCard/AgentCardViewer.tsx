@@ -30,20 +30,44 @@ export interface AgentProvider {
 }
 
 /**
- * Full Agent Card structure
+ * A single transport interface through which the agent can be reached.
+ * Each entry in supportedInterfaces must supply all three fields to pass
+ * the backend's AgentCardContentValidator (A2A Protocol v1.0).
+ */
+export interface AgentInterface {
+    url: string;
+    protocolBinding: string;
+    protocolVersion: string;
+}
+
+/**
+ * Full Agent Card structure aligned with A2A Protocol v1.0.
+ * Fields marked with REQUIRED must be non-empty to pass FULL content validation.
  */
 export interface AgentCard {
+    /** REQUIRED – human-readable name of the agent. */
     name: string;
+    /** REQUIRED – human-readable description of what the agent does. */
     description?: string;
+    /** REQUIRED – semantic version of the agent card (e.g. "1.0.0"). */
     version?: string;
+    /** Optional – version of the A2A protocol implemented by this agent. */
+    protocolVersion?: string;
+    /** REQUIRED – at least one transport interface must be present. */
+    supportedInterfaces?: AgentInterface[];
     url?: string;
     provider?: AgentProvider;
     capabilities?: AgentCapabilities;
     skills?: AgentSkill[];
     defaultInputModes?: string[];
     defaultOutputModes?: string[];
+    /** @deprecated use securitySchemes / securityRequirements instead */
     authentication?: AgentAuthentication;
     supportsExtendedAgentCard?: boolean;
+    iconUrl?: string;
+    documentationUrl?: string;
+    securitySchemes?: Record<string, object>;
+    securityRequirements?: object[];
 }
 
 /**
@@ -116,6 +140,31 @@ export const AgentCardViewer: FunctionComponent<AgentCardViewerProps> = (props: 
         );
     };
 
+    const renderSupportedInterfaces = (): React.ReactElement | null => {
+        if (!agentCard.supportedInterfaces || agentCard.supportedInterfaces.length === 0) {
+            return null;
+        }
+        return (
+            <DescriptionListGroup>
+                <DescriptionListTerm>Supported Interfaces</DescriptionListTerm>
+                <DescriptionListDescription>
+                    {agentCard.supportedInterfaces.map((iface, index) => (
+                        <div key={index} className="agent-interface">
+                            <a href={iface.url} target="_blank" rel="noopener noreferrer" className="agent-url">
+                                {iface.url}
+                                <ExternalLinkAltIcon className="external-link-icon" />
+                            </a>
+                            <LabelGroup className="interface-labels">
+                                <Label color="purple" isCompact>{iface.protocolBinding}</Label>
+                                <Label color="blue" isCompact>v{iface.protocolVersion}</Label>
+                            </LabelGroup>
+                        </div>
+                    ))}
+                </DescriptionListDescription>
+            </DescriptionListGroup>
+        );
+    };
+
     return (
         <Card className={`agent-card-viewer ${className || ""}`}>
             <CardHeader>
@@ -144,6 +193,7 @@ export const AgentCardViewer: FunctionComponent<AgentCardViewerProps> = (props: 
                 <DescriptionList isCompact className="agent-basic-info">
                     {renderUrl()}
                     {renderProvider()}
+                    {renderSupportedInterfaces()}
                     {renderModes(agentCard.defaultInputModes, "Input Modes")}
                     {renderModes(agentCard.defaultOutputModes, "Output Modes")}
                     {agentCard.supportsExtendedAgentCard !== undefined && (

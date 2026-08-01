@@ -65,6 +65,10 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
     };
 
     const handleCreate = (): void => {
+        const sanitizedCard = {
+            ...agentCard,
+            supportedInterfaces: agentCard.supportedInterfaces?.map(({ id: _id, ...rest }) => rest)
+        };
         const data: CreateArtifact = {
             artifactId: artifactId || undefined,
             artifactType: "AGENT_CARD",
@@ -73,7 +77,7 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
             firstVersion: {
                 version: version || undefined,
                 content: {
-                    content: JSON.stringify(agentCard, null, 2),
+                    content: JSON.stringify(sanitizedCard, null, 2),
                     contentType: "application/json"
                 }
             }

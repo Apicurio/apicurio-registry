@@ -151,7 +151,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                         type="number"
                         value={values[name] ?? ""}
                         onChange={(_event, val) => {
-                            const parsed = type === "integer" ? parseInt(val) : parseFloat(val);
+                            const parsed = type === "integer" ? parseInt(val, 10) : parseFloat(val);
                             setValue(name, val === "" ? "" : (isNaN(parsed) ? "" : parsed));
                         }}
                         aria-label={name}

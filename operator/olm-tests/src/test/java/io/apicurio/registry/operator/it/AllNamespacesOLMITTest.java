@@ -3,8 +3,6 @@ package io.apicurio.registry.operator.it;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.apicurio.registry.operator.utils.RetryTest;
-import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReview;
-import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReviewBuilder;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
@@ -36,8 +34,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Tag(OLM)
 public class AllNamespacesOLMITTest extends OLMITBase {
 
-    private static final String OPERATOR_SERVICE_ACCOUNT = "apicurio-registry-operator";
-
     @Override
     protected String getOperatorGroupResourcePath() {
         return "olmv0/operator-group-all-namespaces.yaml";
@@ -66,7 +62,7 @@ public class AllNamespacesOLMITTest extends OLMITBase {
             // `permissions` to a ClusterRole + ClusterRoleBinding, so the operator ServiceAccount can
             // create workloads in a namespace it does not "own". Poll until the promoted grant
             // converges. This does not depend on the operand image.
-            var serviceAccountUser = "system:serviceaccount:" + namespace + ":" + OPERATOR_SERVICE_ACCOUNT;
+            var serviceAccountUser = operatorServiceAccountUser();
             await().ignoreExceptions()
                     .untilAsserted(() -> assertThat(canCreateDeployment(serviceAccountUser, otherNamespace))
                             .withFailMessage(
@@ -95,21 +91,5 @@ public class AllNamespacesOLMITTest extends OLMITBase {
                 client.namespaces().withName(otherNamespace).delete();
             }
         }
-    }
-
-    private boolean canCreateDeployment(String user, String reviewNamespace) {
-        SubjectAccessReview review = new SubjectAccessReviewBuilder()
-                .withNewSpec()
-                .withUser(user)
-                .withNewResourceAttributes()
-                .withNamespace(reviewNamespace)
-                .withVerb("create")
-                .withGroup("apps")
-                .withResource("deployments")
-                .endResourceAttributes()
-                .endSpec()
-                .build();
-        var result = client.authorization().v1().subjectAccessReview().create(review);
-        return Boolean.TRUE.equals(result.getStatus().getAllowed());
     }
 }

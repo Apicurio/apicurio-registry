@@ -115,7 +115,8 @@ rules:
     resources:
       - secrets
     verbs:
-      [ create, get ]
+      - create
+      - get
 
   - apiGroups:
       - coordination.k8s.io

@@ -5,6 +5,8 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.utils.ClusterDiagnostics;
 import io.apicurio.registry.operator.utils.OperatorTestContext;
 import io.apicurio.registry.operator.utils.OperatorTestExtension;
+import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReview;
+import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -39,6 +41,8 @@ public abstract class OLMITBase implements OperatorTestContext {
     public static final String PROJECT_ROOT_PROP = OLMTestUtils.PROJECT_ROOT_PROP;
     public static final String CATALOG_IMAGE_PROP = OLMTestUtils.CATALOG_IMAGE_PROP;
     public static final String OLM_VERSION = OLMTestUtils.OLM_VERSION_PROP;
+
+    private static final String OPERATOR_SERVICE_ACCOUNT = "apicurio-registry-operator";
 
     protected KubernetesClient client;
     protected String namespace;
@@ -93,6 +97,34 @@ public abstract class OLMITBase implements OperatorTestContext {
      */
     protected int getOlmVersion() {
         return ConfigProvider.getConfig().getOptionalValue(OLM_VERSION, Integer.class).orElse(0);
+    }
+
+    /**
+     * The Kubernetes user name of the operator ServiceAccount in this test's install namespace.
+     */
+    protected String operatorServiceAccountUser() {
+        return "system:serviceaccount:" + namespace + ":" + OPERATOR_SERVICE_ACCOUNT;
+    }
+
+    /**
+     * Whether {@code user} may create a Deployment in {@code reviewNamespace}, evaluated with a
+     * SubjectAccessReview. Lets tests assert an RBAC boundary deterministically, without depending
+     * on operand image readiness.
+     */
+    protected boolean canCreateDeployment(String user, String reviewNamespace) {
+        SubjectAccessReview review = new SubjectAccessReviewBuilder()
+                .withNewSpec()
+                .withUser(user)
+                .withNewResourceAttributes()
+                .withNamespace(reviewNamespace)
+                .withVerb("create")
+                .withGroup("apps")
+                .withResource("deployments")
+                .endResourceAttributes()
+                .endSpec()
+                .build();
+        var result = client.authorization().v1().subjectAccessReview().create(review);
+        return Boolean.TRUE.equals(result.getStatus().getAllowed());
     }
 
     private void setupOLMResources() throws Exception {

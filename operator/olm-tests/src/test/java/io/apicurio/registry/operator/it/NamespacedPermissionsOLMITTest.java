@@ -1,8 +1,6 @@
 package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.utils.RetryTest;
-import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReview;
-import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReviewBuilder;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
@@ -35,8 +33,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @Tag(OLM)
 public class NamespacedPermissionsOLMITTest extends OLMITBase {
 
-    private static final String OPERATOR_SERVICE_ACCOUNT = "apicurio-registry-operator";
-
     @RetryTest
     void workloadPermissionsAreNamespaceScoped() {
         // This asserts the OwnNamespace (OLM v0) boundary. In OLM v1 the operator is installed
@@ -56,7 +52,7 @@ public class NamespacedPermissionsOLMITTest extends OLMITBase {
         var foreignNamespace = ITBase.calculateNamespace();
         ITBase.createNamespace(client, foreignNamespace);
         try {
-            var serviceAccountUser = "system:serviceaccount:" + namespace + ":" + OPERATOR_SERVICE_ACCOUNT;
+            var serviceAccountUser = operatorServiceAccountUser();
 
             // Allowed: creating a Deployment in the operator's own (target) namespace. Poll rather
             // than asserting once: OLM may create the RoleBinding a moment after the operator
@@ -80,21 +76,5 @@ public class NamespacedPermissionsOLMITTest extends OLMITBase {
                 client.namespaces().withName(foreignNamespace).delete();
             }
         }
-    }
-
-    private boolean canCreateDeployment(String user, String reviewNamespace) {
-        SubjectAccessReview review = new SubjectAccessReviewBuilder()
-                .withNewSpec()
-                .withUser(user)
-                .withNewResourceAttributes()
-                .withNamespace(reviewNamespace)
-                .withVerb("create")
-                .withGroup("apps")
-                .withResource("deployments")
-                .endResourceAttributes()
-                .endSpec()
-                .build();
-        var result = client.authorization().v1().subjectAccessReview().create(review);
-        return Boolean.TRUE.equals(result.getStatus().getAllowed());
     }
 }

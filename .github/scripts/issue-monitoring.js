@@ -324,9 +324,11 @@ async function handleUnassignedTriageScan(api, config, core) {
 
 async function handleScan({ github, context, core }) {
   const { owner, repo } = context.repo;
-  // workflow_dispatch boolean inputs arrive as the string 'true'/'false';
-  // schedule-triggered runs have no inputs at all, so default to false.
-  const dryRun = context.payload.inputs?.dry_run === 'true';
+  // workflow_dispatch boolean inputs may arrive as the string 'true'/'false'
+  // or as a real JSON boolean depending on trigger path; schedule-triggered
+  // runs have no inputs at all, so default to false.
+  const dryRun = context.payload.inputs?.dry_run === true ||
+                 context.payload.inputs?.dry_run === 'true';
   const api = createApi(github, owner, repo, core, dryRun);
   const config = loadConfig();
 

@@ -26,8 +26,12 @@ public class McpToolContentAccepter implements ContentAccepter {
 
             JsonNode tree = ContentTypeUtil.parseJson(content.getContent());
 
-            // An MCP tool definition must have "name" and "inputSchema" fields
-            if (tree.isObject() && tree.has("name") && tree.has("inputSchema")) {
+            // An MCP tool definition must have a non-empty name and an object input schema.
+            JsonNode name = tree.get("name");
+            JsonNode inputSchema = tree.get("inputSchema");
+            if (tree.isObject() && name != null && name.isTextual()
+                    && !name.asText().trim().isEmpty() && inputSchema != null
+                    && inputSchema.isObject()) {
                 return true;
             }
         } catch (Exception e) {

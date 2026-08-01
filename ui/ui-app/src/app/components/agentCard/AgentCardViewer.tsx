@@ -31,10 +31,14 @@ export interface AgentProvider {
 
 /**
  * A single transport interface through which the agent can be reached.
- * Each entry in supportedInterfaces must supply all three fields to pass
- * the backend's AgentCardContentValidator (A2A Protocol v1.0).
+ * Each entry in supportedInterfaces must supply url, protocolBinding, and
+ * protocolVersion to pass the backend's AgentCardContentValidator (A2A Protocol v1.0).
+ *
+ * `id` is a UI-only stable key used for React list reconciliation and is
+ * never sent to the backend.
  */
 export interface AgentInterface {
+    id?: string;
     url: string;
     protocolBinding: string;
     protocolVersion: string;
@@ -47,13 +51,13 @@ export interface AgentInterface {
 export interface AgentCard {
     /** REQUIRED – human-readable name of the agent. */
     name: string;
-    /** REQUIRED – human-readable description of what the agent does. */
+    /** REQUIRED by A2A v1.0 contract; optional in the TS model to accommodate partial or legacy cards. */
     description?: string;
-    /** REQUIRED – semantic version of the agent card (e.g. "1.0.0"). */
+    /** REQUIRED by A2A v1.0 contract; optional in the TS model to accommodate partial or legacy cards. */
     version?: string;
     /** Optional – version of the A2A protocol implemented by this agent. */
     protocolVersion?: string;
-    /** REQUIRED – at least one transport interface must be present. */
+    /** REQUIRED by A2A v1.0 contract (≥1 entry); optional in the TS model to accommodate partial or legacy cards. */
     supportedInterfaces?: AgentInterface[];
     url?: string;
     provider?: AgentProvider;
@@ -149,7 +153,7 @@ export const AgentCardViewer: FunctionComponent<AgentCardViewerProps> = (props: 
                 <DescriptionListTerm>Supported Interfaces</DescriptionListTerm>
                 <DescriptionListDescription>
                     {agentCard.supportedInterfaces.map((iface, index) => (
-                        <div key={index} className="agent-interface">
+                        <div key={iface.id || iface.url || index} className="agent-interface">
                             <a href={iface.url} target="_blank" rel="noopener noreferrer" className="agent-url">
                                 {iface.url}
                                 <ExternalLinkAltIcon className="external-link-icon" />

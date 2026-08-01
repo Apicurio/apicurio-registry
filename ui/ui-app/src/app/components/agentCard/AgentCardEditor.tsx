@@ -102,7 +102,7 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
     };
 
     const handleAddInterface = (): void => {
-        const newInterface: AgentInterface = { url: "", protocolBinding: "A2A", protocolVersion: "1.0" };
+        const newInterface: AgentInterface = { id: crypto.randomUUID(), url: "", protocolBinding: "A2A", protocolVersion: "1.0" };
         updateField("supportedInterfaces", [...(agentCard.supportedInterfaces || []), newInterface]);
     };
 
@@ -176,7 +176,7 @@ export const AgentCardEditor: FunctionComponent<AgentCardEditorProps> = (props: 
                     </Title>
 
                     {(agentCard.supportedInterfaces || []).map((iface, index) => (
-                        <Card isPlain key={index} className="interface-entry">
+                        <Card isPlain key={iface.id || index} className="interface-entry">
                             <CardBody>
                                 <FormGroup label="URL" isRequired fieldId={`interface-url-${index}`}>
                                     <InputGroup>

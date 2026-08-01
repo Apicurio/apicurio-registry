@@ -85,19 +85,27 @@ rules:
     # Operator permissions (transitive):
 
   # Kept in sync with the operator's runtime permissions in
-  # controller/src/main/deploy/rbac/namespaced (cluster-role.yaml get/list/watch +
-  # role.yaml patch/update). The operator never creates or deletes the CR.
+  # controller/src/main/deploy/rbac/namespaced: cluster-role.yaml grants get/list/watch on the parent
+  # CR (informer discovery), role.yaml grants patch/update on the CR and its /status. There is no
+  # list/watch endpoint for /status, so it only carries patch/update here. The operator never creates
+  # or deletes the CR.
   - apiGroups:
       - registry.apicur.io
     resources:
       - apicurioregistries3
-      - apicurioregistries3/status
     verbs:
       - get
       - list
       - patch
       - update
       - watch
+  - apiGroups:
+      - registry.apicur.io
+    resources:
+      - apicurioregistries3/status
+    verbs:
+      - patch
+      - update
 
   - apiGroups:
       - apps

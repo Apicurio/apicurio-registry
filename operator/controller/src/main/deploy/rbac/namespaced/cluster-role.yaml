@@ -10,13 +10,15 @@ metadata:
 rules:
 
   # The operator watches ApicurioRegistry3 CRs cluster-wide to discover them (informer).
-  # Mutating verbs (patch/update for spec migration, status, and the JOSDK finalizer) are
-  # namespace-scoped and live in role.yaml. The operator never creates or deletes the CR.
+  # Only the parent resource is needed here: there is no list/watch endpoint for the /status
+  # subresource (you list/watch the parent), so /status is intentionally omitted from the cluster
+  # tier. Mutating verbs (patch/update on the CR and its /status for spec migration, status, and the
+  # JOSDK finalizer) are namespace-scoped and live in role.yaml. The operator never creates or
+  # deletes the CR.
   - apiGroups:
       - registry.apicur.io
     resources:
       - apicurioregistries3
-      - apicurioregistries3/status
     verbs:
       - get
       - list

@@ -3,11 +3,11 @@ package io.apicurio.registry.operator.it;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.apicurio.registry.operator.utils.RetryTest;
+import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReview;
+import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReviewBuilder;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,20 +16,27 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Verifies the AllNamespaces install mode: with an OperatorGroup that has no targetNamespaces, the
- * operator watches all namespaces. The operand is deployed into a namespace other than the
- * operator's own, which is only possible with cluster-wide workload permissions.
+ * operator watches all namespaces and can act on operands in a namespace other than its own, which
+ * is only possible with cluster-wide workload permissions.
  * <p>
  * This works even though the workload verbs live in the CSV's namespace-scoped {@code permissions}
  * (from rbac/namespaced/role.yaml): in AllNamespaces mode the OperatorGroup targets all namespaces
  * ({@code *}), and OLM promotes each CSV {@code permissions} rule to a ClusterRole +
  * ClusterRoleBinding. In SingleNamespace mode the same rules are instead copied as Roles into the
  * target namespace(s). See the OLM OperatorGroup RBAC docs.
+ * <p>
+ * The RBAC promotion is asserted deterministically with a SubjectAccessReview (the operator
+ * ServiceAccount may create Deployments in another namespace). A second assertion then confirms the
+ * all-namespaces watch end to end by creating a CR in that namespace and checking the operator
+ * reconciles the operand Deployment there. It asserts the Deployment is created rather than waiting
+ * for its pods to pull the app image and become ready: that readiness wait is the heaviest and most
+ * flake-prone part and is not what this RBAC test needs to prove.
  */
 @QuarkusTest
 @Tag(OLM)
 public class AllNamespacesOLMITTest extends OLMITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(AllNamespacesOLMITTest.class);
+    private static final String OPERATOR_SERVICE_ACCOUNT = "apicurio-registry-operator";
 
     @Override
     protected String getOperatorGroupResourcePath() {
@@ -55,6 +62,22 @@ public class AllNamespacesOLMITTest extends OLMITBase {
         var otherNamespace = ITBase.calculateNamespace();
         ITBase.createNamespace(client, otherNamespace);
         try {
+            // Deterministic RBAC signal: in AllNamespaces mode OLM promotes the workload
+            // `permissions` to a ClusterRole + ClusterRoleBinding, so the operator ServiceAccount can
+            // create workloads in a namespace it does not "own". Poll until the promoted grant
+            // converges. This does not depend on the operand image.
+            var serviceAccountUser = "system:serviceaccount:" + namespace + ":" + OPERATOR_SERVICE_ACCOUNT;
+            await().ignoreExceptions()
+                    .untilAsserted(() -> assertThat(canCreateDeployment(serviceAccountUser, otherNamespace))
+                            .withFailMessage(
+                                    "In AllNamespaces mode the operator ServiceAccount should be allowed to create Deployments in another namespace '%s'",
+                                    otherNamespace)
+                            .isTrue());
+
+            // End-to-end signal: the operator watches every namespace, so creating a CR in
+            // otherNamespace drives it to reconcile the operand there. Assert the operand Deployment
+            // is created (it exists) rather than waiting for readyReplicas, which depends on the app
+            // image pull and pod readiness, not on RBAC.
             var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                     ApicurioRegistry3.class);
             registry.getMetadata().setNamespace(otherNamespace);
@@ -63,17 +86,30 @@ public class AllNamespacesOLMITTest extends OLMITBase {
 
             client.resource(registry).create();
 
-            // In AllNamespaces mode the operator watches every namespace and has cluster-wide
-            // workload permissions, so the operand Deployment is created and becomes ready.
             await().ignoreExceptions().untilAsserted(() -> {
                 assertThat(client.apps().deployments().inNamespace(otherNamespace)
-                        .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
-                        .getReadyReplicas()).isEqualTo(1);
+                        .withName(registry.getMetadata().getName() + "-app-deployment").get()).isNotNull();
             });
         } finally {
             if (cleanup) {
                 client.namespaces().withName(otherNamespace).delete();
             }
         }
+    }
+
+    private boolean canCreateDeployment(String user, String reviewNamespace) {
+        SubjectAccessReview review = new SubjectAccessReviewBuilder()
+                .withNewSpec()
+                .withUser(user)
+                .withNewResourceAttributes()
+                .withNamespace(reviewNamespace)
+                .withVerb("create")
+                .withGroup("apps")
+                .withResource("deployments")
+                .endResourceAttributes()
+                .endSpec()
+                .build();
+        var result = client.authorization().v1().subjectAccessReview().create(review);
+        return Boolean.TRUE.equals(result.getStatus().getAllowed());
     }
 }

@@ -461,7 +461,7 @@ How OLM materializes `permissions` depends on the OperatorGroup's install mode, 
 
 The install file (non-OLM) still uses the all-namespaces variant in `controller/src/main/deploy/rbac/cluster`.
 
-**Keep permissions in sync manually.** These rules are duplicated transitively in `olm-tests/src/test/deploy/olmv1/cluster-role.yaml` (the installer ClusterRole used by the OLM v1 tests). There is no automated mechanism keeping them aligned, so any change to the operator's permissions must be applied in both places. The RBAC files carry a comment reminding of this.
+**Keep permissions in sync manually.** These rules are duplicated transitively in `olm-tests/src/test/deploy/olmv1/cluster-role.yaml` (the installer ClusterRole used by the OLM v1 tests). There is no generation step that rewrites one from the other, so any change to the operator's permissions must be applied in both places, and the RBAC files carry a comment reminding of this. Two unit tests guard against mistakes: `RbacInstallerSyncTest` fails if the installer ClusterRole is not a superset of the operator's runtime permissions, and `RbacSplitTest` fails if the cluster/namespace tier split is broken (for example a workload rule added to `cluster-role.yaml`, which OLM would then grant cluster-wide in every install mode).
 
 ### Leader Election
 

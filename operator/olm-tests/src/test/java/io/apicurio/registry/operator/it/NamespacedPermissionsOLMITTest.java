@@ -6,8 +6,6 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReviewBuild
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,7 +13,8 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Negative test for the SingleNamespace/OwnNamespace install mode.
+ * Permission-boundary test for the OwnNamespace install mode: the default OperatorGroup targets the
+ * operator's own install namespace, so target == install namespace.
  * <p>
  * With the least-privilege split, workload permissions (e.g. creating Deployments) are granted via
  * a namespace-scoped Role + RoleBinding that OLM only creates in the operator's target namespace.
@@ -27,18 +26,20 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * to watch a foreign namespace, because under OLM the watched namespaces and the generated RBAC are
  * kept in sync by the OperatorGroup; the SubjectAccessReview isolates the RBAC scope deterministically
  * and does not depend on operand image readiness.
+ * <p>
+ * Scope note: this covers OwnNamespace (target == install namespace). The true SingleNamespace case
+ * (target != install namespace), where OLM copies the Role into a separate target namespace, is not
+ * exercised here.
  */
 @QuarkusTest
 @Tag(OLM)
 public class NamespacedPermissionsOLMITTest extends OLMITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(NamespacedPermissionsOLMITTest.class);
-
     private static final String OPERATOR_SERVICE_ACCOUNT = "apicurio-registry-operator";
 
     @RetryTest
     void workloadPermissionsAreNamespaceScoped() {
-        // This asserts the SingleNamespace (OLM v0) boundary. In OLM v1 the operator is installed
+        // This asserts the OwnNamespace (OLM v0) boundary. In OLM v1 the operator is installed
         // via the installer ClusterRole which grants workload access cluster-wide, so the
         // SubjectAccessReview would be allowed and this negative assertion would not hold.
         assumeTrue(getOlmVersion() == 0, "Namespace-scoped permission boundary test only applies to OLM v0");
@@ -57,14 +58,18 @@ public class NamespacedPermissionsOLMITTest extends OLMITBase {
         try {
             var serviceAccountUser = "system:serviceaccount:" + namespace + ":" + OPERATOR_SERVICE_ACCOUNT;
 
-            // Allowed: creating a Deployment in the operator's own (target) namespace.
-            assertThat(canCreateDeployment(serviceAccountUser, namespace))
+            // Allowed: creating a Deployment in the operator's own (target) namespace. Poll rather
+            // than asserting once: OLM may create the RoleBinding a moment after the operator
+            // Deployment reports ready, so the grant can converge slightly later.
+            await().ignoreExceptions().untilAsserted(() -> assertThat(canCreateDeployment(serviceAccountUser, namespace))
                     .withFailMessage(
                             "Operator ServiceAccount should be allowed to create Deployments in its target namespace '%s'",
                             namespace)
-                    .isTrue();
+                    .isTrue());
 
-            // Forbidden: creating a Deployment in a namespace the operator does not target.
+            // Forbidden: creating a Deployment in a namespace the operator does not target. This is
+            // checked after the positive grant has converged above, so a false result here reflects
+            // the least-privilege boundary rather than RBAC not yet being applied.
             assertThat(canCreateDeployment(serviceAccountUser, foreignNamespace))
                     .withFailMessage(
                             "Operator ServiceAccount should NOT be allowed to create Deployments in a non-target namespace '%s' with least-privilege RBAC",

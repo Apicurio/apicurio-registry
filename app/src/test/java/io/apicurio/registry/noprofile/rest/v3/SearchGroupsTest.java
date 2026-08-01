@@ -151,6 +151,42 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchGroupsByLabelsColonInValue() throws Exception {
+        // Group 1: Namespaced label key (scope:tier = primary) — uses a distinct key to avoid
+        // polluting the global env:tag:production search in testSearchGroupsByLabels
+        Labels nsLabels = new Labels();
+        nsLabels.setAdditionalData(Map.of("scope:tier", "primary"));
+        CreateGroup nsGroup = new CreateGroup();
+        nsGroup.setGroupId("testSearchGroupsNsLabel-" + UUID.randomUUID());
+        nsGroup.setLabels(nsLabels);
+        clientV3.groups().post(nsGroup);
+
+        // Group 2: Colon in label value (color = red:dark)
+        Labels colonLabels = new Labels();
+        colonLabels.setAdditionalData(Map.of("color", "red:dark"));
+        CreateGroup colonGroup = new CreateGroup();
+        String colonGroupId = "testSearchGroupsColonValue-" + UUID.randomUUID();
+        colonGroup.setGroupId(colonGroupId);
+        colonGroup.setLabels(colonLabels);
+        clientV3.groups().post(colonGroup);
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Group 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "color:red:dark" };
+        });
+        Assertions.assertEquals(0, results.getGroups().stream()
+                .filter(g -> g.getGroupId().equals(colonGroupId)).count());
+
+        // Querying key-only "color" matches Group 2
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "color" };
+        });
+        Assertions.assertTrue(results.getGroups().stream()
+                .anyMatch(g -> g.getGroupId().equals(colonGroupId)));
+    }
+
+    @Test
     public void testSearchGroupsByGroupIdWildcard() throws Exception {
         String prefix = "WildcardGroupSearch_" + UUID.randomUUID().toString().substring(0, 8);
 

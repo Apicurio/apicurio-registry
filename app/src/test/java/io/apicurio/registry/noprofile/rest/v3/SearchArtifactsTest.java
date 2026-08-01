@@ -215,8 +215,6 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId2));
     }
 
-
-
     @Test
     public void testSearchArtifactsOrderBy() throws Exception {
         String group = UUID.randomUUID().toString();

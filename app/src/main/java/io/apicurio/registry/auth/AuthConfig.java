@@ -233,6 +233,10 @@ public class AuthConfig {
         return this.basicAuthEnabled;
     }
 
+    public boolean isProxyHeaderAuthEnabled() {
+        return this.proxyHeaderAuthEnabled;
+    }
+
     public boolean isRbacEnabled() {
         return this.roleBasedAuthorizationEnabled;
     }

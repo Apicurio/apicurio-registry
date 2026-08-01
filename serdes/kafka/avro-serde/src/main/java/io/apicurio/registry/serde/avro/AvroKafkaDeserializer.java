@@ -1,43 +1,45 @@
 package io.apicurio.registry.serde.avro;
 
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.kafka.KafkaDeserializer;
 import org.apache.avro.Schema;
 import org.apache.kafka.common.header.Headers;
 
 import java.util.Map;
+
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.serde.kafka.KafkaDeserializer;
 
 public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
 
     private AvroSerdeHeaders avroHeaders;
 
     public AvroKafkaDeserializer() {
-        super(new AvroDeserializer<>());
+        super(AvroDeserializer::new);
     }
 
     public AvroKafkaDeserializer(RegistryClientFacade clientFacade) {
-        super(new AvroDeserializer<>(clientFacade));
+        super(() -> new AvroDeserializer<>(clientFacade));
     }
 
+    @Deprecated
     public AvroKafkaDeserializer(SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroDeserializer<>(schemaResolver));
+        super(() -> new AvroDeserializer<>(schemaResolver));
     }
 
+    @Deprecated
     public AvroKafkaDeserializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroDeserializer<>(clientFacade, schemaResolver));
+        super(() -> new AvroDeserializer<>(clientFacade, schemaResolver));
     }
 
+    @Deprecated
     public AvroKafkaDeserializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<Schema, U> strategy,
                                  SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroDeserializer<>(clientFacade, strategy, schemaResolver));
+        super(() -> new AvroDeserializer<>(clientFacade, strategy, schemaResolver));
     }
 
-    @SuppressWarnings("rawtypes")
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+    protected void initialize(Map<String, ?> configs, boolean isKey) {
         avroHeaders = new AvroSerdeHeaders(isKey);
     }
 

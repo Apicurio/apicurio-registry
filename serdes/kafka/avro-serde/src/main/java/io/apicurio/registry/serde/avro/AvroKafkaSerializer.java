@@ -17,29 +17,31 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
     private AvroSerdeHeaders avroHeaders;
 
     public AvroKafkaSerializer() {
-        super(new AvroSerializer<>());
+        super(AvroSerializer::new);
     }
 
     public AvroKafkaSerializer(RegistryClientFacade clientFacade) {
-        super(new AvroSerializer<>(clientFacade));
+        super(() -> new AvroSerializer<>(clientFacade));
     }
 
+    @Deprecated
     public AvroKafkaSerializer(SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroSerializer<>(schemaResolver));
+        super(() -> new AvroSerializer<>(schemaResolver));
     }
 
+    @Deprecated
     public AvroKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroSerializer<>(clientFacade, schemaResolver));
+        super(() -> new AvroSerializer<>(clientFacade, schemaResolver));
     }
 
+    @Deprecated
     public AvroKafkaSerializer(RegistryClientFacade clientFacade, ArtifactReferenceResolverStrategy<Schema, U> strategy,
                                SchemaResolver<Schema, U> schemaResolver) {
-        super(new AvroSerializer<>(clientFacade, strategy, schemaResolver));
+        super(() -> new AvroSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
         avroHeaders = new AvroSerdeHeaders(isKey);
     }
 

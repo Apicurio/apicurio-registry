@@ -10,6 +10,8 @@ the [README](README.md) and the
 
 ## Build Configuration
 
+**Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). The produced artifacts still target Java 17.
+
 This project supports several build configuration options that affect the produced executables.
 
 By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation.

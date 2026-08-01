@@ -36,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -498,5 +499,127 @@ public class FileDescriptorUtilsTest {
 
         // Both should produce same package
         assertEquals(textResult.getPackageName(), binaryResult.getPackageName());
+    }
+
+    /**
+     * toDescriptor must preserve the qualification of map key and value types when it
+     * expands map&lt;K, V&gt; into the synthetic entry message. Before this fix the entry's
+     * value field was created from the type's SIMPLE name, so any value type outside the
+     * entry's own resolution scope (cross-package such as google.protobuf.Value, or a
+     * nested type such as Outer.Inner) failed descriptor validation with
+     * '"Value" is not defined' and toDescriptor threw IllegalStateException.
+     */
+    @Test
+    public void testToDescriptorMapWithCrossPackageValueType() {
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "google/protobuf/struct.proto";
+                message Doc {
+                  map<string, google.protobuf.Value> metadata = 1;
+                }
+                """;
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Doc", element,
+                Collections.emptyMap());
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor metadata = descriptor.findFieldByName("metadata");
+        assertTrue(metadata.isMapField());
+        assertEquals("google.protobuf.Value",
+                metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+
+    @Test
+    public void testToDescriptorMapWithNestedMessageValueType() {
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                message Outer {
+                  message Inner {
+                    string id = 1;
+                  }
+                }
+                message Root {
+                  map<string, Outer.Inner> items = 1;
+                }
+                """;
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Root", element,
+                Collections.emptyMap());
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor items = descriptor.findFieldByName("items");
+        assertTrue(items.isMapField());
+        assertEquals("test.maps.Outer.Inner",
+                items.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+
+    @Test
+    public void testToDescriptorMapWithCrossFileValueTypeFromDependencies() {
+        String depSchema = """
+                syntax = "proto3";
+                package test.common;
+                message Item {
+                  string id = 1;
+                }
+                """;
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "test/common/item.proto";
+                message Bundle {
+                  map<string, test.common.Item> items = 1;
+                }
+                """;
+        ProtoFileElement depElement = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                depSchema);
+        ProtoFileElement element = ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION,
+                schema);
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Bundle", element,
+                Map.of("test/common/item.proto", depElement));
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor items = descriptor.findFieldByName("items");
+        assertTrue(items.isMapField());
+        assertEquals("test.common.Item",
+                items.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+
+    /**
+     * The full text round trip a registry client performs: descriptor to .proto text
+     * (fileDescriptorToProtoFile, which since #8771 emits real map&lt;K, V&gt; syntax with
+     * relative type names) and back through toDescriptor. Before this fix the re-parse
+     * failed for every schema whose map value type carries qualification.
+     */
+    @Test
+    public void testMapFieldSurvivesDescriptorTextRoundTrip() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package test.maps;
+                import "google/protobuf/struct.proto";
+                message Doc {
+                  map<string, google.protobuf.Value> metadata = 1;
+                  map<string, string> labels = 2;
+                }
+                """;
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema,
+                "doc.proto", Optional.of("test.maps"));
+        ProtoFileElement regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(fd.toProto());
+
+        Descriptors.Descriptor descriptor = FileDescriptorUtils.toDescriptor("Doc", regenerated,
+                Collections.emptyMap());
+
+        assertNotNull(descriptor);
+        Descriptors.FieldDescriptor metadata = descriptor.findFieldByName("metadata");
+        assertTrue(metadata.isMapField());
+        assertEquals("google.protobuf.Value",
+                metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
+        assertTrue(descriptor.findFieldByName("labels").isMapField());
     }
 }

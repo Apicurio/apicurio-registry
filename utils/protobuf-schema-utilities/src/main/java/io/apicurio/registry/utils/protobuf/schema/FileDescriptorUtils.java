@@ -1747,8 +1747,13 @@ public class FileDescriptorUtils {
                 fieldType = toMapEntry(field.getName());
                 MessageDefinition.Builder mapMessage = MessageDefinition.newBuilder(fieldType);
                 mapMessage.setMapEntry(true);
-                mapMessage.addField(null, keyType.getSimpleName(), KEY_FIELD, 1, null);
-                mapMessage.addField(null, valueType.getSimpleName(), VALUE_FIELD, 2, null);
+                // Key and value types must keep their qualification exactly as declared:
+                // getSimpleName() turns map<string, google.protobuf.Value> into a value
+                // field of bare type "Value", which fails descriptor validation with
+                // '"Value" is not defined' for any value type outside the entry's own
+                // resolution scope (cross-package, or nested like Outer.Inner).
+                mapMessage.addField(null, keyType.toString(), KEY_FIELD, 1, null);
+                mapMessage.addField(null, valueType.toString(), VALUE_FIELD, 2, null);
                 message.addMessageDefinition(mapMessage.build());
             }
             message.addField(label, fieldType, field.getName(), field.getTag(), defaultVal, jsonName,

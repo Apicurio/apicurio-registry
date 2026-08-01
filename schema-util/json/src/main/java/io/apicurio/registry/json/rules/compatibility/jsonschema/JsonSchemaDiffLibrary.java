@@ -60,7 +60,7 @@ public class JsonSchemaDiffLibrary {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
         } catch (SchemaException e) {
-            throw new UnprocessableSchemaException("Unsupported JSON Schema version for compatibility check: " + e.getMessage(), e);
+            throw new UnprocessableSchemaException("Schema could not be processed for compatibility check: " + e.getMessage(), e);
         }
     }
 

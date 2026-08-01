@@ -148,7 +148,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 return (
                     <TextInput
                         type="number"
-                        value={values[name] || ""}
+                        value={values[name] ?? ""}
                         onChange={(_event, val) => {
                             const parsed = type === "integer" ? parseInt(val) : parseFloat(val);
                             setValue(name, val === "" ? "" : (isNaN(parsed) ? "" : parsed));

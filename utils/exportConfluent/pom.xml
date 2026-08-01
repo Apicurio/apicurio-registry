@@ -70,6 +70,12 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+
     <!-- Confluent schema providers for tests -->
     <dependency>
       <groupId>io.confluent</groupId>

@@ -1,8 +1,11 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.RoleBasedAccessController;
+import io.quarkus.security.ForbiddenException;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
@@ -136,6 +139,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     RestConfig restConfig;
+
+    @Inject
+    AdminOverride adminOverride;
+
+    @Inject
+    RoleBasedAccessController rbac;
 
     @Inject
     SecurityIdentity securityIdentity;
@@ -587,8 +596,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             if (data.getOwner().trim().isEmpty()) {
                 throw new MissingRequiredParameterException("Owner cannot be empty");
             } else {
-                // TODO extra security check - if the user is trying to change the owner, fail unless they are
-                // an Admin or the current Owner
+                ArtifactMetaDataDto currentDto = storage.getArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+                String currentOwner = currentDto.getOwner();
+                if (!data.getOwner().equals(currentOwner)) {
+                    boolean isAdmin = rbac.isAdmin() || adminOverride.isAdmin();
+                    boolean isOwner = securityIdentity != null && securityIdentity.getPrincipal() != null
+                            && securityIdentity.getPrincipal().getName() != null
+                            && securityIdentity.getPrincipal().getName().equals(currentOwner);
+
+                    if (!isAdmin && !isOwner) {
+                        throw new ForbiddenException("Only the artifact owner or an administrator can transfer artifact ownership.");
+                    }
+                }
             }
         }
 

@@ -25,7 +25,7 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
     }
 
     @Override
-    public final void configure(Map<String, ?> configs, boolean isKey) {
+    public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedDeserializer.configure(new SerdeConfig(configs), isKey);
         this.configure(new BaseKafkaSerDeConfig(configs), isKey);
         initializeHeaders(configs, isKey);

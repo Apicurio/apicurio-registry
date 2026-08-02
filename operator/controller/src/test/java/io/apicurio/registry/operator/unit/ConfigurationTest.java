@@ -44,6 +44,13 @@ public class ConfigurationTest {
     }
 
     @Test
+    public void testGetImageForVersion_digestPinnedImageUnchanged() {
+        assertThat(Configuration.getImageForVersion(
+                "registry.redhat.io/apicurio/apicurio-registry-rhel9@sha256:7d4a8f6e", "3.0.3"))
+                .isEqualTo("registry.redhat.io/apicurio/apicurio-registry-rhel9@sha256:7d4a8f6e");
+    }
+
+    @Test
     public void testCompareVersions_equal() {
         assertThat(Configuration.compareVersions("3.0.3", "3.0.3")).hasValue(0);
     }

@@ -49,6 +49,10 @@ public class Configuration {
         if (version == null || version.isBlank()) {
             return baseImage;
         }
+        // Digest-pinned images (e.g. repo@sha256:...) cannot have their tag replaced.
+        if (baseImage.contains("@")) {
+            return baseImage;
+        }
         int colon = baseImage.lastIndexOf(':');
         String repo = (colon > 0) ? baseImage.substring(0, colon) : baseImage;
         return repo + ":" + version;

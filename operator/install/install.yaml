@@ -7242,6 +7242,11 @@ spec:
                     description: Number of replicas for the component
                     type: integer
                 type: object
+              version:
+                description: Override the registry version deployed by this operator.
+                  When set, the operator replaces the image tag with this value. When
+                  not set, defaults to the version bundled with the operator.
+                type: string
             type: object
           status:
             properties:

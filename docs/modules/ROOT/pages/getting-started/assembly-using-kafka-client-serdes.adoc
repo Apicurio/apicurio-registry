@@ -443,5 +443,4 @@ props.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, myCustomStrategy);
 // Create the Kafka Producer
 KafkaProducer<String, Object> producer = new KafkaProducer<>(props);
 ----
-+
-When Kafka internally calls the `configure()` method on the serializer, {registry} automatically detects the injected objects in the configuration map and uses them securely in place of attempting to build new ones from properties.
+When Kafka passes this configuration map to the serializer during initialization, {registry} extracts and uses your custom instances directly.

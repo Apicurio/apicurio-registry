@@ -194,6 +194,8 @@ public class SerdeConfig extends SchemaResolverConfig {
      */
     public static final String CONTRACT_RULES_MIGRATION_TARGET_VERSION = "apicurio.registry.serde.contract-rules.migration.target-version";
 
+    public static final String REGISTRY_CLIENT_FACADE = "apicurio.registry.client-facade";
+
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(entry(ID_HANDLER, ID_HANDLER_DEFAULT),
             entry(USE_ID, USE_ID_DEFAULT));
 

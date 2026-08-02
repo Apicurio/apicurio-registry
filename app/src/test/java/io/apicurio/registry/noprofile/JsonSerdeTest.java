@@ -45,11 +45,11 @@ public class JsonSerdeTest extends AbstractClientFacadeTestBase {
         Person person = new Person("Ales", "Justin", 23);
 
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            JsonSchemaKafkaDeserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
-            Map<String, String> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId,
-                    KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true");
+            Map<String, Object> configs = Map.of(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId,
+                    KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true", SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             serializer.configure(configs, false);
 
             deserializer.configure(configs, false);

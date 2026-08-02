@@ -146,10 +146,11 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         Schema schema = new Schema.Parser().parse(
                 "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test_group_avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         try (
-            AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(clientFacade);
-            Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+            AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>();
+            Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, strategy);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
@@ -193,11 +194,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
                 "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
         try (
-            AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>(clientFacade);
-            Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+            AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<GenericData.Record>();
+            Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>()) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
 
@@ -237,11 +239,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
     @MethodSource("isolatedClientFacadeProvider")
     public void avroJsonWithReferences(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
-        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(clientFacade);
-            Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>();
+            Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>()) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.DEREFERENCE_SCHEMA, "false");
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
@@ -314,11 +317,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
     @MethodSource("isolatedClientFacadeProvider")
     public void avroJsonWithReferencesDereferenced(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
-        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(clientFacade);
-            Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>();
+            Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>()) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
 
@@ -391,11 +395,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
     @MethodSource("isolatedClientFacadeProvider")
     public void avroJsonWithReferencesDeserializerDereferenced(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
-        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>(clientFacade);
-            Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+        try (AvroKafkaSerializer<AvroSchemaB> serializer = new AvroKafkaSerializer<AvroSchemaB>();
+            Deserializer<AvroSchemaB> deserializer = new AvroKafkaDeserializer<>()) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
 
@@ -478,11 +483,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
     public void issue4463Test(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
         try (
-            AvroKafkaSerializer<LeadFallErstellen> serializer = new AvroKafkaSerializer<>(clientFacade);
-            Deserializer<LeadFallErstellen> deserializer = new AvroKafkaDeserializer<>(clientFacade);) {
+            AvroKafkaSerializer<LeadFallErstellen> serializer = new AvroKafkaSerializer<>();
+            Deserializer<LeadFallErstellen> deserializer = new AvroKafkaDeserializer<>();) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
@@ -525,11 +531,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
                 "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
         try (
-            AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(clientFacade);
-            Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+            AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>();
+            Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>()) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             serializer.configure(config, false);
 
@@ -564,11 +571,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
         try (
-            AvroKafkaSerializer<GenericData.EnumSymbol> serializer = new AvroKafkaSerializer<>(clientFacade);
-            Deserializer<GenericData.EnumSymbol> deserializer = new AvroKafkaDeserializer<>(clientFacade);) {
+            AvroKafkaSerializer<GenericData.EnumSymbol> serializer = new AvroKafkaSerializer<>();
+            Deserializer<GenericData.EnumSymbol> deserializer = new AvroKafkaDeserializer<>();) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, RecordIdStrategy.class.getName());
@@ -626,11 +634,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
     private void testAvroReflect(Class<?> artifactResolverStrategyClass, Class<?> datumProvider,
             Supplier<Tester> testerFactory) throws Exception {
         RegistryClientFacade clientFacade = new RegistryClientFacadeImpl(isolatedClientV3);
-        try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>(clientFacade);
-            AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>(clientFacade);) {
+        try (AvroKafkaSerializer<Tester> serializer = new AvroKafkaSerializer<Tester>();
+            AvroKafkaDeserializer<Tester> deserializer = new AvroKafkaDeserializer<Tester>();) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, datumProvider.getName());
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, artifactResolverStrategyClass.getName());
             serializer.configure(config, false);
@@ -681,7 +690,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
         // Confluent serializer -> Apicurio deserializer
         try (KafkaAvroSerializer serializer = new KafkaAvroSerializer(schemaClient);
-            AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+            AvroKafkaDeserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>()) {
 
             byte[] bytes = serializer.serialize(subject, record);
 
@@ -695,7 +704,8 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
             }, bytes, ByteBuffer::getInt));
 
             deserializer.as4ByteId();
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
             deserializer.configure(config, false);
             GenericData.Record ir = deserializer.deserialize(subject, bytes);
@@ -703,11 +713,12 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         }
 
         // Apicurio serializer -> Confluent deserializer
-        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(clientFacade);
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>();
              KafkaAvroDeserializer deserializer = new KafkaAvroDeserializer(schemaClient)) {
 
-            Map<String, String> config = new HashMap<>();
+            Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
 
             serializer.as4ByteId();
             serializer.configure(config, false);

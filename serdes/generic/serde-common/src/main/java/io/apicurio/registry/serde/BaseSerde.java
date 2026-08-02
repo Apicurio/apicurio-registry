@@ -75,6 +75,14 @@ public class BaseSerde<T, U> implements AutoCloseable {
             SchemaParser<T, U> schemaParser) {
         Objects.requireNonNull(configs);
         Objects.requireNonNull(schemaParser);
+
+        if (this.clientFacade == null) {
+            Object cf = configs.get(SerdeConfig.REGISTRY_CLIENT_FACADE);
+            if (cf != null) {
+                Utils.instantiate(RegistryClientFacade.class, cf, this::setClientFacade);
+            }
+        }
+
         if (this.schemaResolver == null) {
             Object sr = configs.get(SerdeConfig.SCHEMA_RESOLVER);
             if (null == sr) {
@@ -83,6 +91,11 @@ public class BaseSerde<T, U> implements AutoCloseable {
                 Utils.instantiate(SchemaResolver.class, sr, this::setSchemaResolver);
             }
         }
+
+        if (this.clientFacade != null) {
+            this.schemaResolver.setClientFacade(this.clientFacade);
+        }
+
         // enforce default artifactResolverStrategy for kafka apps
         if (!configs.containsKey(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY)) {
             configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY,
@@ -95,6 +108,10 @@ public class BaseSerde<T, U> implements AutoCloseable {
 
     public RegistryClientFacade getClientFacade() {
         return clientFacade;
+    }
+
+    public void setClientFacade(RegistryClientFacade clientFacade) {
+        this.clientFacade = Objects.requireNonNull(clientFacade);
     }
 
     public SchemaResolver<T, U> getSchemaResolver() {

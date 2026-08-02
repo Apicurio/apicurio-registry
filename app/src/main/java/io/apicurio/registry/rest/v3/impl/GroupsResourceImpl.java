@@ -599,13 +599,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 ArtifactMetaDataDto currentDto = storage.getArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
                 String currentOwner = currentDto.getOwner();
                 if (!data.getOwner().equals(currentOwner)) {
-                    boolean isAdmin = rbac.isAdmin() || adminOverride.isAdmin();
-                    boolean isOwner = securityIdentity != null && securityIdentity.getPrincipal() != null
-                            && securityIdentity.getPrincipal().getName() != null
-                            && securityIdentity.getPrincipal().getName().equals(currentOwner);
+                    if (securityIdentity != null && !securityIdentity.isAnonymous()) {
+                        boolean isAdmin = rbac.isAdmin() || adminOverride.isAdmin();
+                        boolean isOwner = securityIdentity.getPrincipal() != null
+                                && securityIdentity.getPrincipal().getName() != null
+                                && securityIdentity.getPrincipal().getName().equals(currentOwner);
 
-                    if (!isAdmin && !isOwner) {
-                        throw new ForbiddenException("Only the artifact owner or an administrator can transfer artifact ownership.");
+                        if (!isAdmin && !isOwner) {
+                            throw new ForbiddenException("Only the artifact owner or an administrator can transfer artifact ownership.");
+                        }
                     }
                 }
             }

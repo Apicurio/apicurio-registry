@@ -137,8 +137,21 @@
         <module name="NoWhitespaceAfter"/>          <!-- 54 violations -->
         <module name="Indentation"/>                <!-- 467 violations -->
 
-        <!-- locale-sensitive methods should specify a Locale -->
-        <module name="Regexp">                      <!-- 134 violations -->
+        <!--
+            Locale-sensitive methods should specify a Locale.
+
+            PROMOTE THIS ONE FIRST. Unlike the whitespace and brace rules
+            around it, this catches real defects rather than style drift -
+            the default locale makes toUpperCase()/toLowerCase() behave
+            differently per JVM (the Turkish dotless-i problem). The project
+            has already had to fix two such bugs in production code: #9075
+            (Elasticsearch state filter) and #8922 (RulesPropertiesImpl).
+
+            134 violations: 76 under src/main, 58 under src/test. The
+            production half is concentrated - 31 in app, 11 in
+            utils/maven-plugin - so it is tractable in one focused pass.
+        -->
+        <module name="Regexp">
             <property name="format" value="\.to(Lower|Upper)Case\(\)"/>
             <property name="illegalPattern" value="true"/>
             <property name="ignoreComments" value="true"/>

@@ -14,6 +14,7 @@ export * from "./roles";
 export * from "./root";
 export * from "./rules";
 export * from "./contractRules";
+export * from "./playground";
 export * from "./PageDataLoader";
 export * from "./PageError";
 export * from "./PageErrorHandler";

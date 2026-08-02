@@ -1,0 +1,32 @@
+.prompt-template-editor {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.prompt-template-editor .editor-wrapper {
+    flex: 1;
+    min-height: 300px;
+    border: 1px solid var(--pf-t--global--border--color--default);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.prompt-template-editor .extracted-variables {
+    margin-top: 12px;
+}
+
+.prompt-template-editor .extracted-variables-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--pf-t--global--text--color--subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.prompt-template-editor .no-variables-text {
+    font-size: 13px;
+    color: var(--pf-t--global--text--color--subtle);
+    font-style: italic;
+}

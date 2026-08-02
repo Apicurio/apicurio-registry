@@ -1,0 +1,87 @@
+.prompt-playground-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 24px;
+}
+
+.prompt-playground-page .playground-header {
+    margin-bottom: 16px;
+}
+
+.prompt-playground-page .playground-header .playground-title {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.prompt-playground-page .playground-header .playground-subtitle {
+    color: var(--pf-t--global--text--color--subtle);
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.prompt-playground-page .playground-header .playground-artifact-info {
+    margin-top: 8px;
+}
+
+.prompt-playground-page .playground-layout {
+    display: flex;
+    flex: 1;
+    gap: 16px;
+    min-height: 0;
+}
+
+.prompt-playground-page .playground-editor-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.prompt-playground-page .playground-test-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-y: auto;
+}
+
+.prompt-playground-page .playground-test-panel .test-panel-form {
+    margin-bottom: 16px;
+}
+
+.prompt-playground-page .rendered-section {
+    margin-top: 16px;
+}
+
+.prompt-playground-page .rendered-output {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    padding: 16px;
+    border-radius: 4px;
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 60px;
+    margin-top: 8px;
+}
+
+.prompt-playground-page .render-source-label {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.prompt-playground-page .validation-errors {
+    margin-top: 8px;
+}
+
+.prompt-playground-page .template-modified-alert {
+    margin-bottom: 12px;
+}
+
+.prompt-playground-page .loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+}

@@ -12,6 +12,7 @@ import {
     ExplorePage,
     GroupPage,
     NotFoundPage,
+    PromptPlaygroundPage,
     RootRedirectPage,
     GlobalContractRulesPage,
     RulesPage,
@@ -133,6 +134,12 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                             element={ <BranchPage /> }
                         />
 
+
+                        {/* Prototype route for LFX proposal (issue #8425) — prompt template playground */}
+                        <Route
+                            path="/playground/:groupId/:artifactId/:version"
+                            element={ <PromptPlaygroundPage /> }
+                        />
 
                         <Route path="*" element={ <NotFoundPage /> } />
                     </Routes>

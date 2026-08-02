@@ -399,6 +399,7 @@ The `AvroKafkaSerializer` and `AvroKafkaDeserializer` classes are the Avro seria
 . Create the Kafka Streams client:
 +
 [source,java,subs="+quotes,attributes"]
+----
 KStream<String, LogInput> input = builder.stream(
     INPUT_TOPIC,
     Consumed.with(Serdes.String(), logSerde)

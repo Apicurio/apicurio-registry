@@ -422,6 +422,43 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // we'd still need to ensure sequential processing for correctness. The coordinator mechanism already
         // handles response synchronization for write operations.
         kafkaSqlSink.processMessage(record);
+
+        if (record.value() instanceof CreateSnapshot1Message) {
+            cleanupOldSnapshots(Path.of(((CreateSnapshot1Message) record.value()).getSnapshotLocation()));
+        }
+    }
+
+    /**
+     * Cleans up old local dumps to save disk space, keeping the most recent 3 backups.
+     * We only clean up if the new snapshot actually exists on disk (successful generation).
+     */
+    private synchronized void cleanupOldSnapshots(Path newSnapshotPath) {
+        try {
+            Path storeDir = Path.of(configuration.getSnapshotStoreLocation());
+            if (java.nio.file.Files.exists(newSnapshotPath) && java.nio.file.Files.isDirectory(storeDir)) {
+                List<Path> snapshotFiles = new ArrayList<>();
+                try (java.nio.file.DirectoryStream<Path> stream = java.nio.file.Files.newDirectoryStream(storeDir, "*.{sql,sql.gz}")) {
+                    for (Path p : stream) {
+                        snapshotFiles.add(p);
+                    }
+                }
+                // Sort by last modified time descending (newest first)
+                snapshotFiles.sort((p1, p2) -> {
+                    try {
+                        return java.nio.file.Files.getLastModifiedTime(p2).compareTo(java.nio.file.Files.getLastModifiedTime(p1));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                
+                // Delete everything except the 3 most recent files
+                for (int i = 3; i < snapshotFiles.size(); i++) {
+                    java.nio.file.Files.deleteIfExists(snapshotFiles.get(i));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error cleaning up old snapshot files", e);
+        }
     }
 
     /**

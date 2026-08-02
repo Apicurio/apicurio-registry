@@ -33,7 +33,7 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
     }
 
     @Override
-    public final void configure(Map<String, ?> configs, boolean isKey) {
+    public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedSerializer.configure(new SerdeConfig(configs), isKey);
         this.configure(new BaseKafkaSerDeConfig(configs), isKey);
         initializeHeaders(configs, isKey);

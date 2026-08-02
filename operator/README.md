@@ -203,6 +203,7 @@ Available configuration options:
 | test.operator.ingress-skip    | `true` / `false`   | `false`       | Skip testing of Ingresses. Useful when testing on clusters without an Ingress controller or without an accessible base hostname.                        |
 | test.operator.ingress-host    | string             | -             | Used when testing Ingresses. For some clusters, you might need to provide the base hostname from where the applications on your cluster are accessible. |
 | test.operator.cleanup-enabled | `true` / `false`   | `true`        | Clean test namespaces from the cluster after the tests finish.                                                                                          |
+| test.operator.strimzi-namespace | string           | `strimzi-cluster-operator` | Dedicated long-lived namespace for the cluster-wide Strimzi operator used by the Kafka tests. Never deleted by cleanup; on persistent clusters remove it manually (see `controller/src/test/resources/strimzi/README.md`). |
 
 ### Remote Tests
 

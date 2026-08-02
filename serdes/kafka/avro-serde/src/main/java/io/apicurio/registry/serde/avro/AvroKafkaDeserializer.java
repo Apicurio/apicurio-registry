@@ -16,7 +16,7 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
     }
 
     @Override
-    protected void initialize(Map<String, ?> configs, boolean isKey) {
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
         avroHeaders = new AvroSerdeHeaders(isKey);
     }
 

@@ -741,7 +741,7 @@ The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/serv
 |Validates numeric values against minimum/maximum constraints
 |===
 
-A variable placeholder is a word-character name with optional surrounding whitespace, so `{{name}}` and `{{ name }}` both resolve to the variable `name`. The render endpoint does not resolve a name that contains any other character, for example `{{user.name}}` or `{{my-var}}`, and leaves it in the rendered output as literal text. Earlier versions of the render endpoint resolved such names. The endpoint now uses the same grammar as the prompt template validity rule and the MCP prompt converter.
+A variable placeholder is a word-character name with optional surrounding whitespace, so `{{name}}` and `{{ name }}` both resolve to the variable `name`. The render endpoint does not resolve a name that contains any other character, for example `{{user.name}}` or `{{my-var}}`, and leaves it in the rendered output as literal text. Earlier versions of the render endpoint resolved such names. The MCP prompt converter also resolved a placeholder such as `{{user.name}}` when you supplied an argument of the same name. Both now use the same grammar as the prompt template validity rule.
 
 When validation fails, the response includes validation errors:
 

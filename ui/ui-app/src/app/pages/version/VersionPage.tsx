@@ -404,6 +404,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();

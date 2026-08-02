@@ -399,9 +399,49 @@ The `AvroKafkaSerializer` and `AvroKafkaDeserializer` classes are the Avro seria
 . Create the Kafka Streams client:
 +
 [source,java,subs="+quotes,attributes"]
-----
 KStream<String, LogInput> input = builder.stream(
     INPUT_TOPIC,
     Consumed.with(Serdes.String(), logSerde)
 );
 ----
+
+[id="registry-serdes-advanced-config_{context}"]
+== Advanced Serde configuration: Injecting dependencies
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+In advanced use cases, you might want to use customized implementations for the `RegistryClientFacade` (for example, for custom authentication logic), `SchemaResolver`, or `ArtifactReferenceResolverStrategy` rather than having the serializer or deserializer instantiate them automatically using string properties. You can inject these pre-instantiated dependencies directly via the configuration map.
+
+.Prerequisites
+* You have instantiated a custom `RegistryClientFacade`, `SchemaResolver`, or `ArtifactReferenceResolverStrategy`.
+
+.Procedure
+. Instantiate your custom dependencies in your Java application code.
++
+[source,java,subs="+quotes,attributes"]
+----
+RegistryClientFacade myCustomFacade = new MyCustomAuthFacade();
+SchemaResolver<Schema, Object> myCustomResolver = new MyCustomFallbackResolver();
+ArtifactReferenceResolverStrategy<Schema, Object> myCustomStrategy = new MyCustomResolverStrategy();
+----
+. Inject the instances directly into the Kafka properties map before passing it to the producer or consumer:
++
+[source,java,subs="+quotes,attributes"]
+----
+Map<String, Object> props = new HashMap<>();
+// Pass standard Kafka properties
+props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class);
+
+// Inject the custom instances using the standard SerdeConfig keys
+props.put(SerdeConfig.REGISTRY_CLIENT_FACADE, myCustomFacade);
+props.put(SerdeConfig.SCHEMA_RESOLVER, myCustomResolver);
+props.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, myCustomStrategy);
+
+// Create the Kafka Producer
+KafkaProducer<String, Object> producer = new KafkaProducer<>(props);
+----
++
+When Kafka internally calls the `configure()` method on the serializer, {registry} automatically detects the injected objects in the configuration map and uses them securely in place of attempting to build new ones from properties.

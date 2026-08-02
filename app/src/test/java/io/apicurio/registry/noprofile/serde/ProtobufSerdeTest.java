@@ -279,7 +279,8 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
             deserializer.configure(Map.of(
                     SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, TestCmmn.UUID.class.getName(),
                     SerdeConfig.READ_TYPE_REF, "false",
-                    SerdeConfig.READ_INDEXES, "true"
+                    SerdeConfig.READ_INDEXES, "true",
+                    SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade
             ), false);
 
             TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();

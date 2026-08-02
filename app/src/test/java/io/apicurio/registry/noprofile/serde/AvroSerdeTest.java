@@ -156,6 +156,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
             serializer.configure(config, false);
 
             config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializer.configure(config, false);
 
             GenericData.Record record = new GenericData.Record(schema);
@@ -205,6 +206,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializer.configure(config, false);
 
             GenericData.Record record = new GenericData.Record(schema);
@@ -251,6 +253,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
             deserializer.configure(config, false);
 
@@ -328,6 +331,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
             deserializer.configure(config, false);
 
@@ -406,6 +410,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
             config.putIfAbsent(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             deserializer.configure(config, false);
@@ -495,6 +500,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_ENCODING, AvroSerdeConfig.AVRO_ENCODING_JSON);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.putIfAbsent(AvroSerdeConfig.AVRO_DATUM_PROVIDER, ReflectAvroDatumProvider.class.getName());
             deserializer.configure(config, false);
 
@@ -542,6 +548,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializer.configure(config, false);
 
             GenericData.Record record = new GenericData.Record(schema);
@@ -572,7 +579,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
         try (
             AvroKafkaSerializer<GenericData.EnumSymbol> serializer = new AvroKafkaSerializer<>();
-            Deserializer<GenericData.EnumSymbol> deserializer = new AvroKafkaDeserializer<>();) {
+            Deserializer<GenericData.EnumSymbol> deserializer = new AvroKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
@@ -584,6 +591,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializer.configure(config, false);
 
             GenericData.EnumSymbol record = new GenericData.EnumSymbol(eventTypeSchema, "UNDEFINED");
@@ -646,6 +654,7 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             config = new HashMap<>();
             config.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, datumProvider.getName());
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializer.configure(config, false);
 
             String artifactId = generateArtifactId();
@@ -705,8 +714,8 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             deserializer.as4ByteId();
             Map<String, Object> config = new HashMap<>();
-            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.USE_ID, IdOption.contentId.name());
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializer.configure(config, false);
             GenericData.Record ir = deserializer.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());

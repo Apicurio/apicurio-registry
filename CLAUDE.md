@@ -80,8 +80,10 @@ just will not be blocked if something slips.
 - 4-space indentation (467)
 - Complexity/length limits: method length 150, params 13, cyclomatic 19
 
-To promote a staged rule, drive its count to zero and delete its `severity`
-override in `.checkstyle/checkstyle.xml`.
+To promote a staged rule, drive its count to zero, then add
+`<property name="severity" value="error"/>` to that rule in
+`.checkstyle/checkstyle.xml`. Staged rules carry no severity property of their
+own — they inherit the Checker-level default of `warning`.
 
 **Not checked at all:** per-file Apache license headers. Only 143 of 2168 Java
 files carry one and most new files do not — the repository-root `LICENSE`

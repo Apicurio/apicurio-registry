@@ -17,8 +17,10 @@
         existing code base does not yet satisfy. They are reported on every
         build so contributors get feedback, but they do not fail it. The
         comment on each rule records the number of violations at the time it
-        was staged; drive one to zero and promote it to the enforced tier by
-        deleting its severity override.
+        was staged; drive one to zero, then promote it to the enforced tier by
+        adding a severity=error property to that rule (staged rules carry no
+        severity property of their own - they inherit the Checker default
+        below).
 
     The Checker-level default severity below is "warning" on purpose: a rule
     added to this file is non-blocking until somebody explicitly promotes it.

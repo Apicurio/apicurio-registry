@@ -1279,16 +1279,15 @@
           <suppressionsLocation>${projectRoot}/.checkstyle/suppressions.xml</suppressionsLocation>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
           <consoleOutput>true</consoleOutput>
-          <failsOnError>true</failsOnError>
           <!--
             checkstyle.xml is tiered: enforced rules are severity=error, rules
-            still being driven to zero are severity=warning. Pinning
-            violationSeverity here keeps that contract explicit, so a plugin
-            default change cannot silently start failing the build on the
-            staged tier.
+            still being driven to zero are severity=warning. These two settings
+            are the whole fail contract - the build fails on violations, and
+            only those at severity=error count. Pinning both keeps a plugin
+            default change from silently failing the build on the staged tier.
           -->
-          <violationSeverity>error</violationSeverity>
           <failOnViolation>true</failOnViolation>
+          <violationSeverity>error</violationSeverity>
         </configuration>
         <executions>
           <execution>

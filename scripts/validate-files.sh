@@ -50,10 +50,14 @@ CHECKSTYLE_ACTIVE=$(sed -e 's/<!--.*-->//g' "$CHECKSTYLE_CONFIG" \
     | awk '/<!--/{skip=1} !skip{print} /-->/{skip=0}')
 
 # <headerLocation> only makes sense alongside an active header module.
-if grep -rq "<headerLocation>" --include=pom.xml . 2>/dev/null; then
-    if ! echo "$CHECKSTYLE_ACTIVE" | grep -q 'name="RegexpHeader"\|name="Header"'; then
+# Skip target/, which can hold generated poms from an earlier local build.
+HEADER_REFS=$(grep -rn "<headerLocation>" --include=pom.xml . 2>/dev/null \
+    | grep -v "/target/" || true)
+if [ -n "$HEADER_REFS" ]; then
+    if ! printf '%s\n' "$CHECKSTYLE_ACTIVE" | grep -q 'name="RegexpHeader"\|name="Header"'; then
         echo "<headerLocation> is configured but $CHECKSTYLE_CONFIG declares no"
-        echo "header module, so the license header check would be inert."
+        echo "header module, so the license header check would be inert:"
+        echo "$HEADER_REFS"
         exit 1
     fi
 fi
@@ -63,22 +67,26 @@ ENFORCED_RULES="FileTabCharacter UnusedImports RedundantImport IllegalImport \
 OneStatementPerLine DefaultComesLast UpperEll PackageName ClassTypeParameterName \
 MethodTypeParameterName InterfaceTypeParameterName MethodParamPad TypecastParenPad"
 
-ACTUALLY_ENFORCED=$(echo "$CHECKSTYLE_ACTIVE" | awk '
+# printf rather than echo: the config holds regex properties containing
+# backslashes, and echo's escape handling is implementation-defined.
+# Match the severity property specifically, so an unrelated property that
+# happens to be valued "error" cannot mark a staged rule as enforced.
+ACTUALLY_ENFORCED=$(printf '%s\n' "$CHECKSTYLE_ACTIVE" | awk '
     /<module name="/ {
         match($0, /name="[^"]+"/)
         current = substr($0, RSTART + 6, RLENGTH - 7)
         if ($0 ~ /\/>/) { current = "" }   # self-closing: no severity override
         next
     }
-    current != "" && /value="error"/ { print current }
+    current != "" && /name="severity"/ && /value="error"/ { print current }
     /<\/module>/ { current = "" }
 ')
 
 for rule in $ENFORCED_RULES; do
-    if ! echo "$ACTUALLY_ENFORCED" | grep -qx "$rule"; then
+    if ! printf '%s\n' "$ACTUALLY_ENFORCED" | grep -qx "$rule"; then
         echo "Rule '$rule' is documented as enforced but is not set to"
         echo "severity=error in $CHECKSTYLE_CONFIG."
         exit 1
     fi
 done
-echo "Checkstyle config ok: $(echo "$ACTUALLY_ENFORCED" | grep -c .) rules enforced"
+echo "Checkstyle config ok: $(printf '%s\n' "$ACTUALLY_ENFORCED" | grep -c .) rules enforced"

@@ -1275,12 +1275,20 @@
           </dependency>
         </dependencies>
         <configuration>
-          <configLocation>${projectRoot}/.checkstyle/simple.xml</configLocation>
-          <headerLocation>${projectRoot}/.checkstyle/java.header</headerLocation>
+          <configLocation>${projectRoot}/.checkstyle/checkstyle.xml</configLocation>
           <suppressionsLocation>${projectRoot}/.checkstyle/suppressions.xml</suppressionsLocation>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
+          <!--
+            checkstyle.xml is tiered: enforced rules are severity=error, rules
+            still being driven to zero are severity=warning. Pinning
+            violationSeverity here keeps that contract explicit, so a plugin
+            default change cannot silently start failing the build on the
+            staged tier.
+          -->
+          <violationSeverity>error</violationSeverity>
+          <failOnViolation>true</failOnViolation>
         </configuration>
         <executions>
           <execution>

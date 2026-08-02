@@ -92,10 +92,6 @@ public class BaseSerde<T, U> implements AutoCloseable {
             }
         }
 
-        if (this.schemaResolver == null) {
-            throw new IllegalStateException("SchemaResolver was not properly instantiated by the configuration map.");
-        }
-
         if (this.clientFacade != null) {
             this.schemaResolver.setClientFacade(this.clientFacade);
         }

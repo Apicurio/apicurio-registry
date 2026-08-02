@@ -194,6 +194,11 @@ public class SerdeConfig extends SchemaResolverConfig {
      */
     public static final String CONTRACT_RULES_MIGRATION_TARGET_VERSION = "apicurio.registry.serde.contract-rules.migration.target-version";
 
+    /**
+     * Configures the Serde classes with an explicitly provided instance of {@link io.apicurio.registry.resolver.client.RegistryClientFacade}
+     * (or its fully qualified Java classname). The RegistryClientFacade abstracts the underlying Apicurio Registry 
+     * REST client. When provided, the Serde classes will use this client directly instead of constructing a new one.
+     */
     public static final String REGISTRY_CLIENT_FACADE = "apicurio.registry.client-facade";
 
     private static final Map<String, Object> DEFAULTS = Map.ofEntries(entry(ID_HANDLER, ID_HANDLER_DEFAULT),

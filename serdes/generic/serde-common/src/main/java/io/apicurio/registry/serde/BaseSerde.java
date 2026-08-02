@@ -92,18 +92,20 @@ public class BaseSerde<T, U> implements AutoCloseable {
             }
         }
 
-        if (this.clientFacade != null) {
-            this.schemaResolver.setClientFacade(this.clientFacade);
-        }
+        if (this.schemaResolver != null) {
+            if (this.clientFacade != null) {
+                this.schemaResolver.setClientFacade(this.clientFacade);
+            }
 
-        // enforce default artifactResolverStrategy for kafka apps
-        if (!configs.containsKey(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY)) {
-            configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY,
-                    SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
+            // enforce default artifactResolverStrategy for kafka apps
+            if (!configs.containsKey(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY)) {
+                configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY,
+                        SerdeConfig.ARTIFACT_RESOLVER_STRATEGY_DEFAULT);
+            }
+            // isKey is passed via config property
+            configs.put(SerdeConfig.IS_KEY, isKey);
+            this.schemaResolver.configure(configs, schemaParser);
         }
-        // isKey is passed via config property
-        configs.put(SerdeConfig.IS_KEY, isKey);
-        this.schemaResolver.configure(configs, schemaParser);
     }
 
     public RegistryClientFacade getClientFacade() {

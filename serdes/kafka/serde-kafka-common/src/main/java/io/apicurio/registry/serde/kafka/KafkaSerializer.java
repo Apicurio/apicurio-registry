@@ -39,7 +39,9 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
         initializeHeaders(configs, isKey);
     }
 
-    protected void initializeHeaders(Map<String, ?> configs, boolean isKey){}
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
+        // Empty by default, designed to be overridden by subclasses if needed
+    }
 
     protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
         boolean headersEnabled = config.enableHeaders();

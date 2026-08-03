@@ -40,6 +40,7 @@ CI capacity. Marking it ready for review again re-enters the lifecycle at
 | `lifecycle/waiting-on-author` | PR needs action from the author (failed tests or changes requested). |
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
 | `lifecycle/stale` | No activity for 4+ days (waiting on author) or 7+ days (otherwise). PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). |
+| `ci/disable-scalpel` | Skips the non-blocking `scalpel-report` data-collection job for this PR. |
 
 ## For Contributors
 

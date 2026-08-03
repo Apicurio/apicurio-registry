@@ -1379,6 +1379,21 @@ calls to the REST API, set the following options to `true`:
 |`false`
 |===
 
+[IMPORTANT]
+====
+When {registry} uses Kubernetes authentication together with anonymous read-only access, be aware
+of the following availability tradeoff during a Kubernetes API outage. If the Kubernetes API server
+becomes unavailable, {registry} cannot validate service account tokens, and after several
+consecutive failures a circuit breaker suspends further token validation for a short period. While
+token validation is suspended, requests that carry a Kubernetes token are treated as
+unauthenticated and, because anonymous read-only access is enabled, are served as anonymous
+read-only requests instead of being rejected. As a result, authenticated write users are silently
+downgraded to read-only access until the Kubernetes API recovers, with no client-side error.
+{registry} logs a warning when this state is first entered. If this silent downgrade is
+unacceptable for your deployment, disable anonymous read-only access so that token-validation
+failures return an authentication error instead.
+====
+
 
 [role="_additional-resources"]
 .Additional resources

@@ -236,6 +236,8 @@ jobs:
           name: operator-test-artifacts
           path: registry/operator/
 
+
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
           driver: 'none'

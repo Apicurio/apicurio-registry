@@ -147,7 +147,7 @@ public class SearchVersionsCommand extends AbstractCommand {
             params.artifactType = artifactType;
         }
         if (state != null) {
-            params.state = state;
+            params.state = new VersionState[]{state};
         }
         if (labels != null) {
             params.labels = Conversions.convertLabelsForApi(labels);

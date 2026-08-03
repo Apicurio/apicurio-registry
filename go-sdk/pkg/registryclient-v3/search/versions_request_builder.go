@@ -49,9 +49,9 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	SkipCount *bool `uriparametername:"skipCount"`
 	// Filter by version state.
 	// Deprecated: This property is deprecated, use StateAsVersionState instead
-	State *string `uriparametername:"state"`
+	State []string `uriparametername:"state"`
 	// Filter by version state.
-	StateAsVersionState *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionState `uriparametername:"state"`
+	StateAsVersionState []iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionState `uriparametername:"state"`
 	// Search by structured content elements (schemas, paths, fields, etc.) using a faceted format. Supports three formats: `type:kind:name` for exact match (e.g. `openapi:schema:Pet`), `kind:name` for cross-type match (e.g. `schema:Pet`), or just `name` for plain text search. Requires the Lucene search index to be enabled.
 	Structure *string `uriparametername:"structure"`
 	// Filter by version number.
@@ -94,6 +94,11 @@ type VersionsRequestBuilderPostQueryParameters struct {
 	OrderbyAsVersionSortBy *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSortBy `uriparametername:"orderby"`
 	// Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.
 	SkipCount *bool `uriparametername:"skipCount"`
+	// Filter by version state.
+	// Deprecated: This property is deprecated, use StateAsVersionState instead
+	State []string `uriparametername:"state"`
+	// Filter by version state.
+	StateAsVersionState []iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionState `uriparametername:"state"`
 }
 
 // VersionsRequestBuilderPostRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.

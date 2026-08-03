@@ -69,7 +69,7 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
     const start: number = (paging.page - 1) * paging.pageSize;
     const end: number = start + paging.pageSize;
     const queryParams: VersionsRequestBuilderGetQueryParameters = {
-        state: "DRAFT",
+        state: ["DRAFT"],
         limit: end,
         offset: start,
         order: sortOrder,

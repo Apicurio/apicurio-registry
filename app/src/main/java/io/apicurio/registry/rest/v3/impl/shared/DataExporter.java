@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -41,31 +40,23 @@ public class DataExporter {
      */
     public Response exportData(String groupId) {
         StreamingOutput stream = os -> {
-            try {
-                ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
+            try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
                 EntityWriter writer = new EntityWriter(zip);
-                AtomicInteger errorCounter = new AtomicInteger(0);
                 storage.exportData(groupId, entity -> {
                     try {
                         writer.writeEntity(entity);
                     } catch (Exception e) {
-                        log.error("Error writing entity", e);
-                        errorCounter.incrementAndGet();
+                        log.error("Error writing entity during export", e);
                         throw new RuntimeException("Error writing entity during export", e);
                     }
                     return null;
                 });
 
-                if (errorCounter.get() > 0) {
-                    throw new IOException("Export failed due to errors writing entities.");
-                }
-
                 zip.flush();
-                zip.close();
             } catch (IOException e) {
                 throw e;
             } catch (Exception e) {
-                throw new IOException(e);
+                throw new IOException("Export failed due to error writing entities", e);
             }
         };
 

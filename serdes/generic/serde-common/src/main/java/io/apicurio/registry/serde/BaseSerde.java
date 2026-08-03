@@ -76,13 +76,6 @@ public class BaseSerde<T, U> implements AutoCloseable {
         Objects.requireNonNull(configs);
         Objects.requireNonNull(schemaParser);
 
-        if (this.clientFacade == null) {
-            Object cf = configs.get(SerdeConfig.REGISTRY_CLIENT_FACADE);
-            if (cf != null) {
-                Utils.instantiate(RegistryClientFacade.class, cf, this::setClientFacade);
-            }
-        }
-
         if (this.schemaResolver == null) {
             Object sr = configs.get(SerdeConfig.SCHEMA_RESOLVER);
             if (null == sr) {
@@ -96,8 +89,26 @@ public class BaseSerde<T, U> implements AutoCloseable {
             throw new IllegalStateException("Internal error: SchemaResolver was not initialized after configuration.");
         }
 
+        boolean explicitFacade = configs.containsKey(SerdeConfig.REGISTRY_CLIENT_FACADE);
+
+        if (this.clientFacade == null && explicitFacade) {
+            Object cf = configs.get(SerdeConfig.REGISTRY_CLIENT_FACADE);
+            if (cf != null) {
+                Utils.instantiate(RegistryClientFacade.class, cf, this::setClientFacade);
+            }
+        }
+
         if (this.clientFacade != null) {
-            this.schemaResolver.setClientFacade(this.clientFacade);
+            RegistryClientFacade resolverFacade = this.schemaResolver.getClientFacade();
+            if (explicitFacade) {
+                if (resolverFacade != null && resolverFacade != this.clientFacade) {
+                    log.warn("apicurio.registry.client-facade overrides facade already set " +
+                            "on apicurio.registry.schema-resolver");
+                }
+                this.schemaResolver.setClientFacade(this.clientFacade);
+            } else if (resolverFacade == null) {
+                this.schemaResolver.setClientFacade(this.clientFacade);
+            }
         }
 
         // enforce default artifactResolverStrategy for kafka apps

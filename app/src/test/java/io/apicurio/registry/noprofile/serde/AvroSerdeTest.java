@@ -9,6 +9,8 @@ import io.apicurio.registry.AbstractClientFacadeTestBase;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.resolver.client.RegistryClientFacade;
 import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.serde.avro.*;
@@ -137,6 +139,57 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
                     .byArtifactId("test_group_avro.myrecord3").versions().byVersionExpression("branch=latest")
                     .get();
         });
+    }
+
+    @ParameterizedTest(name = "testAvroStatefulStrategyInstanceInjection [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testAvroStatefulStrategyInstanceInjection(ClientFacadeSupplier clientFacadeSupplier)
+            throws Exception {
+        Schema schema = new Schema.Parser().parse(
+                "{\"type\":\"record\",\"name\":\"myrecord3\",\"namespace\":\"test_group_avro\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        String expectedGroupId = "custom_test_group_avro";
+        GroupPrefixStrategy strategy = new GroupPrefixStrategy("custom_");
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>();
+                Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, strategy);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
+            deserializer.configure(config, false);
+
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+
+            String topic = generateArtifactId();
+            byte[] bytes = serializer.serialize(topic, record);
+
+            waitForSchema(contentId -> {
+                try {
+                    if (isolatedClientV3.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0) {
+                        VersionMetaData artifactMetadata = isolatedClientV3.groups().byGroupId(expectedGroupId)
+                                .artifacts().byArtifactId("myrecord3").versions()
+                                .byVersionExpression("branch=latest").get();
+                        assertEquals(contentId.longValue(), artifactMetadata.getContentId());
+                        return true;
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return false;
+            }, bytes);
+
+            GenericData.Record deserialized = deserializer.deserialize(topic, bytes);
+            Assertions.assertEquals(record, deserialized);
+            Assertions.assertEquals("somebar", deserialized.get("bar").toString());
+        }
     }
 
     private void testAvroAutoRegisterIdInBody(
@@ -735,6 +788,33 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
 
             GenericData.Record ir = (GenericData.Record) deserializer.deserialize(subject, bytes);
             Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    /**
+     * Strategy with constructor state; has no no-arg constructor, so it can only be injected as a
+     * pre-instantiated object via {@link SerdeConfig#ARTIFACT_RESOLVER_STRATEGY}.
+     */
+    private static final class GroupPrefixStrategy
+            implements ArtifactReferenceResolverStrategy<Schema, Object> {
+
+        private final String groupPrefix;
+
+        private GroupPrefixStrategy(String groupPrefix) {
+            this.groupPrefix = groupPrefix;
+        }
+
+        @Override
+        public ArtifactReference artifactReference(Record<Object> data,
+                io.apicurio.registry.resolver.ParsedSchema<Schema> parsedSchema) {
+            Schema avroSchema = parsedSchema.getParsedSchema();
+            if (avroSchema != null
+                    && (avroSchema.getType() == Schema.Type.RECORD
+                            || avroSchema.getType() == Schema.Type.ENUM)) {
+                return ArtifactReference.builder().groupId(groupPrefix + avroSchema.getNamespace())
+                        .artifactId(avroSchema.getName()).build();
+            }
+            throw new IllegalStateException("The message must only be an Avro record schema!");
         }
     }
 }

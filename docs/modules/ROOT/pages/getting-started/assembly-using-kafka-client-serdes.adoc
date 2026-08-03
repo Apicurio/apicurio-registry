@@ -417,6 +417,8 @@ In advanced use cases, you might want to use customized implementations for the 
 [NOTE]
 ====
 Convenience constructors such as `new AvroKafkaSerializer<>(clientFacade)` or `new AvroKafkaSerializer<>(clientFacade, schemaResolver)` have been removed; pass pre-instantiated dependencies via the configuration map instead (for example, `SerdeConfig.REGISTRY_CLIENT_FACADE`, `SerdeConfig.SCHEMA_RESOLVER`).
+
+For `ARTIFACT_RESOLVER_STRATEGY` and `SCHEMA_RESOLVER`, you can pass a fully qualified class name (or `Class` object) or a pre-instantiated object. Use a pre-instantiated object when your implementation carries configuration or state (for example, a custom strategy built with constructor arguments). Passing only a class name causes {registry} to instantiate the type via its no-arg constructor, which does not preserve pre-built state from the removed `AvroKafkaSerializer(clientFacade, strategy, schemaResolver)` constructor overloads.
 ====
 
 .Prerequisites
@@ -441,7 +443,7 @@ props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
 props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class);
 
-// Inject the custom instances using the standard SerdeConfig keys
+// Pre-instantiated objects (required for stateful or custom-configured strategies and resolvers)
 props.put(SerdeConfig.REGISTRY_CLIENT_FACADE, myCustomFacade);
 props.put(SerdeConfig.SCHEMA_RESOLVER, myCustomResolver);
 props.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, myCustomStrategy);

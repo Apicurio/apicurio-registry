@@ -41,6 +41,7 @@ public class FormAuthTest extends AbstractResourceTestBase {
 
     private String login(String username, String password) {
         Response response = given()
+            .redirects().follow(false)
             .formParam("j_username", username)
             .formParam("j_password", password)
             .when()
@@ -54,8 +55,9 @@ public class FormAuthTest extends AbstractResourceTestBase {
 
     @Test
     public void testUnauthenticatedAccess() {
-        // Request without cookie should fail (either 401 or 302 redirect to login)
+        // Request without cookie should fail (returns 401 for REST API)
         Response response = given()
+            .redirects().follow(false)
             .when()
                 .get("/registry/v3/search/artifacts")
             .then()

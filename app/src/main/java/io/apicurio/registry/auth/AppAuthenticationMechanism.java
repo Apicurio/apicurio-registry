@@ -164,8 +164,27 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         });
 
         List<AuthenticationStrategy> chain = new ArrayList<>();
-        log.debug("Mechanism priority list: {}", authConfig.getMechanismPriorityList());
-        for (String name : authConfig.getMechanismPriorityList()) {
+        List<String> priorityList = authConfig.getMechanismPriorityList();
+        Set<String> prioritySet = new HashSet<>(priorityList);
+
+        if (authConfig.isBasicAuthEnabled() && !prioritySet.contains("basic")) {
+            log.warn("Basic auth is enabled but 'basic' is missing from apicurio.authn.mechanism.priority.");
+        }
+        if (authConfig.isFormAuthEnabled() && !prioritySet.contains("form")) {
+            log.warn("Form auth is enabled but 'form' is missing from apicurio.authn.mechanism.priority. This will result in a silent lockout.");
+        }
+        if (authConfig.isProxyHeaderAuthEnabled() && !prioritySet.contains("proxy-header")) {
+            log.warn("Proxy header auth is enabled but 'proxy-header' is missing from apicurio.authn.mechanism.priority.");
+        }
+        if (authConfig.isOidcAuthEnabled() && !prioritySet.contains("oidc")) {
+            log.warn("OIDC auth is enabled but 'oidc' is missing from apicurio.authn.mechanism.priority.");
+        }
+        if (authConfig.isKubernetesAuthEnabled() && !prioritySet.contains("kubernetes")) {
+            log.warn("Kubernetes auth is enabled but 'kubernetes' is missing from apicurio.authn.mechanism.priority.");
+        }
+
+        log.debug("Mechanism priority list: {}", priorityList);
+        for (String name : priorityList) {
             Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
             if (factory == null) {
                 log.warn("Unknown authentication mechanism name in priority list: '{}'. "

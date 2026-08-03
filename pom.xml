@@ -224,7 +224,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.45</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.46</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -233,7 +233,7 @@
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>3.6.0.Final</debezium.version>
-    <pulsar-clients.version>4.2.3</pulsar-clients.version>
+    <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.26.0</nats.version>
@@ -298,7 +298,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.0.7</groovy.version>
+    <groovy.version>5.0.8</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>

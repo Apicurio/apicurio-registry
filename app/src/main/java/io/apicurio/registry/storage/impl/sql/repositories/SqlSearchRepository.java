@@ -34,8 +34,8 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
 public class SqlSearchRepository {
 
     private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
-            "Content search is not supported by the SQL storage implementation.  Please use Elasticsearch if you need this feature.";
-    private static final String V_STATE_FIELD = "v.state ";
+            "Content search requires the search index, which is not enabled. "
+            + "Enable the search index to use content search.";
 
     private final Logger log;
 
@@ -156,13 +156,30 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case state:
-                        op = filter.isNot() ? "!=" : "=";
                         where.append(
                                 "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        where.append(V_STATE_FIELD + op + " ?");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, filter.getStringValue());
-                        });
+                        if (filter.isList()) {
+                            where.append("v.state");
+                            where.append(filter.isNot() ? " NOT IN (" : " IN (");
+                            for (int i = 0; i < filter.getListValue().size(); i++) {
+                                where.append("?");
+                                if (i < filter.getListValue().size() - 1) {
+                                    where.append(", ");
+                                }
+                            }
+                            where.append(")");
+                            for (String val : filter.getListValue()) {
+                                binders.add((query, idx) -> {
+                                    query.bind(idx, val);
+                                });
+                            }
+                        } else {
+                            op = filter.isNot() ? "!=" : "=";
+                            where.append("v.state " + op + " ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, filter.getStringValue());
+                            });
+                        }
                         where.append(")");
                         break;
                     case content:
@@ -290,7 +307,7 @@ public class SqlSearchRepository {
                         break;
                     case state:
                         if (filter.isList()) {
-                            where.append(V_STATE_FIELD);
+                            where.append("v.state ");
                             where.append(filter.isNot() ? "NOT IN (" : "IN (");
                             for (int i = 0; i < filter.getListValue().size(); i++) {
                                 where.append("?");
@@ -306,7 +323,7 @@ public class SqlSearchRepository {
                             }
                         } else {
                             op = filter.isNot() ? "!=" : "=";
-                            where.append(V_STATE_FIELD);
+                            where.append("v.state ");
                             where.append(op);
                             where.append(" ?");
                             binders.add((query, idx) -> {
@@ -316,7 +333,9 @@ public class SqlSearchRepository {
                         break;
                     case version:
                         op = filter.isNot() ? "!=" : "=";
-                        where.append("v.version ");
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
                         where.append(op);
                         where.append(" ?");
                         binders.add((query, idx) -> {

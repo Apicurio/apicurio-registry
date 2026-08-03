@@ -147,7 +147,8 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
                     .toArray(VersionState[]::new);
         });
 
-        // The client-side filter acts as a defensive guard against older registries that do not support the state query parameter.
+        // The client-side filter acts as a defensive guard against older registries that do not support the state query parameter
+        // (assuming they silently ignore the repeated state query params rather than rejecting them).
         return results.getVersions().stream()
                 .filter(v -> VersionState.DISABLED != v.getState())
                 .map(v ->

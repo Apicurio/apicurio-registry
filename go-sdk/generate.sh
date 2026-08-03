@@ -19,8 +19,6 @@ if [[ "$OSTYPE" == linux* ]]; then
   OS=linux
 elif [[ "$OSTYPE" == darwin* ]]; then
   OS=osx
-elif [[ "$OSTYPE" == cygwin ]] || [[ "$OSTYPE" == msys ]]; then
-  OS=win
 else
   # Windows not supported yet.
   echo "ERROR: Detected OS is not recognized or supported: $OSTYPE"
@@ -39,14 +37,14 @@ if [[ "$OS" == osx ]]; then
 fi
 
 # TODO move the kiota-version.csproj to it's own folder?
-VERSION=$(cat "$SCRIPT_DIR/go-sdk.csproj" | grep Version | sed -n 's/.*Version="\([^"]*\)".*/\1/p')
+VERSION=$(cat $SCRIPT_DIR/go-sdk.csproj | grep Version | sed -n 's/.*Version="\([^"]*\)".*/\1/p')
 URL="https://github.com/microsoft/kiota/releases/download/v${VERSION}/${PACKAGE_NAME}.zip"
 
-if [[ ! -f "$SCRIPT_DIR/target/kiota_tmp/kiota.exe" && ! -f "$SCRIPT_DIR/target/kiota_tmp/kiota" ]]
+if [[ ! -f $SCRIPT_DIR/target/kiota_tmp/kiota ]]
 then
   echo "Local kiota could not be found, downloading"
-  rm -rf "$SCRIPT_DIR/target/kiota_tmp"
-  mkdir -p "$SCRIPT_DIR/target/kiota_tmp"
+  rm -rf $SCRIPT_DIR/target/kiota_tmp
+  mkdir -p $SCRIPT_DIR/target/kiota_tmp
 
   # Download with retry logic
   MAX_RETRIES=5
@@ -86,34 +84,29 @@ then
     exit 1
   fi
 
-  unzip "$SCRIPT_DIR/target/kiota_tmp/kiota.zip" -d "$SCRIPT_DIR/target/kiota_tmp"
-  chmod u+x "$SCRIPT_DIR/target/kiota_tmp/kiota" 2>/dev/null || true
+  unzip $SCRIPT_DIR/target/kiota_tmp/kiota.zip -d $SCRIPT_DIR/target/kiota_tmp
+  chmod u+x $SCRIPT_DIR/target/kiota_tmp/kiota
 fi
+COMMAND="$SCRIPT_DIR/target/kiota_tmp/kiota"
 
-if [[ -f "$SCRIPT_DIR/target/kiota_tmp/kiota.exe" ]]; then
-  COMMAND="$SCRIPT_DIR/target/kiota_tmp/kiota.exe"
-else
-  COMMAND="$SCRIPT_DIR/target/kiota_tmp/kiota"
-fi
+rm -rf $SCRIPT_DIR/pkg/registryclient-v2
+mkdir -p $SCRIPT_DIR/pkg/registryclient-v2
+rm -rf $SCRIPT_DIR/pkg/registryclient-v3
+mkdir -p $SCRIPT_DIR/pkg/registryclient-v3
 
-rm -rf "$SCRIPT_DIR/pkg/registryclient-v2"
-mkdir -p "$SCRIPT_DIR/pkg/registryclient-v2"
-rm -rf "$SCRIPT_DIR/pkg/registryclient-v3"
-mkdir -p "$SCRIPT_DIR/pkg/registryclient-v3"
+cp $SCRIPT_DIR/../common/src/main/resources/META-INF/openapi-v2.json $SCRIPT_DIR/v2.json
+cp $SCRIPT_DIR/../common/src/main/resources/META-INF/openapi.json $SCRIPT_DIR/v3.json
 
-cp "$SCRIPT_DIR/../common/src/main/resources/META-INF/openapi-v2.json" "$SCRIPT_DIR/v2.json"
-cp "$SCRIPT_DIR/../common/src/main/resources/META-INF/openapi.json" "$SCRIPT_DIR/v3.json"
-
-"$COMMAND" generate \
+$COMMAND generate \
   --language go \
-  --openapi "$SCRIPT_DIR/v2.json" \
+  --openapi $SCRIPT_DIR/v2.json \
   --clean-output \
-  -o "$SCRIPT_DIR/pkg/registryclient-v2" \
+  -o $SCRIPT_DIR/pkg/registryclient-v2 \
   --namespace-name github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v2
 
-"$COMMAND" generate \
+$COMMAND generate \
   --language go \
-  --openapi "$SCRIPT_DIR/v3.json" \
+  --openapi $SCRIPT_DIR/v3.json \
   --clean-output \
-  -o "$SCRIPT_DIR/pkg/registryclient-v3" \
+  -o $SCRIPT_DIR/pkg/registryclient-v3 \
   --namespace-name github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3

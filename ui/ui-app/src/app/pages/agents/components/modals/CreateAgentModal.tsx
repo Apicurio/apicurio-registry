@@ -67,7 +67,12 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
     const handleCreate = (): void => {
         const sanitizedCard = {
             ...agentCard,
-            supportedInterfaces: agentCard.supportedInterfaces?.map(({ id: _id, ...rest }) => rest)
+            // Strip UI-only `id` keys before JSON serialization to the backend.
+            supportedInterfaces: agentCard.supportedInterfaces?.map((iface) => {
+                const rest = { ...iface };
+                delete rest.id;
+                return rest;
+            })
         };
         const data: CreateArtifact = {
             artifactId: artifactId || undefined,

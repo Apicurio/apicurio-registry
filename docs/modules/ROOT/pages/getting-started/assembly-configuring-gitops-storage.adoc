@@ -1,0 +1,582 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="assembly-configuring-gitops-storage_{context}"]
+= Configuring {registry} with GitOps storage
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+Configure {registry} to use a Git repository as the source of registry data. With GitOps storage, you manage schemas and API designs declaratively in Git, and all changes flow through Git commits instead of REST API calls.
+
+== Prerequisites
+
+* You have a way to run the {registry} container image, for example Docker, Podman, or a {kubernetes} cluster.
+* You have a Git repository for registry data.
+
+//INCLUDES
+
+[id="gitops-storage-overview_{context}"]
+== Overview of GitOps storage
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+GitOps storage is a read-only storage variant that loads registry data from a Git repository. You declare the desired state of the registry in files, and the registry serves that state, so all changes flow through your Git workflow with reviews, history, and rollbacks.
+
+IMPORTANT: GitOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it. If the gate is not enabled, the application fails at startup. The data format (`*-v0`) might change in future releases.
+
+*Architecture*
+
+GitOps storage uses a polling-based architecture with blue-green database switching:
+
+. The registry reads a local Git clone on a mounted volume. The registry never fetches from remote repositories itself; a sync container or an external process updates the clone.
+. The registry periodically checks the current commit of the clone. A debounce mechanism absorbs rapid sequences of pushes before a load starts.
+. When the commit changes, the registry loads all data into an inactive in-memory database and validates it.
+. After a successful load, the active and inactive databases switch atomically. If the load fails, the registry keeps serving the last successfully loaded data.
+
+Data flows in one direction only: from Git to the registry. REST API calls that would modify data are rejected with an HTTP `409` response. The registry requires no external database, because data is loaded into in-memory storage from Git.
+
+*Relationship of repositories and registry instances*
+
+One repository can serve multiple registry instances, and one registry instance can aggregate multiple repositories. Each metadata file can declare which registry instances load it, and the registry loads only the data that references its own identifier.
+
+*When to use GitOps storage*
+
+GitOps storage is a good fit when:
+
+* You want schema and API changes to go through pull requests, reviews, and CI checks
+* You need a read-only registry where all changes flow through a Git workflow
+* You want to avoid operating an external database
+* You already manage configuration as code and want registry content to follow the same model
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry-gitops-example[Example GitOps repository]
+endif::[]
+
+
+[id="gitops-repository-data-format_{context}"]
+== GitOps repository data format
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+A GitOps repository contains metadata files that describe registry content, and plain schema files that hold the content itself. This section describes the file types, their discovery, and their fields.
+
+No fixed directory structure is required. The registry discovers metadata files anywhere in the repository by file name suffix. By default, files ending in `.registry` or `.ar`, combined with the `.yaml`, `.yml`, or `.json` extensions, are treated as metadata files, for example `order-event.registry.yaml`. You can change the suffixes with the `apicurio.polling-storage.file-suffixes` property.
+
+Each metadata file declares its kind with a `$type` discriminator:
+
+.Metadata file types
+[cols="1,3", options="header"]
+|===
+| Type
+| Purpose and main fields
+
+| `registry-v0`
+| Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), and `properties`. The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
+
+| `group-v0`
+| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, and `createdOn`.
+
+| `artifact-v0`
+| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType`, `name`, `description`, `createdOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file.
+
+| `content-v0`
+| Optional content metadata, for explicit content identifiers and references.
+|===
+
+The following example declares a registry configuration and an artifact:
+
+[source,yaml]
+----
+$type: registry-v0
+registryId: main
+globalRules:
+  - ruleType: VALIDITY
+    config: FULL
+----
+
+[source,yaml]
+----
+$type: artifact-v0
+groupId: my-schemas
+artifactId: order-event
+artifactType: AVRO
+versions:
+  - version: "1.0.0"
+    state: ENABLED
+    content: order-event-1.0.0.avsc
+----
+
+Content files are plain schema files referenced by relative path. The registry detects the artifact content type from the file extension:
+
+.Content file extensions
+[cols="1,2", options="header"]
+|===
+| Extension
+| Content type
+
+| `.avsc`, `.avro`
+| Apache Avro
+
+| `.json`
+| JSON Schema
+
+| `.yaml`, `.yml`
+| OpenAPI or AsyncAPI
+
+| `.proto`
+| Protobuf
+
+| `.graphql`
+| GraphQL
+
+| `.xml`, `.xsd`, `.wsdl`
+| XML, XML Schema, or WSDL
+|===
+
+The following additional rules apply:
+
+* If `registryIds` is omitted or empty on a group or artifact, any registry instance loads it.
+* Timestamps such as `createdOn` are optional. When omitted, the Git commit time is used. Supported formats are ISO 8601, with or without a time zone or as a date only, and Unix milliseconds.
+* The optional `validatedUpTo` field on an artifact controls rule validation during a load. When unset, only the latest version is validated against its predecessor. When set to a version identifier, versions up to and including that version are not re-validated.
+
+
+[id="configuring-gitops-storage-single-repository_{context}"]
+== Configuring GitOps storage with a single repository
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can configure {registry} to load its data from a single Git repository that is available as a local clone on a mounted volume.
+
+.Prerequisites
+* You have a Git repository that contains a registry configuration file (`registry-v0`) and registry content.
+* You have a local clone of the repository, or a sync container that maintains one.
+
+.Procedure
+. In your repository, verify that a registry configuration file exists and that its `registryId` value matches the registry instance identifier that you configure in the next step. The default identifier is `main`.
+. Configure the registry with the following environment variables:
++
+[source,bash]
+----
+APICURIO_STORAGE_KIND=gitops
+APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
+APICURIO_POLLING_STORAGE_ID=main
+----
+. Mount the local clone of the repository into the registry container at `/repos/default`. A read-only mount is sufficient, because the registry does not write to the repository. The mount path is the workspace directory (`apicurio.gitops.workspace`, default `/repos`) combined with the repository directory name (`apicurio.gitops.repo.dir`, default `default`).
++
+For example, with Docker Compose:
++
+[source,yaml]
+----
+volumes:
+  - ./example-repo:/repos/default:ro
+----
+. Optional: To read from a branch other than `main`, set the `APICURIO_GITOPS_REPO_BRANCH` environment variable. If the configured branch does not exist in the clone, the registry falls back to `HEAD`.
+. Start the registry.
+. Verify the synchronization status:
++
+[source,bash]
+----
+$ curl http://localhost:8080/apis/registry/v3/admin/gitops/status
+----
++
+The registry reports not ready on its readiness probe until the first load succeeds. After the first successful load, it stays ready even if a later load fails, and it keeps serving the last successfully loaded data.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/gitops[GitOps Docker Compose examples]
+endif::[]
+
+
+[id="configuring-gitops-sync-container_{context}"]
+== Configuring the GitOps sync container
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+The registry reads only local Git clones and never contacts remote repositories. You can run the GitOps sync container next to the registry to keep a local clone up to date with a remote repository, or to accept pushes directly.
+
+.Prerequisites
+* You have configured the registry for GitOps storage.
+* For pull mode, you have the URL of a remote Git repository.
+
+.Procedure
+. Run the `quay.io/apicurio/apicurio-registry-gitops-sync` container so that it shares a volume with the registry. Mount the shared volume at `/repos` in both containers, read-only in the registry container.
+. For pull mode, which is the default, set the remote repository URL:
++
+[source,bash]
+----
+APICURIO_GITOPS_REPO_URL=https://github.com/my-org/my-registry-data.git
+----
++
+The sync container clones the repository and then updates it every 30 seconds. You can change the interval with the `APICURIO_GITOPS_PULL_INTERVAL` environment variable.
+. Optional: For SSH remotes, provide the private key and the known hosts file:
++
+[source,bash]
+----
+APICURIO_GITOPS_PULL_SSH_KEYS=/etc/gitops/ssh/id_ed25519
+APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS=/etc/gitops/ssh/known_hosts
+----
+. Optional: Adjust the security level with the `APICURIO_GITOPS_SECURITY` environment variable. The default level, `strict`, requires a known hosts file for SSH pulls and rejects loose key file permissions. The `dev` level relaxes host key checking for development. Plaintext `http://` remote URLs are rejected at both levels.
+. Optional: To accept Git pushes instead of pulling from a remote, set `APICURIO_GITOPS_MODE=push`. The sync container runs a restricted SSH server for the `git` user on port `2222`. Configure the authorized client keys and the host key:
++
+[source,bash]
+----
+APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS=/etc/gitops/ssh/authorized_keys
+APICURIO_GITOPS_PUSH_SSH_HOST_KEY=/etc/gitops/ssh/host_key
+----
++
+Clients then push to the container directly:
++
+[source,bash]
+----
+$ git push ssh://git@registry-host:2222/repos/default
+----
++
+[NOTE]
+====
+In push mode, any authorized push user can access all Git repositories on the shared volume.
+====
+. Optional: When you configure multiple repositories, set the mode per repository with `APICURIO_GITOPS_REPOS_N_MODE`, which overrides the global `APICURIO_GITOPS_MODE` setting.
+
+
+[id="configuring-gitops-multiple-repositories_{context}"]
+== Configuring multiple GitOps repositories
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can configure one registry instance to aggregate data from multiple Git repositories, for example one repository per team. The registry detects conflicting artifact definitions across repositories and rejects them.
+
+.Prerequisites
+* You have configured the registry for GitOps storage.
+
+.Procedure
+. Configure the repositories on the registry with indexed environment variables. Indexes must start at 0 and be consecutive:
++
+[source,bash]
+----
+APICURIO_GITOPS_REPOS_0_DIR=platform
+APICURIO_GITOPS_REPOS_1_DIR=fulfillment
+APICURIO_GITOPS_REPOS_1_BRANCH=fulfillment
+----
++
+Optional: Assign an identifier for status reporting with `APICURIO_GITOPS_REPOS_N_ID`. The default identifier is the directory name.
++
+[NOTE]
+====
+Do not combine the single-repository variables (`APICURIO_GITOPS_REPO_DIR`, `APICURIO_GITOPS_REPO_BRANCH`) with indexed variables. The registry rejects mixed configuration, index gaps, duplicate repository identifiers, and duplicate directory and branch combinations at startup.
+====
+. If you use the sync container, configure the remote URL for each repository with `APICURIO_GITOPS_REPOS_N_URL`, and optionally per-repository SSH keys with `APICURIO_GITOPS_REPOS_N_SSH_KEYS`.
+. Ensure that each artifact is defined in exactly one repository. If the same `groupId` and `artifactId` combination is defined in more than one repository, the registry reports all conflicts and rejects the entire load.
+. Verify the aggregated state:
++
+[source,bash]
+----
+$ curl http://localhost:8080/apis/registry/v3/admin/gitops/status
+----
++
+The `sources` field maps each repository identifier to the currently loaded commit.
++
+By default, the registry labels each loaded group and artifact with the identifier of its source repository, using the `system:source` label key. You can change or disable this with the `apicurio.polling-storage.source-label-key` property.
+
+
+[id="validating-gitops-changes_{context}"]
+== Validating repository changes before merging
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can validate a Git reference, such as a pull request branch, against the full registry validation pipeline without affecting the data that the registry serves. This enables CI checks that reject invalid schema changes before they merge.
+
+.Prerequisites
+* Validation is enabled on the registry (`apicurio.gitops.validate.enabled`, default `true`). When validation is disabled, the validation endpoints return an HTTP `503` response.
+* The sync container is running, because it fetches the reference to validate.
+
+.Procedure
+. Create a validation task for the reference:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json" \
+  -d '{"type": "pull", "repoId": "platform", "ref": "refs/pull/42/head"}' \
+  http://localhost:8080/apis/registry/v3/admin/gitops/validate
+----
++
+The `repoId` value must match a configured repository. The response contains a `taskId`.
+. Poll the task until it completes:
++
+[source,bash,subs="+quotes"]
+----
+$ curl http://localhost:8080/apis/registry/v3/admin/gitops/validate/_TASK_ID_
+----
++
+The task moves through the states `pending`, `submitted`, `fetching`, and `validating` to `completed` or `failed`.
+. Check the outcome of a completed task in the `result` field, which is `success` or `failure`. A successful task reports group, artifact, and version counts. A failed validation reports structured errors with a `detail` message and, where available, the `source` repository and the `context` file path.
+. Optional: Delete a task that you no longer need:
++
+[source,bash,subs="+quotes"]
+----
+$ curl -X DELETE http://localhost:8080/apis/registry/v3/admin/gitops/validate/_TASK_ID_
+----
++
+Tasks are removed automatically after a time to live, which is one hour by default. To limit disk usage, at most five tasks hold disk resources at the same time by default; further requests are queued.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry-gitops-example[Example GitOps repository with a CI validation workflow]
+endif::[]
+
+
+[id="gitops-storage-configuration-properties_{context}"]
+== GitOps storage configuration properties
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following tables describe the configuration properties of the registry for GitOps storage, and the environment variables of the GitOps sync container.
+
+All GitOps storage properties are experimental and require `apicurio.features.experimental.enabled=true`.
+
+.Registry configuration properties
+[cols="3,2,3", options="header"]
+|===
+| Property (environment variable)
+| Default
+| Description
+
+| `apicurio.storage.kind` (`APICURIO_STORAGE_KIND`)
+| `sql`
+| Set to `gitops` to enable GitOps storage.
+
+| `apicurio.gitops.workspace` (`APICURIO_GITOPS_WORKSPACE`)
+| `/repos`
+| Base directory where Git repositories are mounted. Repository directories are resolved relative to this path.
+
+| `apicurio.gitops.repo.dir` (`APICURIO_GITOPS_REPO_DIR`)
+| `default`
+| Directory name of the Git repository, relative to the workspace. Single-repository configuration.
+
+| `apicurio.gitops.repo.branch` (`APICURIO_GITOPS_REPO_BRANCH`)
+| `main`
+| Branch to read from. Single-repository configuration.
+
+| `apicurio.gitops.repos.N.dir` (`APICURIO_GITOPS_REPOS_N_DIR`)
+| No default
+| Directory name for repository `N`. Multi-repository configuration; indexes must start at 0 and be consecutive.
+
+| `apicurio.gitops.repos.N.branch` (`APICURIO_GITOPS_REPOS_N_BRANCH`)
+| `main`
+| Branch for repository `N`.
+
+| `apicurio.gitops.repos.N.id` (`APICURIO_GITOPS_REPOS_N_ID`)
+| Directory name
+| Identifier for repository `N`, used in status reporting and source labels.
+
+| `apicurio.gitops.validate.enabled` (`APICURIO_GITOPS_VALIDATE_ENABLED`)
+| `true`
+| Enable the dry-run validation endpoints. When disabled, the validation endpoints return an HTTP `503` response.
+
+| `apicurio.gitops.validate.task.ttl.seconds` (`APICURIO_GITOPS_VALIDATE_TASK_TTL_SECONDS`)
+| `3600`
+| Time to live for validation tasks. Tasks are removed automatically after this period.
+
+| `apicurio.gitops.validate.max-tasks` (`APICURIO_GITOPS_VALIDATE_MAX_TASKS`)
+| `5`
+| Maximum number of validation tasks that hold disk resources at the same time. Further requests are queued.
+
+| `apicurio.gitops.validate.fetch.timeout.seconds` (`APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS`)
+| `120`
+| Timeout for the sync container to fetch a Git reference during validation.
+
+| `apicurio.polling-storage.id` (`APICURIO_POLLING_STORAGE_ID`)
+| `main`
+| Identifier of this registry instance. Only data referencing this identifier is loaded. Must match the `registryId` value in the registry configuration file.
+
+| `apicurio.polling-storage.deterministic-ids-enabled` (`APICURIO_POLLING_STORAGE_DETERMINISTIC_IDS_ENABLED`)
+| `true`
+| Generate content and global identifiers deterministically from content hashes and coordinates when they are not specified in the data.
+
+| `apicurio.polling-storage.poll-period` (`APICURIO_POLLING_STORAGE_POLL_PERIOD`)
+| `PT10S`
+| Minimum period between checks of the data source.
+
+| `apicurio.polling-storage.debounce.quiet-period` (`APICURIO_POLLING_STORAGE_DEBOUNCE_QUIET_PERIOD`)
+| `PT3S`
+| Wait until no new changes arrive for this duration before loading. `PT0S` disables debouncing.
+
+| `apicurio.polling-storage.debounce.max-wait-period` (`APICURIO_POLLING_STORAGE_DEBOUNCE_MAX_WAIT_PERIOD`)
+| `PT90S`
+| Maximum time to wait for changes to settle before a load is forced. `PT0S` means no maximum.
+
+| `apicurio.polling-storage.file-suffixes` (`APICURIO_POLLING_STORAGE_FILE_SUFFIXES`)
+| `registry,ar`
+| Suffixes that identify metadata files, combined with the `.yaml`, `.yml`, and `.json` extensions.
+
+| `apicurio.polling-storage.require-registry-config` (`APICURIO_POLLING_STORAGE_REQUIRE_REGISTRY_CONFIG`)
+| `true`
+| Reject a load when no registry configuration file matches the configured registry identifier. This guards against accidental data loss from force pushes or empty branches.
+
+| `apicurio.polling-storage.source-label-key` (`APICURIO_POLLING_STORAGE_SOURCE_LABEL_KEY`)
+| `system:source`
+| Label key used to tag loaded groups and artifacts with the identifier of their source repository. An empty value disables source labels.
+|===
+
+.Sync container environment variables
+[cols="3,2,3", options="header"]
+|===
+| Environment variable
+| Default
+| Description
+
+| `APICURIO_GITOPS_MODE`
+| `pull`
+| Global synchronization mode: `pull` or `push`.
+
+| `APICURIO_GITOPS_REPO_URL`
+| No default
+| Remote repository URL for pull mode. Single-repository configuration.
+
+| `APICURIO_GITOPS_REPOS_N_URL`
+| No default
+| Remote repository URL for repository `N`.
+
+| `APICURIO_GITOPS_REPOS_N_MODE`
+| Global mode
+| Per-repository mode override: `pull` or `push`.
+
+| `APICURIO_GITOPS_REPOS_N_SSH_KEYS`
+| No default
+| Per-repository SSH private keys, added alongside the global keys.
+
+| `APICURIO_GITOPS_PULL_INTERVAL`
+| `30`
+| Interval between remote updates, in seconds.
+
+| `APICURIO_GITOPS_PULL_DEPTH`
+| `1`
+| Clone depth. `0` means a full clone.
+
+| `APICURIO_GITOPS_PULL_SSH_KEYS`
+| No default
+| Path to one or more SSH private keys for pull mode, comma-separated. The keys are tried in order.
+
+| `APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS`
+| No default
+| Path to a known hosts file for pull mode.
+
+| `APICURIO_GITOPS_PUSH_PORT`
+| `2222`
+| SSH server port for push mode.
+
+| `APICURIO_GITOPS_PUSH_SSH_AUTHORIZED_KEYS`
+| No default
+| Path to the authorized keys file for push mode.
+
+| `APICURIO_GITOPS_PUSH_SSH_HOST_KEY`
+| No default
+| Path to the SSH host key for push mode.
+
+| `APICURIO_GITOPS_SECURITY`
+| `strict`
+| Security level: `strict` or `dev`. Plaintext `http://` URLs are rejected at both levels.
+
+| `APICURIO_GITOPS_VALIDATE_ENABLED`
+| `true`
+| Enable the validation watch loop in the sync container.
+
+| `APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS`
+| `2`
+| Interval at which the sync container checks for validation requests.
+
+| `APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS`
+| `7200`
+| Age after which stale validation checkouts are removed.
+
+| `APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS`
+| `120`
+| Timeout for fetching a Git reference during validation.
+|===
+
+
+[id="gitops-management-api_{context}"]
+== GitOps management API
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The registry provides administrative REST endpoints for GitOps storage under the `/apis/registry/v3/admin/gitops` path. The endpoints return an HTTP `409` response when a different storage variant is active.
+
+.GitOps management endpoints
+[cols="3,1,3", options="header"]
+|===
+| Path
+| Method
+| Description
+
+| `/admin/gitops/status`
+| `GET`
+| Return the synchronization status.
+
+| `/admin/gitops/sync`
+| `POST`
+| Trigger an immediate synchronization. Returns an HTTP `204` response.
+
+| `/admin/gitops/validate`
+| `POST`
+| Create a dry-run validation task for a Git reference.
+
+| `/admin/gitops/validate`
+| `GET`
+| List validation tasks.
+
+| `/admin/gitops/validate/\{taskId}`
+| `GET`
+| Return the status and results of a validation task.
+
+| `/admin/gitops/validate/\{taskId}`
+| `DELETE`
+| Delete a validation task and clean up its files.
+|===
+
+The status response contains the following fields:
+
+.GitOps status fields
+[cols="1,3", options="header"]
+|===
+| Field
+| Description
+
+| `syncState`
+| Current state: `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, or `ERROR`.
+
+| `lastSuccessfulSync`
+| Timestamp of the last successful load.
+
+| `lastSyncAttempt`
+| Timestamp of the last load attempt.
+
+| `groupCount`, `artifactCount`, `versionCount`
+| Counts of the currently loaded data.
+
+| `errors`
+| Structured load errors. Each error has a `detail` message and, where available, a `source` repository identifier and a `context` file path.
+
+| `sources`
+| Map of repository identifiers to the abbreviated commit currently loaded from each repository.
+|===
+
+If a load fails because of a data error, for example malformed metadata, a missing content file, or a rule violation, the registry does not retry the same commit. Push a new commit that fixes the problem to trigger a fresh load. Transient errors are retried on the next poll.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rules}
+ifndef::service-registry-downstream[]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/gitops[GitOps sync container README]
+endif::[]

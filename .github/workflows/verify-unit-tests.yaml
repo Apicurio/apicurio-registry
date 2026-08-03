@@ -10,10 +10,6 @@ on:
         type: string
         required: true
         description: 'Build artifact identifier (commit SHA)'
-      scalpel-enabled:
-        type: string
-        default: 'false'
-        description: 'Set to true to enable Scalpel affected-module detection'
 
 permissions:
   contents: read
@@ -58,13 +54,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history only needed when Scalpel is enabled (git diff against base branch)
-          fetch-depth: ${{ inputs.scalpel-enabled == 'true' && '0' || 1 }}
-
-      - name: Fetch base branch for Scalpel
-        if: inputs.scalpel-enabled == 'true' && github.base_ref != ''
-        continue-on-error: true
-        run: git fetch origin "$GITHUB_BASE_REF" --no-tags
+          fetch-depth: 1
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
@@ -102,7 +92,6 @@ jobs:
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
             --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
-            ${{ inputs.scalpel-enabled == 'true' && '-Dscalpel.enabled=true' || '' }} \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \

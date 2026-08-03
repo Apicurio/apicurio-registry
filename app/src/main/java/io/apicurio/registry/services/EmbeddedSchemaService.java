@@ -238,6 +238,8 @@ public class EmbeddedSchemaService {
                     return existing.getVersion();
                 } catch (ArtifactNotFoundException nfe) {
                     // No version with matching content - create a new one.
+                    log.debug("No existing version with matching content for {}/{}, creating new version",
+                            groupId, schemaArtifactId);
                 }
                 ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(groupId, schemaArtifactId,
                         null, "JSON", contentWrapper, versionMeta, Collections.emptyList(),

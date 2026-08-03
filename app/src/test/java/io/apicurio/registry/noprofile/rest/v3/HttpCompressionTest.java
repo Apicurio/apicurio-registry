@@ -176,5 +176,73 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
         assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), rawBody,
                 "response body without Accept-Encoding should be uncompressed");
     }
+
+    /**
+     * Verifies that the decompression-bomb mitigation actually works: a small gzip payload that
+     * decompresses to well over the 50 MB max-body-size must be rejected. This locks the
+     * assumption that Vert.x applies quarkus.http.limits.max-body-size to the decompressed
+     * payload, which is version-dependent behavior.
+     *
+     * The payload is valid JSON (a large string value) so the rejection comes from the body
+     * size limit rather than a JSON parse error.
+     */
+    @Test
+    public void testDecompressionBombRejectedByBodySizeLimit() throws Exception {
+        // Build a valid JSON string that is ~60 MB uncompressed but compresses extremely well
+        // because it's highly repetitive: {"d":"AAAAAA..."}
+        int targetSize = 60 * 1024 * 1024;
+        StringBuilder sb = new StringBuilder(targetSize + 32);
+        sb.append("{\"d\":\"");
+        while (sb.length() < targetSize) {
+            sb.append("AAAAAAAAAA"); // 10 chars of repetitive content
+        }
+        sb.append("\"}");
+        byte[] jsonBytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+        byte[] gzippedBomb = gzip(jsonBytes);
+
+        // Sanity: the compressed payload must be well under the 50 MB limit
+        assertTrue(gzippedBomb.length < 1024 * 1024,
+                "the gzipped bomb (" + gzippedBomb.length + " bytes) should be small on the wire");
+        assertTrue(jsonBytes.length > 50 * 1024 * 1024,
+                "the uncompressed payload (" + jsonBytes.length + " bytes) must exceed the 50 MB limit");
+
+        int statusCode = given().config(NO_AUTO_DECODE).contentType(CT_JSON)
+                .header("Content-Encoding", "gzip")
+                .pathParam("groupId", GROUP)
+                .body(gzippedBomb)
+                .post("/registry/v3/groups/{groupId}/artifacts")
+                .then().extract().statusCode();
+
+        // The server must reject this — either 413 (body size limit on decompressed bytes)
+        // or another 4xx. The critical assertion is that it does NOT succeed (200/201).
+        assertTrue(statusCode == 413 || statusCode == 400,
+                "expected 413 (body too large) or 400 (bad request), but got " + statusCode
+                        + ". If 200/201, the decompression-bomb mitigation is broken.");
+    }
+
+    /**
+     * Verifies that when the runtime kill switch (apicurio.rest.compression.enabled) is active
+     * (the default), responses are only single-layer gzip-compressed. This also implicitly
+     * confirms the build is on Classic RESTEasy (not Reactive), since Vert.x response
+     * compression for Reactive would add a second gzip layer that would break the single-gunzip
+     * assertion.
+     */
+    @Test
+    public void testSingleLayerGzipConfirmsNoDoubleCompression() throws Exception {
+        String artifactId = "testSingleLayerGzipConfirmsNoDoubleCompression";
+        String content = largeJsonSchemaContent();
+        createArtifact(GROUP, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+
+        byte[] compressedBody = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200).header("Content-Encoding", equalTo("gzip")).extract().asByteArray();
+
+        // A single gunzip must recover the original content. If the interceptor or Vert.x
+        // double-compressed, this would produce garbled bytes or a still-gzipped stream.
+        byte[] decompressed = gunzip(compressedBody);
+        assertEquals(content, new String(decompressed, StandardCharsets.UTF_8),
+                "single gunzip should recover original content — double compression would fail here");
+    }
 }
 

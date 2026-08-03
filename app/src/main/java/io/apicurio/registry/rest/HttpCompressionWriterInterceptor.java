@@ -75,14 +75,16 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
         if (mediaType == null) {
             return false;
         }
-        return getCompressMediaTypes().contains(mediaType.getType() + "/" + mediaType.getSubtype());
+        return getCompressMediaTypes().contains(
+                (mediaType.getType() + "/" + mediaType.getSubtype()).toLowerCase(Locale.ROOT));
     }
 
     private List<String> getCompressMediaTypes() {
         if (compressMediaTypes == null) {
             compressMediaTypes = Arrays.stream(ConfigProvider.getConfig()
                     .getValue("quarkus.http.compress-media-types", String.class).split(","))
-                    .map(String::trim).collect(Collectors.toList());
+                    .map(String::trim).map(s -> s.toLowerCase(Locale.ROOT))
+                    .collect(Collectors.toList());
         }
         return compressMediaTypes;
     }

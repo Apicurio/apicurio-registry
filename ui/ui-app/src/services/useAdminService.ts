@@ -58,10 +58,9 @@ const deleteRule = async (config: ConfigService, auth: AuthService, ruleType: st
 const getRoleMappings = async (config: ConfigService, auth: AuthService, paging: Paging): Promise<RoleMappingSearchResults> => {
     console.info("[AdminService] Getting the list of role mappings.");
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     return getRegistryClient(config, auth).admin.roleMappings.get({
         queryParameters: {
-            limit: end,
+            limit: paging.pageSize,
             offset: start
         }
     }).then(v => v!);

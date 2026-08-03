@@ -241,7 +241,7 @@ CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);
 CREATE TABLE outbox (
     id            VARCHAR(128) NOT NULL,
     aggregatetype VARCHAR(255) NOT NULL,
-    aggregateid   VARCHAR(255) NOT NULL,
+    aggregateid   VARCHAR(2048) NOT NULL,
     type          VARCHAR(255) NOT NULL,
     payload       JSON         NOT NULL,
     PRIMARY KEY (id)

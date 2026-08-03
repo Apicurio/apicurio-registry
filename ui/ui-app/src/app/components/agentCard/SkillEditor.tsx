@@ -39,6 +39,7 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
     const [editingSkill, setEditingSkill] = useState<AgentSkill | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const [newTag, setNewTag] = useState("");
+    const [newExample, setNewExample] = useState("");
 
     const emptySkill: AgentSkill = {
         id: "",
@@ -95,6 +96,19 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
         if (!editingSkill) return;
         const tags = (editingSkill.tags || []).filter(t => t !== tagToRemove);
         setEditingSkill({ ...editingSkill, tags });
+    };
+
+    const handleAddExample = (): void => {
+        if (!editingSkill || !newExample.trim()) return;
+        const examples = [...(editingSkill.examples || []), newExample.trim()];
+        setEditingSkill({ ...editingSkill, examples });
+        setNewExample("");
+    };
+
+    const handleRemoveExample = (exampleToRemove: string): void => {
+        if (!editingSkill) return;
+        const examples = (editingSkill.examples || []).filter(e => e !== exampleToRemove);
+        setEditingSkill({ ...editingSkill, examples });
     };
 
     const renderSkillForm = (): React.ReactElement => {
@@ -159,6 +173,42 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                                     onClose={() => handleRemoveTag(tag)}
                                 >
                                     {tag}
+                                </Label>
+                            ))}
+                        </LabelGroup>
+                    )}
+                </FormGroup>
+                <FormGroup label="Examples" fieldId="skill-examples">
+                    <InputGroup>
+                        <InputGroupItem isFill>
+                            <TextInput
+                                id="new-example"
+                                value={newExample}
+                                onChange={(_event, value) => setNewExample(value)}
+                                placeholder="Add an example (e.g. 'What is the weather?')"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleAddExample();
+                                    }
+                                }}
+                            />
+                        </InputGroupItem>
+                        <InputGroupItem>
+                            <Button variant="control" onClick={handleAddExample}>
+                                Add
+                            </Button>
+                        </InputGroupItem>
+                    </InputGroup>
+                    {editingSkill.examples && editingSkill.examples.length > 0 && (
+                        <LabelGroup className="examples-list" style={{ marginTop: "8px" }}>
+                            {editingSkill.examples.map((example, index) => (
+                                <Label
+                                    key={index}
+                                    color="green"
+                                    onClose={() => handleRemoveExample(example)}
+                                >
+                                    {example}
                                 </Label>
                             ))}
                         </LabelGroup>

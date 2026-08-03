@@ -59,6 +59,24 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
         );
     };
 
+    const renderSkillExamples = (skill: AgentSkill): React.ReactElement | null => {
+        if (!skill.examples || skill.examples.length === 0) {
+            return null;
+        }
+        return (
+            <div className="skill-examples" style={{ marginTop: "12px" }}>
+                <strong>Examples:</strong>
+                <LabelGroup className="skill-examples-list" style={{ marginTop: "4px" }}>
+                    {skill.examples.map((example, index) => (
+                        <Label key={index} color="green">
+                            {example}
+                        </Label>
+                    ))}
+                </LabelGroup>
+            </div>
+        );
+    };
+
     const renderCompactSkills = (): React.ReactElement => {
         return (
             <LabelGroup className="skills-compact-list">
@@ -94,6 +112,7 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
                                             {skill.description || <span className="empty-state-text">No description</span>}
                                         </div>
                                         {renderSkillTags(skill)}
+                                        {renderSkillExamples(skill)}
                                     </DataListCell>
                                 ]}
                             />

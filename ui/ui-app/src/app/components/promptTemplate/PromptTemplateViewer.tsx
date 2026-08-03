@@ -64,8 +64,9 @@ export type PromptTemplateViewerProps = {
 
 const highlightVariables = (template: string): React.ReactNode[] => {
     const parts: React.ReactNode[] = [];
-    // Match both {{variable}} and {{#if variable}} / {{/if}} handlebars syntax
-    const regex = /\{\{(#?\/?(?:if|unless|each|with)\s+)?(\w+)\}\}/g;
+    // Match both {{variable}} and {{#if variable}} / {{/if}} handlebars syntax.
+    // Closing tags carry no variable name, so they need their own alternative.
+    const regex = /\{\{(#(?:if|unless|each|with)\s+\w+|\/(?:if|unless|each|with)|\w+)\}\}/g;
     let lastIndex = 0;
     let match;
     let key = 0;
@@ -74,7 +75,7 @@ const highlightVariables = (template: string): React.ReactNode[] => {
         if (match.index > lastIndex) {
             parts.push(template.substring(lastIndex, match.index));
         }
-        const isBlock = !!match[1];
+        const isBlock = match[1].startsWith("#") || match[1].startsWith("/");
         parts.push(
             <span key={key++} className={isBlock ? "template-block" : "template-variable"}>
                 {match[0]}

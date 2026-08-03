@@ -30,6 +30,7 @@ public class RegistryLimitsService {
     private static final String MAX_LABELS_EXCEEDED_MSG = "Maximum number of labels exceeded for this artifact";
     private static final String MAX_LABEL_KEY_SIZE_EXCEEDED_MSG = "Maximum label key size exceeded";
     private static final String MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG = "Maximum label value size exceeded";
+    private static final String LABEL_VALUE_NULL_MSG = "Label value must not be null";
 
     @Inject
     Logger log;
@@ -248,10 +249,14 @@ public class RegistryLimitsService {
                         errorMessages.add(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG);
                     }
 
-                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)
-                            && e.getValue().length() > registryLimitsConfiguration
-                                    .getMaxPropertyValueSizeBytes()) {
-                        errorMessages.add(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG);
+                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)) {
+                        String value = e.getValue();
+                        if (value == null) {
+                            errorMessages.add(LABEL_VALUE_NULL_MSG);
+                        } else if (value.length() > registryLimitsConfiguration
+                                .getMaxPropertyValueSizeBytes()) {
+                            errorMessages.add(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG);
+                        }
                     }
                 });
             }

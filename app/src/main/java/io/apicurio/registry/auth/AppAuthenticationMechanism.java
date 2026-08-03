@@ -128,10 +128,16 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                 ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism.get())
                 : null);
         strategyFactories.put("form", () -> {
-            log.info("Checking form auth. isFormAuthEnabled={}, isResolvable={}", authConfig.isFormAuthEnabled(), formAuthenticationMechanism.isResolvable());
-            return authConfig.isFormAuthEnabled() && formAuthenticationMechanism.isResolvable()
-                ? new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism.get())
-                : null;
+            if (!authConfig.isFormAuthEnabled()) {
+                return null;
+            }
+            if (!formAuthenticationMechanism.isResolvable()) {
+                log.warn("Form auth is enabled but no FormAuthenticationMechanism is available. "
+                        + "A Quarkus identity provider (e.g. quarkus.security.users.embedded.* "
+                        + "or a JDBC/LDAP realm) must be configured.");
+                return null;
+            }
+            return new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism.get());
         });
         strategyFactories.put("proxy-header", () -> authConfig.isProxyHeaderAuthEnabled()
                 ? new DelegatingAuthenticationStrategy("proxy-header",
@@ -158,7 +164,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         });
 
         List<AuthenticationStrategy> chain = new ArrayList<>();
-        log.info("Mechanism priority list: {}", authConfig.getMechanismPriorityList());
+        log.debug("Mechanism priority list: {}", authConfig.getMechanismPriorityList());
         for (String name : authConfig.getMechanismPriorityList()) {
             Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
             if (factory == null) {

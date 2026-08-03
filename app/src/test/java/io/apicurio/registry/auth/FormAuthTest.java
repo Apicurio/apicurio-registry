@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,7 +62,7 @@ public class FormAuthTest extends AbstractResourceTestBase {
                 .extract().response();
         
         int status = response.statusCode();
-        assertTrue(status == 401 || status == 302 || status == 403, "Status should be 401, 302, or 403 but was " + status);
+        assertEquals(401, status, "Unauthenticated access should return 401 Unauthorized");
     }
 
     @Test

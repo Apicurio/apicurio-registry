@@ -414,6 +414,11 @@ KStream<String, LogInput> input = builder.stream(
 [role="_abstract"]
 In advanced use cases, you might want to use customized implementations for the `RegistryClientFacade` (for example, for custom authentication logic), `SchemaResolver`, or `ArtifactReferenceResolverStrategy` rather than having the serializer or deserializer instantiate them automatically using string properties. You can inject these pre-instantiated dependencies directly via the configuration map.
 
+[NOTE]
+====
+Convenience constructors such as `new AvroKafkaSerializer<>(clientFacade)` or `new AvroKafkaSerializer<>(clientFacade, schemaResolver)` have been removed; pass pre-instantiated dependencies via the configuration map instead (for example, `SerdeConfig.REGISTRY_CLIENT_FACADE`, `SerdeConfig.SCHEMA_RESOLVER`).
+====
+
 .Prerequisites
 * You have instantiated a custom `RegistryClientFacade`, `SchemaResolver`, or `ArtifactReferenceResolverStrategy`.
 

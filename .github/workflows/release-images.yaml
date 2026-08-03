@@ -47,7 +47,7 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Fetch Release Details
         if: github.event_name == 'workflow_dispatch'
@@ -87,12 +87,23 @@ jobs:
       - name: Download Source Code
         run: git clone --branch $RELEASE_VERSION --single-branch ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git registry
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       # We have faced issues in the past where a github release was created from a wrong commit
       # This step will ensure that the release was created from the right commit
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != $RELEASE_VERSION ]]
           then
               echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${RELEASE_VERSION}'"
@@ -108,14 +119,22 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.18.0
+          node-version: 24.18.1
+
+      - name: Build Console Plugin frontend
+        working-directory: registry/console-plugin
+        run: |
+          npm install --legacy-peer-deps
+          npm run build
+          mkdir -p backend/src/main/resources/META-INF/resources
+          cp -r dist/* backend/src/main/resources/META-INF/resources/
 
       - name: Build Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
         working-directory: registry
         run: |
-          ./mvnw clean package -am --no-transfer-progress -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+          ./mvnw $MVN_SETTINGS clean package -am --no-transfer-progress -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 -Dmaven.wagon.http.retryHandler.count=5
 
@@ -171,16 +190,16 @@ jobs:
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
       - name: Build and Push Multi-arch Console Plugin Images
+        working-directory: registry/console-plugin
         run: |
-          cd registry/console-plugin
           TAGS="-t quay.io/apicurio/apicurio-registry-console-plugin:$RELEASE_VERSION"
           TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:$MINOR_TAG"
           if [ "$IS_LATEST_RELEASE" = "true" ]; then
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:latest"
           fi
-          docker buildx build --push -f ./Dockerfile \
+          docker buildx build --push -f ./Dockerfile.jvm \
               $TAGS \
-              --platform linux/amd64,linux/arm64 .
+              --platform linux/amd64,linux/arm64 ./backend
 
       - name: Build and Push Multi-arch UI Images
         run: |
@@ -198,6 +217,12 @@ jobs:
           docker buildx build --push -f ./Dockerfile \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
+
+      - name: Trigger Release Operator
+        env:
+          GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: |
+          gh workflow run release-operator.yaml --repo "$GITHUB_REPOSITORY" -f tag="$RELEASE_VERSION"
 
   # Slack notification using reusable workflow
   notify-slack:

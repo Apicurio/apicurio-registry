@@ -92,6 +92,9 @@ governs. Do not add headers to existing files as drive-by changes.
 Other conventions:
 - Lombok used in DTO/model classes (not universally)
 - Run checkstyle before committing: `./mvnw checkstyle:check -pl <module>`
+- Staged-tier warnings are not printed by default, to keep CI logs readable.
+  To review them locally, add `-Dcheckstyle.consoleOutput=true`. Every
+  violation is also written to `target/checkstyle-result.xml` either way.
 
 ### REST API
 - Versioned at `/apis/registry/v3/`

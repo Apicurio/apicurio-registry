@@ -1,22 +1,16 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="registry-artifact-reference_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = {registry} artifact reference
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 This chapter provides reference information on the supported artifact types, states, and metadata that are stored in {registry}.
 
-* xref:registry-artifact-types_{context}[]
-* xref:registry-artifact-states_{context}[]
-* xref:registry-group-metadata_{context}[]
-* xref:registry-artifact-metadata_{context}[]
-* xref:registry-ai-ml-artifact-types_{context}[]
-* xref:registry-artifact-version-metadata_{context}[]
-
 [role="_additional-resources"]
 .Additional resources
-* For more information, see the link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation].
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
 //INCLUDES
 
@@ -26,8 +20,9 @@ This chapter provides reference information on the supported artifact types, sta
 
 // ref-registry-artifact-types
 [id="registry-artifact-types_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} artifact types
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can store and manage a wide range of schema and API artifact types in {registry}.
@@ -84,46 +79,46 @@ You can store and manage a wide range of schema and API artifact types in {regis
 
 // ref-registry-ai-ml-artifact-types
 [id="registry-ai-ml-artifact-types_{context}"]
-:_mod-docs-content-type: REFERENCE
 == AI/ML artifact types
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} includes built-in support for AI/ML artifact types designed for LLMOps and prompt engineering workflows.
 
-.MCP_TOOL
-MCP (Model Context Protocol) tool definitions. Use this artifact type to:
+{registry} supports the following AI/ML artifact types:
 
+`MCP_TOOL`:: MCP (Model Context Protocol) tool definitions. Use this artifact type to:
++
 * Store MCP tool definitions with input/output schemas
 * Track tool evolution with version history and compatibility checking
 * Enable discovery of tools via well-known endpoints
 * Validate tool definitions against the MCP specification
-
++
 Content types: `application/json`
 
-.MODEL_SCHEMA
-Defines and validates AI/ML model input/output schemas and metadata. Use this artifact type to:
-
+`MODEL_SCHEMA`:: Defines and validates AI/ML model input/output schemas and metadata. Use this artifact type to:
++
 * Document model input/output contracts using JSON Schema
 * Track model capabilities (chat, vision, function calling)
 * Store provider information and context window limits
 * Ensure backward compatibility when updating model schemas
-
++
 Content types: `application/json`, `application/x-yaml`
 
-.PROMPT_TEMPLATE
-Version-controlled prompt templates with variable schemas. Use this artifact type to:
-
+`PROMPT_TEMPLATE`:: Version-controlled prompt templates with variable schemas. Use this artifact type to:
++
 * Store prompt templates with `{{variable}}` syntax
 * Define variable schemas with types, constraints, and defaults
 * Track prompt evolution with version history
 * Validate prompts have all required variables defined
-
++
 Content types: `application/x-yaml`, `application/json`, `text/x-prompt-template`
 
 [role="_additional-resources"]
 .Additional resources
-* For detailed examples and SDK integration, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/llm-artifact-types[LLM artifact types example]
-* For a complete support chat application with RAG, see link:https://github.com/carlesarnal/apicurio-registry-support-chat[Apicurio Registry Support Chat]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/llm-artifact-types[LLM artifact types example]
+* link:https://github.com/carlesarnal/apicurio-registry-support-chat[Apicurio Registry Support Chat]
 
 
 
@@ -131,9 +126,10 @@ Content types: `application/x-yaml`, `application/json`, `text/x-prompt-template
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 
 // ref-registry-artifact-states
-:_mod-docs-content-type: REFERENCE
 [id="registry-artifact-states_{context}"]
 == {registry} artifact version states
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `DEPRECATED`.
@@ -157,8 +153,9 @@ The valid artifact version states in {registry} are `ENABLED`, `DISABLED`, and `
 
 // ref-registry-group-metadata
 [id="registry-group-metadata_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} group metadata
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When a group is created in {registry}, a set of metadata properties is created and stored. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the group is created.
@@ -210,13 +207,16 @@ When a group is created in {registry}, a set of metadata properties is created a
 |Optional list of user-defined name-value pairs associated with the group. The name and value must be strings, for example, `my-key` and `my-value`.
 |===
 
-.Updating group metadata
+You can update group metadata as follows:
+
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 * You can update the `state` property only by using the {registry} REST API.
 
+For more details, see the `/groups/\{groupId\}` endpoint in the {registry} REST API documentation.
+
 [role="_additional-resources"]
 .Additional resources
-For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
@@ -224,8 +224,9 @@ For more details, see the `/groups/\{groupId\}` endpoint in the {registry-rest-a
 
 // ref-registry-artifact-metadata
 [id="registry-artifact-metadata_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} artifact metadata
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When an artifact is added to {registry}, a set of metadata properties is created and stored. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact is created.
@@ -289,12 +290,15 @@ When an artifact is added to {registry}, a set of metadata properties is created
 |The name of the user who owns the artifact.
 |===
 
-.Updating artifact metadata
+You can update artifact metadata as follows:
+
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
+
+For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoint in the {registry} REST API documentation.
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoint in the {registry-rest-api}.
+* {registry-rest-api}
 
 
 
@@ -302,8 +306,9 @@ For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoin
 
 // ref-registry-artifact-version-metadata
 [id="registry-artifact-version-metadata_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} artifact version metadata
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When an artifact version is added to a {registry} artifact, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
@@ -373,12 +378,13 @@ When an artifact version is added to a {registry} artifact, a set of metadata pr
 |The state of the artifact version: `ENABLED`, `DISABLED`, or `DEPRECATED`. Defaults to `ENABLED`.
 |===
 
-.Updating artifact version metadata
+You can update artifact version metadata as follows:
+
 * You can use the {registry} REST API or web console to update the set of editable metadata properties.
 * You can update the `state` property only by using the {registry} REST API.
 
+For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry} REST API documentation.
+
 [role="_additional-resources"]
 .Additional resources
-For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}/versions/\{versionId\}` endpoint in the {registry-rest-api}.
-
-
+* {registry-rest-api}

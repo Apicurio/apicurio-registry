@@ -30,6 +30,7 @@ Opened --> new --> wip --> ready-for-review --> ready-to-merge --> merged
 | `lifecycle/waiting-on-author` | PR needs action from the author (failed tests or changes requested). |
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
 | `lifecycle/stale` | No activity for 7 days. PR will be closed after 7 more days of inactivity. |
+| `ci/disable-scalpel` | Skips the non-blocking `scalpel-report` data-collection job for this PR. |
 
 ## For Contributors
 

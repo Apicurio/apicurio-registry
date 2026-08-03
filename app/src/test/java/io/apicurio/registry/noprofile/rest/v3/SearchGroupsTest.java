@@ -11,6 +11,9 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.UUID;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
 @QuarkusTest
 public class SearchGroupsTest extends AbstractResourceTestBase {
 
@@ -181,5 +184,25 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(1, results.getGroups().size(),
                 "Exact label key should return 1 group");
+    }
+
+    @Test
+    public void testSearchGroupsNegativeLimitAndOffset() throws Exception {
+        String prefix = "NegativeParams_" + UUID.randomUUID().toString().substring(0, 8);
+        for (int idx = 0; idx < 3; idx++) {
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(prefix + "_" + idx);
+            clientV3.groups().post(createGroup);
+        }
+
+        // A negative limit is normalized to 1, not passed to storage as an invalid query (#8611).
+        given().when().queryParam("groupId", prefix + "*").queryParam("limit", -1)
+                .get("/registry/v3/search/groups").then().statusCode(200)
+                .body("count", equalTo(3)).body("groups.size()", equalTo(1));
+
+        // A negative offset is normalized to 0, returning the full result set.
+        given().when().queryParam("groupId", prefix + "*").queryParam("offset", -1)
+                .get("/registry/v3/search/groups").then().statusCode(200)
+                .body("count", equalTo(3)).body("groups.size()", equalTo(3));
     }
 }

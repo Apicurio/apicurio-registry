@@ -158,28 +158,7 @@ public class SqlSearchRepository {
                     case state:
                         where.append(
                                 "EXISTS(SELECT v.* FROM versions v WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
-                        if (filter.isList()) {
-                            where.append("v.state");
-                            where.append(filter.isNot() ? " NOT IN (" : " IN (");
-                            for (int i = 0; i < filter.getListValue().size(); i++) {
-                                where.append("?");
-                                if (i < filter.getListValue().size() - 1) {
-                                    where.append(", ");
-                                }
-                            }
-                            where.append(")");
-                            for (String val : filter.getListValue()) {
-                                binders.add((query, idx) -> {
-                                    query.bind(idx, val);
-                                });
-                            }
-                        } else {
-                            op = filter.isNot() ? "!=" : "=";
-                            where.append("v.state " + op + " ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, filter.getStringValue());
-                            });
-                        }
+                        buildStateClause(where, filter, binders);
                         where.append(")");
                         break;
                     case content:
@@ -306,30 +285,7 @@ public class SqlSearchRepository {
                         });
                         break;
                     case state:
-                        if (filter.isList()) {
-                            where.append("v.state ");
-                            where.append(filter.isNot() ? "NOT IN (" : "IN (");
-                            for (int i = 0; i < filter.getListValue().size(); i++) {
-                                where.append("?");
-                                if (i < filter.getListValue().size() - 1) {
-                                    where.append(", ");
-                                }
-                            }
-                            where.append(")");
-                            for (String val : filter.getListValue()) {
-                                binders.add((query, idx) -> {
-                                    query.bind(idx, val);
-                                });
-                            }
-                        } else {
-                            op = filter.isNot() ? "!=" : "=";
-                            where.append("v.state ");
-                            where.append(op);
-                            where.append(" ?");
-                            binders.add((query, idx) -> {
-                                query.bind(idx, filter.getStringValue());
-                            });
-                        }
+                        buildStateClause(where, filter, binders);
                         break;
                     case version:
                         op = filter.isNot() ? "!=" : "=";
@@ -576,5 +532,32 @@ public class SqlSearchRepository {
             Map<String, String> cappedLabels = limitReturnedLabels(labels);
             version.setLabels(cappedLabels);
         });
+    }
+
+    private void buildStateClause(StringBuilder where, SearchFilter filter, List<SqlStatementVariableBinder> binders) {
+        if (filter.isList()) {
+            where.append("v.state ");
+            where.append(filter.isNot() ? "NOT IN (" : "IN (");
+            for (int i = 0; i < filter.getListValue().size(); i++) {
+                where.append("?");
+                if (i < filter.getListValue().size() - 1) {
+                    where.append(", ");
+                }
+            }
+            where.append(")");
+            for (String val : filter.getListValue()) {
+                binders.add((query, idx) -> {
+                    query.bind(idx, val);
+                });
+            }
+        } else {
+            String op = filter.isNot() ? "!=" : "=";
+            where.append("v.state ");
+            where.append(op);
+            where.append(" ?");
+            binders.add((query, idx) -> {
+                query.bind(idx, filter.getStringValue());
+            });
+        }
     }
 }

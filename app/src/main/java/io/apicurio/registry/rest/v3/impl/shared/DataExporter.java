@@ -51,11 +51,14 @@ public class DataExporter {
                     } catch (Exception e) {
                         log.error("Error writing entity", e);
                         errorCounter.incrementAndGet();
+                        throw new RuntimeException("Error writing entity during export", e);
                     }
                     return null;
                 });
 
-                // TODO if the errorCounter > 0, then what?
+                if (errorCounter.get() > 0) {
+                    throw new IOException("Export failed due to errors writing entities.");
+                }
 
                 zip.flush();
                 zip.close();

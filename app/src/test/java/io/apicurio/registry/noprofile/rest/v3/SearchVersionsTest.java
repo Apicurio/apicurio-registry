@@ -311,6 +311,41 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchVersionsByLabelTrailingDelimiter() throws Exception {
+        String artifactContent = "testSearchVersionsByLabelTrailingDelimiter-content";
+        String group = TestUtils.generateGroupId();
+        CreateArtifactResponse car = null;
+
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "testSearchVersionsByLabelTrailingDelimiter_Artifact_" + idx;
+            car = createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+
+            // Add a label with a key and a value.
+            EditableVersionMetaData emd = new EditableVersionMetaData();
+            emd.setLabels(new Labels());
+            emd.getLabels().setAdditionalData(Map.of("trailing", "trailing-value-" + idx));
+            clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(car.getVersion().getVersion()).put(emd);
+        }
+
+        // A label filter with a trailing ':' (no value) must match the key with any value.
+        // This exercises the branch that was previously unreachable dead code (see #8734).
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing:" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Trailing-colon label filter should match all 3 versions by key");
+
+        // A label filter with no ':' at all must also match the key directly.
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Key-only label filter should match all 3 versions by key");
+    }
+
+    @Test
     public void testSearchVersionsByArtifactIdWildcard() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String group = TestUtils.generateGroupId();

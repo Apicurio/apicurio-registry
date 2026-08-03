@@ -1,7 +1,7 @@
 // Issue Assignment Handler
 //
 // Automatically assigns or unassigns contributors to issues when they comment with trigger commands.
-// Commands: /assign-me, /unassign-me (aliases: /claim, /assign, /unassign)
+// Commands: /assign-me, /unassign-me (aliases: /claim, /unassign)
 
 const MAX_ASSIGNED_ISSUES = 3;
 
@@ -75,7 +75,7 @@ async function handleIssueComment({ github, context, core }) {
   // Verify issue is open
   if (freshIssue.state !== 'open') {
     core.info(`Issue #${issueNumber} is closed. Cannot modify assignment.`);
-    await postComment(github, owner, repo, issueNumber, `@${commenterOriginal} Issue #${issueNumber} is closed and cannot be assigned.`);
+    await postComment(github, core, owner, repo, issueNumber, `@${commenterOriginal} Issue #${issueNumber} is closed and cannot be assigned.`);
     return;
   }
 
@@ -94,11 +94,11 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
   if (assigneeLogins.length > 0) {
     if (assigneeLogins.includes(commenter)) {
       core.info(`User ${commenterOriginal} is already assigned to issue #${issueNumber}.`);
-      await postComment(github, owner, repo, issueNumber, `@${commenterOriginal} You are already assigned to this issue.`);
+      await postComment(github, core, owner, repo, issueNumber, `@${commenterOriginal} You are already assigned to this issue.`);
     } else {
       const mentionList = currentAssignees.map(a => `@${a.login}`).join(', ');
       core.info(`Issue #${issueNumber} is already assigned to ${mentionList}.`);
-      await postComment(github, owner, repo, issueNumber, `This issue is already claimed by ${mentionList}.`);
+      await postComment(github, core, owner, repo, issueNumber, `This issue is already claimed by ${mentionList}.`);
     }
     return;
   }
@@ -125,6 +125,7 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
     core.info(`User ${commenterOriginal} reached max open issues limit (${actualOpenIssues.length}/${MAX_ASSIGNED_ISSUES}).`);
     await postComment(
       github,
+      core,
       owner,
       repo,
       issueNumber,
@@ -150,6 +151,7 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
     core.warning(`Failed to assign ${commenterOriginal} to issue #${issueNumber}: ${error.message}`);
     await postComment(
       github,
+      core,
       owner,
       repo,
       issueNumber,
@@ -167,6 +169,7 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
     core.warning(`User ${commenterOriginal} could not be assigned to issue #${issueNumber}. User may lack collaborator permissions.`);
     await postComment(
       github,
+      core,
       owner,
       repo,
       issueNumber,
@@ -177,6 +180,7 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
 
   await postComment(
     github,
+    core,
     owner,
     repo,
     issueNumber,
@@ -187,7 +191,7 @@ async function handleAssign(github, core, owner, repo, issueNumber, commenterOri
 async function handleUnassign(github, core, owner, repo, issueNumber, commenterOriginal, commenter, assigneeLogins) {
   if (!assigneeLogins.includes(commenter)) {
     core.info(`User ${commenterOriginal} attempted to unassign from issue #${issueNumber} but is not assigned.`);
-    await postComment(github, owner, repo, issueNumber, `@${commenterOriginal} You are not currently assigned to this issue.`);
+    await postComment(github, core, owner, repo, issueNumber, `@${commenterOriginal} You are not currently assigned to this issue.`);
     return;
   }
 
@@ -203,6 +207,7 @@ async function handleUnassign(github, core, owner, repo, issueNumber, commenterO
     core.warning(`Failed to unassign ${commenterOriginal} from issue #${issueNumber}: ${error.message}`);
     await postComment(
       github,
+      core,
       owner,
       repo,
       issueNumber,
@@ -211,16 +216,20 @@ async function handleUnassign(github, core, owner, repo, issueNumber, commenterO
     return;
   }
 
-  await postComment(github, owner, repo, issueNumber, `@${commenterOriginal} You have been unassigned from this issue.`);
+  await postComment(github, core, owner, repo, issueNumber, `@${commenterOriginal} You have been unassigned from this issue.`);
 }
 
-async function postComment(github, owner, repo, issueNumber, body) {
-  await github.rest.issues.createComment({
-    owner,
-    repo,
-    issue_number: issueNumber,
-    body,
-  });
+async function postComment(github, core, owner, repo, issueNumber, body) {
+  try {
+    await github.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body,
+    });
+  } catch (error) {
+    core.warning(`Failed to post comment on issue #${issueNumber}: ${error.message}`);
+  }
 }
 
 module.exports = {

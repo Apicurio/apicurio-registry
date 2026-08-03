@@ -1,4 +1,4 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -21,6 +21,7 @@ import {
 import { PromptVariable } from "./PromptTemplateViewer";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
+import { coerceEnumValue } from "./PromptTemplateTestPanel.utils";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -52,6 +53,20 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     });
 
     const [values, setValues] = useState<Record<string, any>>(initialValues);
+
+    useEffect(() => {
+        setValues(prev => {
+            const next = { ...prev };
+            variablesList.forEach(({ name, variable }) => {
+                if (!(name in next)) {
+                    const type = (variable.type || "string").toLowerCase();
+                    next[name] = variable.default ?? (type === "boolean" ? false : "");
+                }
+            });
+            return next;
+        });
+    }, [props.variables]);
+
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -93,8 +108,8 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         if (variable.enum && variable.enum.length > 0) {
             return (
                 <FormSelect
-                    value={values[name] || ""}
-                    onChange={(_event, val) => setValue(name, val)}
+                    value={values[name] ?? ""}
+                    onChange={(_event, val) => setValue(name, coerceEnumValue(val, type))}
                     aria-label={name}
                 >
                     <FormSelectOption key="placeholder" value="" label="-- Select --" />
@@ -106,15 +121,29 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         }
 
         switch (type) {
-            case "boolean":
+            case "boolean": {
+                const booleanLabelText = variable.description ? `${name} - ${variable.description}` : name;
                 return (
                     <Checkbox
                         id={`var-${name}`}
                         isChecked={!!values[name]}
                         onChange={(_event, checked) => setValue(name, checked)}
-                        label={name}
+                        label={
+                            variable.required ? (
+                                <>
+                                    {booleanLabelText}
+                                    <span
+                                        aria-hidden="true"
+                                        style={{ color: "var(--pf-t--global--color--status--danger--default)", marginLeft: "0.25rem" }}
+                                    >
+                                        *
+                                    </span>
+                                </>
+                            ) : booleanLabelText
+                        }
                     />
                 );
+            }
             case "integer":
             case "number":
                 return (
@@ -162,16 +191,19 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             </CardHeader>
             <CardBody>
                 <Form className="test-panel-form">
-                    {variablesList.map(({ name, variable }, index) => (
-                        <FormGroup
-                            key={index}
-                            label={variable.description ? `${name} - ${variable.description}` : name}
-                            isRequired={variable.required}
-                            fieldId={`var-${name}`}
-                        >
-                            {renderField(name, variable)}
-                        </FormGroup>
-                    ))}
+                    {variablesList.map(({ name, variable }, index) => {
+                        const isBoolean = (variable.type || "string").toLowerCase() === "boolean";
+                        return (
+                            <FormGroup
+                                key={index}
+                                label={isBoolean ? undefined : (variable.description ? `${name} - ${variable.description}` : name)}
+                                isRequired={variable.required}
+                                fieldId={`var-${name}`}
+                            >
+                                {renderField(name, variable)}
+                            </FormGroup>
+                        );
+                    })}
                     <ActionGroup>
                         <Button
                             variant="primary"

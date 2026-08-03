@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
@@ -13,6 +14,7 @@ import io.apicurio.registry.contracts.odcs.OdcsParseException;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionEngine;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionResult;
 import io.apicurio.registry.contracts.odcs.OdcsSchema;
+import io.apicurio.registry.contracts.odcs.OdcsSchemaLocations;
 import io.apicurio.registry.rest.v3.beans.OdcsContractResult;
 import io.apicurio.registry.rest.v3.beans.OdcsContractSummary;
 import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
@@ -49,6 +51,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceGraphDirection;
@@ -67,6 +70,7 @@ import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.NotAllowedException;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -129,10 +133,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     ArtifactIdGenerator idGenerator;
 
     @Inject
+    RegistryStorageContentUtils contentUtils;
+
+    @Inject
     RestConfig restConfig;
 
     @Inject
     SecurityIdentity securityIdentity;
+
+    @Inject
+    OwnershipTransferAuthorizer ownershipTransferAuthorizer;
 
     @Inject
     io.apicurio.registry.services.PromptRenderingService promptRenderingService;
@@ -174,9 +184,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     io.apicurio.registry.contracts.migration.MigrationRuleService migrationRuleService;
-
-    @Inject
-    jakarta.enterprise.event.Event<io.apicurio.registry.storage.impl.sql.SqlOutboxEvent> contractOutboxEvent;
 
     @Inject
     io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
@@ -580,21 +587,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         if (data.getOwner() != null) {
             if (data.getOwner().trim().isEmpty()) {
                 throw new MissingRequiredParameterException("Owner cannot be empty");
-            } else {
-                // TODO extra security check - if the user is trying to change the owner, fail unless they are
-                // an Admin or the current Owner
             }
+            // Cannot use @Authorized(AdminOrOwner) on the method: Write users must still update
+            // non-owner metadata. Ownership changes require Admin or the current owner.
+            ArtifactMetaDataDto currentMetaData = storage.getArtifactMetaData(rawGroupId, artifactId);
+            ownershipTransferAuthorizer.authorizeOwnerChange(currentMetaData.getOwner(),
+                    data.getOwner().trim());
         }
 
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
-        dto.setOwner(data.getOwner());
+        dto.setOwner(data.getOwner() != null ? data.getOwner().trim() : null);
         dto.setLabels(data.getLabels());
-        storage.updateArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, dto);
+        storage.updateArtifactMetaData(rawGroupId, artifactId, dto);
     }
 
     @Override
@@ -628,11 +638,23 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        if (data.getOwner() != null) {
+            if (data.getOwner().trim().isEmpty()) {
+                throw new MissingRequiredParameterException("Owner cannot be empty");
+            }
+            // Same rationale as updateArtifactMetaData: Write covers non-owner fields;
+            // ownership transfer is Admin or current owner only.
+            GroupMetaDataDto currentMetaData = storage.getGroupMetaData(rawGroupId);
+            ownershipTransferAuthorizer.authorizeOwnerChange(currentMetaData.getOwner(),
+                    data.getOwner().trim());
+        }
+
         EditableGroupMetaDataDto dto = new EditableGroupMetaDataDto();
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
-        dto.setOwner(data.getOwner());
-        storage.updateGroupMetaData(new GroupId(groupId).getRawGroupIdWithNull(), dto);
+        dto.setOwner(data.getOwner() != null ? data.getOwner().trim() : null);
+        storage.updateGroupMetaData(rawGroupId, dto);
     }
 
     @Override
@@ -895,18 +917,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public Response getArtifactVersionContent(String groupId, String artifactId, String versionExpression,
-            HandleReferencesType references) {
+            HandleReferencesType references, Boolean canonical) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
 
         if (references == null) {
-            // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
             if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
                 references = HandleReferencesType.fromValue(configuredDefault.get());
             } else {
-                // No configuration - use existing default (no behavior change)
                 references = HandleReferencesType.PRESERVE;
             }
         }
@@ -935,7 +955,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .build()
         ).prepare();
 
-        // Throw 404 if the version actually has "no content" based on the content-type
         if (ContentTypes.isEmptyContentType(artifactCell.get().getContentType())) {
             throw new ContentNotFoundException(artifactCell.get().getContentId());
         }
@@ -944,8 +963,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         contentToReturn = handleContentReferences(references, metaData.getArtifactType(), contentToReturn,
                 artifactCell.get().getReferences());
 
+        String ext = ContentTypes.getFileExtension(contentToReturn.getContentType());
+        String filename = artifactId + ext;
+
+        if (Boolean.TRUE.equals(canonical)) {
+            Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                    .recursivelyResolveReferences(artifactCell.get().getReferences(),
+                            storage::getContentByReference);
+            contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
+                    contentToReturn, resolvedReferences);
+        }
+
         var builder = Response.ok().entity(contentToReturn.getContent())
-                .type(contentToReturn.getContentType());
+                .type(contentToReturn.getContentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, buildContentDisposition(filename));
 
         checkIfDeprecated(metaData::getState, groupId, artifactId, versionExpression, builder);
         return builder.build();
@@ -1998,8 +2029,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
 
         // Fire metadata updated event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId)));
+        storage.createEvent(io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId));
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2146,11 +2176,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         // Fire status changed event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
-                        currentMetadata.getStatus() != null
-                                ? currentMetadata.getStatus().name() : null,
-                        targetStatus.name())));
+        storage.createEvent(io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
+                currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : null,
+                targetStatus.name()));
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2424,8 +2452,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 continue;
             }
 
-            String[] parsed = parseSchemaLocation(schema.getLocation(), groupId);
-            if (parsed == null) {
+            String[] parsed = OdcsSchemaLocations.parse(schema.getLocation(), groupId);
+            if (!OdcsSchemaLocations.isValid(parsed)) {
                 combined.addWarning("Invalid schema location: " + schema.getLocation());
                 continue;
             }
@@ -2447,38 +2475,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
         return combined;
-    }
-
-    private String[] parseSchemaLocation(String location, String defaultGroupId) {
-        if (location == null || location.isBlank()) {
-            return null;
-        }
-        String withoutVersion = location.contains(":")
-                ? location.substring(0, location.indexOf(':'))
-                : location;
-        if (withoutVersion.isBlank()) {
-            return null;
-        }
-
-        String schemaGroupId;
-        String schemaArtifactId;
-        int slashIdx = withoutVersion.indexOf('/');
-        if (slashIdx >= 0) {
-            schemaGroupId = withoutVersion.substring(0, slashIdx);
-            schemaArtifactId = withoutVersion.substring(slashIdx + 1);
-            if (schemaArtifactId.contains("/")) {
-                return null;
-            }
-        } else {
-            schemaGroupId = defaultGroupId;
-            schemaArtifactId = withoutVersion;
-        }
-
-        if (schemaGroupId == null || schemaGroupId.isBlank()
-                || schemaArtifactId.isBlank()) {
-            return null;
-        }
-        return new String[] { schemaGroupId, schemaArtifactId };
     }
 
     private OdcsContractResult toOdcsContractResult(String contractId, OdcsContract contract,

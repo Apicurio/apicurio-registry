@@ -128,7 +128,6 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("skills.id", hasItem("artifact-management"))
                 .body("skills.id", hasItem("compatibility-check"))
                 .body("skills.id", hasItem("agent-discovery"))
-                .body("capabilities.stateTransitionHistory", equalTo(false))
                 .body("defaultInputModes", hasItem("text/plain"))
                 .body("defaultOutputModes", hasItem("text/plain"))
                 .body("securitySchemes", notNullValue());
@@ -533,6 +532,72 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         labels.setAdditionalData(Map.of("apicurio.agent.visibility", visibility));
         meta.setLabels(labels);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(meta);
+    }
+
+    @Test
+    public void testGetAgentCardViaOrchestrateAlias() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agent-card.json")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Apicurio Registry"))
+                .body("supportedInterfaces", hasSize(1))
+                .body("skills", hasSize(5))
+                .body("skills.id", hasItem("schema-validation"))
+                .body("skills.id", hasItem("agent-discovery"));
+    }
+
+    @Test
+    public void testOrchestrateAliasMatchesCanonicalEndpoint() {
+        String canonical = givenAtRoot()
+                .when()
+                .get("/.well-known/agent.json")
+                .then()
+                .statusCode(200)
+                .extract().body().asString();
+
+        String alias = givenAtRoot()
+                .when()
+                .get("/.well-known/agent-card.json")
+                .then()
+                .statusCode(200)
+                .extract().body().asString();
+
+        org.junit.jupiter.api.Assertions.assertEquals(canonical, alias);
+    }
+
+    @Test
+    public void testSearchAgentsReturnsInterfaceUrls() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createAgentCard(groupId, "url-agent", AGENT_CARD_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.find { it.artifactId == 'url-agent' }.supportedInterfaces[0].url",
+                        equalTo("https://example.com/agent"))
+                .body("agents.find { it.artifactId == 'url-agent' }.supportedInterfaces[0].protocolVersion",
+                        equalTo("1.0"));
+    }
+
+    @Test
+    public void testGetSchemaWithRenamedParam() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/prompt-template/v1")
+                .then()
+                .statusCode(200);
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/nonexistent/v1")
+                .then()
+                .statusCode(404);
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {

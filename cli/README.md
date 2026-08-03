@@ -178,10 +178,32 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property                 | Default | Description                         |
-|--------------------------|---------|-------------------------------------|
-| `update.check-enabled`   | `true`  | Enable automatic update checks      |
-| `update.timeout-seconds` | `60`    | Timeout for update network requests |
+| Property                             | Default | Description                                                                                  |
+|---------------------------------------|---------|-----------------------------------------------------------------------------------------------|
+| `update.check-enabled`               | `true`  | Enable automatic update checks                                                               |
+| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                          |
+| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)  |
+
+#### Logging
+
+Use `--verbose` to enable debug logging:
+
+```bash
+acr --verbose artifact get my-artifact -g my-group
+```
+
+Verbose output can be noisy. To quiet a specific package while keeping the rest, set a
+per-package level using the `quarkus.log.category."<package>".level` config key:
+
+```bash
+acr config set 'quarkus.log.category."io.netty".level=WARNING'
+```
+
+Per-package levels only take effect together with `--verbose`. Without it the CLI stays quiet,
+whatever the config contains.
+
+Accepted level names are `OFF`, `FATAL`, `ERROR`, `SEVERE`, `WARN`, `WARNING`, `INFO`, `CONFIG`,
+`DEBUG`, `FINE`, `FINER`, `TRACE`, `FINEST` and `ALL`.
 
 ### Context Management
 
@@ -327,7 +349,7 @@ acr artifact
 **Create an artifact:**
 ```bash
 acr artifact create <artifact-id> -g <group-id> -f <file-path>
-acr artifact create <artifact-id> -g <group-id> -f <file-path> -t <artifact-type>
+acr artifact create <artifact-id> -g <group-id> -f <file-path> --type <artifact-type>
 
 # Read content from stdin:
 cat schema.json | acr artifact create <artifact-id> -g <group-id> -f -

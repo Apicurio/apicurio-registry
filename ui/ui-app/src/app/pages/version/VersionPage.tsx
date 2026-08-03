@@ -1,7 +1,8 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useMatch, useParams } from "react-router";
 import {
     ContentTabContent,
     DocumentationTabContent,
@@ -47,6 +48,8 @@ import {
     FinalizeDryRunSuccessModal,
     NewDraftFromModal
 } from "@app/pages/drafts/components/modals";
+import { EditAgentModal } from "@app/pages/agents/components";
+import { AgentCard } from "@app/components/agentCard";
 
 
 /**
@@ -70,6 +73,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
     const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
+    const [isEditAgentCardModalOpen, setIsEditAgentCardModalOpen] = useState(false);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -77,14 +81,16 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const draftsService: DraftsService = useDraftsService();
     const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
-    const location = useLocation();
+    const contentMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/content");
+    const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
+    const documentationMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/documentation");
 
     let activeTabKey: string = "overview";
-    if (location.pathname.indexOf("/content") !== -1) {
+    if (contentMatch) {
         activeTabKey = "content";
-    } else if (location.pathname.indexOf("/references") !== -1) {
+    } else if (referencesMatch) {
         activeTabKey = "references";
-    } else if (location.pathname.indexOf("/documentation") !== -1) {
+    } else if (documentationMatch) {
         activeTabKey = "documentation";
     }
 
@@ -102,7 +108,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         return false;
     };
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
         if (gid == "default") {
             gid = null;
@@ -110,18 +116,18 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         logger.info("Loading data for artifact: ", artifactId);
         return [
             groups.getArtifactMetaData(gid, artifactId as string)
-                .then(setArtifact)
-                .catch(error => {
+                .then(guard.wrap(setArtifact))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getArtifactVersionMetaData(gid, artifactId as string, version as string)
-                .then(setArtifactVersion)
-                .catch(error => {
+                .then(guard.wrap(setArtifactVersion))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getArtifactVersionContent(gid, artifactId as string, version as string)
-                .then(setArtifactContent)
-                .catch(e => {
+                .then(guard.wrap(setArtifactContent))
+                .catch(guard.wrap((e: any) => {
                     logger.warn("Failed to get artifact content: ", e);
                     if (is404(e)) {
                         setArtifactContent("Artifact version content not available (404 Not Found).");
@@ -129,7 +135,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         const pageError: PageError = toPageError(e, "Error loading page data.");
                         setPageError(pageError);
                     }
-                }),
+                })),
         ];
     };
 
@@ -157,6 +163,39 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
 
     const onDeleteVersion = (): void => {
         setIsDeleteModalOpen(true);
+    };
+
+    const doSaveAgentCard = (updatedCard: AgentCard): void => {
+        setIsEditAgentCardModalOpen(false);
+        setPleaseWaitMessage("Saving agent card as new version, please wait...");
+        setIsPleaseWaitModalOpen(true);
+        const gid: string | null = (groupId === "default") ? null : (groupId as string);
+        groups.createArtifactVersion(gid, artifactId as string, {
+            content: {
+                content: JSON.stringify(updatedCard, null, 2),
+                contentType: "application/json"
+            }
+        }).then(vmd => {
+            setIsPleaseWaitModalOpen(false);
+            const gidEnc = encodeURIComponent(groupId as string);
+            const aidEnc = encodeURIComponent(artifactId as string);
+            const ver = encodeURIComponent(vmd.version!);
+            appNavigation.navigateTo(`/explore/${gidEnc}/${aidEnc}/versions/${ver}`);
+        }).catch(error => {
+            setIsPleaseWaitModalOpen(false);
+            setPageError(toPageError(error, "Error saving agent card."));
+        });
+    };
+
+    const getAgentCardFromContent = (): AgentCard | undefined => {
+        if (!versionContent || artifact?.artifactType !== "AGENT_CARD") {
+            return undefined;
+        }
+        try {
+            return JSON.parse(versionContent) as AgentCard;
+        } catch {
+            return undefined;
+        }
     };
 
     const showDocumentationTab = (): boolean => {
@@ -236,7 +275,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             pleaseWait(false);
             const gid: string = encodeURIComponent(groupId || "default");
             const aid: string = encodeURIComponent(artifactId as string);
-            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions`);
+            appNavigation.navigateTo(`/explore/${gid}/${aid}`);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting a version."));
         });
@@ -365,7 +404,9 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        setLoaders(createLoaders());
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [groupId, artifactId, version]);
 
     useEffect(() => {
@@ -444,6 +485,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <VersionPageHeader
                         onEdit={onEditDraft}
+                        onEditAgentCard={() => setIsEditAgentCardModalOpen(true)}
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
                         onFinalizeDraft={() => {
@@ -515,6 +557,17 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 onClose={onChangeStateModalClose}
                 onChangeState={doChangeState}
             />
+            {(() => {
+                const agentCard = getAgentCardFromContent();
+                return agentCard ? (
+                    <EditAgentModal
+                        isOpen={isEditAgentCardModalOpen}
+                        agentCard={agentCard}
+                        onClose={() => setIsEditAgentCardModalOpen(false)}
+                        onSave={doSaveAgentCard}
+                    />
+                ) : null;
+            })()}
             <PleaseWaitModal
                 message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />

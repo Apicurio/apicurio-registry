@@ -79,17 +79,28 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match"
             exit 1
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -101,10 +112,10 @@ jobs:
           echo "<settings><servers><server><id>central</id><username>${{ secrets.CENTRAL_USERNAME }}</username><password>${{ secrets.CENTRAL_TOKEN }}</password></server></servers><profiles><profile><id>central</id><activation><activeByDefault>true</activeByDefault></activation><properties><gpg.executable>gpg</gpg.executable></properties></profile></profiles></settings>" > /home/runner/.m2/settings.xml
 
       - name: Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@f6f458f535f4ccdf100400ee0755c0e857226a66
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7.0.0
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Download macOS CLI ZIP from GitHub Release
         working-directory: registry
@@ -119,7 +130,7 @@ jobs:
       - name: Maven Deploy
         working-directory: registry
         run: |
-          mvn -B --settings /home/runner/.m2/settings.xml deploy \
+          mvn -B --settings /home/runner/.m2/settings.xml deploy -T 1 \
             -Pprod -Prelease -Dfull -DskipTests -DcliAttachArtifacts
 
   # SBOMs Generation
@@ -136,6 +147,17 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       - name: Checkout SBOMs Repo
         run: |
           git clone --branch main --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-sboms.git sboms
@@ -143,7 +165,7 @@ jobs:
           echo "SBOM_OUTPUT_DIR=$(pwd)/apicurio-registry/${{ needs.prepare.outputs.release-version }}" >> $GITHUB_ENV
 
       - name: Set up JDK 21
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -151,18 +173,18 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.18.0
+          node-version: 24.18.1
 
       - name: Maven Install
         run: |
           cd registry
-          mvn install -pl app -am -Pprod -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+          mvn $MVN_SETTINGS install -pl app -am -Pprod -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
 
       - name: Generate Maven SBOMs
         run: |
           mkdir -p $SBOM_OUTPUT_DIR
           cd registry
-          mvn -f app/pom.xml dependency:tree -DoutputType=dot -Dscope=runtime -DoutputFile=$SBOM_OUTPUT_DIR/apicurio-registry-app-${{ needs.prepare.outputs.release-version }}.runtime.sbom.dot
+          mvn $MVN_SETTINGS -f app/pom.xml dependency:tree -DoutputType=dot -Dscope=runtime -DoutputFile=$SBOM_OUTPUT_DIR/apicurio-registry-app-${{ needs.prepare.outputs.release-version }}.runtime.sbom.dot
 
       - name: Generate npm SBOMs
         run: |
@@ -195,17 +217,28 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match"
             exit 1
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -213,9 +246,9 @@ jobs:
       - name: Generate Maven Site
         run: |
           cd registry
-          mvn clean install -pl utils/maven-plugin -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
+          mvn $MVN_SETTINGS clean install -pl utils/maven-plugin -am -DskipTests -Dmaven.javadoc.skip=true --no-transfer-progress
           cd utils/maven-plugin
-          mvn site --no-transfer-progress
+          mvn $MVN_SETTINGS site --no-transfer-progress
 
       - name: Apicurio Website Checkout
         run: |

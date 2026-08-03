@@ -1,10 +1,15 @@
 package io.apicurio.registry.rules.compatibility.protobuf;
 
+import com.google.protobuf.Descriptors.FileDescriptor;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import com.squareup.wire.schema.internal.parser.ProtoParser;
 import io.apicurio.registry.protobuf.ProtobufDifference;
 import io.apicurio.registry.protobuf.rules.compatibility.protobuf.ProtobufCompatibilityCheckerLibrary;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1142,4 +1147,60 @@ public class ProtobufCompatibilityCheckerLibraryTest {
                 "Type references should resolve to grandparent scope per Protobuf scoping rules. Found: "
                         + differences);
     }
+    /**
+     * Tests that a proto2 schema registered as .proto text is considered compatible with the same
+     * schema derived from a compiled protobuf descriptor. This specifically covers map fields and
+     * imported message references, which were previously reported as different because the
+     * descriptor-derived representation expanded map fields into synthetic *Entry repeated messages
+     * and used fully-qualified type names for imported messages.
+     */
+    @Test
+    public void testProto2MapFieldAndImportedReferenceCompatibility() throws Exception {
+        String detailSchema = """
+                syntax = "proto2";
+                package com.example.api;
+                option java_multiple_files = true;
+
+                message Detail {
+                  required int64 id = 1;
+                }
+                """;
+        String envelopeSchema = """
+                syntax = "proto2";
+                package com.example.api;
+                import "Detail.proto";
+                option java_multiple_files = true;
+
+                message Envelope {
+                  enum Type { UNKNOWN = 0; FULL = 1; }
+                  required Type type = 1;
+                  optional Detail detail = 2;
+                  optional Payload payload = 3;
+                }
+
+                message Payload {
+                  optional int64 id = 1;
+                  map<string, string> attributes = 2;
+                }
+                """;
+
+        FileDescriptor fileDescriptor = FileDescriptorUtils.toDescriptor("Envelope",
+                ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, envelopeSchema),
+                Map.of("Detail.proto",
+                        ProtoParser.Companion.parse(FileDescriptorUtils.DEFAULT_LOCATION, detailSchema))).getFile();
+
+        ProtobufFile registeredFile = new ProtobufFile(envelopeSchema);
+
+        ProtoFileElement derivedElement = FileDescriptorUtils.fileDescriptorToProtoFile(fileDescriptor.toProto());
+        ProtobufFile derivedFile = new ProtobufFile(derivedElement);
+
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(registeredFile,
+                derivedFile);
+        List<ProtobufDifference> differences = checker.findDifferences(false);
+
+        assertTrue(differences.isEmpty(),
+                "Proto2 schemas with map fields and imported message references should match their descriptor-derived counterpart. Found: "
+                        + differences);
+    }
+
 }

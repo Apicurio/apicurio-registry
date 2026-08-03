@@ -8,13 +8,6 @@ include::{mod-loc}shared/all-attributes.adoc[]
 You can use the following reference information to configure {registry} instances by using the `ApicurioRegistry3`
 custom resource.
 
-* xref:operator-cr-structure_{context}[]
-* xref:operator-app-spec-reference_{context}[]
-* xref:operator-ui-spec-reference_{context}[]
-* xref:operator-storage-reference_{context}[]
-* xref:operator-auth-reference_{context}[]
-* xref:operator-ingress-reference_{context}[]
-
 //INCLUDES
 
 // ref-operator-cr-structure
@@ -47,9 +40,9 @@ spec:
 [role="_abstract"]
 The `spec.app` section configures the backend component, which provides the REST API.
 
-.Common component fields
-
 The following fields are available for both `spec.app` and `spec.ui` components:
+
+.Common component fields
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -70,8 +63,8 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 
 |`ingress`
 |Ingress configuration for the component
-|<<IngressSpec>>
-|See xref:operator-ingress-reference_{context}[]
+|xref:ingress-spec_{context}[IngressSpec]
+|See Ingress configuration reference
 
 |`podTemplateSpec`
 |Custom PodTemplateSpec for advanced pod configuration
@@ -94,9 +87,9 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |`""`
 |===
 
-.Application-specific fields
-
 The following fields are specific to `spec.app`:
+
+.Application-specific fields
 
 [cols="1,2,1,2",options="header"]
 |===
@@ -107,30 +100,29 @@ The following fields are specific to `spec.app`:
 
 |`storage`
 |Storage configuration for the backend
-|<<StorageSpec>>
-|See xref:operator-storage-reference_{context}[]
+|xref:storage-spec_{context}[StorageSpec]
+|See Storage configuration reference
 
 |`features`
 |Feature flags for the backend
-|<<AppFeaturesSpec>>
+|xref:app-features-spec_{context}[AppFeaturesSpec]
 |See below
 
 |`auth`
 |Authentication and authorization configuration
-|<<AuthSpec>>
-|See xref:operator-auth-reference_{context}[]
+|xref:auth-spec_{context}[AuthSpec]
+|See Authentication and authorization configuration reference
 
 |`tls`
 |TLS configuration for the application
-|<<TLSSpec>>
+|xref:tls-spec_{context}[TLSSpec]
 |See below
 |===
 
-.AppFeaturesSpec
-
 Configure optional features for {registry}:
 
-[cols="1,2,1,2",options="header"]
+.AppFeaturesSpec
+[id="app-features-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -159,11 +151,10 @@ spec:
       versionMutabilityEnabled: true
 ----
 
-.TLSSpec
-
 Configure TLS certificates for the application:
 
-[cols="1,2,1,2",options="header"]
+.TLSSpec
+[id="tls-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -172,12 +163,12 @@ Configure TLS certificates for the application:
 
 |`keystoreSecretRef`
 |Reference to a Secret containing the keystore (PKCS12 format). Default key: `keystore.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`keystorePasswordSecretRef`
 |Reference to a Secret containing the keystore password. Default key: `password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -194,6 +185,12 @@ spec:
         name: registry-tls
         key: keystore.password
 ----
+
+[role="_additional-resources"]
+.Additional resources
+* xref:operator-storage-reference_{context}[]
+* xref:operator-auth-reference_{context}[]
+* xref:operator-ingress-reference_{context}[]
 
 // ref-operator-ui-spec-reference
 [id="operator-ui-spec-reference_{context}"]
@@ -218,8 +215,7 @@ The `spec.ui` section configures the {registry} web console component.
 |`true`
 |===
 
-The UI component also supports all common component fields listed in
-xref:operator-app-spec-reference_{context}[].
+The UI component also supports all common component fields listed in the {registry-app} configuration reference.
 
 Example:
 [source,yaml]
@@ -235,6 +231,10 @@ spec:
       host: registry-ui.example.com
 ----
 
+[role="_additional-resources"]
+.Additional resources
+* xref:operator-app-spec-reference_{context}[]
+
 // ref-operator-storage-reference
 [id="operator-storage-reference_{context}"]
 == Storage configuration reference
@@ -244,8 +244,7 @@ spec:
 The `spec.app.storage` section configures the storage backend for {registry}.
 
 .StorageSpec
-
-[cols="1,2,1,2",options="header"]
+[id="storage-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -259,27 +258,26 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 
 |`sql`
 |SQL database configuration. Required when `type` is `postgresql` or `mysql`
-|<<SqlSpec>>
+|xref:sql-spec_{context}[SqlSpec]
 |None
 
 |`kafkasql`
 |KafkaSQL storage configuration. Required when `type` is `kafkasql`
-|<<KafkaSqlSpec>>
+|xref:kafka-sql-spec_{context}[KafkaSqlSpec]
 |None
 
 |`kubernetesops`
 |KubernetesOps storage configuration (read-only, experimental). Required when `type` is `kubernetesops`
-|<<KubernetesOpsSpec>>
+|xref:kubernetes-ops-spec_{context}[KubernetesOpsSpec]
 |None
 |===
 
 IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Specify a storage type for production use.
 
-.SqlSpec
-
 Configure SQL database storage (PostgreSQL or MySQL):
 
-[cols="1,2,1",options="header"]
+.SqlSpec
+[id="sql-spec_{context}",cols="1,2,1",options="header"]
 |===
 |Field
 |Description
@@ -287,12 +285,11 @@ Configure SQL database storage (PostgreSQL or MySQL):
 
 |`dataSource`
 |Data source configuration
-|<<DataSourceSpec>>
+|xref:data-source-spec_{context}[DataSourceSpec]
 |===
 
 .DataSourceSpec
-
-[cols="1,2,1,2",options="header"]
+[id="data-source-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -311,7 +308,7 @@ Configure SQL database storage (PostgreSQL or MySQL):
 
 |`password`
 |Reference to a Secret containing the database password. Default key: `password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -347,11 +344,10 @@ spec:
             key: password
 ----
 
-.KafkaSqlSpec
-
 Configure KafkaSQL storage:
 
-[cols="1,2,1,2",options="header"]
+.KafkaSqlSpec
+[id="kafka-sql-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -370,12 +366,12 @@ Configure KafkaSQL storage:
 
 |`tls`
 |TLS configuration for connecting to Kafka
-|<<KafkaSqlTLSSpec>>
+|xref:kafka-sql-tls-spec_{context}[KafkaSqlTLSSpec]
 |None
 
 |`auth`
 |Authentication configuration for connecting to Kafka
-|<<KafkaSqlAuthSpec>>
+|xref:kafka-sql-auth-spec_{context}[KafkaSqlAuthSpec]
 |None
 |===
 
@@ -401,11 +397,10 @@ spec:
         kafkaAccessSecretName: my-kafka-access
 ----
 
-.KafkaSqlTLSSpec
-
 Configure TLS for KafkaSQL storage:
 
-[cols="1,2,1,2",options="header"]
+.KafkaSqlTLSSpec
+[id="kafka-sql-tls-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -414,22 +409,22 @@ Configure TLS for KafkaSQL storage:
 
 |`keystoreSecretRef`
 |Reference to a Secret containing the TLS keystore (PKCS12 format). Default key: `user.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`keystorePasswordSecretRef`
 |Reference to a Secret containing the TLS keystore password. Default key: `user.password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`truststorePasswordSecretRef`
 |Reference to a Secret containing the truststore password. Default key: `ca.password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -455,11 +450,10 @@ spec:
 
 NOTE: Default keys match the secret structure produced by the {kafka-streams} Operator, so you typically only need to specify the secret `name`.
 
-.KafkaSqlAuthSpec
-
 Configure SASL OAuth authentication for KafkaSQL storage:
 
-[cols="1,2,1,2",options="header"]
+.KafkaSqlAuthSpec
+[id="kafka-sql-auth-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -478,12 +472,12 @@ Configure SASL OAuth authentication for KafkaSQL storage:
 
 |`clientIdRef`
 |Reference to a Secret containing the OAuth client ID. Default key: `clientId`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`clientSecretRef`
 |Reference to a Secret containing the OAuth client secret. Default key: `clientSecret`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`tokenEndpoint`
@@ -519,13 +513,12 @@ spec:
           loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
 ----
 
-NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication through the `auth` field. For other SASL mechanisms such as SCRAM-SHA-512, the recommended approach is to use the Strimzi Kafka Access Operator through the `kafkaAccessSecretName` field (available starting with {registry} version 3.2.0). Alternatively, you can use custom environment variables through the `spec.app.env` field to configure the Kafka client properties directly. See the xref:getting-started/assembly-config-reference.adoc[] for available `apicurio.kafkasql.*` configuration properties.
-
-.KubernetesOpsSpec
+NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authentication through the `auth` field. For other SASL mechanisms such as SCRAM-SHA-512, the recommended approach is to use the Strimzi Kafka Access Operator through the `kafkaAccessSecretName` field (available starting with {registry} version 3.2.0). Alternatively, you can use custom environment variables through the `spec.app.env` field to configure the Kafka client properties directly. See the additional resources for available `apicurio.kafkasql.*` configuration properties.
 
 Configure KubernetesOps storage (read-only, experimental). Loads registry data from Kubernetes ConfigMaps:
 
-[cols="1,2,1,2",options="header"]
+.KubernetesOpsSpec
+[id="kubernetes-ops-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -592,7 +585,12 @@ spec:
         watchReconnectDelay: 5s
 ----
 
-NOTE: KubernetesOps storage is read-only. All changes must be made by creating or updating ConfigMaps. For more details on ConfigMap format and RBAC requirements, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[].
+NOTE: KubernetesOps storage is read-only. All changes must be made by creating or updating ConfigMaps. For more details on ConfigMap format and RBAC requirements, see the additional resources.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-config-reference.adoc[]
+* xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[]
 
 // ref-operator-auth-reference
 [id="operator-auth-reference_{context}"]
@@ -603,8 +601,7 @@ NOTE: KubernetesOps storage is read-only. All changes must be made by creating o
 The `spec.app.auth` section configures OIDC authentication and role-based authorization.
 
 .AuthSpec
-
-[cols="1,2,1,2",options="header"]
+[id="auth-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -648,17 +645,17 @@ The `spec.app.auth` section configures OIDC authentication and role-based author
 
 |`authz`
 |Authorization configuration
-|<<AuthzSpec>>
+|xref:authz-spec_{context}[AuthzSpec]
 |See below
 
 |`basicAuth`
 |Client credentials basic authentication configuration
-|<<BasicAuthSpec>>
+|xref:basic-auth-spec_{context}[BasicAuthSpec]
 |See below
 
 |`tls`
 |TLS configuration for OIDC connections
-|<<AuthTLSSpec>>
+|xref:auth-tls-spec_{context}[AuthTLSSpec]
 |See below
 |===
 
@@ -677,11 +674,10 @@ spec:
       anonymousReadsEnabled: false
 ----
 
-.AuthzSpec
-
 Configure role-based authorization:
 
-[cols="1,2,1,2",options="header"]
+.AuthzSpec
+[id="authz-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -710,12 +706,12 @@ Configure role-based authorization:
 
 |`roles`
 |Role configuration
-|<<AuthzRolesSpec>>
+|xref:authz-roles-spec_{context}[AuthzRolesSpec]
 |See below
 
 |`adminOverride`
 |Admin override configuration
-|<<AdminOverrideSpec>>
+|xref:admin-override-spec_{context}[AdminOverrideSpec]
 |See below
 |===
 
@@ -737,11 +733,10 @@ spec:
           readOnly: sr-readonly
 ----
 
-.AuthzRolesSpec
-
 Configure authorization roles:
 
-[cols="1,2,1,2",options="header"]
+.AuthzRolesSpec
+[id="authz-roles-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -769,11 +764,10 @@ Configure authorization roles:
 |None
 |===
 
-.AdminOverrideSpec
-
 Configure admin override functionality:
 
-[cols="1,2,1,2",options="header"]
+.AdminOverrideSpec
+[id="admin-override-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -842,11 +836,10 @@ spec:
           claimValue: "true"
 ----
 
-.BasicAuthSpec
-
 Configure basic authentication for client credentials:
 
-[cols="1,2,1,2",options="header"]
+.BasicAuthSpec
+[id="basic-auth-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -875,11 +868,10 @@ spec:
         cacheExpiration: 25m
 ----
 
-.AuthTLSSpec
-
 Configure TLS for OIDC connections:
 
-[cols="1,2,1,2",options="header"]
+.AuthTLSSpec
+[id="auth-tls-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -893,12 +885,12 @@ Configure TLS for OIDC connections:
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`truststorePasswordSecretRef`
 |Reference to a Secret containing the truststore password. Default key: `ca.password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -927,8 +919,7 @@ spec:
 The `ingress` section is available for both `spec.app` and `spec.ui` components.
 
 .IngressSpec
-
-[cols="1,2,1,2",options="header"]
+[id="ingress-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -974,11 +965,10 @@ spec:
         nginx.org/proxy-connect-timeout: "30s"
 ----
 
-.SecretKeyRef
-
 Many configuration fields use `SecretKeyRef` to reference Kubernetes Secrets:
 
-[cols="1,2,1,2",options="header"]
+.SecretKeyRef
+[id="secret-key-ref_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -1006,7 +996,7 @@ password:
 
 // ref-operator-for-developers
 [id="operator-for-developers_{context}"]
-== For Developers
+== For developers
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
@@ -1021,14 +1011,12 @@ Java model classes for the `ApicurioRegistry3` custom resource are available as 
 </dependency>
 ----
 
-and can be used with the link:https://github.com/fabric8io/kubernetes-client[Fabric8 Kubernetes Client library] to programmatically create and manage {operator} resources.
+You can use these classes with the Fabric8 Kubernetes Client library to programmatically create and manage {operator} resources.
 
 [role="_additional-resources"]
 .Additional resources
-
-* For deployment examples, see xref:getting-started/assembly-deploying-registry-operator.adoc[].
-* For Kubernetes PodTemplateSpec documentation, see
-https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec
-* For Kubernetes EnvVar documentation, see
-https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core
-* You can also explore the link:https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/model/src/main/java/io/apicurio/registry/operator/api/v1[{operator} Java model source code in GitHub]
+* xref:getting-started/assembly-deploying-registry-operator.adoc[]
+* link:https://github.com/fabric8io/kubernetes-client[Fabric8 Kubernetes Client library]
+* link:https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplateSpec[Kubernetes PodTemplateSpec documentation]
+* link:https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#envvar-v1-core[Kubernetes EnvVar documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/{upstream-version-tag}/operator/model/src/main/java/io/apicurio/registry/operator/api/v1[{operator} Java model source code in GitHub]

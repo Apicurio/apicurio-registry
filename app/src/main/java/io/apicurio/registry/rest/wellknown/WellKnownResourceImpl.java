@@ -4,21 +4,21 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.a2a.A2AConfig;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
-import io.apicurio.registry.a2a.rest.beans.AgentCapabilities;
-import io.apicurio.registry.a2a.rest.beans.AgentCard;
-import io.apicurio.registry.a2a.rest.beans.AgentInterface;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchFilters;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResult;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
+import io.apicurio.registry.rest.v3.beans.AgentCard;
+import io.apicurio.registry.rest.v3.beans.AgentInterface;
+import io.apicurio.registry.rest.v3.beans.AgentSearchFilters;
+import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.mcptools.McpToolsConfig;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResult;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -47,6 +47,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
@@ -121,6 +122,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
+    public AgentCard getAgentCardForOrchestrate() {
+        return getAgentCard();
+    }
+
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public AgentSearchResults getPublicAgents(Integer offset, Integer limit) {
         if (!a2aConfig.isEnabled() || !a2aConfig.isPublicDiscoveryEnabled()) {
             throw new NotFoundException("Public agent discovery is disabled");
@@ -139,7 +146,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count(results.getCount())
+                .count((int) results.getCount())
                 .agents(agents)
                 .build();
     }
@@ -163,7 +170,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         int total = visible.size();
         int safeOffset = Math.max(0, Math.min(offset, total));
-        int safeLimit = Math.max(0, limit);
+        int safeLimit = Math.max(0, Math.min(limit, 500));
         int toIndex = Math.min(safeOffset + safeLimit, total);
         List<SearchedArtifactDto> page = visible.subList(safeOffset, toIndex);
 
@@ -173,7 +180,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count((long) total)
+                .count(total)
                 .agents(agents)
                 .build();
     }
@@ -206,7 +213,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
             if (f.getCapabilities() != null) {
-                for (Map.Entry<String, Boolean> entry : f.getCapabilities().entrySet()) {
+                for (Map.Entry<String, Object> entry : f.getCapabilities().getAdditionalProperties().entrySet()) {
                     SearchFilter filter = SearchFilter.ofStructure(
                             "agent_card:capability:" + entry.getKey());
                     if (!Boolean.TRUE.equals(entry.getValue())) {
@@ -216,8 +223,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 }
             }
             if (f.getLabels() != null) {
-                for (Map.Entry<String, String> entry : f.getLabels().entrySet()) {
-                    filters.add(SearchFilter.ofLabel(entry.getKey(), entry.getValue()));
+                for (Map.Entry<String, Object> entry : f.getLabels().getAdditionalProperties().entrySet()) {
+                    filters.add(SearchFilter.ofLabel(entry.getKey(), String.valueOf(entry.getValue())));
                 }
             }
             if (f.getInputModes() != null) {
@@ -237,8 +244,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
 
-        int safeOffset = request.getOffset();
-        int safeLimit = request.getLimit();
+        int safeOffset = Math.max(0, request.getOffset() != null ? request.getOffset() : 0);
+        int safeLimit = Math.max(1, Math.min(request.getLimit() != null ? request.getLimit() : 20, 500));
 
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
@@ -259,7 +266,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
 
             return AgentSearchResults.builder()
-                    .count((long) total)
+                    .count(total)
                     .agents(agents)
                     .build();
         }
@@ -273,7 +280,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count(results.getCount())
+                .count((int) results.getCount())
                 .agents(agents)
                 .build();
     }
@@ -390,7 +397,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
 
             return AgentSearchResults.builder()
-                    .count((long) total)
+                    .count(total)
                     .agents(agents)
                     .build();
         }
@@ -404,7 +411,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         return AgentSearchResults.builder()
-                .count(results.getCount())
+                .count((int) results.getCount())
                 .agents(agents)
                 .build();
     }
@@ -518,10 +525,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public McpToolSearchResults searchMcpTools(String name, List<String> parameters,
-            Integer offset, Integer limit) {
+            String offset, String limit) {
         if (!mcpToolsConfig.isEnabled()) {
             throw new NotFoundException("MCP tools support is disabled");
         }
+
+        int safeOffset = Math.max(0, parsePaginationParam(offset, "offset", 0));
+        int safeLimit = Math.max(1, Math.min(parsePaginationParam(limit, "limit", 20), 500));
 
         Set<SearchFilter> filters = new HashSet<>();
 
@@ -538,14 +548,25 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.desc, offset, limit, false);
+                OrderDirection.desc, safeOffset, safeLimit, false);
 
         List<McpToolSearchResult> tools = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
             tools.add(convertToMcpToolSearchResult(artifact));
         }
 
-        return McpToolSearchResults.builder().count(results.getCount()).tools(tools).build();
+        return McpToolSearchResults.builder().count((int) results.getCount()).tools(tools).build();
+    }
+
+    private int parsePaginationParam(String value, String name, int defaultValue) {
+        if (StringUtil.isEmpty(value)) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Invalid " + name + ": must be an integer");
+        }
     }
 
     /**
@@ -598,25 +619,25 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
-    public Response getSchema(String type, String version) {
+    public Response getSchema(String schemaType, String version) {
         if (!a2aConfig.isEnabled() && !mcpToolsConfig.isEnabled()) {
-            throw new NotFoundException("Schema not found: " + type + "/" + version);
+            throw new NotFoundException("Schema not found: " + schemaType + "/" + version);
         }
 
         // Validate and normalize the type
-        String schemaResourcePath = getSchemaResourcePath(type, version);
+        String schemaResourcePath = getSchemaResourcePath(schemaType, version);
         if (schemaResourcePath == null) {
-            throw new NotFoundException("Schema not found: " + type + "/" + version);
+            throw new NotFoundException("Schema not found: " + schemaType + "/" + version);
         }
 
         try {
             String schemaContent = loadSchemaFromClasspath(schemaResourcePath);
             return Response.ok(schemaContent, "application/schema+json")
-                    .header("Content-Disposition", "inline; filename=\"" + type + "-" + version + ".json\"")
+                    .header("Content-Disposition", "inline; filename=\"" + schemaType + "-" + version + ".json\"")
                     .header("Cache-Control", "public, max-age=86400")
                     .build();
         } catch (IOException e) {
-            throw new NotFoundException("Schema not found: " + type + "/" + version);
+            throw new NotFoundException("Schema not found: " + schemaType + "/" + version);
         }
     }
 

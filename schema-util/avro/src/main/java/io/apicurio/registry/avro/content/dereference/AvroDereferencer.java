@@ -1,5 +1,6 @@
 package io.apicurio.registry.avro.content.dereference;
 
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
@@ -12,10 +13,7 @@ public class AvroDereferencer implements ContentDereferencer {
 
     @Override
     public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        final Schema.Parser parser = new Schema.Parser();
-        for (TypedContent referencedContent : resolvedReferences.values()) {
-            parser.parse(referencedContent.getContent().content());
-        }
+        final Schema.Parser parser = AvroParserAccessor.newParser(resolvedReferences);
         final Schema schema = parser.parse(content.getContent().content());
         return TypedContent.create(ContentHandle.create(schema.toString()), ContentTypes.APPLICATION_JSON);
     }

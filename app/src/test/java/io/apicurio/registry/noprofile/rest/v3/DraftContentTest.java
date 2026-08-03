@@ -269,7 +269,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
             config.queryParameters.groupId = groupId;
-            config.queryParameters.state = VersionState.DRAFT;
+            config.queryParameters.state = new VersionState[]{VersionState.DRAFT};
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(7, results.getVersions().size());

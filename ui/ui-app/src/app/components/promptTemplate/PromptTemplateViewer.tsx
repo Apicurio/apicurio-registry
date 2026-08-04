@@ -181,7 +181,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Variables</Title>
                         <div className="variables-table-wrapper">
-                            <table className="variables-table">
+                            <table className="variables-table" aria-label="Template variables">
                                 <thead>
                                     <tr>
                                         <th>Name</th>

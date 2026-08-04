@@ -11,6 +11,7 @@ import {
     Title,
     Tooltip
 } from "@patternfly/react-core";
+import { If } from "@apicurio/common-ui-components";
 
 /**
  * Agent skill structure
@@ -126,7 +127,9 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
     if (!hasSkills()) {
         return (
             <div className="agent-card-skills">
-                {showTitle && <Title headingLevel="h4" className="section-title">Skills</Title>}
+                <If condition={showTitle}>
+                    <Title headingLevel="h4" className="section-title">Skills</Title>
+                </If>
                 <span className="empty-state-text">No skills defined</span>
             </div>
         );
@@ -134,7 +137,9 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
 
     return (
         <div className="agent-card-skills">
-            {showTitle && <Title headingLevel="h4" className="section-title">Skills ({skills.length})</Title>}
+            <If condition={showTitle}>
+                <Title headingLevel="h4" className="section-title">Skills ({skills.length})</Title>
+            </If>
             {compact ? renderCompactSkills() : renderDetailedSkills()}
         </div>
     );

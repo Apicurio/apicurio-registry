@@ -21,6 +21,7 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon, TrashIcon } from "@patternfly/react-icons";
 import { AgentSkill } from "./AgentCardSkills";
+import { If } from "@apicurio/common-ui-components";
 
 /**
  * Properties
@@ -164,9 +165,9 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                             </Button>
                         </InputGroupItem>
                     </InputGroup>
-                    {editingSkill.tags && editingSkill.tags.length > 0 && (
+                    <If condition={editingSkill.tags !== undefined && editingSkill.tags.length > 0}>
                         <LabelGroup className="tags-list">
-                            {editingSkill.tags.map((tag, index) => (
+                            {(editingSkill.tags || []).map((tag, index) => (
                                 <Label
                                     key={index}
                                     color="blue"
@@ -176,7 +177,7 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                                 </Label>
                             ))}
                         </LabelGroup>
-                    )}
+                    </If>
                 </FormGroup>
                 <FormGroup label="Examples" fieldId="skill-examples">
                     <InputGroup>
@@ -200,9 +201,9 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                             </Button>
                         </InputGroupItem>
                     </InputGroup>
-                    {editingSkill.examples && editingSkill.examples.length > 0 && (
+                    <If condition={editingSkill.examples !== undefined && editingSkill.examples.length > 0}>
                         <LabelGroup className="examples-list" style={{ marginTop: "8px" }}>
-                            {editingSkill.examples.map((example, index) => (
+                            {(editingSkill.examples || []).map((example, index) => (
                                 <Label
                                     key={index}
                                     color="green"
@@ -212,7 +213,7 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                                 </Label>
                             ))}
                         </LabelGroup>
-                    )}
+                    </If>
                 </FormGroup>
                 <ActionGroup>
                     <Button variant="primary" onClick={handleSaveSkill}>
@@ -276,7 +277,9 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
 
     return (
         <div className="skill-editor">
-            {showTitle && <Title headingLevel="h4" className="section-title">Skills</Title>}
+            <If condition={showTitle}>
+                <Title headingLevel="h4" className="section-title">Skills</Title>
+            </If>
 
             {editingSkill ? (
                 renderSkillForm()

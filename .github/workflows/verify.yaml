@@ -29,6 +29,7 @@ jobs:
       lifecycle-ready: ${{ steps.decide.outputs.lifecycle-ready }}
       run-build: ${{ steps.decide.outputs.run-build }}
       run-unit-tests: ${{ steps.decide.outputs.run-unit-tests }}
+      run-scalpel-report: ${{ steps.decide.outputs.run-scalpel-report }}
       run-integration: ${{ steps.decide.outputs.run-integration }}
       run-extras: ${{ steps.decide.outputs.run-extras }}
       run-sdk: ${{ steps.decide.outputs.run-sdk }}
@@ -119,7 +120,7 @@ jobs:
               LABEL='${{ github.event.label.name }}'
               if [[ "$LABEL" != lifecycle/* ]]; then
                 echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
+                for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
                 echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -138,7 +139,7 @@ jobs:
             SENDER='${{ github.event.sender.login }}'
             if has_label "orchestrator/merge-rebase" && [ "$SENDER" = "github-actions[bot]" ]; then
               echo "lifecycle-ready=true" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
+              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
               echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -200,6 +201,9 @@ jobs:
           echo "lifecycle-ready=$run_smoke" >> "$GITHUB_OUTPUT"
           decide run-build       "$run_smoke" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
           decide run-unit-tests  "$run_smoke" "$IS_PUSH" "$JAVA" "$CI"
+          # Report only when java sources changed: .github-only PRs trip
+          # scalpel.disableTriggers and would produce an empty report.
+          decide run-scalpel-report "$run_smoke" "$JAVA"
           decide run-integration "$run_full"  "$IS_PUSH" "$INTEGRATION" "$CI"
           decide run-extras      "$run_full"  "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_full"  "$IS_PUSH" "$SDK" "$JAVA" "$CI"
@@ -223,6 +227,7 @@ jobs:
             "lifecycle-ready": "${{ steps.decide.outputs.lifecycle-ready }}",
             "run-build": "${{ steps.decide.outputs.run-build }}",
             "run-unit-tests": "${{ steps.decide.outputs.run-unit-tests }}",
+            "run-scalpel-report": "${{ steps.decide.outputs.run-scalpel-report }}",
             "run-integration": "${{ steps.decide.outputs.run-integration }}",
             "run-extras": "${{ steps.decide.outputs.run-extras }}",
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
@@ -299,26 +304,68 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
-      scalpel-enabled: 'false'
 
   # ============================================================================
-  # Unit Tests — Scalpel Shadow (evaluation mode)
+  # Scalpel Report (affected-module detection, data collection only)
   #
-  # Runs the same unit test shards with Scalpel ENABLED to compare results
-  # against the control group (unit-tests). Not in the Verification Gate —
-  # failures here don't block PRs. Remove this once the team is confident
-  # in Scalpel's accuracy and switches over.
-  # PR-only: on push-to-main Scalpel is a no-op (no GITHUB_BASE_REF), so
-  # running both groups would just double CI cost with identical results.
+  # Runs Scalpel in mode=report to record which modules it considers affected,
+  # without running any tests. Archives the JSON report as an artifact for
+  # offline analysis. ~2 minutes per run vs ~40 for the full shadow group.
+  # Not in the Verification Gate: a failure here never blocks a PR.
+  #
+  # Runs only when java sources changed (run-scalpel-report): on .github-only
+  # PRs Scalpel disables itself via scalpel.disableTriggers, so a report run
+  # would produce nothing. Mixed PRs (java + .github) still trip that trigger,
+  # which is why a missing report is a warning, not an error.
+  #
+  # See Discussion #8364 for the evaluation results that led to this change.
   # ============================================================================
-  unit-tests-scalpel:
-    name: Unit Tests (Scalpel)
-    needs: [decide, build]
-    if: needs.decide.outputs.run-unit-tests == 'true' && github.event_name == 'pull_request'
-    uses: ./.github/workflows/verify-unit-tests.yaml
-    with:
-      image-tag: ${{ github.sha }}
-      scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
+  scalpel-report:
+    name: Scalpel Report
+    needs: [decide]
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.decide.outputs.run-scalpel-report == 'true'
+      && needs.decide.outputs.scalpel-enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Full history: Scalpel diffs against the base branch (GITHUB_BASE_REF)
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Generate Scalpel report
+        run: |
+          # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
+          # reportFile restates the documented default so the upload path
+          # below cannot drift if upstream changes it.
+          # wagon flags: same transient-failure hardening as the other CI jobs.
+          ./mvnw validate --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=report \
+            -Dscalpel.reportFile=target/scalpel-report.json \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Upload Scalpel report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: target/scalpel-report.json
+          retention-days: 30
+          if-no-files-found: warn
 
   # ============================================================================
   # CLI Verification

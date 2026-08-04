@@ -233,6 +233,19 @@ public class AuthConfig {
         return this.basicAuthEnabled;
     }
 
+    public boolean isProxyHeaderAuthEnabled() {
+        return this.proxyHeaderAuthEnabled;
+    }
+
+    /**
+     * True when any authentication backend is enabled. Canonical check used by
+     * {@link AuthorizedInterceptor} and ownership-transfer authorization — keep those
+     * call sites on this method so a new backend cannot silently bypass authz.
+     */
+    public boolean isAuthenticationEnabled() {
+        return oidcAuthEnabled || basicAuthEnabled || proxyHeaderAuthEnabled || kubernetesAuthEnabled;
+    }
+
     public boolean isRbacEnabled() {
         return this.roleBasedAuthorizationEnabled;
     }

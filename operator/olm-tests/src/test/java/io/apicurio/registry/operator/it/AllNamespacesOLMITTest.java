@@ -6,11 +6,11 @@ import io.apicurio.registry.operator.utils.RetryTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Verifies the AllNamespaces install mode: with an OperatorGroup that has no targetNamespaces, the
@@ -29,9 +29,20 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * reconciles the operand Deployment there. It asserts the Deployment is created rather than waiting
  * for its pods to pull the app image and become ready: that readiness wait is the heaviest and most
  * flake-prone part and is not what this RBAC test needs to prove.
+ * <p>
+ * Disabled entirely under OLM v1 (class-level, so {@code OLMITBase}'s {@code @BeforeAll} never runs
+ * either): OperatorGroups, and the AllNamespaces install mode via an empty {@code targetNamespaces},
+ * are an OLM v0 concept; in v1 mode {@code setupOLMResources()} ignores
+ * {@link #getOperatorGroupResourcePath()} entirely. An earlier version skipped this with
+ * {@code assumeTrue} inside the test method instead, but that let {@code @BeforeAll} start the
+ * (asynchronous) v1 install, and the assumption then aborted before the CRD was registered;
+ * {@code @RetryTest} retried the aborted test, and {@code OLMITBase.afterEach()} 404'd trying to
+ * delete a CR of a type the cluster did not know about yet, which surfaced as a real test failure
+ * instead of a clean skip.
  */
 @QuarkusTest
 @Tag(OLM)
+@DisabledIfSystemProperty(named = OLMTestUtils.OLM_VERSION_PROP, matches = "1")
 public class AllNamespacesOLMITTest extends OLMITBase {
 
     @Override
@@ -41,11 +52,6 @@ public class AllNamespacesOLMITTest extends OLMITBase {
 
     @RetryTest
     void operandDeploysInAnotherNamespace() {
-        // OperatorGroups (and the AllNamespaces install mode via empty targetNamespaces) are an
-        // OLM v0 concept. In v1 mode setupOLMResources() ignores getOperatorGroupResourcePath(),
-        // so this test only applies to OLM v0.
-        assumeTrue(getOlmVersion() == 0, "AllNamespaces OperatorGroup test only applies to OLM v0");
-
         // Wait for the operator to be ready first.
         var projectVersion = ConfigProvider.getConfig().getValue(PROJECT_VERSION_PROP, String.class);
         await().ignoreExceptions().untilAsserted(() -> {

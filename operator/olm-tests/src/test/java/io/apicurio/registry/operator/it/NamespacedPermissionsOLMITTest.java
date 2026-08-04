@@ -4,11 +4,11 @@ import io.apicurio.registry.operator.utils.RetryTest;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Permission-boundary test for the OwnNamespace install mode: the default OperatorGroup targets the
@@ -28,18 +28,22 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Scope note: this covers OwnNamespace (target == install namespace). The true SingleNamespace case
  * (target != install namespace), where OLM copies the Role into a separate target namespace, is not
  * exercised here.
+ * <p>
+ * Disabled entirely under OLM v1 (class-level, so {@code OLMITBase}'s {@code @BeforeAll} never runs
+ * either): under v1 the installer ClusterRole grants workload access cluster-wide, so this negative
+ * assertion would not hold. An earlier version skipped this with {@code assumeTrue} inside the test
+ * method instead, but that let {@code @BeforeAll} start the (asynchronous) v1 install, and the
+ * assumption then aborted before the CRD was registered; {@code @RetryTest} retried the aborted test,
+ * and {@code OLMITBase.afterEach()} 404'd trying to delete a CR of a type the cluster did not know
+ * about yet, which surfaced as a real test failure instead of a clean skip.
  */
 @QuarkusTest
 @Tag(OLM)
+@DisabledIfSystemProperty(named = OLMTestUtils.OLM_VERSION_PROP, matches = "1")
 public class NamespacedPermissionsOLMITTest extends OLMITBase {
 
     @RetryTest
     void workloadPermissionsAreNamespaceScoped() {
-        // This asserts the OwnNamespace (OLM v0) boundary. In OLM v1 the operator is installed
-        // via the installer ClusterRole which grants workload access cluster-wide, so the
-        // SubjectAccessReview would be allowed and this negative assertion would not hold.
-        assumeTrue(getOlmVersion() == 0, "Namespace-scoped permission boundary test only applies to OLM v0");
-
         // Wait for the operator to be ready first.
         var projectVersion = ConfigProvider.getConfig().getValue(PROJECT_VERSION_PROP, String.class);
         await().ignoreExceptions().untilAsserted(() -> {

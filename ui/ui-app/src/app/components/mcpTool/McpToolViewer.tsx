@@ -111,7 +111,7 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                             </CardTitle>
                         </CardHeader>
                         <CardBody>
-                            <table className="pf-v5-c-table pf-m-compact pf-m-grid-md">
+                            <table className="pf-v5-c-table pf-m-compact pf-m-grid-md" aria-label="Input parameters">
                                 <thead>
                                     <tr>
                                         <th>Parameter</th>
@@ -157,7 +157,7 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                             </CardTitle>
                         </CardHeader>
                         <CardBody>
-                            <table className="pf-v5-c-table pf-m-compact pf-m-grid-md">
+                            <table className="pf-v5-c-table pf-m-compact pf-m-grid-md" aria-label="Output schema">
                                 <thead>
                                     <tr>
                                         <th>Field</th>

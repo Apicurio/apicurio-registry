@@ -25,13 +25,17 @@
         </file>
     </files>
     <fileSets>
-        <!-- Common scripts (acr wrapper) -->
+        <!-- Common scripts (acr wrapper). Excluded on Windows, where acr.cmd replaces the POSIX
+             launcher; cli.common.scripts.excludes is empty everywhere else. -->
         <fileSet>
             <directory>${project.basedir}/src/main/scripts/common</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>acr</include>
             </includes>
+            <excludes>
+                <exclude>${cli.common.scripts.excludes}</exclude>
+            </excludes>
             <fileMode>0755</fileMode>
         </fileSet>
         <!-- OS-specific scripts (acr_env) — selected by os.detected.name (linux or osx) -->

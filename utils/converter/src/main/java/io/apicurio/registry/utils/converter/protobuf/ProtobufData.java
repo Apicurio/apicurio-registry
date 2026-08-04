@@ -19,14 +19,48 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Converts between Kafka Connect values and generic Protobuf messages.
+ *
+ * <h3>Known fidelity limitations</h3>
+ * <ul>
+ *   <li><b>INT8/INT16</b>: Protobuf has no 8-bit or 16-bit integer type. These are encoded as
+ *       {@code int32} on the wire, but the original Connect type is preserved in the {@code json_name}
+ *       field option (prefixed {@code __int8:} or {@code __int16:}) so that the reverse path can
+ *       recover the narrower type.</li>
+ *   <li><b>Null scalars</b>: optional Connect fields use proto3 explicit presence
+ *       ({@code proto3optional}) so that a null value round-trips as null rather than the proto3
+ *       type default (0 / "" / false / empty bytes).</li>
+ *   <li><b>Nested collections</b>: array-of-array and map-of-array/map are supported by
+ *       recursively wrapping the inner collection in its own synthetic message.</li>
+ * </ul>
  */
 public class ProtobufData {
 
     private static final String DEFAULT_PACKAGE = "io.apicurio.registry.connect";
     private static final String DEFAULT_MESSAGE = "ConnectMessage";
+
+    /**
+     * JSON-name prefix used to carry the original Connect INT8 type across the proto3 round-trip.
+     * The field's actual name and wire encoding are unaffected; only {@code json_name} carries the hint.
+     */
+    static final String JSON_NAME_INT8_PREFIX = "__int8:";
+
+    /**
+     * JSON-name prefix used to carry the original Connect INT16 type across the proto3 round-trip.
+     */
+    static final String JSON_NAME_INT16_PREFIX = "__int16:";
+
+    /** Memoised Descriptors keyed by the top-level Connect Schema. */
+    private final ConcurrentHashMap<Schema, Descriptors.Descriptor> descriptorCache = new ConcurrentHashMap<>();
+
+    /**
+     * Raw Connect field-name → sanitised proto field-name, keyed by the top-level Connect Schema.
+     * Populated atomically together with the Descriptor cache entry.
+     */
+    private final ConcurrentHashMap<Schema, Map<String, String>> nameMapCache = new ConcurrentHashMap<>();
 
     public DynamicMessage fromConnectData(Schema schema, Object value) {
         Objects.requireNonNull(schema, "schema must not be null");
@@ -38,8 +72,10 @@ public class ProtobufData {
         }
 
         try {
-            Descriptors.Descriptor descriptor = descriptorFor(schema);
-            return toMessage(descriptor, schema, value);
+            ensureCached(schema);
+            Descriptors.Descriptor descriptor = descriptorCache.get(schema);
+            Map<String, String> nameMap = nameMapCache.get(schema);
+            return toMessage(descriptor, schema, value, nameMap);
         } catch (Descriptors.DescriptorValidationException e) {
             throw new IllegalArgumentException("Invalid Protobuf schema generated from Connect schema", e);
         }
@@ -61,6 +97,133 @@ public class ProtobufData {
         return builder.build();
     }
 
+    /**
+     * Ensures that both the descriptor and name map for {@code schema} are present in their
+     * respective caches. Uses {@code computeIfAbsent} so that concurrent calls for the same schema
+     * only build once.
+     */
+    private void ensureCached(Schema schema) throws Descriptors.DescriptorValidationException {
+        if (descriptorCache.containsKey(schema)) {
+            return;
+        }
+        DescriptorProtos.FileDescriptorProto.Builder file = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName(fileName(schema))
+                .setPackage(packageName(schema))
+                .setSyntax("proto3");
+        MessageBuilderContext context = new MessageBuilderContext(file);
+        String messageName = messageName(schema);
+        context.addMessage(messageName, schema);
+        Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(file.build(),
+                new Descriptors.FileDescriptor[0]);
+        Descriptors.Descriptor descriptor = fileDescriptor.findMessageTypeByName(messageName);
+        Map<String, String> nameMap = context.buildNameMap();
+
+        descriptorCache.putIfAbsent(schema, descriptor);
+        nameMapCache.putIfAbsent(schema, nameMap);
+    }
+
+    private DynamicMessage toMessage(Descriptors.Descriptor descriptor, Schema schema, Object value,
+            Map<String, String> nameMap) {
+        if (!(value instanceof Struct)) {
+            throw new IllegalArgumentException("Expected Struct for schema " + schema.name());
+        }
+        Struct struct = (Struct) value;
+        DynamicMessage.Builder builder = DynamicMessage.newBuilder(descriptor);
+        for (Field connectField : schema.fields()) {
+            Object fieldValue = struct.get(connectField);
+            if (fieldValue == null) {
+                continue;
+            }
+            String sanitisedName = nameMap.getOrDefault(connectField.name(), connectField.name());
+            Descriptors.FieldDescriptor protoField = descriptor.findFieldByName(sanitisedName);
+            if (protoField == null) {
+                throw new IllegalArgumentException(
+                        "Missing Protobuf field for Connect field: " + connectField.name()
+                                + " (looked up as sanitised name: " + sanitisedName + ")");
+            }
+            setField(builder, protoField, connectField.schema(), fieldValue, nameMap);
+        }
+        return builder.build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void setField(DynamicMessage.Builder builder, Descriptors.FieldDescriptor protoField,
+            Schema schema, Object value, Map<String, String> nameMap) {
+        if (protoField.isMapField()) {
+            Map<Object, Object> map = (Map<Object, Object>) value;
+            Descriptors.Descriptor entryDescriptor = protoField.getMessageType();
+            Descriptors.FieldDescriptor keyField = entryDescriptor.findFieldByName("key");
+            Descriptors.FieldDescriptor valueField = entryDescriptor.findFieldByName("value");
+            for (Map.Entry<Object, Object> entry : map.entrySet()) {
+                DynamicMessage mapEntry = DynamicMessage.newBuilder(entryDescriptor)
+                        .setField(keyField, toProtoValue(keyField, schema.keySchema(), entry.getKey(), nameMap))
+                        .setField(valueField, toProtoValue(valueField, schema.valueSchema(), entry.getValue(), nameMap))
+                        .build();
+                builder.addRepeatedField(protoField, mapEntry);
+            }
+        } else if (protoField.isRepeated()) {
+            for (Object item : (Collection<Object>) value) {
+                builder.addRepeatedField(protoField, toProtoValue(protoField, schema.valueSchema(), item, nameMap));
+            }
+        } else {
+            builder.setField(protoField, toProtoValue(protoField, schema, value, nameMap));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object toProtoValue(Descriptors.FieldDescriptor protoField, Schema schema, Object value,
+            Map<String, String> nameMap) {
+        if (value == null) {
+            return null;
+        }
+        switch (schema.type()) {
+            case INT8:
+            case INT16:
+            case INT32:
+                return ((Number) value).intValue();
+            case INT64:
+                return ((Number) value).longValue();
+            case FLOAT32:
+                return ((Number) value).floatValue();
+            case FLOAT64:
+                return ((Number) value).doubleValue();
+            case BOOLEAN:
+            case STRING:
+                return value;
+            case BYTES:
+                if (value instanceof byte[]) {
+                    return ByteString.copyFrom((byte[]) value);
+                }
+                if (value instanceof ByteBuffer) {
+                    return ByteString.copyFrom((ByteBuffer) value);
+                }
+                throw new IllegalArgumentException("Unsupported bytes value: " + value.getClass());
+            case STRUCT:
+                return toMessage(protoField.getMessageType(), schema, value, nameMap);
+            case ARRAY:
+                if (protoField.getType() == Descriptors.FieldDescriptor.Type.MESSAGE) {
+                    Descriptors.Descriptor wrapperDescriptor = protoField.getMessageType();
+                    Descriptors.FieldDescriptor itemsField = wrapperDescriptor.findFieldByName("items");
+                    DynamicMessage.Builder wrapperBuilder = DynamicMessage.newBuilder(wrapperDescriptor);
+                    if (itemsField != null) {
+                        for (Object item : (Collection<Object>) value) {
+                            wrapperBuilder.addRepeatedField(itemsField,
+                                    toProtoValue(itemsField, schema.valueSchema(), item, nameMap));
+                        }
+                    }
+                    return wrapperBuilder.build();
+                }
+                return value;
+            case MAP:
+                throw new IllegalArgumentException(
+                        "Nested map-in-collection (map whose element is also a map) is not supported. "
+                                + "Wrap the inner map in a struct field instead.");
+
+            default:
+                throw new IllegalArgumentException("Unsupported Connect schema type: " + schema.type());
+        }
+    }
+
     private Schema toConnectFieldSchema(Descriptors.FieldDescriptor field) {
         if (field.isMapField()) {
             Descriptors.Descriptor entry = field.getMessageType();
@@ -71,12 +234,22 @@ public class ProtobufData {
         if (field.isRepeated()) {
             return SchemaBuilder.array(toConnectScalarSchema(field)).optional().build();
         }
-        return optional(toConnectScalarSchema(field));
+        if (field.toProto().getProto3Optional()) {
+            return optional(toConnectScalarSchema(field));
+        }
+        return toConnectScalarSchema(field);
     }
 
     private Schema toConnectScalarSchema(Descriptors.FieldDescriptor field) {
         switch (field.getJavaType()) {
             case INT:
+                String jsonName = field.toProto().getJsonName();
+                if (jsonName.startsWith(JSON_NAME_INT8_PREFIX)) {
+                    return Schema.INT8_SCHEMA;
+                }
+                if (jsonName.startsWith(JSON_NAME_INT16_PREFIX)) {
+                    return Schema.INT16_SCHEMA;
+                }
                 return Schema.INT32_SCHEMA;
             case LONG:
                 return Schema.INT64_SCHEMA;
@@ -144,7 +317,15 @@ public class ProtobufData {
         Struct result = new Struct(schema);
         for (Field field : schema.fields()) {
             Descriptors.FieldDescriptor protoField = message.getDescriptorForType().findFieldByName(field.name());
-            Object value = protoField == null ? null : message.getField(protoField);
+            if (protoField == null) {
+                continue;
+            }
+            if (!protoField.isRepeated() && protoField.toProto().getProto3Optional()) {
+                if (!message.hasField(protoField)) {
+                    continue;
+                }
+            }
+            Object value = message.getField(protoField);
             if (value != null) {
                 result.put(field, toConnectFieldValue(field.schema(), protoField, value));
             }
@@ -177,6 +358,14 @@ public class ProtobufData {
 
     private Object toConnectScalarValue(Schema schema, Descriptors.FieldDescriptor field, Object value) {
         switch (field.getJavaType()) {
+            case INT:
+                if (schema.type() == Schema.Type.INT8) {
+                    return ((Number) value).byteValue();
+                }
+                if (schema.type() == Schema.Type.INT16) {
+                    return ((Number) value).shortValue();
+                }
+                return value;
             case BYTE_STRING:
                 return ((ByteString) value).toByteArray();
             case ENUM:
@@ -185,96 +374,6 @@ public class ProtobufData {
                 return toConnectValue(schema, (Message) value);
             default:
                 return value;
-        }
-    }
-
-    private Descriptors.Descriptor descriptorFor(Schema schema) throws Descriptors.DescriptorValidationException {
-        DescriptorProtos.FileDescriptorProto.Builder file = DescriptorProtos.FileDescriptorProto.newBuilder()
-                .setName(fileName(schema))
-                .setPackage(packageName(schema))
-                .setSyntax("proto3");
-        MessageBuilderContext context = new MessageBuilderContext(file);
-        String messageName = messageName(schema);
-        context.addMessage(messageName, schema);
-        Descriptors.FileDescriptor descriptor = Descriptors.FileDescriptor.buildFrom(file.build(),
-                new Descriptors.FileDescriptor[0]);
-        return descriptor.findMessageTypeByName(messageName);
-    }
-
-    private DynamicMessage toMessage(Descriptors.Descriptor descriptor, Schema schema, Object value) {
-        if (!(value instanceof Struct)) {
-            throw new IllegalArgumentException("Expected Struct for schema " + schema.name());
-        }
-        Struct struct = (Struct) value;
-        DynamicMessage.Builder builder = DynamicMessage.newBuilder(descriptor);
-        for (Field connectField : schema.fields()) {
-            Object fieldValue = struct.get(connectField);
-            if (fieldValue == null) {
-                continue;
-            }
-            Descriptors.FieldDescriptor protoField = descriptor.findFieldByName(connectField.name());
-            if (protoField == null) {
-                throw new IllegalArgumentException("Missing Protobuf field for Connect field: " + connectField.name());
-            }
-            setField(builder, protoField, connectField.schema(), fieldValue);
-        }
-        return builder.build();
-    }
-
-    @SuppressWarnings("unchecked")
-    private void setField(DynamicMessage.Builder builder, Descriptors.FieldDescriptor protoField,
-            Schema schema, Object value) {
-        if (protoField.isMapField()) {
-            Map<Object, Object> map = (Map<Object, Object>) value;
-            Descriptors.Descriptor entryDescriptor = protoField.getMessageType();
-            Descriptors.FieldDescriptor keyField = entryDescriptor.findFieldByName("key");
-            Descriptors.FieldDescriptor valueField = entryDescriptor.findFieldByName("value");
-            for (Map.Entry<Object, Object> entry : map.entrySet()) {
-                DynamicMessage mapEntry = DynamicMessage.newBuilder(entryDescriptor)
-                        .setField(keyField, toProtoValue(keyField, schema.keySchema(), entry.getKey()))
-                        .setField(valueField, toProtoValue(valueField, schema.valueSchema(), entry.getValue()))
-                        .build();
-                builder.addRepeatedField(protoField, mapEntry);
-            }
-        } else if (protoField.isRepeated()) {
-            for (Object item : (Collection<Object>) value) {
-                builder.addRepeatedField(protoField, toProtoValue(protoField, schema.valueSchema(), item));
-            }
-        } else {
-            builder.setField(protoField, toProtoValue(protoField, schema, value));
-        }
-    }
-
-    private Object toProtoValue(Descriptors.FieldDescriptor protoField, Schema schema, Object value) {
-        if (value == null) {
-            return null;
-        }
-        switch (schema.type()) {
-            case INT8:
-            case INT16:
-            case INT32:
-                return ((Number) value).intValue();
-            case INT64:
-                return ((Number) value).longValue();
-            case FLOAT32:
-                return ((Number) value).floatValue();
-            case FLOAT64:
-                return ((Number) value).doubleValue();
-            case BOOLEAN:
-            case STRING:
-                return value;
-            case BYTES:
-                if (value instanceof byte[]) {
-                    return ByteString.copyFrom((byte[]) value);
-                }
-                if (value instanceof ByteBuffer) {
-                    return ByteString.copyFrom((ByteBuffer) value);
-                }
-                throw new IllegalArgumentException("Unsupported bytes value: " + value.getClass());
-            case STRUCT:
-                return toMessage(protoField.getMessageType(), schema, value);
-            default:
-                throw new IllegalArgumentException("Unsupported Connect schema type: " + schema.type());
         }
     }
 
@@ -337,8 +436,24 @@ public class ProtobufData {
         private final DescriptorProtos.FileDescriptorProto.Builder file;
         private final Map<Schema, String> messageNames = new LinkedHashMap<>();
 
+        /**
+         * Maps raw Connect field name → sanitised proto field name, collected across all messages
+         * added to this context. Only the flat raw-name space within the top-level message matters
+         * for the lookup in {@link ProtobufData#toMessage}; nested messages carry their own maps.
+         * For simplicity we merge all mappings into a single map (shadowing is acceptable since
+         * Connect field names within a single message are unique).
+         */
+        private final Map<String, String> rawToSanitised = new LinkedHashMap<>();
+
         private MessageBuilderContext(DescriptorProtos.FileDescriptorProto.Builder file) {
             this.file = file;
+        }
+
+        /**
+         * Returns an unmodifiable snapshot of the raw→sanitised name map for caching.
+         */
+        Map<String, String> buildNameMap() {
+            return Map.copyOf(rawToSanitised);
         }
 
         private String addMessage(String preferredName, Schema schema) {
@@ -360,8 +475,11 @@ public class ProtobufData {
         }
 
         private DescriptorProtos.FieldDescriptorProto toField(String name, Schema schema, int number) {
+            String sanitisedName = sanitizeIdentifier(name, false);
+            rawToSanitised.put(name, sanitisedName);
+
             DescriptorProtos.FieldDescriptorProto.Builder field = DescriptorProtos.FieldDescriptorProto.newBuilder()
-                    .setName(sanitizeIdentifier(name, false))
+                    .setName(sanitisedName)
                     .setNumber(number);
 
             if (schema.type() == Schema.Type.ARRAY) {
@@ -374,6 +492,9 @@ public class ProtobufData {
                         .setTypeName("." + packageName() + "." + entryName);
             } else {
                 field.setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL);
+                if (schema.isOptional()) {
+                    field.setProto3Optional(true);
+                }
                 applyFieldType(field, schema, sanitizeTypeName(name));
             }
             return field.build();
@@ -383,7 +504,13 @@ public class ProtobufData {
                 String preferredMessageName) {
             switch (schema.type()) {
                 case INT8:
+                    field.setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32)
+                            .setJsonName(JSON_NAME_INT8_PREFIX + field.getName());
+                    break;
                 case INT16:
+                    field.setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32)
+                            .setJsonName(JSON_NAME_INT16_PREFIX + field.getName());
+                    break;
                 case INT32:
                     field.setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32);
                     break;
@@ -409,9 +536,40 @@ public class ProtobufData {
                     field.setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE)
                             .setTypeName("." + packageName() + "." + addMessage(preferredMessageName, schema));
                     break;
+                case ARRAY:
+                    String wrapperName = addWrapperMessage(preferredMessageName + "Wrapper",
+                            schema.valueSchema());
+                    field.setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE)
+                            .setTypeName("." + packageName() + "." + wrapperName);
+                    break;
+                case MAP:
+                    String entryName = addMapEntry(preferredMessageName, schema);
+                    field.setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE)
+                            .setTypeName("." + packageName() + "." + entryName);
+                    break;
                 default:
                     throw new IllegalArgumentException("Unsupported Connect schema type: " + schema.type());
             }
+        }
+
+        /**
+         * Creates a synthetic wrapper message with a single repeated {@code items} field to
+         * represent a nested collection element whose type is itself a collection.
+         */
+        private String addWrapperMessage(String preferredName, Schema elementSchema) {
+            String wrapperName = uniqueMessageName(preferredName);
+            DescriptorProtos.DescriptorProto.Builder wrapper = DescriptorProtos.DescriptorProto.newBuilder()
+                    .setName(wrapperName);
+            DescriptorProtos.FieldDescriptorProto.Builder itemsField =
+                    DescriptorProtos.FieldDescriptorProto.newBuilder()
+                            .setName("items")
+                            .setNumber(1)
+                            .setLabel(DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED);
+            applyFieldType(itemsField, elementSchema, wrapperName + "Element");
+            wrapper.addField(itemsField);
+            file.addMessageType(wrapper);
+            messageNames.put(elementSchema, wrapperName);
+            return wrapperName;
         }
 
         private String addMapEntry(String fieldName, Schema schema) {

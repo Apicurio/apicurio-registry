@@ -261,16 +261,15 @@ export function createEndpoint(baseHref: string, path: string, params?: any, que
     if (queryParams) {
         let first: boolean = true;
         for (const key in queryParams) {
-            if (queryParams[key]) {
-                const value: string = encodeURIComponent(queryParams[key]);
+            const rawValue: any = queryParams[key];
+            if (rawValue !== null && rawValue !== undefined && rawValue !== "") {
+                const value: string = encodeURIComponent(rawValue);
                 if (first) {
                     rval = rval + "?" + key;
                 } else {
                     rval = rval + "&" + key;
                 }
-                if (value !== null && value !== undefined) {
-                    rval = rval + "=" + value;
-                }
+                rval = rval + "=" + value;
                 first = false;
             }
         }

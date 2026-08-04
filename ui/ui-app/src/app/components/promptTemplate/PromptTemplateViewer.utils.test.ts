@@ -67,6 +67,29 @@ describe("tokenizeTemplate", () => {
         ]);
     });
 
+    it("renders single-bang comments as plain text", () => {
+        expect(tokenizeTemplate("{{! hidden }}")).toEqual([
+            { text: "{{! hidden }}", kind: "plain" }
+        ]);
+    });
+
+    it("keeps tokens adjacent to single-bang comments intact", () => {
+        expect(tokenizeTemplate("{{! c }}{{name}}")).toEqual([
+            { text: "{{! c }}", kind: "plain" },
+            { text: "{{name}}", kind: "variable" }
+        ]);
+    });
+
+    it("classifies the inverse shorthand {{^}} as a block", () => {
+        expect(tokenizeTemplate("{{#if a}}A{{^}}B{{/if}}").map(t => [t.text, t.kind])).toEqual([
+            ["{{#if a}}", "block"],
+            ["A", "plain"],
+            ["{{^}}", "block"],
+            ["B", "plain"],
+            ["{{/if}}", "block"]
+        ]);
+    });
+
     it("keeps tokens adjacent to comments intact", () => {
         expect(tokenizeTemplate("{{!-- c --}}{{name}}")).toEqual([
             { text: "{{!-- c --}}", kind: "plain" },

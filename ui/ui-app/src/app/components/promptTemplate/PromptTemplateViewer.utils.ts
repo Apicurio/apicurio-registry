@@ -7,12 +7,12 @@ export interface TemplateToken {
     kind: TemplateTokenKind;
 }
 
-const HANDLEBARS_TAG = /\{\{!--[\s\S]*?--\}\}|\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g;
+const HANDLEBARS_TAG = /\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}|\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g;
 
 const classifyTag = (tag: string): "variable" | "block" => {
     const inner = tag.replace(/^\{+|\}+$/g, "").trim();
     const head = inner.split(/\s+/, 1)[0];
-    if (head.startsWith("#") || head.startsWith("/") || head === "else") {
+    if (head.startsWith("#") || head.startsWith("/") || head.startsWith("^") || head === "else") {
         return "block";
     }
     return "variable";
@@ -27,7 +27,7 @@ export const tokenizeTemplate = (template: string): TemplateToken[] => {
             tokens.push({ text: template.substring(lastIndex, match.index), kind: "plain" });
         }
         const tag = match[0];
-        const kind = tag.startsWith("{{!--") ? "plain" : classifyTag(tag);
+        const kind = tag.startsWith("{{!") ? "plain" : classifyTag(tag);
         tokens.push({ text: tag, kind });
         lastIndex = match.index + match[0].length;
     }

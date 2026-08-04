@@ -232,13 +232,13 @@
     <netty.version>4.1.135.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
-    <debezium.version>3.6.0.Final</debezium.version>
+    <debezium.version>3.6.1.Final</debezium.version>
     <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.26.0</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
-    <woodstox-core.version>7.2.1</woodstox-core.version>
+    <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>

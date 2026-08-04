@@ -49,7 +49,7 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
                 <ToolbarContent>
                     <ToolbarGroup align={{ default: "alignEnd" }}>
                         <ToolbarItem>
-                            <Button icon={<QuestionCircleIcon style={{ fontSize: "16px" }} />} variant="plain" onClick={() => setIsAboutModalOpen(!isAboutModalOpen)} />
+                            <Button icon={<QuestionCircleIcon style={{ fontSize: "16px" }} />} variant="plain" aria-label="About" onClick={() => setIsAboutModalOpen(!isAboutModalOpen)} />
                         </ToolbarItem>
                         <ToolbarItem>
                             <IfAuth enabled={true}>

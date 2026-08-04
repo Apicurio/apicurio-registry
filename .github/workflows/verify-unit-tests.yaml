@@ -10,10 +10,6 @@ on:
         type: string
         required: true
         description: 'Build artifact identifier (commit SHA)'
-      scalpel-enabled:
-        type: string
-        default: 'false'
-        description: 'Set to true to enable Scalpel affected-module detection'
 
 permissions:
   contents: read
@@ -58,11 +54,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history only needed when Scalpel is enabled (git diff against base branch)
-          fetch-depth: ${{ inputs.scalpel-enabled == 'true' && 0 || 1 }}
+          fetch-depth: 1
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -93,11 +88,10 @@ jobs:
           # Each shard compiles the same modules but runs a different subset of tests via -Dtest= filters.
           # Pre-built artifacts from the Build job are downloaded but Maven still needs to resolve/compile.
           # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
-          # -Dsurefire.rerunFailingTestsCount=2: automatically retry flaky tests up to 2 times
+          # -Dsurefire.rerunFailingTestsCount=1: automatically retry flaky tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
             --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
-            ${{ inputs.scalpel-enabled == 'true' && '-Dscalpel.enabled=true' || '' }} \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
@@ -107,7 +101,7 @@ jobs:
             -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5 \
-            -Dsurefire.rerunFailingTestsCount=2
+            -Dsurefire.rerunFailingTestsCount=1
 
       - name: Check shard timing
         if: always()
@@ -122,3 +116,16 @@ jobs:
           else
             echo "Shard $SHARD_NAME completed in ${elapsed}s (threshold: ${threshold}s)"
           fi
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-${{ matrix.shard.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-${{ matrix.shard.name }}
+          path: flaky-tests-${{ matrix.shard.name }}.json
+          retention-days: 1

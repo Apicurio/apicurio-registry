@@ -174,6 +174,9 @@ public class SqlSearchRepository {
                         // Structured content filter, e.g. "agent_card:skill:translation". Elements are
                         // stored lowercased in artifact_structured_content as elementType
                         // ("<artifactType>:<kind>") + elementValue ("<name>").
+                        // Negation (NOT EXISTS) is only produced by the agent discovery endpoints, which
+                        // always pair it with an artifactType filter. Without that pairing a negated
+                        // filter would also match artifacts that have no structured rows at all.
                         String structureValue = asLowerCase(filter.getStringValue());
                         if (structureValue == null || structureValue.isBlank()) {
                             where.append("1 = 1");

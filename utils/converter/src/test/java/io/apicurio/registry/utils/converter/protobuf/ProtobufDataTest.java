@@ -161,8 +161,18 @@ public class ProtobufDataTest {
         assertNotNull(message, "fromConnectData must not throw for special-char field names");
 
         SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
-        assertNotNull(schemaAndValue.value(),
-                "toConnectData must produce a value for special-char field schemas");
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertNotNull(schemaAndValue.schema().field("user-id"),
+                "decoded schema must contain field 'user-id', not 'user_id'");
+        assertNotNull(schemaAndValue.schema().field("first.name"),
+                "decoded schema must contain field 'first.name', not 'first_name'");
+        assertNotNull(schemaAndValue.schema().field("score value"),
+                "decoded schema must contain field 'score value', not 'score_value'");
+
+        assertEquals("u42", result.get("user-id"));
+        assertEquals("Ada", result.get("first.name"));
+        assertEquals(100, result.get("score value"));
     }
 
     @Test
@@ -237,9 +247,7 @@ public class ProtobufDataTest {
         Struct container = new Struct(schema).put("items", List.of(item1, item2));
 
         DynamicMessage message = protobufData.fromConnectData(schema, container);
-        assertNotNull(message, "fromConnectData must not throw for array-of-struct");
         SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
-        assertNotNull(schemaAndValue.value(), "toConnectData must produce a value for array-of-struct");
         Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
         List<?> resultItems = result.getArray("items");
         assertEquals(2, resultItems.size());
@@ -260,13 +268,12 @@ public class ProtobufDataTest {
         Struct container = new Struct(schema).put("scores", Map.of("ada", item));
 
         DynamicMessage message = protobufData.fromConnectData(schema, container);
-        assertNotNull(message, "fromConnectData must not throw for map-of-struct");
         SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
         assertNotNull(schemaAndValue.value(), "toConnectData must produce a value for map-of-struct");
     }
 
     @Test
-    public void testNestedArrayInMapValueRoundTrips() {
+    public void testMapOfArrayFullRoundTrip() {
         ProtobufData protobufData = new ProtobufData();
         Schema schema = SchemaBuilder.struct()
                 .name("io.apicurio.registry.test.TagMap")
@@ -276,7 +283,77 @@ public class ProtobufDataTest {
                 .build();
         Struct struct = new Struct(schema)
                 .put("tagsByCategory", Map.of("lang", List.of("java", "python")));
+
         DynamicMessage message = protobufData.fromConnectData(schema, struct);
         assertNotNull(message, "fromConnectData must not throw for map-of-array");
+
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        Schema tagsByCategory = schemaAndValue.schema().field("tagsByCategory").schema();
+        assertEquals(Schema.Type.MAP, tagsByCategory.type(),
+                "tagsByCategory must decode as MAP, not STRUCT");
+        assertEquals(Schema.Type.ARRAY, tagsByCategory.valueSchema().type(),
+                "map value must decode as ARRAY (wrapper transparently unwrapped)");
+
+        Map<?, ?> decoded = result.getMap("tagsByCategory");
+        assertEquals(1, decoded.size());
+        assertEquals(List.of("java", "python"), decoded.get("lang"),
+                "map-of-array values must round-trip as List, not struct{items:[...]}");
+    }
+
+    @Test
+    public void testArrayOfArrayFullRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.NestedList")
+                .field("matrix", SchemaBuilder.array(
+                        SchemaBuilder.array(Schema.STRING_SCHEMA).build()).build())
+                .build();
+        Struct struct = new Struct(schema)
+                .put("matrix", List.of(List.of("a", "b"), List.of("c")));
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        Schema matrixSchema = schemaAndValue.schema().field("matrix").schema();
+        assertEquals(Schema.Type.ARRAY, matrixSchema.type(), "matrix must be ARRAY");
+        assertEquals(Schema.Type.ARRAY, matrixSchema.valueSchema().type(),
+                "matrix element must be ARRAY (wrapper transparently unwrapped)");
+
+        List<?> decoded = result.getArray("matrix");
+        assertEquals(2, decoded.size());
+        assertEquals(List.of("a", "b"), decoded.get(0));
+        assertEquals(List.of("c"), decoded.get(1));
+    }
+
+    @Test
+    public void testStructWithArrayFieldAndSiblingStructDoesNotCollide() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema innerSchema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.Inner")
+                .field("val", Schema.STRING_SCHEMA)
+                .build();
+        Schema outerSchema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.Outer")
+                .field("matrix", SchemaBuilder.array(
+                        SchemaBuilder.array(Schema.STRING_SCHEMA).build()).build())
+                .field("inner", innerSchema)
+                .build();
+
+        Struct inner = new Struct(innerSchema).put("val", "hello");
+        Struct outer = new Struct(outerSchema)
+                .put("matrix", List.of(List.of("x")))
+                .put("inner", inner);
+
+        DynamicMessage message = protobufData.fromConnectData(outerSchema, outer);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        Schema innerFieldSchema = schemaAndValue.schema().field("inner").schema();
+        assertEquals(Schema.Type.STRUCT, innerFieldSchema.type(),
+                "'inner' field must decode as STRUCT, not as wrapper message");
+        assertEquals("hello", result.getStruct("inner").getString("val"));
     }
 }

@@ -94,7 +94,12 @@ public class ProtobufConverterTest {
                 .put("event.type", "click");
 
         SchemaAndValue result = protobufData.toConnectData(protobufData.fromConnectData(schema, struct));
-        assertInstanceOf(Struct.class, result.value(), "round-trip must produce a Struct");
+        Struct resultStruct = assertInstanceOf(Struct.class, result.value(), "round-trip must produce a Struct");
+
+        assertEquals("u99", resultStruct.get("user-id"),
+                "'user-id' field must be accessible by its original name after round-trip");
+        assertEquals("click", resultStruct.get("event.type"),
+                "'event.type' field must be accessible by its original name after round-trip");
     }
 
     @Test
@@ -151,7 +156,7 @@ public class ProtobufConverterTest {
     }
 
     @Test
-    public void testNestedCollectionMapOfArrayDoesNotThrow() {
+    public void testNestedCollectionMapOfArrayFullRoundTrip() {
         ProtobufData protobufData = new ProtobufData();
         Schema schema = SchemaBuilder.struct()
                 .name("io.apicurio.registry.test.converter.NestedColl")
@@ -162,9 +167,17 @@ public class ProtobufConverterTest {
         Struct struct = new Struct(schema)
                 .put("tagsByGroup", Map.of("backend", List.of("java", "go")));
 
-        com.google.protobuf.DynamicMessage message = protobufData.fromConnectData(schema, struct);
-        assertInstanceOf(com.google.protobuf.DynamicMessage.class, message,
-                "map-of-array encoding must produce a DynamicMessage without throwing");
+        SchemaAndValue result = protobufData.toConnectData(protobufData.fromConnectData(schema, struct));
+        Struct resultStruct = assertInstanceOf(Struct.class, result.value());
+
+        Schema tagsByGroup = result.schema().field("tagsByGroup").schema();
+        assertEquals(Schema.Type.MAP, tagsByGroup.type(), "tagsByGroup must decode as MAP");
+        assertEquals(Schema.Type.ARRAY, tagsByGroup.valueSchema().type(),
+                "map value must decode as ARRAY after wrapper unwrap");
+
+        Map<?, ?> decoded = resultStruct.getMap("tagsByGroup");
+        assertEquals(List.of("java", "go"), decoded.get("backend"),
+                "map-of-array values must be a List, not struct{items:[...]}");
     }
 
 }

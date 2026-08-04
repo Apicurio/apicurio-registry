@@ -47,34 +47,34 @@ public class ContentAccepterNullContentTypeTest {
     }
 
     @Test
-    public void testXmlContentAccepter_nullContentType_noNpe() {
+    public void testXmlContentAccepter_nullContentType() {
         TypedContent content = TypedContent.create(ContentHandle.create("<root/>"), null);
         XmlContentAccepter accepter = new XmlContentAccepter();
 
-        Assertions.assertDoesNotThrow(() -> accepter.acceptsContent(content, Collections.emptyMap()));
+        Assertions.assertFalse(accepter.acceptsContent(content, Collections.emptyMap()));
     }
 
     @Test
-    public void testXsdContentAccepter_nullContentType_noNpe() {
+    public void testXsdContentAccepter_nullContentType() {
         TypedContent content = TypedContent.create(ContentHandle.create("<schema xmlns=\"http://www.w3.org/2001/XMLSchema\"/>"), null);
         XsdContentAccepter accepter = new XsdContentAccepter();
 
-        Assertions.assertDoesNotThrow(() -> accepter.acceptsContent(content, Collections.emptyMap()));
+        Assertions.assertFalse(accepter.acceptsContent(content, Collections.emptyMap()));
     }
 
     @Test
-    public void testWsdlContentAccepter_nullContentType_noNpe() {
+    public void testWsdlContentAccepter_nullContentType() {
         TypedContent content = TypedContent.create(ContentHandle.create("<definitions xmlns=\"http://schemas.xmlsoap.org/wsdl/\"/>"), null);
         WsdlContentAccepter accepter = new WsdlContentAccepter();
 
-        Assertions.assertDoesNotThrow(() -> accepter.acceptsContent(content, Collections.emptyMap()));
+        Assertions.assertFalse(accepter.acceptsContent(content, Collections.emptyMap()));
     }
 
     @Test
-    public void testGraphQLContentAccepter_nullContentType_noNpe() {
+    public void testGraphQLContentAccepter_nullContentType() {
         TypedContent content = TypedContent.create(ContentHandle.create("type Query { hello: String }"), null);
         GraphQLContentAccepter accepter = new GraphQLContentAccepter();
 
-        Assertions.assertDoesNotThrow(() -> accepter.acceptsContent(content, Collections.emptyMap()));
+        Assertions.assertFalse(accepter.acceptsContent(content, Collections.emptyMap()));
     }
 }

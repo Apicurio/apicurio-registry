@@ -14,11 +14,11 @@ public class AsyncApiContentAccepter implements ContentAccepter {
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             String contentType = content.getContentType();
+            String lc = contentType != null ? contentType.toLowerCase(Locale.ROOT) : null;
             JsonNode tree = null;
             // If the content is YAML, then convert it to JSON first (the data-models library only accepts
             // JSON).
-            if (contentType != null && (contentType.toLowerCase(Locale.ROOT).contains("yml")
-                    || contentType.toLowerCase(Locale.ROOT).contains("yaml"))) {
+            if (lc != null && (lc.contains("yml") || lc.contains("yaml"))) {
                 tree = ContentTypeUtil.parseYaml(content.getContent());
             } else {
                 tree = ContentTypeUtil.parseJson(content.getContent());

@@ -122,6 +122,7 @@ jobs:
         working-directory: typescript-sdk
         run: |
           npm ci
+          npm run generate-sources
           npm run build
 
       - name: Test

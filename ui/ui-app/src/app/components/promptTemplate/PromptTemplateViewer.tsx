@@ -156,6 +156,14 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                             <DescriptionListDescription>{meta.createdAt}</DescriptionListDescription>
                         </DescriptionListGroup>
                     )}
+                    {meta?.estimatedTokens && (
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Estimated Tokens</DescriptionListTerm>
+                            <DescriptionListDescription>
+                                {meta.estimatedTokens.input ?? 0} (+{meta.estimatedTokens.variableOverhead ?? 0} overhead)
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                    )}
                 </DescriptionList>
 
                 {promptTemplate.template && (

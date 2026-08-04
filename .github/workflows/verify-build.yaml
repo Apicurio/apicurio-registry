@@ -118,6 +118,12 @@ jobs:
         working-directory: ui
         run: npm run lint
 
+      - name: Build TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm ci
+          npm run build
+
       - name: Test
         working-directory: ui
         run: npm run test

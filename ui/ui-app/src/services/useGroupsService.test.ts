@@ -15,16 +15,6 @@ vi.mock("@apicurio/common-ui-components", () => ({
     useAuth: () => ({})
 }));
 
-vi.mock("@sdk/lib/sdk", () => ({
-    RegistryClientFactory: { createRegistryClient: vi.fn() }
-}));
-vi.mock("@sdk/lib/generated-client/apicurioRegistryClient.ts", () => ({
-    ApicurioRegistryClient: class {}
-}));
-vi.mock("@sdk/lib/generated-client/models", () => ({
-    Labels: {}
-}));
-
 vi.mock("@utils/rest.utils.ts", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@utils/rest.utils.ts")>();
     return {

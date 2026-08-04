@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Scalpel: affected-module detection for CI. Disabled by default
-     in maven.config; the scalpel-report CI job opts in via -Dscalpel.enabled=true. -->
+<!-- Scalpel: affected-module detection for ad-hoc local analysis. Disabled by
+     default in maven.config; pass -Dscalpel.enabled=true to opt in. -->
 <extensions>
     <extension>
         <groupId>eu.maveniverse.maven.scalpel</groupId>

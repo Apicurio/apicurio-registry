@@ -25,6 +25,11 @@
 
     <dependency>
       <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-common</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-common</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>

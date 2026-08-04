@@ -24,6 +24,11 @@
     </dependency>
 
     <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.nats</groupId>
       <artifactId>jnats</artifactId>
     </dependency>

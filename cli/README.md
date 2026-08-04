@@ -19,15 +19,22 @@ the CLI. Windows on ARM and PowerShell tab-completions are not supported yet.
 
 Prerequisites:
 
- - Linux (x86_64) with bash, or macOS (Apple Silicon) with zsh
+ - Linux (x86_64) with bash, macOS (Apple Silicon) with zsh, or Windows (x86_64) with cmd or PowerShell
 
 To install the Apicurio Registry CLI:
 
 1. Download the ZIP for your platform from [GitHub Releases](https://github.com/Apicurio/apicurio-registry/releases) or [Maven Central](https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli).
 2. Unzip the downloaded file to a location of your choice.
-3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
+3. You can run the CLI directly using `./acr` (`acr.cmd` on Windows), or install it for the local user first (recommended):
 
    1. Run `./acr install` to install the CLI. This will install the CLI files to default locations (`$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`), update the `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configure shell completions. Global installation is not supported yet.
+
+   On Windows, run `acr.cmd install` instead. It installs to `%USERPROFILE%\bin` and
+   `%USERPROFILE%\.apicurio\apicurio-registry-cli`. Since Windows has no shell configuration file
+   to source, the installer instead persists the `ACR_HOME` user environment variable and prepends
+   the `bin` directory to your user `Path`. **Open a new terminal** for those changes to take
+   effect; afterwards `acr` resolves to `acr.cmd` through `PATHEXT`. Shell completions are
+   installed for bash and zsh only.
 4. If you do not have an instance of Apicurio Registry running, you use Docker:
 
    ```bash

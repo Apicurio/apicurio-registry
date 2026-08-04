@@ -11,7 +11,7 @@ You can use the {registry} command-line interface (CLI) to manage {registry} con
 ifndef::service-registry-downstream[]
 [NOTE]
 ====
-The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet. The CLI currently implements only group management commands. Future releases will include additional commands.
+The CLI is currently in *dev-preview* status. The CLI supports Linux (bash), macOS (zsh), and Windows (cmd or PowerShell). The CLI currently implements only group management commands. Future releases will include additional commands.
 ====
 
 [IMPORTANT]
@@ -31,7 +31,7 @@ endif::[]
 
 * You have installed {registry}.
 * You have Java 11 or higher installed.
-* You have access to a bash shell (Linux) or zsh shell (macOS).
+* You have access to a bash shell (Linux), a zsh shell (macOS), or a command prompt or PowerShell (Windows).
 
 [id="installing-registry-cli_{context}"]
 == Installing the {registry} CLI
@@ -43,7 +43,7 @@ You can install the {registry} CLI to interact with {registry} from the command 
 
 .Prerequisites
 * You have Java 11 or higher installed on your system.
-* You have access to a bash shell (Linux) or zsh shell (macOS).
+* You have access to a bash shell (Linux), a zsh shell (macOS), or a command prompt or PowerShell (Windows).
 
 .Procedure
 ifndef::service-registry-downstream[]
@@ -60,14 +60,24 @@ $ unzip apicurio-registry-cli-VERSION.zip -d ~/apicurio-cli
 ----
 . Install the CLI for the current user:
 +
+On Linux and macOS:
++
 [source,bash]
 ----
 $ cd ~/apicurio-cli
 $ ./acr install
 ----
 +
-This command installs the CLI executable to `$HOME/bin` and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli`. The command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions.
-. Reload your shell configuration:
+On Windows:
++
+[source,subs="+quotes"]
+----
+> cd %USERPROFILE%\apicurio-cli
+> acr.cmd install
+----
++
+This command installs the CLI executable to `$HOME/bin` (`%USERPROFILE%\bin` on Windows) and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli` (`%USERPROFILE%\.apicurio\apicurio-registry-cli` on Windows). On Linux and macOS, the command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions. On Windows, the command sets the `ACR_HOME` user environment variable and adds the `bin` directory to your user `Path`.
+. Apply the environment changes:
 +
 On Linux:
 +
@@ -82,6 +92,8 @@ On macOS:
 ----
 $ source ~/.zshrc
 ----
++
+On Windows, open a new command prompt or PowerShell window. Shell completions are available for bash and zsh only.
 . Verify the installation:
 +
 [source,bash]

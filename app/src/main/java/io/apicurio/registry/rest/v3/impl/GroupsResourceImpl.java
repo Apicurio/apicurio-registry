@@ -1979,11 +1979,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("variables", data.getVariables());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         // Verify the artifact exists and is of type PROMPT_TEMPLATE
         ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        // A disabled version's content is withdrawn from every other content-serving read path
+        // (see getArtifactVersionContent); rendering must honor that withdrawal too.
+        if (VersionState.DISABLED.equals(versionMetaData.getState())) {
+            throw new VersionNotFoundException(groupId, artifactId, versionExpression);
+        }
 
         String artifactType = versionMetaData.getArtifactType();
         if (!"PROMPT_TEMPLATE".equals(artifactType)) {

@@ -90,8 +90,6 @@ jobs:
           # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
           # -Dsurefire.rerunFailingTestsCount=1: automatically retry flaky tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-          # Keep upstream test compilation and test-JAR packaging enabled: downstream modules
-          # can depend on an upstream module's attached test JAR.
           ./mvnw verify \
             --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod ${{ matrix.shard.modules }} \

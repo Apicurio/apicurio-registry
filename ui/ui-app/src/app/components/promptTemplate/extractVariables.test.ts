@@ -59,4 +59,35 @@ describe("extractVariables", () => {
         expect(extractVariables("{{z}} {{a}} {{m}} {{z}}"))
             .toEqual(["z", "a", "m"]);
     });
+
+    // --- Tests for keyword exclusion (else, this, lookup, log) ---
+    // Addresses paoloantinori's review on the parallel PR:
+    // {{else}} and {{this}} leak through as detected variables.
+
+    it("excludes {{else}} from an if/else block", () => {
+        // Note: 'formal' is a block argument inside {{#if formal}}, not a
+        // standalone variable — the regex captures '#if formal' as one token
+        // and the ^[#/] prefix check skips it. This matches existing behavior
+        // (see the {{#if show}} test above which also doesn't extract 'show').
+        expect(extractVariables("{{#if formal}}Mr{{else}}Ms{{/if}}"))
+            .toEqual([]);
+    });
+
+    it("excludes {{this}} from an each block", () => {
+        // 'items' is a block argument inside {{#each items}}, same as above.
+        expect(extractVariables("{{#each items}}{{this}}{{/each}}"))
+            .toEqual([]);
+    });
+
+    it("excludes {{lookup}} and {{log}} helpers", () => {
+        expect(extractVariables("{{lookup obj key}} {{log message}}"))
+            .toEqual([]);
+    });
+
+    it("excludes {{else}} but keeps standalone variables (regression)", () => {
+        // {{#if x}} skips 'x' as a block argument, but the standalone {{x}}
+        // at the end IS a real variable and should be extracted.
+        expect(extractVariables("{{#if x}}{{else}}{{/if}} {{x}}"))
+            .toEqual(["x"]);
+    });
 });

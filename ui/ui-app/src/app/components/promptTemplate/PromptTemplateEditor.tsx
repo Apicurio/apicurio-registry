@@ -25,12 +25,15 @@ export const PromptTemplateEditor: FunctionComponent<PromptTemplateEditorProps> 
     const [variables, setVariables] = useState<string[]>(() => extractVariables(value));
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Extract variables from the initial value
+    // Sync variable extraction when value prop changes externally
+    // (e.g., after async artifact load in the parent page).
+    // The lazy useState initializer above handles the first render;
+    // this effect handles subsequent prop changes.
     useEffect(() => {
         const vars = extractVariables(value);
         setVariables(vars);
         onVariablesChange?.(vars);
-    }, []); // Only on mount — subsequent updates come from handleEditorChange
+    }, [value, onVariablesChange]);
 
     const handleEditorChange = useCallback((newValue: string | undefined) => {
         const text = newValue ?? "";

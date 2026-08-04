@@ -1,4 +1,21 @@
 /**
+ * Handlebars keywords that must never be treated as data variables.
+ *
+ * - Block prefixes (if/unless/each/with) are already caught by the `^[#/]`
+ *   prefix check, but included here for completeness if they somehow appear
+ *   without a prefix.
+ * - `else` and `this` appear as plain `{{else}}` / `{{this}}` — no prefix —
+ *   so they slip past the prefix check. This was flagged by paoloantinori
+ *   on the parallel PR.
+ * - `lookup` and `log` are built-in Handlebars helpers, not data variables.
+ */
+const BLOCK_KEYWORDS = new Set([
+    "if", "unless", "each", "with",
+    "else", "this",
+    "lookup", "log",
+]);
+
+/**
  * Extracts {{variable}} names from a prompt template string.
  *
  * Handles:
@@ -6,6 +23,7 @@
  * - Whitespace: {{ name }}
  * - Deduplication: {{name}} ... {{name}} → ["name"]
  * - Handlebars block helpers: {{#if x}}, {{/if}} are excluded (not variables)
+ * - Handlebars keywords: {{else}}, {{this}}, {{lookup}}, {{log}} are excluded
  * - Malformed/empty: {{ }} → skipped
  *
  * @param template - The template string to extract variables from
@@ -37,6 +55,11 @@ export const extractVariables = (template: string): string[] => {
         // Skip if it contains spaces (likely a block expression, not a variable)
         // e.g. "if condition" from {{#if condition}} that somehow lost the #
         if (/\s/.test(raw)) {
+            continue;
+        }
+
+        // Skip Handlebars keywords: {{else}}, {{this}}, {{lookup}}, {{log}}
+        if (BLOCK_KEYWORDS.has(raw)) {
             continue;
         }
 

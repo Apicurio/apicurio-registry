@@ -85,3 +85,9 @@
     justify-content: center;
     height: 200px;
 }
+
+.prompt-playground-page .no-variables-text {
+    color: var(--pf-t--global--text--color--subtle);
+    font-style: italic;
+    font-size: 13px;
+}

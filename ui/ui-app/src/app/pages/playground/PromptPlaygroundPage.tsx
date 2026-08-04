@@ -1,39 +1,20 @@
-import { FunctionComponent, useCallback, useEffect, useState } from "react";
+import { FunctionComponent } from "react";
 import "./PromptPlaygroundPage.css";
 import { useParams } from "react-router";
 import {
-    ActionGroup,
     Alert,
-    Button,
     Card,
     CardBody,
     CardHeader,
     CardTitle,
-    Form,
-    FormGroup,
     Label,
     Spinner,
-    TextInput,
     Title,
 } from "@patternfly/react-core";
 import { PromptTemplateEditor } from "@app/components/promptTemplate/PromptTemplateEditor";
-import { extractVariables } from "@app/components/promptTemplate/extractVariables";
-import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { RenderPromptResponse } from "@models/RenderPromptResponse.ts";
-
-/**
- * Performs simple client-side {{variable}} substitution.
- * This is a LOCAL preview only — no schema validation is applied.
- */
-const localSubstitute = (template: string, variables: Record<string, string>): string => {
-    return template.replace(/\{\{([^}]+)\}\}/g, (_match, rawName: string) => {
-        const name = rawName.trim();
-        if (name in variables && variables[name] !== "") {
-            return variables[name];
-        }
-        return `{{${name}}}`;
-    });
-};
+import { usePromptPlayground } from "./hooks/usePromptPlayground";
+import { PlaygroundVariableForm } from "./components/PlaygroundVariableForm";
+import { PlaygroundRenderResult } from "./components/PlaygroundRenderResult";
 
 /**
  * Prototype Prompt Template Playground page.
@@ -59,133 +40,11 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
         version: string;
     }>();
 
-    const groups: GroupsService = useGroupsService();
+    const pg = usePromptPlayground(groupId, artifactId, version);
 
-    // Content state
-    const [originalTemplate, setOriginalTemplate] = useState<string>("");
-    const [currentTemplate, setCurrentTemplate] = useState<string>("");
-    const [variables, setVariables] = useState<string[]>([]);
-    const [values, setValues] = useState<Record<string, string>>({});
+    // ---- Loading state ----
 
-    // Loading / error state
-    const [isLoadingContent, setIsLoadingContent] = useState<boolean>(true);
-    const [loadError, setLoadError] = useState<string>("");
-
-    // Render state
-    const [isRendering, setIsRendering] = useState<boolean>(false);
-    const [serverRendered, setServerRendered] = useState<string>("");
-    const [localPreview, setLocalPreview] = useState<string>("");
-    const [renderError, setRenderError] = useState<string>("");
-    const [validationErrors, setValidationErrors] = useState<{ path?: string; message: string }[]>([]);
-
-    const isModified = currentTemplate !== originalTemplate;
-
-    // Load artifact content on mount
-    useEffect(() => {
-        if (!groupId || !artifactId || !version) {
-            setLoadError("Missing route parameters: groupId, artifactId, and version are required.");
-            setIsLoadingContent(false);
-            return;
-        }
-
-        setIsLoadingContent(true);
-        setLoadError("");
-
-        groups.getArtifactVersionContent(groupId === "default" ? null : groupId, artifactId, version)
-            .then((content: string) => {
-                // Parse the content to extract the template field
-                let parsed: { template?: string };
-                try {
-                    parsed = JSON.parse(content);
-                } catch {
-                    // Try YAML-like parsing — the content might be YAML
-                    // For this prototype, we handle JSON; YAML would need the yaml package
-                    setLoadError("Failed to parse artifact content as JSON.");
-                    return;
-                }
-
-                const templateText = parsed.template || "";
-                setOriginalTemplate(templateText);
-                setCurrentTemplate(templateText);
-
-                const vars = extractVariables(templateText);
-                setVariables(vars);
-
-                // Initialize empty values for each variable
-                const initialValues: Record<string, string> = {};
-                vars.forEach((v) => {
-                    initialValues[v] = "";
-                });
-                setValues(initialValues);
-            })
-            .catch((err: unknown) => {
-                const message = err instanceof Error ? err.message : "Failed to load artifact content";
-                setLoadError(message);
-            })
-            .finally(() => {
-                setIsLoadingContent(false);
-            });
-    }, [groupId, artifactId, version]);
-
-    const handleEditorChange = useCallback((newValue: string) => {
-        setCurrentTemplate(newValue);
-    }, []);
-
-    const handleVariablesChange = useCallback((newVars: string[]) => {
-        setVariables(newVars);
-        setValues((prev) => {
-            const next: Record<string, string> = {};
-            newVars.forEach((v) => {
-                next[v] = prev[v] ?? "";
-            });
-            return next;
-        });
-    }, []);
-
-    const handleValueChange = useCallback((varName: string, newValue: string) => {
-        setValues((prev) => ({ ...prev, [varName]: newValue }));
-    }, []);
-
-    const handleRender = useCallback(() => {
-        if (!groupId || !artifactId || !version) {
-            return;
-        }
-
-        setIsRendering(true);
-        setRenderError("");
-        setValidationErrors([]);
-        setServerRendered("");
-        setLocalPreview("");
-
-        // Always call the real backend (uses stored template)
-        const gid = groupId === "default" ? null : groupId;
-        groups.renderPromptTemplate(gid, artifactId, version, values)
-            .then((response: RenderPromptResponse) => {
-                setServerRendered(response.rendered || "");
-                if (response.validationErrors && response.validationErrors.length > 0) {
-                    setValidationErrors(response.validationErrors);
-                }
-            })
-            .catch((err: unknown) => {
-                const message = (err && typeof err === "object" && "message" in err)
-                    ? (err as { message: string }).message
-                    : "Error rendering prompt template";
-                setRenderError(message);
-            })
-            .finally(() => {
-                setIsRendering(false);
-            });
-
-        // If template was modified, also compute client-side preview
-        if (isModified) {
-            const preview = localSubstitute(currentTemplate, values);
-            setLocalPreview(preview);
-        }
-    }, [groupId, artifactId, version, values, isModified, currentTemplate, groups]);
-
-    // ---- Render ----
-
-    if (isLoadingContent) {
+    if (pg.isLoadingContent) {
         return (
             <div className="prompt-playground-page">
                 <div className="loading-container">
@@ -195,15 +54,19 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
         );
     }
 
-    if (loadError) {
+    // ---- Error state ----
+
+    if (pg.loadError) {
         return (
             <div className="prompt-playground-page">
                 <Alert variant="danger" title="Failed to load artifact">
-                    {loadError}
+                    {pg.loadError}
                 </Alert>
             </div>
         );
     }
+
+    // ---- Main layout ----
 
     return (
         <div className="prompt-playground-page">
@@ -234,7 +97,7 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardBody>
-                            {isModified && (
+                            {pg.isModified && (
                                 <Alert
                                     variant="info"
                                     isInline
@@ -247,9 +110,9 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
                                 </Alert>
                             )}
                             <PromptTemplateEditor
-                                value={currentTemplate}
-                                onChange={handleEditorChange}
-                                onVariablesChange={handleVariablesChange}
+                                value={pg.currentTemplate}
+                                onChange={pg.handleEditorChange}
+                                onVariablesChange={pg.handleVariablesChange}
                             />
                         </CardBody>
                     </Card>
@@ -264,81 +127,21 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardBody>
-                            <Form className="test-panel-form">
-                                {variables.length === 0 && (
-                                    <span style={{ color: "var(--pf-t--global--text--color--subtle)", fontStyle: "italic" }}>
-                                        No variables detected in template.
-                                    </span>
-                                )}
-                                {variables.map((varName) => (
-                                    <FormGroup
-                                        key={varName}
-                                        label={varName}
-                                        fieldId={`playground-var-${varName}`}
-                                    >
-                                        <TextInput
-                                            type="text"
-                                            id={`playground-var-${varName}`}
-                                            value={values[varName] || ""}
-                                            onChange={(_event, val) => handleValueChange(varName, val)}
-                                            aria-label={varName}
-                                            placeholder={`Enter value for {{${varName}}}`}
-                                        />
-                                    </FormGroup>
-                                ))}
-                                <ActionGroup>
-                                    <Button
-                                        variant="primary"
-                                        onClick={handleRender}
-                                        isDisabled={isRendering || variables.length === 0}
-                                        isLoading={isRendering}
-                                    >
-                                        Render
-                                    </Button>
-                                </ActionGroup>
-                            </Form>
-
-                            {isRendering && <Spinner size="md" />}
-
-                            {renderError && (
-                                <Alert variant="danger" title="Render Error" className="validation-errors">
-                                    {renderError}
-                                </Alert>
-                            )}
-
-                            {validationErrors.length > 0 && (
-                                <Alert variant="warning" title="Validation Errors" className="validation-errors">
-                                    <ul>
-                                        {validationErrors.map((ve, i) => (
-                                            <li key={i}>{ve.path ? `${ve.path}: ` : ""}{ve.message}</li>
-                                        ))}
-                                    </ul>
-                                </Alert>
-                            )}
-
-                            {/* Server-rendered output */}
-                            {serverRendered && (
-                                <div className="rendered-section">
-                                    <Title headingLevel="h3" size="md">Server-Rendered (validated)</Title>
-                                    <div className="render-source-label">
-                                        <Label color="green" isCompact>Server</Label>{" "}
-                                        Uses stored template with backend validation
-                                    </div>
-                                    <div className="rendered-output">{serverRendered}</div>
-                                </div>
-                            )}
-
-                            {/* Client-side preview (only when template is modified) */}
-                            {localPreview && isModified && (
-                                <div className="rendered-section">
-                                    <Title headingLevel="h3" size="md">Local Preview (unvalidated)</Title>
-                                    <div className="render-source-label">
-                                        <Label color="orange" isCompact>Local</Label>{" "}
-                                        Client-side substitution — no schema validation applied
-                                    </div>
-                                    <div className="rendered-output">{localPreview}</div>
-                                </div>
-                            )}
+                            <PlaygroundVariableForm
+                                variables={pg.variables}
+                                values={pg.values}
+                                isRendering={pg.isRendering}
+                                onValueChange={pg.handleValueChange}
+                                onRender={pg.handleRender}
+                            />
+                            <PlaygroundRenderResult
+                                isRendering={pg.isRendering}
+                                serverRendered={pg.serverRendered}
+                                localPreview={pg.localPreview}
+                                isModified={pg.isModified}
+                                renderError={pg.renderError}
+                                validationErrors={pg.validationErrors}
+                            />
                         </CardBody>
                     </Card>
                 </div>

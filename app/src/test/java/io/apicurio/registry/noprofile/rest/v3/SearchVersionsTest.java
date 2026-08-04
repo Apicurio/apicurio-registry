@@ -254,7 +254,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         String group1 = TestUtils.generateGroupId();
         String group2 = TestUtils.generateGroupId();
 
-        CreateArtifactResponse car = null;
+        CreateArtifactResponse car;
 
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {

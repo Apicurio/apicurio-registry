@@ -17,21 +17,11 @@ import { PlaygroundVariableForm } from "./components/PlaygroundVariableForm";
 import { PlaygroundRenderResult } from "./components/PlaygroundRenderResult";
 
 /**
- * Prototype Prompt Template Playground page.
+ * Prompt Template Playground page.
  *
  * Loads a PROMPT_TEMPLATE artifact from the registry, provides a Monaco editor
  * for viewing/editing the template string with live variable extraction, and a
- * test panel for filling in variable values and rendering via the real backend
- * endpoint. When the template has been locally modified, a client-side preview
- * is shown alongside the server-rendered result.
- *
- * This is a prototype page for LFX Mentorship proposal evaluation (issue #8425).
- * It does NOT modify the stored artifact — the editor is for local experimentation only.
- *
- * Known limitation: The /render endpoint reads template content from storage, not
- * from the request body. Therefore, server-rendered output always uses the stored
- * template version. Client-side preview fills this gap for local edits but does not
- * apply schema validation (type checking, enum constraints, range checks).
+ * test panel for filling in variable values and rendering via the backend endpoint.
  */
 export const PromptPlaygroundPage: FunctionComponent = () => {
     const { groupId, artifactId, version } = useParams<{
@@ -76,7 +66,6 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
                     Prompt Template Playground
                 </Title>
                 <div className="playground-subtitle">
-                    Prototype for LFX Mentorship proposal — issue #8425.
                     Edit the template, fill in variables, and render via the real backend.
                 </div>
                 <div className="playground-artifact-info">

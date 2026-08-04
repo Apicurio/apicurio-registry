@@ -1,12 +1,8 @@
 /**
  * Handlebars keywords that must never be treated as data variables.
  *
- * - Block prefixes (if/unless/each/with) are already caught by the `^[#/]`
- *   prefix check, but included here for completeness if they somehow appear
- *   without a prefix.
- * - `else` and `this` appear as plain `{{else}}` / `{{this}}` — no prefix —
- *   so they slip past the prefix check. This was flagged by paoloantinori
- *   on the parallel PR.
+ * - Block prefixes (if/unless/each/with) are caught by the `^[#/]` prefix check.
+ * - `else` and `this` appear as plain `{{else}}` / `{{this}}` without prefixes.
  * - `lookup` and `log` are built-in Handlebars helpers, not data variables.
  */
 const BLOCK_KEYWORDS = new Set([

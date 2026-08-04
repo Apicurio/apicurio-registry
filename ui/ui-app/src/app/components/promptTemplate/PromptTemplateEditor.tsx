@@ -17,8 +17,6 @@ export type PromptTemplateEditorProps = {
 /**
  * Monaco-based editor for prompt template strings with live variable extraction.
  * Debounces variable extraction to avoid performance issues on rapid typing.
- *
- * Prototype component for LFX proposal evaluation (issue #8425).
  */
 export const PromptTemplateEditor: FunctionComponent<PromptTemplateEditorProps> = (props: PromptTemplateEditorProps) => {
     const { value, onChange, onVariablesChange, className } = props;

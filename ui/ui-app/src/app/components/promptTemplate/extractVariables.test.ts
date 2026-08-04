@@ -61,8 +61,6 @@ describe("extractVariables", () => {
     });
 
     // --- Tests for keyword exclusion (else, this, lookup, log) ---
-    // Addresses paoloantinori's review on the parallel PR:
-    // {{else}} and {{this}} leak through as detected variables.
 
     it("excludes {{else}} from an if/else block", () => {
         // Note: 'formal' is a block argument inside {{#if formal}}, not a

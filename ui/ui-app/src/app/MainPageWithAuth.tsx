@@ -135,7 +135,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                         />
 
 
-                        {/* Prototype route for LFX proposal (issue #8425) — prompt template playground */}
+                        {/* Prompt template playground route */}
                         <Route
                             path="/playground/:groupId/:artifactId/:version"
                             element={ <PromptPlaygroundPage /> }

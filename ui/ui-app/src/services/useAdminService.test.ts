@@ -15,21 +15,6 @@ vi.mock("@apicurio/common-ui-components", () => ({
     useAuth: () => ({})
 }));
 
-// The TypeScript SDK generated client (typescript-sdk/lib/generated-client/)
-// is produced by kiota and gitignored — it does not exist in the UI-only CI
-// build. Mock the three @sdk paths that rest.utils.ts imports so that
-// importOriginal can load the real rest.utils module without reaching the
-// missing generated client.
-vi.mock("@sdk/lib/sdk", () => ({
-    RegistryClientFactory: { createRegistryClient: vi.fn() }
-}));
-vi.mock("@sdk/lib/generated-client/apicurioRegistryClient.ts", () => ({
-    ApicurioRegistryClient: class {}
-}));
-vi.mock("@sdk/lib/generated-client/models", () => ({
-    Labels: {}
-}));
-
 vi.mock("@utils/rest.utils.ts", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@utils/rest.utils.ts")>();
     return {

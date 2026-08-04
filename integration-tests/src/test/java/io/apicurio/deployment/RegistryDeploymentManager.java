@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
@@ -190,8 +191,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             LOGGER.debug("Error creating registry resources:", ex);
         }
 
-        // Wait for all the pods of the variant to be ready
-        kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+        waitForAllPodsReady();
 
         setupTestNetworking();
 
@@ -229,12 +229,49 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private static void deployResource(String resource) {
-        // Deploy all the resources associated to the external requirements
         kubernetesClient.load(RegistryDeploymentManager.class.getResourceAsStream(resource))
                 .serverSideApply();
 
-        // Wait for all the external resources pods to be ready
-        kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+        waitForAllPodsReady();
+    }
+
+    static final int POD_WAIT_TIMEOUT_SECONDS = 360;
+    static final int POD_WAIT_MAX_ATTEMPTS = 2;
+
+    static void waitForAllPodsReady() {
+        for (int attempt = 1; attempt <= POD_WAIT_MAX_ATTEMPTS; attempt++) {
+            try {
+                kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
+                        .waitUntilReady(POD_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                return;
+            } catch (KubernetesClientTimeoutException e) {
+                logPodStatus();
+                if (attempt == POD_WAIT_MAX_ATTEMPTS) {
+                    throw new RuntimeException(
+                            "Pods not ready after " + POD_WAIT_MAX_ATTEMPTS + " attempts ("
+                                    + POD_WAIT_TIMEOUT_SECONDS + "s each)",
+                            e);
+                }
+                LOGGER.warn("Pod wait attempt {}/{} timed out, retrying: {}",
+                        attempt, POD_WAIT_MAX_ATTEMPTS, e.getMessage());
+            }
+        }
+    }
+
+    static void logPodStatus() {
+        try {
+            PodList pods = kubernetesClient.pods().inNamespace(TEST_NAMESPACE).list();
+            pods.getItems().forEach(pod -> {
+                String name = pod.getMetadata().getName();
+                String phase = pod.getStatus() != null ? pod.getStatus().getPhase() : "unknown";
+                boolean ready = pod.getStatus() != null && pod.getStatus().getConditions() != null
+                        && pod.getStatus().getConditions().stream()
+                                .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
+                LOGGER.info("Pod {}: phase={}, ready={}", name, phase, ready);
+            });
+        } catch (Exception e) {
+            LOGGER.warn("Could not list pods for diagnostics: {}", e.getMessage());
+        }
     }
 
     /**

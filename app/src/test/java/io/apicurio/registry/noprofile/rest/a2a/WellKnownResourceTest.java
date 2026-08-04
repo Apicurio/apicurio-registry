@@ -14,6 +14,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,6 +103,49 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 "defaultOutputModes": ["text"]
             }
             """;
+
+    private static final String STALE_DRAFT_AGENT_CARD = """
+            {
+                "name": "StaleDraftAgent",
+                "description": "A draft revision that must not reach the structured content index",
+                "version": "1.0.1",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/stale-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {
+                    "streaming": false,
+                    "pushNotifications": false
+                },
+                "skills": [
+                    {
+                        "id": "stale-draft-only-skill",
+                        "name": "Stale Draft Only Skill",
+                        "description": "Present only in a non-latest DRAFT version",
+                        "tags": ["stale"]
+                    }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+            """;
+
+    private ValidatableResponse searchAgentsBySkill(String skill) {
+        String requestBody = """
+                {
+                    "filters": { "skills": ["%s"] },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """.formatted(skill);
+
+        return givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200);
+    }
 
     @Test
     public void testGetAgentCard() {
@@ -556,6 +600,51 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("count", greaterThanOrEqualTo(1))
                 .body("agents.artifactId", hasItem("multi-agent-streaming"))
                 .body("agents.artifactId", not(hasItem("multi-agent-basic")));
+    }
+
+    @Test
+    public void testUpdatingNonLatestDraftVersionKeepsLatestVersionIndexed() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "stale-index-agent";
+
+        // v1 is created as a DRAFT and then left behind by v2, which becomes the latest version.
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+        CreateVersion firstVersion = new CreateVersion();
+        firstVersion.setVersion("1.0");
+        firstVersion.setIsDraft(true);
+        VersionContent firstContent = new VersionContent();
+        firstContent.setContent(AGENT_CARD_CONTENT);
+        firstContent.setContentType(ContentTypes.APPLICATION_JSON);
+        firstVersion.setContent(firstContent);
+        createArtifact.setFirstVersion(firstVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        CreateVersion latestVersion = new CreateVersion();
+        latestVersion.setVersion("2.0");
+        VersionContent latestContent = new VersionContent();
+        latestContent.setContent(STREAMING_AGENT_CARD);
+        latestContent.setContentType(ContentTypes.APPLICATION_JSON);
+        latestVersion.setContent(latestContent);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(latestVersion);
+
+        // Rewriting the older DRAFT version must not move the artifact-level structured index off v2.
+        VersionContent updatedDraftContent = new VersionContent();
+        updatedDraftContent.setContentType(ContentTypes.APPLICATION_JSON);
+        updatedDraftContent.setContent(STALE_DRAFT_AGENT_CARD);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1.0").content().put(updatedDraftContent);
+
+        // The latest version's skill is still searchable.
+        searchAgentsBySkill("data-processing")
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem(artifactId));
+
+        // The skill that only exists in the older DRAFT version never enters the index.
+        searchAgentsBySkill("stale-draft-only-skill")
+                .body("agents.artifactId", not(hasItem(artifactId)));
     }
 
     @Test

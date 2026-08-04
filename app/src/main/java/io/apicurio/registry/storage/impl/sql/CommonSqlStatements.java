@@ -490,6 +490,16 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "INSERT INTO artifact_structured_content (groupId, artifactId, elementType, elementValue) VALUES (?, ?, ?, ?)";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectIsLatestArtifactVersion()
+     */
+    @Override
+    public String selectIsLatestArtifactVersion() {
+        return "SELECT COUNT(*) FROM versions v "
+                + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? AND v.versionOrder = "
+                + "(SELECT MAX(v2.versionOrder) FROM versions v2 WHERE v2.groupId = ? AND v2.artifactId = ?)";
+    }
+
     @Override
     public String deleteVersionLabelsByPrefix() {
         return "DELETE FROM version_labels WHERE globalId = ? AND labelKey LIKE ?";

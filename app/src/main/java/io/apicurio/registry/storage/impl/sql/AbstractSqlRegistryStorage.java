@@ -1109,9 +1109,27 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         handles.withHandleNoException(handle -> {
             versionRepository.updateArtifactVersionContentRaw(handle, groupId, artifactId, version,
                     contentId);
-            updateStructuredContentRaw(handle, groupId, artifactId, artifactType, content);
+            // The structured-content index is artifact-scoped and reflects the artifact's latest version.
+            // This method can target any DRAFT version, which is not necessarily the latest one (e.g. a
+            // DRAFT v1 sitting behind an ENABLED v2), so re-indexing unconditionally would replace the
+            // latest version's elements with an older version's and make the latest content unsearchable.
+            if (isLatestArtifactVersionRaw(handle, groupId, artifactId, version)) {
+                updateStructuredContentRaw(handle, groupId, artifactId, artifactType, content);
+            }
             return null;
         });
+    }
+
+    /**
+     * Returns true when the given version is the artifact's latest version (highest versionOrder). Used to
+     * keep the artifact-scoped structured-content index aligned with the latest version's content.
+     */
+    private boolean isLatestArtifactVersionRaw(Handle handle, String groupId, String artifactId,
+            String version) {
+        String normalizedGroupId = normalizeGroupId(groupId);
+        return handle.createQuery(sqlStatements.selectIsLatestArtifactVersion())
+                .bind(0, normalizedGroupId).bind(1, artifactId).bind(2, version)
+                .bind(3, normalizedGroupId).bind(4, artifactId).mapTo(Integer.class).one() > 0;
     }
 
     @Override

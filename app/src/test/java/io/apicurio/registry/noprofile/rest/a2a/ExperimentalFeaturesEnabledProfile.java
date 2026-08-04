@@ -6,7 +6,8 @@ import java.util.Map;
 
 /**
  * Test profile that enables the experimental features gate, A2A, and MCP tools so that
- * well-known discovery endpoints are accessible.
+ * well-known discovery endpoints are accessible. Artifact version content mutability is enabled so
+ * tests can rewrite a DRAFT version's content and assert how that affects structure-based search.
  */
 public class ExperimentalFeaturesEnabledProfile implements QuarkusTestProfile {
 
@@ -15,7 +16,8 @@ public class ExperimentalFeaturesEnabledProfile implements QuarkusTestProfile {
         return Map.of(
                 "apicurio.features.experimental.enabled", "true",
                 "apicurio.a2a.enabled", "true",
-                "apicurio.mcp-tools.enabled", "true"
+                "apicurio.mcp-tools.enabled", "true",
+                "apicurio.rest.mutability.artifact-version-content.enabled", "true"
         );
     }
 }

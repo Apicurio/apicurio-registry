@@ -310,6 +310,12 @@ public interface SqlStatements {
     public String insertArtifactStructuredContent();
 
     /**
+     * A statement that counts 1 when the given artifact version is the latest version of the artifact
+     * (i.e. it has the highest versionOrder), and 0 otherwise.
+     */
+    public String selectIsLatestArtifactVersion();
+
+    /**
      * A statement to delete version labels matching a key prefix.
      */
     public String deleteVersionLabelsByPrefix();

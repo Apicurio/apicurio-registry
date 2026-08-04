@@ -97,6 +97,15 @@ const getVariablesList = (variables: Record<string, PromptVariable> | PromptVari
     return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
 };
 
+// Format a variable default for display in the Variables table.
+// Objects and arrays go through JSON.stringify so they don't render as "[object Object]".
+const formatDefault = (value: any): string => {
+    if (typeof value === "object" && value !== null) {
+        return JSON.stringify(value);
+    }
+    return String(value);
+};
+
 export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> = (props: PromptTemplateViewerProps) => {
     const { promptTemplate, className } = props;
     const variablesList = getVariablesList(promptTemplate.variables);
@@ -147,6 +156,14 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                             <DescriptionListDescription>{meta.createdAt}</DescriptionListDescription>
                         </DescriptionListGroup>
                     )}
+                    {meta?.estimatedTokens && (
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Estimated Tokens</DescriptionListTerm>
+                            <DescriptionListDescription>
+                                {meta.estimatedTokens.input ?? 0} (+{meta.estimatedTokens.variableOverhead ?? 0} overhead)
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                    )}
                 </DescriptionList>
 
                 {promptTemplate.template && (
@@ -189,7 +206,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                                 )}
                                             </td>
                                             <td>{variable.default !== undefined ? (
-                                                <code>{String(variable.default)}</code>
+                                                <code>{formatDefault(variable.default)}</code>
                                             ) : "-"}</td>
                                             <td>{variable.description || "-"}</td>
                                         </tr>

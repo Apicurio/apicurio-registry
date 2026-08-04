@@ -25,6 +25,10 @@
       <artifactId>apicurio-registry-schema-resolver</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-common</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.networknt</groupId>
       <artifactId>json-schema-validator</artifactId>
     </dependency>

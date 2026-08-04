@@ -38,7 +38,7 @@ public class ImportLifecycleBean {
     @Inject
     AdminResourceImpl v3Admin;
 
-    private ImportStatus importStatus = ImportStatus.UNKNOWN;
+    private volatile ImportStatus importStatus = ImportStatus.UNKNOWN;
 
     void onStorageReady(@ObservesAsync StorageEvent ev) {
         if (StorageEventType.READY.equals(ev.getType())) {
@@ -60,7 +60,7 @@ public class ImportLifecycleBean {
                     importStatus = ImportStatus.ERROR;
                 } catch (ConflictException ce) {
                     log.info("Import skipped, registry not empty.");
-                    importStatus = ImportStatus.ERROR;
+                    importStatus = ImportStatus.SKIPPED;
                 } catch (Exception e) {
                     log.error("Registry import failed", e);
                     importStatus = ImportStatus.ERROR;

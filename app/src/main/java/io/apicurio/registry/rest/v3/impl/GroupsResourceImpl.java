@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
@@ -141,6 +142,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     SecurityIdentity securityIdentity;
 
     @Inject
+    OwnershipTransferAuthorizer ownershipTransferAuthorizer;
+
+    @Inject
     io.apicurio.registry.services.PromptRenderingService promptRenderingService;
 
     @Inject
@@ -180,9 +184,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     io.apicurio.registry.contracts.migration.MigrationRuleService migrationRuleService;
-
-    @Inject
-    jakarta.enterprise.event.Event<io.apicurio.registry.storage.impl.sql.SqlOutboxEvent> contractOutboxEvent;
 
     @Inject
     io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
@@ -586,21 +587,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         if (data.getOwner() != null) {
             if (data.getOwner().trim().isEmpty()) {
                 throw new MissingRequiredParameterException("Owner cannot be empty");
-            } else {
-                // TODO extra security check - if the user is trying to change the owner, fail unless they are
-                // an Admin or the current Owner
             }
+            // Cannot use @Authorized(AdminOrOwner) on the method: Write users must still update
+            // non-owner metadata. Ownership changes require Admin or the current owner.
+            ArtifactMetaDataDto currentMetaData = storage.getArtifactMetaData(rawGroupId, artifactId);
+            ownershipTransferAuthorizer.authorizeOwnerChange(currentMetaData.getOwner(),
+                    data.getOwner().trim());
         }
 
         EditableArtifactMetaDataDto dto = new EditableArtifactMetaDataDto();
         dto.setName(data.getName());
         dto.setDescription(data.getDescription());
-        dto.setOwner(data.getOwner());
+        dto.setOwner(data.getOwner() != null ? data.getOwner().trim() : null);
         dto.setLabels(data.getLabels());
-        storage.updateArtifactMetaData(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, dto);
+        storage.updateArtifactMetaData(rawGroupId, artifactId, dto);
     }
 
     @Override
@@ -634,11 +638,23 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        if (data.getOwner() != null) {
+            if (data.getOwner().trim().isEmpty()) {
+                throw new MissingRequiredParameterException("Owner cannot be empty");
+            }
+            // Same rationale as updateArtifactMetaData: Write covers non-owner fields;
+            // ownership transfer is Admin or current owner only.
+            GroupMetaDataDto currentMetaData = storage.getGroupMetaData(rawGroupId);
+            ownershipTransferAuthorizer.authorizeOwnerChange(currentMetaData.getOwner(),
+                    data.getOwner().trim());
+        }
+
         EditableGroupMetaDataDto dto = new EditableGroupMetaDataDto();
         dto.setDescription(data.getDescription());
         dto.setLabels(data.getLabels());
-        dto.setOwner(data.getOwner());
-        storage.updateGroupMetaData(new GroupId(groupId).getRawGroupIdWithNull(), dto);
+        dto.setOwner(data.getOwner() != null ? data.getOwner().trim() : null);
+        storage.updateGroupMetaData(rawGroupId, dto);
     }
 
     @Override
@@ -2013,8 +2029,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
 
         // Fire metadata updated event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId)));
+        storage.createEvent(io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId));
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2161,11 +2176,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         // Fire status changed event
-        contractOutboxEvent.fire(io.apicurio.registry.storage.impl.sql.SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
-                        currentMetadata.getStatus() != null
-                                ? currentMetadata.getStatus().name() : null,
-                        targetStatus.name())));
+        storage.createEvent(io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
+                currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : null,
+                targetStatus.name()));
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

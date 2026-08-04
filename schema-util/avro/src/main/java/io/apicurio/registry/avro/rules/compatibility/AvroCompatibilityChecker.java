@@ -1,5 +1,6 @@
 package io.apicurio.registry.avro.rules.compatibility;
 
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
@@ -20,17 +21,10 @@ public class AvroCompatibilityChecker extends AbstractCompatibilityChecker<Incom
     protected Set<Incompatibility> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences) {
         try {
-            Schema.Parser existingParser = new Schema.Parser();
-            for (TypedContent schema : resolvedReferences.values()) {
-                existingParser.parse(schema.getContent().content());
-            }
-            final Schema existingSchema = existingParser.parse(existing);
-
-            Schema.Parser proposingParser = new Schema.Parser();
-            for (TypedContent schema : resolvedReferences.values()) {
-                proposingParser.parse(schema.getContent().content());
-            }
-            final Schema proposedSchema = proposingParser.parse(proposed);
+            // Two independent parsers: each accumulates the named types it parses, so reusing one would
+            // leak the existing schema's types into the proposed schema's namespace.
+            final Schema existingSchema = AvroParserAccessor.newParser(resolvedReferences).parse(existing);
+            final Schema proposedSchema = AvroParserAccessor.newParser(resolvedReferences).parse(proposed);
 
             var result = SchemaCompatibility.checkReaderWriterCompatibility(proposedSchema, existingSchema)
                     .getResult();

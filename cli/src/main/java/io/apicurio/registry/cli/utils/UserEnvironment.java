@@ -94,6 +94,13 @@ public class UserEnvironment {
                 powershellExecutable().toString(), "-NoProfile", "-NonInteractive", "-Command", command);
         builder.environment().put(ARG_NAME, name);
         builder.environment().put(ARG_VALUE, value == null ? "" : value);
+        // Discard the error stream rather than leaving it undrained: a PowerShell error long
+        // enough to fill the stderr pipe would block the child forever, so stdout would never
+        // reach end of input and the read below would never return. It is discarded rather than
+        // merged into stdout because the read command's output is the value that gets written
+        // back to the user environment, and anything PowerShell wrote to stderr would corrupt it.
+        // Nothing is lost: only the exit code is reported, never the error text.
+        builder.redirectError(ProcessBuilder.Redirect.DISCARD);
         Process process = null;
         try {
             process = builder.start();

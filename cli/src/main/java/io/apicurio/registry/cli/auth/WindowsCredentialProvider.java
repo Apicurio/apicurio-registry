@@ -27,7 +27,11 @@ class WindowsCredentialProvider implements CredentialProvider {
     private static final int CRED_PERSIST_LOCAL_MACHINE = 2;
     private static final int ERROR_NOT_FOUND = 1168;
 
-    /** CRED_MAX_CREDENTIAL_BLOB_SIZE — the largest secret the Credential Manager accepts. */
+    /**
+     * The largest secret the Credential Manager accepts, in bytes. Matches
+     * {@code #define CRED_MAX_CREDENTIAL_BLOB_SIZE (5*512)} in wincred.h of the Windows SDK.
+     * Note that the blob is UTF-16LE, so this is half as many characters.
+     */
     private static final int MAX_BLOB_SIZE = 2560;
 
     private static Advapi32 library;

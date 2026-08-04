@@ -21,6 +21,9 @@ public class WindowsCredentialProviderTest {
 
     private static final String SECRET = "s3cr3t-value";
 
+    /** CRED_MAX_CREDENTIAL_BLOB_SIZE (2560 bytes) expressed in UTF-16LE characters. */
+    private static final int MAX_SECRET_CHARACTERS = 1280;
+
     private WindowsCredentialProvider provider;
     private List<String> storedAccounts;
 
@@ -92,10 +95,24 @@ public class WindowsCredentialProviderTest {
         assertThat(provider.retrieve("dev/password")).isNull();
     }
 
+    /**
+     * CRED_MAX_CREDENTIAL_BLOB_SIZE is 2560 bytes and the blob is written as UTF-16LE, so the
+     * largest secret that fits is 1280 characters. These two tests pin both sides of that
+     * boundary; the rejected one is a single character — two bytes — past it, which is what
+     * makes it catch a limit mistakenly applied to the character count instead of the blob.
+     */
+    @Test
+    public void testStoreAcceptsSecretAtTheCredentialManagerLimit() {
+        final String secret = "x".repeat(MAX_SECRET_CHARACTERS);
+
+        provider.store(account("dev/password"), secret);
+
+        assertThat(provider.retrieve("dev/password")).isEqualTo(secret);
+    }
+
     @Test
     public void testStoreRejectsSecretLargerThanTheCredentialManagerLimit() {
-        // The limit is 2560 bytes, and each character of the blob takes two bytes.
-        final String secret = "x".repeat(1281);
+        final String secret = "x".repeat(MAX_SECRET_CHARACTERS + 1);
 
         assertThatThrownBy(() -> provider.store("dev/password", secret))
                 .isInstanceOf(CredentialStoreException.class)

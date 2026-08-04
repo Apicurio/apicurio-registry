@@ -2,6 +2,8 @@ package io.apicurio.registry.utils;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Locale;
+
 public class StringUtil {
 
     public static boolean isEmpty(String string) {
@@ -16,7 +18,7 @@ public class StringUtil {
         if (value == null) {
             return null;
         }
-        return value.toLowerCase();
+        return value.toLowerCase(Locale.ROOT);
     }
 
     public static String limitStr(String value, int limit, boolean withEllipsis) {

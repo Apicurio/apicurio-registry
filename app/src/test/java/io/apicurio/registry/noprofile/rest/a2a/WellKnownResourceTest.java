@@ -347,6 +347,18 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchAgentsWhitespaceNameDoesNotMatchAll() throws Exception {
+        // Whitespace-only name should be trimmed to empty string rather than wrapped into "**".
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "   ")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     public void testSearchAgentsWithPagination() throws Exception {
         String groupId = TestUtils.generateGroupId();
 

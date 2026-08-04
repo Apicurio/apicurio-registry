@@ -59,6 +59,9 @@ public class SearchFilter {
      */
     public static SearchFilter ofPartialName(String value) {
         String name = value.trim();
+        if (name.isEmpty()) {
+            return ofName("");
+        }
         if (!name.contains("*")) {
             name = "*" + name + "*";
         }

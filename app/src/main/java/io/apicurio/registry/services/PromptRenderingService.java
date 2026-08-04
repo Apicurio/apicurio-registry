@@ -8,6 +8,7 @@ import io.apicurio.registry.storage.error.InvalidContentException;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -47,11 +48,16 @@ public class PromptRenderingService {
         String templateText = extractTemplateText(templateNode);
         JsonNode variablesSchema = templateNode.path("variables");
 
-        // Validate variables against schema
+        // Validate variables against schema. Validation intentionally runs against the
+        // caller-supplied variables, so that a missing required variable is still reported
+        // even when the schema declares a default for it.
         List<RenderValidationError> validationErrors = validateVariables(variables, variablesSchema);
 
+        // Fill in declared defaults for any variable the caller did not provide
+        Map<String, Object> effectiveVariables = applyDefaults(variables, variablesSchema);
+
         // Render the template by substituting variables
-        String rendered = substituteVariables(templateText, variables);
+        String rendered = substituteVariables(templateText, effectiveVariables);
 
         return RenderPromptResponse.builder()
                 .rendered(rendered)
@@ -100,6 +106,43 @@ public class PromptRenderingService {
             throw new InvalidContentException("Prompt template 'template' field must not be blank");
         }
         return templateText;
+    }
+
+    /**
+     * Returns the variables to render with, filling in the <code>default</code> declared by the
+     * schema for any variable the caller did not provide. Caller-supplied values always win, and
+     * a variable that is explicitly present is never overwritten.
+     * <p>
+     * The caller's map is never modified; a copy is made only when there is a default to apply.
+     */
+    private Map<String, Object> applyDefaults(Map<String, Object> variables, JsonNode variablesSchema) {
+        if (variablesSchema.isMissingNode() || !variablesSchema.isObject()) {
+            return variables;
+        }
+
+        Map<String, Object> effective = null;
+
+        Iterator<Map.Entry<String, JsonNode>> fields = variablesSchema.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String varName = field.getKey();
+
+            if (variables.containsKey(varName)) {
+                continue;
+            }
+
+            JsonNode defaultNode = field.getValue().path("default");
+            if (defaultNode.isMissingNode()) {
+                continue;
+            }
+
+            if (effective == null) {
+                effective = new HashMap<>(variables);
+            }
+            effective.put(varName, MAPPER.convertValue(defaultNode, Object.class));
+        }
+
+        return effective != null ? effective : variables;
     }
 
     /**

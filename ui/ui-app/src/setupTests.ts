@@ -1,6 +1,6 @@
-import { vi } from 'vitest';
+import { vi } from "vitest";
 
-vi.mock('../../typescript-sdk/lib/generated-client/apicurioRegistryClient.js', () => ({
-  ApicurioRegistryClient: class MockClient {},
-  createApicurioRegistryClient: vi.fn(() => ({}))
+vi.mock("../../typescript-sdk/lib/generated-client/apicurioRegistryClient.js", () => ({
+    ApicurioRegistryClient: class MockClient {},
+    createApicurioRegistryClient: vi.fn(() => ({}))
 }));

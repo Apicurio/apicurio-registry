@@ -16,7 +16,7 @@ import {
     UserAgentHandler
 } from "@microsoft/kiota-http-fetchlibrary";
 import { JsonParseNodeFactory, JsonSerializationWriterFactory } from "@microsoft/kiota-serialization-json";
-import { ApicurioRegistryClient, createApicurioRegistryClient } from "../generated-client/apicurioRegistryClient.js";
+import { ApicurioRegistryClient, createApicurioRegistryClient } from "../generated-client/apicurioRegistryClient";
 import { SerializationWriterFactoryRegistry } from "@microsoft/kiota-abstractions";
 
 // Locally defined parse node factory (for parsing responses)

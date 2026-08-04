@@ -14,12 +14,53 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class CloudEventConverterTest {
+
+    private static final String SOURCE = "/apicurio-registry";
+
+    /** Every StorageEventType that represents a registry data change. READY is intentionally excluded. */
+    private static final List<StorageEventType> DATA_CHANGE_EVENTS = List.of(
+            StorageEventType.ARTIFACT_CREATED,
+            StorageEventType.ARTIFACT_DELETED,
+            StorageEventType.ARTIFACT_METADATA_UPDATED,
+            StorageEventType.ARTIFACT_RULE_CONFIGURED,
+            StorageEventType.ARTIFACT_VERSION_CREATED,
+            StorageEventType.ARTIFACT_VERSION_DELETED,
+            StorageEventType.ARTIFACT_VERSION_METADATA_UPDATED,
+            StorageEventType.ARTIFACT_VERSION_STATE_CHANGED,
+            StorageEventType.GROUP_CREATED,
+            StorageEventType.GROUP_DELETED,
+            StorageEventType.GROUP_METADATA_UPDATED,
+            StorageEventType.GROUP_RULE_CONFIGURED,
+            StorageEventType.GLOBAL_RULE_CONFIGURED,
+            StorageEventType.CONTRACT_RULESET_CONFIGURED,
+            StorageEventType.CONTRACT_METADATA_UPDATED,
+            StorageEventType.CONTRACT_STATUS_CHANGED);
+
+    private static String cloudEventType(StorageEventType eventType) {
+        return "io.apicurio.registry." + eventType.name().toLowerCase(Locale.ROOT).replace('_', '.');
+    }
+
+    private static OutboxEvent eventOfType(StorageEventType eventType) {
+        return new OutboxEvent("id-" + eventType.name(), "aggregate-" + eventType.name(), Instant.now()) {
+            @Override
+            public JSONObject getPayload() {
+                return new JSONObject().put("eventType", eventType.name());
+            }
+
+            @Override
+            public String getType() {
+                return eventType.name();
+            }
+        };
+    }
 
     @Test
     public void testConvertArtifactCreated() {
@@ -32,14 +73,13 @@ public class CloudEventConverterTest {
         metaDataDto.setCreatedOn(createdOn);
 
         ArtifactCreated event = ArtifactCreated.of(metaDataDto);
-        String source = "/apicurio-registry";
 
-        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(event, source);
+        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(event, SOURCE);
 
         assertNotNull(cloudEvent);
         assertEquals(event.getId(), cloudEvent.getId());
-        assertEquals(source, cloudEvent.getSource());
-        assertEquals("io.apicurio.registry.events.ArtifactCreated", cloudEvent.getType());
+        assertEquals(SOURCE, cloudEvent.getSource());
+        assertEquals("io.apicurio.registry.artifact.created", cloudEvent.getType());
         assertEquals(expectedTimestamp, cloudEvent.getTime());
     }
 
@@ -47,15 +87,24 @@ public class CloudEventConverterTest {
     public void testConvertArtifactDeleted() {
         Instant expectedTimestamp = Instant.parse("2024-05-01T10:15:30Z");
         ArtifactDeleted event = ArtifactDeleted.of("test-group", "test-artifact", expectedTimestamp);
-        String source = "/apicurio-registry";
 
-        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(event, source);
+        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(event, SOURCE);
 
         assertNotNull(cloudEvent);
         assertEquals(event.getId(), cloudEvent.getId());
-        assertEquals(source, cloudEvent.getSource());
-        assertEquals("io.apicurio.registry.events.ArtifactDeleted", cloudEvent.getType());
+        assertEquals(SOURCE, cloudEvent.getSource());
+        assertEquals("io.apicurio.registry.artifact.deleted", cloudEvent.getType());
         assertEquals(expectedTimestamp, cloudEvent.getTime());
+    }
+
+    @Test
+    public void testAllDataChangeEventsAreMapped() {
+        for (StorageEventType eventType : DATA_CHANGE_EVENTS) {
+            CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(eventOfType(eventType), SOURCE);
+            assertNotNull(cloudEvent, "No CloudEvent mapping for " + eventType);
+            assertEquals(cloudEventType(eventType), cloudEvent.getType(),
+                    "Unexpected CloudEvent type for " + eventType);
+        }
     }
 
     @Test
@@ -72,26 +121,14 @@ public class CloudEventConverterTest {
             }
         };
 
-        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(unsupportedEvent, "/apicurio-registry");
+        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(unsupportedEvent, SOURCE);
 
         assertNull(cloudEvent);
     }
 
     @Test
-    public void testConvertUnmappedStorageEventType() {
-        OutboxEvent unmappedEvent = new OutboxEvent("test-id", "test-aggregate", Instant.now()) {
-            @Override
-            public JSONObject getPayload() {
-                return new JSONObject();
-            }
-
-            @Override
-            public String getType() {
-                return StorageEventType.READY.name();
-            }
-        };
-
-        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(unmappedEvent, "/apicurio-registry");
+    public void testReadyIsNotMapped() {
+        CloudEventDto cloudEvent = CloudEventConverter.toCloudEvent(eventOfType(StorageEventType.READY), SOURCE);
 
         assertNull(cloudEvent);
     }

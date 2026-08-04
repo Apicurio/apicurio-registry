@@ -38,7 +38,7 @@ public class CloudEventDtoInjectedMapperTest {
         CloudEventDto dto = new CloudEventDto()
                 .withId("test-id")
                 .withSource("/apicurio-registry")
-                .withType("io.apicurio.registry.events.ArtifactCreated")
+                .withType("io.apicurio.registry.artifact.created")
                 .withData("{\"test\":\"data\"}")
                 .withTime(Instant.parse("2024-01-01T00:00:00Z"));
 
@@ -57,7 +57,7 @@ public class CloudEventDtoInjectedMapperTest {
         CloudEventDto dto = new CloudEventDto()
                 .withId("round-trip-id")
                 .withSource("/apicurio-registry")
-                .withType("io.apicurio.registry.events.ArtifactCreated")
+                .withType("io.apicurio.registry.artifact.created")
                 .withData("{\"test\":\"data\"}")
                 .withTime(time);
 
@@ -66,7 +66,7 @@ public class CloudEventDtoInjectedMapperTest {
 
         assertEquals("round-trip-id", deserialized.getId());
         assertEquals("/apicurio-registry", deserialized.getSource());
-        assertEquals("io.apicurio.registry.events.ArtifactCreated", deserialized.getType());
+        assertEquals("io.apicurio.registry.artifact.created", deserialized.getType());
         assertEquals("1.0", deserialized.getSpecversion());
         assertEquals("application/json", deserialized.getDatacontenttype());
         assertEquals(time, deserialized.getTime());

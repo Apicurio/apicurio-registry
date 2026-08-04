@@ -84,62 +84,50 @@ public class CloudEventDto {
         return this;
     }
 
-    @JsonProperty("specversion")
     public String getSpecversion() {
         return specversion;
     }
 
-    @JsonProperty("specversion")
     public void setSpecversion(String specversion) {
         this.specversion = specversion;
     }
 
-    @JsonProperty("id")
     public String getId() {
         return id;
     }
 
-    @JsonProperty("id")
     public void setId(String id) {
         this.id = id;
     }
 
-    @JsonProperty("source")
     public String getSource() {
         return source;
     }
 
-    @JsonProperty("source")
     public void setSource(String source) {
         this.source = source;
     }
 
-    @JsonProperty("type")
     public String getType() {
         return type;
     }
 
-    @JsonProperty("type")
     public void setType(String type) {
         this.type = type;
     }
 
-    @JsonProperty("datacontenttype")
     public String getDatacontenttype() {
         return datacontenttype;
     }
 
-    @JsonProperty("datacontenttype")
     public void setDatacontenttype(String datacontenttype) {
         this.datacontenttype = datacontenttype;
     }
 
-    @JsonProperty("data")
     public Object getData() {
         return data;
     }
 
-    @JsonProperty("data")
     public void setData(Object data) {
         this.data = normalizeData(data);
     }
@@ -157,30 +145,50 @@ public class CloudEventDto {
         return data;
     }
 
-    @JsonProperty("time")
     public Instant getTime() {
         return time;
     }
 
-    @JsonProperty("time")
     public void setTime(Instant time) {
         this.time = time;
     }
 
     /**
      * Factory method to create a CloudEventDto from an OutboxEvent.
+     * <p>
+     * Validates that the resulting event carries all CloudEvents 1.0 required attributes
+     * ({@code id}, {@code source}, {@code type}) so callers cannot construct a spec-invalid
+     * event whose required fields silently disappear from the wire output.
      *
      * @param event the outbox event
-     * @param source the event source URI
-     * @param eventType the CloudEvent type string (e.g., "io.apicurio.registry.events.ArtifactCreated")
+     * @param source the event source URI (e.g., "/apicurio-registry")
+     * @param eventType the CloudEvent type string (e.g., "io.apicurio.registry.artifact.created")
      * @return the CloudEventDto
+     * @throws IllegalArgumentException if the event is null or any required attribute is null/blank
      */
     public static CloudEventDto from(OutboxEvent event, String source, String eventType) {
-        return new CloudEventDto()
+        if (event == null) {
+            throw new IllegalArgumentException("OutboxEvent must not be null");
+        }
+        CloudEventDto dto = new CloudEventDto()
                 .withId(event.getId())
                 .withSource(source)
                 .withType(eventType)
                 .withTime(event.getTimestamp())
                 .withData(event.getPayload());
+        if (isBlank(dto.getId())) {
+            throw new IllegalArgumentException("CloudEvent 'id' is a required attribute and must not be blank");
+        }
+        if (isBlank(dto.getSource())) {
+            throw new IllegalArgumentException("CloudEvent 'source' is a required attribute and must not be blank");
+        }
+        if (isBlank(dto.getType())) {
+            throw new IllegalArgumentException("CloudEvent 'type' is a required attribute and must not be blank");
+        }
+        return dto;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

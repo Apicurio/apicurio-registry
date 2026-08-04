@@ -8,12 +8,17 @@ package io.apicurio.registry.events.dto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.OutboxEvent;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CloudEventDtoTest {
@@ -78,6 +83,87 @@ public class CloudEventDtoTest {
         assertEquals("1.0", deserialized.getSpecversion());
         assertEquals("application/json", deserialized.getDatacontenttype());
         assertEquals(Instant.parse("2024-01-01T00:00:00Z"), deserialized.getTime());
+    }
+
+    @Test
+    public void testFromEventCreatesValidCloudEvent() {
+        long createdOn = System.currentTimeMillis();
+
+        ArtifactMetaDataDto metaDataDto = new ArtifactMetaDataDto();
+        metaDataDto.setGroupId("test-group");
+        metaDataDto.setArtifactId("test-artifact");
+        metaDataDto.setCreatedOn(createdOn);
+
+        ArtifactCreated event = ArtifactCreated.of(metaDataDto);
+        CloudEventDto dto = CloudEventDto.from(event, "/apicurio-registry", "io.apicurio.registry.artifact.created");
+
+        assertEquals(event.getId(), dto.getId());
+        assertEquals("/apicurio-registry", dto.getSource());
+        assertEquals("io.apicurio.registry.artifact.created", dto.getType());
+        assertEquals("1.0", dto.getSpecversion());
+        assertEquals("application/json", dto.getDatacontenttype());
+        assertEquals(Instant.ofEpochMilli(createdOn), dto.getTime());
+        assertNotNull(dto.getData());
+    }
+
+    @Test
+    public void testFromRejectsNullEvent() {
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventDto.from(null, "/apicurio-registry", "io.apicurio.registry.test.event"));
+    }
+
+    @Test
+    public void testFromRejectsMissingId() {
+        OutboxEvent event = new OutboxEvent(null, "test-aggregate", Instant.now()) {
+            @Override
+            public JSONObject getPayload() {
+                return new JSONObject();
+            }
+
+            @Override
+            public String getType() {
+                return "ARTIFACT_CREATED";
+            }
+        };
+
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventDto.from(event, "/apicurio-registry", "io.apicurio.registry.artifact.created"));
+    }
+
+    @Test
+    public void testFromRejectsMissingSource() {
+        OutboxEvent event = new OutboxEvent("test-id", "test-aggregate", Instant.now()) {
+            @Override
+            public JSONObject getPayload() {
+                return new JSONObject();
+            }
+
+            @Override
+            public String getType() {
+                return "ARTIFACT_CREATED";
+            }
+        };
+
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventDto.from(event, null, "io.apicurio.registry.artifact.created"));
+    }
+
+    @Test
+    public void testFromRejectsMissingType() {
+        OutboxEvent event = new OutboxEvent("test-id", "test-aggregate", Instant.now()) {
+            @Override
+            public JSONObject getPayload() {
+                return new JSONObject();
+            }
+
+            @Override
+            public String getType() {
+                return "ARTIFACT_CREATED";
+            }
+        };
+
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventDto.from(event, "/apicurio-registry", null));
     }
 
     @Test

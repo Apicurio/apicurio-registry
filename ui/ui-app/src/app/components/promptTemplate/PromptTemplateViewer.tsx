@@ -171,6 +171,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                         <th>Type</th>
                                         <th>Required</th>
                                         <th>Default</th>
+                                        <th>Allowed Values</th>
                                         <th>Description</th>
                                     </tr>
                                 </thead>
@@ -191,6 +192,15 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                             <td>{variable.default !== undefined ? (
                                                 <code>{String(variable.default)}</code>
                                             ) : "-"}</td>
+                                            <td>
+                                                {variable.enum && variable.enum.length > 0 ? (
+                                                    <LabelGroup>
+                                                        {variable.enum.map((val, i) => (
+                                                            <Label key={i} color="cyan" isCompact>{val}</Label>
+                                                        ))}
+                                                    </LabelGroup>
+                                                ) : "-"}
+                                            </td>
                                             <td>{variable.description || "-"}</td>
                                         </tr>
                                     ))}

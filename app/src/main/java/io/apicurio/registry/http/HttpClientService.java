@@ -58,7 +58,11 @@ public class HttpClientService {
                 }
                 return (O) httpResponse.bodyAsJson(outputClass);
             } else {
-                throw new HttpClientException("Webhook request failed (" + status + "): " + httpResponse.statusMessage());
+                String statusMessage = httpResponse.statusMessage();
+                if (statusMessage == null || statusMessage.isBlank()) {
+                    statusMessage = "No status message";
+                }
+                throw new HttpClientException("Webhook request failed (" + status + "): " + statusMessage);
             }
         } catch (ExecutionException e) {
             throw new HttpClientException(e);

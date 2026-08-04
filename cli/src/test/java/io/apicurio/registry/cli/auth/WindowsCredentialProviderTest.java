@@ -76,6 +76,19 @@ public class WindowsCredentialProviderTest {
         assertThat(provider.retrieve("dev/missing")).isNull();
     }
 
+    /**
+     * Only a missing entry reads as null. An entry that exists but holds an empty secret has to
+     * read back as the empty string, the way the file fallback and the macOS provider do, so that
+     * callers can tell "no credential stored" from "an empty one was stored".
+     */
+    @Test
+    public void testRetrieveReturnsEmptyStringForAnEmptySecret() {
+        provider.store(account("dev/password"), "");
+
+        assertThat(provider.retrieve("dev/password")).isEmpty();
+        assertThat(provider.retrieve("dev/missing")).isNull();
+    }
+
     @Test
     public void testDeleteRemovesTheSecret() {
         provider.store(account("dev/password"), SECRET);

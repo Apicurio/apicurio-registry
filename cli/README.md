@@ -303,6 +303,11 @@ Credentials are stored in a local file instead of the OS keychain. A warning is 
 - Windows: No prerequisites (uses Windows Credential Manager)
 - Headless/CI: Use `--allow-unsafe-credential-storage` if no keychain is available
 
+On Windows, a single secret cannot exceed 2560 bytes (`CRED_MAX_CREDENTIAL_BLOB_SIZE`), which is a
+limit of the Credential Manager itself; the macOS and Linux stores have no comparable limit. The CLI
+stores only a password or an OAuth2 client secret — access and refresh tokens are requested per
+invocation and never stored — so this is not reached in practice.
+
 ### Working with Groups
 
 Groups organize artifacts in the registry.

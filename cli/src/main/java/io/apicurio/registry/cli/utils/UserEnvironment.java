@@ -104,6 +104,9 @@ public class UserEnvironment {
         Process process = null;
         try {
             process = builder.start();
+            // The commands never read input. Closing the stream hands them end of input rather
+            // than an open pipe, so a child that did try to read cannot wait on it forever.
+            process.getOutputStream().close();
             // Read the output before waiting, so a large value cannot fill the pipe buffer and
             // block the child process while this thread waits for it to exit.
             final String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);

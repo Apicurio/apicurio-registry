@@ -108,7 +108,10 @@ class WindowsCredentialProvider implements CredentialProvider {
         try {
             final Credential credential = new Credential(pointer);
             if (credential.CredentialBlob == null || credential.CredentialBlobSize <= 0) {
-                return null;
+                // The entry exists but holds no bytes. Returning null here would report it as
+                // absent, whereas the other providers return the empty secret they stored, and
+                // only a missing entry reads as null.
+                return "";
             }
             blob = credential.CredentialBlob.getByteArray(0, credential.CredentialBlobSize);
             return new String(blob, StandardCharsets.UTF_16LE);

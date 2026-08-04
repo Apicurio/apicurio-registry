@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ProtobufDataTest {
 
@@ -355,5 +356,244 @@ public class ProtobufDataTest {
         assertEquals(Schema.Type.STRUCT, innerFieldSchema.type(),
                 "'inner' field must decode as STRUCT, not as wrapper message");
         assertEquals("hello", result.getStruct("inner").getString("val"));
+    }
+
+    @Test
+    public void testInt8MinAndMaxBoundaryValuesRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.Int8Bounds")
+                .field("min_val", Schema.INT8_SCHEMA)
+                .field("max_val", Schema.INT8_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema)
+                .put("min_val", Byte.MIN_VALUE)
+                .put("max_val", Byte.MAX_VALUE);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertEquals(Schema.Type.INT8, schemaAndValue.schema().field("min_val").schema().type(),
+                "INT8 type must be preserved for min boundary");
+        assertEquals(Schema.Type.INT8, schemaAndValue.schema().field("max_val").schema().type(),
+                "INT8 type must be preserved for max boundary");
+        assertEquals(Byte.MIN_VALUE, ((Number) result.get("min_val")).byteValue(),
+                "Byte.MIN_VALUE (-128) must survive int32 sign-extension round-trip");
+        assertEquals(Byte.MAX_VALUE, ((Number) result.get("max_val")).byteValue(),
+                "Byte.MAX_VALUE (127) must survive int32 sign-extension round-trip");
+    }
+
+    @Test
+    public void testInt16MinAndMaxBoundaryValuesRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.Int16Bounds")
+                .field("min_val", Schema.INT16_SCHEMA)
+                .field("max_val", Schema.INT16_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema)
+                .put("min_val", Short.MIN_VALUE)
+                .put("max_val", Short.MAX_VALUE);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertEquals(Schema.Type.INT16, schemaAndValue.schema().field("min_val").schema().type(),
+                "INT16 type must be preserved for min boundary");
+        assertEquals(Schema.Type.INT16, schemaAndValue.schema().field("max_val").schema().type(),
+                "INT16 type must be preserved for max boundary");
+        assertEquals(Short.MIN_VALUE, ((Number) result.get("min_val")).shortValue(),
+                "Short.MIN_VALUE (-32768) must survive int32 sign-extension round-trip");
+        assertEquals(Short.MAX_VALUE, ((Number) result.get("max_val")).shortValue(),
+                "Short.MAX_VALUE (32767) must survive int32 sign-extension round-trip");
+    }
+
+    @Test
+    public void testOptionalInt8BoundaryValuesRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.OptInt8Bounds")
+                .field("min_val", SchemaBuilder.int8().optional().build())
+                .field("max_val", SchemaBuilder.int8().optional().build())
+                .build();
+        Struct struct = new Struct(schema)
+                .put("min_val", Byte.MIN_VALUE)
+                .put("max_val", Byte.MAX_VALUE);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertEquals(Byte.MIN_VALUE, ((Number) result.get("min_val")).byteValue(),
+                "Optional INT8 Byte.MIN_VALUE must round-trip correctly");
+        assertEquals(Byte.MAX_VALUE, ((Number) result.get("max_val")).byteValue(),
+                "Optional INT8 Byte.MAX_VALUE must round-trip correctly");
+    }
+
+    @Test
+    public void testEmptyArrayFieldRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.EmptyArray")
+                .field("tags", SchemaBuilder.array(Schema.STRING_SCHEMA).build())
+                .build();
+        Struct struct = new Struct(schema).put("tags", List.of());
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        List<?> tags = result.getArray("tags");
+        assertNotNull(tags, "empty array field must not round-trip as null");
+        assertEquals(0, tags.size(), "empty array must round-trip as an empty list, not null");
+    }
+
+    @Test
+    public void testEmptyMapFieldRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.EmptyMap")
+                .field("counts", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT64_SCHEMA).build())
+                .build();
+        Struct struct = new Struct(schema).put("counts", Map.of());
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        Map<?, ?> counts = result.getMap("counts");
+        assertNotNull(counts, "empty map field must not round-trip as null");
+        assertEquals(0, counts.size(), "empty map must round-trip as an empty map, not null");
+    }
+
+    @Test
+    public void testEmptyArrayOfArrayRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.EmptyNestedArray")
+                .field("matrix", SchemaBuilder.array(
+                        SchemaBuilder.array(Schema.STRING_SCHEMA).build()).build())
+                .build();
+        Struct struct = new Struct(schema).put("matrix", List.of());
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        List<?> matrix = result.getArray("matrix");
+        assertNotNull(matrix, "empty array-of-array must not round-trip as null");
+        assertEquals(0, matrix.size(), "empty array-of-array must round-trip as empty list");
+    }
+
+    @Test
+    public void testFloat32NormalValueRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.FloatField")
+                .field("score", Schema.FLOAT32_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema).put("score", 3.14f);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertEquals(Schema.Type.FLOAT32, schemaAndValue.schema().field("score").schema().type(),
+                "FLOAT32 type must be preserved after round-trip");
+        assertEquals(3.14f, ((Number) result.get("score")).floatValue(), 0.0001f,
+                "FLOAT32 normal value must round-trip correctly");
+    }
+
+    @Test
+    public void testFloat64NormalValueRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.DoubleField")
+                .field("ratio", Schema.FLOAT64_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema).put("ratio", 2.718281828459045);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertEquals(Schema.Type.FLOAT64, schemaAndValue.schema().field("ratio").schema().type(),
+                "FLOAT64 type must be preserved after round-trip");
+        assertEquals(2.718281828459045, ((Number) result.get("ratio")).doubleValue(), 1e-15,
+                "FLOAT64 normal value must round-trip correctly");
+    }
+
+    @Test
+    public void testFloat32NaNRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.FloatNaN")
+                .field("val", Schema.FLOAT32_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema).put("val", Float.NaN);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertTrue(Float.isNaN(((Number) result.get("val")).floatValue()),
+                "Float.NaN must round-trip as NaN");
+    }
+
+    @Test
+    public void testFloat32PositiveInfinityRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.FloatInf")
+                .field("val", Schema.FLOAT32_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema).put("val", Float.POSITIVE_INFINITY);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertTrue(Float.isInfinite(((Number) result.get("val")).floatValue()),
+                "Float.POSITIVE_INFINITY must round-trip as Infinite");
+        assertTrue(((Number) result.get("val")).floatValue() > 0,
+                "Infinite value must be positive");
+    }
+
+    @Test
+    public void testFloat64NaNRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.DoubleNaN")
+                .field("val", Schema.FLOAT64_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema).put("val", Double.NaN);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertTrue(Double.isNaN(((Number) result.get("val")).doubleValue()),
+                "Double.NaN must round-trip as NaN");
+    }
+
+    @Test
+    public void testFloat64NegativeInfinityRoundTrip() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.DoubleNegInf")
+                .field("val", Schema.FLOAT64_SCHEMA)
+                .build();
+        Struct struct = new Struct(schema).put("val", Double.NEGATIVE_INFINITY);
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        assertTrue(Double.isInfinite(((Number) result.get("val")).doubleValue()),
+                "Double.NEGATIVE_INFINITY must round-trip as Infinite");
+        assertTrue(((Number) result.get("val")).doubleValue() < 0,
+                "Infinite value must be negative");
     }
 }

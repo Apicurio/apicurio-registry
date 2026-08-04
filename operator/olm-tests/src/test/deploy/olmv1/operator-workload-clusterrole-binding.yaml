@@ -1,0 +1,14 @@
+# Binds the admin-step workload ClusterRole to the operator's runtime ServiceAccount (not the
+# installer SA). See operator-workload-clusterrole.yaml for why this is needed under OLM v1.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: apicurio-registry-operator-workload-clusterrolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: apicurio-registry-operator-workload-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: apicurio-registry-operator
+    namespace: ${PLACEHOLDER_NAMESPACE}

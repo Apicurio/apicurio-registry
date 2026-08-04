@@ -2,17 +2,15 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-installing-the-registry-docker
 [id="installing-the-registry-docker_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Installing {registry} using Docker
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
-Install and run {registry} using Docker with the following storage options:
+Install and run {registry} using Docker with your choice of embedded H2, PostgreSQL, or Apache Kafka storage.
 
-* xref:installing-registry-h2-storage_{context}[]
-* xref:installing-registry-sql-storage_{context}[]
-* xref:installing-registry-kafka-storage_{context}[]
+== Prerequisites
 
-.Prerequisites
 * {registry-overview}
 
 NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on your storage option, for example, your Kafka or database cluster configuration, and on the number and type of artifacts stored in {registry}.
@@ -29,8 +27,9 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 
 // proc-installing-registry-h2-storage
 [id="installing-registry-h2-storage_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Installing {registry} with default configuration (embedded H2 database)
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can install and run {registry} with the default storage configuration from a container image. When you do not configure storage explicitly, the registry uses SQL storage with an embedded H2 database.
@@ -88,8 +87,9 @@ $ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Regi
 
 // proc-installing-registry-sql-storage
 [id="installing-registry-sql-storage_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Installing {registry} with SQL database storage
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Install and run {registry} with storage in a PostgreSQL database from a container image. This storage option is suitable for production environments.
@@ -158,15 +158,14 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
-// proc-installing-registry-sql-storage-secrets
-[id="installing-registry-sql-storage-secrets_{context}"]
-:_mod-docs-content-type: PROCEDURE
-== Using file-based secrets for database credentials
+// con-installing-registry-file-based-secrets
+[id="installing-registry-file-based-secrets_{context}"]
+== File-based secrets for database credentials
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Use file-based secrets for database credentials with {registry} when you use Docker Compose.
-This approach follows Docker's recommended secret management practices. It is more secure than passing credentials as
-environment variables.
+{registry} supports file-based secrets, a generic `_FILE` suffix pattern that lets you provide credentials, such as database passwords, from files instead of environment variables. This approach is more secure than passing credentials directly as environment variables.
 
 Instead of passing credentials and secrets as environment variables (which can be exposed in process lists and container
 inspection), you can use file-based secrets. {registry} supports a generic `_FILE` suffix pattern that works with
@@ -178,9 +177,47 @@ FileBasedSecretsInterceptor reads the file path from these properties and loads 
 
 To use file-based secrets for any configuration property, take any environment variable name (for example, `APICURIO_DATASOURCE_PASSWORD`), add the `_FILE` suffix (for example, `APICURIO_DATASOURCE_PASSWORD_FILE`), and set the value to a file path containing the secret. {registry} reads the file contents and uses them as the actual property value.
 
-This works for *any* configuration property, not only the examples listed in the following section.
+This works for *any* configuration property, not only the credential variables listed in the following reference.
 
-**Common file-based credential variables**
+When a `_FILE` variant is set, the registry reads the value from the specified file instead of using the direct
+environment variable. Configuration precedence: System properties (400) > File-based secrets (350) > Environment
+variables (300) > `application.properties` (250).
+
+**File format**
+
+Secret files must contain only the credential value in plain text (UTF-8 encoding). Leading and trailing whitespace
+is automatically trimmed. For example:
+
+[source,text]
+----
+mypassword
+----
+
+**Security considerations**
+
+* Ensure that secret files have restrictive permissions (for example, `chmod 600`)
+* Never commit secret files to version control (add them to `.gitignore`)
+* The registry logs a warning if secret files are world-readable
+* If a `_FILE` variable is set but the file does not exist or is not readable, the registry fails to start with a
+  clear error message
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://docs.docker.com/compose/how-tos/use-secrets/[Docker Compose secrets documentation]
+* xref:installing-registry-file-based-secrets-reference_{context}[]
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// ref-installing-registry-file-based-secrets
+[id="installing-registry-file-based-secrets-reference_{context}"]
+== Common file-based credential variables
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Reference list of the environment variables and configuration properties that support the file-based secrets `_FILE` suffix pattern in {registry}, grouped by credential type.
 
 The following list shows commonly used file-based credential environment variables and their corresponding properties:
 
@@ -211,9 +248,24 @@ Any other property::
 The `_FILE` suffix works with any configuration property. Add `_FILE` to any environment variable name and set
 the value to a file path.
 
-When a `_FILE` variant is set, the registry reads the value from the specified file instead of using the direct
-environment variable. Configuration precedence: System properties (400) > File-based secrets (350) > Environment
-variables (300) > `application.properties` (250).
+[role="_additional-resources"]
+.Additional resources
+* xref:installing-registry-file-based-secrets_{context}[]
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// proc-installing-registry-sql-storage-secrets
+[id="installing-registry-sql-storage-secrets_{context}"]
+== Using file-based secrets for database credentials
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Use file-based secrets for database credentials with {registry} when you use Docker Compose.
+This approach follows Docker's recommended secret management practices. It is more secure than passing credentials as
+environment variables.
 
 .Prerequisites
 
@@ -278,29 +330,11 @@ services:
 ----
 $ docker compose up -d
 ----
-+
-**File format**
-
-Secret files must contain only the credential value in plain text (UTF-8 encoding). Leading and trailing whitespace
-is automatically trimmed. For example:
-+
-[source,text]
-----
-mypassword
-----
-+
-**Security considerations**
-
-* Ensure that secret files have restrictive permissions (for example, `chmod 600`)
-* Never commit secret files to version control (add them to `.gitignore`)
-* The registry logs a warning if secret files are world-readable
-* If a `_FILE` variable is set but the file does not exist or is not readable, the registry fails to start with a
-  clear error message
 
 [role="_additional-resources"]
 .Additional resources
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/docker-compose/pg-secrets[PostgreSQL with file-based secrets example]
-* link:https://docs.docker.com/compose/how-tos/use-secrets/[Docker Compose secrets documentation]
+* xref:installing-registry-file-based-secrets_{context}[]
 
 
 // Metadata created by nebel
@@ -308,9 +342,9 @@ mypassword
 
 // proc-installing-registry-kafka-storage
 [id="installing-registry-kafka-storage_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Installing {registry} with Apache Kafka storage
 
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka as the primary data store. It uses an embedded H2 database as a local SQL store that the registry rebuilds from the Kafka journal on each startup. This storage option is suitable for production environments.
@@ -352,7 +386,6 @@ For example:
 $ docker run -it -p 8080:8080 -e "APICURIO_STORAGE_KIND=kafkasql" -e "APICURIO_KAFKASQL_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry:latest
 ----
 
-
 . Send a test request using the {registry} REST API. For example, enter the following `curl` command to create an Avro schema artifact for a share price application in the registry:
 +
 [source,bash]
@@ -371,5 +404,3 @@ $ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
 * https://kafka.apache.org/documentation/[Apache Kafka documentation]
-
-

@@ -1,26 +1,23 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
+:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
 [id="agent-discovery-patterns_{context}"]
 = Agent discovery and multi-agent orchestration
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can use {registry} well-known endpoints to discover AI agents by skill, capability, and input or output mode. You can also orchestrate multi-agent workflows by chaining agent outputs as context for subsequent agents.
 
 ifdef::service-registry-downstream[]
-WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope].
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
 endif::[]
 
-* xref:well-known-endpoint-architecture_{context}[]
-* xref:agent-discovery-patterns-overview_{context}[]
-* xref:multi-agent-orchestration-patterns_{context}[]
-* xref:agent-error-handling-and-resilience_{context}[]
-* xref:agent-catalog-design_{context}[]
-
 // ref-well-known-endpoint-architecture
-:_mod-docs-content-type: REFERENCE
 [id="well-known-endpoint-architecture_{context}"]
 == Well-known endpoint architecture
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} exposes well-known endpoints for agent discovery, MCP tool discovery, and JSON schema retrieval. Each endpoint serves a specific role in the A2A and MCP ecosystems.
@@ -68,100 +65,97 @@ The `/.well-known/mcp-tools` and `/.well-known/mcp-tools/\{groupId}/\{artifactId
 
 The `/.well-known/schemas/\{type}/\{version}` endpoint serves built-in JSON schemas that you can use for IDE autocompletion and validation of `PROMPT_TEMPLATE`, `MODEL_SCHEMA`, and `MCP_TOOL` artifacts. This endpoint requires no authentication.
 
-For detailed endpoint reference and Agent Card JSON structure, see xref:assembly-a2a-features_{context}[].
+[role="_additional-resources"]
+.Additional resources
+* xref:assembly-a2a-features_{context}[]
 
 // con-agent-discovery-patterns-overview
-:_mod-docs-content-type: CONCEPT
 [id="agent-discovery-patterns-overview_{context}"]
 == Discovery patterns
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 {registry} indexes agent card content as structured data when you store an `AGENT_CARD` artifact. You can query agents by skill, capability, input mode, output mode, or name by using the `/.well-known/agents` endpoint.
 
-.Capability-based discovery
-
-You can find agents that have specific skills by using the `skill` query parameter. {registry} indexes each skill ID from the agent card `skills` array as structured content with the key `agent_card:skill:<id>`.
-
+Capability-based discovery:: You can find agents that have specific skills by using the `skill` query parameter. {registry} indexes each skill ID from the agent card `skills` array as structured content with the key `agent_card:skill:<id>`.
++
 To find agents that have a specific skill, send a request with one `skill` parameter:
-
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/agents?skill=translation"
 ----
-
++
 To find agents that have multiple skills, repeat the `skill` parameter. {registry} returns only agents that match all specified skills:
-
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/agents?skill=translation&skill=sentiment-analysis"
 ----
 
-.Filtering by capabilities
-
-You can filter agents by capabilities such as streaming or push notification support. {registry} indexes each enabled capability from the agent card `capabilities` object as structured content with the key `agent_card:capability:<name>`.
-
+Filtering by capabilities:: You can filter agents by capabilities such as streaming or push notification support. {registry} indexes each enabled capability from the agent card `capabilities` object as structured content with the key `agent_card:capability:<name>`.
++
 Specify capabilities in `name:value` format. For example, to find agents that support streaming:
-
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/agents?capability=streaming:true"
 ----
-
++
 To exclude agents that support streaming, set the value to `false`. {registry} negates the filter and returns only agents that do not have streaming enabled:
-
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/agents?capability=streaming:false"
 ----
 
-.Input and output mode filtering
-
-You can match agents by the data modalities they accept or produce. {registry} indexes each mode from the agent card `defaultInputModes` and `defaultOutputModes` arrays as structured content with the keys `agent_card:inputmode:<mode>` and `agent_card:outputmode:<mode>`.
-
+Input and output mode filtering:: You can match agents by the data modalities they accept or produce. {registry} indexes each mode from the agent card `defaultInputModes` and `defaultOutputModes` arrays as structured content with the keys `agent_card:inputmode:<mode>` and `agent_card:outputmode:<mode>`.
++
 To find agents that accept image input and produce text output:
-
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/agents?inputMode=image&outputMode=text"
 ----
 
-.Name-based search
-
-You can filter agents by name by using partial matching. {registry} matches the `name` parameter against the artifact name:
-
+Name-based search:: You can filter agents by name by using partial matching. {registry} matches the `name` parameter against the artifact name:
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/agents?name=sentiment"
 ----
 
-.Combined filtering
-
-You can combine any of the previous filters in a single request. {registry} applies all filters together and returns only agents that match all specified criteria:
-
+Combined filtering:: You can combine any of the previous filters in a single request. {registry} applies all filters together and returns only agents that match all specified criteria:
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/agents?skill=translation&inputMode=text&outputMode=text&capability=streaming:true&limit=10"
 ----
 
-.MCP tool discovery
-
-You can search for registered MCP tool definitions by name or input parameter. {registry} indexes each input parameter name from the tool `inputSchema.properties` as structured content with the key `mcp_tool:parameter:<name>`:
-
+MCP tool discovery:: You can search for registered MCP tool definitions by name or input parameter. {registry} indexes each input parameter name from the tool `inputSchema.properties` as structured content with the key `mcp_tool:parameter:<name>`:
++
 [source,bash]
 ----
 $ curl "http://localhost:8080/.well-known/mcp-tools?name=search&parameter=query"
 ----
 
 // con-multi-agent-orchestration-patterns
-:_mod-docs-content-type: CONCEPT
 [id="multi-agent-orchestration-patterns_{context}"]
 == Multi-agent orchestration patterns
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 You can orchestrate multi-agent workflows by combining {registry} discovery endpoints with A2A task execution. {registry} provides the discovery layer, and your orchestrator code coordinates the agent interactions.
 
-.Sequential pipeline with context chaining
+// con-sequential-pipeline-context-chaining
+[id="sequential-pipeline-context-chaining_{context}"]
+== Sequential pipeline with context chaining
 
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
 In a sequential pipeline, each agent receives the original message and the accumulated outputs from all previous agents. Each agent builds on the work of the agents that ran before it.
 
 Use a sequential pipeline when:
@@ -192,8 +186,13 @@ context.agentOutputs.put("analysis", analysisResult);
 String prompt = context.buildPrompt("Original: {{original}}\nSentiment: {{sentiment}}");
 ----
 
-.Parallel fan-out
+// con-parallel-fan-out
+[id="parallel-fan-out_{context}"]
+== Parallel fan-out
 
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
 In a parallel fan-out, you send the same input to multiple agents simultaneously and aggregate the results. You discover the agents by using `/.well-known/agents` with appropriate filters.
 
 Use parallel fan-out when:
@@ -204,8 +203,13 @@ Use parallel fan-out when:
 
 In a typical parallel fan-out, the orchestrator discovers agents with a specific skill by querying `/.well-known/agents?skill=<skill-id>`, sends the same A2A task to each discovered agent in parallel, and then collects the responses to merge or compare them.
 
-.Conditional routing
+// con-conditional-routing
+[id="conditional-routing_{context}"]
+== Conditional routing
 
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
 In conditional routing, you use agent capabilities and skills to decide which agent handles a request. You inspect agent cards to select the best match.
 
 Use conditional routing when:
@@ -217,9 +221,10 @@ Use conditional routing when:
 In a typical conditional routing flow, the orchestrator determines the required capability from the incoming request (for example, `streaming:true` for real-time processing), queries `/.well-known/agents` with the appropriate filters, selects an agent from the results based on additional criteria such as version or provider, and sends the A2A task to the selected agent.
 
 // ref-agent-error-handling-and-resilience
-:_mod-docs-content-type: REFERENCE
 [id="agent-error-handling-and-resilience_{context}"]
 == Error handling and resilience
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you build multi-agent workflows, you must handle agent unavailability, version changes, and unexpected errors. The following table lists common error scenarios and recommended handling strategies.
@@ -261,7 +266,7 @@ When you build multi-agent workflows, you must handle agent unavailability, vers
 |Verify that agent cards are stored with artifact type `AGENT_CARD`, check that your filter values match stored values, and confirm that structured content was indexed correctly.
 |===
 
-.Resilience strategies
+The following resilience strategies help you handle agent unavailability and version changes:
 
 Agent health checks:: Before you send a task to a discovered agent, verify that the agent is reachable. Fetch the agent card from `/.well-known/agents/\{groupId}/\{artifactId}` and check the `supportedInterfaces` array for the agent URL. Send a health check request to the agent URL before dispatching the full task.
 
@@ -277,24 +282,21 @@ $ curl "http://localhost:8080/.well-known/agents/ai-agents/my-agent?version=1.0.
 Use version pinning in production environments to prevent unexpected behavior when you update agent cards.
 
 // con-agent-catalog-design
-:_mod-docs-content-type: CONCEPT
 [id="agent-catalog-design_{context}"]
 == Agent catalog design
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 You can organize your agent cards in {registry} by using groups, naming conventions, and versioning strategies that support efficient discovery and lifecycle management.
 
-.Group structure
-
-Organize agent cards into groups based on your organizational needs:
+**Group structure.** Organize agent cards into groups based on your organizational needs:
 
 * **By team**: `team-alpha`, `team-beta`. Use this approach when teams own distinct sets of agents and you want clear ownership boundaries.
 * **By capability**: `nlp-agents`, `vision-agents`, `data-agents`. Use this approach when you want to browse agents by functional area.
 * **By environment**: `dev-agents`, `staging-agents`, `prod-agents`. Use this approach when you run separate agent registries per environment, or when you need to distinguish agent versions by deployment target.
 
-.Agent card naming and versioning
-
-Use descriptive artifact IDs that indicate the agent purpose, such as `sentiment-analyzer` or `document-translator`. Include the version in the agent card content to distinguish between released versions.
+**Agent card naming and versioning.** Use descriptive artifact IDs that indicate the agent purpose, such as `sentiment-analyzer` or `document-translator`. Include the version in the agent card content to distinguish between released versions.
 
 Follow semantic versioning for agent cards:
 
@@ -302,18 +304,15 @@ Follow semantic versioning for agent cards:
 * Increment the minor version when you add skills or capabilities.
 * Increment the patch version for description or metadata updates.
 
-.Agent lifecycle
-
-Manage agent cards through a defined lifecycle:
+**Agent lifecycle.** Manage agent cards through a defined lifecycle:
 
 * **Draft**: an initial agent card in a development group (for example, `dev-agents/my-agent`), validated against {registry} validation rules.
 * **Published**: a production-ready agent card in a production group (for example, `prod-agents/my-agent`). Other agents and orchestrators discover the agent through well-known endpoints.
 * **Deprecated**: a disabled agent card version. Disabled versions are excluded from the `latest` branch and do not appear in search results that use default version resolution.
 
-.Structured content taxonomy
-
 {registry} automatically extracts structured content from agent cards for search indexing. The following table lists the structured content key prefixes and their sources.
 
+.Structured content taxonomy
 [cols="2,3",options="header"]
 |===
 |Structured content key |Source in agent card

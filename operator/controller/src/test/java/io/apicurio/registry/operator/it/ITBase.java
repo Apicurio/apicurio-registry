@@ -85,6 +85,8 @@ public abstract class ITBase implements OperatorTestContext {
             Integer.getInteger("test.operator.timeout.kafka-broker", 600));
     public static final Duration KAFKA_REGISTRY_READY_TIMEOUT = ofSeconds(
             Integer.getInteger("test.operator.timeout.kafka-registry", 480));
+    public static final Duration DATABASE_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.database", 900));
 
     public enum OperatorDeployment {
         local, remote
@@ -110,6 +112,10 @@ public abstract class ITBase implements OperatorTestContext {
     @Override
     public String getNamespace() {
         return namespace;
+    }
+
+    static boolean isLocalDeployment() {
+        return getConfig().getValue(OPERATOR_DEPLOYMENT_PROP, OperatorDeployment.class) == OperatorDeployment.local;
     }
 
     @BeforeAll

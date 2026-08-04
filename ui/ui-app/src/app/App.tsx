@@ -7,6 +7,7 @@ import { BrowserRouter as Router } from "react-router";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { MainPageWithAuth } from "@app/MainPageWithAuth.tsx";
+import { ErrorBoundaryWithRouter } from "@app/components";
 
 export type AppProps = object;
 
@@ -22,7 +23,9 @@ export const App: FunctionComponent<AppProps> = () => {
 
     return (
         <Router basename={contextPath}>
-            <MainPageWithAuth />
+            <ErrorBoundaryWithRouter>
+                <MainPageWithAuth />
+            </ErrorBoundaryWithRouter>
         </Router>
     );
 };

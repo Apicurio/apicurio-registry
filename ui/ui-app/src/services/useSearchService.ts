@@ -30,9 +30,8 @@ const VERSION_STATES: string[] = [
 const searchGroups = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults> => {
     console.debug("[SearchService] Searching groups: ", filters, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -51,9 +50,8 @@ const searchGroups = async (config: ConfigService, auth: AuthService, filters: S
 const searchArtifacts = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
     console.debug("[SearchService] Searching artifacts: ", filters, sortBy, sortOrder, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -74,9 +72,8 @@ const searchArtifacts = async (config: ConfigService, auth: AuthService, filters
 const searchVersions = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
     console.debug("[SearchService] Searching versions: ", filters, sortBy, sortOrder, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy

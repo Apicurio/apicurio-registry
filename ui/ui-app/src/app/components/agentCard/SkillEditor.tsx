@@ -93,9 +93,9 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
         setNewTag("");
     };
 
-    const handleRemoveTag = (tagToRemove: string): void => {
+    const handleRemoveTag = (indexToRemove: number): void => {
         if (!editingSkill) return;
-        const tags = (editingSkill.tags || []).filter(t => t !== tagToRemove);
+        const tags = (editingSkill.tags || []).filter((_, i) => i !== indexToRemove);
         setEditingSkill({ ...editingSkill, tags });
     };
 
@@ -106,9 +106,9 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
         setNewExample("");
     };
 
-    const handleRemoveExample = (exampleToRemove: string): void => {
+    const handleRemoveExample = (indexToRemove: number): void => {
         if (!editingSkill) return;
-        const examples = (editingSkill.examples || []).filter(e => e !== exampleToRemove);
+        const examples = (editingSkill.examples || []).filter((_, i) => i !== indexToRemove);
         setEditingSkill({ ...editingSkill, examples });
     };
 
@@ -165,13 +165,13 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                             </Button>
                         </InputGroupItem>
                     </InputGroup>
-                    <If condition={editingSkill.tags !== undefined && editingSkill.tags.length > 0}>
+                    <If condition={(editingSkill.tags?.length ?? 0) > 0}>
                         <LabelGroup className="tags-list">
-                            {(editingSkill.tags || []).map((tag, index) => (
+                            {editingSkill.tags?.map((tag, index) => (
                                 <Label
                                     key={index}
                                     color="blue"
-                                    onClose={() => handleRemoveTag(tag)}
+                                    onClose={() => handleRemoveTag(index)}
                                 >
                                     {tag}
                                 </Label>
@@ -201,13 +201,13 @@ export const SkillEditor: FunctionComponent<SkillEditorProps> = (props: SkillEdi
                             </Button>
                         </InputGroupItem>
                     </InputGroup>
-                    <If condition={editingSkill.examples !== undefined && editingSkill.examples.length > 0}>
+                    <If condition={(editingSkill.examples?.length ?? 0) > 0}>
                         <LabelGroup className="examples-list" style={{ marginTop: "8px" }}>
-                            {(editingSkill.examples || []).map((example, index) => (
+                            {editingSkill.examples?.map((example, index) => (
                                 <Label
                                     key={index}
                                     color="green"
-                                    onClose={() => handleRemoveExample(example)}
+                                    onClose={() => handleRemoveExample(index)}
                                 >
                                     {example}
                                 </Label>

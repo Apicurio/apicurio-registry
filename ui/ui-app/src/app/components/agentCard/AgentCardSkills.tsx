@@ -46,7 +46,7 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
     };
 
     const renderSkillTags = (skill: AgentSkill): React.ReactElement | null => {
-        if (!skill.tags || skill.tags.length === 0) {
+        if (!skill.tags?.length) {
             return null;
         }
         return (
@@ -61,7 +61,7 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
     };
 
     const renderSkillExamples = (skill: AgentSkill): React.ReactElement | null => {
-        if (!skill.examples || skill.examples.length === 0) {
+        if (!skill.examples?.length) {
             return null;
         }
         return (

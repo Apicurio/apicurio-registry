@@ -23,7 +23,7 @@ export const PlaygroundVariableForm: FunctionComponent<PlaygroundVariableFormPro
     const { variables, values, isRendering, onValueChange, onRender } = props;
 
     return (
-        <Form className="test-panel-form">
+        <Form className="test-panel-form" aria-label="Template variable inputs">
             {variables.length === 0 && (
                 <span className="no-variables-text">
                     No variables detected in template.

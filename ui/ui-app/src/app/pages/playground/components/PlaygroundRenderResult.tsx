@@ -1,7 +1,6 @@
 import { FunctionComponent } from "react";
 import { Alert, Label, Spinner, Title } from "@patternfly/react-core";
-
-export type RenderValidationError = { path?: string; message: string };
+import { RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
 
 export type PlaygroundRenderResultProps = {
     isRendering: boolean;
@@ -9,7 +8,7 @@ export type PlaygroundRenderResultProps = {
     localPreview: string;
     isModified: boolean;
     renderError: string;
-    validationErrors: RenderValidationError[];
+    validationErrors: RenderPromptValidationError[];
 };
 
 /**

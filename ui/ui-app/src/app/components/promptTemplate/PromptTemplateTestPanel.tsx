@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -31,6 +31,8 @@ export type PromptTemplateTestPanelProps = {
     className?: string;
 };
 
+type VariableValue = string | number | boolean | Record<string, unknown> | unknown[];
+
 const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
     if (!variables) return [];
     if (Array.isArray(variables)) {
@@ -41,18 +43,23 @@ const getVariablesList = (variables: Record<string, PromptVariable> | PromptVari
 
 export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {
     const groups: GroupsService = useGroupsService();
-    const variablesList = getVariablesList(props.variables);
-
-    const initialValues: Record<string, any> = {};
-    variablesList.forEach(({ name, variable }) => {
-        if (variable.default !== undefined) {
-            initialValues[name] = variable.default;
-        } else {
-            initialValues[name] = "";
-        }
+    const groupsRef = useRef<GroupsService>(groups);
+    useEffect(() => {
+        groupsRef.current = groups;
     });
 
-    const [values, setValues] = useState<Record<string, any>>(initialValues);
+    const variablesList = useMemo(
+        () => getVariablesList(props.variables),
+        [props.variables]
+    );
+
+    const [values, setValues] = useState<Record<string, VariableValue>>(() => {
+        const init: Record<string, VariableValue> = {};
+        getVariablesList(props.variables).forEach(({ name, variable }) => {
+            init[name] = variable.default !== undefined ? variable.default : "";
+        });
+        return init;
+    });
 
     useEffect(() => {
         setValues(prev => {
@@ -65,18 +72,18 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             });
             return next;
         });
-    }, [props.variables]);
+    }, [variablesList]);
 
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
-    const setValue = (name: string, value: any): void => {
+    const setValue = useCallback((name: string, value: VariableValue): void => {
         setValues(prev => ({ ...prev, [name]: value }));
-    };
+    }, []);
 
-    const doRender = (): void => {
+    const doRender = useCallback((): void => {
         setIsLoading(true);
         setError("");
         setValidationErrors([]);
@@ -87,20 +94,25 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             gid = null;
         }
 
-        groups.renderPromptTemplate(gid, props.artifactId, props.version, values)
+        groupsRef.current.renderPromptTemplate(gid, props.artifactId, props.version, values)
             .then((response: RenderPromptResponse) => {
                 setRenderedOutput(response.rendered || "");
                 if (response.validationErrors && response.validationErrors.length > 0) {
                     setValidationErrors(response.validationErrors);
                 }
             })
-            .catch((err: any) => {
-                setError(err?.message || "Error rendering prompt template");
+            .catch((err: unknown) => {
+                const message = err instanceof Error
+                    ? err.message
+                    : (err && typeof err === "object" && "message" in err)
+                        ? (err as { message: string }).message
+                        : "Error rendering prompt template";
+                setError(message);
             })
             .finally(() => {
                 setIsLoading(false);
             });
-    };
+    }, [props.groupId, props.artifactId, props.version, values]);
 
     const renderField = (name: string, variable: PromptVariable): React.ReactNode => {
         const type = (variable.type || "string").toLowerCase();
@@ -108,13 +120,13 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         if (variable.enum && variable.enum.length > 0) {
             return (
                 <FormSelect
-                    value={values[name] ?? ""}
+                    value={(values[name] as string) ?? ""}
                     onChange={(_event, val) => setValue(name, coerceEnumValue(val, type))}
                     aria-label={name}
                 >
                     <FormSelectOption key="placeholder" value="" label="-- Select --" />
-                    {variable.enum.map((opt, i) => (
-                        <FormSelectOption key={i} value={opt} label={opt} />
+                    {variable.enum.map((opt) => (
+                        <FormSelectOption key={String(opt)} value={opt} label={String(opt)} />
                     ))}
                 </FormSelect>
             );
@@ -134,7 +146,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                                     {booleanLabelText}
                                     <span
                                         aria-hidden="true"
-                                        style={{ color: "var(--pf-t--global--color--status--danger--default)", marginLeft: "0.25rem" }}
+                                        className="required-asterisk"
                                     >
                                         *
                                     </span>
@@ -149,7 +161,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 return (
                     <TextInput
                         type="number"
-                        value={values[name] || ""}
+                        value={(values[name] as string | number) || ""}
                         onChange={(_event, val) => setValue(name, type === "integer" ? parseInt(val) || "" : parseFloat(val) || "")}
                         aria-label={name}
                     />
@@ -158,7 +170,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             case "object":
                 return (
                     <TextArea
-                        value={typeof values[name] === "string" ? values[name] : JSON.stringify(values[name] || "", null, 2)}
+                        value={typeof values[name] === "string" ? (values[name] as string) : JSON.stringify(values[name] || "", null, 2)}
                         onChange={(_event, val) => {
                             try {
                                 setValue(name, JSON.parse(val));
@@ -174,7 +186,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 return (
                     <TextInput
                         type="text"
-                        value={values[name] || ""}
+                        value={(values[name] as string) || ""}
                         onChange={(_event, val) => setValue(name, val)}
                         aria-label={name}
                     />
@@ -191,11 +203,11 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             </CardHeader>
             <CardBody>
                 <Form className="test-panel-form">
-                    {variablesList.map(({ name, variable }, index) => {
+                    {variablesList.map(({ name, variable }) => {
                         const isBoolean = (variable.type || "string").toLowerCase() === "boolean";
                         return (
                             <FormGroup
-                                key={index}
+                                key={name}
                                 label={isBoolean ? undefined : (variable.description ? `${name} - ${variable.description}` : name)}
                                 isRequired={variable.required}
                                 fieldId={`var-${name}`}
@@ -227,8 +239,8 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 {validationErrors.length > 0 && (
                     <Alert variant="warning" title="Validation Errors" className="validation-errors">
                         <ul>
-                            {validationErrors.map((ve, i) => (
-                                <li key={i}>{ve.path ? `${ve.path}: ` : ""}{ve.message}</li>
+                            {validationErrors.map((ve) => (
+                                <li key={`${ve.path ?? "root"}-${ve.message}`}>{ve.path ? `${ve.path}: ` : ""}{ve.message}</li>
                             ))}
                         </ul>
                     </Alert>
@@ -236,7 +248,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
 
                 {renderedOutput && (
                     <>
-                        <Title headingLevel="h4" size="md" style={{ marginTop: "16px" }}>Rendered Output</Title>
+                        <Title headingLevel="h4" size="md" className="rendered-output-title">Rendered Output</Title>
                         <div className="rendered-output">{renderedOutput}</div>
                     </>
                 )}

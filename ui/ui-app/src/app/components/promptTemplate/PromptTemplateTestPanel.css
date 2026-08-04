@@ -21,3 +21,12 @@
 .prompt-template-test-panel .validation-errors {
     margin-top: 8px;
 }
+
+.prompt-template-test-panel .required-asterisk {
+    color: var(--pf-t--global--color--status--danger--default);
+    margin-left: 0.25rem;
+}
+
+.prompt-template-test-panel .rendered-output-title {
+    margin-top: 16px;
+}

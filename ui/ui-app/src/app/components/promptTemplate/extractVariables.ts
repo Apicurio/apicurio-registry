@@ -16,6 +16,11 @@ const BLOCK_KEYWORDS = new Set([
 ]);
 
 /**
+ * Canonical regex pattern matching {{variable}} tokens in template strings.
+ */
+export const VARIABLE_PATTERN = /\{\{([^}]+)\}\}/g;
+
+/**
  * Extracts {{variable}} names from a prompt template string.
  *
  * Handles:
@@ -34,7 +39,7 @@ export const extractVariables = (template: string): string[] => {
         return [];
     }
 
-    const variablePattern = /\{\{([^}]+)\}\}/g;
+    const variablePattern = new RegExp(VARIABLE_PATTERN.source, "g");
     const seen = new Set<string>();
     const result: string[] = [];
     let match: RegExpExecArray | null;

@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { RenderPromptResponse } from "@models/RenderPromptResponse.ts";
-import { extractVariables } from "@app/components/promptTemplate/extractVariables";
-
-export type RenderValidationError = { path?: string; message: string };
+import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
+import { extractVariables, VARIABLE_PATTERN } from "@app/components/promptTemplate/extractVariables";
 
 export type UsePromptPlaygroundResult = {
     // Content
@@ -20,7 +18,7 @@ export type UsePromptPlaygroundResult = {
     serverRendered: string;
     localPreview: string;
     renderError: string;
-    validationErrors: RenderValidationError[];
+    validationErrors: RenderPromptValidationError[];
     // Handlers
     handleEditorChange: (newValue: string) => void;
     handleVariablesChange: (newVars: string[]) => void;
@@ -63,7 +61,7 @@ export const usePromptPlayground = (
     const [serverRendered, setServerRendered] = useState<string>("");
     const [localPreview, setLocalPreview] = useState<string>("");
     const [renderError, setRenderError] = useState<string>("");
-    const [validationErrors, setValidationErrors] = useState<RenderValidationError[]>([]);
+    const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
 
     const isModified = currentTemplate !== originalTemplate;
 
@@ -141,7 +139,15 @@ export const usePromptPlayground = (
         setRenderError("");
         setValidationErrors([]);
         setServerRendered("");
-        setLocalPreview("");
+
+        // Compute local preview atomically with state reset (no flicker on re-trigger)
+        setLocalPreview(isModified
+            ? currentTemplate.replace(new RegExp(VARIABLE_PATTERN.source, "g"), (_match, rawName: string) => {
+                const name = rawName.trim();
+                return (name in values && values[name] !== "") ? values[name] : `{{${name}}}`;
+            })
+            : ""
+        );
 
         // Always call the real backend (uses stored template)
         const gid = groupId === "default" ? null : groupId;
@@ -161,15 +167,6 @@ export const usePromptPlayground = (
             .finally(() => {
                 setIsRendering(false);
             });
-
-        // If template was modified, also compute client-side preview
-        if (isModified) {
-            const preview = currentTemplate.replace(/\{\{([^}]+)\}\}/g, (_match, rawName: string) => {
-                const name = rawName.trim();
-                return (name in values && values[name] !== "") ? values[name] : `{{${name}}}`;
-            });
-            setLocalPreview(preview);
-        }
     }, [groupId, artifactId, version, values, isModified, currentTemplate]);
 
     return {

@@ -67,9 +67,10 @@ class RbacSplitTest {
 
     /**
      * The namespace tier (-> {@code permissions}) is where workloads live. It must contain the
-     * workload verbs (asserted via {@code apps/deployments/create} as a marker) and must never
-     * contain cluster-scoped CRD access or the cluster-scoped CR discovery ({@code list}/{@code
-     * watch} on the CR), which belong to the informer in the cluster tier.
+     * workload verbs (asserted via {@code apps/deployments/create} as a marker) and the CR mutation
+     * verbs ({@code patch}/{@code update} on the CR and its {@code /status}), and must never contain
+     * cluster-scoped CRD access or the cluster-scoped CR discovery ({@code list}/{@code watch} on the
+     * CR), which belong to the informer in the cluster tier.
      */
     @Test
     void namespaceTierHoldsWorkloadsAndNoClusterScopedDiscovery() throws IOException {
@@ -78,6 +79,17 @@ class RbacSplitTest {
         assertThat(tuples(rules)).withFailMessage(
                 "role.yaml (-> permissions) must grant workload access such as creating Deployments.")
                 .contains("apps/deployments/create");
+
+        // Positive guard for the CR mutation verbs. Without this, a refactor that removed them from
+        // role.yaml entirely would still pass: the "no list/watch" check below only runs when a
+        // CR-targeting rule exists, and RbacInstallerSyncTest is satisfied by a smaller operator set.
+        assertThat(tuples(rules)).withFailMessage(
+                "role.yaml (-> permissions) must grant the CR mutation verbs (patch/update on the CR and "
+                        + "its /status), which the operator uses for spec migration, status, and the finalizer.")
+                .contains(CR_GROUP + "/" + CR_RESOURCE + "/patch",
+                        CR_GROUP + "/" + CR_RESOURCE + "/update",
+                        CR_GROUP + "/" + CR_RESOURCE + "/status/patch",
+                        CR_GROUP + "/" + CR_RESOURCE + "/status/update");
 
         for (PolicyRule rule : rules) {
             assertThat(groupsOf(rule)).withFailMessage(

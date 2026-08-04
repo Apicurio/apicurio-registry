@@ -13,7 +13,8 @@ The CLI is distributed as a native executable. A separate ZIP is provided for ea
 | Windows  | x86_64                  | `windows-x86_64` | cmd / PowerShell |
 
 On Windows the binaries are not code-signed, so SmartScreen may warn the first time you run
-the CLI. Windows on ARM and PowerShell tab-completions are not supported yet.
+the CLI. Windows on ARM and PowerShell tab-completions are not supported yet, and a stored
+secret cannot exceed 2560 bytes — see [Authentication](#authentication) for what that covers.
 
 ## Installation
 

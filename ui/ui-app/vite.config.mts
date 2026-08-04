@@ -12,7 +12,13 @@ export default defineConfig({
     },
     test: {
         environment: "node",
-        include: ["src/**/*.test.ts", "src/**/*.test.tsx"]
+        include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+        alias: [
+            {
+                find: /.*apicurioRegistryClient\.js$/,
+                replacement: "../../typescript-sdk/lib/generated-client/apicurioRegistryClient.ts"
+            }
+        ]
     },
     // define: {
     //     "process.platform": {}

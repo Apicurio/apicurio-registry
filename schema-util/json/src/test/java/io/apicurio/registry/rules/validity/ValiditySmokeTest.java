@@ -13,16 +13,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 
-import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.MAPPER;
-import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.readResource;
+import io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor;
 import static io.apicurio.registry.json.rules.compatibility.jsonschema.JsonUtil.readSchema;
 
 public class ValiditySmokeTest {
 
 
     public static Stream<TestCase> cases() throws JsonProcessingException {
-        var rawData = readResource(ValiditySmokeTest.class, "test-data.json");
-        var testCases = MAPPER.readValue(rawData, TestCases.class);
+        var rawData = CompatibilityTestExecutor.readResource(ValiditySmokeTest.class, "test-data.json");
+        var testCases = CompatibilityTestExecutor.MAPPER.readValue(rawData, TestCases.class);
         return testCases.tests.stream();
     }
 

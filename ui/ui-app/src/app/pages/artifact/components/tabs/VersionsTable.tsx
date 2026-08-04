@@ -202,7 +202,7 @@ export const VersionsTable: FunctionComponent<VersionsTableProps> = (props: Vers
                         className="versions-table-header"
                         key={`header-${column.id}`}
                         width={column.width}
-                        modifier="truncate" title={column.label}>{column.label}</Th>
+                        modifier="truncate">{column.label}</Th>
                 )}
                 renderCell={({ row, colIndex, Td }) => (
                     <Td className="versions-table-cell" key={`cell-${colIndex}-${shash(row.version!)}`}

@@ -1,15 +1,27 @@
 .resizable-overview-drawer {
-    min-width: 800px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .resizable-overview-drawer .resizable-overview-drawer__panel,
-.resizable-overview-drawer .pf-v6-c-drawer__content {
-    min-width: 400px;
+.resizable-overview-drawer .pf-v6-c-drawer__content,
+.resizable-overview-drawer .pf-v6-c-drawer__body {
+    min-width: 0;
 }
 
 .resizable-overview-drawer .pf-v6-c-drawer__content,
-.resizable-overview-drawer .pf-v6-c-drawer__content > .pf-v6-c-drawer__body {
+.resizable-overview-drawer .pf-v6-c-drawer__body {
     overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.resizable-overview-drawer .resizable-overview-drawer__panel {
+    max-width: 100%;
+    flex-shrink: 0;
 }
 
 /* Keep tabular data readable by scrolling horizontally instead of hiding columns. */
@@ -19,27 +31,8 @@
 }
 
 .resizable-overview-drawer .pf-v6-c-table {
-    min-width: 700px;
-}
-
-.resizable-overview-drawer .pf-v6-c-table.pf-m-grid {
-    display: table;
-}
-
-.resizable-overview-drawer .pf-v6-c-table.pf-m-grid > thead {
-    display: table-header-group;
-}
-
-.resizable-overview-drawer .pf-v6-c-table.pf-m-grid > tbody {
-    display: table-row-group;
-}
-
-.resizable-overview-drawer .pf-v6-c-table.pf-m-grid tr {
-    display: table-row;
-}
-
-.resizable-overview-drawer .pf-v6-c-table .pf-m-hidden {
-    display: table-cell;
+    min-width: 0;
+    width: 100%;
 }
 
 .resizable-overview-drawer .pf-v6-c-toolbar__content {

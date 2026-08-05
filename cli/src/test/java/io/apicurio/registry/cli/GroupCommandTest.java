@@ -111,13 +111,32 @@ public class GroupCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testGroupGetCommandFails() {
-        // Unknown output type
-        executeAndAssertFailure("group", "create", "--output-type", "foo");
+    public void testGroupListCommandFails() {
+        // Pagination options belong to the `group` list command, not to `group create`.
+        // Assert on the error message so these cases cannot pass merely because the
+        // option is unrecognized by the command under test.
+
         // Page must be greater than 0
-        executeAndAssertFailure("group", "create", "-p", "-1");
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "-p", "-1");
+        assertThat(err.toString())
+                .as(withCliOutput("Page must be rejected as not greater than 0"))
+                .contains("must be greater than 0");
+
         // Size must be greater than 0
-        executeAndAssertFailure("group", "create", "-s", "0");
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "-s", "0");
+        assertThat(err.toString())
+                .as(withCliOutput("Size must be rejected as not greater than 0"))
+                .contains("must be greater than 0");
+    }
+
+    @Test
+    public void testGroupGetCommandFails() {
+        // Required groupId parameter is missing
+        executeAndAssertFailure("group", "get");
+        // Unknown output type (rejected while parsing, so the group need not exist)
+        executeAndAssertFailure("group", "get", "some-group", "--output-type", "foo");
     }
 
     @Test

@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -25,6 +26,7 @@ class KafkaSqlSnapshotSchedulerTest {
         scheduler.storage = storage;
         scheduler.registryStorageType = "kafkasql";
         scheduler.scheduledSnapshotsEnabled = () -> true;
+        scheduler.initialDelayApplied = true;
         return scheduler;
     }
 
@@ -34,9 +36,49 @@ class KafkaSqlSnapshotSchedulerTest {
         when(storage.isReady()).thenReturn(true);
         when(storage.isReadOnly()).thenReturn(false);
 
-        newScheduler(storage).run();
+        KafkaSqlSnapshotScheduler scheduler = newScheduler(storage);
+        // recentSnapshotExists() will fail-closed (return true) because configuration is null,
+        // so we need to provide a configuration that makes it return false (empty topic).
+        // Instead, we test via a spy-like approach: verify the method is called correctly
+        // by providing a scheduler subclass that overrides the check.
+        KafkaSqlSnapshotScheduler testScheduler = new KafkaSqlSnapshotScheduler() {
+            @Override
+            boolean recentSnapshotExists() {
+                return false;
+            }
+        };
+        testScheduler.log = LoggerFactory.getLogger(KafkaSqlSnapshotScheduler.class);
+        testScheduler.storage = storage;
+        testScheduler.registryStorageType = "kafkasql";
+        testScheduler.scheduledSnapshotsEnabled = () -> true;
+        testScheduler.initialDelayApplied = true;
+
+        testScheduler.run();
 
         verify(storage).triggerSnapshotCreation();
+    }
+
+    @Test
+    void testSkipsWhenRecentSnapshotExists() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        when(storage.isReady()).thenReturn(true);
+        when(storage.isReadOnly()).thenReturn(false);
+
+        KafkaSqlSnapshotScheduler testScheduler = new KafkaSqlSnapshotScheduler() {
+            @Override
+            boolean recentSnapshotExists() {
+                return true;
+            }
+        };
+        testScheduler.log = LoggerFactory.getLogger(KafkaSqlSnapshotScheduler.class);
+        testScheduler.storage = storage;
+        testScheduler.registryStorageType = "kafkasql";
+        testScheduler.scheduledSnapshotsEnabled = () -> true;
+        testScheduler.initialDelayApplied = true;
+
+        testScheduler.run();
+
+        verify(storage, never()).triggerSnapshotCreation();
     }
 
     private static Stream<Arguments> skipScenarios() {
@@ -63,7 +105,26 @@ class KafkaSqlSnapshotSchedulerTest {
         when(storage.isReadOnly()).thenReturn(false);
         when(storage.triggerSnapshotCreation()).thenThrow(new RuntimeException("boom"));
 
-        assertDoesNotThrow(() -> newScheduler(storage).run());
+        KafkaSqlSnapshotScheduler testScheduler = new KafkaSqlSnapshotScheduler() {
+            @Override
+            boolean recentSnapshotExists() {
+                return false;
+            }
+        };
+        testScheduler.log = LoggerFactory.getLogger(KafkaSqlSnapshotScheduler.class);
+        testScheduler.storage = storage;
+        testScheduler.registryStorageType = "kafkasql";
+        testScheduler.scheduledSnapshotsEnabled = () -> true;
+        testScheduler.initialDelayApplied = true;
+
+        assertDoesNotThrow(() -> testScheduler.run());
+    }
+
+    @Test
+    void testRecentSnapshotExistsFailsClosed() {
+        KafkaSqlSnapshotScheduler scheduler = newScheduler(mock(RegistryStorage.class));
+        // configuration is null, so recentSnapshotExists() will throw and should return true (fail-closed)
+        assertEquals(true, scheduler.recentSnapshotExists());
     }
 
     @Test
@@ -94,20 +155,55 @@ class KafkaSqlSnapshotSchedulerTest {
     }
 
     @Test
-    void testParseIntervalMs() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseIntervalMs("86400s"));
-        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseIntervalMs("3600s"));
-        assertEquals(60000L, KafkaSqlSnapshotScheduler.parseIntervalMs("60s"));
-        assertEquals(1000L, KafkaSqlSnapshotScheduler.parseIntervalMs("1s"));
+    void testParseDurationMsWithSecondsSuffix() {
+        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("86400s"));
+        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("3600s"));
+        assertEquals(60000L, KafkaSqlSnapshotScheduler.parseDurationMs("60s"));
+        assertEquals(1000L, KafkaSqlSnapshotScheduler.parseDurationMs("1s"));
     }
 
     @Test
-    void testParseIntervalMsWithoutSuffix() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseIntervalMs("86400"));
+    void testParseDurationMsWithMinutesSuffix() {
+        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("60m"));
+        assertEquals(1440 * 60000L, KafkaSqlSnapshotScheduler.parseDurationMs("1440m"));
     }
 
     @Test
-    void testParseIntervalMsWithWhitespace() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseIntervalMs("  86400s  "));
+    void testParseDurationMsWithHoursSuffix() {
+        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("24h"));
+        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("1h"));
+    }
+
+    @Test
+    void testParseDurationMsWithDaysSuffix() {
+        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("1d"));
+    }
+
+    @Test
+    void testParseDurationMsBareNumber() {
+        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("86400"));
+    }
+
+    @Test
+    void testParseDurationMsIso8601() {
+        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("PT24H"));
+        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("PT86400S"));
+        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("PT1H"));
+    }
+
+    @Test
+    void testParseDurationMsWithWhitespace() {
+        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("  86400s  "));
+    }
+
+    @Test
+    void testParseDurationMsInvalidSuffix() {
+        assertThrows(IllegalArgumentException.class, () -> KafkaSqlSnapshotScheduler.parseDurationMs("100x"));
+    }
+
+    @Test
+    void testParseDurationMsEmpty() {
+        assertThrows(IllegalArgumentException.class, () -> KafkaSqlSnapshotScheduler.parseDurationMs(""));
+        assertThrows(IllegalArgumentException.class, () -> KafkaSqlSnapshotScheduler.parseDurationMs("   "));
     }
 }

@@ -113,7 +113,7 @@ public class PromptRenderingService {
 
             // Check if required variable is present
             boolean required = varSchema.path("required").asBoolean(false);
-            if (required && !variables.containsKey(varName)) {
+            if (required && (!variables.containsKey(varName) || variables.get(varName) == null)) {
                 errors.add(RenderValidationError.builder()
                         .variableName(varName)
                         .message("Required variable is missing")

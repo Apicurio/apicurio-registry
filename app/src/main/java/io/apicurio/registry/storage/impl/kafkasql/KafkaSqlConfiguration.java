@@ -134,7 +134,7 @@ public class KafkaSqlConfiguration {
     }
 
     @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
-    @Info(category = CATEGORY_STORAGE, description = "Kafka sql journal topic snapshot every", availableSince = "3.0.0")
+    @Info(category = CATEGORY_STORAGE, description = "Interval between automatic snapshots of the KafkaSQL journal topic.", availableSince = "3.0.0")
     @Getter
     String snapshotEvery;
 

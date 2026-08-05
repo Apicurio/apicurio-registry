@@ -96,7 +96,7 @@ test("Prompt Template - renders enum allowed values correctly", async ({ page })
             body: JSON.stringify([{ branchId: "latest", version: "1" }])
         });
     });
-    
+
     // Navigate directly to the artifact documentation tab
     await page.goto(`${REGISTRY_UI_URL}/explore/default/test-prompt-template/versions/1/documentation`);
 

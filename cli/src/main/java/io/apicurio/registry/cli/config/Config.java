@@ -73,7 +73,15 @@ public class Config {
         }
         return System.getenv(name);
     }
-
+    /**
+     * Gets a system property value.
+     *
+     * @param name the system property name
+     * @return the system property value, or null if not set
+     */
+    public String getSystemProperty(final String name) {
+        return System.getProperty(name);
+    }
     /**
      * Sets an environment variable override for testing purposes.
      * The override takes precedence over the actual system environment variable.

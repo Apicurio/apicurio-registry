@@ -238,18 +238,16 @@ public class InstallCommand extends AbstractCommand {
      * Gets the user's home directory path.
      */
      private Path getUserHomePath() {
-         String userHome;
-         if (PlatformUtils.isWindows()) {
+         String userHome = config.getEnv(ENV_HOME);
+         if (isBlank(userHome) && PlatformUtils.isWindows()) {
              userHome = config.getEnv("USERPROFILE");
-         } else {
-             userHome = config.getEnv(ENV_HOME);
          }
          if (isBlank(userHome)) {
-             userHome = System.getProperty("user.home");
+             userHome = config.getSystemProperty("user.home");
          }
          if (isBlank(userHome)) {
              throw new CliException(
-                     "Unable to determine the user's home directory.",
+                     "Unable to determine the user's home directory. Checked HOME, USERPROFILE, and user.home.",
                      VALIDATION_ERROR_RETURN_CODE);
          }
          return Path.of(userHome).normalize().toAbsolutePath();

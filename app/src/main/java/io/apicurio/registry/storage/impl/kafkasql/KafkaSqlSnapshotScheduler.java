@@ -70,7 +70,7 @@ public class KafkaSqlSnapshotScheduler {
     @Inject
     KafkaSqlConfiguration configuration;
 
-    private volatile boolean initialDelayApplied = false;
+    volatile boolean initialDelayApplied = false;
 
     @Scheduled(delay = MIN_INITIAL_DELAY_SECONDS, delayUnit = TimeUnit.SECONDS, concurrentExecution = SKIP, every = "{apicurio.kafkasql.snapshot.every.seconds}")
     void run() {

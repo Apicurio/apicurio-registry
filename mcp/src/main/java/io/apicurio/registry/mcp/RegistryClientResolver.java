@@ -97,22 +97,30 @@ public class RegistryClientResolver {
             var options = copyTransportOptions().bearerToken(bearerToken);
             return RegistryClientFactory.create(options);
         }
+
+        // HTTP token-forwarding must never fall back to service-account (typically sr-admin)
+        // credentials. That would bypass per-user RBAC for authenticated callers that somehow
+        // lack an extractable bearer token. Stdio (anonymous / no identity) still uses fallback.
+        if (config.http().enabled() && config.http().forwardToken() && isAuthenticatedRequest()) {
+            throw new IllegalStateException(
+                    "No Registry client available: HTTP token forwarding is enabled but no bearer access "
+                            + "token was found on the authenticated request. Ensure the MCP client sends "
+                            + "'Authorization: Bearer <access_token>' on every /mcp request (complete "
+                            + "OAuth login so the access token is sent).");
+        }
+
         if (fallbackClient == null) {
-            boolean authenticated = securityIdentity.isResolvable()
-                    && securityIdentity.get() != null
-                    && !securityIdentity.get().isAnonymous();
-            if (authenticated) {
-                throw new IllegalStateException(
-                        "No Registry client available: HTTP token forwarding is enabled but no bearer access "
-                                + "token was found on the authenticated request. Ensure the MCP client sends "
-                                + "'Authorization: Bearer <access_token>' on every /mcp request (complete "
-                                + "OAuth login so the access token is sent).");
-            }
             throw new IllegalStateException(
                     "No Registry client available: HTTP token forwarding is enabled but no bearer token "
                             + "was provided, and no fallback client credentials are configured");
         }
         return fallbackClient;
+    }
+
+    private boolean isAuthenticatedRequest() {
+        return securityIdentity.isResolvable()
+                && securityIdentity.get() != null
+                && !securityIdentity.get().isAnonymous();
     }
 
     boolean hasFallbackClient() {

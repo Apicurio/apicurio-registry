@@ -196,6 +196,17 @@ class RegistryClientResolverTest {
     }
 
     @Test
+    void getClientRejectsAuthenticatedRequestWithoutBearerEvenWhenFallbackExists() throws Exception {
+        RegistryClient fallback = markerClient();
+        setFallbackClient(fallback);
+        securityIdentity.set(new TestSecurityIdentity(false, null));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class, resolver::getClient);
+        assertTrue(error.getMessage().contains("no bearer access token was found"));
+        assertTrue(error.getMessage().contains("Authorization: Bearer"));
+    }
+
+    @Test
     void getClientFailsWhenForwardingEnabledAuthenticatedButNoToken() throws Exception {
         setFallbackClient(null);
         securityIdentity.set(new TestSecurityIdentity(false, null));

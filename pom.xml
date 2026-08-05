@@ -137,14 +137,14 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.33.2.1</quarkus.version>
+    <quarkus.version>3.33.3.1</quarkus.version>
     <!--
     # QOSDK
 
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/7.1.4/quarkus-operator-sdk-parent-7.1.4.pom
     to check that the versions match as best as possible:
 
-    - QOSDK 7.7.3 -> Quarkus 3.33.2 (LTS)
+    - QOSDK 7.7.3 -> Quarkus 3.33.1 (using 3.33.3.1 patch)
     - QOSDK 7.2.1 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - QOSDK 7.2.0 -> Quarkus 3.23.2
     - QOSDK 7.1.4 -> Quarkus 3.20.1
@@ -158,12 +158,13 @@
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/mcp/quarkus-mcp-server-parent/1.6.0/quarkus-mcp-server-parent-1.6.0.pom
     to check that the versions match as best as possible:
 
-    - MCP Server 1.11.0 -> Quarkus 3.33.0 (using 3.33.2 patch)
+    - MCP Server 1.13.1 -> Quarkus 3.33.2 (using 3.33.3.1 patch)
+    - MCP Server 1.11.0 -> Quarkus 3.33.0
     - MCP Server 1.7.0 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - MCP Server 1.6.1 -> Quarkus 3.20.2.2
     - MCP Server 1.6.0 -> Quarkus 3.20.2.2
     -->
-    <quarkus-mcp-server.version>1.11.0</quarkus-mcp-server.version>
+    <quarkus-mcp-server.version>1.13.1</quarkus-mcp-server.version>
     <!--
     /WARNING
     -->
@@ -218,8 +219,8 @@
     <json-sKema.version>0.31.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
-    <jackson-datatype-json-org.version>2.21.2</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.21.2</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>2.21.5</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>2.21.5</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
@@ -229,7 +230,7 @@
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.22.1</commons-codec.version>
-    <netty.version>4.1.135.Final</netty.version>
+    <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
     <debezium.version>3.6.1.Final</debezium.version>
@@ -1005,7 +1006,7 @@
         <version>${assertj.core.version}</version>
         <scope>test</scope>
       </dependency>
-      <!-- testcontainers core version now managed by Quarkus 3.33.1 BOM (2.0.3) -->
+      <!-- testcontainers core version now managed by Quarkus 3.33.3.1 BOM -->
 
       <!-- Iceberg -->
       <dependency>

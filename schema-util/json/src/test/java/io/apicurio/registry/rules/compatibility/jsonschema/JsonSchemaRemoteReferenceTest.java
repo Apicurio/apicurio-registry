@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JsonSchemaRemoteReferenceTest {
 
@@ -43,7 +43,7 @@ class JsonSchemaRemoteReferenceTest {
     }
 
     @Test
-    void testUnresolvedRemoteReferenceIsNotFetched() throws Exception {
+    void testUnresolvedRemoteReferenceFailsClosed() {
         JsonSchemaCompatibilityChecker checker = new JsonSchemaCompatibilityChecker();
         String proposedSchema = """
                 {
@@ -58,9 +58,12 @@ class JsonSchemaRemoteReferenceTest {
                 }
                 """;
 
-        assertDoesNotThrow(() -> checker.testCompatibility(CompatibilityLevel.BACKWARD,
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
                 Collections.singletonList(toTypedContent(EXISTING_SCHEMA)),
                 toTypedContent(proposedSchema), Collections.emptyMap()));
+
+        assertFalse(exception.getMessage().isBlank(), "The failure should explain that the reference was unresolved");
     }
 
     @Test

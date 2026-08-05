@@ -99,14 +99,11 @@ public class JsonSchemaDiffLibrary {
 
             if (!registered) {
                 /*
-                 * Since we do not have the referenced content, we insert a placeholder schema, that will
-                 * accept any JSON, to the reference lookup table of the library. This prevents the library
-                 * from attempting to download the schema if `http://`, or trying to open a file if `file://`.
-                 * This avoids potential security issues by us having to explicitly provide referenced
-                 * content. For compatibility checks, we do not care about the reference format, while still
-                 * requiring a valid URI.
+                 * We do not have the referenced content, so compatibility checks must fail closed rather
+                 * than silently treating the reference as an accept-all schema. That keeps the result
+                 * explicit and prevents unresolved references from being interpreted as compatible.
                  */
-                schemaLoaderBuilder.registerSchemaByURI(extractedReference, new JSONObject());
+                throw new IllegalStateException("Unresolved JSON Schema reference: " + extractedReference);
             }
         }
     }

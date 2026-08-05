@@ -55,6 +55,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [artifactToDelete, setArtifactToDelete] = useState<SearchedVersion>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
     const [rules, setRules] = useState<Rule[]>([]);
+    const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
@@ -157,36 +159,51 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
 
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Enabling rule:", ruleType);
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        groups.createGroupRule(groupId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error enabling "${ ruleType }" group rule.`));
+        groups.createGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error enabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Disabling rule:", ruleType);
-        groups.deleteGroupRule(groupId as string, ruleType).catch(error => {
-            setPageError(toPageError(error, `Error disabling "${ ruleType }" group rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.deleteGroupRule(groupId as string, ruleType).then(() => {
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error disabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[GroupPage] Configuring rule:", ruleType, config);
-        groups.updateGroupRule(groupId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error configuring "${ ruleType }" group rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.updateGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => prev.map(r => {
+                if (r.ruleType === ruleType) {
+                    return { config, ruleType: r.ruleType };
+                } else {
+                    return r;
+                }
+            }));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error configuring "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.map(r => {
-            if (r.ruleType === ruleType) {
-                return { config, ruleType: r.ruleType };
-            } else {
-                return r;
-            }
-        }));
     };
 
     const closeInvalidContentModal = (): void => {
@@ -253,6 +270,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();
@@ -276,6 +294,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 onEnableRule={doEnableRule}
                 onDisableRule={doDisableRule}
                 onConfigureRule={doConfigureRule}
+                actionError={ruleActionError}
+                onDismissActionError={() => setRuleActionError(undefined)}
+                pendingRuleType={pendingRuleType}
             />
         </Tab>
     ];

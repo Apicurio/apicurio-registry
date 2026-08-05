@@ -2,7 +2,7 @@ name: PR Lifecycle
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
     branches: [main]
   issue_comment:
     types: [created]
@@ -105,6 +105,28 @@ jobs:
           script: |
             const handler = require('./.github/scripts/pr-lifecycle.js');
             await handler.handlePrReadyForReview({ github, context, core });
+
+  # ==========================================================================
+  # PR Converted Back to Draft
+  # ==========================================================================
+  pr-converted-to-draft:
+    name: Ready to Draft
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'converted_to_draft' &&
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Handle converted to draft
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handlePrConvertedToDraft({ github, context, core });
 
   # ==========================================================================
   # Comment Commands
@@ -217,7 +239,7 @@ jobs:
       github.repository_owner == 'Apicurio' &&
       failure() &&
       github.event_name != 'schedule'
-    needs: [pr-opened, pr-synchronize, pr-ready-for-review, command, review, label-guard, test-result, reconcile]
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, command, review, label-guard, test-result, reconcile]
     steps:
       - name: Post warning comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9

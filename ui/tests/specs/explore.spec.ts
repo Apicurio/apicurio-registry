@@ -77,6 +77,37 @@ test("Explore - Group specific rules", async ({ page }) => {
 });
 
 
+test("Explore - Group specific rules, enable failure keeps the page intact", async ({ page }) => {
+    // Force the rule-creation request to fail, simulating a backend/network error.
+    await page.route("**/apis/registry/v3/groups/ExploreTest/rules", async route => {
+        if (route.request().method() === "POST") {
+            await route.fulfill({
+                status: 500,
+                contentType: "application/json",
+                body: JSON.stringify({ detail: "Simulated failure" })
+            });
+        } else {
+            await route.continue();
+        }
+    });
+
+    await page.goto(`${REGISTRY_UI_URL}/explore/ExploreTest`);
+    await page.getByTestId("group-rules-tab").click();
+    await expect(page.locator("#compatibility-rule-name")).toContainText("Compatibility rule");
+
+    // Attempt to enable the rule; the mocked request fails.
+    await page.getByTestId("rules-compatibility-enable").click();
+
+    // The page must remain intact - no full-page error, the group header/tabs are still there.
+    await expect(page.getByTestId("group-rules-tab")).toBeVisible();
+    await expect(page.getByTestId("rule-action-error")).toContainText("Simulated failure");
+
+    // The rule must NOT show as enabled - the failed request must not have been applied optimistically.
+    await expect(page.getByTestId("rules-compatibility-enable")).toBeVisible();
+    await expect(page.getByTestId("rules-compatibility-disable")).toHaveCount(0);
+});
+
+
 test("Explore - Create artifact", async ({ page }) => {
     // Navigate to the group details page
     await page.goto(`${REGISTRY_UI_URL}/explore/ExploreTest`);
@@ -186,6 +217,37 @@ test("Explore - Artifact specific rules", async ({ page }) => {
     // Select "syntax only" config option
     await page.getByTestId("validity-config-syntax").click();
     expect(page.getByTestId("rules-validity-disable")).toBeDefined();
+});
+
+
+test("Explore - Artifact specific rules, enable failure keeps the page intact", async ({ page }) => {
+    // Force the rule-creation request to fail, simulating a backend/network error.
+    await page.route("**/apis/registry/v3/groups/ExploreTest/artifacts/MyArtifact/rules", async route => {
+        if (route.request().method() === "POST") {
+            await route.fulfill({
+                status: 500,
+                contentType: "application/json",
+                body: JSON.stringify({ detail: "Simulated failure" })
+            });
+        } else {
+            await route.continue();
+        }
+    });
+
+    await page.goto(`${REGISTRY_UI_URL}/explore/ExploreTest/MyArtifact`);
+    await page.getByTestId("artifact-rules-tab").click();
+    await expect(page.locator("#compatibility-rule-name")).toContainText("Compatibility rule");
+
+    // Attempt to enable the rule; the mocked request fails.
+    await page.getByTestId("rules-compatibility-enable").click();
+
+    // The page must remain intact - no full-page error, the artifact header/tabs are still there.
+    await expect(page.getByTestId("artifact-rules-tab")).toBeVisible();
+    await expect(page.getByTestId("rule-action-error")).toContainText("Simulated failure");
+
+    // The rule must NOT show as enabled - the failed request must not have been applied optimistically.
+    await expect(page.getByTestId("rules-compatibility-enable")).toBeVisible();
+    await expect(page.getByTestId("rules-compatibility-disable")).toHaveCount(0);
 });
 
 

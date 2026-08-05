@@ -48,7 +48,7 @@
     <!-- Test dependencies -->
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
+      <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -67,6 +67,12 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
       <scope>test</scope>
     </dependency>
 

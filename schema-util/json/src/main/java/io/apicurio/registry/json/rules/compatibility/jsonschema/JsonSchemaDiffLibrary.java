@@ -6,8 +6,10 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffContext;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
+import io.apicurio.registry.json.rules.validity.JsonSchemaVersion;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
+import org.everit.json.schema.loader.SchemaClient;
 import org.everit.json.schema.loader.SpecificationVersion;
 import org.everit.json.schema.loader.internal.ReferenceResolver;
 import org.json.JSONObject;
@@ -22,6 +24,9 @@ import static io.apicurio.registry.json.rules.compatibility.jsonschema.wrapper.W
 public class JsonSchemaDiffLibrary {
 
     private static final String SCHEMA_KEYWORD = "$schema";
+    private static final SchemaClient DENY_ALL_SCHEMA_CLIENT = url -> {
+        throw new IllegalStateException("External JSON Schema resolution is disabled");
+    };
 
     /**
      * Find and analyze differences between two JSON schemas.
@@ -42,13 +47,11 @@ public class JsonSchemaDiffLibrary {
             JSONObject updatedJson = MAPPER.readValue(updated, JSONObject.class);
 
             SchemaLoader.SchemaLoaderBuilder originalSchemaBuilder = SchemaLoader.builder();
-
             loadReferences(originalNode, resolvedReferences, originalSchemaBuilder);
 
             Schema originalSchema = originalSchemaBuilder.schemaJson(originalJson).build().load().build();
 
             SchemaLoader.SchemaLoaderBuilder updatedSchemaBuilder = SchemaLoader.builder();
-
             loadReferences(updatedNode, resolvedReferences, updatedSchemaBuilder);
 
             Schema updatedSchema = updatedSchemaBuilder.schemaJson(updatedJson).build().load().build();
@@ -79,10 +82,25 @@ public class JsonSchemaDiffLibrary {
             }
         }
 
-        for (Map.Entry<String, TypedContent> stringStringEntry : resolvedReferences.entrySet()) {
-            URI child = ReferenceResolver.resolve(idUri, stringStringEntry.getKey());
-            schemaLoaderBuilder.registerSchemaByURI(child,
-                    new JSONObject(stringStringEntry.getValue().getContent().content()));
+        schemaLoaderBuilder.httpClient(DENY_ALL_SCHEMA_CLIENT);
+
+        Set<URI> extractedReferences = JsonUtil.extractReferencesRecursive(JsonSchemaVersion.valueOf(spec.name()), idUri, jsonNode);
+        for (URI extractedReference : extractedReferences) {
+            var resolvedReferenceContent = resolvedReferences.get(extractedReference.toString());
+            if (resolvedReferenceContent != null) {
+                schemaLoaderBuilder.registerSchemaByURI(extractedReference,
+                        new JSONObject(resolvedReferenceContent.getContent().content()));
+            } else {
+                /*
+                 * Since we do not have the referenced content, we insert a placeholder schema, that will
+                 * accept any JSON, to the reference lookup table of the library. This prevents the library
+                 * from attempting to download the schema if `http://`, or trying to open a file if `file://`.
+                 * This avoids potential security issues by us having to explicitly provide referenced
+                 * content. For compatibility checks, we do not care about the reference format, while still
+                 * requiring a valid URI.
+                 */
+                schemaLoaderBuilder.registerSchemaByURI(extractedReference, new JSONObject());
+            }
         }
     }
 

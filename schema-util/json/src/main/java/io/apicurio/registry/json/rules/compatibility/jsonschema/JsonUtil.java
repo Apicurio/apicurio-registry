@@ -105,7 +105,7 @@ public class JsonUtil {
      * NOTE: There can be multiple $id keywords nested within the root schema resource, see
      * <a href="https://json-schema.org/blog/posts/understanding-lexical-dynamic-scopes">Understanding JSON Schema Lexical and Dynamic Scopes</a>.
      */
-    private static Set<URI> extractReferencesRecursive(JsonSchemaVersion specVersion, URI idURI, JsonNode jsonNode) {
+    static Set<URI> extractReferencesRecursive(JsonSchemaVersion specVersion, URI idURI, JsonNode jsonNode) {
         var result = new HashSet<URI>();
         if (jsonNode.isObject()) {
             ObjectNode objectNode = (ObjectNode) jsonNode;

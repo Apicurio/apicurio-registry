@@ -36,7 +36,7 @@ assigned_stale:
 # The first matching entry in `windows` wins; `default_days` applies when
 # no listed label matches.
 triage:
-  label: needs-triage
+  label: lifecycle/needs-triage
   default_days: 7
   # List (not a map) so the script can walk it in order and take the first
   # match — first-match-wins avoids ambiguity if an issue somehow carries

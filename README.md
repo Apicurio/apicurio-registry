@@ -96,10 +96,10 @@ so a single set of credentials works for both. Set the following environment var
 
 | Env. variable                | Description                       |
 |------------------------------|-----------------------------------|
-| `APICURIO_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
-| `APICURIO_AUTH_URL`          | OIDC auth URL                     |
-| `APICURIO_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
-| `APICURIO_AUTH_CLIENT_ID`    | The client for the UI             |
+| `REGISTRY_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
+| `REGISTRY_AUTH_URL`          | OIDC auth URL                     |
+| `REGISTRY_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
+| `REGISTRY_AUTH_CLIENT_ID`    | The client for the UI             |
 
 Everything must be configured in your OIDC provider before starting the application. Registry
 supports a much wider range of authentication and authorization options than shown here — treat

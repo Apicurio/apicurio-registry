@@ -34,6 +34,26 @@
     </dependency>
 
     <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-kafka-common</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common-avro</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-common</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>connect-api</artifactId>
       <scope>provided</scope>

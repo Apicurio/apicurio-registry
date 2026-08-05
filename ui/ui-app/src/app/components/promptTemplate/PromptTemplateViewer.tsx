@@ -17,6 +17,7 @@ import {
     Title
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
+import { highlightVariables } from "./PromptTemplateViewer.utils";
 
 export interface PromptVariable {
     name?: string;
@@ -60,33 +61,6 @@ export interface PromptTemplate {
 export type PromptTemplateViewerProps = {
     promptTemplate: PromptTemplate;
     className?: string;
-};
-
-const highlightVariables = (template: string): React.ReactNode[] => {
-    const parts: React.ReactNode[] = [];
-    // Match both {{variable}} and {{#if variable}} / {{/if}} handlebars syntax.
-    // Closing tags carry no variable name, so they need their own alternative.
-    const regex = /\{\{(#(?:if|unless|each|with)\s+\w+|\/(?:if|unless|each|with)|\w+)\}\}/g;
-    let lastIndex = 0;
-    let match;
-    let key = 0;
-
-    while ((match = regex.exec(template)) !== null) {
-        if (match.index > lastIndex) {
-            parts.push(template.substring(lastIndex, match.index));
-        }
-        const isBlock = match[1].startsWith("#") || match[1].startsWith("/");
-        parts.push(
-            <span key={key++} className={isBlock ? "template-block" : "template-variable"}>
-                {match[0]}
-            </span>
-        );
-        lastIndex = match.index + match[0].length;
-    }
-    if (lastIndex < template.length) {
-        parts.push(template.substring(lastIndex));
-    }
-    return parts;
 };
 
 const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {

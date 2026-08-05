@@ -118,6 +118,12 @@ jobs:
         working-directory: ui
         run: npm run lint
 
+      - name: Generate TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
       - name: Test
         working-directory: ui
         run: npm run test

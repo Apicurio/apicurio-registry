@@ -133,6 +133,22 @@ public class WindowsCredentialProviderTest {
                 .hasMessageNotContaining(secret);
     }
 
+    /**
+     * A credential store that cannot be reached has to be reported as a CredentialStoreException,
+     * since that is what lets CredentialStore fall back to file storage rather than failing. JNA
+     * reports a library it cannot load with a LinkageError, which is not an exception and so is
+     * not caught anywhere above this, and the mapping is what keeps that from surfacing as a
+     * stack trace. A library name that does not exist reproduces the same failure as a dispatch
+     * library that cannot be loaded.
+     */
+    @Test
+    public void testALibraryThatCannotBeLoadedIsReportedAsACredentialStoreException() {
+        assertThatThrownBy(() -> WindowsCredentialProvider.load("advapi32-does-not-exist"))
+                .isInstanceOf(CredentialStoreException.class)
+                .hasMessageContaining("not available")
+                .hasCauseInstanceOf(UnsatisfiedLinkError.class);
+    }
+
     private String account(final String account) {
         storedAccounts.add(account);
         return account;

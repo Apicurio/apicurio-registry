@@ -13,8 +13,10 @@ The CLI is distributed as a native executable. A separate ZIP is provided for ea
 | Windows  | x86_64                  | `windows-x86_64` | cmd / PowerShell |
 
 On Windows the binaries are not code-signed, so SmartScreen may warn the first time you run
-the CLI. Windows on ARM and PowerShell tab-completions are not supported yet, and a stored
-secret cannot exceed 2560 bytes — see [Authentication](#authentication) for what that covers.
+the CLI. Windows on ARM and PowerShell tab-completions are not supported yet, a stored
+secret cannot exceed 2560 bytes — see [Authentication](#authentication) for what that covers —
+and installing rewrites any variable references in your user `Path`, described under
+[Installation](#installation).
 
 ## Installation
 
@@ -36,6 +38,12 @@ To install the Apicurio Registry CLI:
    the `bin` directory to your user `Path`. **Open a new terminal** for those changes to take
    effect; afterwards `acr` resolves to `acr.cmd` through `PATHEXT`. Shell completions are
    installed for bash and zsh only.
+
+   Note that adding the entry rewrites your user `Path` in expanded form. Windows can store it
+   with references such as `%USERPROFILE%\...` in it, and the API the installer updates it through
+   returns those already resolved and writes the result back as plain text. The directories on your
+   `Path` are unchanged, but a reference in it is replaced by the directory it pointed at during the
+   install, and stops following later changes to that variable.
 4. If you do not have an instance of Apicurio Registry running, you use Docker:
 
    ```bash

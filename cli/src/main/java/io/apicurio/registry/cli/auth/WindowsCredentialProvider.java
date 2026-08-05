@@ -34,6 +34,8 @@ class WindowsCredentialProvider implements CredentialProvider {
      */
     private static final int MAX_BLOB_SIZE = 2560;
 
+    private static final String LIBRARY_NAME = "Advapi32";
+
     private static Advapi32 library;
 
     private final String serviceName;
@@ -50,9 +52,29 @@ class WindowsCredentialProvider implements CredentialProvider {
      */
     private static synchronized Advapi32 library() {
         if (library == null) {
-            library = Native.load("Advapi32", Advapi32.class);
+            library = load(LIBRARY_NAME);
         }
         return library;
+    }
+
+    /**
+     * Loads the named library, reporting a failure as a {@link CredentialStoreException} the way
+     * the other providers report a credential store they cannot reach. JNA signals it with a
+     * {@link LinkageError} instead — it has to extract and load its own dispatch library before
+     * any call can be made, which a policy that forbids executing from the temporary directory
+     * can prevent — and an error is not caught by the command layer, so it would otherwise reach
+     * the user as a stack trace rather than as the "use --allow-unsafe-credential-storage"
+     * fallback that a missing {@code secret-tool} or {@code security} produces elsewhere.
+     *
+     * <p>Package-private so a test can drive that path with a library that does not exist.
+     */
+    static Advapi32 load(final String libraryName) {
+        try {
+            return Native.load(libraryName, Advapi32.class);
+        } catch (final LinkageError | RuntimeException ex) {
+            throw new CredentialStoreException(
+                    "The Windows Credential Manager is not available: " + ex.getMessage(), ex);
+        }
     }
 
     @Override

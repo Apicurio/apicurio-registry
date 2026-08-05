@@ -85,7 +85,7 @@ public class UserEnvironment {
 
     /**
      * Reads a stream to the end on another thread, so the caller can keep waiting on the process
-     * itself. An failure to read is carried to the caller by the returned future.
+     * itself. A failure to read is carried to the caller by the returned future.
      */
     private static CompletableFuture<byte[]> readAsync(final InputStream stream) {
         return CompletableFuture.supplyAsync(() -> {

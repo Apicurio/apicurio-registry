@@ -164,9 +164,14 @@ async function processAssignedIssue(api, config, issue, core) {
   // current assignment counts as progress, but only while the PR is still
   // open or was merged — a closed-unmerged PR is an abandoned attempt, not
   // an active link. `source.issue` reflects the referenced PR's current
-  // state (GitHub recomputes it on each timeline fetch, it is not a
-  // snapshot from when the cross-reference was created), so no separate
-  // pulls.get call is needed to check freshness.
+  // state, not a snapshot frozen at event-creation time, so no separate
+  // pulls.get call is needed to check freshness. Empirically verified
+  // against this repo: PR #9101 (issue #8980) had its cross-referenced
+  // event created at 13:54:56Z but wasn't closed until 15:45:03Z — a
+  // timeline fetch after that still showed state "closed" with closed_at
+  // matching the real closure time. Same pattern confirmed for merged_at
+  // via PR #9013, cross-referenced while open, merged_at populated once
+  // fetched after the merge.
   const hasLinkedPr = timeline.some(e => {
     if (new Date(e.created_at) <= assignedAt) return false;
     if (e.event !== 'cross-referenced') return false;

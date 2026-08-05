@@ -1,3 +1,6 @@
+# NOTE: duplicated in pr-lifecycle.yml — keep in sync manually until
+# these are extracted to a shared .github/maintainers.yml (see PR #9085
+# review discussion)
 maintainers:
   - EricWittmann
   - NikishaPatil

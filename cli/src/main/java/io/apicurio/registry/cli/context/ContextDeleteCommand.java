@@ -32,8 +32,6 @@ public class ContextDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        var configModel = config.read();
-
         if (all && name != null) {
             throw new CliException("Cannot specify both a context name and --all option.", VALIDATION_ERROR_RETURN_CODE);
         }
@@ -43,25 +41,23 @@ public class ContextDeleteCommand extends AbstractCommand {
 
         if (!all) {
             // Delete a specific context
-            if (!configModel.getContext().containsKey(name)) {
+            if (config.getContext(name) == null) {
                 throw new CliException("Context '" + name + "' does not exist.", VALIDATION_ERROR_RETURN_CODE);
             }
-            configModel.getContext().remove(name);
+            config.removeContext(name);
             // If the deleted context was the current context, clear it
-            if (name.equals(configModel.getCurrentContext())) {
-                configModel.setCurrentContext(null);
+            if (name.equals(config.getCurrentContext())) {
+                config.setCurrentContext(null);
             }
-            config.write(configModel);
             output.writeStdOutChunk(out -> out.append("Context '").append(name).append("' deleted.\n"));
         } else {
             // Delete all contexts
-            if (configModel.getContext().isEmpty()) {
+            var count = config.read().getContext().size();
+            if (count == 0) {
                 output.writeStdOutChunk(out -> out.append("No contexts to delete.\n"));
             } else {
-                int count = configModel.getContext().size();
-                configModel.getContext().clear();
-                configModel.setCurrentContext(null);
-                config.write(configModel);
+                config.clearContexts();
+                config.setCurrentContext(null);
                 output.writeStdOutChunk(out -> out.append("Deleted all ").append(count).append(" context(s).\n"));
             }
         }

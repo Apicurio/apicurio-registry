@@ -87,7 +87,9 @@ public abstract class AbstractCLITest {
         if (!Files.exists(acrHome)) {
             throw new RuntimeException("Test resource 'acr-home' does not exist");
         }
-        config.setAcrCurrentHomePath(acrHome);
+        // Config caches state across commands, so clear it between tests.
+        config.reset();
+        config.setEnvOverride(Config.ENV_ACR_CURRENT_HOME, acrHome.toString());
 
         client.reset();
         cmd = createCLI();

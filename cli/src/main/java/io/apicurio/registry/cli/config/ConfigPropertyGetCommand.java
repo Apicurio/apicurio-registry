@@ -22,7 +22,7 @@ public class ConfigPropertyGetCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        var value = config.read().getConfig().get(key);
+        var value = config.getProperty(key);
         if (value == null) {
             throw new CliException("Property '" + key + "' is not set.", VALIDATION_ERROR_RETURN_CODE);
         }

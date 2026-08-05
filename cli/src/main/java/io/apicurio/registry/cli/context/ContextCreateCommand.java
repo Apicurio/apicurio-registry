@@ -46,25 +46,20 @@ public class ContextCreateCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
-        var configModel = config.read();
-        if (configModel.getContext().get(name) != null) {
+        if (config.getContext(name) != null) {
             throw new CliException("Context '" + name + "' already exists.", CliException.VALIDATION_ERROR_RETURN_CODE);
-        } else {
-            configModel.getContext().put(name, ConfigModel.Context.builder()
-                    .registryUrl(registryUrl)
-                    .groupId(groupId)
-                    .artifactId(artifactId)
-                    .build());
-            output.writeStdOutChunk(out -> {
-                if (!noSwitchCurrent) {
-                    configModel.setCurrentContext(name);
-                    out.append("Current context '").append(name).append("' added.");
-                } else {
-                    out.append("Context '").append(name).append("' added.");
-                }
-                out.append('\n');
-                config.write(configModel);
-            });
         }
+        config.putContext(name, ConfigModel.Context.builder()
+                .registryUrl(registryUrl)
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .build());
+        if (!noSwitchCurrent) {
+            config.setCurrentContext(name);
+        }
+        output.writeStdOutChunk(out -> {
+            out.append(noSwitchCurrent ? "Context '" : "Current context '").append(name).append("' added.");
+            out.append('\n');
+        });
     }
 }

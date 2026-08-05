@@ -25,12 +25,11 @@ public class LogoutCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var configModel = config.read();
-        final var contextName = configModel.getCurrentContext();
+        final var contextName = config.getCurrentContext();
         if (isBlank(contextName)) {
             throw new CliException("No current context is set.", VALIDATION_ERROR_RETURN_CODE);
         }
-        final var context = Optional.ofNullable(configModel.getContext().get(contextName))
+        final var context = Optional.ofNullable(config.getContext(contextName))
                 .orElseThrow(() -> new CliException(
                         "Context '" + contextName + "' not found.", VALIDATION_ERROR_RETURN_CODE));
 
@@ -44,8 +43,7 @@ public class LogoutCommand extends AbstractCommand {
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_PASSWORD);
         credentialStore.delete(contextName, ConfigModel.CREDENTIAL_KEY_CLIENT_SECRET);
 
-        context.clearAuth();
-        config.write(configModel);
+        config.updateContext(contextName, ConfigModel.Context::clearAuth);
 
         client.reset();
 

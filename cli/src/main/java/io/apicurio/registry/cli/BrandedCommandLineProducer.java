@@ -2,6 +2,7 @@ package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.common.RuleUtil;
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.config.ConfigProperties;
 import io.quarkus.picocli.runtime.PicocliCommandLineFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -36,7 +37,7 @@ public class BrandedCommandLineProducer {
 
     private String resolveProductName() {
         try {
-            var name = config.read().getConfig().get("internal.branding.product-name");
+            var name = config.getProperty(ConfigProperties.INTERNAL_BRANDING_PRODUCT_NAME);
             return name != null && !name.isEmpty() ? name : "Apicurio Registry CLI";
         } catch (Exception e) {
             log.debugf("Could not read branding config: %s", e.getMessage());

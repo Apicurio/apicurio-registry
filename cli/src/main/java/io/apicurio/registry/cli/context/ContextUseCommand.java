@@ -21,20 +21,18 @@ public class ContextUseCommand extends AbstractCommand {
 
     @Override
     public void run(final OutputBuffer output) throws Exception {
-        final var configModel = config.read();
-        if (!configModel.getContext().containsKey(name)) {
+        if (config.getContext(name) == null) {
             throw new CliException("Context '" + name + "' does not exist.",
                     CliException.VALIDATION_ERROR_RETURN_CODE);
         }
-        if (name.equals(configModel.getCurrentContext())) {
+        if (name.equals(config.getCurrentContext())) {
             output.writeStdOutChunk(out -> {
                 out.append("Context '").append(name).append("' is already the current context.\n");
             });
             return;
         }
-        final var previousContext = configModel.getCurrentContext();
-        configModel.setCurrentContext(name);
-        config.write(configModel);
+        final var previousContext = config.getCurrentContext();
+        config.setCurrentContext(name);
         output.writeStdOutChunk(out -> {
             out.append("Switched to context '").append(name).append("'");
             if (previousContext != null) {

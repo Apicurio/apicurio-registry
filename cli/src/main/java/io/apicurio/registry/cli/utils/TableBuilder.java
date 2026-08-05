@@ -23,7 +23,7 @@ public class TableBuilder {
     private static final int MIN_COLUMN_WIDTH = 3;
     private static final int DEFAULT_MAX_COLUMN_WIDTH = 25;
     private static final int UPPER_MAX_COLUMN_WIDTH = 80;
-    private static final int MAX_COLUMN_WIDTH = resolveMaxColumnWidth();
+    private static final int MAX_COLUMN_WIDTH = resolveMaxColumnWidth(System.getenv("COLUMNS"));
     private static final String COLUMN_SEPARATOR = "   ";
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]");
 
@@ -40,14 +40,18 @@ public class TableBuilder {
 
     /**
      * Resolves the max column width from the terminal width, when available, falling back to a
-     * sensible default. Reads the COLUMNS environment variable, which most POSIX shells export for
-     * interactive terminals. When output is piped, redirected, or COLUMNS is unset/invalid (common in
-     * CI), falls back to {@link #DEFAULT_MAX_COLUMN_WIDTH}. The result is capped at
-     * {@link #UPPER_MAX_COLUMN_WIDTH} so a single wrapped cell doesn't become unreasonably wide on
-     * very large terminals.
+     * sensible default. Reads the {@code COLUMNS} value passed in, which is normally sourced from the
+     * {@code COLUMNS} environment variable. Note that in most interactive shells (bash, zsh) {@code
+     * COLUMNS} is a shell-local variable that is <b>not</b> exported to child processes by default, so
+     * this only takes effect when the caller has explicitly exported it (e.g. {@code export COLUMNS}),
+     * as some CI/automation environments do. When the value is absent, not a number, or below {@link
+     * #MIN_COLUMN_WIDTH}, falls back to {@link #DEFAULT_MAX_COLUMN_WIDTH}. Otherwise, the result is
+     * capped at {@link #UPPER_MAX_COLUMN_WIDTH} so a single wrapped cell doesn't become unreasonably
+     * wide on very large terminals.
+     *
+     * @param columnsEnv the raw value of the {@code COLUMNS} environment variable, or {@code null}
      */
-    private static int resolveMaxColumnWidth() {
-        var columnsEnv = System.getenv("COLUMNS");
+    static int resolveMaxColumnWidth(String columnsEnv) {
         if (columnsEnv != null) {
             try {
                 int columns = Integer.parseInt(columnsEnv.trim());

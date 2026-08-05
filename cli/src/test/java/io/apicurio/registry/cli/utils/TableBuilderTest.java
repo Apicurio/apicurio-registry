@@ -23,7 +23,42 @@ class TableBuilderTest {
     }
 
     @Test
-    void resolveMaxColumnWidthFallsBackToDefaultWhenColumnsEnvIsAbsentOrInvalid() {
+    void resolveMaxColumnWidthFallsBackToDefaultWhenColumnsEnvIsAbsent() {
+        assertEquals(25, TableBuilder.resolveMaxColumnWidth(null));
+    }
+
+    @Test
+    void resolveMaxColumnWidthFallsBackToDefaultWhenColumnsEnvIsNotANumber() {
+        assertEquals(25, TableBuilder.resolveMaxColumnWidth("not-a-number"));
+    }
+
+    @Test
+    void resolveMaxColumnWidthFallsBackToDefaultWhenColumnsEnvIsBelowMinimum() {
+        assertEquals(25, TableBuilder.resolveMaxColumnWidth("2"));
+    }
+
+    @Test
+    void resolveMaxColumnWidthUsesColumnsEnvWhenWithinBounds() {
+        assertEquals(50, TableBuilder.resolveMaxColumnWidth("50"));
+    }
+
+    @Test
+    void resolveMaxColumnWidthTrimsSurroundingWhitespace() {
+        assertEquals(40, TableBuilder.resolveMaxColumnWidth(" 40 "));
+    }
+
+    @Test
+    void resolveMaxColumnWidthAtTheMinimumIsUsedAsIs() {
+        assertEquals(3, TableBuilder.resolveMaxColumnWidth("3"));
+    }
+
+    @Test
+    void resolveMaxColumnWidthCapsAtTheUpperBoundWhenColumnsEnvIsVeryLarge() {
+        assertEquals(80, TableBuilder.resolveMaxColumnWidth("500"));
+    }
+
+    @Test
+    void longCellValuesWrapAcrossMultipleLinesUnderTheResolvedMaxColumnWidth() {
         var longValue = "x".repeat(200);
         var output = render(new TableBuilder()
                 .addColumns("Description")
@@ -31,7 +66,7 @@ class TableBuilderTest {
         var lines = output.split("\n");
         assertThat(lines.length).isGreaterThan(3);
     }
-    
+
     @Test
     void setSelectedColumnsKeepsOnlyRequestedColumnsInRequestedOrder() {
         var output = render(new TableBuilder()

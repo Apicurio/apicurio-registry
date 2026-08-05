@@ -50,6 +50,10 @@ public class RestConfig {
     @Info(category = CATEGORY_REST, description = "When enabled, legacy HTTP error codes are used (e.g. 409 instead of 400 for rule violations)", availableSince = "3.3.0")
     boolean legacyErrorCodesEnabled;
 
+    @ConfigProperty(name = "apicurio.rest.compression.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_REST, description = "Enable gzip compression of REST API responses", availableSince = "3.3.2")
+    boolean compressionEnabled;
+
     public int getLabelsInSearchResultsMaxSize() {
         return this.labelsInSearchResultsMaxSize;
     }
@@ -80,6 +84,10 @@ public class RestConfig {
 
     public boolean isLegacyErrorCodesEnabled() {
         return legacyErrorCodesEnabled;
+    }
+
+    public boolean isCompressionEnabled() {
+        return compressionEnabled;
     }
 
 }

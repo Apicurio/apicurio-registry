@@ -77,8 +77,13 @@ class FileCredentialProvider implements CredentialProvider {
         if (credentials.isEmpty()) {
             try {
                 Files.deleteIfExists(credentialsPath());
+                Files.deleteIfExists(keyPath());
+                // Drop the cached key so a subsequent store() in this same process
+                // regenerates it on disk instead of encrypting with an in-memory key
+                // that no longer has a backing file.
+                resetEncryption();
             } catch (IOException ex) {
-                // Non-critical — empty file is harmless
+                // Non-critical — leftover files are harmless
             }
         } else {
             writeCredentials(credentials);
@@ -144,10 +149,18 @@ class FileCredentialProvider implements CredentialProvider {
         return config.getAcrCurrentHomePath().resolve(CREDENTIALS_FILE);
     }
 
+    private Path keyPath() {
+        return config.getAcrCurrentHomePath().resolve(KEY_FILE);
+    }
+
     private synchronized CredentialEncryption encryption() {
         if (encryption == null) {
-            encryption = new CredentialEncryption(config.getAcrCurrentHomePath().resolve(KEY_FILE));
+            encryption = new CredentialEncryption(keyPath());
         }
         return encryption;
+    }
+
+    private synchronized void resetEncryption() {
+        encryption = null;
     }
 }

@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.auth;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +17,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.jboss.logging.Logger;
 
 /**
  * Encrypts and decrypts secrets stored by {@link FileCredentialProvider} using an
@@ -30,11 +32,14 @@ import javax.crypto.spec.SecretKeySpec;
  */
 class CredentialEncryption {
 
+    private static final Logger log = Logger.getLogger(CredentialEncryption.class);
+
     static final String ENCRYPTED_PREFIX = "enc:v1:";
 
     private static final String KEY_ALGORITHM = "AES";
     private static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
     private static final int KEY_SIZE_BITS = 256;
+    private static final int KEY_SIZE_BYTES = KEY_SIZE_BITS / 8;
     private static final int GCM_IV_LENGTH_BYTES = 12;
     private static final int GCM_TAG_LENGTH_BITS = 128;
 
@@ -100,7 +105,15 @@ class CredentialEncryption {
         if (!Files.exists(keyPath)) {
             generateKeyFile();
         }
-        key = new SecretKeySpec(Files.readAllBytes(keyPath), KEY_ALGORITHM);
+        var keyBytes = Files.readAllBytes(keyPath);
+        if (keyBytes.length != KEY_SIZE_BYTES) {
+            log.warnf("Encryption key file (%s) has an unexpected length — regenerating it."
+                    + " Credentials encrypted with the old key will need to be re-entered.", keyPath);
+            Files.delete(keyPath);
+            generateKeyFile();
+            keyBytes = Files.readAllBytes(keyPath);
+        }
+        key = new SecretKeySpec(keyBytes, KEY_ALGORITHM);
         return key;
     }
 
@@ -111,7 +124,14 @@ class CredentialEncryption {
         try {
             restrictFilePermissions(temp);
             Files.write(temp, generator.generateKey().getEncoded());
-            Files.move(temp, keyPath, StandardCopyOption.ATOMIC_MOVE);
+            try {
+                Files.move(temp, keyPath, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException ex) {
+                // Filesystem doesn't support atomic moves (e.g. NFS, some cloud mounts) —
+                // fall back to a plain move, which still fails with FileAlreadyExistsException
+                // if the target was created concurrently.
+                Files.move(temp, keyPath);
+            }
         } catch (FileAlreadyExistsException ex) {
             // Another process created the key file concurrently — use it instead.
         } finally {

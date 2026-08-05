@@ -144,4 +144,50 @@ public class FileCredentialProviderTest {
 
         assertThat(newProvider().retrieve(ACCOUNT)).isNull();
     }
+
+    @Test
+    public void testCorruptedKeyFileIsRegeneratedRatherThanBreakingPermanently() throws Exception {
+        newProvider().store(ACCOUNT, SECRET);
+
+        // Simulate a truncated/corrupted key file (e.g. disk error, partial backup restore).
+        var keyFile = home.resolve("credentials.key");
+        Files.write(keyFile, new byte[] {1, 2, 3});
+
+        // The old stored value can no longer be decrypted with a fresh key, but the
+        // provider must recover instead of failing every call forever.
+        var provider = newProvider();
+        assertThat(provider.retrieve(ACCOUNT)).isNull();
+
+        // A regenerated, correctly sized key must now be usable for new credentials.
+        provider.store(ACCOUNT, SECRET);
+        assertThat(provider.retrieve(ACCOUNT)).isEqualTo(SECRET);
+        assertThat(Files.readAllBytes(keyFile)).hasSize(32);
+    }
+
+    @Test
+    public void testDeleteRemovesKeyFileWhenLastCredentialIsDeleted() {
+        var provider = newProvider();
+        provider.store(ACCOUNT, SECRET);
+        assertThat(Files.exists(home.resolve("credentials.key"))).isTrue();
+
+        provider.delete(ACCOUNT);
+
+        assertThat(Files.exists(home.resolve("credentials.json"))).isFalse();
+        assertThat(Files.exists(home.resolve("credentials.key"))).isFalse();
+    }
+
+    @Test
+    public void testStoreAfterDeleteRegeneratesKeyFileAndRoundTrips() {
+        var provider = newProvider();
+        provider.store(ACCOUNT, SECRET);
+        provider.delete(ACCOUNT);
+
+        // Storing again in the same provider instance (same process) must not silently
+        // encrypt with a stale in-memory key that no longer has a file on disk.
+        provider.store(ACCOUNT, SECRET);
+
+        assertThat(Files.exists(home.resolve("credentials.key"))).isTrue();
+        assertThat(provider.retrieve(ACCOUNT)).isEqualTo(SECRET);
+        assertThat(newProvider().retrieve(ACCOUNT)).isEqualTo(SECRET);
+    }
 }

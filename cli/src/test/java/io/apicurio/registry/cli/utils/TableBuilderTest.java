@@ -23,6 +23,16 @@ class TableBuilderTest {
     }
 
     @Test
+    void resolveMaxColumnWidthFallsBackToDefaultWhenColumnsEnvIsAbsentOrInvalid() {
+        var longValue = "x".repeat(200);
+        var output = render(new TableBuilder()
+                .addColumns("Description")
+                .addRow(longValue));
+        var lines = output.split("\n");
+        assertThat(lines.length).isGreaterThan(3);
+    }
+    
+    @Test
     void setSelectedColumnsKeepsOnlyRequestedColumnsInRequestedOrder() {
         var output = render(new TableBuilder()
                 .addColumns("Group ID", "Artifact ID", "Name")

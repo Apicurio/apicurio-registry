@@ -21,7 +21,9 @@ import static java.util.Arrays.stream;
 public class TableBuilder {
 
     private static final int MIN_COLUMN_WIDTH = 3;
-    private static final int MAX_COLUMN_WIDTH = 25; // TODO: Dynamically based on terminal width.
+    private static final int DEFAULT_MAX_COLUMN_WIDTH = 25;
+    private static final int UPPER_MAX_COLUMN_WIDTH = 80;
+    private static final int MAX_COLUMN_WIDTH = resolveMaxColumnWidth();
     private static final String COLUMN_SEPARATOR = "   ";
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]");
 
@@ -35,6 +37,29 @@ public class TableBuilder {
     private List<Column> selectedColumns;
 
     private Pagination pagination;
+
+    /**
+     * Resolves the max column width from the terminal width, when available, falling back to a
+     * sensible default. Reads the COLUMNS environment variable, which most POSIX shells export for
+     * interactive terminals. When output is piped, redirected, or COLUMNS is unset/invalid (common in
+     * CI), falls back to {@link #DEFAULT_MAX_COLUMN_WIDTH}. The result is capped at
+     * {@link #UPPER_MAX_COLUMN_WIDTH} so a single wrapped cell doesn't become unreasonably wide on
+     * very large terminals.
+     */
+    private static int resolveMaxColumnWidth() {
+        var columnsEnv = System.getenv("COLUMNS");
+        if (columnsEnv != null) {
+            try {
+                int columns = Integer.parseInt(columnsEnv.trim());
+                if (columns >= MIN_COLUMN_WIDTH) {
+                    return min(columns, UPPER_MAX_COLUMN_WIDTH);
+                }
+            } catch (NumberFormatException ignored) {
+                // Fall through to default.
+            }
+        }
+        return DEFAULT_MAX_COLUMN_WIDTH;
+    }
 
     public TableBuilder addColumn(String header) {
         columns.add(new Column(header != null ? header : ""));

@@ -52,7 +52,7 @@ public class RestConfig {
 
     @Dynamic(label = "Compression", description = "When selected, gzip compression is applied to REST API responses.")
     @ConfigProperty(name = "apicurio.rest.compression.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_REST, description = "Enable gzip compression of REST API responses", availableSince = "3.3.2")
+    @Info(category = CATEGORY_REST, description = "Enable gzip compression of REST API responses. This is a dynamic property and can be changed at runtime without restarting the server.", availableSince = "3.3.2")
     Supplier<Boolean> compressionEnabled;
 
     public int getLabelsInSearchResultsMaxSize() {

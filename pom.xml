@@ -137,14 +137,14 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.33.2.1</quarkus.version>
+    <quarkus.version>3.33.3.1</quarkus.version>
     <!--
     # QOSDK
 
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/7.1.4/quarkus-operator-sdk-parent-7.1.4.pom
     to check that the versions match as best as possible:
 
-    - QOSDK 7.7.3 -> Quarkus 3.33.2 (LTS)
+    - QOSDK 7.7.3 -> Quarkus 3.33.1 (using 3.33.3.1 patch)
     - QOSDK 7.2.1 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - QOSDK 7.2.0 -> Quarkus 3.23.2
     - QOSDK 7.1.4 -> Quarkus 3.20.1
@@ -158,12 +158,13 @@
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/mcp/quarkus-mcp-server-parent/1.6.0/quarkus-mcp-server-parent-1.6.0.pom
     to check that the versions match as best as possible:
 
-    - MCP Server 1.11.0 -> Quarkus 3.33.0 (using 3.33.2 patch)
+    - MCP Server 1.13.1 -> Quarkus 3.33.2 (using 3.33.3.1 patch)
+    - MCP Server 1.11.0 -> Quarkus 3.33.0
     - MCP Server 1.7.0 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - MCP Server 1.6.1 -> Quarkus 3.20.2.2
     - MCP Server 1.6.0 -> Quarkus 3.20.2.2
     -->
-    <quarkus-mcp-server.version>1.11.0</quarkus-mcp-server.version>
+    <quarkus-mcp-server.version>1.13.1</quarkus-mcp-server.version>
     <!--
     /WARNING
     -->
@@ -181,7 +182,7 @@
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.35.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.73.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.74.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -218,27 +219,27 @@
     <json-sKema.version>0.31.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
-    <jackson-datatype-json-org.version>2.21.2</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.21.2</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>2.21.5</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>2.21.5</jackson-dataformat-yaml.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.45</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.46</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
-    <commons-codec.version>1.22.0</commons-codec.version>
-    <netty.version>4.1.135.Final</netty.version>
+    <commons-codec.version>1.22.1</commons-codec.version>
+    <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
-    <debezium.version>3.6.0.Final</debezium.version>
-    <pulsar-clients.version>4.2.3</pulsar-clients.version>
+    <debezium.version>3.6.1.Final</debezium.version>
+    <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.26.0</nats.version>
+    <nats.version>2.26.1</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
-    <woodstox-core.version>7.2.1</woodstox-core.version>
+    <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
     <assertj.core.version>3.27.7</assertj.core.version>
@@ -298,7 +299,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.0.7</groovy.version>
+    <groovy.version>5.0.8</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -1005,7 +1006,7 @@
         <version>${assertj.core.version}</version>
         <scope>test</scope>
       </dependency>
-      <!-- testcontainers core version now managed by Quarkus 3.33.1 BOM (2.0.3) -->
+      <!-- testcontainers core version now managed by Quarkus 3.33.3.1 BOM -->
 
       <!-- Iceberg -->
       <dependency>
@@ -1240,6 +1241,31 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <phase>validate</phase>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>[3.9.8,)</version>
+                </requireMavenVersion>
+                <requireJavaVersion>
+                  <version>[21,)</version>
+                  <message>Building Apicurio Registry requires JDK 21 or newer to run the build tooling (e.g. Checkstyle). The produced artifacts still target Java ${maven.compiler.release}.</message>
+                </requireJavaVersion>
+                <banDuplicatePomDependencyVersions/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <dependencies>
           <dependency>
@@ -1263,27 +1289,6 @@
               <goal>check</goal>
             </goals>
             <phase>validate</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>enforce</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <phase>validate</phase>
-            <configuration>
-              <rules>
-                <requireMavenVersion>
-                  <version>[3.9.8,)</version>
-                </requireMavenVersion>
-                <banDuplicatePomDependencyVersions/>
-              </rules>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1379,7 +1384,6 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <maven.source.skip>true</maven.source.skip>
         <checkstyle.skip>true</checkstyle.skip>
-        <enforcer.skip>true</enforcer.skip>
         <assembly.skipAssembly>true</assembly.skipAssembly>
       </properties>
     </profile>
@@ -1534,6 +1538,32 @@
           <url>https://packages.confluent.io/maven/</url>
         </repository>
       </repositories>
+    </profile>
+    <!-- Report-only reactor-wide dependency analysis, see DEVELOPING.md for the required
+         two-step procedure (https://github.com/Apicurio/apicurio-registry/issues/9136). -->
+    <profile>
+      <id>dependency-check</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>analyze-dependencies</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>analyze-only</goal>
+                </goals>
+                <configuration>
+                  <ignoreNonCompile>true</ignoreNonCompile>
+                  <failOnWarning>false</failOnWarning>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

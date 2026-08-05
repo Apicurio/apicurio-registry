@@ -8,7 +8,7 @@ It runs on pull requests to `main` and on pushes to `main`.
 ### Pipeline Phases
 
 ```
-decide ── lint-and-validate ── build ──┬── unit-tests (3 shards)
+decide ── lint-and-validate ── build ──┬── unit-tests (7 shards)
                                        ├── integration-tests (13 jobs)
                                        ├── extras (5 jobs)
                                        ├── sdk
@@ -57,42 +57,69 @@ checks, which caused skipped jobs to show as permanently pending.
 
 ## Unit Test Sharding
 
-The unit tests are split into 3 parallel shards to reduce the critical path
-(see `verify-unit-tests.yaml`):
+The unit tests are split into 7 parallel shards to reduce the critical path
+(see `verify-unit-tests.yaml`, the source of truth for the exact package and
+module patterns; the table below summarizes intent only). Typical durations
+are control-group measurements as of 2026-08-01 from
+[Discussion #8364](https://github.com/Apicurio/apicurio-registry/discussions/8364).
+They are illustrative, not guaranteed: actual times vary with runner load and
+cache state. The only CI-enforced budget is the 600 s per-shard warning
+threshold in `verify-unit-tests.yaml`; `app-other` currently exceeds it by
+design (a known gap, tracked separately).
 
-| Shard | What it runs | Typical duration |
-|-------|-------------|-----------------|
-| `app-shard1` | `noprofile.rest.**`, `noprofile.ccompat.**`, `storage.**`, `event.**` | ~16 min |
-| `app-shard2` | Everything else in `app/` (auth, tls, metrics, noprofile.other, etc.) | ~12 min |
-| `non-app` | All modules except `app/` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~7 min |
+| Shard | Intent | Typical duration |
+|-------|--------|-----------------|
+| `app-rest` | REST API and Confluent-compatibility (ccompat) endpoint tests | ~4.5 min |
+| `app-sql` | SQL storage variant tests, plus shared storage tests that aren't variant-specific (search backend, polling/blue-green, read-only decorator, DTOs) and SQL eventing | ~5 min |
+| `app-kafkasql` | KafkaSQL storage variant | ~6 min |
+| `app-gitops` | GitOps storage variant | ~4 min |
+| `app-kubernetesops` | Kubernetes ConfigMaps storage variant | ~3 min |
+| `app-other` | Catch-all for everything else in `app/`: auth, tls, metrics, rbac, cors, limits, rules, search, ui, and most of `noprofile/*` (compatibility, resolver, serde, proxy, etc.), excluding `noprofile.rest`/`noprofile.ccompat` and all `storage.**`/`event.**` | ~14 min |
+| `non-app` | All modules except `app/`, `distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~5 min |
 
 ### How sharding works
 
-- **app-shard1** uses surefire's `-Dtest=` to *include* specific packages.
-- **app-shard2** uses `-Dtest=!...` to *exclude* those same packages, catching everything else.
+- **app-rest**, **app-sql**, **app-kafkasql**, **app-gitops**, and
+  **app-kubernetesops** each use surefire's `-Dtest=` to *include* a specific
+  set of packages.
+- **app-other** uses `-Dtest=!...` to *exclude* the packages claimed by the
+  `noprofile.rest`, `noprofile.ccompat`, `storage.**`, and `event.**` filters,
+  catching everything else in `app/`.
 - **non-app** uses Maven's `-pl` to run all modules except `app` and modules that
   depend on the `app` JAR (`distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api`).
 
 ### Adding new tests
 
-New test classes are automatically picked up:
+Most new test classes are automatically picked up, but storage/event
+subpackages are an exception. Read this before adding one:
 
-- **In `app/`**: if the package matches `noprofile.rest`, `noprofile.ccompat`,
-  `storage`, or `event`, it runs in `app-shard1`. Everything else lands in
-  `app-shard2` (the exclusion-based shard).
+- **In `app/`**: if the package matches `noprofile.rest` or `noprofile.ccompat`,
+  it runs in `app-rest`. A `storage.impl.*` / `event.*` subpackage that is
+  already covered by one of the storage-variant include filters
+  (`app-sql`, `app-kafkasql`, `app-gitops`, `app-kubernetesops`) runs there.
+  Everything else lands in `app-other` (the exclusion-based shard).
 - **In any other module**: runs in `non-app`.
 
-No CI changes needed for new tests.
+**Warning:** `app-other`'s filter excludes *all* of `storage.**` and
+`event.**`, not just the subpackages claimed by the other shards. A new
+subpackage under `io.apicurio.registry.storage` or `io.apicurio.registry.event`
+that isn't added to one of the include filters runs in **zero** shards, and
+does so silently: `verify-unit-tests.yaml` sets
+`-Dsurefire.failIfNoSpecifiedTests=false`, so no shard fails when this
+happens. Any new storage or event subpackage **must** be added to an include
+shard in `verify-unit-tests.yaml`, or its tests will never run in CI.
 
 ### Rebalancing shards
 
-If one shard grows significantly slower than the other, rebalance by moving
-package patterns between `app-shard1` and `app-shard2` in `verify-unit-tests.yaml`.
+If one shard grows significantly slower than the others, rebalance by moving
+package patterns between the `app-*` shards in `verify-unit-tests.yaml`.
 Check actual CI timings with:
 
 ```bash
-gh run view <run-id> --repo Apicurio/apicurio-registry --json jobs | \
-  python3 -c "import json,sys; [print(f'{j[\"name\"]}: {j[\"conclusion\"]}') for j in json.load(sys.stdin)['jobs']]"
+gh run view <run-id> --repo Apicurio/apicurio-registry --json jobs \
+  --jq '.jobs[] | select(.conclusion != "skipped") |
+        select(.startedAt != "0001-01-01T00:00:00Z" and .completedAt != "0001-01-01T00:00:00Z") |
+        "\(.name): \((.completedAt | fromdateiso8601) - (.startedAt | fromdateiso8601))s (\(.conclusion))"'
 ```
 
 ### Why not use forkCount > 1?
@@ -127,7 +154,8 @@ non-Java changes (docs, UI).
 |----------|---------|---------|----------|
 | `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `verification-gate` is the single required check | N/A |
 | `verify-build.yaml` | Called by verify | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention | ~6 min |
-| `verify-unit-tests.yaml` | Called by verify | Unit tests in 3 parallel shards (see above) | ~16 min (critical path) |
+| `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
+| `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |

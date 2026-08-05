@@ -60,6 +60,9 @@ public class EntityWriter {
             case GlobalRule:
                 writeEntity((GlobalRuleEntity) entity);
                 break;
+            case ContractRule:
+                writeEntity((ContractRuleEntity) entity);
+                break;
             case Comment:
                 writeEntity((CommentEntity) entity);
                 break;
@@ -126,6 +129,17 @@ public class EntityWriter {
         write(mdEntry, entity, GlobalRuleEntity.class);
     }
 
+    private void writeEntity(ContractRuleEntity entity) throws IOException {
+        // The rule name is user supplied, so it is not used in the file name. A contract rule is uniquely
+        // identified within its artifact by the version it applies to (globalId, null for artifact and
+        // global level rules) plus its category and order within that category.
+        String fileName = String.format("%s-%s-%d", entity.globalId == null ? "all" : entity.globalId,
+                entity.ruleCategory, entity.orderIndex);
+        ZipEntry mdEntry = createZipEntry(EntityType.ContractRule, entity.groupId, entity.artifactId,
+                fileName, "json");
+        write(mdEntry, entity, ContractRuleEntity.class);
+    }
+
     private void writeEntity(CommentEntity entity) throws IOException {
         ZipEntry mdEntry = createZipEntry(EntityType.Comment, entity.globalId + '-' + entity.commentId,
                 "json");
@@ -154,6 +168,10 @@ public class EntityWriter {
             case ArtifactRule:
                 path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId),
                         artifactId, fileName, type.name(), fileExt);
+                break;
+            case ContractRule:
+                path = String.format("groups/%s/artifacts/%s/contract-rules/%s.%s.%s",
+                        groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
                 break;
             case Artifact:
                 path = String.format("groups/%s/artifacts/%s/%s.%s.%s", groupOrDefault(groupId), artifactId,

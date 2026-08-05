@@ -10,6 +10,7 @@ import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
 import io.apicurio.registry.events.ArtifactVersionStateChanged;
+import io.apicurio.registry.events.ContractRulesetConfigured;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
@@ -691,6 +692,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetArtifactContractRuleset3Message(groupId, artifactId, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -699,6 +702,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteArtifactContractRuleset2Message(groupId, artifactId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -713,6 +718,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetVersionContractRuleset4Message(groupId, artifactId, version, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -721,6 +728,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteVersionContractRuleset3Message(groupId, artifactId, version);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -741,6 +750,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetGlobalContractRuleset1Message(ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -748,6 +759,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteGlobalContractRuleset0Message();
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class JsonSchemaRemoteReferenceTest {
 
@@ -60,5 +61,45 @@ class JsonSchemaRemoteReferenceTest {
         assertDoesNotThrow(() -> checker.testCompatibility(CompatibilityLevel.BACKWARD,
                 Collections.singletonList(toTypedContent(EXISTING_SCHEMA)),
                 toTypedContent(proposedSchema), Collections.emptyMap()));
+    }
+
+    @Test
+    void testResolvedRemoteReferenceContentIsUsed() {
+        JsonSchemaCompatibilityChecker checker = new JsonSchemaCompatibilityChecker();
+        String existingSchema = """
+                {
+                  "$id": "https://example.com/schemas/root.json",
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "integer"
+                    }
+                  }
+                }
+                """;
+        String proposedSchema = """
+                {
+                  "$id": "https://example.com/schemas/root.json",
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "$ref": "address.json"
+                    }
+                  }
+                }
+                """;
+
+        var result = checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                Collections.singletonList(toTypedContent(existingSchema)),
+                toTypedContent(proposedSchema),
+                Collections.singletonMap("address.json", toTypedContent("""
+                        {
+                          "type": "string"
+                        }
+                        """)));
+
+        assertFalse(result.isCompatible(), "Supplied referenced content should be used during compatibility checking");
     }
 }

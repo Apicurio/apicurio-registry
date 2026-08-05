@@ -86,11 +86,18 @@ public class JsonSchemaDiffLibrary {
 
         Set<URI> extractedReferences = JsonUtil.extractReferencesRecursive(JsonSchemaVersion.valueOf(spec.name()), idUri, jsonNode);
         for (URI extractedReference : extractedReferences) {
-            var resolvedReferenceContent = resolvedReferences.get(extractedReference.toString());
-            if (resolvedReferenceContent != null) {
-                schemaLoaderBuilder.registerSchemaByURI(extractedReference,
-                        new JSONObject(resolvedReferenceContent.getContent().content()));
-            } else {
+            boolean registered = false;
+            for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {
+                URI resolvedReferenceUri = ReferenceResolver.resolve(idUri, entry.getKey());
+                if (extractedReference.equals(resolvedReferenceUri)) {
+                    schemaLoaderBuilder.registerSchemaByURI(extractedReference,
+                            new JSONObject(entry.getValue().getContent().content()));
+                    registered = true;
+                    break;
+                }
+            }
+
+            if (!registered) {
                 /*
                  * Since we do not have the referenced content, we insert a placeholder schema, that will
                  * accept any JSON, to the reference lookup table of the library. This prevents the library

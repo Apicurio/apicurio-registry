@@ -996,7 +996,7 @@ The following {registry} configuration options are available for each component 
 |`3.1.0`
 |Optional configuration to override default reference handling behavior. When not set, uses API defaults (PRESERVE for v3, false for v2, none for ccompat).
 |`apicurio.rest.compression.enabled`
-|`boolean`
+|`boolean [dynamic]`
 |`true`
 |`3.3.2`
 |Enable gzip compression of REST API responses
@@ -1720,6 +1720,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio.rest.artifact.deletion.enabled`
 |`unknown`
 |`false`
+|
+|
+|`apicurio.rest.compression.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
 |
 |
 |`apicurio.rest.deletion.artifact-version.enabled.dynamic.allow`

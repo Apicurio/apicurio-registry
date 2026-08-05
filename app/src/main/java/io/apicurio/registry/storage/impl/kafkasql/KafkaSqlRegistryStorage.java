@@ -101,9 +101,6 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implements RegistryStorage {
 
-    // Coordinates used by contract ruleset events to identify the global (non artifact scoped) ruleset.
-    private static final String GLOBAL_CONTRACT_COORDINATE = "__GLOBAL__";
-
     @Inject
     Logger log;
 
@@ -695,8 +692,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetArtifactContractRuleset3Message(groupId, artifactId, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent
-                .of(ContractRulesetConfigured.of(groupId, artifactId, null, "SET")));
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -705,8 +702,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteArtifactContractRuleset2Message(groupId, artifactId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent
-                .of(ContractRulesetConfigured.of(groupId, artifactId, null, "DELETE")));
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -721,8 +718,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetVersionContractRuleset4Message(groupId, artifactId, version, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent
-                .of(ContractRulesetConfigured.of(groupId, artifactId, version, "SET")));
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -731,8 +728,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteVersionContractRuleset3Message(groupId, artifactId, version);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent
-                .of(ContractRulesetConfigured.of(groupId, artifactId, version, "DELETE")));
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -753,8 +750,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetGlobalContractRuleset1Message(ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured
-                .of(GLOBAL_CONTRACT_COORDINATE, GLOBAL_CONTRACT_COORDINATE, null, "SET")));
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -762,8 +759,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteGlobalContractRuleset0Message();
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
-        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured
-                .of(GLOBAL_CONTRACT_COORDINATE, GLOBAL_CONTRACT_COORDINATE, null, "DELETE")));
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override

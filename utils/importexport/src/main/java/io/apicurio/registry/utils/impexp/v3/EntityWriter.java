@@ -22,6 +22,9 @@ public class EntityWriter {
 
     private final transient ZipOutputStream zip;
 
+    /** Disambiguates contract rule zip entries; see {@link #writeEntity(ContractRuleEntity)}. */
+    private int contractRuleSequence = 0;
+
     /**
      * Constructor.
      * 
@@ -130,11 +133,13 @@ public class EntityWriter {
     }
 
     private void writeEntity(ContractRuleEntity entity) throws IOException {
-        // The rule name is user supplied, so it is not used in the file name. A contract rule is uniquely
-        // identified within its artifact by the version it applies to (globalId, null for artifact and
-        // global level rules) plus its category and order within that category.
-        String fileName = String.format("%s-%s-%d", entity.globalId == null ? "all" : entity.globalId,
-                entity.ruleCategory, entity.orderIndex);
+        // The rule name is user supplied, and contract_rules has no unique constraint beyond its ruleId
+        // primary key, so no combination of the exported columns is guaranteed distinct. Duplicate zip
+        // entry names would silently drop rules from the export, so a per-writer sequence number is
+        // appended. The name is descriptive only: the reader derives the entity type from the
+        // ".ContractRule.json" suffix and reads every field from the file body.
+        String fileName = String.format("%s-%s-%d-%d", entity.globalId == null ? "all" : entity.globalId,
+                entity.ruleCategory, entity.orderIndex, contractRuleSequence++);
         ZipEntry mdEntry = createZipEntry(EntityType.ContractRule, entity.groupId, entity.artifactId,
                 fileName, "json");
         write(mdEntry, entity, ContractRuleEntity.class);

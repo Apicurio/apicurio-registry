@@ -59,6 +59,8 @@ class WindowsCredentialProvider implements CredentialProvider {
     public void store(final String account, final String secret) {
         final byte[] blob = secret.getBytes(StandardCharsets.UTF_16LE);
         if (blob.length > MAX_BLOB_SIZE) {
+            // Rejecting the secret is no reason to leave a copy of it behind.
+            Arrays.fill(blob, (byte) 0);
             throw new CredentialStoreException(
                     "Secret is too large for the Windows Credential Manager (the limit is "
                             + MAX_BLOB_SIZE + " bytes).");

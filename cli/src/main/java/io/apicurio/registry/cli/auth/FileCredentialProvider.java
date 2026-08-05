@@ -133,11 +133,33 @@ class FileCredentialProvider implements CredentialProvider {
                     .setPrincipal(owner)
                     .setPermissions(EnumSet.allOf(AclEntryPermission.class))
                     .build();
-            // Replace the inherited DACL so that only the owner can read the credentials file.
+            // Replace the DACL so that only the owner can read the credentials file.
+            //
+            // Entries inherited from the containing directory do not survive this, but that is a
+            // consequence of how the JDK writes the ACL rather than something it asks for:
+            // setAcl calls the legacy SetFileSecurity with DACL_SECURITY_INFORMATION alone, and
+            // because the descriptor it builds is not marked auto-inherited, Windows stores the
+            // DACL verbatim instead of merging inheritable entries back in. Since the guarantee
+            // rests on that detail rather than on an explicit request, it is checked below rather
+            // than assumed, and a failure is reported the same way as any other.
             view.setAcl(List.of(entry));
+            if (!isRestrictedToOwner(view, owner)) {
+                warnPermissionsNotRestricted();
+            }
         } catch (IOException | RuntimeException ex) {
             warnPermissionsNotRestricted();
         }
+    }
+
+    /**
+     * Whether the file's effective ACL grants access to nobody but its owner. The list returned
+     * for a Windows file is the whole DACL, so an entry inherited from the parent directory would
+     * appear here too.
+     */
+    private static boolean isRestrictedToOwner(final AclFileAttributeView view,
+                                               final UserPrincipal owner) throws IOException {
+        final List<AclEntry> acl = view.getAcl();
+        return acl.size() == 1 && owner.equals(acl.get(0).principal());
     }
 
     private static void warnPermissionsNotRestricted() {

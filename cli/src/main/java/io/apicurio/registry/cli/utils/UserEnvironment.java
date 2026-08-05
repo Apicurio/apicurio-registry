@@ -3,9 +3,14 @@ package io.apicurio.registry.cli.utils;
 import io.apicurio.registry.cli.common.CliException;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.jboss.logging.Logger;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
@@ -79,6 +84,20 @@ public class UserEnvironment {
     }
 
     /**
+     * Reads a stream to the end on another thread, so the caller can keep waiting on the process
+     * itself. An failure to read is carried to the caller by the returned future.
+     */
+    private static CompletableFuture<byte[]> readAsync(final InputStream stream) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return stream.readAllBytes();
+            } catch (final IOException ex) {
+                throw new CompletionException(ex);
+            }
+        });
+    }
+
+    /**
      * Absolute path of the Windows PowerShell executable. It is resolved from {@code SystemRoot}
      * rather than looked up by name, so the interpreter cannot be taken from a writable directory
      * that happens to precede System32 on the process {@code PATH}.
@@ -107,10 +126,15 @@ public class UserEnvironment {
             // The commands never read input. Closing the stream hands them end of input rather
             // than an open pipe, so a child that did try to read cannot wait on it forever.
             process.getOutputStream().close();
-            // Read the output before waiting, so a large value cannot fill the pipe buffer and
-            // block the child process while this thread waits for it to exit.
-            final String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            // Drain the output on another thread rather than here. It has to be drained while the
+            // child runs, since a value larger than the pipe buffer would otherwise block the
+            // child before it could exit; but draining it on this thread would mean waiting on a
+            // read that never returns if the child hangs, leaving the timeout below unreachable.
+            // Doing it separately keeps the wait, and therefore the deadline, on this thread.
+            final CompletableFuture<byte[]> output = readAsync(process.getInputStream());
             if (!process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                // Killing the child closes the pipe, which releases the reader as well.
+                process.destroyForcibly();
                 throw new CliException("Timed out trying to " + operation
                         + " the user environment variable " + name + ".", APPLICATION_ERROR_RETURN_CODE);
             }
@@ -119,8 +143,10 @@ public class UserEnvironment {
                         + " (PowerShell exited with code " + process.exitValue() + ").",
                         APPLICATION_ERROR_RETURN_CODE);
             }
-            return output.trim();
-        } catch (final IOException ex) {
+            // The child has exited, so the remaining output is buffered and this returns at once.
+            return new String(output.get(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    StandardCharsets.UTF_8).trim();
+        } catch (final IOException | ExecutionException | TimeoutException ex) {
             throw new CliException("Failed to " + operation + " the user environment variable " + name
                     + ": " + ex.getClass().getSimpleName(), APPLICATION_ERROR_RETURN_CODE);
         } catch (final InterruptedException ex) {

@@ -78,26 +78,39 @@ Types: `feat`, `fix`, `chore`, `docs`, `ci`, `test`, `refactor`
 - Profiles: `local-tests`, `remote-mem`, `remote-sql`, `remote-kafka`
 - Storage-touching features must work across all variants
 
-## Contributor Checklist
+## Contributor Checklist (external contributors)
 
 Before opening a PR, verify every item. PRs that skip these get sent back.
+Project committers have more latitude but should still follow the Code and Tests sections.
 
 ### Before writing code
-- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time.
+- [ ] **One PR at a time.** Do not open a second PR until your first one is merged. Maintainers will close additional PRs with "one PR at a time" — no exceptions, even if the work is ready.
+- [ ] The linked issue has **maintainer approval** (a comment from a project maintainer). Implementing an unapproved feature request wastes everyone's time. Issues with zero maintainer comments are not approved.
 - [ ] Check for **overlapping PRs** — search open PRs for your issue number and keywords. Duplicate work gets the later PR closed.
+- [ ] Check the [Tried & Rejected list](https://github.com/Apicurio/apicurio-registry/discussions/8364) — some optimizations have already been evaluated and rejected with evidence. Don't re-implement them.
 
 ### Code
-- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` annotation in `app` module, run config doc generator).
-- [ ] API error responses never expose internal state — no usernames, stack traces, or class names. Use generic messages.
-- [ ] Never hand-roll what Quarkus or MicroProfile already provides (circuit breakers, retry, fault tolerance, health checks). Check existing dependencies first.
-- [ ] New features or behavioral changes under `storage/impl/` that aren't variant-specific must be implemented across all 4 storage variants.
-- [ ] Auth changes require tests for both **positive** (authorized → succeeds) and **negative** (unauthorized → 403) cases.
+- [ ] Config properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix, `@Info` in `app` module). If you changed `@ConfigProperty` or `@Info`, regenerate config docs: `./mvnw clean install -pl :apicurio-registry-config-generator -am -DskipTests` and commit the updated `ref-registry-all-configs.adoc`.
+- [ ] API error responses never expose internal state (usernames, stack traces, class names).
+- [ ] Use Quarkus/MicroProfile facilities (`@CircuitBreaker`, `@Retry`, `@Timeout`) instead of hand-rolled equivalents.
+- [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.
+- [ ] Non-variant-specific changes under `storage/impl/` must work across all 4 storage variants.
+- [ ] Auth changes require both positive and negative (403) test cases.
 - [ ] New Java files include the Apache 2.0 license header.
+- [ ] **No LLM artifacts** — fully qualified names must be imports (not inline `java.util.concurrent.TimeoutException`), annotations must be real (`@Tag`, `@Test`) not file paths, no hallucinated API parameters or system properties.
+- [ ] **Input validation on endpoints** — validate path parameters against traversal, verify proxy/forwarding URLs are within expected domain, enforce request body size limits on endpoints accepting user content.
+- [ ] **Default value consistency** — `@ConfigProperty(defaultValue=)`, activation conditions (`orElse()`), and `@Info` descriptions must all agree. A mismatch means one path sees a different default than the others.
+- [ ] **Don't assume APIs exist** — before proposing a system property, annotation parameter, or config mechanism, verify it actually works by checking the library source. Hallucinated flags (e.g., `-Dawaitility.defaultTimeout`) waste review cycles.
+- [ ] **No redundant guards** — don't add null checks for methods that already handle null (e.g., `Boolean.parseBoolean(null)` returns `false`). Don't call the same method twice when caching the result suffices.
+- [ ] Don't change default config values unless that is the explicit goal of the PR.
+- [ ] Use Fabric8 Kubernetes client API idiomatically (`ex.getStatus().getReason()`, not `ex.getMessage().contains(...)`).
+- [ ] No `synchronized` in reactive/async code paths (`Uni<>`, Mutiny) — use `AtomicReference` + CAS or framework-provided mechanisms.
 
 ### Tests
 - [ ] Every new code path has tests. Missing tests = automatic rejection.
 - [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
 - [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
+- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans — plain JUnit with `new` bypasses interceptors.
 - [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
 
 ### Submission
@@ -115,6 +128,7 @@ Before opening a PR, verify every item. PRs that skip these get sent back.
 - UI has its own npm/Vite build system, separate from Maven
 - Integration tests need running infrastructure (use testcontainers or profiles)
 - `APICURIO_STORAGE_SQL_KIND` selects the SQL dialect (postgresql, mysql, mssql)
+- New components must be wired into the Verify → Decide → Verification Gate CI pipeline, not standalone workflows. A standalone workflow that doesn't block merges is an incomplete integration.
 
 ## Claude Code Configuration
 

@@ -24,10 +24,15 @@ import java.util.List;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 
 /**
- * Database upgrader that recomputes canonical hashes for all Avro content. This is needed because the Avro
- * canonicalizer was updated to normalize nullable unions ({@code ["null", T]}) so that the implicit and
- * explicit {@code "default": null} forms produce the same canonical hash. Existing rows stored before the
- * fix may have stale hashes that prevent deduplication of equivalent schemas.
+ * Database upgrader that recomputes canonical hashes for all Avro content. Existing rows stored before a
+ * change to the Avro canonicalizer may have stale hashes that prevent deduplication of equivalent schemas,
+ * so this upgrader is re-run whenever that canonicalizer changes. It has been run for:
+ * <ul>
+ * <li>db version 104 — nullable unions ({@code ["null", T]}) were normalized so that the implicit and
+ * explicit {@code "default": null} forms produce the same canonical hash.</li>
+ * <li>db version 108 — resolved references are now seeded into the parser, so schemas that reference
+ * another artifact canonicalize instead of silently falling back to their raw, uncanonicalized content.</li>
+ * </ul>
  */
 @RegisterForReflection
 public class AvroCanonicalHashUpgrader implements IDbUpgrader {

@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.1-SNAPSHOT
+    app.kubernetes.io/version: 3.3.2-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -398,17 +398,6 @@ spec:
                         - edge
                         - passthrough
                         - reencrypt
-                        type: string
-                    type: object
-                  kafkasql:
-                    description: |-
-                      DEPRECATED: Use the `app.storage.type` and `app.storage.kafkasql` fields instead.
-                       The operator will attempt to update the fields automatically.
-                    properties:
-                      bootstrapServers:
-                        description: 'DEPRECATED: Use the `app.storage.kafkasql.bootstrapServers`
-                          field instead. The operator will attempt to update the field
-                          automatically.'
                         type: string
                     type: object
                   networkPolicy:
@@ -3566,33 +3555,6 @@ spec:
                         description: The username for connecting to a secured Elasticsearch
                           cluster.
                         type: string
-                    type: object
-                  sql:
-                    description: |-
-                      DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.
-                      The operator will attempt to update the fields automatically.
-                    properties:
-                      dataSource:
-                        description: 'DEPRECATED: Use the `app.storage.sql.dataSource`
-                          field instead. The operator will attempt to update the field
-                          automatically.'
-                        properties:
-                          password:
-                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.password`
-                              field instead. The operator will attempt to update the
-                              field automatically.'
-                            type: string
-                          url:
-                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.url`
-                              field instead. The operator will attempt to update the
-                              field automatically.'
-                            type: string
-                          username:
-                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.username`
-                              field instead. The operator will attempt to update the
-                              field automatically.'
-                            type: string
-                        type: object
                     type: object
                   storage:
                     description: |
@@ -7315,7 +7277,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.1-SNAPSHOT
+    app.kubernetes.io/version: 3.3.2-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -7327,7 +7289,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.1-SNAPSHOT
+    app.kubernetes.io/version: 3.3.2-SNAPSHOT
   name: apicurio-registry-operator-clusterrole
 rules:
 - apiGroups:
@@ -7456,7 +7418,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.1-SNAPSHOT
+    app.kubernetes.io/version: 3.3.2-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -7476,8 +7438,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.1-SNAPSHOT
-  name: apicurio-registry-operator-v3.3.1-snapshot
+    app.kubernetes.io/version: 3.3.2-SNAPSHOT
+  name: apicurio-registry-operator-v3.3.2-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -7488,7 +7450,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.3.1-SNAPSHOT
+      app.kubernetes.io/version: 3.3.2-SNAPSHOT
   template:
     metadata:
       labels:
@@ -7497,7 +7459,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.3.1-SNAPSHOT
+        app.kubernetes.io/version: 3.3.2-SNAPSHOT
     spec:
       automountServiceAccountToken: true
       containers:

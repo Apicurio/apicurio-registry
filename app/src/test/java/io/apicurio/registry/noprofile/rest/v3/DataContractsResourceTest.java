@@ -1,11 +1,47 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.noprofile.rest.v3;
+
+import static io.apicurio.registry.rest.v3.beans.ContractRule.Kind.CONDITION;
+import static io.apicurio.registry.rest.v3.beans.ContractRule.Kind.TRANSFORM;
+import static io.apicurio.registry.rest.v3.beans.ContractRule.Mode.READ;
+import static io.apicurio.registry.rest.v3.beans.ContractRule.Mode.UPGRADE;
+import static io.apicurio.registry.rest.v3.beans.ContractRule.Mode.WRITE;
+import static io.apicurio.registry.rest.v3.beans.ContractRule.Mode.WRITEREAD;
+import static io.apicurio.registry.rest.v3.beans.EditableContractMetadata.Classification.CONFIDENTIAL;
+import static io.apicurio.registry.rest.v3.beans.EditableContractMetadata.Classification.INTERNAL;
+import static io.apicurio.registry.rest.v3.beans.EditableContractMetadata.Stage.DEV;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.rest.v3.beans.ContractRule;
+import io.apicurio.registry.rest.v3.beans.ContractRuleSet;
+import io.apicurio.registry.rest.v3.beans.Params;
+import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
+import io.apicurio.registry.rest.v3.beans.EditableContractMetadata;
+import io.apicurio.registry.rest.v3.beans.CreateVersion;
+import io.apicurio.registry.rest.v3.beans.VersionContent;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
+import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -53,16 +89,14 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "status": "DRAFT",
-                            "ownerTeam": "platform-team",
-                            "ownerDomain": "payments",
-                            "supportContact": "platform@example.com",
-                            "classification": "INTERNAL",
-                            "stage": "DEV"
-                        }
-                        """)
+                .body(EditableContractMetadata.builder()
+                        .status(EditableContractMetadata.Status.DRAFT)
+                        .ownerTeam("platform-team")
+                        .ownerDomain("payments")
+                        .supportContact("platform@example.com")
+                        .classification(INTERNAL)
+                        .stage(DEV)
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200)
@@ -98,12 +132,10 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "status": "DRAFT",
-                            "ownerTeam": "team-alpha"
-                        }
-                        """)
+                .body(EditableContractMetadata.builder()
+                        .status(EditableContractMetadata.Status.DRAFT)
+                        .ownerTeam("team-alpha")
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200);
@@ -114,13 +146,11 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "status": "STABLE",
-                            "ownerTeam": "team-beta",
-                            "classification": "CONFIDENTIAL"
-                        }
-                        """)
+                .body(EditableContractMetadata.builder()
+                        .status(EditableContractMetadata.Status.STABLE)
+                        .ownerTeam("team-beta")
+                        .classification(CONFIDENTIAL)
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200)
@@ -154,39 +184,40 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         String content = resourceToString("openapi-empty.json");
         createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
 
+        Params migrationParams = new Params();
+        migrationParams.setAdditionalProperty("targetField", "newField");
+
         // Set ruleset
         given()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "domainRules": [
-                                {
-                                    "name": "validate-email",
-                                    "kind": "CONDITION",
-                                    "type": "CEL",
-                                    "mode": "WRITE",
-                                    "expr": "message.email.matches('^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$')",
-                                    "tags": ["email", "validation"],
-                                    "onFailure": "ERROR"
-                                }
-                            ],
-                            "migrationRules": [
-                                {
-                                    "name": "add-default-field",
-                                    "kind": "TRANSFORM",
-                                    "type": "CEL_FIELD",
-                                    "mode": "UPGRADE",
-                                    "expr": "has(message.newField) ? message.newField : 'default'",
-                                    "params": {"targetField": "newField"},
-                                    "onSuccess": "NONE",
-                                    "onFailure": "DLQ"
-                                }
-                            ]
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("validate-email")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("message.email.matches('^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$')")
+                                        .tags(List.of("email", "validation"))
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .build()
+                        ))
+                        .migrationRules(List.of(
+                                ContractRule.builder()
+                                        .name("add-default-field")
+                                        .kind(TRANSFORM)
+                                        .type("CEL_FIELD")
+                                        .mode(UPGRADE)
+                                        .expr("has(message.newField) ? message.newField : 'default'")
+                                        .params(migrationParams)
+                                        .onSuccess(ContractRule.OnSuccess.NONE)
+                                        .onFailure(ContractRule.OnFailure.DLQ)
+                                        .build()
+                        ))
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then()
                 .statusCode(200)
@@ -225,19 +256,17 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "domainRules": [
-                                {
-                                    "name": "rule1",
-                                    "kind": "CONDITION",
-                                    "type": "CEL",
-                                    "mode": "WRITE"
-                                }
-                            ],
-                            "migrationRules": []
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("rule1")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then()
                 .statusCode(200);
@@ -280,20 +309,18 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
                 .pathParam("version", version)
-                .body("""
-                        {
-                            "domainRules": [
-                                {
-                                    "name": "version-rule",
-                                    "kind": "CONDITION",
-                                    "type": "CEL",
-                                    "mode": "READ",
-                                    "disabled": true
-                                }
-                            ],
-                            "migrationRules": []
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("version-rule")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(READ)
+                                        .disabled(true)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/ruleset")
                 .then()
                 .statusCode(200)
@@ -329,19 +356,17 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
                 .pathParam("version", version)
-                .body("""
-                        {
-                            "domainRules": [
-                                {
-                                    "name": "temp-rule",
-                                    "kind": "TRANSFORM",
-                                    "type": "CEL_FIELD",
-                                    "mode": "WRITEREAD"
-                                }
-                            ],
-                            "migrationRules": []
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("temp-rule")
+                                        .kind(TRANSFORM)
+                                        .type("CEL_FIELD")
+                                        .mode(WRITEREAD)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/ruleset")
                 .then()
                 .statusCode(200);
@@ -383,14 +408,17 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "domainRules": [
-                                {"name": "artifact-rule", "kind": "CONDITION", "type": "CEL", "mode": "WRITE"}
-                            ],
-                            "migrationRules": []
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("artifact-rule")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then()
                 .statusCode(200);
@@ -402,14 +430,17 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
                 .pathParam("version", version)
-                .body("""
-                        {
-                            "domainRules": [
-                                {"name": "version-rule", "kind": "TRANSFORM", "type": "CEL_FIELD", "mode": "READ"}
-                            ],
-                            "migrationRules": []
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("version-rule")
+                                        .kind(TRANSFORM)
+                                        .type("CEL_FIELD")
+                                        .mode(READ)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/ruleset")
                 .then()
                 .statusCode(200);
@@ -470,15 +501,23 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "domainRules": [
-                                {"name": "rule-1", "kind": "CONDITION", "type": "CEL", "mode": "WRITE"},
-                                {"name": "rule-2", "kind": "CONDITION", "type": "CEL", "mode": "READ"}
-                            ],
-                            "migrationRules": []
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("rule-1")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .build(),
+                                ContractRule.builder()
+                                        .name("rule-2")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(READ)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then()
                 .statusCode(200)
@@ -490,14 +529,17 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("""
-                        {
-                            "domainRules": [],
-                            "migrationRules": [
-                                {"name": "migration-1", "kind": "TRANSFORM", "type": "CEL_FIELD", "mode": "UPGRADE"}
-                            ]
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of())
+                        .migrationRules(List.of(
+                                ContractRule.builder()
+                                        .name("migration-1")
+                                        .kind(TRANSFORM)
+                                        .type("CEL_FIELD")
+                                        .mode(UPGRADE)
+                                        .build()
+                        ))
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then()
                 .statusCode(200);
@@ -525,13 +567,13 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"STABLE\"}")
+                .body(ContractStatusTransition.builder().status(ContractStatusTransition.Status.STABLE).build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then().statusCode(200)
                 .body("status", equalTo("STABLE"));
@@ -551,19 +593,19 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"STABLE\"}")
+                .body(ContractStatusTransition.builder().status(ContractStatusTransition.Status.STABLE).build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DEPRECATED\"}")
+                .body(ContractStatusTransition.builder().status(ContractStatusTransition.Status.DEPRECATED).build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then().statusCode(200)
                 .body("status", equalTo("DEPRECATED"));
@@ -577,13 +619,17 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\",\"ownerTeam\":\"my-team\",\"classification\":\"INTERNAL\"}")
+                .body(EditableContractMetadata.builder()
+                        .status(EditableContractMetadata.Status.DRAFT)
+                        .ownerTeam("my-team")
+                        .classification(INTERNAL)
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"STABLE\"}")
+                .body(ContractStatusTransition.builder().status(ContractStatusTransition.Status.STABLE).build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then().statusCode(200);
 
@@ -606,13 +652,13 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"contractId\":\"default\",\"compatibilityGroup\":\"my-group-v1\"}")
+                .body(Map.of("contractId", "default", "compatibilityGroup", "my-group-v1"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
@@ -643,7 +689,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"contractId\":\"mycontract\",\"compatibilityGroup\":\"compat-v2\"}")
+                .body(Map.of("contractId", "mycontract", "compatibilityGroup", "compat-v2"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
@@ -668,15 +714,20 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .body("migrationRules", empty());
 
         given().when().contentType(CT_JSON)
-                .body("""
-                        {
-                            "domainRules": [
-                                {"name":"global-rule","kind":"CONDITION","type":"CEL",
-                                 "mode":"WRITE","expr":"true","onFailure":"ERROR","disabled":false}
-                            ],
-                            "migrationRules": []
-                        }
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("global-rule")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("true")
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/admin/contracts/ruleset")
                 .then().statusCode(200)
                 .body("domainRules", hasSize(1))
@@ -708,7 +759,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"1\",\"record\":{\"x\":42}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "1", "record", Map.of("x", 42)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));
@@ -725,18 +776,27 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("""
-                        {"domainRules":[{"name":"pos","kind":"CONDITION","type":"CEL",
-                        "mode":"WRITE","expr":"amount > 0","onFailure":"ERROR","disabled":false}],
-                        "migrationRules":[]}
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("pos")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("amount > 0")
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":99.99}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", 99.99)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(true))
@@ -753,18 +813,27 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("""
-                        {"domainRules":[{"name":"pos","kind":"CONDITION","type":"CEL",
-                        "mode":"WRITE","expr":"amount > 0","onFailure":"ERROR","disabled":false}],
-                        "migrationRules":[]}
-                        """)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("pos")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("amount > 0")
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":-5.0}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", -5.0)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(false))
@@ -782,16 +851,26 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"domainRules\":[],\"migrationRules\":["
-                        + "{\"name\":\"add-y\",\"kind\":\"TRANSFORM\",\"type\":\"JSONATA\","
-                        + "\"mode\":\"UPGRADE\",\"expr\":\"$ ~> |$|{\\\"y\\\": 99}|\","
-                        + "\"onFailure\":\"ERROR\",\"disabled\":false}]}")
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of())
+                        .migrationRules(List.of(
+                                ContractRule.builder()
+                                        .name("add-y")
+                                        .kind(TRANSFORM)
+                                        .type("JSONATA")
+                                        .mode(UPGRADE)
+                                        .expr("$ ~> |$|{\"y\": 99}|")
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"1\",\"record\":{\"x\":42}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "1", "record", Map.of("x", 42)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));
@@ -806,7 +885,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"999\",\"record\":{\"x\":1}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "999", "record", Map.of("x", 1)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(400);
     }
@@ -826,25 +905,25 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art1)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art2)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art1)
-                .body("{\"contractId\":\"default\",\"compatibilityGroup\":\"group-A\"}")
+                .body(Map.of("contractId", "default", "compatibilityGroup", "group-A"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", art2)
-                .body("{\"contractId\":\"default\",\"compatibilityGroup\":\"group-B\"}")
+                .body(Map.of("contractId", "default", "compatibilityGroup", "group-B"))
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group")
                 .then().statusCode(204);
 
@@ -889,7 +968,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\",\"ownerTeam\":\"audit-team\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).ownerTeam("audit-team").build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
@@ -909,13 +988,13 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"STABLE\"}")
+                .body(ContractStatusTransition.builder().status(ContractStatusTransition.Status.STABLE).build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
                 .then().statusCode(200);
 
@@ -959,7 +1038,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"status\":\"DRAFT\",\"ownerTeam\":\"search-team\"}")
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).ownerTeam("search-team").build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
@@ -988,16 +1067,27 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 ContentTypes.APPLICATION_JSON);
 
         given().when().contentType(CT_JSON)
-                .body("{\"domainRules\":[{\"name\":\"global-pos\",\"kind\":\"CONDITION\","
-                        + "\"type\":\"CEL\",\"mode\":\"WRITE\",\"expr\":\"amount > 0\","
-                        + "\"onFailure\":\"ERROR\",\"disabled\":false}],\"migrationRules\":[]}")
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("global-pos")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("amount > 0")
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/admin/contracts/ruleset")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":-1}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", -1)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(false))
@@ -1016,24 +1106,46 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 ContentTypes.APPLICATION_JSON);
 
         given().when().contentType(CT_JSON)
-                .body("{\"domainRules\":[{\"name\":\"check\",\"kind\":\"CONDITION\","
-                        + "\"type\":\"CEL\",\"mode\":\"WRITE\",\"expr\":\"amount > 100\","
-                        + "\"onFailure\":\"ERROR\",\"disabled\":false}],\"migrationRules\":[]}")
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("check")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("amount > 100")
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/admin/contracts/ruleset")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"domainRules\":[{\"name\":\"check\",\"kind\":\"CONDITION\","
-                        + "\"type\":\"CEL\",\"mode\":\"WRITE\",\"expr\":\"amount > 0\","
-                        + "\"onFailure\":\"ERROR\",\"disabled\":false}],\"migrationRules\":[]}")
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("check")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("amount > 0")
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":50}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", 50)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));
@@ -1063,16 +1175,27 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"domainRules\":[{\"name\":\"always-fail\",\"kind\":\"CONDITION\","
-                        + "\"type\":\"CEL\",\"mode\":\"WRITE\",\"expr\":\"false\","
-                        + "\"onFailure\":\"DLQ\",\"disabled\":false}],\"migrationRules\":[]}")
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("always-fail")
+                                        .kind(CONDITION)
+                                        .type("CEL")
+                                        .mode(WRITE)
+                                        .expr("false")
+                                        .onFailure(ContractRule.OnFailure.DLQ)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .pathParam("versionExpression", "1")
-                .body("{\"mode\":\"WRITE\",\"record\":{\"amount\":1}}")
+                .body(Map.of("mode", "WRITE", "record", Map.of("amount", 1)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
                 .then().statusCode(200)
                 .body("passed", equalTo(false))
@@ -1090,10 +1213,21 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"domainRules\":[{\"name\":\"mask-pii\",\"kind\":\"TRANSFORM\","
-                        + "\"type\":\"CEL_FIELD\",\"mode\":\"WRITE\",\"expr\":\"XXXXX\","
-                        + "\"tags\":[\"PII\"],\"onFailure\":\"ERROR\",\"disabled\":false}],"
-                        + "\"migrationRules\":[]}")
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("mask-pii")
+                                        .kind(TRANSFORM)
+                                        .type("CEL_FIELD")
+                                        .mode(WRITE)
+                                        .expr("XXXXX")
+                                        .tags(List.of("PII"))
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .disabled(false)
+                                        .build()
+                        ))
+                        .migrationRules(List.of())
+                        .build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
                 .then().statusCode(200);
 
@@ -1114,15 +1248,19 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
         String schema2 = "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"},{\"name\":\"y\",\"type\":\"int\",\"default\":0}]}";
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"version\":\"2\",\"content\":{\"content\":"
-                        + "\"" + schema2.replace("\"", "\\\"") + "\""
-                        + ",\"contentType\":\"application/json\"}}")
+                .body(CreateVersion.builder()
+                        .version("2")
+                        .content(VersionContent.builder()
+                                .content(schema2)
+                                .contentType("application/json")
+                                .build())
+                        .build())
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then().statusCode(200);
 
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                .body("{\"fromVersion\":\"1\",\"toVersion\":\"2\",\"record\":{\"x\":42}}")
+                .body(Map.of("fromVersion", "1", "toVersion", "2", "record", Map.of("x", 42)))
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/migrate")
                 .then().statusCode(200)
                 .body("passed", equalTo(true));

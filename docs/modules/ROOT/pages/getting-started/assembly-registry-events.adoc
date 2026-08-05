@@ -3,21 +3,18 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="registry-events_{context}"]
 = {registry} change events and the outbox pattern
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
 {registry} emits change events whenever artifacts, versions, groups, or rules are created, updated, or deleted. These events enable integration with external systems for auditing, automation, and event-driven workflows.
 
-This chapter explains the event system architecture, available event types, and how to configure event delivery for your storage variant:
-
-* xref:registry-events-overview_{context}[]
-* xref:registry-event-types-reference_{context}[]
-* xref:registry-events-architecture_{context}[]
-* xref:configuring-events-sql-debezium_{context}[]
-* xref:configuring-events-kafkasql_{context}[]
-* xref:registry-events-config-reference_{context}[]
+This chapter explains the event system architecture, available event types, and how to configure event delivery for your storage variant.
 
 
 [id="registry-events-overview_{context}"]
 == Overview of {registry} change events
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 {registry} generates structured change events as part of its normal operations. Every time the state of the registry changes, an event is emitted with details about what changed.
@@ -29,10 +26,10 @@ Events follow the *outbox pattern*: they are produced as part of the same transa
 
 Typical use cases for registry events include:
 
-* *Auditing and compliance* -- Track every change to schemas and API definitions.
-* *CI/CD automation* -- Trigger pipeline runs when a new artifact version is registered.
-* *Cache invalidation* -- Notify downstream services when a schema changes.
-* *Event-driven architectures* -- React to registry state changes in real time.
+Auditing and compliance:: Track every change to schemas and API definitions.
+CI/CD automation:: Trigger pipeline runs when a new artifact version is registered.
+Cache invalidation:: Notify downstream services when a schema changes.
+Event-driven architectures:: React to registry state changes in real time.
 
 NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQL storage. MySQL and H2 do not support the outbox table. KafkaSQL supports events natively.
 
@@ -40,11 +37,12 @@ NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQ
 [id="registry-event-types-reference_{context}"]
 == Event types reference
 
+:_mod-docs-content-type: REFERENCE
+
 [role="_abstract"]
 {registry} defines the following event types. Each event includes a JSON payload with details about the change.
 
-[discrete]
-=== Artifact events
+Artifact-level changes produce the following event types:
 
 .Artifact event types
 [cols="1,2",options="header"]
@@ -62,8 +60,7 @@ NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQ
 |An artifact's name, description, or owner was updated.
 |===
 
-[discrete]
-=== Artifact version events
+Artifact version changes produce the following event types:
 
 .Artifact version event types
 [cols="1,2",options="header"]
@@ -84,8 +81,7 @@ NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQ
 |A version's lifecycle state changed (for example, from `ENABLED` to `DEPRECATED`).
 |===
 
-[discrete]
-=== Group events
+Group changes produce the following event types:
 
 .Group event types
 [cols="1,2",options="header"]
@@ -103,8 +99,7 @@ NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQ
 |A group's metadata was updated.
 |===
 
-[discrete]
-=== Rule events
+Rule changes produce the following event types:
 
 .Rule event types
 [cols="1,2",options="header"]
@@ -122,8 +117,14 @@ NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQ
 |An artifact-level rule was created, updated, or deleted.
 |===
 
-[discrete]
-=== Event payload structure
+
+[id="registry-event-payload-structure_{context}"]
+== Event payload structure
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+All {registry} change events share a common JSON payload structure, with additional fields depending on the event type.
 
 All events share a common base structure:
 
@@ -176,14 +177,15 @@ Additional fields vary by event type:
 [id="registry-events-architecture_{context}"]
 == Event system architecture
 
+:_mod-docs-content-type: CONCEPT
+
 [role="_abstract"]
 The event system uses CDI (Contexts and Dependency Injection) events internally to decouple the storage layer from event delivery. When a storage operation modifies state, it fires a CDI event. A storage-specific event processor observes the CDI event and routes it to the appropriate delivery mechanism.
 
-[discrete]
-=== Event flow
+The following diagram shows the event flow from a storage operation to external consumers:
 
 ----
-Storage operation (e.g., createArtifact)
+Storage operation (for example, createArtifact)
        |
        v
   Fire CDI event
@@ -209,8 +211,14 @@ Storage operation (e.g., createArtifact)
   (Kafka topic: registry-events)
 ----
 
-[discrete]
-=== SQL storage: outbox pattern with Debezium
+
+[id="registry-events-sql-outbox_{context}"]
+== SQL storage outbox pattern with Debezium
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+With SQL storage, {registry} writes change events to an outbox database table that Debezium reads using Change Data Capture (CDC).
 
 With SQL storage, events are written to an `outbox` database table as part of the same database transaction that performs the registry operation. This guarantees that events are only produced for changes that are actually committed.
 
@@ -229,14 +237,22 @@ CREATE TABLE outbox (
 );
 ----
 
-[discrete]
-=== KafkaSQL storage: direct Kafka publishing
+
+[id="registry-events-kafkasql-publishing_{context}"]
+== KafkaSQL storage direct Kafka publishing
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+With KafkaSQL storage, {registry} publishes change events directly to a dedicated Kafka topic without using the outbox table.
 
 With KafkaSQL storage, events bypass the database entirely and are published directly to a dedicated Kafka topic. The events topic uses a single partition to guarantee total ordering of all events. The event's aggregate ID is used as the Kafka message key.
 
 
 [id="configuring-events-sql-debezium_{context}"]
 == Configuring events with SQL storage and Debezium
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 When using SQL storage with PostgreSQL or MSSQL, you can use Debezium to capture events from the outbox table and publish them to Kafka.
@@ -294,12 +310,14 @@ curl -X POST http://<kafka-connect-host>:8083/connectors \
 kafka-console-consumer --bootstrap-server <kafka-host>:9092 \
   --topic outbox.event.registry-events --from-beginning
 ----
-
++
 The Debezium `EventRouter` transformation reads the outbox table columns and routes events to Kafka topics based on the `aggregatetype` column.
 
 
 [id="configuring-events-kafkasql_{context}"]
 == Configuring events with KafkaSQL storage
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 When using KafkaSQL storage, events are published directly to a Kafka topic with no additional infrastructure required. The events topic is created automatically when {registry} starts.
@@ -333,9 +351,9 @@ APICURIO_EVENTS_KAFKA_TOPIC_REPLICATION_FACTOR=3
 kafka-console-consumer --bootstrap-server <kafka-host>:9092 \
   --topic registry-events --from-beginning
 ----
-
++
 The events topic is configured with the following defaults:
-
++
 * *Partitions*: 1 (single partition for total ordering guarantee)
 * *Cleanup policy*: `delete`
 * *Retention*: Infinite (`-1`)
@@ -343,6 +361,8 @@ The events topic is configured with the following defaults:
 
 [id="registry-events-config-reference_{context}"]
 == Configuration reference
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The following table lists configuration properties related to the {registry} event system.
@@ -371,8 +391,7 @@ The following table lists configuration properties related to the {registry} eve
 |Retention time in milliseconds for the events topic (KafkaSQL only).
 |===
 
-[discrete]
-=== Storage variant support
+The following table lists event support by storage variant:
 
 .Event support by storage variant
 [cols="1,1,1,1",options="header"]

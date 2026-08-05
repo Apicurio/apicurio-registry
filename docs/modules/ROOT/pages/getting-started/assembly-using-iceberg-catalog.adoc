@@ -2,32 +2,23 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-using-iceberg-catalog
 [id="using-iceberg-catalog_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Using {registry} as an Apache Iceberg REST Catalog
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can use {registry} as an Apache Iceberg REST Catalog to manage table metadata for your data lakehouse applications.
 
-* xref:registry-iceberg-catalog-overview_{context}[]
-* xref:registry-iceberg-catalog-config_{context}[]
-* xref:registry-iceberg-catalog-rest-api_{context}[]
-* xref:registry-iceberg-catalog-commit-table_{context}[]
-* xref:registry-iceberg-catalog-error-handling_{context}[]
-* xref:registry-iceberg-catalog-auth_{context}[]
-* xref:registry-iceberg-catalog-query-engines_{context}[]
-* xref:registry-iceberg-catalog-api-reference_{context}[]
-* xref:registry-iceberg-catalog-limitations_{context}[]
+== Prerequisites
 
-
-.Prerequisites
 * A running {registry} instance with `apicurio.features.experimental.enabled=true` and `apicurio.iceberg.enabled=true`
 * Query engines or tools that support the Iceberg REST Catalog specification (Apache Spark, Trino, ClickHouse, DuckDB, Flink)
 
-
 // con-registry-iceberg-catalog-overview
 [id="registry-iceberg-catalog-overview_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Overview of the {registry} Iceberg REST Catalog
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 {registry} implements the Apache Iceberg REST Catalog API specification, which means it can serve as a metadata catalog for Iceberg tables. Query engines such as Apache Spark, Trino, ClickHouse, DuckDB, and Flink can use {registry} as their Iceberg catalog for managing table metadata.
@@ -63,11 +54,11 @@ The catalog maps {registry} concepts to Iceberg concepts as follows:
 |A configurable prefix that identifies the catalog instance (default: `default`).
 |===
 
-
 // ref-registry-iceberg-catalog-config
 [id="registry-iceberg-catalog-config_{context}"]
-:_mod-docs-content-type: REFERENCE
 == {registry} Iceberg REST Catalog configuration
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure the {registry} Iceberg REST Catalog by using several properties.
@@ -102,11 +93,11 @@ apicurio.iceberg.warehouse=s3://my-bucket/warehouse
 apicurio.iceberg.default-prefix=production
 ----
 
-
 // ref-registry-iceberg-catalog-rest-api
 [id="registry-iceberg-catalog-rest-api_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Iceberg REST API usage
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} exposes the Iceberg REST Catalog API at the `/apis/iceberg/v1` endpoint. You can interact with the API by using `curl` as shown in these examples.
@@ -257,11 +248,11 @@ curl -X DELETE http://localhost:8080/apis/iceberg/v1/default/namespaces/my_datab
 
 NOTE: A namespace must be empty (contain no tables) before you can drop it.
 
-
 // ref-registry-iceberg-catalog-commit-table
 [id="registry-iceberg-catalog-commit-table_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Table commit operations
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The CommitTable operation is the core mechanism for updating Iceberg table metadata. It provides atomic metadata updates with optimistic concurrency control, which is the foundation of Iceberg's snapshot isolation model.
@@ -271,40 +262,11 @@ A commit request contains two parts:
 * *Requirements*: preconditions that must be satisfied for the commit to proceed. If any requirement is not met, the commit fails with a `409 Conflict` response and no changes are applied.
 * *Updates*: mutations to apply to the table metadata. All updates within a single commit are applied atomically to produce one new metadata version.
 
-.Concurrency control
-
-{registry} uses optimistic concurrency to detect conflicting commits. When a commit is processed:
-
-. The current table metadata is loaded and its version is recorded.
-. All requirements are validated against the current metadata.
-. All updates are applied in-memory to produce new metadata.
-. The new metadata is stored as a new artifact version.
-. If another commit is interleaved between steps 1 and 4, the conflict is detected and the commit fails with a `409 Conflict` response.
-
-Concurrent writers cannot silently overwrite each other's changes. Clients that receive a `409` response must reload the current table metadata, revalidate their changes, and retry the commit.
-
-All changes within a single commit, including the new version and any artifact-level label updates, are applied atomically within a single storage transaction. If any part of the commit fails, the entire operation is rolled back and no partial state is persisted.
-
-.Conflict handling and retries
-
-When a commit fails with a `409 Conflict` response, the appropriate client behavior is:
-
-. Reload the current table metadata by using the `LoadTable` endpoint.
-. Revalidate the intended changes against the new metadata.
-. Rebuild the commit request with updated requirements.
-. Retry the commit.
-
-Most Iceberg client libraries (such as the Apache Iceberg Java SDK) handle this retry loop automatically.
-
-.KafkaSQL storage considerations
-
 When {registry} is deployed with the KafkaSQL storage backend, all write operations, including commits, are serialized through a Kafka journal topic. This serialization has several implications:
 
-* *Ordering*: Commits to the same table are totally ordered through Kafka partitioning. The optimistic concurrency check is always evaluated against the true latest state.
-* *Failed commits*: When a commit fails (for example, due to a concurrent write detected by the version-order check), the Kafka message remains in the journal. This behavior is expected and harmless: during journal replay (such as when a new replica starts up), the message is re-consumed, the same version-order check fails again, and the message is silently discarded because no HTTP thread is waiting for a response.
-* *Atomicity*: The version creation and any artifact-level metadata updates are performed in a single SQL transaction. If the transaction fails, no data is written and the Kafka message becomes a no-op on replay.
-
-.Requirements
+Ordering:: Commits to the same table are totally ordered through Kafka partitioning. The optimistic concurrency check is always evaluated against the true latest state.
+Failed commits:: When a commit fails (for example, due to a concurrent write detected by the version-order check), the Kafka message remains in the journal. This behavior is expected and harmless: during journal replay (such as when a new replica starts up), the message is re-consumed, the same version-order check fails again, and the message is silently discarded because no HTTP thread is waiting for a response.
+Atomicity:: The version creation and any artifact-level metadata updates are performed in a single SQL transaction. If the transaction fails, no data is written and the Kafka message becomes a no-op on replay.
 
 Requirements are assertions about the current state of the table. Each requirement has a `type` field that specifies the kind of assertion.
 
@@ -339,8 +301,6 @@ Requirements are assertions about the current state of the table. Each requireme
 |`default-sort-order-id`
 |Asserts that the default sort order ID matches the expected value.
 |===
-
-.Updates
 
 Updates are mutations applied to the table metadata. Each update has an `action` field that specifies the type of mutation.
 
@@ -398,7 +358,6 @@ Updates are mutations applied to the table metadata. Each update has an `action`
 |===
 
 .Example: Adding a schema and setting it as current
-
 [source,bash]
 ----
 curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users \
@@ -428,7 +387,6 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
 ----
 
 .Example: Adding a snapshot and updating the main branch
-
 [source,bash]
 ----
 curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users \
@@ -458,7 +416,6 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
 ----
 
 .Example: Setting and removing table properties
-
 [source,bash]
 ----
 curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_database/tables/users \
@@ -481,7 +438,7 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
   }'
 ----
 
-.Error responses
+The following table lists the possible error responses for the CommitTable operation.
 
 .CommitTable error responses
 [.table-expandable,width="100%",cols="2,3,5",options="header"]
@@ -503,11 +460,53 @@ curl -X POST http://localhost:8080/apis/iceberg/v1/default/namespaces/my_databas
 |A requirement was not met, or a concurrent commit was detected.
 |===
 
+// con-registry-iceberg-catalog-concurrency-control
+[id="registry-iceberg-catalog-concurrency-control_{context}"]
+== Optimistic concurrency control for table commits
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} uses optimistic concurrency control to detect conflicting Iceberg table commits and prevent concurrent writers from silently overwriting each other's changes.
+
+When a commit is processed:
+
+. The current table metadata is loaded and its version is recorded.
+. All requirements are validated against the current metadata.
+. All updates are applied in-memory to produce new metadata.
+. The new metadata is stored as a new artifact version.
+. If another commit is interleaved between steps 1 and 4, the conflict is detected and the commit fails with a `409 Conflict` response.
+
+Concurrent writers cannot silently overwrite each other's changes. Clients that receive a `409` response must reload the current table metadata, revalidate their changes, and retry the commit.
+
+All changes within a single commit, including the new version and any artifact-level label updates, are applied atomically within a single storage transaction. If any part of the commit fails, the entire operation is rolled back and no partial state is persisted.
+
+// proc-registry-iceberg-catalog-retry-commit
+[id="registry-iceberg-catalog-retry-commit_{context}"]
+== Retrying a failed commit
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+When a table commit fails with a `409 Conflict` response, follow this procedure to reload the current table metadata and retry the commit.
+
+.Prerequisites
+* A commit request that failed with a `409 Conflict` response.
+
+.Procedure
+. Reload the current table metadata by using the `LoadTable` endpoint.
+. Revalidate the intended changes against the new metadata.
+. Rebuild the commit request with updated requirements.
+. Retry the commit.
+
+.Results
+The commit request is resubmitted against the latest table metadata. Most Iceberg client libraries, such as the Apache Iceberg Java SDK, handle this retry loop automatically.
 
 // ref-registry-iceberg-catalog-error-handling
 [id="registry-iceberg-catalog-error-handling_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Error handling
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 All Iceberg REST Catalog API endpoints return errors in the Iceberg error format. Each error response includes an HTTP status code and error type.
@@ -544,11 +543,11 @@ All Iceberg REST Catalog API endpoints return errors in the Iceberg error format
 |An unexpected internal error occurred.
 |===
 
-
 // ref-registry-iceberg-catalog-auth
 [id="registry-iceberg-catalog-auth_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Authentication and authorization
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When {registry} is configured with authentication enabled, the Iceberg REST Catalog API enforces the same role-based access control as the core {registry} API. Each endpoint requires a minimum authorization level.
@@ -603,18 +602,23 @@ When {registry} is configured with authentication enabled, the Iceberg REST Cata
 |
 |===
 
-
 // ref-registry-iceberg-catalog-query-engines
 [id="registry-iceberg-catalog-query-engines_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Query engine configuration for {registry}
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure popular query engines that support the Iceberg REST Catalog specification to use {registry} as their catalog.
 
-.Apache Spark
+// ref-registry-iceberg-catalog-spark-config
+[id="registry-iceberg-catalog-spark-config_{context}"]
+== Apache Spark catalog configuration
 
-Configure Spark to use {registry} as the Iceberg catalog:
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Configure Apache Spark to use {registry} as the Iceberg catalog.
 
 [source,scala]
 ----
@@ -644,9 +648,14 @@ CREATE TABLE apicurio.my_database.events (
 SELECT * FROM apicurio.my_database.events;
 ----
 
-.Trino
+// ref-registry-iceberg-catalog-trino-config
+[id="registry-iceberg-catalog-trino-config_{context}"]
+== Trino catalog configuration
 
-Configure Trino to use {registry} as the Iceberg catalog by creating a catalog properties file:
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Configure Trino to use {registry} as the Iceberg catalog by creating a catalog properties file.
 
 .etc/catalog/apicurio.properties
 [source,properties]
@@ -674,9 +683,14 @@ CREATE TABLE apicurio.my_database.products (
 SELECT * FROM apicurio.my_database.products;
 ----
 
-.DuckDB
+// ref-registry-iceberg-catalog-duckdb-config
+[id="registry-iceberg-catalog-duckdb-config_{context}"]
+== DuckDB catalog configuration
 
-Configure DuckDB to use {registry} as the Iceberg catalog:
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Configure DuckDB to use {registry} as the Iceberg catalog.
 
 [source,sql]
 ----
@@ -691,9 +705,14 @@ ATTACH 'http://localhost:8080/apis/iceberg/v1' AS apicurio (TYPE ICEBERG);
 SELECT * FROM apicurio.my_database.users;
 ----
 
-.ClickHouse
+// ref-registry-iceberg-catalog-clickhouse-config
+[id="registry-iceberg-catalog-clickhouse-config_{context}"]
+== ClickHouse catalog configuration
 
-Configure ClickHouse to use {registry} as the Iceberg catalog:
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Configure ClickHouse to use {registry} as the Iceberg catalog.
 
 [source,sql]
 ----
@@ -708,11 +727,11 @@ CREATE DATABASE apicurio_db ENGINE = Iceberg(
 SELECT * FROM apicurio_db.users;
 ----
 
-
 // ref-registry-iceberg-catalog-api-reference
 [id="registry-iceberg-catalog-api-reference_{context}"]
-:_mod-docs-content-type: REFERENCE
 == API reference
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} supports a set of Iceberg REST Catalog API endpoints for managing namespaces, tables, and views.
@@ -788,11 +807,11 @@ SELECT * FROM apicurio_db.users;
 |Rename a view
 |===
 
-
 // ref-registry-iceberg-catalog-limitations
 [id="registry-iceberg-catalog-limitations_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Limitations
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The {registry} Iceberg REST Catalog implementation has several known limitations:
@@ -802,10 +821,8 @@ The {registry} Iceberg REST Catalog implementation has several known limitations
 * *Rename is not atomic.* Renaming a table or view creates the destination and then deletes the source as two separate operations. If the delete fails, the source may need manual cleanup.
 * *Experimental feature.* The Iceberg REST Catalog API requires `apicurio.features.experimental.enabled=true` and may change in future releases.
 
-
 [role="_additional-resources"]
 .Additional resources
 * link:https://github.com/apache/iceberg/blob/main/open-api/rest-catalog-open-api.yaml[Apache Iceberg REST Catalog OpenAPI specification]
 * {registry-overview}
 * link:https://iceberg.apache.org/[Apache Iceberg documentation]
-

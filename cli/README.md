@@ -178,10 +178,32 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property                 | Default | Description                         |
-|--------------------------|---------|-------------------------------------|
-| `update.check-enabled`   | `true`  | Enable automatic update checks      |
-| `update.timeout-seconds` | `60`    | Timeout for update network requests |
+| Property                             | Default | Description                                                                                  |
+|---------------------------------------|---------|-----------------------------------------------------------------------------------------------|
+| `update.check-enabled`               | `true`  | Enable automatic update checks                                                               |
+| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                          |
+| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)  |
+
+#### Logging
+
+Use `--verbose` to enable debug logging:
+
+```bash
+acr --verbose artifact get my-artifact -g my-group
+```
+
+Verbose output can be noisy. To quiet a specific package while keeping the rest, set a
+per-package level using the `quarkus.log.category."<package>".level` config key:
+
+```bash
+acr config set 'quarkus.log.category."io.netty".level=WARNING'
+```
+
+Per-package levels only take effect together with `--verbose`. Without it the CLI stays quiet,
+whatever the config contains.
+
+Accepted level names are `OFF`, `FATAL`, `ERROR`, `SEVERE`, `WARN`, `WARNING`, `INFO`, `CONFIG`,
+`DEBUG`, `FINE`, `FINER`, `TRACE`, `FINEST` and `ALL`.
 
 ### Context Management
 
@@ -236,11 +258,20 @@ acr login --username <username> --password <password>
 
 **OAuth2 client credentials:**
 ```bash
-acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret>
+# Using OIDC discovery (recommended) — discovers the token endpoint automatically
+acr login --client-id <client-id> --auth-server-url <auth-server-url>
+
+# With explicit token endpoint
+acr login --client-id <client-id> --token-endpoint <token-endpoint-url>
 
 # With scope
-acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret> --scope <scope>
+acr login --client-id <client-id> --auth-server-url <auth-server-url> --scope <scope>
+
+# Non-interactive (CI/CD)
+acr login --client-id <client-id> --client-secret <client-secret> --auth-server-url <auth-server-url>
 ```
+
+> **Note:** `--auth-server-url` is the base URL of your OIDC provider (e.g. `https://keycloak.example.com/realms/my-realm`). The CLI appends `/.well-known/openid-configuration` to discover the token endpoint automatically.
 
 **Log out (clears credentials from keychain and config):**
 ```bash

@@ -96,7 +96,7 @@ export const ErrorPage: FunctionComponent<ErrorPageProps> = (props: ErrorPagePro
                                     editor.layout();
                                     monaco.editor.getModels()[0].updateOptions({ tabSize: 4 });
                                 }}
-                                height="sizeToFit"
+                                height="300px"
                             />
                             :
                             <div/>

@@ -26,6 +26,7 @@ import java.util.UUID;
 @QuarkusTest
 @TestProfile(AuthTestProfileWithHeaderRoles.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class HeaderRoleSourceTest extends AbstractResourceTestBase {
 
     private static final String TEST_CONTENT = "{\r\n" + "    \"type\" : \"record\",\r\n"

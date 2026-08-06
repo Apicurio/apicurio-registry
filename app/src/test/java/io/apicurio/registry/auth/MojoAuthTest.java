@@ -23,6 +23,7 @@ import java.io.IOException;
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class MojoAuthTest extends RegistryMojoTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")

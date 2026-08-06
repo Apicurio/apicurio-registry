@@ -16,6 +16,8 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -25,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Tag(ApicurioTestTags.AUTH)
 class KubernetesAuthenticationRequestTest {
 
     @Test

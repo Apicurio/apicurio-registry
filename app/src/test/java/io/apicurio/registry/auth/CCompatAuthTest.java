@@ -38,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class CCompatAuthTest extends AbstractResourceTestBase {
 
     private final String AVRO_SCHEMA = "{\"type\":\"record\",\"name\":\"TestRecord\",\"fields\":[{\"name\":\"name\",\"type\":\"string\"}]}";

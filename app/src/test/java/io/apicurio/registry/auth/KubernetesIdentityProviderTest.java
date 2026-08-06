@@ -16,7 +16,9 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -25,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Tag(ApicurioTestTags.AUTH)
 class KubernetesIdentityProviderTest {
 
     private final KubernetesIdentityProvider provider = new KubernetesIdentityProvider();

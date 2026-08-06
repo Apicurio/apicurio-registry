@@ -1,7 +1,9 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -16,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * that backward compatibility with single-value configurations is maintained.
  */
 @QuarkusTest
+@Tag(ApicurioTestTags.AUTH)
 public class MultiRoleValueTest {
 
     @Inject

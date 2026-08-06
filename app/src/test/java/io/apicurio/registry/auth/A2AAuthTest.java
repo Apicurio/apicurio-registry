@@ -36,6 +36,7 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 @TestProfile(A2AAuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class A2AAuthTest extends AbstractResourceTestBase {
 
     private static final String ADMIN_USERNAME = "alice";

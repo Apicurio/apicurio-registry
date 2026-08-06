@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class AuthTestProfileBasicClientCredentials extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")

@@ -3,6 +3,7 @@ package io.apicurio.registry.auth;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.AuthTestProfile;
 import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -10,6 +11,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -25,6 +27,7 @@ import static org.hamcrest.Matchers.equalTo;
  */
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
+@Tag(ApicurioTestTags.AUTH)
 public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";

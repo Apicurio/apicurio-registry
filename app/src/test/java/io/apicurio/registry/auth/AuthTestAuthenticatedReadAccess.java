@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 @TestProfile(AuthTestProfileAuthenticatedReadAccess.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")

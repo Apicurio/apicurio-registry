@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 @TestProfile(AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class AuthTestNoRoles extends AbstractResourceTestBase {
 
     @ConfigProperty(name = "quarkus.oidc.token-path")

@@ -34,6 +34,7 @@ import java.util.UUID;
 @QuarkusTest
 @TestProfile(AuthTestProfileWithLocalRoles.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class AuthTestLocalRoles extends AbstractResourceTestBase {
 
     private static final String TEST_CONTENT = "{\r\n" + "    \"type\" : \"record\",\r\n"

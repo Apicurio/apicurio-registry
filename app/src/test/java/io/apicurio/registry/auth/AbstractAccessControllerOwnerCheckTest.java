@@ -1,6 +1,8 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import jakarta.interceptor.InvocationContext;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -14,6 +16,7 @@ import static org.mockito.Mockito.when;
  * Verifies owner-check parameter indexing for {@link AuthorizedStyle} on single-parameter group operations.
  * Regression test for issue #7866 (getGroupById).
  */
+@Tag(ApicurioTestTags.AUTH)
 class AbstractAccessControllerOwnerCheckTest {
 
     private static class TestableAccessController extends AbstractAccessController {

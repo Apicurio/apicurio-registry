@@ -72,6 +72,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @TestProfile(ApplicationRbacEnabledProfile.class)
 @SuppressWarnings("deprecation")
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class RegistryClientTest extends AbstractResourceTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryClientTest.class);

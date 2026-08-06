@@ -30,6 +30,7 @@ import java.util.Map;
 @QuarkusTest
 @TestProfile(LimitsTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class LimitsTest extends AbstractResourceTestBase {
 
     @Inject

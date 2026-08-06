@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatusBuilder;
 import io.fabric8.kubernetes.api.model.authentication.UserInfo;
@@ -27,6 +28,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +53,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+@Tag(ApicurioTestTags.AUTH)
 class KubernetesAuthenticationStrategyTest {
 
     @Mock

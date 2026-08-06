@@ -16,8 +16,10 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.identity.SecurityIdentity;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.security.Principal;
@@ -31,6 +33,7 @@ import static org.mockito.Mockito.when;
  * Decision-matrix coverage for {@link OwnershipTransferAuthorizer}.
  * HTTP end-to-end coverage lives in {@link BasicAuthWithPropertiesTest}.
  */
+@Tag(ApicurioTestTags.AUTH)
 public class OwnershipTransferAuthorizerTest {
 
     @Test

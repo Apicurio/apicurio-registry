@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 @TestProfile(ApplicationRbacEnabledProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.AUTH)
 public class AdminResourceTest extends AbstractResourceTestBase {
 
     @Test

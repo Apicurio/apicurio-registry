@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.quarkus.test.junit.QuarkusTest;
@@ -26,6 +27,7 @@ import io.quarkus.test.kubernetes.client.KubernetesTestServer;
 import io.quarkus.test.kubernetes.client.WithKubernetesTestServer;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.faulttolerance.exceptions.CircuitBreakerOpenException;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -67,6 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 @WithKubernetesTestServer(crud = false)
 @TestProfile(TokenReviewClientCircuitBreakerTest.ShortDelayProfile.class)
+@Tag(ApicurioTestTags.AUTH)
 class TokenReviewClientCircuitBreakerTest {
 
     private static final String TOKEN_REVIEW_PATH = "/apis/authentication.k8s.io/v1/tokenreviews";

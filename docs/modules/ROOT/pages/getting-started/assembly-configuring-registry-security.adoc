@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can configure security options for {registry}, including authentication in {keycloak}, Microsoft Azure Active Directory, or Dex, and role-based authorization.
+You can configure security options for {registry}, including authentication in {keycloak}, Microsoft Azure Active Directory, or Dex, proxy header and Kubernetes-native authentication, and role-based authorization.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
@@ -249,6 +249,9 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |`QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH`
 |The name of the claim in which Azure AD stores roles.
 |`roles`
+|`APICURIO_UI_AUTH_OIDC_LOAD_USER_INFO`
+|Whether the web console loads user details from the OIDC userinfo endpoint. Set to `false` for Azure AD, where the userinfo endpoint has incompatible audience requirements and the call fails after login.
+|`false`
 |===
 +
 NOTE: When you enable roles in {registry}, you must also create the same roles in Azure AD as application roles. The default roles expected by {registry} are `sr-admin`, `sr-developer`, and `sr-readonly`.
@@ -997,14 +1000,14 @@ Use the following symptoms and fixes to diagnose common Dex authentication probl
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} provides authentication options for OpenID Connect with {keycloak} and HTTP basic authentication.
+{registry} provides the following authentication options: OpenID Connect with an identity provider such as {keycloak}, HTTP basic authentication, proxy header authentication, and Kubernetes-native authentication.
 
 {registry} provides authorization options for role-based and content-based approaches:
 
 * Role-based authorization for default admin, write, and read-only user roles.
 * Content-based authorization for schema or API artifacts, where only the owner of the artifacts or artifact group can update or delete artifacts.
 
-IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling any of these options, you must first set the `QUARKUS_OIDC_TENANT_ENABLED` option to `true`.
+IMPORTANT: All authentication and authorization options in {registry} are disabled by default. Before enabling the OpenID Connect or HTTP basic options, you must first set the `QUARKUS_OIDC_TENANT_ENABLED` option to `true`. Proxy header and Kubernetes-native authentication do not require OpenID Connect.
 
 You can configure the options described in the following sections.
 
@@ -1012,6 +1015,9 @@ You can configure the options described in the following sections.
 .Additional resources
 * xref:registry-security-authn-keycloak_{context}[]
 * xref:registry-security-authn-http_{context}[]
+* xref:registry-security-authn-chain_{context}[]
+* xref:registry-security-proxy-header_{context}[]
+* xref:registry-security-kubernetes-auth_{context}[]
 * xref:registry-security-rbac-enabled_{context}[]
 * xref:registry-security-obac-enabled_{context}[]
 * xref:registry-security-auth-read_{context}[]
@@ -1109,6 +1115,171 @@ When you use {keycloak}, set this configuration to your {keycloak} JWT expiry ti
 |Integer
 |`10`
 |===
+
+// ref-registry-security-authn-chain
+[id="registry-security-authn-chain_{context}"]
+== {registry} authentication mechanism chain
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} evaluates its enabled authentication mechanisms as an ordered chain. You can control the order with a configuration property, and combine mechanisms so that different clients authenticate in different ways against the same registry instance.
+
+The `apicurio.authn.mechanism.priority` property holds a comma-separated, ordered list of mechanism names. The default value is `basic,proxy-header,oidc`. The chain is built once at startup, and only mechanisms that are also enabled join the chain. Unknown names are skipped with a warning.
+
+For each request, {registry} tries the mechanisms in order, and the first mechanism that produces an identity wins. A mechanism that does not apply to the request, for example because the expected header or bearer token is absent, passes the request to the next mechanism. When no mechanism produces an identity, the request is anonymous. The authentication challenge in `401` responses comes from the last mechanism in the chain.
+
+.Authentication mechanisms
+[.table-expandable,width="100%",cols="2,4,6",options="header"]
+|===
+|Mechanism
+|Enabled by
+|Description
+
+|`basic`
+|`quarkus.http.auth.basic=true`
+|Native HTTP basic authentication. This mechanism is distinct from the `apicurio.authn.basic-client-credentials.enabled` option, which exchanges basic credentials for an OpenID Connect token and is handled by the `oidc` mechanism.
+
+|`proxy-header`
+|`apicurio.authn.proxy-header.enabled=true`
+|Authentication based on identity headers set by a trusted reverse proxy.
+
+|`oidc`
+|`quarkus.oidc.tenant-enabled=true`
+|OpenID Connect bearer token authentication with an identity provider such as {keycloak}.
+
+|`kubernetes`
+|`apicurio.authn.kubernetes.enabled=true`
+|Kubernetes-native authentication by using the TokenReview API. This mechanism is not part of the default priority list; you must add it explicitly.
+|===
+
+The following example configures proxy header authentication for requests coming through a reverse proxy, with OpenID Connect as the fallback for all other requests:
+
+[source,properties]
+----
+apicurio.authn.proxy-header.enabled=true
+quarkus.oidc.tenant-enabled=true
+apicurio.authn.mechanism.priority=proxy-header,oidc
+----
+
+NOTE: You cannot enable OpenID Connect and Kubernetes-native authentication at the same time. Both use bearer tokens, and {registry} fails at startup with an error when both are enabled. If no authentication mechanism is enabled, {registry} does not enforce authentication or authorization.
+
+// proc-registry-security-proxy-header
+[id="registry-security-proxy-header_{context}"]
+== Configuring {registry} proxy header authentication
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can configure {registry} to authenticate requests based on identity headers set by a reverse proxy. The proxy authenticates users, and forwards the user name, email, and groups to {registry} in HTTP headers.
+
+IMPORTANT: Proxy header authentication is only safe when {registry} is reachable exclusively through a trusted proxy. The proxy must remove the identity headers from all incoming client requests and set them itself after authenticating the user. If clients can reach {registry} directly, or if the proxy forwards client-supplied identity headers, clients can impersonate any user.
+
+.Prerequisites
+* A reverse proxy authenticates users in front of {registry} and sets the identity headers.
+* Network isolation blocks direct client access to {registry}.
+
+.Procedure
+. Configure {registry} with the following environment variables:
++
+[source,properties]
+----
+QUARKUS_OIDC_TENANT_ENABLED=false
+APICURIO_AUTHN_PROXY_HEADER_ENABLED=true
+QUARKUS_HTTP_PROXY_TRUSTED_PROXIES=my-proxy-host
+----
++
+The `QUARKUS_HTTP_PROXY_TRUSTED_PROXIES` value identifies the proxies that {registry} trusts.
+. Optional: Customize the header names. By default, {registry} reads the user name from `X-Forwarded-User`, the email address from `X-Forwarded-Email`, and the groups from `X-Forwarded-Groups`:
++
+[source,properties]
+----
+APICURIO_AUTHN_PROXY_HEADER_USERNAME=X-Forwarded-User
+APICURIO_AUTHN_PROXY_HEADER_EMAIL=X-Forwarded-Email
+APICURIO_AUTHN_PROXY_HEADER_GROUPS=X-Forwarded-Groups
+----
++
+The user name header is required for the mechanism to apply; the email and groups headers are optional. The groups header contains a comma-separated list.
+. If you enable role-based authorization, ensure that the groups header contains the role names that {registry} expects. The groups become the roles of the authenticated identity, so the values must match the configured role names, which are `sr-admin`, `sr-developer`, and `sr-readonly` by default.
+. Optional: To skip authorization checks in {registry} for requests that the proxy authenticated, set `APICURIO_AUTHN_PROXY_HEADER_TRUST_PROXY_AUTHORIZATION=true`. Use this option when the proxy or an external policy engine performs authorization. {registry} then trusts the proxy completely for requests that carry the identity headers.
+
+.Verification
+* A request that includes the user name header is authenticated as that user. A request without the header receives a `401` response with the `WWW-Authenticate: Proxy authentication required` challenge, unless another enabled mechanism authenticates it.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/docker-compose/in-memory-with-envoy-opa[Reference deployment with Envoy and Open Policy Agent]
+endif::[]
+
+// proc-registry-security-kubernetes-auth
+[id="registry-security-kubernetes-auth_{context}"]
+== Configuring {registry} Kubernetes-native authentication
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can configure {registry} to authenticate clients by validating their Kubernetes service account tokens with the Kubernetes TokenReview API. Clients send their service account token as a bearer token, and no external identity provider is required.
+
+IMPORTANT: Kubernetes-native authentication is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it; otherwise, the application fails at startup. You cannot enable Kubernetes-native authentication and OpenID Connect at the same time, because both use bearer tokens.
+
+NOTE: When you deploy {registry} with the Operator, you can configure this feature with the `spec.app.auth.kubernetesAuth` fields of the `ApicurioRegistry3` custom resource: `enabled`, `apiAudiences`, `cacheExpiration`, and `groupMapping` with `adminGroups`, `developerGroups`, and `readOnlyGroups`. The Operator adds the `kubernetes` mechanism to the priority list and sets the role source automatically.
+
+.Prerequisites
+* {registry} is deployed on a Kubernetes cluster.
+* You have permission to create cluster role bindings.
+
+.Procedure
+. Grant the {registry} service account permission to call the TokenReview API by binding it to the `system:auth-delegator` cluster role:
++
+[source,yaml]
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: apicurio-registry-token-review
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: apicurio-registry
+    namespace: my-namespace
+----
+. Configure {registry} with the following environment variables. The `kubernetes` mechanism is not part of the default priority list, so you must add it:
++
+[source,properties]
+----
+APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
+APICURIO_AUTHN_KUBERNETES_ENABLED=true
+APICURIO_AUTHN_MECHANISM_PRIORITY=kubernetes,basic,proxy-header
+----
+. Optional: Restrict which tokens are accepted by configuring the expected API audiences as a comma-separated list. When the value is empty, the audience is not validated:
++
+[source,properties]
+----
+APICURIO_AUTHN_KUBERNETES_API_AUDIENCES=https://kubernetes.default.svc
+----
+. To enable role-based authorization, map Kubernetes groups to {registry} roles. The groups of the authenticated service account or user are matched against the comma-separated mapping lists:
++
+[source,properties]
+----
+APICURIO_AUTH_ROLE_BASED_AUTHORIZATION=true
+APICURIO_AUTH_ROLE_SOURCE=kubernetes
+APICURIO_AUTH_ROLE_SOURCE_KUBERNETES_GROUP_MAPPING_ADMIN=cluster-admins
+APICURIO_AUTH_ROLE_SOURCE_KUBERNETES_GROUP_MAPPING_DEVELOPER=developers
+APICURIO_AUTH_ROLE_SOURCE_KUBERNETES_GROUP_MAPPING_READONLY=viewers
+----
+. Optional: Adjust how long TokenReview results are cached, in minutes. The default is `5`:
++
+[source,properties]
+----
+APICURIO_AUTHN_KUBERNETES_CACHE_EXPIRATION=5
+----
+
+.Verification
+* A request that sends a valid service account token as a bearer token is authenticated, and receives the {registry} role that the group mapping assigns to its Kubernetes groups.
 
 // ref-registry-security-rbac-enabled
 [id="registry-security-rbac-enabled_{context}"]

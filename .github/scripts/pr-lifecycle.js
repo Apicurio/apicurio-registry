@@ -287,7 +287,8 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
   // Fork PRs need workflow approval before they can run. Approve instead
   // of re-running — the Decide step fetches current labels from the API,
   // so the approved run will see the up-to-date lifecycle state.
-  if (run.status === 'action_required') {
+  // GitHub represents these as status=completed, conclusion=action_required.
+  if (run.conclusion === 'action_required') {
     try {
       await api.approveWorkflowRun(run.id);
       core.info(`PR #${pr.number} approved pending Verify run ${run.id}`);
@@ -1010,7 +1011,7 @@ async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comm
 
   // Check if the latest Verify run failed, was cancelled, or needs approval
   const latestRun = await api.findLatestVerifyRun(freshPr.head.sha);
-  if (latestRun && latestRun.status === 'action_required') {
+  if (latestRun && latestRun.conclusion === 'action_required') {
     const approved = await approvePendingVerifyRuns(api, freshPr, core);
     await api.postComment(pr.number,
       `Retrying: reconciled PR state and approved ${approved} pending Verify ` +

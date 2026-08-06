@@ -51,8 +51,8 @@ We may use this information to acknowledge your contributions!
 
 Before you start working on an issue, let us know so we don't end up with duplicate effort:
 
-1. **Comment on the issue** saying you'd like to work on it.
-2. **Wait for a maintainer to assign it to you.** We may have context on scope, dependencies, or ongoing work that affects the approach.
+1. **Comment on the issue** using `/assign-me` (or `/claim`) to self-assign, or ask if you have questions before claiming.
+2. **Assignment Limit:** Contributors can have a maximum of 3 open issues assigned concurrently. Use `/unassign-me` to release an issue.
 3. **If someone is already assigned**, don't open a competing PR — ask in the issue whether they need help or have moved on.
 4. **Stale assignments:** if an assigned issue has no PR and no update for two weeks, comment asking for a status update. If there's no response within a few days, a maintainer can reassign it.
 

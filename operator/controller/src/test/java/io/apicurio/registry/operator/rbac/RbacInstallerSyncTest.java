@@ -30,6 +30,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Comparison is on {@code (apiGroup, resource, verb)} tuples and ignores {@code resourceNames}: a
  * rule without {@code resourceNames} is a wildcard that is a superset of any named restriction, so
  * ignoring them cannot produce a false failure for the permissions this project grants.
+ * <p>
+ * The expected set also includes {@code namespaces get/list/watch}, which is not declared in
+ * {@code rbac/namespaced} but is injected by OLM v1 at install time. In AllNamespaces mode (the only
+ * mode this bundle currently resolves to under v1) the bundle renderer promotes the CSV
+ * {@code permissions} to a ClusterRole and appends {@code namespaces get/list/watch}, mirroring OLM
+ * v0's OperatorGroup promotion. The installer SA can only grant permissions it holds (escalation
+ * prevention), so the installer role must carry that rule too or the promoted ClusterRole is
+ * rejected and the operator's informers 403 at the cluster scope. Asserting it here guards the rule
+ * deterministically, instead of leaving it to the live OLM v1 smoke run.
  */
 class RbacInstallerSyncTest {
 
@@ -39,11 +48,20 @@ class RbacInstallerSyncTest {
     private static final Path OLM_V1_INSTALLER_CLUSTER_ROLE = Path
             .of("../olm-tests/src/test/deploy/olmv1/cluster-role.yaml");
 
+    /**
+     * Injected by OLM v1's AllNamespaces promotion (not declared in {@code rbac/namespaced}); the
+     * installer ClusterRole must still hold it for escalation prevention to allow the promoted
+     * ClusterRole.
+     */
+    private static final Set<String> OLM_V1_PROMOTION_INJECTED_TUPLES = Set.of("/namespaces/get",
+            "/namespaces/list", "/namespaces/watch");
+
     @Test
     void olmV1InstallerIsSupersetOfOperatorPermissions() throws IOException {
         Set<String> operatorTuples = new TreeSet<>();
         operatorTuples.addAll(tuples(loadClusterRoleRules(NAMESPACED_CLUSTER_ROLE)));
         operatorTuples.addAll(tuples(loadRoleRules(NAMESPACED_ROLE)));
+        operatorTuples.addAll(OLM_V1_PROMOTION_INJECTED_TUPLES);
 
         Set<String> installerTuples = tuples(loadClusterRoleRules(OLM_V1_INSTALLER_CLUSTER_ROLE));
 

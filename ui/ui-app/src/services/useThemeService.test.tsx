@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 let currentThemeState: any = undefined;
 const themeSetter: any = vi.fn();
@@ -58,6 +58,10 @@ describe("useThemeService & ThemeProvider", () => {
             currentThemeState = typeof next === "function" ? next(currentThemeState) : next;
         });
         layoutEffectCallback = undefined;
+    });
+
+    afterEach(() => {
+        delete (globalThis as any).window;
     });
 
     it("seeds default theme from localStorage when present", () => {

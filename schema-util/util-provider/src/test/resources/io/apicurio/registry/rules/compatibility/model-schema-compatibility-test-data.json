@@ -1,0 +1,340 @@
+{
+    "tests": [
+        {
+            "enabled": true,
+            "id": "Compatible when no existing artifacts",
+            "compatibility": "both",
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding optional input field",
+            "compatibility": "backward",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" },
+                        "maxTokens": { "type": "integer" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: adding required input field",
+            "compatibility": "forward",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt", "temperature"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing input property",
+            "compatibility": "forward",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward incompatible: changing input property type",
+            "compatibility": "none",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "string" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing input schema",
+            "compatibility": "forward",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing output property",
+            "compatibility": "forward",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing output schema",
+            "compatibility": "forward",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding output property",
+            "compatibility": "backward",
+            "original": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" }
+                    }
+                }
+            },
+            "updated": {
+                "modelId": "test-model",
+                "input": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": { "type": "string" },
+                        "temperature": { "type": "number" }
+                    },
+                    "required": ["prompt"]
+                },
+                "output": {
+                    "type": "object",
+                    "properties": {
+                        "text": { "type": "string" },
+                        "usage": { "type": "object" },
+                        "finishReason": { "type": "string" }
+                    }
+                }
+            }
+        }
+    ]
+}

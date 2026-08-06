@@ -65,10 +65,11 @@ public class CompatibilityTestExecutor {
             }
 
             log.info("Running test case: {}", caseId);
-            var original = testCaseData.get("original").toString();
             var originalCT = testCaseData.has("originalContentType")
                 ? testCaseData.get("originalContentType").toString() : ContentTypes.APPLICATION_JSON;
-            var originalTypedContent = TypedContent.create(original, originalCT);
+            var existingTypedContents = testCaseData.has("original")
+                ? List.of(TypedContent.create(testCaseData.get("original").toString(), originalCT))
+                : Collections.<TypedContent> emptyList();
             var updated = testCaseData.get("updated").toString();
             var updatedCT = testCaseData.has("updatedContentType")
                 ? testCaseData.get("updatedContentType").toString() : ContentTypes.APPLICATION_JSON;
@@ -76,13 +77,21 @@ public class CompatibilityTestExecutor {
 
             try {
                 var resultBackward = checker.testCompatibility(CompatibilityLevel.BACKWARD,
-                        List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
+                        existingTypedContents, updatedTypedContent, Collections.emptyMap());
                 var resultForward = checker.testCompatibility(CompatibilityLevel.FORWARD,
-                        List.of(originalTypedContent), updatedTypedContent, Collections.emptyMap());
+                        existingTypedContents, updatedTypedContent, Collections.emptyMap());
 
                 switch (testCaseData.getString("compatibility")) {
                     case "backward":
                         if (resultBackward.isCompatible() && !resultForward.isCompatible()) {
+                            log.debug("OK caseId: {}", caseId);
+                        } else {
+                            failed.add(caseId);
+                            logFail(caseId, resultBackward, resultForward);
+                        }
+                        break;
+                    case "forward":
+                        if (!resultBackward.isCompatible() && resultForward.isCompatible()) {
                             log.debug("OK caseId: {}", caseId);
                         } else {
                             failed.add(caseId);

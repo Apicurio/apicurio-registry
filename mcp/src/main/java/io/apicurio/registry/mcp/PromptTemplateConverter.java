@@ -289,7 +289,7 @@ public class PromptTemplateConverter {
         if (template == null || template.getTemplate() == null) {
             return null;
         }
-        return renderTemplate(template.getTemplate(), args);
+        return renderTemplate(template, args);
     }
 
     private PromptTemplate parseFromNode(JsonNode node) {
@@ -424,6 +424,52 @@ public class PromptTemplateConverter {
         }
 
         return arguments;
+    }
+
+    /**
+     * Returns the arguments to render with, filling in the <code>default</code> declared by the
+     * template's variable schema for any argument the caller did not supply.
+     * <p>
+     * Caller-supplied values always win, and an argument that is explicitly present is never
+     * overwritten. The caller's map is never modified; a copy is made only when there is a
+     * default to apply. A <code>default</code> declared with no value is treated as absent.
+     */
+    public Map<String, Object> applyVariableDefaults(PromptTemplate template, Map<String, Object> args) {
+        if (template == null || template.getVariables() == null) {
+            return args;
+        }
+
+        Map<String, Object> effective = null;
+
+        for (Map.Entry<String, VariableSchema> entry : template.getVariables().entrySet()) {
+            String name = entry.getKey();
+            if (args != null && args.containsKey(name)) {
+                continue;
+            }
+
+            VariableSchema varSchema = entry.getValue();
+            if (varSchema == null || varSchema.getDefaultValue() == null) {
+                continue;
+            }
+
+            if (effective == null) {
+                effective = args != null ? new HashMap<>(args) : new HashMap<>();
+            }
+            effective.put(name, varSchema.getDefaultValue());
+        }
+
+        return effective != null ? effective : args;
+    }
+
+    /**
+     * Render a parsed template, applying the defaults declared by its variable schema for any
+     * argument the caller omitted.
+     */
+    public String renderTemplate(PromptTemplate template, Map<String, Object> args) {
+        if (template == null) {
+            return null;
+        }
+        return renderTemplate(template.getTemplate(), applyVariableDefaults(template, args));
     }
 
     /**

@@ -51,8 +51,8 @@ We may use this information to acknowledge your contributions!
 
 Before you start working on an issue, let us know so we don't end up with duplicate effort:
 
-1. **Comment on the issue** saying you'd like to work on it.
-2. **Wait for a maintainer to assign it to you.** We may have context on scope, dependencies, or ongoing work that affects the approach.
+1. **Comment on the issue** using `/assign-me` (or `/claim`) to self-assign, or ask if you have questions before claiming.
+2. **Assignment Limit:** Contributors can have a maximum of 3 open issues assigned concurrently. Use `/unassign-me` to release an issue.
 3. **If someone is already assigned**, don't open a competing PR — ask in the issue whether they need help or have moved on.
 4. **Stale assignments:** if an assigned issue has no PR and no update for two weeks, comment asking for a status update. If there's no response within a few days, a maintainer can reassign it.
 
@@ -80,11 +80,38 @@ Because we are all humans, and to ensure Apicurio Registry is stable for everyon
 Don't forget to include tests in your pull requests.
 Also don't forget the documentation (reference documentation, javadoc...).
 
-Be sure to test your pull request using all storage variants:
+Be sure to test your pull request against the storage variants your change affects.
 
-1. SQL storage (using the `-Psql` profile)
-2. SQL Server storage (using the `-Pmssql` profile)
-3. KafkaSQL storage (using the `-Pkafkasql` profile)
+Since Apicurio Registry 3.0 a single build supports every storage variant, so the
+variant is selected at runtime rather than by a Maven profile
+(see [DEVELOPING.md](DEVELOPING.md#build-configuration)):
+
+| Storage variant                | Selected with                                                            |
+|--------------------------------|--------------------------------------------------------------------------|
+| SQL                            | `-Dapicurio.storage.kind=sql` (default)                                   |
+| KafkaSQL                       | `-Dapicurio.storage.kind=kafkasql`                                        |
+| GitOps (experimental)          | `-Dapicurio.storage.kind=gitops`                                          |
+| Kubernetes ConfigMap (experimental) | `-Dapicurio.storage.kind=kubernetesops`                              |
+
+For the SQL variant, the database flavor is chosen separately with
+`-Dapicurio.storage.sql.kind`, which accepts `h2` (default), `postgresql`, `mssql`,
+and `mysql`.
+
+Storage-specific unit tests live under the matching packages and can be run directly:
+
+```bash
+./mvnw test -pl app -Dtest='io.apicurio.registry.storage.impl.kafkasql.**'
+```
+
+Integration tests are opt-in and are documented in the
+[integration tests module](integration-tests/):
+
+```bash
+./mvnw verify -Pintegration-tests -pl integration-tests -am
+```
+
+CI runs the full storage matrix on every pull request, so running every variant
+locally is not required.
 
 ### Customizing Registry supported ArtifactTypes
 

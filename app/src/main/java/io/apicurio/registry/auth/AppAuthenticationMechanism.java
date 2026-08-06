@@ -93,6 +93,9 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Inject
     Instance<KubernetesClient> kubernetesClient;
 
+    @Inject
+    TokenReviewClient tokenReviewClient;
+
     private List<AuthenticationStrategy> authChain;
 
     @PostConstruct
@@ -160,7 +163,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                         + "and the application must be running in a Kubernetes cluster.");
                 return null;
             }
-            return new KubernetesAuthenticationStrategy(kubernetesClient.get(), authConfig, log);
+            return new KubernetesAuthenticationStrategy(tokenReviewClient, authConfig, log);
         });
 
         List<AuthenticationStrategy> chain = new ArrayList<>();

@@ -14,10 +14,13 @@ Build the project and run the registry with the in-memory storage variant:
 **Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). The produced artifacts still target Java 17.
 
  ```
- ./mvnw clean install -Dlocal -DskipTests
+ ./mvnw clean install -Dlocal -Dmaven.test.skip=true
  cd app/
- ../mvnw quarkus:dev
+ ../mvnw quarkus:dev -Dlocal -Dmaven.test.skip=true
  ```
+
+(The `-Dlocal` build tier requires `-Dmaven.test.skip=true` — see
+[DEVELOPING.md](DEVELOPING.md#build-tiers) for details and other build options.)
 
 This should result in Quarkus and the in-memory registry starting up, with the REST APIs available on localhost port 8080:
 
@@ -96,10 +99,10 @@ so a single set of credentials works for both. Set the following environment var
 
 | Env. variable                | Description                       |
 |------------------------------|-----------------------------------|
-| `APICURIO_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
-| `APICURIO_AUTH_URL`          | OIDC auth URL                     |
-| `APICURIO_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
-| `APICURIO_AUTH_CLIENT_ID`    | The client for the UI             |
+| `REGISTRY_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
+| `REGISTRY_AUTH_URL`          | OIDC auth URL                     |
+| `REGISTRY_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
+| `REGISTRY_AUTH_CLIENT_ID`    | The client for the UI             |
 
 Everything must be configured in your OIDC provider before starting the application. Registry
 supports a much wider range of authentication and authorization options than shown here — treat

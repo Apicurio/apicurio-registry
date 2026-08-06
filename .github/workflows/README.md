@@ -8,7 +8,7 @@ It runs on pull requests to `main` and on pushes to `main`.
 ### Pipeline Phases
 
 ```
-decide ── lint-and-validate ── build ──┬── unit-tests (3 shards)
+decide ── lint-and-validate ── build ──┬── unit-tests (7 shards)
                                        ├── integration-tests (13 jobs)
                                        ├── extras (5 jobs)
                                        ├── sdk
@@ -25,7 +25,6 @@ Every downstream job uses a single `if:` condition.
 
 **Lifecycle scope** is driven by PR labels from the PR lifecycle orchestrator:
 - `lifecycle/new` or no label → no tests
-- `lifecycle/wip` → smoke tests only (build + unit tests)
 - `lifecycle/ready-for-review` / `lifecycle/ready-to-merge` → full suite
 - Push to main → always full suite
 
@@ -57,42 +56,89 @@ checks, which caused skipped jobs to show as permanently pending.
 
 ## Unit Test Sharding
 
-The unit tests are split into 3 parallel shards to reduce the critical path
-(see `verify-unit-tests.yaml`):
+The unit tests are split into 7 parallel shards to reduce the critical path
+(see `verify-unit-tests.yaml`, the source of truth for the exact package and
+module patterns; the table below summarizes intent only). Typical durations
+are control-group measurements as of 2026-08-01 from
+[Discussion #8364](https://github.com/Apicurio/apicurio-registry/discussions/8364).
+They are illustrative, not guaranteed: actual times vary with runner load and
+cache state. The only CI-enforced budget is the 600 s per-shard warning
+threshold in `verify-unit-tests.yaml`.
 
-| Shard | What it runs | Typical duration |
-|-------|-------------|-----------------|
-| `app-shard1` | `noprofile.rest.**`, `noprofile.ccompat.**`, `storage.**`, `event.**` | ~16 min |
-| `app-shard2` | Everything else in `app/` (auth, tls, metrics, noprofile.other, etc.) | ~12 min |
-| `non-app` | All modules except `app/` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~7 min |
+| Shard | Intent | Typical duration |
+|-------|--------|-----------------|
+| `app-rest` | REST API and Confluent-compatibility (ccompat) endpoint tests | ~4.5 min |
+| `app-sql` | SQL storage variant tests, plus shared storage tests that aren't variant-specific (search backend, polling/blue-green, read-only decorator, DTOs) and SQL eventing | ~5 min |
+| `app-kafkasql` | KafkaSQL storage variant | ~6 min |
+| `app-gitops` | GitOps storage variant | ~4 min |
+| `app-kubernetesops` | Kubernetes ConfigMaps storage variant | ~3 min |
+| `app-auth` | Authentication, authorization and rate-limit tests (`auth`, `rbac`, `limits`) | ~4 min |
+| `app-transport` | TLS/mTLS, HTTP security headers and CORS (`tls`, `headers`, `cors`) | ~2.5 min |
+| `app-metrics` | Metrics, tracing and search-index tests (`metrics`, `search`) | ~2 min |
+| `app-other` | Catch-all for everything else in `app/`: rules, ui, services, contracts, customTypes and most of `noprofile/*` (compatibility, resolver, serde, proxy, etc.), excluding the packages claimed by every other `app-*` shard | ~9 min |
+| `non-app` | All modules except `app/`, `distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~5 min |
 
 ### How sharding works
 
-- **app-shard1** uses surefire's `-Dtest=` to *include* specific packages.
-- **app-shard2** uses `-Dtest=!...` to *exclude* those same packages, catching everything else.
+- **app-rest**, **app-sql**, **app-kafkasql**, **app-gitops**,
+  **app-kubernetesops**, **app-auth**, **app-transport**, and **app-metrics**
+  each use surefire's `-Dtest=` to *include* a specific set of packages.
+- **app-other** uses `-Dtest=!...` to *exclude* every package claimed by those
+  include shards, catching everything else in `app/`. Each exclusion in its
+  filter must pair with an inclusion in another shard, or tests go missing.
+- Shard boundaries are chosen by `@TestProfile` density, not just class count.
+  Surefire runs a shard in one forked JVM (`forkCount=1`, `reuseForks=true`
+  by default), and each distinct profile makes Quarkus tear down and rebuild
+  the application in that JVM. Concentrating many profiles in one shard is what
+  exhausted its heap in issue #9265.
 - **non-app** uses Maven's `-pl` to run all modules except `app` and modules that
   depend on the `app` JAR (`distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api`).
 
 ### Adding new tests
 
-New test classes are automatically picked up:
+Most new test classes are automatically picked up, but storage/event
+subpackages are an exception. Read this before adding one:
 
-- **In `app/`**: if the package matches `noprofile.rest`, `noprofile.ccompat`,
-  `storage`, or `event`, it runs in `app-shard1`. Everything else lands in
-  `app-shard2` (the exclusion-based shard).
+- **In `app/`**: if the package matches `noprofile.rest` or `noprofile.ccompat`,
+  it runs in `app-rest`. A `storage.impl.*` / `event.*` subpackage that is
+  already covered by one of the storage-variant include filters
+  (`app-sql`, `app-kafkasql`, `app-gitops`, `app-kubernetesops`) runs there.
+  `auth`/`rbac`/`limits`, `tls`/`headers`/`cors`, and `metrics`/`search` run in
+  `app-auth`, `app-transport`, and `app-metrics` respectively.
+  Everything else lands in `app-other` (the exclusion-based shard).
 - **In any other module**: runs in `non-app`.
 
-No CI changes needed for new tests.
+**Warning:** `app-other`'s filter excludes *all* of `storage.**` and
+`event.**`, not just the subpackages claimed by the other shards. A new
+subpackage under `io.apicurio.registry.storage` or `io.apicurio.registry.event`
+that isn't added to one of the include filters runs in **zero** shards, and
+does so silently: `verify-unit-tests.yaml` sets
+`-Dsurefire.failIfNoSpecifiedTests=false`, so no shard fails when this
+happens. Any new storage or event subpackage **must** be added to an include
+shard in `verify-unit-tests.yaml`, or its tests will never run in CI.
+
+This is enforced, not left to reviewers. The **Lint and Validate** job runs:
+
+```bash
+python3 .github/scripts/verify-test-shards.py
+```
+
+which reads the shard matrix out of `verify-unit-tests.yaml`, applies
+surefire's `-Dtest=` matching rules, and fails the build if any `app/` test
+class is claimed by zero shards or by more than one. Run it locally before
+changing any shard boundary — it is much faster than waiting for CI.
 
 ### Rebalancing shards
 
-If one shard grows significantly slower than the other, rebalance by moving
-package patterns between `app-shard1` and `app-shard2` in `verify-unit-tests.yaml`.
+If one shard grows significantly slower than the others, rebalance by moving
+package patterns between the `app-*` shards in `verify-unit-tests.yaml`.
 Check actual CI timings with:
 
 ```bash
-gh run view <run-id> --repo Apicurio/apicurio-registry --json jobs | \
-  python3 -c "import json,sys; [print(f'{j[\"name\"]}: {j[\"conclusion\"]}') for j in json.load(sys.stdin)['jobs']]"
+gh run view <run-id> --repo Apicurio/apicurio-registry --json jobs \
+  --jq '.jobs[] | select(.conclusion != "skipped") |
+        select(.startedAt != "0001-01-01T00:00:00Z" and .completedAt != "0001-01-01T00:00:00Z") |
+        "\(.name): \((.completedAt | fromdateiso8601) - (.startedAt | fromdateiso8601))s (\(.conclusion))"'
 ```
 
 ### Why not use forkCount > 1?
@@ -127,7 +173,7 @@ non-Java changes (docs, UI).
 |----------|---------|---------|----------|
 | `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `verification-gate` is the single required check | N/A |
 | `verify-build.yaml` | Called by verify | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention | ~6 min |
-| `verify-unit-tests.yaml` | Called by verify | Unit tests in 3 parallel shards (see above) | ~16 min (critical path) |
+| `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
@@ -162,7 +208,7 @@ and tags starting with `3.`.
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `pr-lifecycle.yml` | PR events, comments, reviews, workflow_run, every 6 hours | Label-driven PR state machine. States: `new` -> `wip` -> `ready-for-review` -> `ready-to-merge`. Comment commands: `/accept`, `/reject`, `/ready`, `/merge`, `/auto-merge`, `/retry`. Auto-accepts maintainers. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close). Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
+| `pr-lifecycle.yml` | PR events, comments, reviews, workflow_run, every 6 hours | Label-driven PR state machine. States: `new` -> `ready-for-review` -> `ready-to-merge`. Draft PRs are ignored until marked ready for review. Comment commands: `/accept`, `/reject`, `/merge`, `/auto-merge`, `/retry`. Auto-accepts maintainers. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 7-day auto-close for PRs waiting on the author). Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |

@@ -77,6 +77,17 @@ after 7 total days of inactivity; other PRs go stale at 7 days and close at 14 t
 | Command | Description |
 |---------|-------------|
 | `/unstale` | Remove the stale label |
+| `/assign-me` | Self-assign an open issue to volunteer for implementation |
+| `/unassign-me` | Release an issue you are currently assigned to |
+
+### Issue Self-Assignment
+
+Contributors can self-assign open issues by commenting `/assign-me` (or `/claim`).
+
+- **Assignment Limit**: Each contributor can have a maximum of 3 open issues assigned concurrently.
+- **Unassigning**: Comment `/unassign-me` to release an issue.
+- **Overriding**: Maintainers can override assignments directly via the GitHub UI at any time.
+
 
 ## For Maintainers
 

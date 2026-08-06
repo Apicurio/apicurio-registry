@@ -1,6 +1,20 @@
 :root {
   --myApp-global--spacer--md: 30px;
-  --registry-page-canvas-bg: var(--pf-v5-global--BackgroundColor--200, #f0f0f0);
+  --registry-page-canvas-bg: #f0f0f0;
+  --registry-card-bg: white;
+}
+
+.pf-v6-theme-dark {
+  --registry-card-bg: #151515;
+  --registry-page-canvas-bg: #0f1011;
+}
+
+.pf-v6-theme-dark input:disabled,
+.pf-v6-theme-dark textarea:disabled,
+.pf-v6-theme-dark [disabled] {
+  background-color: #212427 !important;
+  color: #8a8d90 !important;
+  border-color: #3c3f42 !important;
 }
 
 .pf-c-page {
@@ -11,18 +25,22 @@
 /* Apicurio#8310: use a single canvas background in filled detail pages so nested
    tab panels and content wrappers do not create gray/white/gray/white banding. */
 .artifact-details-main,
-.branch-details-main {
-  background-color: var(--registry-page-canvas-bg);
+.branch-details-main,
+.ps_dashboard-content,
+.ps_dashboard-content .pf-v6-c-page__main-section-body,
+.ps_dashboard-content .pf-c-page__main-section-body {
+  background-color: var(--registry-page-canvas-bg) !important;
 }
 
-.artifact-details-main .pf-c-tab-content,
-.branch-details-main .pf-c-tab-content,
 .artifact-details-main .pf-v6-c-tab-content,
+.artifact-details-main .pf-c-tab-content,
 .branch-details-main .pf-v6-c-tab-content,
-#pf-tab-section-content-artifact-page-tabs,
-#pf-tab-section-content-group-page-tabs,
-#pf-tab-section-content-branch-page-tabs {
-  background-color: var(--registry-page-canvas-bg);
+.branch-details-main .pf-c-tab-content,
+.artifact-details-main [id^="pf-tab-section-"],
+.branch-details-main [id^="pf-tab-section-"],
+.artifact-details-main [id^="tab-"],
+.branch-details-main [id^="tab-"] {
+  background-color: var(--registry-page-canvas-bg) !important;
 }
 
 /* Secondary cards inside detail tabs add a redundant gray frame on the canvas. */

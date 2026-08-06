@@ -27,6 +27,21 @@
       <artifactId>apicurio-registry-serde-common-avro</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-common</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-resolver</artifactId>
+    </dependency>
+
   </dependencies>
 
 </project>

@@ -67,10 +67,9 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
     const client: ApicurioRegistryClient = getRegistryClient(config, auth);
 
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: VersionsRequestBuilderGetQueryParameters = {
         state: "DRAFT",
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy as any

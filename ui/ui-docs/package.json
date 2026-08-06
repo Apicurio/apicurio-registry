@@ -27,7 +27,7 @@
     "vite-tsconfig-paths": "6.1.1"
   },
   "dependencies": {
-    "core-js": "3.49.0",
+    "core-js": "3.50.0",
     "mobx": "6.16.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",

@@ -6,7 +6,7 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
-import { useThemeService } from "@services/useThemeService.tsx";
+import { useLogoSrc } from "@services/useThemeService.tsx";
 
 
 export type AppHeaderProps = object;
@@ -15,13 +15,11 @@ export type AppHeaderProps = object;
 export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
     const appNavigation: AppNavigation = useAppNavigation();
     const config: ConfigService = useConfigService();
-    const { isDark } = useThemeService();
+    const logoSrc: string = useLogoSrc();
 
     if (config.features().showMasthead !== undefined && !config.features().showMasthead) {
         return <></>;
     }
-
-    const logoSrc: string = `${config.uiContextPath() || "/"}${isDark ? "apicurio_registry_logo_reverse.svg" : "apicurio_registry_logo_default.svg"}`;
 
     return (
         <Masthead id="icon-router-link">

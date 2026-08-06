@@ -5,8 +5,8 @@ import { AvatarDropdown, IfAuth } from "@app/components";
 import { AppAboutModal, BackendInfo, FrontendInfo } from "@apicurio/common-ui-components";
 import { useVersionService, VersionService } from "@services/useVersionService.ts";
 import { SystemService, useSystemService } from "@services/useSystemService.ts";
-import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { useThemeService } from "@services/useThemeService.tsx";
+
+import { useThemeService, useLogoSrc } from "@services/useThemeService.tsx";
 
 
 export type AppHeaderToolbarProps = object;
@@ -16,7 +16,7 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
     const version: VersionService = useVersionService();
     const system: SystemService = useSystemService();
-    const config: ConfigService = useConfigService();
+
     const { isDark, toggleTheme } = useThemeService();
 
     const frontendInfo: FrontendInfo = {
@@ -35,7 +35,7 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
         });
     };
 
-    const logoSrc: string = `${config.uiContextPath() || "/"}${isDark ? "apicurio_registry_logo_reverse.svg" : "apicurio_registry_logo_default.svg"}`;
+    const logoSrc: string = useLogoSrc();
 
     return (
         <>
@@ -52,7 +52,8 @@ export const AppHeaderToolbar: FunctionComponent<AppHeaderToolbarProps> = () => 
                     <ToolbarGroup align={{ default: "alignEnd" }}>
                         <ToolbarItem>
                             <Button
-                                aria-label="Toggle theme"
+                                aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+                                aria-pressed={isDark}
                                 icon={isDark ? <SunIcon style={{ fontSize: "16px" }} /> : <MoonIcon style={{ fontSize: "16px" }} />}
                                 variant="plain"
                                 onClick={toggleTheme}

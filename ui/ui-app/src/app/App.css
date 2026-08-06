@@ -11,7 +11,7 @@
 
 .pf-v6-theme-dark input:disabled,
 .pf-v6-theme-dark textarea:disabled,
-.pf-v6-theme-dark [disabled] {
+.pf-v6-theme-dark select:disabled {
   background-color: #212427 !important;
   color: #8a8d90 !important;
   border-color: #3c3f42 !important;

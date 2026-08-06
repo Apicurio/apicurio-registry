@@ -160,7 +160,7 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                         </FlexItem>
                     </Flex>
                 </PageSection>
-                <PageSection hasBodyWrapper={false} isFilled={true} className="ps_dashboard-content" style={{ backgroundColor: "var(--registry-page-canvas-bg)" }}>
+                <PageSection hasBodyWrapper={false} isFilled={true} className="ps_dashboard-content">
                     <Grid hasGutter>
                         <GridItem span={12}>
                             <Flex spaceItems={{ default: "spaceItemsLg" }}>

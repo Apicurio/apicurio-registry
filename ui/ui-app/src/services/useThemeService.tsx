@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useLayoutEffect, ReactNode } from "react";
 import { useLocalStorageService } from "./useLocalStorageService";
+import { useConfigService } from "./useConfigService";
 
 export type ThemeType = "light" | "dark";
 
@@ -14,8 +15,16 @@ const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const localStorageService = useLocalStorageService();
-    const storedTheme = localStorageService.getConfigProperty("theme", "light") as ThemeType;
-    const [theme, setTheme] = useState<ThemeType>(storedTheme);
+    const [theme, setTheme] = useState<ThemeType>(() => {
+        const stored = localStorageService.getConfigProperty("theme", undefined) as ThemeType | undefined;
+        if (stored) {
+            return stored;
+        }
+        if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            return "dark";
+        }
+        return "light";
+    });
 
     const toggleTheme = () => {
         const nextTheme = theme === "light" ? "dark" : "light";
@@ -23,7 +32,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         localStorageService.setConfigProperty("theme", nextTheme);
     };
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const htmlElement = document.documentElement;
         if (theme === "dark") {
             htmlElement.classList.add("pf-v6-theme-dark");
@@ -45,4 +54,10 @@ export const useThemeService = (): ThemeContextProps => {
         throw new Error("useThemeService must be used within a ThemeProvider");
     }
     return context;
+};
+
+export const useLogoSrc = (): string => {
+    const config = useConfigService();
+    const { isDark } = useThemeService();
+    return `${config.uiContextPath() || "/"}${isDark ? "apicurio_registry_logo_reverse.svg" : "apicurio_registry_logo_default.svg"}`;
 };

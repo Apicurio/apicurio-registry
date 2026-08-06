@@ -67,4 +67,34 @@ describe("unwrapErrorData", () => {
             status: 500
         });
     });
+
+    it("should handle array response data by converting it to string message", () => {
+        const error = {
+            message: "Request failed with status code 400",
+            response: {
+                status: 400,
+                data: ["Validation error 1", "Validation error 2"]
+            }
+        };
+        const result = unwrapErrorData(error);
+        expect(result).toEqual({
+            message: "Validation error 1,Validation error 2",
+            status: 400
+        });
+    });
+
+    it("should handle non-string scalar response data by converting it to string message", () => {
+        const error = {
+            message: "Request failed with status code 500",
+            response: {
+                status: 500,
+                data: 99999
+            }
+        };
+        const result = unwrapErrorData(error);
+        expect(result).toEqual({
+            message: "99999",
+            status: 500
+        });
+    });
 });

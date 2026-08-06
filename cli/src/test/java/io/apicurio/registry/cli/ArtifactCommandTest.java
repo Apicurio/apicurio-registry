@@ -12,6 +12,11 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -69,7 +74,50 @@ public class ArtifactCommandTest extends AbstractCLITest {
     public void testArtifactListNonExistentGroup() {
         executeAndAssertFailure("artifact", "--group", "non-existent-group");
     }
+    @Test
+    public void testArtifactCreateInfersContentTypeFromArtifactType() throws Exception {
+        // Regression test for #9294: artifact/version create used to hardcode
+        // content-type to application/json regardless of --type, so a PROTOBUF
+        // artifact created without --content-type was served back as application/json.
+        Path tempFile = Files.createTempFile("test-schema", ".proto");
+        Files.writeString(tempFile, """
+                syntax = "proto3";
+                message Greeting {
+                string message = 1;
+                }
+                """);
 
+        try {
+                out.getBuffer().setLength(0);
+                executeAndAssertSuccess("artifact", "create", "--output-type", "json",
+                        "--group", "default",
+                        "--type", "PROTOBUF",
+                        "--file", tempFile.toString(),
+                        "proto-content-type-artifact");
+                var artifact = MAPPER.readValue(out.toString(), ArtifactMetaData.class);
+
+                out.getBuffer().setLength(0);
+                executeAndAssertSuccess("artifact", "version", "get", "1",
+                        "--group", "default", "--artifact", artifact.getArtifactId(),
+                        "--output-type", "json");
+                JsonNode version = MAPPER.readTree(out.toString());
+                long globalId = version.get("globalId").asLong();
+
+                var request = HttpRequest.newBuilder()
+                        .uri(URI.create(registryUrl + "/apis/registry/v3/ids/globalIds/" + globalId))
+                        .GET()
+                        .build();
+                var response = HttpClient.newHttpClient()
+                        .send(request, HttpResponse.BodyHandlers.discarding());
+
+                assertThat(response.headers().firstValue("Content-Type"))
+                        .as(withCliOutput("A PROTOBUF artifact created without --content-type should be " +
+                                "served back as application/x-protobuf, not application/json"))
+                        .hasValue("application/x-protobuf");
+        } finally {
+                Files.deleteIfExists(tempFile);
+        }
+    }
     // -- Ordered tests (depend on state from previous tests) --
 
     @Test

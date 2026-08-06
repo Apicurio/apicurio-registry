@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.artifact;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.ContentTypeDetector;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -120,7 +121,9 @@ public class ArtifactCreateCommand extends AbstractCommand {
             }
             final var versionContent = new VersionContent();
             versionContent.setContent(content);
-            versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
+            versionContent.setContentType(!isBlank(contentType)
+                        ? contentType
+                        : ContentTypeDetector.detect(file));
             firstVersion.setContent(versionContent);
             newArtifact.setFirstVersion(firstVersion);
         }

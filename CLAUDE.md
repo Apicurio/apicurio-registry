@@ -10,7 +10,7 @@ Open-source API and Schema Registry. Apache 2.0 license, DCO sign-off required o
 ./mvnw quarkus:dev                       # Dev mode (run from app/)
 ./mvnw test -pl <module>                 # Run tests for a specific module
 ./mvnw checkstyle:check -pl <module>     # Run checkstyle for a module
-./mvnw verify -pl integration-tests -Plocal-tests  # Integration tests
+./mvnw verify -Pintegration-tests -pl integration-tests -am  # Integration tests
 ```
 
 UI (separate build system):

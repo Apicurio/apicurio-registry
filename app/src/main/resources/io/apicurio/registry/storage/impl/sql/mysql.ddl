@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 108);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 109);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -140,6 +140,7 @@ CREATE TABLE versions (
     groupId      VARCHAR(512) NOT NULL,
     artifactId   VARCHAR(512) NOT NULL,
     version      VARCHAR(256),
+    versionSortKey VARCHAR(512),
     versionOrder INT          NOT NULL,
     state        VARCHAR(64)  NOT NULL,
     name         VARCHAR(512),

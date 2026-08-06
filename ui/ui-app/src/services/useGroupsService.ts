@@ -67,9 +67,8 @@ const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupI
 const getGroupArtifacts = async (config: ConfigService, auth: AuthService, groupId: string, sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -253,9 +252,8 @@ const getArtifactVersionContentDereferenced = async (config: ConfigService, auth
 const getArtifactVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -299,9 +297,8 @@ const deleteArtifactVersionComment = async (config: ConfigService, auth: AuthSer
 const getArtifactBranches = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, paging: Paging): Promise<VersionSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start
     };
 
@@ -342,9 +339,8 @@ const updateArtifactBranchMetaData = async (config: ConfigService, auth: AuthSer
 const getArtifactBranchVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string, paging: Paging): Promise<VersionSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start
     };
 

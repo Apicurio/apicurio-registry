@@ -1,0 +1,89 @@
+{
+  "tests": [
+    {
+      "id": "adding-endpoint",
+      "enabled": true,
+      "compatibility": "backward",
+      "original": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Test API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/test": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      },
+      "originalContentType": "application/json",
+      "updated": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Test API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/test": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          },
+          "/test2": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      },
+      "updatedContentType": "application/json"
+    },
+    {
+      "id": "removing-endpoint",
+      "enabled": true,
+      "compatibility": "forward",
+      "original": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Test API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/test": {
+            "get": {
+              "responses": {
+                "200": {
+                  "description": "OK"
+                }
+              }
+            }
+          }
+        }
+      },
+      "originalContentType": "application/json",
+      "updated": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Test API",
+          "version": "1.0.0"
+        },
+        "paths": {}
+      },
+      "updatedContentType": "application/json"
+    }
+  ]
+}

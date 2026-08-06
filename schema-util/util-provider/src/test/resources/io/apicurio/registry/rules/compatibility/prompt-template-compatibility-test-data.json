@@ -1,0 +1,224 @@
+{
+    "tests": [
+        {
+            "enabled": true,
+            "id": "Compatible when no existing artifacts",
+            "compatibility": "both",
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Fully compatible: adding optional variable not used before",
+            "compatibility": "both",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "{{greeting}} {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] },
+                    "greeting": { "type": "string", "required": false }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward incompatible: variable type change",
+            "compatibility": "none",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "integer", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: variable became required",
+            "compatibility": "forward",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": true, "enum": ["formal", "casual", "technical"] }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: enum value removed",
+            "compatibility": "forward",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual"] }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: variable removed but still used",
+            "compatibility": "forward",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Fully compatible: variable removed and not used",
+            "compatibility": "both",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: output schema property removed",
+            "compatibility": "forward",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "result": { "type": "string" },
+                        "confidence": { "type": "number" }
+                    }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "result": { "type": "string" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: output schema removed",
+            "compatibility": "forward",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "result": { "type": "string" }
+                    }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding enum value",
+            "compatibility": "backward",
+            "original": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical"] }
+                }
+            },
+            "updated": {
+                "templateId": "test-template",
+                "template": "Hello {{name}} {{style}}",
+                "variables": {
+                    "name": { "type": "string", "required": true },
+                    "style": { "type": "string", "required": false, "enum": ["formal", "casual", "technical", "creative"] }
+                }
+            }
+        }
+    ]
+}

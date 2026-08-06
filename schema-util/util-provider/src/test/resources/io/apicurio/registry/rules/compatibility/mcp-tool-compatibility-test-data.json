@@ -1,0 +1,225 @@
+{
+    "tests": [
+        {
+            "enabled": true,
+            "id": "Compatible when no existing artifacts",
+            "compatibility": "both",
+            "updated": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    },
+                    "required": ["query"]
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding optional property",
+            "compatibility": "backward",
+            "original": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    },
+                    "required": ["query"]
+                }
+            },
+            "updated": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" },
+                        "limit": { "type": "integer" }
+                    },
+                    "required": ["query"]
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing property",
+            "compatibility": "forward",
+            "original": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" },
+                        "limit": { "type": "integer" }
+                    }
+                }
+            },
+            "updated": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward incompatible: adding required parameter",
+            "compatibility": "none",
+            "original": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    },
+                    "required": ["query"]
+                }
+            },
+            "updated": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" },
+                        "format": { "type": "string" }
+                    },
+                    "required": ["query", "format"]
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward incompatible: removing required parameter",
+            "compatibility": "none",
+            "original": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" },
+                        "format": { "type": "string" }
+                    },
+                    "required": ["query", "format"]
+                }
+            },
+            "updated": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" },
+                        "format": { "type": "string" }
+                    },
+                    "required": ["query"]
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward incompatible: changing schema type",
+            "compatibility": "none",
+            "original": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    }
+                }
+            },
+            "updated": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Fully compatible: changing name and description",
+            "compatibility": "both",
+            "original": {
+                "name": "test_tool",
+                "description": "Old description",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    }
+                }
+            },
+            "updated": {
+                "name": "renamed_tool",
+                "description": "New description",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Fully compatible: changing annotations",
+            "compatibility": "both",
+            "original": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    }
+                },
+                "annotations": {
+                    "audience": ["user"],
+                    "priority": 0.5
+                }
+            },
+            "updated": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    }
+                },
+                "annotations": {
+                    "audience": ["user", "assistant"],
+                    "priority": 0.9
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Fully compatible: description change",
+            "compatibility": "both",
+            "original": {
+                "name": "test_tool",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    },
+                    "required": ["query"]
+                }
+            },
+            "updated": {
+                "name": "test_tool",
+                "description": "Updated description",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" }
+                    },
+                    "required": ["query"]
+                }
+            }
+        }
+    ]
+}

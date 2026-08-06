@@ -80,12 +80,29 @@ threshold in `verify-unit-tests.yaml`.
 
 ### How sharding works
 
-- **app-rest**, **app-sql**, **app-kafkasql**, **app-gitops**,
-  **app-kubernetesops**, **app-auth**, **app-transport**, and **app-metrics**
-  each use surefire's `-Dtest=` to *include* a specific set of packages.
-- **app-other** uses `-Dtest=!...` to *exclude* every package claimed by those
-  include shards, catching everything else in `app/`. Each exclusion in its
-  filter must pair with an inclusion in another shard, or tests go missing.
+Shards select tests one of two ways:
+
+- **Pattern shards** (`app-rest`, `app-sql`, `app-kafkasql`, `app-gitops`,
+  `app-kubernetesops`) use surefire's `-Dtest=` to *include* a specific set of
+  packages. `app-other` uses `-Dtest=!...` to *exclude* every package claimed
+  by an include shard, catching everything else in `app/`. Each exclusion in
+  its filter must pair with an inclusion in another shard, or tests go
+  missing.
+- **Tag shards** (`app-auth`, `app-transport`, `app-metrics`) select by JUnit
+  `@Tag` instead: every test class carries `@Tag(ApicurioTestTags.AUTH)`,
+  `TRANSPORT`, or `METRICS` (see `utils/tests/.../ApicurioTestTags.java`), and
+  the shard runs with `-Dgroups=auth` (etc.). The mapping lives on the test
+  class itself, not in the workflow, so a new test gets the right shard at
+  creation time instead of depending on which package it happens to sit in.
+  Each of these shards also passes `-Dtest=io.apicurio.registry.**`: surefire's
+  default file-name discovery (`Test*`/`*Test`/`*Tests`/`*TestCase`) would
+  otherwise skip test classes named outside that convention before the tag
+  filter ever runs, so the broad pattern makes every class in the app test
+  tree a tag-filter candidate. `app-other`'s exclusion filter still excludes
+  the `auth`/`rbac`/`limits`/`tls`/`headers`/`cors`/`metrics`/`search`
+  packages by name, independent of tags, so an untagged class added to one of
+  those packages still shows up as an orphan rather than silently double- or
+  zero-running. See issue #9302.
 - Shard boundaries are chosen by `@TestProfile` density, not just class count.
   Surefire runs a shard in one forked JVM (`forkCount=1`, `reuseForks=true`
   by default), and each distinct profile makes Quarkus tear down and rebuild
@@ -103,9 +120,12 @@ subpackages are an exception. Read this before adding one:
   it runs in `app-rest`. A `storage.impl.*` / `event.*` subpackage that is
   already covered by one of the storage-variant include filters
   (`app-sql`, `app-kafkasql`, `app-gitops`, `app-kubernetesops`) runs there.
-  `auth`/`rbac`/`limits`, `tls`/`headers`/`cors`, and `metrics`/`search` run in
-  `app-auth`, `app-transport`, and `app-metrics` respectively.
-  Everything else lands in `app-other` (the exclusion-based shard).
+  A test in `auth`/`rbac`/`limits`, `tls`/`headers`/`cors`, or
+  `metrics`/`search` needs `@Tag(ApicurioTestTags.AUTH)`, `TRANSPORT`, or
+  `METRICS` respectively to run in `app-auth`, `app-transport`, or
+  `app-metrics` — without the tag it is excluded from those packages by
+  `app-other` but still won't match a tag shard, so it runs in **zero**
+  shards. Everything else lands in `app-other` (the exclusion-based shard).
 - **In any other module**: runs in `non-app`.
 
 **Warning:** `app-other`'s filter excludes *all* of `storage.**` and
@@ -124,9 +144,11 @@ python3 .github/scripts/verify-test-shards.py
 ```
 
 which reads the shard matrix out of `verify-unit-tests.yaml`, applies
-surefire's `-Dtest=` matching rules, and fails the build if any `app/` test
-class is claimed by zero shards or by more than one. Run it locally before
-changing any shard boundary — it is much faster than waiting for CI.
+surefire's `-Dtest=` matching rules to pattern shards and checks
+`@Tag(ApicurioTestTags.*)` against tag shards, and fails the build if any
+`app/` test class is claimed by zero shards or by more than one. Run it
+locally before changing any shard boundary — it is much faster than waiting
+for CI.
 
 ### Rebalancing shards
 

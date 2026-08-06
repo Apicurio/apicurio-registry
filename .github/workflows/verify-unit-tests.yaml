@@ -47,19 +47,25 @@ jobs:
           # (forkCount=1 with the default reuseForks=true), and app-other had accumulated 42 distinct
           # profiles across 147 classes -- four times the next-densest shard. That is what exhausted the
           # heap and pushed the shard past an hour. These three groups are the profile-dense clusters.
-          # Counts come from .github/scripts/verify-test-shards.py, which is also what enforces that
-          # every class below is claimed by exactly one shard. See issue #9265.
+          # See issue #9265.
+          #
+          # Unlike the other app-* shards, these three select by JUnit @Tag (ApicurioTestTags.AUTH /
+          # TRANSPORT / METRICS) instead of a -Dtest= package pattern: the tag lives on the test class
+          # itself, so a new test gets the right shard at creation time instead of silently landing in
+          # app-other. -Dtest=io.apicurio.registry.** makes surefire consider every class in the app test
+          # tree as a tag-filter candidate, since surefire's default file-name discovery (Test*/*Test/
+          # *Tests/*TestCase) would otherwise skip classes named like AuthTestNoRoles. See issue #9302.
           - name: app-auth
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.limits.**"
+            test-filter: "-Dtest=io.apicurio.registry.** -Dgroups=auth"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-transport
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.tls.**,io.apicurio.registry.headers.**,io.apicurio.registry.cors.**"
+            test-filter: "-Dtest=io.apicurio.registry.** -Dgroups=transport"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-metrics
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.metrics.**,io.apicurio.registry.search.**"
+            test-filter: "-Dtest=io.apicurio.registry.** -Dgroups=metrics"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           # Catch-all: stays an exclusion filter so a newly added package lands here rather than in no
           # shard at all. Every exclusion below must correspond to another shard's inclusion.

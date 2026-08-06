@@ -7,10 +7,16 @@ shard. A class claimed by none never runs in CI and fails silently, because the
 workflow passes -Dsurefire.failIfNoSpecifiedTests=false. A class claimed by two
 wastes a shard's budget.
 
-Implements surefire's -Dtest= semantics: comma-separated fully-qualified-name
-patterns, '!' prefix excludes, '**' matches across package separators, '*'
-matches within one segment. A filter of exclusions only includes everything not
-excluded.
+Shards select tests one of two ways:
+  - pattern shards use -Dtest=<comma-separated patterns>. Implements surefire's
+    -Dtest= semantics: '!' prefix excludes, '**' matches across package
+    separators, '*' matches within one segment. A filter of exclusions only
+    includes everything not excluded.
+  - tag shards use -Dgroups=<value>, matching classes annotated with
+    @Tag(ApicurioTestTags.<CONST>) where CONST's string value is <value>. A
+    class is only held to this check if it actually carries one of the group
+    tags wired to a -Dgroups= shard (ApicurioTestTags.DOCKER/SLOW are not
+    group tags and are ignored here); see issue #9302.
 
 Usage:  python3 .github/scripts/verify-test-shards.py
 Exits non-zero when the partition is broken.
@@ -22,6 +28,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 APP_TESTS = REPO / "app/src/test/java"
 WORKFLOW = REPO / ".github/workflows/verify-unit-tests.yaml"
+TAGS_FILE = REPO / "utils/tests/src/main/java/io/apicurio/registry/utils/tests/ApicurioTestTags.java"
 
 # The 'non-app' shard selects by Maven -pl, not by -Dtest, so it is not part of
 # the app-module partition.
@@ -38,19 +45,35 @@ def is_surefire_name(stem):
     )
 
 
-def enumerate_classes():
-    """Fully-qualified names of app/ test classes surefire would actually run."""
-    found = []
+def is_abstract(path, source):
+    return bool(re.search(r"\babstract\s+class\s+" + re.escape(path.stem) + r"\b", source))
+
+
+def class_tags(source):
+    """ApicurioTestTags constant names referenced via @Tag(ApicurioTestTags.X) in this source."""
+    return set(re.findall(r"@Tag\(ApicurioTestTags\.(\w+)\)", source))
+
+
+def enumerate_classes(group_consts):
+    """Fully-qualified name -> source text, for every app/ test class that must be
+    claimed by exactly one shard: surefire-eligible by naming convention, plus any
+    class carrying a shard group tag (which surefire selects regardless of name)."""
+    found = {}
     for path in APP_TESTS.rglob("*.java"):
-        stem = path.stem
-        if not is_surefire_name(stem):
-            continue
         source = path.read_text(encoding="utf-8", errors="replace")
-        # Abstract classes are bases for other tests; surefire never runs them.
-        if re.search(r"\babstract\s+class\s+" + re.escape(stem) + r"\b", source):
+        if is_abstract(path, source):
             continue
-        found.append(str(path.relative_to(APP_TESTS)).replace("/", ".")[:-len(".java")])
-    return sorted(found)
+        if not is_surefire_name(path.stem) and not (class_tags(source) & group_consts):
+            continue
+        fqn = str(path.relative_to(APP_TESTS)).replace("/", ".")[: -len(".java")]
+        found[fqn] = source
+    return dict(sorted(found.items()))
+
+
+def load_tag_values():
+    """ApicurioTestTags constant name -> string value, e.g. {'AUTH': 'auth', ...}."""
+    text = TAGS_FILE.read_text(encoding="utf-8")
+    return dict(re.findall(r'public static final String (\w+) = "([^"]+)";', text))
 
 
 def pattern_to_regex(pattern):
@@ -80,7 +103,9 @@ def matches(fqn, test_filter):
 
 
 def parse_shards():
-    """Read (name, test-filter) pairs straight from the workflow matrix."""
+    """Read (name, kind, selector) triples straight from the workflow matrix.
+    kind is 'tag' for a -Dgroups= shard (selector is the group value) or
+    'pattern' for a -Dtest= shard (selector is the pattern list)."""
     shards, name = [], None
     for line in WORKFLOW.read_text(encoding="utf-8").splitlines():
         matched = re.match(r"\s*- name:\s*(\S+)", line)
@@ -90,43 +115,76 @@ def parse_shards():
         matched = re.match(r'\s*test-filter:\s*"(.*)"\s*$', line)
         if matched and name:
             value = matched.group(1)
-            if value.startswith("-Dtest="):
-                value = value[len("-Dtest="):]
-            shards.append((name, value))
+            groups_match = re.search(r"-Dgroups=(\S+)", value)
+            if groups_match:
+                shards.append((name, "tag", groups_match.group(1)))
+            else:
+                if value.startswith("-Dtest="):
+                    value = value[len("-Dtest="):]
+                shards.append((name, "pattern", value))
             name = None
     return [s for s in shards if s[0] != NON_APP_SHARD]
 
 
+def claims(fqn, source, shards, const_by_value):
+    hits = []
+    for name, kind, selector in shards:
+        if kind == "pattern":
+            if matches(fqn, selector):
+                hits.append(name)
+        else:
+            const = const_by_value.get(selector)
+            if const and const in class_tags(source):
+                hits.append(name)
+    return hits
+
+
 def main():
-    classes = enumerate_classes()
     shards = parse_shards()
     if not shards:
         print("ERROR: no shards parsed from", WORKFLOW)
         return 2
 
-    print(f"app test classes (surefire-eligible, non-abstract): {len(classes)}")
-    print(f"app shards: {', '.join(n for n, _ in shards)}\n")
+    tag_values = load_tag_values()
+    const_by_value = {v: k for k, v in tag_values.items()}
+    group_consts = set()
+    for name, kind, selector in shards:
+        if kind != "tag":
+            continue
+        const = const_by_value.get(selector)
+        if const is None:
+            print(f"ERROR: shard {name} selects -Dgroups={selector}, "
+                  f"but no ApicurioTestTags constant has that value")
+            return 2
+        group_consts.add(const)
 
-    print(f"{'SHARD':<20} {'CLASSES':>8}")
-    for name, test_filter in shards:
-        print(f"{name:<20} {sum(1 for c in classes if matches(c, test_filter)):>8}")
+    classes = enumerate_classes(group_consts)
 
-    claims = {c: [n for n, f in shards if matches(c, f)] for c in classes}
-    orphans = sorted(c for c, hits in claims.items() if not hits)
-    duplicates = {c: h for c, h in sorted(claims.items()) if len(h) > 1}
+    print(f"app test classes (surefire-eligible or tagged, non-abstract): {len(classes)}")
+    print(f"app shards: {', '.join(n for n, _, _ in shards)}\n")
 
-    print(f"\nrun exactly once  : {sum(1 for h in claims.values() if len(h) == 1)}")
+    print(f"{'SHARD':<20} {'KIND':<8} {'CLASSES':>8}")
+    for name, kind, selector in shards:
+        count = sum(1 for fqn, source in classes.items()
+                     if name in claims(fqn, source, [(name, kind, selector)], const_by_value))
+        print(f"{name:<20} {kind:<8} {count:>8}")
+
+    class_claims = {fqn: claims(fqn, source, shards, const_by_value) for fqn, source in classes.items()}
+    orphans = sorted(fqn for fqn, hits in class_claims.items() if not hits)
+    duplicates = {fqn: hits for fqn, hits in sorted(class_claims.items()) if len(hits) > 1}
+
+    print(f"\nrun exactly once  : {sum(1 for h in class_claims.values() if len(h) == 1)}")
     print(f"run ZERO times    : {len(orphans)}")
     print(f"run MORE than once: {len(duplicates)}")
 
     if orphans:
         print("\n!! ORPHANS - these run in no shard and fail silently:")
-        for c in orphans:
-            print("    ", c)
+        for fqn in orphans:
+            print("    ", fqn)
     if duplicates:
         print("\n!! DUPLICATES - these run in several shards:")
-        for c, hits in duplicates.items():
-            print(f"     {c} -> {', '.join(hits)}")
+        for fqn, hits in duplicates.items():
+            print(f"     {fqn} -> {', '.join(hits)}")
 
     ok = not orphans and not duplicates
     print("\nRESULT:", "PARTITION OK" if ok else "PARTITION BROKEN")

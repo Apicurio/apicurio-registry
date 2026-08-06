@@ -309,6 +309,141 @@ class McpToolCompatibilityCheckerTest {
     }
 
     @Test
+    void testBackwardIncompatibleRemovingOutputSchema() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "results": { "type": "array" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing outputSchema should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleRemovingOutputSchemaProperty() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "results": { "type": "array" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "results": { "type": "array" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing an outputSchema property should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleAddingOutputSchemaProperty() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "results": { "type": "array" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "results": { "type": "array" },
+                            "total": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Adding an outputSchema property should be backward compatible");
+    }
+
+    @Test
     void testFullCompatibilityBothDirections() {
         String existing = """
                 {

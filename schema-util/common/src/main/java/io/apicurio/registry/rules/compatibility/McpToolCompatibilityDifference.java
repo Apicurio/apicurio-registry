@@ -14,6 +14,8 @@ public class McpToolCompatibilityDifference implements CompatibilityDifference {
         REQUIRED_PARAM_REMOVED("inputSchema/required"),
         INPUT_SCHEMA_TYPE_CHANGED("inputSchema/type"),
         PROPERTY_REMOVED("inputSchema/properties"),
+        OUTPUT_SCHEMA_REMOVED("outputSchema"),
+        OUTPUT_SCHEMA_PROPERTY_REMOVED("outputSchema/properties"),
         PARSE_ERROR("document");
 
         private final String context;

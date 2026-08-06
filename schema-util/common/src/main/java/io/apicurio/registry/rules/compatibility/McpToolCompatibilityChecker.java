@@ -18,6 +18,7 @@ import java.util.Set;
  * - Adding required parameters: Backward incompatible
  * - Removing required parameters: Backward incompatible
  * - Changing inputSchema type: Backward incompatible
+ * - Removing outputSchema, or a property of it: Backward incompatible
  * - Changing name, title, description, annotations: Always compatible
  */
 public class McpToolCompatibilityChecker
@@ -45,6 +46,9 @@ public class McpToolCompatibilityChecker
 
             // Check removed required parameters
             checkRequiredParamRemovals(existingNode, proposedNode, differences);
+
+            // Check removed output schema or output properties
+            checkOutputSchemaCompatibility(existingNode, proposedNode, differences);
 
         } catch (Exception e) {
             differences.add(new McpToolCompatibilityDifference(
@@ -106,6 +110,38 @@ public class McpToolCompatibilityChecker
                 differences.add(new McpToolCompatibilityDifference(
                         McpToolCompatibilityDifference.Type.REQUIRED_PARAM_REMOVED,
                         "Required parameter '" + param + "' was removed"));
+            }
+        }
+    }
+
+    private void checkOutputSchemaCompatibility(JsonNode existing, JsonNode proposed,
+            Set<McpToolCompatibilityDifference> differences) {
+        JsonNode existingSchema = existing.get("outputSchema");
+        if (existingSchema == null || !existingSchema.isObject()) {
+            return;
+        }
+
+        JsonNode proposedSchema = proposed.get("outputSchema");
+        if (proposedSchema == null || !proposedSchema.isObject()) {
+            differences.add(new McpToolCompatibilityDifference(
+                    McpToolCompatibilityDifference.Type.OUTPUT_SCHEMA_REMOVED,
+                    "Output schema was removed"));
+            return;
+        }
+
+        JsonNode existingProps = existingSchema.get("properties");
+        if (existingProps == null || !existingProps.isObject()) {
+            return;
+        }
+
+        JsonNode proposedProps = proposedSchema.get("properties");
+        Iterator<String> propNames = existingProps.fieldNames();
+        while (propNames.hasNext()) {
+            String propName = propNames.next();
+            if (proposedProps == null || !proposedProps.has(propName)) {
+                differences.add(new McpToolCompatibilityDifference(
+                        McpToolCompatibilityDifference.Type.OUTPUT_SCHEMA_PROPERTY_REMOVED,
+                        "Output property '" + propName + "' was removed"));
             }
         }
     }

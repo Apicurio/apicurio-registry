@@ -84,19 +84,42 @@ rules:
 
     # Operator permissions (transitive):
 
+  # The operator's generated CSV requests cluster-wide `namespaces` get/list/watch because the
+  # reconciler watches all namespaces. Under OLM v1 the installer SA can only grant permissions it
+  # holds (escalation prevention), so the installer role must carry this rule or the ClusterExtension
+  # never reaches Installed: True. Note: this rule is not in rbac/namespaced (it is SDK-generated at
+  # build time), so RbacInstallerSyncTest does not guard it.
+  - apiGroups:
+      - ''
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Kept in sync with the operator's runtime permissions in
+  # controller/src/main/deploy/rbac/namespaced: cluster-role.yaml grants get/list/watch on the parent
+  # CR (informer discovery), role.yaml grants patch/update on the CR and its /status. There is no
+  # list/watch endpoint for /status, so it only carries patch/update here. The operator never creates
+  # or deletes the CR.
   - apiGroups:
       - registry.apicur.io
     resources:
       - apicurioregistries3
-      - apicurioregistries3/status
     verbs:
-      - create
-      - delete
       - get
       - list
       - patch
       - update
       - watch
+  - apiGroups:
+      - registry.apicur.io
+    resources:
+      - apicurioregistries3/status
+    verbs:
+      - patch
+      - update
 
   - apiGroups:
       - apps

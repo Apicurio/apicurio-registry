@@ -344,4 +344,344 @@ class McpToolCompatibilityCheckerTest {
 
         assertTrue(result.isCompatible(), "Identical schema with description change should be fully compatible");
     }
+
+    @Test
+    void testBackwardIncompatibleRemovingInputSchemaType() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing inputSchema type should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleUnchangedInputSchemaType() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Unchanged inputSchema type should be backward compatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleChangingPropertyType() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing a property type from integer to string should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleUnchangedPropertyType() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Unchanged property type should be backward compatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleRemovingPropertyRegressionCheck() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "age": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing a property should still be backward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleRemovingPropertyType() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": {}
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing a property's type while retaining the property should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleChangingPropertyTypeToUnionArray() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": ["string", "null"] }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing a property's type to a union array should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleReorderedUnionTypeArray() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "val": { "type": ["string", "number"] }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "val": { "type": ["number", "string"] }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Reordering members in a union type array should be backward compatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleAddingTypeToUntypedProperty() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": {}
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "age": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Adding a type constraint to a previously untyped property should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleSingleElementUnionType() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": ["string"] }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Single element union type ['string'] should be equivalent to scalar 'string'");
+    }
 }

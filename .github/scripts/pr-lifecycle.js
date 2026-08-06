@@ -255,6 +255,10 @@ function createApi(github, owner, repo) {
       });
     },
 
+    // GitHub represents runs awaiting fork PR approval as
+    // status=completed, conclusion=action_required. The API's status
+    // query parameter accepts 'action_required' as a filter value even
+    // though the run object itself stores it in the conclusion field.
     findPendingApprovalVerifyRuns: async (headSha) => {
       const { data } = await github.rest.actions.listWorkflowRuns({
         owner, repo, workflow_id: 'verify.yaml',
@@ -329,15 +333,21 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
 async function approvePendingVerifyRuns(api, pr, core) {
   try {
     const runs = await api.findPendingApprovalVerifyRuns(pr.head.sha);
+    if (runs.length === 0) {
+      core.info(`PR #${pr.number} no pending-approval Verify runs found for ${pr.head.sha}`);
+      return 0;
+    }
+    let approved = 0;
     for (const run of runs) {
       try {
         await api.approveWorkflowRun(run.id);
+        approved++;
         core.info(`PR #${pr.number} approved pending Verify run ${run.id}`);
       } catch (e) {
         core.warning(`PR #${pr.number} failed to approve Verify run ${run.id}: ${e.message}`);
       }
     }
-    return runs.length;
+    return approved;
   } catch (e) {
     core.warning(`PR #${pr.number} failed to list pending Verify runs: ${e.message}`);
     return 0;

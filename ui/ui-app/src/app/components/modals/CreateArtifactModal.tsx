@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, MouseEvent, Ref, useEffect, useRef, useState } from "react";
 import "./CreateArtifactModal.css";
 import {
     FileUpload,
@@ -9,6 +9,12 @@ import {
     GridItem,
     HelperText,
     HelperTextItem,
+    Divider,
+    MenuToggle,
+    MenuToggleElement,
+    Select,
+    SelectList,
+    SelectOption,
     Tab,
     Tabs,
     TabTitleText,
@@ -22,14 +28,14 @@ import {
     Modal
 } from "@patternfly/react-core/deprecated";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
-import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
+import { If, UrlUpload } from "@apicurio/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { ArtifactLabel, LabelsFormGroup, ArtifactReferenceFormItem, ReferencesFormGroup, formItemsToReferences, isReferencesValid } from "@app/components";
 import { listToLabels } from "@utils/labels.utils.ts";
-import { detectContentType } from "@utils/content.utils.ts";
+import { detectContentType, detectVersionInContent } from "@utils/content.utils.ts";
 
 
 export type ValidType = "default" | "success" | "error";
@@ -113,12 +119,18 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const [artifactTypes, setArtifactTypes] = useState<any[]>([]);
     const [artifactTypeOptions, setArtifactTypeOptions] = useState<ArtifactTypeItem[]>([]);
     const [selectedType, setSelectedType] = useState<ArtifactTypeItem>(DEFAULT_ARTIFACT_TYPE);
+    const [isArtifactTypeSelectOpen, setArtifactTypeSelectOpen] = useState(false);
+    const [artifactTypeMenuHeight, setArtifactTypeMenuHeight] = useState(240);
     const [artifactLabels, setArtifactLabels] = useState<ArtifactLabel[]>([]);
     const [contentTabKey, setContentTabKey] = useState(0);
     const [contentIsLoading, setContentIsLoading] = useState(false);
     const [versionLabels, setVersionLabels] = useState<ArtifactLabel[]>([]);
     const [versionReferences, setVersionReferences] = useState<ArtifactReferenceFormItem[]>([]);
     const [isDetectingRefs, setIsDetectingRefs] = useState(false);
+    const [autoDetectedVersion, setAutoDetectedVersion] = useState<string | undefined>();
+    // Ref rather than state: content change handlers can fire asynchronously (e.g. when
+    // a URL fetch resolves) and must see the current value, not a stale closure.
+    const versionIsDirty = useRef(false);
 
     const urlService: UrlService = useUrlService();
     const atService: ArtifactTypesService = useArtifactTypesService();
@@ -137,6 +149,32 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
             artifactType: newArtifactType
         });
     };
+
+    const onArtifactTypeSelect = (_event: MouseEvent | undefined, item: ArtifactTypeItem | undefined): void => {
+        if (item && !item.isDivider) {
+            setSelectedType(item);
+        }
+        setArtifactTypeSelectOpen(false);
+    };
+
+    const artifactTypeToggle = (toggleRef: Ref<MenuToggleElement>) => (
+        <MenuToggle
+            ref={toggleRef}
+            className="menu-toggle"
+            onClick={(event) => {
+                const toggleBounds = event.currentTarget.getBoundingClientRect();
+                const availableBelow = window.innerHeight - toggleBounds.bottom - 16;
+                const availableAbove = toggleBounds.top - 16;
+                const availableHeight = availableBelow >= 160 ? availableBelow : Math.max(availableBelow, availableAbove);
+                setArtifactTypeMenuHeight(Math.min(240, Math.max(120, availableHeight)));
+                setArtifactTypeSelectOpen(!isArtifactTypeSelectOpen);
+            }}
+            isExpanded={isArtifactTypeSelectOpen}
+            data-testid="create-artifact-modal-type-select"
+        >
+            {selectedType.label}
+        </MenuToggle>
+    );
 
     const setArtifactName = (newName: string): void => {
         setData({
@@ -161,16 +199,28 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     };
 
     const onFileTextChange = (_event: any, value: string | undefined): void => {
-        setData({
-            ...data,
+        // Auto-detect the version from the content (e.g. "info.version" in an OpenAPI or
+        // AsyncAPI spec), but only while the user has not edited the version themselves.
+        // When nothing is detected (non-spec content, or content that is transiently
+        // unparseable mid-edit) the previous value is preserved rather than cleared.
+        // The functional update matters: this handler can be called asynchronously (URL
+        // fetch, file read), so spreading a captured `data` could clobber newer state.
+        const detectedVersion: string | undefined = detectVersionInContent(value);
+        const applyDetectedVersion: boolean = !versionIsDirty.current && detectedVersion !== undefined;
+        setData(prevData => ({
+            ...prevData,
             firstVersion: {
-                ...data.firstVersion,
+                ...prevData.firstVersion,
+                version: applyDetectedVersion ? detectedVersion : prevData.firstVersion?.version,
                 content: {
                     content: value,
-                    contentType: detectContentType(data.artifactType, value)
+                    contentType: detectContentType(prevData.artifactType, value)
                 }
             }
-        });
+        }));
+        if (applyDetectedVersion) {
+            setAutoDetectedVersion(detectedVersion);
+        }
     };
 
     const onFileClear = (): void => {
@@ -186,13 +236,16 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     };
 
     const setVersionNumber = (newVersion: string): void => {
-        setData({
-            ...data,
+        // The user edited the version (including clearing it): stop auto-detecting.
+        versionIsDirty.current = true;
+        setAutoDetectedVersion(undefined);
+        setData(prevData => ({
+            ...prevData,
             firstVersion: {
-                ...data.firstVersion,
+                ...prevData.firstVersion,
                 version: newVersion
             }
-        });
+        }));
     };
 
     const setVersionName = (newName: string): void => {
@@ -279,6 +332,8 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         if (props.isOpen) {
             setData(EMPTY_FORM_DATA);
             setVersionReferences([]);
+            setAutoDetectedVersion(undefined);
+            versionIsDirty.current = false;
             if (props.groupId) {
                 setGroupId(props.groupId);
             } else {
@@ -418,16 +473,36 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                             </If>
                         </FormGroup>
                         <FormGroup label="Type" fieldId="form-artifact-type" isRequired={true}>
-                            <ObjectSelect
-                                value={selectedType}
-                                items={artifactTypeOptions}
-                                testId="create-artifact-modal-type-select"
-                                onSelect={setSelectedType}
-                                itemIsDivider={(item) => item.isDivider}
-                                itemToTestId={(item) => `create-artifact-modal-${item.value}`}
-                                itemToString={(item) => item.label}
-                                appendTo="document"
-                            />
+                            <Select
+                                id="create-artifact-modal-type-select"
+                                isOpen={isArtifactTypeSelectOpen}
+                                selected={selectedType}
+                                onSelect={onArtifactTypeSelect}
+                                onOpenChange={setArtifactTypeSelectOpen}
+                                toggle={artifactTypeToggle}
+                                maxMenuHeight={`${artifactTypeMenuHeight}px`}
+                                isScrollable
+                                popperProps={{
+                                    appendTo: () => document.body,
+                                    enableFlip: true,
+                                    preventOverflow: true
+                                }}
+                            >
+                                <SelectList>
+                                    {artifactTypeOptions.map((item, index) => item.isDivider ? (
+                                        <Divider component="li" key={`divider-${index}`} />
+                                    ) : (
+                                        <SelectOption
+                                            key={item.value}
+                                            value={item}
+                                            isSelected={item.value === selectedType.value}
+                                            data-testid={`create-artifact-modal-${item.value}`}
+                                        >
+                                            {item.label}
+                                        </SelectOption>
+                                    ))}
+                                </SelectList>
+                            </Select>
                             <FormHelperText>
                                 <HelperText>
                                     <HelperTextItem>Note: If "Auto-Detect" is chosen, Version Content will be required.</HelperTextItem>
@@ -495,6 +570,13 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 onChange={(_evt, value) => setVersionNumber(value)}
                                 // validated={groupValidated()}
                             />
+                            <If condition={autoDetectedVersion !== undefined && data.firstVersion?.version === autoDetectedVersion}>
+                                <FormHelperText>
+                                    <HelperText>
+                                        <HelperTextItem>Version detected from the content.</HelperTextItem>
+                                    </HelperText>
+                                </FormHelperText>
+                            </If>
                         </FormGroup>
                         <FormGroup label="Content" isRequired={false} fieldId="form-content">
                             <Tabs

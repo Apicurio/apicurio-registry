@@ -1,16 +1,18 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="registry-concepts-glossary_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = {registry} concepts and glossary
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can use these definitions to understand the core concepts of {registry}.
 
 // con-concept-group
 [id="concept-group_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Group
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 A *group* is a named namespace for organizing related artifacts.
@@ -21,8 +23,9 @@ Groups can carry their own metadata (description, labels) and can have group-lev
 
 // con-concept-artifact
 [id="concept-artifact_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Artifact
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 An *artifact* is a named schema or API definition within a group, uniquely identified by the combination of `groupId` and `artifactId`.
@@ -32,20 +35,26 @@ Examples of artifacts include an Avro schema, a Protobuf definition, an OpenAPI 
 
 // con-concept-artifact-version
 [id="concept-artifact-version_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Artifact version
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 An *artifact version* is an immutable snapshot of an artifact's content.
 
 Each version is identified within its artifact by a `version` string and is also assigned a globally unique numeric `globalId`.
 After you create a version, you cannot change its content.
-Versions have a lifecycle state (see xref:concept-version-state_{context}[]) and can carry user-defined metadata and labels.
+Versions have a lifecycle state and can carry user-defined metadata and labels.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:concept-version-state_{context}[]
 
 // con-concept-content
 [id="concept-content_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Content
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 *Content* is the actual schema or API payload stored in the registry (for example, an Avro JSON schema, a Protobuf `.proto` definition, or an OpenAPI YAML specification).
@@ -54,8 +63,9 @@ Content is deduplicated: if two artifact versions have identical content, they s
 
 // con-concept-global-id
 [id="concept-global-id_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Global ID
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 A *global ID* is a globally unique numeric identifier for each artifact version in the registry.
@@ -64,8 +74,9 @@ A *global ID* is a globally unique numeric identifier for each artifact version 
 
 // con-concept-content-id
 [id="concept-content-id_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Content ID
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 A *content ID* is a unique numeric identifier for a piece of content.
@@ -75,8 +86,9 @@ This is useful when different artifacts or versions reference the same schema pa
 
 // con-concept-branch
 [id="concept-branch_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Branch
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 A *branch* is a named, ordered sequence of artifact versions within an artifact.
@@ -86,8 +98,9 @@ For example, an artifact might have a `latest` branch (the default) and a `1.x` 
 
 // con-concept-artifact-reference
 [id="concept-artifact-reference_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Artifact reference
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 An *artifact reference* is a reference from one artifact to another.
@@ -97,8 +110,9 @@ When an artifact version contains references, {registry} stores them to support 
 
 // con-concept-labels
 [id="concept-labels_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Labels
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 *Labels* are user-defined key-value string pairs that you can attach to groups, artifacts, or artifact versions.
@@ -107,8 +121,9 @@ You can use labels for organization, categorization, and filtering when searchin
 
 // con-concept-rule
 [id="concept-rule_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Rule
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 A *rule* is a validation constraint that {registry} applies when you add new content.
@@ -133,8 +148,9 @@ The available rule types are:
 
 // con-concept-version-state
 [id="concept-version-state_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Version state
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 The *version state* represents the lifecycle state of an artifact version.
@@ -149,8 +165,9 @@ You can transition between any of these three states.
 
 // con-concept-artifact-type
 [id="concept-artifact-type_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Artifact type
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 The *artifact type* identifies the format or schema language of an artifact's content.

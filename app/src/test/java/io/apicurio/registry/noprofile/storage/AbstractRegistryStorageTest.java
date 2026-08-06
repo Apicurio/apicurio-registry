@@ -1025,6 +1025,106 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         });
     }
 
+    @Test
+    public void testSearchVersionsByNegatedGlobalIdAndContentId() throws Exception {
+        String artifactId = "testSearchVersionsByNegatedGlobalIdAndContentId-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false, null)
+                .getValue();
+        Assertions.assertNotNull(dto);
+
+        content = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactVersionMetaDataDto dtov2 = storage().createArtifactVersion(
+                GROUP_ID, artifactId, null, ArtifactType.OPENAPI, ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                null, Collections.emptyList(), false, false, null);
+        Assertions.assertNotNull(dtov2);
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofGlobalId(dto.getGlobalId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(dtov2.getGlobalId(), results.getVersions().get(0).getGlobalId());
+
+            results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofContentId(dto.getContentId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(dtov2.getContentId(), results.getVersions().get(0).getContentId());
+
+            results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofGlobalId(dtov2.getGlobalId()),
+                            SearchFilter.ofContentId(dtov2.getContentId())),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(dtov2.getGlobalId(), results.getVersions().get(0).getGlobalId());
+            Assertions.assertEquals(dtov2.getContentId(), results.getVersions().get(0).getContentId());
+        });
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> storage().searchVersions(
+                Set.of(SearchFilter.ofGlobalId(null)), OrderBy.globalId, OrderDirection.asc, 0, 10,
+                false));
+
+        SearchFilter invalidGlobalId = new SearchFilter();
+        invalidGlobalId.setType(SearchFilterType.globalId);
+        invalidGlobalId.setStringValue("not-a-number");
+        Assertions.assertThrows(IllegalStateException.class, () -> storage().searchVersions(
+                Set.of(invalidGlobalId), OrderBy.globalId, OrderDirection.asc, 0, 10, false));
+    }
+
+    @Test
+    public void testVersionSortingAndSemver() throws Exception {
+        String artifactId = "testSemverSorting-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                null, Collections.emptyList(), false, false, null);
+
+        String[] versionsToInsert = { "2", "10", "1.0.0-10", "1.0.0-9", "1.0.0-alpha", "1.0.1", "latest", "zzz-custom" };
+        
+        for (String ver : versionsToInsert) {
+            storage().createArtifactVersion(GROUP_ID, artifactId, ver, ArtifactType.OPENAPI,
+                    ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                    null, Collections.emptyList(), false, false, null);
+        }
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId)),
+                    OrderBy.version, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(9, results.getCount());
+            
+            List<SearchedVersionDto> sortedVersions = results.getVersions();
+            
+            // Validate the mathematically correct SemVer sorting order:
+            Assertions.assertEquals("1.0.0-9", sortedVersions.get(0).getVersion());
+            Assertions.assertEquals("1.0.0-10", sortedVersions.get(1).getVersion());
+            Assertions.assertEquals("1.0.0-alpha", sortedVersions.get(2).getVersion());
+            Assertions.assertEquals("1", sortedVersions.get(3).getVersion());
+            Assertions.assertEquals("1.0.1", sortedVersions.get(4).getVersion());
+            Assertions.assertEquals("2", sortedVersions.get(5).getVersion());
+            Assertions.assertEquals("10", sortedVersions.get(6).getVersion());
+            Assertions.assertEquals("latest", sortedVersions.get(7).getVersion());
+            Assertions.assertEquals("zzz-custom", sortedVersions.get(8).getVersion());
+        });
+    }
+
     private void createSomeUserData() {
         final String group1 = "testGroup-1";
         final String group2 = "testGroup-2";

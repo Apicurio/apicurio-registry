@@ -176,6 +176,12 @@ public class UpdateCommand extends AbstractCommand {
                 throw new CliException("Failed to set executable permission on " + executable);
             }
         }
+        // The file swap is performed by the NEW binary: this runs "<downloaded>/acr install",
+        // which launches the freshly downloaded acr_runner and copies it over the installed one.
+        // This doubles as the "new binary verified working" check — a binary that passes the
+        // checksum but cannot run (wrong architecture, glibc, missing dependency) fails to launch
+        // here, before the swap, so the existing installation is left untouched. Once the swap is
+        // running, InstallCommand additionally rolls back if a copy fails partway through.
         log.debugf("Running subprocess: %s", acrPath);
         var cmd = new ArrayList<String>(3);
         cmd.add(acrPath.toString());

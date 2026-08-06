@@ -1,31 +1,36 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
+:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
 [id="mcp-server-integration_{context}"]
 = MCP server integration
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the {registry} MCP server container. The MCP server acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 ifdef::service-registry-downstream[]
-WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope].
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
 endif::[]
 
-NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance. For information about storing MCP tool definitions as artifacts in {registry}, see xref:getting-started/assembly-mcp-tool-features.adoc[].
+ifndef::service-registry-downstream[]
+NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance. For information about storing MCP tool definitions as artifacts in {registry}, see the Additional resources section.
+endif::[]
+ifdef::service-registry-downstream[]
+NOTE: The {registry} MCP server connects LLM clients to a running {registry} instance.
+endif::[]
 
-* xref:mcp-server-overview_{context}[]
-* xref:installing-the-mcp-server_{context}[]
-* xref:configuring-claude-desktop-for-mcp_{context}[]
-* xref:mcp-server-available-tools_{context}[]
-* xref:mcp-server-configuration-properties_{context}[]
-* xref:configuring-mcp-server-authentication_{context}[]
-* xref:configuring-mcp-server-tls_{context}[]
-* xref:mcp-server-troubleshooting_{context}[]
+[role="_additional-resources"]
+.Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+endif::[]
 
 // con-mcp-server-overview
-:_mod-docs-content-type: CONCEPT
 [id="mcp-server-overview_{context}"]
 == MCP server overview
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 The {registry} MCP server container acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
@@ -44,9 +49,10 @@ The MCP server supports operations in the following categories:
 The MCP server has a safe mode that is enabled by default. Safe mode restricts operations that could cause unintended changes, such as limiting which configuration properties you can update.
 
 // proc-installing-the-mcp-server
-:_mod-docs-content-type: PROCEDURE
 [id="installing-the-mcp-server_{context}"]
 == Installing the MCP server
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can run the {registry} MCP server as a Docker or Podman container, or build it from source. Both methods produce a server binary that LLM clients start on demand.
@@ -75,9 +81,10 @@ mvn clean install -pl mcp -am -DskipTests
 ----
 
 // proc-configuring-claude-desktop-for-mcp
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-claude-desktop-for-mcp_{context}"]
 == Configuring Claude Desktop for MCP
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can configure Claude Desktop to use the {registry} MCP server. After configuration, you interact with {registry} artifacts, groups, and versions by using natural language in Claude Desktop.
@@ -143,9 +150,10 @@ Replace `<path-to-repo>` with the absolute path to your local clone of the {regi
 ** "Create 10 example artifacts."
 
 // ref-mcp-server-available-tools
-:_mod-docs-content-type: REFERENCE
 [id="mcp-server-available-tools_{context}"]
 == Available MCP tools
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The {registry} MCP server provides the following tools for LLM clients to call. Claude Desktop prompts you for confirmation before each tool call.
@@ -282,9 +290,10 @@ You can also use the following MCP prompts in Claude Desktop by clicking the *+*
 * **render_registry_prompt**: Renders a prompt template from {registry} for interactive use.
 
 // ref-mcp-server-configuration-properties
-:_mod-docs-content-type: REFERENCE
 [id="mcp-server-configuration-properties_{context}"]
 == MCP server configuration properties
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure the {registry} MCP server by using the following properties. Pass properties as Java system properties when you use the JAR, or as environment variables when you use Docker.
@@ -423,9 +432,10 @@ For the Docker method, pass environment variables by using separate `-e` element
 |===
 
 // proc-configuring-mcp-server-authentication
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-mcp-server-authentication_{context}"]
 == Configuring MCP server authentication
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can configure the {registry} MCP server to authenticate with {registry} by using OAuth2 client credentials. You must configure authentication when {registry} is secured with an OIDC provider such as {keycloak}.
@@ -493,9 +503,10 @@ Replace `<your-client-secret>` with the client secret from your OIDC provider.
 . Restart Claude Desktop to apply the changes.
 
 // proc-configuring-mcp-server-tls
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-mcp-server-tls_{context}"]
 == Configuring MCP server TLS
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can configure the {registry} MCP server to connect to {registry} over TLS. You configure trust store settings to verify the server certificate, and optionally configure key store settings for mutual TLS (mTLS) client certificate authentication.
@@ -561,14 +572,15 @@ If you built the MCP server from source, add system properties:
 . Restart Claude Desktop to apply the changes.
 
 // ref-mcp-server-troubleshooting
-:_mod-docs-content-type: REFERENCE
 [id="mcp-server-troubleshooting_{context}"]
 == MCP server troubleshooting
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Use the following information to diagnose common issues with the {registry} MCP server.
 
-.Enabling detailed logging
+*Enabling detailed logging*
 
 By default, the MCP server does not write logs to a file. To enable file logging for troubleshooting, add logging properties to the Claude Desktop MCP configuration.
 
@@ -619,7 +631,9 @@ Replace `<path-to-log-dir>` with the directory where you want to store the log f
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+endif::[]
 * xref:getting-started/assembly-a2a-features.adoc[A2A agent features]
 * xref:getting-started/assembly-agent-registry-quickstart.adoc[Agent registry quick start]
 * link:https://modelcontextprotocol.io/introduction[Introduction to MCP]

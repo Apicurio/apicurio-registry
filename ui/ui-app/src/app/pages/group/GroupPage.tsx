@@ -1,7 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useLocation, useMatch, useParams } from "react-router";
 import {
     EXPLORE_PAGE_IDX,
     GroupOverviewTabContent,
@@ -54,34 +55,37 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [artifactToDelete, setArtifactToDelete] = useState<SearchedVersion>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
     const [rules, setRules] = useState<Rule[]>([]);
+    const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
     const { groupId }= useParams();
     const location = useLocation();
+    const rulesMatch = useMatch("/explore/:groupId/rules");
 
     let activeTabKey: string = "overview";
     if (location.pathname.indexOf("/artifacts") !== -1) {
         activeTabKey = "artifacts";
     }
-    if (location.pathname.indexOf("/rules") !== -1) {
+    if (rulesMatch) {
         activeTabKey = "rules";
     }
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         logger.info("Loading data for group: ", groupId);
         return [
             groups.getGroupMetaData(groupId as string)
-                .then(setGroup)
-                .catch(error => {
+                .then(guard.wrap(setGroup))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getGroupRules(groupId as string)
-                .then(setRules)
-                .catch(error => {
+                .then(guard.wrap(setRules))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
         ];
     };
 
@@ -155,36 +159,51 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
 
     const doEnableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Enabling rule:", ruleType);
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
         let config: string = "FULL";
         if (ruleType === "COMPATIBILITY") {
             config = "BACKWARD";
         }
-        groups.createGroupRule(groupId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error enabling "${ ruleType }" group rule.`));
+        groups.createGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error enabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules([...rules, { config, ruleType: ruleType as RuleType }]);
     };
 
     const doDisableRule = (ruleType: string): void => {
         logger.debug("[GroupPage] Disabling rule:", ruleType);
-        groups.deleteGroupRule(groupId as string, ruleType).catch(error => {
-            setPageError(toPageError(error, `Error disabling "${ ruleType }" group rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.deleteGroupRule(groupId as string, ruleType).then(() => {
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error disabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.filter(r => r.ruleType !== ruleType));
     };
 
     const doConfigureRule = (ruleType: string, config: string): void => {
         logger.debug("[GroupPage] Configuring rule:", ruleType, config);
-        groups.updateGroupRule(groupId as string, ruleType, config).catch(error => {
-            setPageError(toPageError(error, `Error configuring "${ ruleType }" group rule.`));
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.updateGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => prev.map(r => {
+                if (r.ruleType === ruleType) {
+                    return { config, ruleType: r.ruleType };
+                } else {
+                    return r;
+                }
+            }));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error configuring "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
         });
-        setRules(rules.map(r => {
-            if (r.ruleType === ruleType) {
-                return { config, ruleType: r.ruleType };
-            } else {
-                return r;
-            }
-        }));
     };
 
     const closeInvalidContentModal = (): void => {
@@ -251,7 +270,10 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        setLoaders(createLoaders());
+        setPageError(undefined);
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [groupId]);
 
     const tabs: any[] = [
@@ -272,6 +294,9 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 onEnableRule={doEnableRule}
                 onDisableRule={doDisableRule}
                 onConfigureRule={doConfigureRule}
+                actionError={ruleActionError}
+                onDismissActionError={() => setRuleActionError(undefined)}
+                pendingRuleType={pendingRuleType}
             />
         </Tab>
     ];

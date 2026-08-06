@@ -149,6 +149,16 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
+
+        // Agent Cards without an explicit visibility label fall back to the configured default
+        // visibility (see resolveVisibility), so when that default is "public" they belong in
+        // these results even though no label filter can match them. Resolve visibility in memory
+        // in that case, as getEntitledAgents does. Otherwise keep the cheaper indexed label query.
+        if (A2AConstants.VISIBILITY_PUBLIC
+                .equals(a2aConfig.getDefaultVisibility().toLowerCase(Locale.ROOT))) {
+            return publicAgentsByResolvedVisibility(filters, offset, limit);
+        }
+
         filters.add(SearchFilter.ofLabel(A2AConstants.LABEL_AGENT_VISIBILITY, A2AConstants.VISIBILITY_PUBLIC));
 
         int safeOffset = Math.max(0, offset);
@@ -968,6 +978,42 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
         return result;
+    }
+
+    /**
+     * Returns public agents by resolving each artifact's effective visibility in memory, rather
+     * than filtering on the {@code apicurio.agent.visibility} label. Used when the configured
+     * default visibility is {@code public}, because artifacts relying on that default carry no
+     * visibility label and so cannot be matched by a label search filter.
+     */
+    private AgentSearchResults publicAgentsByResolvedVisibility(Set<SearchFilter> filters,
+            Integer offset, Integer limit) {
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+        warnIfTruncated(results);
+
+        // Filter by resolved visibility on DTOs first (cheap), then paginate, then convert (expensive)
+        List<SearchedArtifactDto> visible = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            if ("public".equals(resolveVisibility(artifact.getLabels()))) {
+                visible.add(artifact);
+            }
+        }
+
+        int total = visible.size();
+        int safeOffset = Math.max(0, Math.min(offset, total));
+        int safeLimit = Math.max(0, Math.min(limit, 500));
+        int toIndex = Math.min(safeOffset + safeLimit, total);
+
+        List<AgentSearchResult> agents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : visible.subList(safeOffset, toIndex)) {
+            agents.add(convertToAgentSearchResult(artifact));
+        }
+
+        return AgentSearchResults.builder()
+                .count(total)
+                .agents(agents)
+                .build();
     }
 
     /**

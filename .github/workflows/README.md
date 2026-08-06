@@ -117,6 +117,17 @@ does so silently: `verify-unit-tests.yaml` sets
 happens. Any new storage or event subpackage **must** be added to an include
 shard in `verify-unit-tests.yaml`, or its tests will never run in CI.
 
+This is enforced, not left to reviewers. The **Lint and Validate** job runs:
+
+```bash
+python3 .github/scripts/verify-test-shards.py
+```
+
+which reads the shard matrix out of `verify-unit-tests.yaml`, applies
+surefire's `-Dtest=` matching rules, and fails the build if any `app/` test
+class is claimed by zero shards or by more than one. Run it locally before
+changing any shard boundary — it is much faster than waiting for CI.
+
 ### Rebalancing shards
 
 If one shard grows significantly slower than the others, rebalance by moving

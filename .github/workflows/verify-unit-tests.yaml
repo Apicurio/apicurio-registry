@@ -45,9 +45,10 @@ jobs:
           # app-auth / app-transport / app-metrics are carved out of app-other. Each @TestProfile in a
           # shard forces Quarkus to tear down and rebuild the application in the single forked JVM
           # (forkCount=1 with the default reuseForks=true), and app-other had accumulated 42 distinct
-          # profiles across 148 classes -- four times the next-densest shard. That is what exhausted the
+          # profiles across 147 classes -- four times the next-densest shard. That is what exhausted the
           # heap and pushed the shard past an hour. These three groups are the profile-dense clusters.
-          # See issue #9265.
+          # Counts come from .github/scripts/verify-test-shards.py, which is also what enforces that
+          # every class below is claimed by exactly one shard. See issue #9265.
           - name: app-auth
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.limits.**"

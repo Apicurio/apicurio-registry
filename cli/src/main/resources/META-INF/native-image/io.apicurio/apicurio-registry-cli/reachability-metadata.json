@@ -269,6 +269,22 @@
       ]
     },
     {
+      "type": "com.sun.jna.Structure$FFIType$size_t",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        },
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long"
+          ]
+        }
+      ]
+    },
+    {
       "type": "com.sun.jna.WString",
       "jniAccessible": true,
       "methods": [

@@ -85,7 +85,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
     @Option(
             names = {"--content-type"},
             description = "Content type of the artifact (e.g. application/json, application/x-protobuf). " +
-                    "Defaults to 'application/json' if not specified."
+                    "Defaults based on --type or the file extension if not specified."
     )
     private String contentType;
 
@@ -123,7 +123,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
             versionContent.setContent(content);
             versionContent.setContentType(!isBlank(contentType)
                         ? contentType
-                        : ContentTypeDetector.detect(file));
+                        : ContentTypeDetector.detect(artifactType, file));
             firstVersion.setContent(versionContent);
             newArtifact.setFirstVersion(firstVersion);
         }

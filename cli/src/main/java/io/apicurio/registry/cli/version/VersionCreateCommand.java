@@ -76,7 +76,7 @@ public class VersionCreateCommand extends AbstractCommand {
     @Option(
             names = {"--content-type"},
             description = "Content type of the version (e.g. application/json, application/x-protobuf). " +
-                    "Defaults to 'application/json' if not specified."
+                    "Defaults based on the file extension if not specified."
     )
     private String contentType;
 
@@ -124,7 +124,7 @@ public class VersionCreateCommand extends AbstractCommand {
 
         final var registryClient = client.getRegistryClient();
         IdUtil.validateGroup(registryClient, resolvedGroupId);
-        //noinspection ConstantConditions       
+        //noinspection ConstantConditions
         final var result = convert(registryClient
                 .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
                 .versions().post(newVersion));

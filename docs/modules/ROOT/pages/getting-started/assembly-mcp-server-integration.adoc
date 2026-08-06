@@ -398,10 +398,12 @@ For the Docker method, pass environment variables by using separate `-e` element
 |`apicurio.mcp.http.forward-token`
 |`APICURIO_MCP_HTTP_FORWARD_TOKEN`
 |`true`
-|When HTTP mode is enabled, forwards the caller's bearer token to {registry} REST API calls (same RBAC as the UI). Stdio mode continues to use `apicurio.mcp.auth.*` client credentials.
+|When HTTP mode is enabled, forwards the caller's bearer token to {registry} REST API calls (same RBAC as the UI). If `false`, callers authenticate with OIDC but {registry} calls use shared `apicurio.mcp.auth.*` credentials. Stdio mode always uses `apicurio.mcp.auth.*`.
 |===
 
-.TLS properties
+.TLS properties (outbound to {registry} only)
+
+These properties apply to the MCP server's TLS connection to {registry}. They do not control the inbound HTTPS listener. Use Quarkus HTTP SSL settings (`quarkus.http.ssl.*`) for inbound TLS.
 
 [cols="3,2,1,4",options="header"]
 |===
@@ -578,6 +580,20 @@ WARNING: `QUARKUS_HTTP_CORS_ORIGINS=http://localhost:6274` is for local developm
 
 For a complete local example, see the `examples/mcp-keycloak` directory in the {registry} repository.
 
+=== HTTP mode without token forwarding
+
+HTTP mode forwards each caller's bearer token to {registry} by default, so per-user RBAC applies. Set `apicurio.mcp.http.forward-token=false` to turn that off.
+
+With forwarding disabled, callers still authenticate to the MCP server with OIDC (same Keycloak realm and HTTP auth settings as above). MCP tool calls use the shared `apicurio.mcp.auth.*` service account against {registry}, not the caller's token.
+
+This fits shared HTTP MCP setups where OIDC only needs to control access to the MCP endpoint, and every caller can act as the same service account in {registry}.
+
+You need:
+
+* `apicurio.mcp.http.enabled=true` and the Quarkus MCP HTTP / OIDC settings from the procedure above
+* `apicurio.mcp.http.forward-token=false`
+* `apicurio.mcp.auth.*` client credentials (token endpoint, client ID, and client secret), as in stdio mode when {registry} is secured
+
 // proc-configuring-mcp-server-tls
 [id="configuring-mcp-server-tls_{context}"]
 == Configuring MCP server TLS
@@ -585,7 +601,9 @@ For a complete local example, see the `examples/mcp-keycloak` directory in the {
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can configure the {registry} MCP server to connect to {registry} over TLS. You configure trust store settings to verify the server certificate, and optionally configure key store settings for mutual TLS (mTLS) client certificate authentication.
+You can configure the {registry} MCP server to connect to {registry} over TLS. The `apicurio.mcp.tls.*` properties only affect that outbound connection. Inbound HTTPS for MCP clients is separate; configure it with Quarkus HTTP SSL (`quarkus.http.ssl.*`).
+
+You configure trust store settings to verify the {registry} server certificate, and optionally key store settings for mutual TLS (mTLS) client certificate authentication.
 
 .Prerequisites
 * {registry} is configured with TLS.

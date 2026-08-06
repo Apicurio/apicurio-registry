@@ -12,11 +12,13 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.search.ElasticsearchIndexUpdater;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -40,6 +42,7 @@ import java.util.concurrent.TimeUnit;
  */
 @QuarkusTest
 @TestProfile(ElasticsearchSearchTestProfile.class)
+@Tag(ApicurioTestTags.METRICS)
 public class ImportReindexSearchTest extends AbstractResourceTestBase {
 
     @Inject

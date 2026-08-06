@@ -1,8 +1,10 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,7 @@ import static io.restassured.RestAssured.given;
 
 @QuarkusTest
 @TestProfile(RestMetricsDefaultsTest.DummyTestProfile.class)
+@Tag(ApicurioTestTags.METRICS)
 public class RestMetricsDefaultsTest extends AbstractRestMetricsTest {
 
     // This is intentional to force a fresh restart of Registry and avoid sharing with other tests.

@@ -17,6 +17,7 @@
 package io.apicurio.registry.metrics;
 
 import io.apicurio.registry.observability.OTelAttributes;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
@@ -25,6 +26,7 @@ import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * by the exact expected amount, records correct attributes, and does not
  * leak increments into unrelated counters (negative cases).
  */
+@Tag(ApicurioTestTags.METRICS)
 class OTelMetricsProviderTest {
 
     private InMemoryMetricReader metricReader;

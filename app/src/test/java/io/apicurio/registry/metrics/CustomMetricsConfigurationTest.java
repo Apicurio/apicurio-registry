@@ -1,9 +1,11 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit tests for {@link CustomMetricsConfiguration}.
  */
+@Tag(ApicurioTestTags.METRICS)
 class CustomMetricsConfigurationTest {
 
     private static final double SECONDS_TO_NANOSECONDS = 1_000_000_000.0;

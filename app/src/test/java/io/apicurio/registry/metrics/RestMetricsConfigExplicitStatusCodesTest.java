@@ -1,8 +1,10 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -11,6 +13,7 @@ import static io.restassured.RestAssured.given;
 
 @QuarkusTest
 @TestProfile(RestMetricsConfigExplicitStatusCodesTest.RestMetricsDisabledTestProfile.class)
+@Tag(ApicurioTestTags.METRICS)
 public class RestMetricsConfigExplicitStatusCodesTest extends AbstractRestMetricsTest {
 
     public static class RestMetricsDisabledTestProfile implements QuarkusTestProfile {

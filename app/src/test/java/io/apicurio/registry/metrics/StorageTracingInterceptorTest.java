@@ -1,5 +1,6 @@
 package io.apicurio.registry.metrics;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.StatusCode;
@@ -11,6 +12,7 @@ import io.opentelemetry.sdk.trace.export.SimpleSpanProcessor;
 import jakarta.interceptor.InvocationContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.when;
  * Unit tests for {@link StorageTracingInterceptor}.
  * Tests verify that OpenTelemetry spans are correctly created with proper attributes.
  */
+@Tag(ApicurioTestTags.METRICS)
 class StorageTracingInterceptorTest {
 
     private InMemorySpanExporter spanExporter;

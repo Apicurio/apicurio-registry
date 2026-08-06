@@ -55,13 +55,23 @@ The project uses a three-tier build system to allow developers to build only wha
 
 ```bash
 # Local: core server only, skip non-essential plugins (~3 min)
-./mvnw clean install -Dlocal -DskipTests
+./mvnw clean install -Dlocal -Dmaven.test.skip=true
 
 # Default: normal development
 ./mvnw clean install -DskipTests
 
 # Full: everything
 ./mvnw clean install -Dfull -DskipTests
+```
+
+**Note:** the *local* tier requires `-Dmaven.test.skip=true` rather than `-DskipTests`.
+The local tier excludes the serde and Maven plugin modules, but the `app` module's test
+sources import packages from them, so `-DskipTests` (which still compiles test sources)
+fails at test compilation. `-Dmaven.test.skip=true` skips test compilation entirely.
+The same applies to dev mode, which also compiles test sources:
+
+```bash
+cd app && ../mvnw quarkus:dev -Dlocal -Dmaven.test.skip=true
 ```
 
 Integration tests and examples are always opt-in via their own profiles:
@@ -72,7 +82,8 @@ Integration tests and examples are always opt-in via their own profiles:
 | Property              | Purpose                                                                                  |
 |-----------------------|------------------------------------------------------------------------------------------|
 | `-Pprod`              | Enables Quarkus *prod* configuration profile (higher logging level, production defaults) |
-| `-DskipTests`         | Skip all tests                                                                           |
+| `-DskipTests`         | Skip running tests (test sources are still compiled)                                     |
+| `-Dmaven.test.skip=true` | Skip compiling and running tests (required with `-Dlocal`)                            |
 | `-DcliSkipNative`     | Skip CLI native image compilation (no executable is produced, but tests can still run)   |
 | `-DskipOperatorTests` | Skip operator tests (default: `true`, requires a running cluster)                        |
 
@@ -132,7 +143,7 @@ are in a separate module and need to be explicitly enabled:
 
 ```bash
 # Run default integration tests (smoke + serdes + acceptance)
-./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am
+./mvnw verify -Pintegration-tests -pl integration-tests -am
 ```
 
 See the [integration tests module](integration-tests/) for test groups, deployment

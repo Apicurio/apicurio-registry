@@ -415,6 +415,89 @@ public class PromptRenderingServiceTest {
                 "Rendering must not mutate the caller-supplied variables map");
     }
 
+    @Test
+    public void testNullDefaultIsTreatedAsAbsent() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                default:
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "tone", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Write in a {{tone}} tone.", response.getRendered());
+    }
+
+    @Test
+    public void testEmptyStringDefaultIsApplied() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}}tone."
+            variables:
+              tone:
+                type: string
+                default: ""
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "tone", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Write in a tone.", response.getRendered());
+    }
+
+    @Test
+    public void testDefaultViolatingEnumIsReported() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                enum:
+                  - formal
+                  - casual
+                default: forma
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "tone", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("tone", response.getValidationErrors().get(0).getVariableName());
+    }
+
+    @Test
+    public void testDefaultViolatingTypeIsReported() {
+        String yamlContent = """
+            templateId: retries
+            template: "Retry {{count}} times."
+            variables:
+              count:
+                type: integer
+                default: many
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "retries", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("count", response.getValidationErrors().get(0).getVariableName());
+    }
+
     // ===== Enum Validation Tests =====
 
     @Test

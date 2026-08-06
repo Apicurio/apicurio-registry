@@ -56,6 +56,10 @@ public class PromptRenderingService {
         // Fill in declared defaults for any variable the caller did not provide
         Map<String, Object> effectiveVariables = applyDefaults(variables, variablesSchema);
 
+        // Applied defaults are validated too, so a default that violates its own type, enum or
+        // range is reported instead of being rendered silently.
+        validateAppliedDefaults(variables, effectiveVariables, variablesSchema, validationErrors);
+
         // Render the template by substituting variables
         String rendered = substituteVariables(templateText, effectiveVariables);
 
@@ -131,8 +135,10 @@ public class PromptRenderingService {
                 continue;
             }
 
+            // A YAML "default:" with no value parses as a null node rather than a missing one.
+            // Treat it as no default at all. An empty-string default is a real value and applies.
             JsonNode defaultNode = field.getValue().path("default");
-            if (defaultNode.isMissingNode()) {
+            if (defaultNode.isMissingNode() || defaultNode.isNull()) {
                 continue;
             }
 
@@ -176,33 +182,72 @@ public class PromptRenderingService {
 
             // Validate type if variable is present
             if (variables.containsKey(varName)) {
-                Object value = variables.get(varName);
-                String expectedType = varSchema.path("type").asText("string");
-                RenderValidationError typeError = validateType(varName, value, expectedType);
-                if (typeError != null) {
-                    errors.add(typeError);
-                }
-
-                // Validate enum if specified
-                JsonNode enumNode = varSchema.path("enum");
-                if (!enumNode.isMissingNode() && enumNode.isArray()) {
-                    RenderValidationError enumError = validateEnum(varName, value, enumNode);
-                    if (enumError != null) {
-                        errors.add(enumError);
-                    }
-                }
-
-                // Validate range for numeric types
-                if ("integer".equals(expectedType) || "number".equals(expectedType)) {
-                    RenderValidationError rangeError = validateRange(varName, value, varSchema);
-                    if (rangeError != null) {
-                        errors.add(rangeError);
-                    }
-                }
+                validateValue(varName, variables.get(varName), varSchema, errors);
             }
         }
 
         return errors;
+    }
+
+    /**
+     * Validate a single value against its variable schema: type, enum and numeric range.
+     * <p>
+     * Presence and <code>required</code> are handled by the caller, so this can be reused for
+     * values the caller supplied and for defaults filled in from the schema.
+     */
+    private void validateValue(String varName, Object value, JsonNode varSchema,
+            List<RenderValidationError> errors) {
+        String expectedType = varSchema.path("type").asText("string");
+        RenderValidationError typeError = validateType(varName, value, expectedType);
+        if (typeError != null) {
+            errors.add(typeError);
+        }
+
+        // Validate enum if specified
+        JsonNode enumNode = varSchema.path("enum");
+        if (!enumNode.isMissingNode() && enumNode.isArray()) {
+            RenderValidationError enumError = validateEnum(varName, value, enumNode);
+            if (enumError != null) {
+                errors.add(enumError);
+            }
+        }
+
+        // Validate range for numeric types
+        if ("integer".equals(expectedType) || "number".equals(expectedType)) {
+            RenderValidationError rangeError = validateRange(varName, value, varSchema);
+            if (rangeError != null) {
+                errors.add(rangeError);
+            }
+        }
+    }
+
+    /**
+     * Validate the defaults that were filled in from the schema, so a declared default that
+     * violates its own <code>type</code>, <code>enum</code> or range is reported rather than
+     * silently rendered.
+     * <p>
+     * Only variables the caller omitted are checked here; <code>required</code> is deliberately
+     * not re-checked, since a caller that omits a required variable is already reported by
+     * {@link #validateVariables}.
+     */
+    private void validateAppliedDefaults(Map<String, Object> variables,
+            Map<String, Object> effectiveVariables, JsonNode variablesSchema,
+            List<RenderValidationError> errors) {
+        if (effectiveVariables == variables) {
+            // No defaults were applied
+            return;
+        }
+
+        for (Map.Entry<String, Object> entry : effectiveVariables.entrySet()) {
+            String varName = entry.getKey();
+            if (variables.containsKey(varName)) {
+                continue;
+            }
+            JsonNode varSchema = variablesSchema.path(varName);
+            if (varSchema.isObject()) {
+                validateValue(varName, entry.getValue(), varSchema, errors);
+            }
+        }
     }
 
     /**

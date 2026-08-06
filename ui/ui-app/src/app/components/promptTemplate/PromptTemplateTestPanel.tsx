@@ -229,14 +229,14 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                         <ul>
                             {validationErrors.map((ve, i) => (
                                 <li key={i}>
-                                {ve.variableName ? `${ve.variableName}: ` : ""}
-                                {ve.message}
-                                {ve.expectedType && ve.actualType && (
-                                    <span style={{ color: "var(--pf-t--global--color--600)", marginLeft: "0.5rem" }}>
-                                        (Expected: {ve.expectedType}, Actual: {ve.actualType})
-                                    </span>
-                                )}
-                            </li>
+                                    {ve.variableName ? `${ve.variableName}: ` : ""}
+                                    {ve.message}
+                                    {ve.expectedType && ve.actualType && (
+                                        <span style={{ color: "var(--pf-t--global--color--600)", marginLeft: "0.5rem" }}>
+                                            (Expected: {ve.expectedType}, Actual: {ve.actualType})
+                                        </span>
+                                    )}
+                                </li>
                             ))}
                         </ul>
                     </Alert>

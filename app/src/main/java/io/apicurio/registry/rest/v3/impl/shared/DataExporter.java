@@ -41,8 +41,7 @@ public class DataExporter {
      */
     public Response exportData(String groupId) {
         StreamingOutput stream = os -> {
-            try {
-                ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
+            try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
                 EntityWriter writer = new EntityWriter(zip);
                 AtomicInteger errorCounter = new AtomicInteger(0);
                 storage.exportData(groupId, entity -> {
@@ -56,9 +55,6 @@ public class DataExporter {
                 });
 
                 // TODO if the errorCounter > 0, then what?
-
-                zip.flush();
-                zip.close();
             } catch (IOException e) {
                 throw e;
             } catch (Exception e) {

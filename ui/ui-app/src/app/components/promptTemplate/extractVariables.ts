@@ -48,6 +48,16 @@ export const extractVariables = (template: string): string[] => {
             continue;
         }
 
+        // Skip Handlebars comments: {{!-- ... --}} or {{! ... }}
+        if (raw.startsWith("!")) {
+            continue;
+        }
+
+        // Skip triple-brace (raw HTML) syntax: {{{foo}}}
+        if (raw.startsWith("{") || raw.endsWith("}")) {
+            continue;
+        }
+
         // Skip Handlebars block syntax: {{#if ...}}, {{/if}}, {{#each ...}}, etc.
         if (/^[#/]/.test(raw)) {
             continue;

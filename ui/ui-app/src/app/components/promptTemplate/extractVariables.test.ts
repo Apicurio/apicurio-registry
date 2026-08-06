@@ -88,4 +88,16 @@ describe("extractVariables", () => {
         expect(extractVariables("{{#if x}}{{else}}{{/if}} {{x}}"))
             .toEqual(["x"]);
     });
+
+    it("excludes triple-stache {{{foo}}} syntax", () => {
+        expect(extractVariables("{{{foo}}}")).toEqual([]);
+    });
+
+    it("excludes Handlebars comments {{!-- note --}} with spaces", () => {
+        expect(extractVariables("{{!-- note --}}")).toEqual([]);
+    });
+
+    it("excludes Handlebars comments {{!--note--}} without spaces", () => {
+        expect(extractVariables("{{!--note--}}")).toEqual([]);
+    });
 });

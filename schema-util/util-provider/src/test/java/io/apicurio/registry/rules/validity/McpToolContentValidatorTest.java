@@ -84,6 +84,8 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
         // Violations for title (not a string), readOnlyHint and destructiveHint (not booleans)
         Assertions.assertEquals(3, error.getCauses().size());
         Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'title' field must be a string".equals(v.getDescription())));
+        Assertions.assertTrue(error.getCauses().stream()
                 .anyMatch(v -> "'annotations.readOnlyHint' must be a boolean"
                         .equals(v.getDescription())));
         Assertions.assertTrue(error.getCauses().stream()

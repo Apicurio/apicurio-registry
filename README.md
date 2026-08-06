@@ -14,13 +14,12 @@ Build the project and run the registry with the in-memory storage variant:
 **Build requirement:** JDK 21 or newer is required to build the project (the build tooling, e.g. Checkstyle, needs a Java 21+ runtime). The produced artifacts still target Java 17.
 
  ```
- ./mvnw clean install -Dlocal -Dmaven.test.skip=true
+ ./mvnw clean install -Dlocal -DskipTests
  cd app/
- ../mvnw quarkus:dev -Dlocal -Dmaven.test.skip=true
+ ../mvnw quarkus:dev -Dlocal
  ```
 
-(The `-Dlocal` build tier requires `-Dmaven.test.skip=true` — see
-[DEVELOPING.md](DEVELOPING.md#build-tiers) for details and other build options.)
+(See [DEVELOPING.md](DEVELOPING.md#build-tiers) for build tier details and other options.)
 
 This should result in Quarkus and the in-memory registry starting up, with the REST APIs available on localhost port 8080:
 

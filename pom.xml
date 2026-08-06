@@ -1275,12 +1275,27 @@
           </dependency>
         </dependencies>
         <configuration>
-          <configLocation>${projectRoot}/.checkstyle/simple.xml</configLocation>
-          <headerLocation>${projectRoot}/.checkstyle/java.header</headerLocation>
+          <configLocation>${projectRoot}/.checkstyle/checkstyle.xml</configLocation>
           <suppressionsLocation>${projectRoot}/.checkstyle/suppressions.xml</suppressionsLocation>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <consoleOutput>true</consoleOutput>
-          <failsOnError>true</failsOnError>
+          <!--
+            checkstyle.xml is tiered: enforced rules are severity=error, rules
+            still being driven to zero are severity=warning. These two settings
+            are the whole fail contract - the build fails on violations, and
+            only those at severity=error count. Pinning both keeps a plugin
+            default change from silently failing the build on the staged tier.
+          -->
+          <failOnViolation>true</failOnViolation>
+          <violationSeverity>error</violationSeverity>
+          <!--
+            consoleOutput is deliberately left at its default of false, so the
+            ~1.3k staged-tier warnings do not flood CI logs. Violations that
+            actually fail the build are still printed in full by
+            logViolationsToConsole (default true), and every violation is
+            written to target/checkstyle-result.xml regardless. Not setting it
+            here also keeps -Dcheckstyle.consoleOutput=true working, which is
+            how you review the staged tier locally.
+          -->
         </configuration>
         <executions>
           <execution>

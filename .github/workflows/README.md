@@ -63,8 +63,7 @@ are control-group measurements as of 2026-08-01 from
 [Discussion #8364](https://github.com/Apicurio/apicurio-registry/discussions/8364).
 They are illustrative, not guaranteed: actual times vary with runner load and
 cache state. The only CI-enforced budget is the 600 s per-shard warning
-threshold in `verify-unit-tests.yaml`; `app-other` currently exceeds it by
-design (a known gap, tracked separately).
+threshold in `verify-unit-tests.yaml`.
 
 | Shard | Intent | Typical duration |
 |-------|--------|-----------------|
@@ -73,17 +72,25 @@ design (a known gap, tracked separately).
 | `app-kafkasql` | KafkaSQL storage variant | ~6 min |
 | `app-gitops` | GitOps storage variant | ~4 min |
 | `app-kubernetesops` | Kubernetes ConfigMaps storage variant | ~3 min |
-| `app-other` | Catch-all for everything else in `app/`: auth, tls, metrics, rbac, cors, limits, rules, search, ui, and most of `noprofile/*` (compatibility, resolver, serde, proxy, etc.), excluding `noprofile.rest`/`noprofile.ccompat` and all `storage.**`/`event.**` | ~14 min |
+| `app-auth` | Authentication, authorization and rate-limit tests (`auth`, `rbac`, `limits`) | ~4 min |
+| `app-transport` | TLS/mTLS, HTTP security headers and CORS (`tls`, `headers`, `cors`) | ~2.5 min |
+| `app-metrics` | Metrics, tracing and search-index tests (`metrics`, `search`) | ~2 min |
+| `app-other` | Catch-all for everything else in `app/`: rules, ui, services, contracts, customTypes and most of `noprofile/*` (compatibility, resolver, serde, proxy, etc.), excluding the packages claimed by every other `app-*` shard | ~9 min |
 | `non-app` | All modules except `app/`, `distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api` (schema-util, serdes, java-sdk, cli, mcp, etc.) | ~5 min |
 
 ### How sharding works
 
-- **app-rest**, **app-sql**, **app-kafkasql**, **app-gitops**, and
-  **app-kubernetesops** each use surefire's `-Dtest=` to *include* a specific
-  set of packages.
-- **app-other** uses `-Dtest=!...` to *exclude* the packages claimed by the
-  `noprofile.rest`, `noprofile.ccompat`, `storage.**`, and `event.**` filters,
-  catching everything else in `app/`.
+- **app-rest**, **app-sql**, **app-kafkasql**, **app-gitops**,
+  **app-kubernetesops**, **app-auth**, **app-transport**, and **app-metrics**
+  each use surefire's `-Dtest=` to *include* a specific set of packages.
+- **app-other** uses `-Dtest=!...` to *exclude* every package claimed by those
+  include shards, catching everything else in `app/`. Each exclusion in its
+  filter must pair with an inclusion in another shard, or tests go missing.
+- Shard boundaries are chosen by `@TestProfile` density, not just class count.
+  Surefire runs a shard in one forked JVM (`forkCount=1`, `reuseForks=true`
+  by default), and each distinct profile makes Quarkus tear down and rebuild
+  the application in that JVM. Concentrating many profiles in one shard is what
+  exhausted its heap in issue #9265.
 - **non-app** uses Maven's `-pl` to run all modules except `app` and modules that
   depend on the `app` JAR (`distro/docker`, `docs`, `docs/config-generator`, `docs/rest-api`).
 
@@ -96,6 +103,8 @@ subpackages are an exception. Read this before adding one:
   it runs in `app-rest`. A `storage.impl.*` / `event.*` subpackage that is
   already covered by one of the storage-variant include filters
   (`app-sql`, `app-kafkasql`, `app-gitops`, `app-kubernetesops`) runs there.
+  `auth`/`rbac`/`limits`, `tls`/`headers`/`cors`, and `metrics`/`search` run in
+  `app-auth`, `app-transport`, and `app-metrics` respectively.
   Everything else lands in `app-other` (the exclusion-based shard).
 - **In any other module**: runs in `non-app`.
 

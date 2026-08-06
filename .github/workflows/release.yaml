@@ -263,7 +263,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml clean package \
+          # Quoted because github.workspace is a backslash path on windows-latest and this step
+          # runs under bash. See the same note in verify-cli.yaml.
+          ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" clean package \
             --no-transfer-progress \
             -pl cli -am \
             -DskipTests \

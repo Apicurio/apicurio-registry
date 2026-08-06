@@ -1,8 +1,10 @@
 package io.apicurio.registry.headers;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -15,6 +17,7 @@ import static org.hamcrest.Matchers.equalTo;
 // provides a test-only endpoint that throws, enabled only for this test via the alternative below.
 @QuarkusTest
 @TestProfile(HstsError500Test.BoomProfile.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class HstsError500Test {
 
     public static class BoomProfile implements QuarkusTestProfile {

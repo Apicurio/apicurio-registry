@@ -1,8 +1,10 @@
 package io.apicurio.registry.headers;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -14,6 +16,7 @@ import static org.hamcrest.Matchers.equalTo;
 // RedirectFilter returns early after sendRedirect(), bypassing HSTSFilter - the 302 must still get HSTS.
 @QuarkusTest
 @TestProfile(HstsRedirectHeaderTest.RedirectProfile.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class HstsRedirectHeaderTest {
 
     private static final String HSTS = "Strict-Transport-Security";

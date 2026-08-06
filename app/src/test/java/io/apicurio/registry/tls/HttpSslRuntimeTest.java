@@ -1,9 +1,11 @@
 package io.apicurio.registry.tls;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
@@ -18,6 +20,7 @@ import java.security.cert.X509Certificate;
 
 @QuarkusTest
 @TestProfile(HttpSslProtocolsTestProfile.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class HttpSslRuntimeTest {
 
     @TestHTTPResource(value = "/apis", tls = true)

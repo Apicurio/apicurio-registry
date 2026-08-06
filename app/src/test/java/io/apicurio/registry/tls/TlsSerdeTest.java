@@ -13,6 +13,7 @@ import io.apicurio.registry.support.Person;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.IoUtil;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -23,6 +24,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -37,6 +39,7 @@ import java.util.Map;
  */
 @QuarkusTest
 @TestProfile(TlsTestProfile.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class TlsSerdeTest extends AbstractResourceTestBase {
 
     @TestHTTPResource(value = "/apis", tls = true)

@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.equalTo;
 @QuarkusTest
 @TestProfile(ProxyHeaderAuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class HstsAuthHeaderTest extends AbstractResourceTestBase {
 
     private static final String HSTS = "Strict-Transport-Security";

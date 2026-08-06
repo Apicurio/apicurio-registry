@@ -1,8 +1,10 @@
 package io.apicurio.registry.headers;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -14,6 +16,7 @@ import static org.hamcrest.Matchers.equalToIgnoringCase;
 // including the ones that short-circuit the chain (disabled-API 404 resets, redirects).
 @QuarkusTest
 @TestProfile(ContentTypeOptionsHeaderTest.DisabledApisProfile.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class ContentTypeOptionsHeaderTest {
 
     private static final String CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";

@@ -6,12 +6,14 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.SystemInfo;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.net.URL;
@@ -23,6 +25,7 @@ import java.net.URL;
  */
 @QuarkusTest
 @TestProfile(MtlsTestProfile.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class MtlsSdkClientTest extends AbstractResourceTestBase {
 
     @TestHTTPResource(value = "/apis", tls = true)

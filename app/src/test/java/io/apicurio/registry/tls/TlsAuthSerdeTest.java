@@ -54,6 +54,7 @@ import java.util.Map;
 @QuarkusTest
 @TestProfile(TlsAuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class TlsAuthSerdeTest extends AbstractResourceTestBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TlsAuthSerdeTest.class);

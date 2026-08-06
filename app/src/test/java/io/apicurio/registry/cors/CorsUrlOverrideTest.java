@@ -1,8 +1,10 @@
 package io.apicurio.registry.cors;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -18,6 +20,7 @@ import static org.hamcrest.Matchers.notNullValue;
  */
 @QuarkusTest
 @TestProfile(CorsUrlOverrideTest.ReverseProxyTestProfile.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class CorsUrlOverrideTest {
 
     private static final String PROXY_HOST = "apicurio.example.com";

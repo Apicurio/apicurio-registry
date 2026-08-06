@@ -6,10 +6,12 @@ import io.apicurio.registry.client.common.HttpAdapterType;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.SystemInfo;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.inject.Typed;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 @TestProfile(MtlsTestProfile.class)
 @Typed(MtlsSdkClientJdkAdapterTest.class)
+@Tag(ApicurioTestTags.TRANSPORT)
 public class MtlsSdkClientJdkAdapterTest extends MtlsSdkClientTest {
 
     /**

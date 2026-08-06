@@ -196,7 +196,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                                 {variable.enum && variable.enum.length > 0 ? (
                                                     <LabelGroup>
                                                         {variable.enum.map((val, i) => (
-                                                            <Label key={i} color="cyan" isCompact>{val}</Label>
+                                                            <Label key={i} color="teal" isCompact>{val}</Label>
                                                         ))}
                                                     </LabelGroup>
                                                 ) : "-"}

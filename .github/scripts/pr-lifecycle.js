@@ -248,6 +248,25 @@ function createApi(github, owner, repo) {
       });
       return data;
     },
+
+    approveWorkflowRun: async (runId) => {
+      await github.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve', {
+        owner, repo, run_id: runId,
+      });
+    },
+
+    // GitHub represents runs awaiting fork PR approval as
+    // status=completed, conclusion=action_required. The API's status
+    // query parameter accepts 'action_required' as a filter value even
+    // though the run object itself stores it in the conclusion field.
+    findPendingApprovalVerifyRuns: async (headSha) => {
+      const { data } = await github.rest.actions.listWorkflowRuns({
+        owner, repo, workflow_id: 'verify.yaml',
+        head_sha: headSha, status: 'action_required',
+        per_page: 10,
+      });
+      return data.workflow_runs;
+    },
   };
 }
 
@@ -266,6 +285,20 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
 
   if (!run) {
     core.warning(`PR #${pr.number} no Verify run found for ${pr.head.sha}, skipping re-trigger`);
+    return;
+  }
+
+  // Fork PRs need workflow approval before they can run. Approve instead
+  // of re-running — the Decide step fetches current labels from the API,
+  // so the approved run will see the up-to-date lifecycle state.
+  // GitHub represents these as status=completed, conclusion=action_required.
+  if (run.conclusion === 'action_required') {
+    try {
+      await api.approveWorkflowRun(run.id);
+      core.info(`PR #${pr.number} approved pending Verify run ${run.id}`);
+    } catch (e) {
+      core.warning(`PR #${pr.number} failed to approve Verify run ${run.id}: ${e.message}`);
+    }
     return;
   }
 
@@ -291,6 +324,33 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
     core.info(`PR #${pr.number} re-triggered Verify run ${run.id}`);
   } catch (e) {
     core.warning(`PR #${pr.number} failed to re-trigger Verify run ${run.id}: ${e.message}`);
+  }
+}
+
+// Approves all Verify workflow runs awaiting approval for a PR's head SHA.
+// Called after lifecycle transitions that should enable CI (e.g. /accept)
+// to catch label-triggered runs that race with retriggerVerify.
+async function approvePendingVerifyRuns(api, pr, core) {
+  try {
+    const runs = await api.findPendingApprovalVerifyRuns(pr.head.sha);
+    if (runs.length === 0) {
+      core.info(`PR #${pr.number} no pending-approval Verify runs found for ${pr.head.sha}`);
+      return 0;
+    }
+    let approved = 0;
+    for (const run of runs) {
+      try {
+        await api.approveWorkflowRun(run.id);
+        approved++;
+        core.info(`PR #${pr.number} approved pending Verify run ${run.id}`);
+      } catch (e) {
+        core.warning(`PR #${pr.number} failed to approve Verify run ${run.id}: ${e.message}`);
+      }
+    }
+    return approved;
+  } catch (e) {
+    core.warning(`PR #${pr.number} failed to list pending Verify runs: ${e.message}`);
+    return 0;
   }
 }
 
@@ -666,6 +726,17 @@ async function handlePrSynchronize({ github, context, core }) {
 
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
+
+  // For fork PRs in a testable state, the synchronize event creates a new
+  // Verify run that needs approval. Wait for it to appear, then approve.
+  const currentState = getLifecycleState(freshPr);
+  if (currentState === LABELS.READY_FOR_REVIEW || currentState === LABELS.READY_TO_MERGE) {
+    await new Promise(r => setTimeout(r, 5000));
+    const approved = await approvePendingVerifyRuns(api, freshPr, core);
+    if (approved > 0) {
+      core.info(`PR #${pr.number} approved ${approved} pending Verify run(s) after push`);
+    }
+  }
 }
 
 // Fires when a PR is converted back to draft. Drafts are outside the lifecycle
@@ -775,6 +846,11 @@ async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
   );
   core.info(`PR #${pr.number} accepted by ${actor}`);
   await retriggerVerify(api, pr, core);
+
+  // The label change above may trigger a new Verify run that also needs
+  // approval (fork PRs). Wait for GitHub to create it, then approve.
+  await new Promise(r => setTimeout(r, 5000));
+  await approvePendingVerifyRuns(api, pr, core);
 }
 
 async function cmdReject(api, config, core, pr, actor, maintainer, reason, commentId) {
@@ -943,9 +1019,16 @@ async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comm
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
 
-  // Check if the latest Verify run failed or was cancelled, and rerun if so
+  // Check if the latest Verify run failed, was cancelled, or needs approval
   const latestRun = await api.findLatestVerifyRun(freshPr.head.sha);
-  if (latestRun && (latestRun.conclusion === 'failure' || latestRun.conclusion === 'cancelled')) {
+  if (latestRun && latestRun.conclusion === 'action_required') {
+    const approved = await approvePendingVerifyRuns(api, freshPr, core);
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state and approved ${approved} pending Verify ` +
+      `workflow run${approved !== 1 ? 's' : ''} (fork PR approval).`
+    );
+    core.info(`PR #${pr.number} retry: reconciled + approved ${approved} pending run(s) by ${actor}`);
+  } else if (latestRun && (latestRun.conclusion === 'failure' || latestRun.conclusion === 'cancelled')) {
     await api.postComment(pr.number,
       `Retrying: reconciled PR state and re-triggering the Verify workflow ` +
       `(previous run [${latestRun.conclusion}](${latestRun.html_url})).`

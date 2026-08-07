@@ -42,9 +42,30 @@ jobs:
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          # app-auth / app-transport / app-metrics are carved out of app-other. Each @TestProfile in a
+          # shard forces Quarkus to tear down and rebuild the application in the single forked JVM
+          # (forkCount=1 with the default reuseForks=true), and app-other had accumulated 42 distinct
+          # profiles across 147 classes -- four times the next-densest shard. That is what exhausted the
+          # heap and pushed the shard past an hour. These three groups are the profile-dense clusters.
+          # Counts come from .github/scripts/verify-test-shards.py, which is also what enforces that
+          # every class below is claimed by exactly one shard. See issue #9265.
+          - name: app-auth
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.limits.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          - name: app-transport
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.tls.**,io.apicurio.registry.headers.**,io.apicurio.registry.cors.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          - name: app-metrics
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.metrics.**,io.apicurio.registry.search.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          # Catch-all: stays an exclusion filter so a newly added package lands here rather than in no
+          # shard at all. Every exclusion below must correspond to another shard's inclusion.
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"
+            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"

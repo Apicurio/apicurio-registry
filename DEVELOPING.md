@@ -49,13 +49,13 @@ The project uses a three-tier build system to allow developers to build only wha
 
 | Tier        | Flag      | What's included                                         | Use case                           |
 |-------------|-----------|--------------------------------------------------------|------------------------------------|
-| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
-| **Default** | *(none)*  | Local + serializers, CLI, docs, distribution            | Normal development                 |
+| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities, serializers — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
+| **Default** | *(none)*  | Local + CLI, docs, distribution                         | Normal development                 |
 | **Full**    | `-Dfull`  | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
 
 ```bash
-# Local: core server only, skip non-essential plugins (~3 min)
-./mvnw clean install -Dlocal -Dmaven.test.skip=true
+# Local: core server + serializers, skip non-essential plugins
+./mvnw clean install -Dlocal -DskipTests
 
 # Default: normal development
 ./mvnw clean install -DskipTests
@@ -64,14 +64,10 @@ The project uses a three-tier build system to allow developers to build only wha
 ./mvnw clean install -Dfull -DskipTests
 ```
 
-**Note:** the *local* tier requires `-Dmaven.test.skip=true` rather than `-DskipTests`.
-The local tier excludes the serde and Maven plugin modules, but the `app` module's test
-sources import packages from them, so `-DskipTests` (which still compiles test sources)
-fails at test compilation. `-Dmaven.test.skip=true` skips test compilation entirely.
-The same applies to dev mode, which also compiles test sources:
+Dev mode:
 
 ```bash
-cd app && ../mvnw quarkus:dev -Dlocal -Dmaven.test.skip=true
+cd app && ../mvnw quarkus:dev -Dlocal
 ```
 
 Integration tests and examples are always opt-in via their own profiles:
@@ -83,19 +79,17 @@ Integration tests and examples are always opt-in via their own profiles:
 |-----------------------|------------------------------------------------------------------------------------------|
 | `-Pprod`              | Enables Quarkus *prod* configuration profile (higher logging level, production defaults) |
 | `-DskipTests`         | Skip running tests (test sources are still compiled)                                     |
-| `-Dmaven.test.skip=true` | Skip compiling and running tests (required with `-Dlocal`)                            |
+| `-Dmaven.test.skip=true` | Skip compiling and running tests                                                      |
 | `-DcliSkipNative`     | Skip CLI native image compilation (no executable is produced, but tests can still run)   |
 | `-DskipOperatorTests` | Skip operator tests (default: `true`, requires a running cluster)                        |
 
 ## Dependency Analysis
 
 `dependency:analyze` cannot be run directly over the full reactor: the `app` module
-declares a test dependency of type `maven-plugin` on `apicurio-registry-maven-plugin`
-via its `local-excluded-test-deps` profile (active whenever `-Dlocal` is absent), and
-the `utils/maven-plugin` module that produces that artifact is only present in the
-reactor under `-Dfull`, which is why both documented commands below carry `-Dfull`.
-Maven cannot satisfy `maven-plugin`-typed dependencies from the reactor when
-`dependency:analyze` forks `test-compile`. The
+declares a test dependency of type `maven-plugin` on `apicurio-registry-maven-plugin`,
+and Maven cannot satisfy `maven-plugin`-typed dependencies from the reactor when
+`dependency:analyze` forks `test-compile`. Both commands below carry `-Dfull` to
+ensure full reactor coverage (all modules including CLI, operator, Go SDK, etc.). The
 `dependency-check` Maven profile works around this by using
 [`dependency:analyze-only`](https://maven.apache.org/plugins/maven-dependency-plugin/analyze-only-mojo.html)
 instead, which does not fork the build, binding it to the `package` phase instead of

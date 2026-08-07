@@ -592,7 +592,7 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-operator-controller</artifactId>
         <version>${project.version}</version>
-        <classifier>tests</classifier>
+        <type>test-jar</type>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>

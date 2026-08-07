@@ -27,7 +27,7 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-operator-controller</artifactId>
-      <classifier>tests</classifier>
+      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
 

@@ -90,3 +90,13 @@ for rule in $ENFORCED_RULES; do
     fi
 done
 echo "Checkstyle config ok: $(printf '%s\n' "$ACTUALLY_ENFORCED" | grep -c .) rules enforced"
+
+# ---------------------------------------------------------------------------
+# Inter-module test dependencies
+#
+# Sharing test classes between modules only orders them in the reactor if the
+# consumer declares a test-jar dependency. Without it a parallel build (-T) may
+# reach test-compile before the producer has attached its test-jar. Delegated to
+# a script because it has to read Java imports, not just grep poms.
+# ---------------------------------------------------------------------------
+python3 "$(dirname "$0")/validate-test-jar-dependencies.py" || exit 1

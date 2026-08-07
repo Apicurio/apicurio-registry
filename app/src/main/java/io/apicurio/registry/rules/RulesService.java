@@ -16,16 +16,23 @@ import java.util.Map;
 public interface RulesService {
 
     /**
+     * Primary entry point to apply all configured rules using a {@link RuleApplicationContext}.
+     *
+     * @param context the rule application context
+     * @throws RuleViolationException if a rule violation occurs
+     */
+    public void applyRules(RuleApplicationContext context) throws RuleViolationException;
+
+    /**
+     * Primary entry point to apply a single specific rule using a {@link RuleApplicationContext}.
+     *
+     * @param context the rule application context (must specify {@code ruleType})
+     * @throws RuleViolationException if a rule violation occurs
+     */
+    public void applyRule(RuleApplicationContext context) throws RuleViolationException;
+
+    /**
      * Applies all configured rules to check whether a content update for an artifact is allowed.
-     * 
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     * @param content
-     * @param ruleApplicationType
-     * @param references
-     * @param resolvedReferences
-     * @throws RuleViolationException
      */
     public void applyRules(String groupId, String artifactId, String artifactType, TypedContent content,
             RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
@@ -33,17 +40,6 @@ public interface RulesService {
 
     /**
      * Applies a single, specific rule to the content update for the given artifact.
-     * 
-     * @param groupId
-     * @param artifactId
-     * @param artifactType
-     * @param content
-     * @param ruleType
-     * @param ruleConfiguration
-     * @param ruleApplicationType
-     * @param references
-     * @param resolvedReferences
-     * @throws RuleViolationException
      */
     public void applyRule(String groupId, String artifactId, String artifactType, TypedContent content,
             RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
@@ -52,15 +48,6 @@ public interface RulesService {
 
     /**
      * Applies configured rules to the content update, relative to ANY artifact version.
-     * 
-     * @param groupId
-     * @param artifactId
-     * @param artifactVersion
-     * @param artifactType
-     * @param updatedContent
-     * @param references
-     * @param resolvedReferences
-     * @throws RuleViolationException
      */
     public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
             TypedContent updatedContent, List<ArtifactReference> references,

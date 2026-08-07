@@ -43,16 +43,75 @@ public class RulesServiceImpl implements RulesService {
     @Inject
     ArtifactTypeUtilProviderFactory providerFactory;
 
-    /**
-     * @see io.apicurio.registry.rules.RulesService#applyRules(String, String, String, TypedContent,
-     *      RuleApplicationType, List, Map)
-     */
+    @Override
+    public void applyRules(RuleApplicationContext context) throws RuleViolationException {
+        RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
+
+        List<TypedContent> currentContent;
+        Set<RuleType> artifactRules;
+
+        if (context.getExistingContent() != null) {
+            currentContent = context.getExistingContent();
+            artifactRules = new HashSet<>(storageToUse.getArtifactRules(context.getGroupId(), context.getArtifactId()));
+        } else if (context.getArtifactVersion() != null) {
+            StoredArtifactVersionDto versionContent = storageToUse.getArtifactVersionContent(
+                    context.getGroupId(), context.getArtifactId(), context.getArtifactVersion());
+            TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
+                    versionContent.getContentType());
+            currentContent = Collections.singletonList(typedVersionContent);
+            artifactRules = new HashSet<>(storageToUse.getArtifactRules(context.getGroupId(), context.getArtifactId()));
+        } else if (context.getRuleApplicationType() == RuleApplicationType.UPDATE) {
+            artifactRules = new HashSet<>(storageToUse.getArtifactRules(context.getGroupId(), context.getArtifactId()));
+            currentContent = new LazyContentList(storageToUse,
+                    storageToUse.getEnabledArtifactContentIds(context.getGroupId(), context.getArtifactId()));
+        } else {
+            artifactRules = Collections.emptySet();
+            currentContent = new LazyContentList(storageToUse, Collections.emptyList());
+        }
+
+        applyAllRules(storageToUse, context.getGroupId(), context.getArtifactId(), context.getArtifactType(),
+                currentContent, context.getContent(), artifactRules, context.getReferences(),
+                context.getResolvedReferences());
+    }
+
+    @Override
+    public void applyRule(RuleApplicationContext context) throws RuleViolationException {
+        RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
+        List<TypedContent> currentContent;
+
+        if (context.getExistingContent() != null) {
+            currentContent = context.getExistingContent();
+        } else if (context.getArtifactVersion() != null) {
+            StoredArtifactVersionDto versionContent = storageToUse.getArtifactVersionContent(
+                    context.getGroupId(), context.getArtifactId(), context.getArtifactVersion());
+            TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
+                    versionContent.getContentType());
+            currentContent = Collections.singletonList(typedVersionContent);
+        } else if (context.getRuleApplicationType() == RuleApplicationType.UPDATE) {
+            currentContent = new LazyContentList(storageToUse,
+                    storageToUse.getEnabledArtifactContentIds(context.getGroupId(), context.getArtifactId()));
+        } else {
+            currentContent = null;
+        }
+
+        executeSingleRule(storageToUse, context.getGroupId(), context.getArtifactId(), context.getArtifactType(),
+                currentContent, context.getContent(), context.getRuleType(), context.getRuleConfiguration(),
+                context.getReferences(), context.getResolvedReferences());
+    }
+
     @Override
     public void applyRules(String groupId, String artifactId, String artifactType, TypedContent content,
             RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
-        applyRules(storage, groupId, artifactId, artifactType, content, ruleApplicationType,
-                references, resolvedReferences);
+        applyRules(RuleApplicationContext.builder()
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .artifactType(artifactType)
+                .content(content)
+                .ruleApplicationType(ruleApplicationType)
+                .references(references)
+                .resolvedReferences(resolvedReferences)
+                .build());
     }
 
     @Override
@@ -60,21 +119,16 @@ public class RulesServiceImpl implements RulesService {
             String artifactType, TypedContent content, RuleApplicationType ruleApplicationType,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
-        @SuppressWarnings("unchecked")
-        Set<RuleType> artifactRules = Collections.EMPTY_SET;
-        if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            artifactRules = new HashSet<>(storageToUse.getArtifactRules(groupId, artifactId));
-        }
-        LazyContentList currentContent;
-        if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            currentContent = new LazyContentList(storageToUse,
-                    storageToUse.getEnabledArtifactContentIds(groupId, artifactId));
-        } else {
-            currentContent = new LazyContentList(storageToUse, Collections.emptyList());
-        }
-
-        applyAllRules(storageToUse, groupId, artifactId, artifactType, currentContent, content,
-                artifactRules, references, resolvedReferences);
+        applyRules(RuleApplicationContext.builder()
+                .storage(storageToUse)
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .artifactType(artifactType)
+                .content(content)
+                .ruleApplicationType(ruleApplicationType)
+                .references(references)
+                .resolvedReferences(resolvedReferences)
+                .build());
     }
 
     @Override
@@ -82,9 +136,17 @@ public class RulesServiceImpl implements RulesService {
             String artifactType, TypedContent content, List<TypedContent> existingContent,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
-        Set<RuleType> artifactRules = new HashSet<>(storageToUse.getArtifactRules(groupId, artifactId));
-        applyAllRules(storageToUse, groupId, artifactId, artifactType, existingContent, content,
-                artifactRules, references, resolvedReferences);
+        applyRules(RuleApplicationContext.builder()
+                .storage(storageToUse)
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .artifactType(artifactType)
+                .content(content)
+                .existingContent(existingContent)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
+                .references(references)
+                .resolvedReferences(resolvedReferences)
+                .build());
     }
 
     private void applyAllRules(RegistryStorage storageToUse, String groupId, String artifactId,
@@ -115,9 +177,9 @@ public class RulesServiceImpl implements RulesService {
             }
         });
 
-        // Apply rules (metrics are recorded per-rule in applyRule)
+        // Apply rules (metrics are recorded per-rule in executeSingleRule)
         for (RuleType ruleType : allRules.keySet()) {
-            applyRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
+            executeSingleRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
                     ruleType, allRules.get(ruleType).getConfiguration(), references,
                     resolvedReferences);
         }
@@ -128,18 +190,22 @@ public class RulesServiceImpl implements RulesService {
             RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
-        LazyContentList currentContent = null;
-        if (ruleApplicationType == RuleApplicationType.UPDATE) {
-            currentContent = new LazyContentList(storage,
-                    storage.getEnabledArtifactContentIds(groupId, artifactId));
-        }
-        applyRule(storage, groupId, artifactId, artifactType, currentContent, content, ruleType,
-                ruleConfiguration, references, resolvedReferences);
+        applyRule(RuleApplicationContext.builder()
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .artifactType(artifactType)
+                .content(content)
+                .ruleType(ruleType)
+                .ruleConfiguration(ruleConfiguration)
+                .ruleApplicationType(ruleApplicationType)
+                .references(references)
+                .resolvedReferences(resolvedReferences)
+                .build());
     }
 
     // Metrics are recorded here even during dry-run requests because rule evaluation genuinely
     // executes during dry-run — only artifact/version creation metrics are suppressed.
-    private void applyRule(RegistryStorage storageToUse, String groupId, String artifactId,
+    private void executeSingleRule(RegistryStorage storageToUse, String groupId, String artifactId,
             String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
             RuleType ruleType, String ruleConfiguration, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) {
@@ -167,13 +233,15 @@ public class RulesServiceImpl implements RulesService {
     public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
             TypedContent updatedContent, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
-        StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId,
-                artifactVersion);
-        TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
-                versionContent.getContentType());
-        Set<RuleType> artifactRules = new HashSet<>(storage.getArtifactRules(groupId, artifactId));
-        applyAllRules(storage, groupId, artifactId, artifactType,
-                Collections.singletonList(typedVersionContent), updatedContent, artifactRules,
-                references, resolvedReferences);
+        applyRules(RuleApplicationContext.builder()
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .artifactVersion(artifactVersion)
+                .artifactType(artifactType)
+                .content(updatedContent)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
+                .references(references)
+                .resolvedReferences(resolvedReferences)
+                .build());
     }
 }

@@ -78,7 +78,21 @@ public final class ParameterValidationUtils {
      * @return the normalized limit, safe to pass to the storage layer
      */
     public static int normalizeLimit(BigInteger limit) {
-        return limit.signum() < 0 ? 1 : limit.min(MAX_LIMIT).intValue();
+        return normalizeLimit(limit, MAX_LIMIT.intValue());
+    }
+
+    /**
+     * Normalizes a pagination limit against a caller-supplied maximum, for endpoints whose page
+     * size cap differs from the standard {@link #normalizeLimit(BigInteger)} bound. A negative
+     * limit is normalized to 1 (limit=0 keeps its existing empty-page semantics); otherwise the
+     * limit is capped at {@code maxLimit}.
+     *
+     * @param limit the raw limit value provided by the client; must not be {@code null}
+     * @param maxLimit the maximum limit to allow
+     * @return the normalized limit, safe to pass to the storage layer
+     */
+    public static int normalizeLimit(BigInteger limit, int maxLimit) {
+        return limit.signum() < 0 ? 1 : limit.min(BigInteger.valueOf(maxLimit)).intValue();
     }
 
     /**

@@ -736,8 +736,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         Set<SearchFilter> filters = Collections.emptySet();
 
-        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        int off = ParameterValidationUtils.normalizeOffset(offset);
+        int lim = ParameterValidationUtils.normalizeLimit(limit);
+        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, off, lim);
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1342,8 +1343,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        int off = ParameterValidationUtils.normalizeOffset(offset);
+        int lim = ParameterValidationUtils.normalizeLimit(limit);
+        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, off, lim,
+                skipCount != null && skipCount);
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1575,8 +1578,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Set<SearchFilter> filters = Set.of(
                 SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()),
                 SearchFilter.ofArtifactId(artifactId));
-        VersionSearchResultsDto resultsDto = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        int off = ParameterValidationUtils.normalizeOffset(offset);
+        int lim = ParameterValidationUtils.normalizeLimit(limit);
+        VersionSearchResultsDto resultsDto = storage.searchVersions(filters, oBy, oDir, off, lim,
+                skipCount != null && skipCount);
         return V3ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1700,8 +1705,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             limit = BigInteger.valueOf(20);
         }
 
-        BranchSearchResultsDto dto = storage.getBranches(new GA(groupId, artifactId), offset.intValue(),
-                limit.intValue());
+        int off = ParameterValidationUtils.normalizeOffset(offset);
+        int lim = ParameterValidationUtils.normalizeLimit(limit);
+        BranchSearchResultsDto dto = storage.getBranches(new GA(groupId, artifactId), off, lim);
         return V3ApiUtil.dtoToSearchResults(dto);
     }
 
@@ -1764,8 +1770,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Throw 404 if the artifact or branch does not exist.
         storage.getBranchMetaData(ga, bid);
 
-        VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, offset.intValue(),
-                limit.intValue());
+        int off = ParameterValidationUtils.normalizeOffset(offset);
+        int lim = ParameterValidationUtils.normalizeLimit(limit);
+        VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, off, lim);
         return V3ApiUtil.dtoToSearchResults(results);
     }
 
@@ -2707,8 +2714,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
-        int off = offset != null ? offset.intValue() : 0;
-        int lim = limit != null ? Math.min(limit.intValue(), 500) : 20;
+        int off = offset != null ? ParameterValidationUtils.normalizeOffset(offset) : 0;
+        int lim = limit != null ? ParameterValidationUtils.normalizeLimit(limit, 500) : 20;
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         var entries = contractAuditService.getAuditLog(rawGroupId, artifactId, off, lim);

@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.polling;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.RuleApplicationContext;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -129,10 +130,17 @@ public class PollingDataValidator {
             }
 
             try {
-                rulesService.applyRules(storage,
-                        artifact.getGroupId(), artifact.getArtifactId(), artifact.getArtifactType(),
-                        currentContent, existingContent,
-                        references, resolvedReferences);
+                rulesService.applyRules(RuleApplicationContext.builder()
+                        .storage(storage)
+                        .groupId(artifact.getGroupId())
+                        .artifactId(artifact.getArtifactId())
+                        .artifactType(artifact.getArtifactType())
+                        .content(currentContent)
+                        .existingContent(existingContent)
+                        .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
+                        .references(references)
+                        .resolvedReferences(resolvedReferences)
+                        .build());
             } catch (RuleViolationException e) {
                 state.recordError(file, "Rule %s violation for version '%s': %s",
                         e.getRuleType(), current.getVersion(), e.getMessage());

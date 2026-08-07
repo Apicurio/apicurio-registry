@@ -156,8 +156,15 @@ public abstract class AbstractResource {
 
             if (!doesArtifactExist(artifactId, groupId)) {
                 // Apply rules using the potentially converted text content
-                rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
-                        RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
+                rulesService.applyRules(RuleApplicationContext.builder()
+                        .groupId(groupId)
+                        .artifactId(artifactId)
+                        .artifactType(artifactType)
+                        .content(contentForRules)
+                        .ruleApplicationType(RuleApplicationType.CREATE)
+                        .references(artifactReferences)
+                        .resolvedReferences(resolvedReferences)
+                        .build());
 
                 EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder().build();
                 EditableVersionMetaDataDto firstVersionMetaData = EditableVersionMetaDataDto.builder().build();
@@ -171,8 +178,15 @@ public abstract class AbstractResource {
                         .getValue();
             } else {
                 // Apply rules using the potentially converted text content
-                rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
-                        RuleApplicationType.UPDATE, artifactReferences, resolvedReferences);
+                rulesService.applyRules(RuleApplicationContext.builder()
+                        .groupId(groupId)
+                        .artifactId(artifactId)
+                        .artifactType(artifactType)
+                        .content(contentForRules)
+                        .ruleApplicationType(RuleApplicationType.UPDATE)
+                        .references(artifactReferences)
+                        .resolvedReferences(resolvedReferences)
+                        .build());
                 // Store the ORIGINAL content (text or binary)
                 ContentWrapperDto versionContent = ContentWrapperDto.builder().content(schemaContent)
                         .contentType(contentType).references(parsedReferences).build();

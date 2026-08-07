@@ -99,15 +99,23 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                         contentType);
 
                 if (!isCompatibilityRuleConfigured(ga.getRawGroupIdWithNull(), ga.getRawArtifactId())) {
-                    rulesService.applyRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                            artifactVersionMetaData.getArtifactType(), typedContent,
-                            RuleType.COMPATIBILITY, CompatibilityLevel.BACKWARD.name(),
-                            io.apicurio.registry.rules.RuleApplicationType.UPDATE,
-                            Collections.emptyList(), Collections.emptyMap());
+                    rulesService.applyRule(RuleApplicationContext.builder()
+                            .groupId(ga.getRawGroupIdWithNull())
+                            .artifactId(ga.getRawArtifactId())
+                            .artifactType(artifactVersionMetaData.getArtifactType())
+                            .content(typedContent)
+                            .ruleType(RuleType.COMPATIBILITY)
+                            .ruleConfiguration(CompatibilityLevel.BACKWARD.name())
+                            .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
+                            .build());
                 } else {
-                    rulesService.applyRules(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version,
-                            artifactVersionMetaData.getArtifactType(), typedContent, Collections.emptyList(),
-                            Collections.emptyMap());
+                    rulesService.applyRules(RuleApplicationContext.builder()
+                            .groupId(ga.getRawGroupIdWithNull())
+                            .artifactId(ga.getRawArtifactId())
+                            .artifactVersion(version)
+                            .artifactType(artifactVersionMetaData.getArtifactType())
+                            .content(typedContent)
+                            .build());
                 }
             }
             CompatibilityCheckResponse response = new CompatibilityCheckResponse();
@@ -147,15 +155,23 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
 
                             if (!isCompatibilityRuleConfigured(ga.getRawGroupIdWithNull(),
                                     ga.getRawArtifactId())) {
-                                rulesService.applyRule(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                                        artifact.getArtifactType(), typedContent,
-                                        RuleType.COMPATIBILITY, CompatibilityLevel.BACKWARD.name(),
-                                        io.apicurio.registry.rules.RuleApplicationType.UPDATE,
-                                        Collections.emptyList(), Collections.emptyMap());
+                                rulesService.applyRule(RuleApplicationContext.builder()
+                                        .groupId(ga.getRawGroupIdWithNull())
+                                        .artifactId(ga.getRawArtifactId())
+                                        .artifactType(artifact.getArtifactType())
+                                        .content(typedContent)
+                                        .ruleType(RuleType.COMPATIBILITY)
+                                        .ruleConfiguration(CompatibilityLevel.BACKWARD.name())
+                                        .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
+                                        .build());
                             } else {
-                                rulesService.applyRules(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(),
-                                        version, artifact.getArtifactType(), typedContent,
-                                        Collections.emptyList(), Collections.emptyMap());
+                                rulesService.applyRules(RuleApplicationContext.builder()
+                                        .groupId(ga.getRawGroupIdWithNull())
+                                        .artifactId(ga.getRawArtifactId())
+                                        .artifactVersion(version)
+                                        .artifactType(artifact.getArtifactType())
+                                        .content(typedContent)
+                                        .build());
                             }
                             CompatibilityCheckResponse response = new CompatibilityCheckResponse();
                             response.setIsCompatible(true);

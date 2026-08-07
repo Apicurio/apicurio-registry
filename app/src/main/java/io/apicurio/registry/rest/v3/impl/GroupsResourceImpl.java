@@ -39,6 +39,7 @@ import io.apicurio.registry.rest.cache.strategy.interceptor.VersionContentCache;
 import io.apicurio.registry.rest.v3.GroupsResource;
 import io.apicurio.registry.rest.v3.beans.*;
 import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
+import io.apicurio.registry.rules.RuleApplicationContext;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
@@ -1221,9 +1222,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .referenceDtosToReferences(artifact.getReferences());
 
             TypedContent typedContent = TypedContent.create(artifact.getContent(), artifact.getContentType());
-            rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
-                    vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
-                    resolvedReferences);
+            rulesService.applyRules(RuleApplicationContext.builder()
+                    .groupId(gav.getRawGroupIdWithNull())
+                    .artifactId(gav.getRawArtifactId())
+                    .artifactType(vmd.getArtifactType())
+                    .content(typedContent)
+                    .ruleApplicationType(RuleApplicationType.UPDATE)
+                    .references(references)
+                    .resolvedReferences(resolvedReferences)
+                    .build());
         }
 
         // Now update the state.
@@ -1515,9 +1522,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
                     TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
-                    rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                            artifactType, effectiveTypedContent, RuleApplicationType.CREATE, references,
-                            resolvedReferences);
+                    rulesService.applyRules(RuleApplicationContext.builder()
+                            .groupId(new GroupId(groupId).getRawGroupIdWithNull())
+                            .artifactId(artifactId)
+                            .artifactType(artifactType)
+                            .content(effectiveTypedContent)
+                            .ruleApplicationType(RuleApplicationType.CREATE)
+                            .references(references)
+                            .resolvedReferences(resolvedReferences)
+                            .build());
                 }
             }
 
@@ -1649,9 +1662,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
             TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                    typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
-                    resolvedReferences);
+            rulesService.applyRules(RuleApplicationContext.builder()
+                    .groupId(new GroupId(groupId).getRawGroupIdWithNull())
+                    .artifactId(artifactId)
+                    .artifactType(artifactType)
+                    .content(typedContent)
+                    .ruleApplicationType(RuleApplicationType.UPDATE)
+                    .references(data.getContent().getReferences())
+                    .resolvedReferences(resolvedReferences)
+                    .build());
         }
 
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
@@ -1929,8 +1948,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
             final TypedContent typedContent = TypedContent.create(content, contentType);
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                    typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+            rulesService.applyRules(RuleApplicationContext.builder()
+                    .groupId(new GroupId(groupId).getRawGroupIdWithNull())
+                    .artifactId(artifactId)
+                    .artifactType(artifactType)
+                    .content(typedContent)
+                    .ruleApplicationType(RuleApplicationType.UPDATE)
+                    .references(references)
+                    .resolvedReferences(resolvedReferences)
+                    .build());
         }
 
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(name)

@@ -20,7 +20,6 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.RuleType;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -33,22 +32,16 @@ import java.util.Map;
  */
 @Getter
 @Builder
-@AllArgsConstructor
 public class RuleApplicationContext {
 
     private final String groupId;
     private final String artifactId;
     private final String artifactType;
     private final TypedContent content;
+    private final RuleApplicationType ruleApplicationType;
 
-    @Builder.Default
-    private RuleApplicationType ruleApplicationType = RuleApplicationType.CREATE;
-
-    @Builder.Default
-    private List<ArtifactReference> references = Collections.emptyList();
-
-    @Builder.Default
-    private Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
+    private final List<ArtifactReference> references;
+    private final Map<String, TypedContent> resolvedReferences;
 
     /**
      * Storage instance override. If null, {@link RulesService} uses its injected default storage.
@@ -74,4 +67,12 @@ public class RuleApplicationContext {
      * Configuration for single-rule application.
      */
     private final String ruleConfiguration;
+
+    public List<ArtifactReference> getReferences() {
+        return references != null ? references : Collections.emptyList();
+    }
+
+    public Map<String, TypedContent> getResolvedReferences() {
+        return resolvedReferences != null ? resolvedReferences : Collections.emptyMap();
+    }
 }

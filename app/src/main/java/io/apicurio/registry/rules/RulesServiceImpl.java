@@ -45,28 +45,16 @@ public class RulesServiceImpl implements RulesService {
 
     @Override
     public void applyRules(RuleApplicationContext context) throws RuleViolationException {
+        Objects.requireNonNull(context, "context must not be null");
         RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
 
-        List<TypedContent> currentContent;
+        List<TypedContent> currentContent = resolveCurrentContent(context, storageToUse);
         Set<RuleType> artifactRules;
 
-        if (context.getExistingContent() != null) {
-            currentContent = context.getExistingContent();
+        if (context.getExistingContent() != null || context.getArtifactVersion() != null || context.getRuleApplicationType() == RuleApplicationType.UPDATE) {
             artifactRules = new HashSet<>(storageToUse.getArtifactRules(context.getGroupId(), context.getArtifactId()));
-        } else if (context.getArtifactVersion() != null) {
-            StoredArtifactVersionDto versionContent = storageToUse.getArtifactVersionContent(
-                    context.getGroupId(), context.getArtifactId(), context.getArtifactVersion());
-            TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
-                    versionContent.getContentType());
-            currentContent = Collections.singletonList(typedVersionContent);
-            artifactRules = new HashSet<>(storageToUse.getArtifactRules(context.getGroupId(), context.getArtifactId()));
-        } else if (context.getRuleApplicationType() == RuleApplicationType.UPDATE) {
-            artifactRules = new HashSet<>(storageToUse.getArtifactRules(context.getGroupId(), context.getArtifactId()));
-            currentContent = new LazyContentList(storageToUse,
-                    storageToUse.getEnabledArtifactContentIds(context.getGroupId(), context.getArtifactId()));
         } else {
             artifactRules = Collections.emptySet();
-            currentContent = new LazyContentList(storageToUse, Collections.emptyList());
         }
 
         applyAllRules(storageToUse, context.getGroupId(), context.getArtifactId(), context.getArtifactType(),
@@ -76,23 +64,11 @@ public class RulesServiceImpl implements RulesService {
 
     @Override
     public void applyRule(RuleApplicationContext context) throws RuleViolationException {
+        Objects.requireNonNull(context, "context must not be null");
+        Objects.requireNonNull(context.getRuleType(), "ruleType must not be null for applyRule");
         RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
-        List<TypedContent> currentContent;
 
-        if (context.getExistingContent() != null) {
-            currentContent = context.getExistingContent();
-        } else if (context.getArtifactVersion() != null) {
-            StoredArtifactVersionDto versionContent = storageToUse.getArtifactVersionContent(
-                    context.getGroupId(), context.getArtifactId(), context.getArtifactVersion());
-            TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
-                    versionContent.getContentType());
-            currentContent = Collections.singletonList(typedVersionContent);
-        } else if (context.getRuleApplicationType() == RuleApplicationType.UPDATE) {
-            currentContent = new LazyContentList(storageToUse,
-                    storageToUse.getEnabledArtifactContentIds(context.getGroupId(), context.getArtifactId()));
-        } else {
-            currentContent = null;
-        }
+        List<TypedContent> currentContent = resolveCurrentContent(context, storageToUse);
 
         RuleContext ruleContext = RuleContext.builder()
                 .storage(storageToUse)
@@ -107,6 +83,23 @@ public class RulesServiceImpl implements RulesService {
                 .build();
 
         executeSingleRule(context.getRuleType(), ruleContext);
+    }
+
+    private List<TypedContent> resolveCurrentContent(RuleApplicationContext context, RegistryStorage storageToUse) {
+        if (context.getExistingContent() != null) {
+            return context.getExistingContent();
+        } else if (context.getArtifactVersion() != null) {
+            StoredArtifactVersionDto versionContent = storageToUse.getArtifactVersionContent(
+                    context.getGroupId(), context.getArtifactId(), context.getArtifactVersion());
+            TypedContent typedVersionContent = TypedContent.create(versionContent.getContent(),
+                    versionContent.getContentType());
+            return Collections.singletonList(typedVersionContent);
+        } else if (context.getRuleApplicationType() == RuleApplicationType.UPDATE) {
+            return new LazyContentList(storageToUse,
+                    storageToUse.getEnabledArtifactContentIds(context.getGroupId(), context.getArtifactId()));
+        } else {
+            return new LazyContentList(storageToUse, Collections.emptyList());
+        }
     }
 
     @Override

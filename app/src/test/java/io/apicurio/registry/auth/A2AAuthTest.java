@@ -1,7 +1,6 @@
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.a2a.A2AConstants;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -347,7 +346,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
             String visibility) {
         EditableArtifactMetaData meta = new EditableArtifactMetaData();
         Labels labels = new Labels();
-        labels.setAdditionalData(Map.of(A2AConstants.LABEL_AGENT_VISIBILITY, visibility));
+        labels.setAdditionalData(Map.of("apicurio.agent.visibility", visibility));
         meta.setLabels(labels);
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(meta);
     }

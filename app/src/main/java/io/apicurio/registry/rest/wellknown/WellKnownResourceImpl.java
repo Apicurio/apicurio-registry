@@ -72,7 +72,7 @@ import java.util.Set;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-public class WellKnownResourceImpl implements WellKnownResource {
+public class    WellKnownResourceImpl implements WellKnownResource {
 
     private static final Logger log = LoggerFactory.getLogger(WellKnownResourceImpl.class);
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -346,7 +346,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Filter by skills (indexed as structured content: agent_card:skill:<id>)
         if (skills != null && !skills.isEmpty()) {
             for (String skill : skills) {
-                filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
             }
         }
 
@@ -357,7 +357,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 String[] parts = capability.split(":", 2);
                 String capKey = parts[0];
                 String capValue = parts.length > 1 ? parts[1] : "true";
-                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + capKey);
+                SearchFilter filter = SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + capKey);
                 if ("false".equals(capValue)) {
                     filter = filter.negated();
                 }
@@ -368,14 +368,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Filter by input modes (indexed as structured content: agent_card:inputmode:<mode>)
         if (inputModes != null && !inputModes.isEmpty()) {
             for (String mode : inputModes) {
-                filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
             }
         }
 
         // Filter by output modes (indexed as structured content: agent_card:outputmode:<mode>)
         if (outputModes != null && !outputModes.isEmpty()) {
             for (String mode : outputModes) {
-                filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
             }
         }
 
@@ -725,7 +725,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
      */
     private String resolveVisibility(Map<String, String> labels) {
         if (labels != null) {
-            String explicit = labels.get("apicurio.agent.visibility");
+            String explicit = labels.get(A2AConstants.LABEL_AGENT_VISIBILITY);
             if (explicit != null) {
                 return explicit.toLowerCase(Locale.ROOT);
             }

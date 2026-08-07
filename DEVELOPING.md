@@ -67,6 +67,18 @@ The project uses a three-tier build system to allow developers to build only wha
 Integration tests and examples are always opt-in via their own profiles:
 `-Pintegration-tests`, `-Pexamples`.
 
+## Using the Makefile (Shortcuts)
+
+For convenience, a `Makefile` is provided at the root of the repository to wrap common build and run commands. You can use these targets instead of typing out the full Maven commands:
+
+| Target | Description | Equivalent Command |
+|--------|-------------|--------------------|
+| `make build-local` | Compiles the core server and Java SDK quickly | `./mvnw clean install -Dlocal -DskipTests` |
+| `make build-full` | Builds everything including CLI and Go/Python SDKs | `./mvnw clean install -Dfull -DskipTests` |
+| `make test-integration` | Runs the default integration tests | `./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am` |
+| `make run-postgres` | Spins up a local Postgres-backed instance (using docker-compose) | Builds with `-Pprod -Ddocker` and runs `docker-compose up` |
+| `make check-deps` | Runs the 2-step dependency check workflow | Runs `install` followed by `dependency-check` on the reactor |
+
 ## Build Properties
 
 | Property              | Purpose                                                                                  |

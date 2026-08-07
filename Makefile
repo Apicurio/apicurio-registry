@@ -28,7 +28,7 @@ build-local:
 	./mvnw clean install -Dlocal -DskipTests
 
 build-full:
-	./mvnw clean install -Dfull -DskipTests
+	./mvnw clean install -Dfull -DskipTests -DcliSkipNative
 
 test-integration:
 	./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am

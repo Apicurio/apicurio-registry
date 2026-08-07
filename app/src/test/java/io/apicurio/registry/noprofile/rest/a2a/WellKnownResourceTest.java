@@ -1,6 +1,7 @@
 package io.apicurio.registry.noprofile.rest.a2a;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.a2a.A2AConstants;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -362,17 +363,17 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         createAgentCard(groupId, "filter-agent", AGENT_CARD_CONTENT);
         setVisibility(groupId, "filter-agent", "public");
 
-        String requestBody = """
+        String requestBody = String.format("""
                 {
                     "filters": {
                         "labels": {
-                            "apicurio.agent.visibility": "public"
+                            "%s": "%s"
                         }
                     },
                     "limit": 20,
                     "offset": 0
                 }
-                """;
+                """, A2AConstants.LABEL_AGENT_VISIBILITY, A2AConstants.VISIBILITY_PUBLIC);
 
         givenAtRoot()
                 .when()
@@ -566,7 +567,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     private void setVisibility(String groupId, String artifactId, String visibility) {
         EditableArtifactMetaData meta = new EditableArtifactMetaData();
         Labels labels = new Labels();
-        labels.setAdditionalData(Map.of("apicurio.agent.visibility", visibility));
+        labels.setAdditionalData(Map.of(A2AConstants.LABEL_AGENT_VISIBILITY, visibility));
         meta.setLabels(labels);
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(meta);
     }

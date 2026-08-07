@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.wellknown;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.a2a.A2AConfig;
+import io.apicurio.registry.a2a.A2AConstants;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
@@ -135,7 +136,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
-        filters.add(SearchFilter.ofLabel("apicurio.agent.visibility", "public"));
+        filters.add(SearchFilter.ofLabel(A2AConstants.LABEL_AGENT_VISIBILITY, A2AConstants.VISIBILITY_PUBLIC));
 
         int safeOffset = Math.max(0, offset);
         int safeLimit = Math.max(1, Math.min(limit, 500));
@@ -212,13 +213,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
         if (f != null) {
             if (f.getSkills() != null) {
                 for (String skill : f.getSkills()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
                 }
             }
             if (f.getCapabilities() != null) {
                 for (Map.Entry<String, Object> entry : f.getCapabilities().getAdditionalProperties().entrySet()) {
                     SearchFilter filter = SearchFilter.ofStructure(
-                            "agent_card:capability:" + entry.getKey());
+                            A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + entry.getKey());
                     if (!Boolean.TRUE.equals(entry.getValue())) {
                         filter = filter.negated();
                     }
@@ -232,17 +233,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
             if (f.getInputModes() != null) {
                 for (String mode : f.getInputModes()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
                 }
             }
             if (f.getOutputModes() != null) {
                 for (String mode : f.getOutputModes()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
                 }
             }
             if (f.getProtocolBindings() != null) {
                 for (String binding : f.getProtocolBindings()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:protocolbinding:" + binding));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_PROTOCOL_BINDING + binding));
                 }
             }
         }

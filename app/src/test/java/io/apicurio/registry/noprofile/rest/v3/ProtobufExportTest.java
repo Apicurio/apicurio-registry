@@ -1,5 +1,7 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
+import io.restassured.config.DecoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
@@ -385,5 +387,48 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
             // Without package, file should be at root
             assertEquals("no-package-message.proto", entry.getName());
         }
+    }
+
+    @Test
+    public void testExportArtifactWithMissingReferenceFails() throws Exception {
+        String artifactId = "missing-reference";
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.PROTOBUF);
+
+        CreateVersion firstVersion = new CreateVersion();
+        VersionContent content = new VersionContent();
+
+        content.setContent(TABLE_INFO_PROTO);
+        content.setContentType(ContentTypes.APPLICATION_PROTOBUF);
+
+        ArtifactReference missingRef = new ArtifactReference();
+        missingRef.setGroupId(GROUP);
+        missingRef.setArtifactId("does-not-exist");
+        missingRef.setVersion("1");
+        missingRef.setName("mode.proto");
+
+        content.setReferences(List.of(missingRef));
+
+        firstVersion.setContent(content);
+        createArtifact.setFirstVersion(firstVersion);
+
+        clientV3.groups()
+                .byGroupId(GROUP)
+                .artifacts()
+                .post(createArtifact);
+
+        given()
+        .config(RestAssuredConfig.config()
+                .decoderConfig(DecoderConfig.decoderConfig().noContentDecoders()))
+        .header("Accept-Encoding", "identity")
+        .when()
+        .pathParam("groupId", GROUP)
+        .pathParam("artifactId", artifactId)
+        .pathParam("versionExpression", "branch=latest")
+        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/export")
+        .then()
+        .statusCode(500);
     }
 }

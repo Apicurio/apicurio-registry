@@ -1,11 +1,9 @@
 package io.apicurio.registry.cli.common;
 
 import io.apicurio.registry.cli.config.Config;
-import io.apicurio.registry.cli.config.ConfigModel;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.RegistryClient;
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
@@ -21,8 +19,6 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
 public final class IdUtil {
 
     public static final String DEFAULT_GROUP = "default";
-
-    private static final String AUTO_CONTEXT_UPDATE_PROPERTY = "context.auto-update";
 
     private IdUtil() {
     }
@@ -71,12 +67,19 @@ public final class IdUtil {
         Objects.requireNonNull(groupId);
         Objects.requireNonNull(config);
         Objects.requireNonNull(output);
-        updateContext(config, output, context -> {
-            if (!groupId.equals(context.getGroupId())) {
-                context.setArtifactId(null);
-            }
-            context.setGroupId(groupId);
-        });
+        if (!config.isAutoUpdateEnabled()) {
+            return;
+        }
+        try {
+            config.updateCurrentContext(context -> {
+                if (!groupId.equals(context.getGroupId())) {
+                    context.setArtifactId(null);
+                }
+                context.setGroupId(groupId);
+            });
+        } catch (Exception ex) {
+            output.writeStdErrChunk(out -> out.append("Warning: Could not update context: ").append(ex.getMessage()).append("\n"));
+        }
     }
 
     /**
@@ -89,29 +92,14 @@ public final class IdUtil {
         Objects.requireNonNull(artifactId);
         Objects.requireNonNull(config);
         Objects.requireNonNull(output);
-        updateContext(config, output, context -> {
-            context.setGroupId(groupId);
-            context.setArtifactId(artifactId);
-        });
-    }
-
-    private static void updateContext(final Config config, final OutputBuffer output,
-                                       final Consumer<ConfigModel.Context> mutator) {
-        if (!"true".equalsIgnoreCase(config.read().getConfig().get(AUTO_CONTEXT_UPDATE_PROPERTY))) {
+        if (!config.isAutoUpdateEnabled()) {
             return;
         }
-        final var configModel = config.read();
-        final var contextName = configModel.getCurrentContext();
-        if (isBlank(contextName)) {
-            return;
-        }
-        final var context = configModel.getContext().get(contextName);
-        if (context == null) {
-            return;
-        }
-        mutator.accept(context);
         try {
-            config.write(configModel);
+            config.updateCurrentContext(context -> {
+                context.setGroupId(groupId);
+                context.setArtifactId(artifactId);
+            });
         } catch (Exception ex) {
             output.writeStdErrChunk(out -> out.append("Warning: Could not update context: ").append(ex.getMessage()).append("\n"));
         }

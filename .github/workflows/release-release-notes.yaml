@@ -30,6 +30,44 @@ jobs:
           echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
           echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
 
+      - name: Milestone Completeness Check
+        run: |
+          MILESTONE="${RELEASE_VERSION}"
+          
+          echo "Checking for issues in milestone $MILESTONE missing type/* labels..."
+          MISSING_TYPE=$(gh issue list \
+            --repo ${GITHUB_REPOSITORY} \
+            --milestone "${MILESTONE}" \
+            --state closed \
+            --limit 1000 \
+            --json number,title,labels | jq -r '.[] | select(all(.labels[]?.name; startswith("type/") | not)) | "* \(.title) (#\(.number))"')
+            
+          if [ -n "$MISSING_TYPE" ]; then
+            # Use URL-encoding for newlines in GitHub Actions annotations
+            MISSING_TYPE_FMT=$(echo "$MISSING_TYPE" | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::warning title=Missing type/* labels::The following closed issues in milestone $MILESTONE are missing a type/* label and will not be properly categorized in release notes:%0A$MISSING_TYPE_FMT"
+          else
+            echo "All issues in the milestone have a type/* label."
+          fi
+
+          echo "Checking for recently closed issues without a milestone..."
+          PREV_RELEASE_DATE=$(gh api repos/${GITHUB_REPOSITORY}/releases -q '.[1].published_at' || echo "")
+          if [ -n "$PREV_RELEASE_DATE" ] && [ "$PREV_RELEASE_DATE" != "null" ]; then
+            echo "Previous release date was $PREV_RELEASE_DATE"
+            UNMILESTONED=$(gh issue list \
+              --repo ${GITHUB_REPOSITORY} \
+              --search "is:issue is:closed no:milestone closed:>=$PREV_RELEASE_DATE" \
+              --limit 100 \
+              --json number,title | jq -r '.[] | "* \(.title) (#\(.number))"')
+              
+            if [ -n "$UNMILESTONED" ]; then
+              UNMILESTONED_FMT=$(echo "$UNMILESTONED" | sed ':a;N;$!ba;s/\n/%0A/g')
+              echo "::warning title=Unmilestoned Issues::The following issues were closed since the last release ($PREV_RELEASE_DATE) but are not assigned to any milestone:%0A$UNMILESTONED_FMT"
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate Release Notes from Milestone Issues
         run: |
           MILESTONE="${RELEASE_VERSION}"

@@ -2,7 +2,7 @@ name: PR Lifecycle
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled, closed]
     branches: [main]
   issue_comment:
     types: [created]
@@ -312,3 +312,29 @@ jobs:
           script: |
             const handler = require('./.github/scripts/pr-lifecycle.js');
             await handler.handleStale({ github, context, core });
+
+  # ==========================================================================
+  # PR Closed (Merged)
+  # ==========================================================================
+  pr-closed:
+    name: PR Closed (Merged)
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle PR closed
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handlePrClosed({ github, context, core });

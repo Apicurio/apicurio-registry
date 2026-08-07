@@ -1,4 +1,6 @@
-.PHONY: build-local build-full test-integration run-postgres check-deps
+.PHONY: all build-local build-full test-integration run-postgres check-deps
+
+all: build-full check-deps test-integration
 
 define DOCKER_COMPOSE_YML
 version: '3.1'

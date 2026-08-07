@@ -29,14 +29,9 @@ public class RegistryClientFacadeFactory {
 
         Vertx vertx = config.getVertx();
 
-        String endpointVersion = null;
-        if (config.getRegistryUrlVersion() != null) {
-            endpointVersion = config.getRegistryUrlVersion();
-        }
-        if (endpointVersion == null && baseUrl.contains("/apis/registry/v2")) {
-            endpointVersion = "2";
-        } else {
-            endpointVersion = "3";
+        String endpointVersion = config.getRegistryUrlVersion();
+        if (endpointVersion == null) {
+            endpointVersion = baseUrl.contains("/apis/registry/v2") ? "2" : "3";
         }
 
         switch  (endpointVersion) {

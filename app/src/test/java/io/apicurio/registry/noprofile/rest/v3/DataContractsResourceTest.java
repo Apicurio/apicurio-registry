@@ -47,6 +47,7 @@ import java.util.UUID;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
@@ -569,7 +570,8 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body("{}") // missing status
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
-                .then().statusCode(400);
+                .then().statusCode(400)
+                .body("name", equalTo("MissingRequiredParameterException"));
     }
 
     @Test
@@ -582,7 +584,24 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body("{\"status\": null}") // explicit null status
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
-                .then().statusCode(400);
+                .then().statusCode(400)
+                .body("name", equalTo("MissingRequiredParameterException"));
+    }
+
+    @Test
+    public void testStatusTransition_BogusStatus_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_BogusStatus-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": \"BOGUS\"}") // explicit bogus status
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400)
+                .body("name", equalTo("InvalidParameterValueException"))
+                .body("detail", containsString("status"))
+                .body("detail", containsString("BOGUS"));
     }
 
     @Test

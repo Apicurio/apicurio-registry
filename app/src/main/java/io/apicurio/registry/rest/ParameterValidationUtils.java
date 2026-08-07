@@ -1,10 +1,15 @@
 package io.apicurio.registry.rest;
 
+import java.math.BigInteger;
+
 /**
  * Utility class providing common parameter validation methods for REST API resources.
  * Centralizes validation logic that was previously duplicated across multiple resource implementations.
  */
 public final class ParameterValidationUtils {
+
+    private static final BigInteger MAX_INT_VALUE = BigInteger.valueOf(Integer.MAX_VALUE);
+    private static final BigInteger MAX_LIMIT = BigInteger.valueOf(1000);
 
     private ParameterValidationUtils() {
         // Utility class - prevent instantiation
@@ -51,6 +56,29 @@ public final class ParameterValidationUtils {
         if (actualValue != null && expectedValue != null && !actualValue.equals(expectedValue)) {
             throw new InvalidParameterValueException(parameterName, actualValue, expectedValue);
         }
+    }
+
+    /**
+     * Normalizes a pagination offset so it never reaches the storage layer as an invalid value.
+     * Clamps the offset to the range [0, Integer.MAX_VALUE].
+     *
+     * @param offset the raw offset value provided by the client
+     * @return the normalized offset, safe to pass to the storage layer
+     */
+    public static int normalizeOffset(BigInteger offset) {
+        return offset.max(BigInteger.ZERO).min(MAX_INT_VALUE).intValue();
+    }
+
+    /**
+     * Normalizes a pagination limit so it never reaches the storage layer as an invalid value.
+     * A negative limit is normalized to 1 (limit=0 keeps its existing empty-page semantics);
+     * otherwise the limit is capped to bound the size of the result set.
+     *
+     * @param limit the raw limit value provided by the client
+     * @return the normalized limit, safe to pass to the storage layer
+     */
+    public static int normalizeLimit(BigInteger limit) {
+        return limit.signum() < 0 ? 1 : limit.min(MAX_LIMIT).intValue();
     }
 
 }

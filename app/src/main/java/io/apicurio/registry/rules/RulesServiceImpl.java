@@ -94,9 +94,19 @@ public class RulesServiceImpl implements RulesService {
             currentContent = null;
         }
 
-        executeSingleRule(storageToUse, context.getGroupId(), context.getArtifactId(), context.getArtifactType(),
-                currentContent, context.getContent(), context.getRuleType(), context.getRuleConfiguration(),
-                context.getReferences(), context.getResolvedReferences());
+        RuleContext ruleContext = RuleContext.builder()
+                .storage(storageToUse)
+                .groupId(context.getGroupId())
+                .artifactId(context.getArtifactId())
+                .artifactType(context.getArtifactType())
+                .currentContent(currentContent)
+                .updatedContent(context.getContent())
+                .configuration(context.getRuleConfiguration())
+                .references(context.getReferences())
+                .resolvedReferences(context.getResolvedReferences())
+                .build();
+
+        executeSingleRule(context.getRuleType(), ruleContext);
     }
 
     @Override
@@ -179,9 +189,18 @@ public class RulesServiceImpl implements RulesService {
 
         // Apply rules (metrics are recorded per-rule in executeSingleRule)
         for (RuleType ruleType : allRules.keySet()) {
-            executeSingleRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
-                    ruleType, allRules.get(ruleType).getConfiguration(), references,
-                    resolvedReferences);
+            RuleContext ruleContext = RuleContext.builder()
+                    .storage(storageToUse)
+                    .groupId(groupId)
+                    .artifactId(artifactId)
+                    .artifactType(artifactType)
+                    .currentContent(currentContent)
+                    .updatedContent(updatedContent)
+                    .configuration(allRules.get(ruleType).getConfiguration())
+                    .references(references)
+                    .resolvedReferences(resolvedReferences)
+                    .build();
+            executeSingleRule(ruleType, ruleContext);
         }
     }
 
@@ -205,25 +224,18 @@ public class RulesServiceImpl implements RulesService {
 
     // Metrics are recorded here even during dry-run requests because rule evaluation genuinely
     // executes during dry-run — only artifact/version creation metrics are suppressed.
-    private void executeSingleRule(RegistryStorage storageToUse, String groupId, String artifactId,
-            String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
-            RuleType ruleType, String ruleConfiguration, List<ArtifactReference> references,
-            Map<String, TypedContent> resolvedReferences) {
+    private void executeSingleRule(RuleType ruleType, RuleContext context) {
         RuleExecutor executor = factory.createExecutor(ruleType);
-        RuleContext context = RuleContext.builder().groupId(groupId).artifactId(artifactId)
-                .artifactType(artifactType).currentContent(currentContent).updatedContent(updatedContent)
-                .configuration(ruleConfiguration).references(references)
-                .resolvedReferences(resolvedReferences).storage(storageToUse).build();
         try {
             executor.execute(context);
             otelMetrics.recordRuleEvaluation(ruleType.value(), true);
             if (ruleType == RuleType.VALIDITY) {
-                otelMetrics.recordSchemaValidation(artifactType, true);
+                otelMetrics.recordSchemaValidation(context.getArtifactType(), true);
             }
         } catch (Exception e) {
             otelMetrics.recordRuleEvaluation(ruleType.value(), false);
             if (ruleType == RuleType.VALIDITY) {
-                otelMetrics.recordSchemaValidation(artifactType, false);
+                otelMetrics.recordSchemaValidation(context.getArtifactType(), false);
             }
             throw e;
         }

@@ -30,8 +30,15 @@ public class RegistryClientFacadeFactory {
         Vertx vertx = config.getVertx();
 
         String endpointVersion = config.getRegistryUrlVersion();
-        if (endpointVersion == null) {
+        if (endpointVersion != null) {
+            endpointVersion = endpointVersion.trim();
+        }
+        if (endpointVersion == null || endpointVersion.isEmpty()) {
             endpointVersion = baseUrl.contains("/apis/registry/v2") ? "2" : "3";
+        } else if (endpointVersion.startsWith("2") || endpointVersion.toLowerCase().startsWith("v2")) {
+            endpointVersion = "2";
+        } else if (endpointVersion.startsWith("3") || endpointVersion.toLowerCase().startsWith("v3")) {
+            endpointVersion = "3";
         }
 
         switch  (endpointVersion) {

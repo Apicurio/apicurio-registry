@@ -257,7 +257,9 @@ jobs:
           java-version: '23'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
+          # Disabled on Windows for the cross-drive BuildArtifactsExporter failure. See the same
+          # note in verify-cli.yaml.
+          native-image-job-reports: ${{ matrix.os-name != 'windows-x86_64' }}
 
       - name: Build CLI Native Binary
         env:

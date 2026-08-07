@@ -52,7 +52,14 @@ jobs:
           java-version: '25'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
+          # Job reports make setup-graalvm export
+          # NATIVE_IMAGE_OPTIONS=-H:BuildOutputJSONFile=<RUNNER_TEMP>/native-image-build-output.json,
+          # which registers that file as a build artifact. On windows-latest RUNNER_TEMP is on C:
+          # while the workspace is on D:, and BuildArtifactsExporter relativizes every artifact
+          # against the image output directory -- across drives that throws "'other' has different
+          # root" and fails the build after the image is already built. Platforms with a single
+          # filesystem root cannot hit this, so keep the reports everywhere except Windows.
+          native-image-job-reports: ${{ matrix.os-name != 'windows-x86_64' }}
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8

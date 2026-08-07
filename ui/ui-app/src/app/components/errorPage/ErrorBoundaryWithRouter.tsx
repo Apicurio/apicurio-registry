@@ -1,8 +1,25 @@
-import React, { FunctionComponent } from "react";
+import React, { FunctionComponent, ReactNode } from "react";
 import { useLocation } from "react-router";
-import { ErrorBoundary, ErrorBoundaryProps } from "./ErrorBoundary";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 
-export const ErrorBoundaryWithRouter: FunctionComponent<ErrorBoundaryProps> = (props) => {
+export type ErrorBoundaryWithRouterProps = {
+    children: ReactNode;
+};
+
+export const ErrorBoundaryWithRouter: FunctionComponent<ErrorBoundaryWithRouterProps> = (props) => {
     const location = useLocation();
-    return <ErrorBoundary location={location.pathname}>{props.children}</ErrorBoundary>;
+    const logger: LoggerService = useLoggerService();
+    const appNav: AppNavigation = useAppNavigation();
+
+    return (
+        <ErrorBoundary
+            location={location.pathname}
+            logger={logger}
+            onNavigateHome={() => appNav.navigateTo("/dashboard")}
+        >
+            {props.children}
+        </ErrorBoundary>
+    );
 };

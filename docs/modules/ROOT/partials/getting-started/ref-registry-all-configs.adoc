@@ -318,7 +318,7 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`3.3.1`
-|Enable form auth. Requires adding 'form' to apicurio.authn.mechanism.priority and configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm).
+|Enable form auth. Requires adding 'form' to apicurio.authn.mechanism.priority and configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm). WARNING: Form auth with session cookies reintroduces CSRF exposure for state-changing requests. Production deployments must configure CSRF protection and Secure/HttpOnly cookies.
 |`quarkus.oidc.client-id`
 |`string`
 |

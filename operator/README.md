@@ -315,7 +315,7 @@ make dist-install-file
 There are two install variants:
 
 - **`install.yaml`** (`make dist-install-file`) - all-namespaces install with cluster-wide RBAC. The operator watches every namespace. This is the default.
-- **`install-namespaced.yaml`** (`make dist-install-file-namespaced`) - single-namespace, least-privilege install. Namespace-scoped RBAC (plus a small ClusterRole for CR discovery), and the operator only watches the namespace it is deployed into. Apply it into a single namespace, e.g. `kubectl -n my-namespace apply -f install-namespaced.yaml`.
+- **`install-namespaced.yaml`** (`make dist-install-file-namespaced`) - single-namespace, least-privilege install. Namespace-scoped RBAC (plus a small ClusterRole for CR discovery), and the operator only watches the namespace it is deployed into. Like `install.yaml`, it has `PLACEHOLDER_NAMESPACE` baked into the manifests, so substitute your target namespace before applying (a plain `kubectl -n` does not override the `metadata.namespace` already set in the file), e.g. `sed "s/PLACEHOLDER_NAMESPACE/my-namespace/g" install-namespaced.yaml | kubectl -n my-namespace apply -f -`.
 
 `make dist` produces both.
 

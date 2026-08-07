@@ -8,16 +8,24 @@ resources:
 # `olm.targetNamespaces` annotation is empty, which makes the operator watch ALL
 # namespaces (see operator/README.md "Watched Namespaces"). That would not match
 # the namespace-scoped RBAC in rbac/namespaced, so here we pin the watched
-# namespaces to the operator's own namespace. env index 2 is
-# APICURIO_OPERATOR_WATCHED_NAMESPACES in operator/default/operator.yaml.
+# namespaces to the operator's own namespace. The patch is keyed on the env var
+# name (a strategic merge), not a positional index, so it stays correct if the
+# env order in operator/default/operator.yaml ever changes.
 patches:
   - target:
       kind: Deployment
     patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/env/2
-        value:
-          name: APICURIO_OPERATOR_WATCHED_NAMESPACES
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: apicurio-registry-operator
+      spec:
+        template:
+          spec:
+            containers:
+              - name: apicurio-registry-operator
+                env:
+                  - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace

@@ -7500,15 +7500,15 @@ spec:
       automountServiceAccountToken: true
       containers:
       - env:
+        - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: POD_NAME
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
         - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace

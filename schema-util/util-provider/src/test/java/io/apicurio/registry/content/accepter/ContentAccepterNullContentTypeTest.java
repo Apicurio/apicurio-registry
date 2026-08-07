@@ -5,6 +5,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.graphql.content.GraphQLContentAccepter;
 import io.apicurio.registry.openapi.content.OpenApiContentAccepter;
+import io.apicurio.registry.openrpc.content.OpenRpcContentAccepter;
 import io.apicurio.registry.wsdl.content.WsdlContentAccepter;
 import io.apicurio.registry.xml.content.XmlContentAccepter;
 import io.apicurio.registry.xsd.content.XsdContentAccepter;
@@ -76,5 +77,20 @@ public class ContentAccepterNullContentTypeTest {
         GraphQLContentAccepter accepter = new GraphQLContentAccepter();
 
         Assertions.assertFalse(accepter.acceptsContent(content, Collections.emptyMap()));
+    }
+
+    @Test
+    public void testOpenRpcContentAccepter_nullContentType() {
+        String openRpcJson = "{\n" +
+                "  \"openrpc\": \"1.2.6\",\n" +
+                "  \"info\": {\n" +
+                "    \"title\": \"Sample OpenRPC\",\n" +
+                "    \"version\": \"1.0.0\"\n" +
+                "  }\n" +
+                "}";
+        TypedContent content = TypedContent.create(ContentHandle.create(openRpcJson), null);
+        OpenRpcContentAccepter accepter = new OpenRpcContentAccepter();
+
+        Assertions.assertTrue(accepter.acceptsContent(content, Collections.emptyMap()));
     }
 }

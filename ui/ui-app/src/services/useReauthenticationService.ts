@@ -108,6 +108,9 @@ function createReauthenticationService(): ReauthenticationService {
             return () => {
                 if (interceptor === nextInterceptor) {
                     interceptor = undefined;
+                    if (isPending) {
+                        cancelReauthentication();
+                    }
                 }
             };
         },

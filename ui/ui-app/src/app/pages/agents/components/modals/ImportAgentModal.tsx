@@ -74,6 +74,16 @@ export const ImportAgentModal: FunctionComponent<ImportAgentModalProps> = (props
                 setParsedCard(undefined);
                 return;
             }
+            if (Array.isArray(card.skills)) {
+                const skillIds = card.skills
+                    .map((skill: { id?: string }) => skill?.id?.trim())
+                    .filter((id: string | undefined) => id !== undefined && id !== "");
+                if (new Set(skillIds).size !== skillIds.length) {
+                    setFetchError("The agent card contains skills with duplicate IDs. Skill IDs must be unique.");
+                    setParsedCard(undefined);
+                    return;
+                }
+            }
             setParsedCard(card as AgentCard);
         } catch {
             setFetchError("The fetched content is not valid JSON.");

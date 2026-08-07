@@ -31,6 +31,7 @@ export type VersionPageHeaderProps = {
     onFinalizeDraft: () => void;
     onCreateDraftFrom: () => void;
     onGenerateClient: () => void;
+    onTestInPlayground: () => void;
 };
 
 /**
@@ -120,15 +121,23 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                     <ActionListItem key="download">
                         <Button id="download-version-button" variant="secondary"
                             data-testid="header-btn-download" onClick={props.onDownload}>Download</Button>
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <IfFeature feature="draftMutability" is={true}>
-                                <If condition={props.version?.state === "DRAFT" && user.isUserDeveloper(props.artifact?.owner)}>
+                    </ActionListItem>
+                    <IfFeature feature="readOnly" isNot={true}>
+                        <IfFeature feature="draftMutability" is={true}>
+                            <If condition={props.version?.state === "DRAFT" && user.isUserDeveloper(props.artifact?.owner)}>
+                                <ActionListItem key="edit">
                                     <Button id="edit-version-button" variant="primary" icon={<PencilAltIcon />}
                                         data-testid="header-btn-edit" onClick={props.onEdit}>Edit draft</Button>
-                                </If>
-                            </IfFeature>
+                                </ActionListItem>
+                            </If>
                         </IfFeature>
-                    </ActionListItem>
+                    </IfFeature>
+                    <If condition={props.version?.artifactType === "PROMPT_TEMPLATE"}>
+                        <ActionListItem key="test-playground">
+                            <Button id="test-in-playground-button" variant="primary"
+                                data-testid="header-btn-playground" onClick={props.onTestInPlayground}>Test in Playground</Button>
+                        </ActionListItem>
+                    </If>
                     <If condition={visibleActions.length > 0}>
                         <ActionListItem key="actions">
                             <ObjectDropdown

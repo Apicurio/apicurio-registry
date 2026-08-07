@@ -79,13 +79,13 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
             <div className="playground-layout">
                 {/* Left: Editor */}
                 <div className="playground-editor-panel">
-                    <Card>
+                    <Card className="editor-card">
                         <CardHeader>
                             <CardTitle>
                                 <Title headingLevel="h2" size="md">Template Editor</Title>
                             </CardTitle>
                         </CardHeader>
-                        <CardBody>
+                        <CardBody className="editor-card-body">
                             {pg.isModified && (
                                 <Alert
                                     variant="info"
@@ -109,13 +109,13 @@ export const PromptPlaygroundPage: FunctionComponent = () => {
 
                 {/* Right: Test Panel */}
                 <div className="playground-test-panel">
-                    <Card>
+                    <Card className="test-panel-card">
                         <CardHeader>
                             <CardTitle>
                                 <Title headingLevel="h2" size="md">Test Variables</Title>
                             </CardTitle>
                         </CardHeader>
-                        <CardBody>
+                        <CardBody className="test-panel-card-body">
                             <PlaygroundVariableForm
                                 variables={pg.variables}
                                 values={pg.values}

@@ -499,6 +499,12 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         version={artifactVersion}
                         codegenEnabled={true}
                         onGenerateClient={() => setIsGenerateClientModalOpen(true)}
+                        onTestInPlayground={() => {
+                            const gid = encodeURIComponent(groupId || "default");
+                            const aid = encodeURIComponent(artifactId as string);
+                            const ver = encodeURIComponent(version as string);
+                            appNavigation.navigateTo(`/playground/${gid}/${aid}/${ver}`);
+                        }}
                     />
                 </PageSection>
                 <PageSection hasBodyWrapper={false}  isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">

@@ -79,15 +79,16 @@ export const usePromptPlayground = (
         const gid = groupId === "default" ? null : groupId;
         groupsRef.current.getArtifactVersionContent(gid, artifactId, version)
             .then((content: string) => {
-                let parsed: { template?: string };
+                let templateText = "";
                 try {
-                    parsed = JSON.parse(content);
+                    const parsed = JSON.parse(content);
+                    // If it's a JSON object with a 'template' property, use that.
+                    // Otherwise, just use the raw JSON string as the template.
+                    templateText = (parsed && typeof parsed === "object" && parsed.template !== undefined) ? parsed.template : content;
                 } catch {
-                    setLoadError("Failed to parse artifact content as JSON.");
-                    return;
+                    // Not JSON, assume the entire content is the raw template text
+                    templateText = content;
                 }
-
-                const templateText = parsed.template || "";
                 setOriginalTemplate(templateText);
                 setCurrentTemplate(templateText);
 

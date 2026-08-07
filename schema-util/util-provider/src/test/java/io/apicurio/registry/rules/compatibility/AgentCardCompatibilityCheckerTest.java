@@ -443,6 +443,56 @@ class AgentCardCompatibilityCheckerTest {
     }
 
     @Test
+    void testCapabilityExtensionWithNonTextualUriIsIgnored() {
+        String existing = cardWithExtensions("{ \"uri\": 42 }");
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "A non-textual uri is not an identity, so it should not be reported");
+    }
+
+    @Test
+    void testCapabilityExtensionWithBlankUriIsIgnored() {
+        String existing = cardWithExtensions("{ \"uri\": \"   \" }, { \"uri\": \"\" }");
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "A blank uri is not an identity, so it should not be reported as a removal");
+    }
+
+    @Test
+    void testBackwardIncompatibleRenamingCapabilityExtensionUri() {
+        String existing = cardWithExtensions(TRANSLATE_EXTENSION);
+        String proposed = cardWithExtensions(SUMMARISE_EXTENSION);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing an extension uri drops the old one, so it is backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size(),
+                "The new uri counts as an add, so only the old uri is a removal");
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> d.asRuleViolation().getDescription()
+                        .contains("https://example.com/ext/translate")));
+    }
+
+    @Test
     void testBooleanCapabilitiesStillCheckedAlongsideExtensions() {
         String existing = baseCard(SKILL1, "").replace("\"capabilities\": {}",
                 "\"capabilities\": { \"streaming\": true, \"extensions\": [" + TRANSLATE_EXTENSION

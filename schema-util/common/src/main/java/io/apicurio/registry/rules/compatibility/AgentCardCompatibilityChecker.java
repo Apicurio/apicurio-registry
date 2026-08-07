@@ -253,8 +253,11 @@ public class AgentCardCompatibilityChecker
         JsonNode extensions = capabilities.get("extensions");
         if (extensions != null && extensions.isArray()) {
             for (JsonNode extension : extensions) {
+                // getTextValue already drops a missing or non-textual uri. A blank one is
+                // dropped too: it is not a usable identity, and tracking it would report a
+                // removal of extension '' when the entry disappears.
                 String uri = getTextValue(extension, "uri");
-                if (uri != null) {
+                if (uri != null && !uri.isBlank()) {
                     uris.add(uri);
                 }
             }

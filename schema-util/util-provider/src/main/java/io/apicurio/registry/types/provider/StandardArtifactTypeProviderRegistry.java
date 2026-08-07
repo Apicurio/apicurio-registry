@@ -83,7 +83,7 @@ import io.apicurio.registry.protobuf.content.refs.ProtobufReferenceFinder;
 import io.apicurio.registry.protobuf.rules.compatibility.ProtobufCompatibilityChecker;
 import io.apicurio.registry.protobuf.rules.validity.ProtobufContentValidator;
 import io.apicurio.registry.rules.compatibility.AgentCardCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.McpToolCompatibilityChecker;
+import io.apicurio.registry.json.rules.compatibility.McpToolCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.ModelSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.PromptTemplateCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AgentCardContentValidator;

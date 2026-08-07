@@ -1,5 +1,6 @@
-package io.apicurio.registry.rules.compatibility;
+package io.apicurio.registry.json.rules.compatibility;
 
+import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.violation.RuleViolation;
 
 import java.util.Objects;
@@ -10,11 +11,8 @@ import java.util.Objects;
 public class McpToolCompatibilityDifference implements CompatibilityDifference {
 
     public enum Type {
-        REQUIRED_PARAM_ADDED("inputSchema/required"),
-        REQUIRED_PARAM_REMOVED("inputSchema/required"),
-        INPUT_SCHEMA_TYPE_CHANGED("inputSchema/type"),
-        PROPERTY_REMOVED("inputSchema/properties"),
-        PARSE_ERROR("document");
+        PARSE_ERROR("document"),
+        INPUT_SCHEMA_INCOMPATIBLE("inputSchema");
 
         private final String context;
 

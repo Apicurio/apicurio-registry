@@ -14,7 +14,23 @@ NOTE: For a list of all available configuration options, see {registry-config-re
 // proc-registry-security-keycloak
 [id="registry-security-keycloak_{context}"]
 == Configuring {registry} authentication and authorization with {keycloak}
+[IMPORTANT]
+====
+When using OIDC providers such as Keycloak or Red Hat SSO, authentication might fail with the following error:
 
+[source]
+----
+error=invalid_request&error_description=Missing parameter: nonce
+----
+
+This happens when the identity provider enforces the `nonce` parameter in authorization requests.
+
+Currently, the Apicurio Registry web console does not include a `nonce` parameter in OIDC authentication requests.
+
+*Workaround*: Disable the nonce requirement in the identity provider configuration.
+
+*Note*: This limitation originates from shared UI components and will be resolved in a future update.
+====
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]

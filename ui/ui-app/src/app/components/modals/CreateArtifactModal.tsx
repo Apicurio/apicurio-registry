@@ -36,6 +36,7 @@ import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { ArtifactLabel, LabelsFormGroup, ArtifactReferenceFormItem, ReferencesFormGroup, formItemsToReferences, isReferencesValid } from "@app/components";
 import { listToLabels } from "@utils/labels.utils.ts";
 import { detectContentType, detectVersionInContent } from "@utils/content.utils.ts";
+import { checkIdValid } from "@utils/validation.utils.ts";
 
 
 export type ValidType = "default" | "success" | "error";
@@ -49,24 +50,6 @@ export type Validities = {
     versionNumber?: ValidType;
     versionName?: ValidType;
     versionDescription?: ValidType;
-};
-
-const checkIdValid = (id: string | undefined | null): boolean => {
-    if (!id) {
-        //id is optional, server can generate it
-        return true;
-    } else {
-        // character % breaks the ui
-        const isAscii = (str: string) => {
-            for (let i = 0; i < str.length; i++){
-                if (str.charCodeAt(i) > 127){
-                    return false;
-                }
-            }
-            return true;
-        };
-        return id.indexOf("%") == -1 && isAscii(id);
-    }
 };
 
 const validateField = (value: string | undefined | null): ValidType => {

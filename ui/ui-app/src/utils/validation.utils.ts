@@ -12,7 +12,11 @@ export const checkIdValid = (id: string | undefined | null): boolean => {
         }
         return true;
     };
-    return id.indexOf("%") === -1 && isAscii(id);
+    const hasInvalidChars = (str: string) => {
+        // Disallow URL-unsafe and special characters that break REST API path routing or URI parsing
+        return /[%/\\#?@$^&*()\s]/.test(str);
+    };
+    return !hasInvalidChars(id) && isAscii(id);
 };
 
 export const validateField = (value: string | undefined | null): ValidType => {
@@ -24,3 +28,4 @@ export const validateField = (value: string | undefined | null): ValidType => {
     }
     return "success";
 };
+

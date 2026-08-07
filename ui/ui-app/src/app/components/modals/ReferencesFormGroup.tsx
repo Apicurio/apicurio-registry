@@ -3,6 +3,7 @@ import "./ReferencesFormGroup.css";
 import { Button, FormGroup, Grid, GridItem, Spinner, TextInput } from "@patternfly/react-core";
 import { MinusCircleIcon, PlusCircleIcon, SearchIcon } from "@patternfly/react-icons";
 import { ArtifactReference } from "@sdk/lib/generated-client/models";
+import { checkIdValid } from "@utils/validation.utils.ts";
 
 export type ArtifactReferenceFormItem = {
     groupId: string;
@@ -14,19 +15,22 @@ export type ArtifactReferenceFormItem = {
 type ValidType = "default" | "success" | "error";
 
 const validateRefField = (value: string): ValidType => {
-    if (value === "") {
+    if (value === "" || !checkIdValid(value)) {
         return "error";
     }
     return "success";
 };
 
 /**
- * Returns true if all reference rows have all four fields populated.
+ * Returns true if all reference rows have all four fields populated and valid.
  * Returns true if there are no references (empty list is valid).
  */
 export const isReferencesValid = (items: ArtifactReferenceFormItem[]): boolean => {
     return items.every(item =>
-        item.name !== "" && item.groupId !== "" && item.artifactId !== "" && item.version !== ""
+        item.name !== "" && checkIdValid(item.name) &&
+        item.groupId !== "" && checkIdValid(item.groupId) &&
+        item.artifactId !== "" && checkIdValid(item.artifactId) &&
+        item.version !== "" && checkIdValid(item.version)
     );
 };
 

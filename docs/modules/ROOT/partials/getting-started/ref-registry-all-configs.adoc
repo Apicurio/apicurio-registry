@@ -1282,7 +1282,12 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`86400s`
 |`3.0.0`
-|Kafka sql journal topic snapshot every
+|Interval between automatic snapshots of the KafkaSQL journal topic.
+|`apicurio.kafkasql.snapshot.scheduled.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.3.2`
+|Enable automatic periodic KafkaSQL snapshot creation.
 |`apicurio.kafkasql.snapshots.topic`
 |`string`
 |`kafkasql-snapshots`
@@ -1690,6 +1695,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio.kafkasql.producer.client.id`
 |`unknown`
 |`${registry.id}-producer`
+|
+|
+|`apicurio.kafkasql.snapshot.scheduled.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
 |
 |
 |`apicurio.limits.config.cache.check-period`

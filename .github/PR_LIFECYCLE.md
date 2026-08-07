@@ -6,52 +6,58 @@ comment commands for contributors and maintainers.
 
 ## Lifecycle Overview
 
-Every PR moves through these states:
+Every non-draft PR moves through these states:
 
 ```
-Opened --> new --> wip --> ready-for-review --> ready-to-merge --> merged
+Opened --> new --> ready-for-review --> ready-to-merge --> merged
 ```
 
 | State | Label | What happens |
 |-------|-------|--------------|
 | **New** | `lifecycle/new` | PR just opened. A welcome message is posted. No tests run. A maintainer must triage. PRs from maintainers and trusted accounts (e.g., Renovate) skip this state. |
-| **WIP** | `lifecycle/wip` | Maintainer accepted the PR (or auto-accepted for trusted authors). Smoke tests (lint, build, unit tests) run on each push. |
-| **Ready for review** | `lifecycle/ready-for-review` | Author marked the PR as ready. Full test suite runs. Reviewers can review. |
+| **Ready for review** | `lifecycle/ready-for-review` | Maintainer accepted the PR (or auto-accepted for trusted authors). The full test suite runs on each push. Reviewers can review. |
 | **Ready to merge** | `lifecycle/ready-to-merge` | PR is approved and all tests pass. A maintainer can merge. |
 | **Merged** | — | PR is merged. Branch may be deleted automatically. |
+
+### Draft PRs
+
+The orchestrator ignores draft PRs entirely — no labels, no CI, no welcome message.
+Push commits and test locally as normal during draft development. Once you mark the
+PR as ready for review (non-draft), it enters `lifecycle/new` exactly like a freshly
+opened PR.
+
+Converting a PR **back** to draft removes all of its `lifecycle/*` labels and stops
+CI from running on subsequent pushes — useful if you need to iterate without burning
+CI capacity. Marking it ready for review again re-enters the lifecycle at
+`lifecycle/new`, so a maintainer has to `/accept` it a second time.
 
 ### Additional labels
 
 | Label | Meaning |
 |-------|---------|
-| `lifecycle/smoke-tested` | Smoke tests passed for the current HEAD commit. Removed on new pushes or when superseded by `lifecycle/tested`. |
 | `lifecycle/tested` | Full test suite passed for the current HEAD commit. Removed on new pushes. |
 | `lifecycle/review-approved` | PR has an approved review. Removed on new pushes or when changes are requested. |
 | `lifecycle/waiting-on-author` | PR needs action from the author (failed tests or changes requested). |
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
-| `lifecycle/stale` | No activity for 7 days. PR will be closed after 7 more days of inactivity. |
+| `lifecycle/stale` | No activity for 4+ days (waiting on author) or 7+ days (otherwise). PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). |
 | `ci/disable-scalpel` | Skips the non-blocking `scalpel-report` data-collection job for this PR. |
 
 ## For Contributors
 
 ### Opening a PR
 
-1. Open a PR against `main` (draft or regular — both work the same way)
-2. The orchestrator posts a welcome message and adds `lifecycle/new`
+1. Open a PR against `main` (draft or regular)
+   - Draft PRs are ignored by the orchestrator — push and test locally as you go
+2. When ready (or if opened as non-draft), the orchestrator posts a welcome message
+   and adds `lifecycle/new`
 3. A maintainer will review and accept your PR with `/accept`
 
-### During development (WIP)
+### After acceptance
 
-- Push commits as normal. Smoke tests run automatically (lint, build, unit tests)
-- If you want to disable smoke tests (e.g., documentation PR), comment `/disable-tests`
-- To re-enable, comment `/enable-tests`
-
-### When ready for review
-
-1. Make sure a maintainer has assigned at least one reviewer
-2. Comment `/ready` on the PR (or convert from draft to ready if using draft PRs)
-3. The full test suite runs automatically
-4. Wait for review and test results
+- `/accept` moves the PR directly to `lifecycle/ready-for-review` and runs the full
+  test suite
+- Push commits as normal; the full suite re-runs on each push
+- Wait for review and test results
 
 ### After review
 
@@ -61,18 +67,27 @@ Opened --> new --> wip --> ready-for-review --> ready-to-merge --> merged
 
 ### Stale PRs
 
-If your PR has no activity for 7 days, it will be marked as stale. You will be
-pinged. Comment or push to remove the stale label, or use `/unstale`. After 14
-total days of inactivity, the PR will be closed automatically.
+If your PR has no activity for 7 days, it will be marked as stale and you will be
+pinged. Comment or push to remove the stale label, or use `/unstale`. PRs blocked on
+you (`lifecycle/waiting-on-author`) go stale sooner — after 4 days — and are closed
+after 7 total days of inactivity; other PRs go stale at 7 days and close at 14 total.
 
 ### Available commands
 
 | Command | Description |
 |---------|-------------|
-| `/ready` | Mark your PR as ready for review |
-| `/disable-tests` | Disable smoke tests during WIP |
-| `/enable-tests` | Re-enable smoke tests |
 | `/unstale` | Remove the stale label |
+| `/assign-me` | Self-assign an open issue to volunteer for implementation |
+| `/unassign-me` | Release an issue you are currently assigned to |
+
+### Issue Self-Assignment
+
+Contributors can self-assign open issues by commenting `/assign-me` (or `/claim`).
+
+- **Assignment Limit**: Each contributor can have a maximum of 3 open issues assigned concurrently.
+- **Unassigning**: Comment `/unassign-me` to release an issue.
+- **Overriding**: Maintainers can override assignments directly via the GitHub UI at any time.
+
 
 ## For Maintainers
 
@@ -80,21 +95,18 @@ total days of inactivity, the PR will be closed automatically.
 
 When a new PR arrives (`lifecycle/new`):
 1. Review the PR description and scope
-2. Assign a reviewer
-3. Accept with `/accept` or reject with `/reject [reason]`
+2. Accept with `/accept` (transitions directly to `ready-for-review`, full test
+   suite runs) or reject with `/reject [reason]`
 
 ### Managing the lifecycle
 
 | Command | Description |
 |---------|-------------|
-| `/accept` | Accept a new PR, transition to WIP |
+| `/accept` | Accept a new PR, transition to `ready-for-review` and run the full test suite |
 | `/reject [reason]` | Reject and close a new PR |
-| `/ready` | Mark a WIP PR as ready for review (can also be done by the author) |
 | `/skip-review` | Skip the review requirement for small changes (tests still required) |
 | `/merge` | Merge a PR that is in `ready-to-merge` state |
 | `/auto-merge` | Toggle auto-merge (PR merges automatically when ready-to-merge is reached) |
-| `/disable-tests` | Disable smoke tests for a WIP PR |
-| `/enable-tests` | Re-enable smoke tests |
 | `/unstale` | Remove the stale label |
 
 ### Merge strategy
@@ -133,11 +145,16 @@ merge falls back to standard error handling (full test suite re-run).
 The orchestrator is configured in `.github/pr-lifecycle.yml`:
 
 - **maintainers** — GitHub usernames of maintainers (controls who can use maintainer commands)
-- **auto_accept** — GitHub usernames of accounts that skip triage (auto-accepted to WIP). Maintainers are always auto-accepted.
+- **auto_accept** — GitHub usernames of accounts that skip triage (auto-accepted directly to
+  `ready-for-review`). Maintainers are always auto-accepted.
 - **merge.strategy** — `rebase` (default) or `squash`
 - **merge.delete_branch** — whether to delete the branch after merge
 - **stale.days_until_stale** — days of inactivity before marking as stale (default: 7)
 - **stale.days_until_close** — total days of inactivity before closing (default: 14)
+- **stale.days_until_stale_waiting_on_author** — days of inactivity before marking a PR
+  blocked on the author as stale (default: 4)
+- **stale.days_until_close_waiting_on_author** — total days of inactivity before closing a
+  PR blocked on the author (default: 7)
 - **welcome_message** — message posted when a PR is opened
 
 ## Test Gating
@@ -147,7 +164,6 @@ The orchestrator controls which tests run at each lifecycle stage:
 | State | Tests |
 |-------|-------|
 | `lifecycle/new` | None |
-| `lifecycle/wip` | Smoke: lint, build, unit tests |
 | `lifecycle/ready-for-review` | Full suite: lint, build, unit tests, integration tests, SDK tests, extras |
 | `orchestrator/disabled` | Full suite (legacy behavior, DO NOT MERGE still works) |
 

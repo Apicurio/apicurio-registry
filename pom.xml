@@ -109,6 +109,18 @@
     <module>schema-util/wsdl</module>
     <module>schema-util/xml</module>
     <module>schema-util/xsd</module>
+    <module>serdes/generic/serde-common</module>
+    <module>serdes/generic/serde-common-avro</module>
+    <module>serdes/generic/serde-common-jsonschema</module>
+    <module>serdes/generic/serde-common-protobuf</module>
+    <module>serdes/kafka/avro-serde</module>
+    <module>serdes/kafka/jsonschema-serde</module>
+    <module>serdes/kafka/protobuf-serde</module>
+    <module>serdes/kafka/serde-kafka-common</module>
+    <module>serdes/nats/avro-serde</module>
+    <module>serdes/pulsar/avro-serde</module>
+    <module>utils/maven-plugin</module>
+    <module>utils/raml-test-micro-service</module>
   </modules>
 
   <scm>
@@ -1374,18 +1386,6 @@
         <module>distro</module>
         <module>docs</module>
         <module>utils/converter</module>
-        <module>utils/maven-plugin</module>
-        <module>utils/raml-test-micro-service</module>
-        <module>serdes/generic/serde-common</module>
-        <module>serdes/generic/serde-common-avro</module>
-        <module>serdes/generic/serde-common-jsonschema</module>
-        <module>serdes/generic/serde-common-protobuf</module>
-        <module>serdes/kafka/avro-serde</module>
-        <module>serdes/kafka/jsonschema-serde</module>
-        <module>serdes/kafka/protobuf-serde</module>
-        <module>serdes/kafka/serde-kafka-common</module>
-        <module>serdes/nats/avro-serde</module>
-        <module>serdes/pulsar/avro-serde</module>
       </modules>
     </profile>
     <profile>
@@ -1415,18 +1415,6 @@
         <module>distro</module>
         <module>docs</module>
         <module>utils/converter</module>
-        <module>utils/maven-plugin</module>
-        <module>utils/raml-test-micro-service</module>
-        <module>serdes/generic/serde-common</module>
-        <module>serdes/generic/serde-common-avro</module>
-        <module>serdes/generic/serde-common-jsonschema</module>
-        <module>serdes/generic/serde-common-protobuf</module>
-        <module>serdes/kafka/avro-serde</module>
-        <module>serdes/kafka/jsonschema-serde</module>
-        <module>serdes/kafka/protobuf-serde</module>
-        <module>serdes/kafka/serde-kafka-common</module>
-        <module>serdes/nats/avro-serde</module>
-        <module>serdes/pulsar/avro-serde</module>
         <!-- Full-only modules -->
         <module>go-sdk</module>
         <module>mcp</module>

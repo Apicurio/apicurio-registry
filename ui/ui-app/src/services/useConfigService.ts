@@ -77,6 +77,7 @@ export interface UiConfig {
     navPrefixPath?: string;
     oaiDocsUrl?: string;
     editorsUrl?: string;
+    importMaxContentLength?: number;
 }
 
 export interface AuthConfig {
@@ -225,6 +226,7 @@ export interface ConfigService {
     uiOaiDocsUrl(): string;
     uiEditorsUrl(): string;
     uiNavPrefixPath(): string|undefined;
+    uiImportMaxContentLength(): number;
     features(): FeaturesConfig;
     featureReadOnly(): boolean;
     featureBreadcrumbs(): boolean;
@@ -307,6 +309,11 @@ export class ConfigServiceImpl implements ConfigService {
             registryConfig.ui.navPrefixPath = registryConfig.ui.navPrefixPath.substr(0, registryConfig.ui.navPrefixPath.length - 1);
         }
         return registryConfig.ui.navPrefixPath;
+    }
+
+    public uiImportMaxContentLength(): number {
+        // Default to 5 MB (5242880 bytes) if not explicitly configured.
+        return registryConfig.ui?.importMaxContentLength ?? 5242880;
     }
 
     public features(): FeaturesConfig {

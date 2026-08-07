@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1394,6 +1395,49 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
         Assertions.assertEquals(size, builder.toString().length());
         return builder.toString();
+    }
+
+    /**
+     * Verifies that label-based artifact search is locale-safe. Under the Turkish locale,
+     * plain .toLowerCase() maps 'I' to dotless-ı (U+0131) instead of 'i', causing a
+     * mismatch between the stored label key and the search filter value. All normalization
+     * must use Locale.ROOT so this round-trip is consistent regardless of the JVM locale.
+     */
+    @Test
+    public void testSearchArtifactsByLabelWithTurkishLocale() throws Exception {
+        Locale savedLocale = Locale.getDefault();
+        try {
+            // Switch to Turkish locale, where 'I'.toLowerCase() = 'ı' (U+0131), not 'i'.
+            // If any toLowerCase() call is missing Locale.ROOT, the stored key and the
+            // search filter key will differ, and the artifact will not be found.
+            Locale.setDefault(new Locale("tr", "TR"));
+
+            String artifactId = "testLabelSearchTurkishLocale-1";
+            // Label key contains uppercase I, which is the problematic character under tr_TR.
+            Map<String, String> labels = Collections.singletonMap("INSTABILITY", "HIGH");
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                    "Test Artifact", "locale sensitivity check", null, labels);
+            storage().createArtifact(
+                    GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_JSON)
+                            .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                    null, Collections.emptyList(), false, false, null).getValue();
+
+            // Search using the same key — both sides must normalize via Locale.ROOT
+            // so "INSTABILITY" -> "instability" on both the write and read path.
+            Set<SearchFilter> filters = Collections.singleton(
+                    SearchFilter.ofLabel("INSTABILITY", "HIGH"));
+            ArtifactSearchResultsDto results = storage().searchArtifacts(
+                    filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount(),
+                    "Label search must return the artifact even under a Turkish JVM locale.");
+        } finally {
+            // Always restore the JVM locale to avoid polluting other tests.
+            Locale.setDefault(savedLocale);
+        }
     }
 
 }

@@ -7,6 +7,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.events.ContractRulesetConfigured;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -842,18 +843,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void setArtifactContractRuleset(String groupId, String artifactId,
             ContractRuleSetDto ruleset) throws RegistryStorageException {
         contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, null, "SET")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
     public void deleteArtifactContractRuleset(String groupId, String artifactId)
             throws RegistryStorageException {
         contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, null, "DELETE")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -866,18 +865,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void setVersionContractRuleset(String groupId, String artifactId, String version,
             ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
         contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, version, "SET")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
     public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
             throws VersionNotFoundException, RegistryStorageException {
         contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, version, "DELETE")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -888,17 +885,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException {
         contractRuleRepository.setGlobalContractRuleset(ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        "__GLOBAL__", "__GLOBAL__", null, "SET")));
+        outboxEvent.fire(SqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
     public void deleteGlobalContractRuleset() throws RegistryStorageException {
         contractRuleRepository.deleteGlobalContractRuleset();
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        "__GLOBAL__", "__GLOBAL__", null, "DELETE")));
+        outboxEvent.fire(SqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override

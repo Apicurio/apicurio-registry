@@ -144,8 +144,8 @@ func TestAccessSystemInfo(t *testing.T) {
 	authProvider := auth.AnonymousAuthenticationProvider{}
 
 	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
-	adapter.SetBaseUrl(RegistryUrl)
 	assert.Nil(t, err)
+	adapter.SetBaseUrl(RegistryUrl)
 	client := registryclientv3.NewApiClient(adapter)
 
 	info, err := client.System().Info().Get(context.Background(), nil)
@@ -160,20 +160,9 @@ func TestCreateAnArtifact(t *testing.T) {
 
 	authProvider := auth.AnonymousAuthenticationProvider{}
 
-	// Disabling the compression handler, workaround for: https://github.com/microsoft/kiota-http-go/issues/130
-	httpClient := kiotaHttp.GetDefaultClient(
-		kiotaHttp.NewRetryHandler(),
-		kiotaHttp.NewRedirectHandler(),
-		kiotaHttp.NewParametersNameDecodingHandler(),
-		// NewCompressionHandler(),
-		kiotaHttp.NewUserAgentHandler(),
-		kiotaHttp.NewHeadersInspectionHandler(),
-	)
-
-	adapter, err := kiotaHttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(&authProvider, nil, nil, httpClient)
-	// adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
-	adapter.SetBaseUrl(RegistryUrl)
+	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
 	assert.Nil(t, err)
+	adapter.SetBaseUrl(RegistryUrl)
 	client := registryclientv3.NewApiClient(adapter)
 	contentStr := `{ "openapi": "3.0.0", "info": { "title": "My API", "version": "1.0.0" }, "paths": {} }`
 	contentType := "application/json"

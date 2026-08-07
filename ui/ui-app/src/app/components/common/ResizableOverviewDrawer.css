@@ -1,0 +1,60 @@
+.resizable-overview-drawer {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.resizable-overview-drawer .resizable-overview-drawer__panel,
+.resizable-overview-drawer .pf-v6-c-drawer__content,
+.resizable-overview-drawer .pf-v6-c-drawer__body {
+    min-width: 0;
+}
+
+.resizable-overview-drawer .pf-v6-c-drawer__content,
+.resizable-overview-drawer .pf-v6-c-drawer__body {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.resizable-overview-drawer .resizable-overview-drawer__panel {
+    max-width: 100%;
+    flex-shrink: 0;
+}
+
+/* Keep tabular data readable by scrolling horizontally instead of hiding columns. */
+.resizable-overview-drawer :is(.versions-table, .artifacts-table, .comments) {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.resizable-overview-drawer .pf-v6-c-table {
+    min-width: 0;
+    width: 100%;
+}
+
+.resizable-overview-drawer .pf-v6-c-toolbar__content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pf-t--global--spacer--sm);
+    align-items: center;
+}
+
+.resizable-overview-drawer .pf-v6-c-toolbar__item {
+    max-width: 100%;
+    min-width: 0;
+    margin-inline-start: 0;
+}
+
+.resizable-overview-drawer .pf-v6-c-toolbar__item .pf-v6-c-text-input-group,
+.resizable-overview-drawer .pf-v6-c-toolbar__item .pf-v6-c-form-control {
+    max-width: 100%;
+}
+
+.resizable-overview-drawer .pf-v6-c-data-list,
+.resizable-overview-drawer .pf-v6-c-data-list__item-content {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}

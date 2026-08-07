@@ -400,17 +400,6 @@ spec:
                         - reencrypt
                         type: string
                     type: object
-                  kafkasql:
-                    description: |-
-                      DEPRECATED: Use the `app.storage.type` and `app.storage.kafkasql` fields instead.
-                       The operator will attempt to update the fields automatically.
-                    properties:
-                      bootstrapServers:
-                        description: 'DEPRECATED: Use the `app.storage.kafkasql.bootstrapServers`
-                          field instead. The operator will attempt to update the field
-                          automatically.'
-                        type: string
-                    type: object
                   networkPolicy:
                     description: |2
                               Configuration of a NetworkPolicy for the component.
@@ -3566,33 +3555,6 @@ spec:
                         description: The username for connecting to a secured Elasticsearch
                           cluster.
                         type: string
-                    type: object
-                  sql:
-                    description: |-
-                      DEPRECATED: Use the `app.storage.type` and `app.storage.sql` fields instead.
-                      The operator will attempt to update the fields automatically.
-                    properties:
-                      dataSource:
-                        description: 'DEPRECATED: Use the `app.storage.sql.dataSource`
-                          field instead. The operator will attempt to update the field
-                          automatically.'
-                        properties:
-                          password:
-                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.password`
-                              field instead. The operator will attempt to update the
-                              field automatically.'
-                            type: string
-                          url:
-                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.url`
-                              field instead. The operator will attempt to update the
-                              field automatically.'
-                            type: string
-                          username:
-                            description: 'DEPRECATED: Use the `app.storage.sql.dataSource.username`
-                              field instead. The operator will attempt to update the
-                              field automatically.'
-                            type: string
-                        type: object
                     type: object
                   storage:
                     description: |

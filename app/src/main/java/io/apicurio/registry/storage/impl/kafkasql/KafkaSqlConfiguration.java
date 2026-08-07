@@ -133,10 +133,10 @@ public class KafkaSqlConfiguration {
         return props;
     }
 
-    @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400s")
+    @ConfigProperty(name = "apicurio.kafkasql.snapshot.every.seconds", defaultValue = "86400")
     @Info(category = CATEGORY_STORAGE, description = "Interval between automatic snapshots of the KafkaSQL journal topic.", availableSince = "3.0.0")
     @Getter
-    String snapshotEvery;
+    int snapshotEvery;
 
     @ConfigProperty(name = "apicurio.storage.snapshot.location", defaultValue = "./")
     @Info(category = CATEGORY_STORAGE, description = "Kafka sql snapshots store location", availableSince = "3.0.0")

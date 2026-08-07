@@ -144,9 +144,9 @@ export const RoleToolbar: FunctionComponent<RoleToolbarProps> = (props: RoleTool
         fireChangeEvent(filterAscending, filterType.type, getCriteriaValue(), newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         setPaging(newPaging);

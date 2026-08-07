@@ -156,6 +156,7 @@ public class ProtobufExporter {
                 }
             } catch (Exception e) {
                 log.warn("Could not resolve reference: {} - {}", ref.getName(), e.getMessage());
+                throw new RuntimeException("Failed to resolve reference: " + ref.getName(), e);
             }
         }
     }

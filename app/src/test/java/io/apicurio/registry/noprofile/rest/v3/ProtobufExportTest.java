@@ -18,6 +18,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -350,6 +351,54 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/export")
                 .then()
                 .statusCode(404);
+    }
+
+    @Test
+    public void testExportFailsWhenReferenceCannotBeResolved() throws Exception {
+        // Create the dependency first (mode.proto)
+        String modeArtifactId = "unresolvable-mode";
+        createArtifact(GROUP, modeArtifactId, ArtifactType.PROTOBUF, MODE_PROTO, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Create the main artifact with a reference to mode.proto
+        String tableInfoArtifactId = "unresolvable-table-info";
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(tableInfoArtifactId);
+        createArtifact.setArtifactType(ArtifactType.PROTOBUF);
+
+        CreateVersion firstVersion = new CreateVersion();
+        VersionContent content = new VersionContent();
+        content.setContent(TABLE_INFO_PROTO);
+        content.setContentType(ContentTypes.APPLICATION_PROTOBUF);
+
+        ArtifactReference ref = new ArtifactReference();
+        ref.setGroupId(GROUP);
+        ref.setArtifactId(modeArtifactId);
+        ref.setVersion("1");
+        ref.setName("mode.proto");
+        content.setReferences(List.of(ref));
+
+        firstVersion.setContent(content);
+        createArtifact.setFirstVersion(firstVersion);
+        clientV3.groups().byGroupId(GROUP).artifacts().post(createArtifact);
+
+        // Delete the dependency so the reference is unresolvable at export time
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", modeArtifactId)
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}")
+                .then()
+                .statusCode(204);
+
+        // Exporting the main artifact must fail (not silently return a partial zip with HTTP 200)
+        given()
+                .when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", tableInfoArtifactId)
+                .pathParam("versionExpression", "branch=latest")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/export")
+                .then()
+                .statusCode(greaterThanOrEqualTo(400));
     }
 
     @Test

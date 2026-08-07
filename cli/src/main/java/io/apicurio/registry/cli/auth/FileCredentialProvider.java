@@ -16,15 +16,17 @@ import org.jboss.logging.Logger;
 
 /**
  * File-based credential provider for environments without an OS keychain.
- * Stores credentials in a separate JSON file alongside config.json.
+ * Stores credentials, encrypted at rest, in a separate JSON file alongside config.json.
  */
 class FileCredentialProvider implements CredentialProvider {
 
     private static final Logger log = Logger.getLogger(FileCredentialProvider.class);
 
     private static final String CREDENTIALS_FILE = "credentials.json";
+    private static final String KEY_FILE = "credentials.key";
 
     private final Config config;
+    private CredentialEncryption encryption;
 
     FileCredentialProvider(final Config config) {
         this.config = config;
@@ -33,13 +35,39 @@ class FileCredentialProvider implements CredentialProvider {
     @Override
     public void store(final String account, final String secret) {
         final var credentials = readCredentials();
-        credentials.put(account, secret);
+        credentials.put(account, encryption().encrypt(secret));
         writeCredentials(credentials);
     }
 
     @Override
     public String retrieve(final String account) {
-        return readCredentials().get(account);
+        final var credentials = readCredentials();
+        final var stored = credentials.get(account);
+        if (stored == null) {
+            return null;
+        }
+        if (CredentialEncryption.isEncrypted(stored)) {
+            try {
+                return encryption().decrypt(stored);
+            } catch (CredentialStoreException ex) {
+                log.warnf("Could not decrypt stored credential for '%s' (%s)."
+                        + " The stored value may be corrupted — please log in again.",
+                        account, ex.getMessage());
+                return null;
+            }
+        }
+        // Legacy plain text entry — migrate it to encrypted storage before returning it.
+        // Migration is best-effort: if the config directory can't be written to (read-only
+        // filesystem, full disk, permission regression), the caller still gets a valid
+        // credential and migration is retried on the next retrieve() call.
+        try {
+            credentials.put(account, encryption().encrypt(stored));
+            writeCredentials(credentials);
+        } catch (CredentialStoreException ex) {
+            log.warnf("Could not migrate legacy plain text credential for '%s' to encrypted"
+                    + " storage (%s). Will retry on next use.", account, ex.getMessage());
+        }
+        return stored;
     }
 
     @Override
@@ -49,8 +77,13 @@ class FileCredentialProvider implements CredentialProvider {
         if (credentials.isEmpty()) {
             try {
                 Files.deleteIfExists(credentialsPath());
+                Files.deleteIfExists(keyPath());
+                // Drop the cached key so a subsequent store() in this same process
+                // regenerates it on disk instead of encrypting with an in-memory key
+                // that no longer has a backing file.
+                resetEncryption();
             } catch (IOException ex) {
-                // Non-critical — empty file is harmless
+                // Non-critical — leftover files are harmless
             }
         } else {
             writeCredentials(credentials);
@@ -114,5 +147,20 @@ class FileCredentialProvider implements CredentialProvider {
 
     private Path credentialsPath() {
         return config.getAcrCurrentHomePath().resolve(CREDENTIALS_FILE);
+    }
+
+    private Path keyPath() {
+        return config.getAcrCurrentHomePath().resolve(KEY_FILE);
+    }
+
+    private synchronized CredentialEncryption encryption() {
+        if (encryption == null) {
+            encryption = new CredentialEncryption(keyPath());
+        }
+        return encryption;
+    }
+
+    private synchronized void resetEncryption() {
+        encryption = null;
     }
 }

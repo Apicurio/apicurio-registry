@@ -1406,13 +1406,13 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Test
     public void testSearchArtifactsByLabelWithTurkishLocale() throws Exception {
         Locale savedLocale = Locale.getDefault();
+        String artifactId = "testLabelSearchTurkishLocale-1";
         try {
             // Switch to Turkish locale, where 'I'.toLowerCase() = 'ı' (U+0131), not 'i'.
             // If any toLowerCase() call is missing Locale.ROOT, the stored key and the
             // search filter key will differ, and the artifact will not be found.
             Locale.setDefault(new Locale("tr", "TR"));
 
-            String artifactId = "testLabelSearchTurkishLocale-1";
             // Label key contains uppercase I, which is the problematic character under tr_TR.
             Map<String, String> labels = Collections.singletonMap("INSTABILITY", "HIGH");
             EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
@@ -1432,9 +1432,17 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                     filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
 
             Assertions.assertNotNull(results);
-            Assertions.assertEquals(1, results.getCount(),
+            // Use 1L because getCount() returns long; assertEquals(int, long, msg) would
+            // compare Integer(1) to Long(count) as Objects and always fail.
+            Assertions.assertEquals(1L, results.getCount(),
                     "Label search must return the artifact even under a Turkish JVM locale.");
         } finally {
+            // Clean up the artifact so it does not interfere with other tests.
+            try {
+                storage().deleteArtifact(GROUP_ID, artifactId);
+            } catch (Exception ignored) {
+                // Artifact may not exist if createArtifact failed; that is fine.
+            }
             // Always restore the JVM locale to avoid polluting other tests.
             Locale.setDefault(savedLocale);
         }

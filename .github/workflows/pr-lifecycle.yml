@@ -6,8 +6,6 @@ on:
     branches: [main]
   issue_comment:
     types: [created]
-  pull_request_review:
-    types: [submitted, dismissed]
   workflow_run:
     workflows: ["Verify"]
     types: [completed]
@@ -156,31 +154,6 @@ jobs:
             await handler.handleComment({ github, context, core });
 
   # ==========================================================================
-  # Review Submitted
-  # ==========================================================================
-  review:
-    name: Review
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_review' &&
-      (github.event.action == 'submitted' || github.event.action == 'dismissed') &&
-      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Handle review
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handleReview({ github, context, core });
-
-  # ==========================================================================
   # Label Protection
   # ==========================================================================
   label-guard:
@@ -239,7 +212,7 @@ jobs:
       github.repository_owner == 'Apicurio' &&
       failure() &&
       github.event_name != 'schedule'
-    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, command, review, label-guard, test-result, reconcile]
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, command, label-guard, test-result, reconcile]
     steps:
       - name: Post warning comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9

@@ -434,7 +434,7 @@ public class PromptTemplateConverter {
      * overwritten. The caller's map is never modified; a copy is made only when there is a
      * default to apply. A <code>default</code> declared with no value is treated as absent.
      */
-    public Map<String, Object> applyVariableDefaults(PromptTemplate template, Map<String, Object> args) {
+    private Map<String, Object> applyVariableDefaults(PromptTemplate template, Map<String, Object> args) {
         if (template == null || template.getVariables() == null) {
             return args;
         }
@@ -529,6 +529,6 @@ public class PromptTemplateConverter {
         if (template == null || template.getTemplate() == null) {
             return null;
         }
-        return renderTemplate(template.getTemplate(), args);
+        return renderTemplate(template, args);
     }
 }

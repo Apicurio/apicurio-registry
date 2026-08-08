@@ -219,4 +219,57 @@ class PromptTemplateConverterTest {
 
         Assertions.assertEquals("Hello, {{name}}!", rendered);
     }
+
+    private static final String TONE_TEMPLATE_YAML = """
+            templateId: tone-example
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                default: formal
+            """;
+
+    /**
+     * Drives the render_prompt_template and render_registry_prompt path end to end, so that
+     * routing parseAndRenderAutoDetect through the schema-aware overload cannot be reverted
+     * without a failing test.
+     */
+    @Test
+    void testDefaultAppliedThroughParseAndRenderAutoDetect() {
+        String rendered = converter.parseAndRenderAutoDetect(TONE_TEMPLATE_YAML, Map.of());
+
+        Assertions.assertEquals("Write in a formal tone.", rendered);
+    }
+
+    /**
+     * Same guarantee for the explicit content type entry point, which parses the template and
+     * therefore also has the variable schema available.
+     */
+    @Test
+    void testDefaultAppliedThroughParseAndRender() {
+        String rendered = converter.parseAndRender(TONE_TEMPLATE_YAML, "application/x-yaml", Map.of());
+
+        Assertions.assertEquals("Write in a formal tone.", rendered);
+    }
+
+    /**
+     * An argument the caller supplied explicitly as null is present, so the declared default is
+     * not applied to it. Note that the substitution step then renders a null value as an empty
+     * string, which is existing behaviour of this converter and is not changed here. The point of
+     * this test is that the result is not the default, so a later change from containsKey to a
+     * null check cannot silently flip the guarantee.
+     */
+    @Test
+    void testExplicitNullArgumentIsNotOverwrittenByDefault() {
+        PromptTemplate template = template("Write in a {{tone}} tone.",
+                Map.of("tone", variable("string", "formal")));
+        Map<String, Object> args = new HashMap<>();
+        args.put("tone", null);
+
+        String rendered = converter.renderTemplate(template, args);
+
+        Assertions.assertEquals("Write in a  tone.", rendered);
+        Assertions.assertNotEquals("Write in a formal tone.", rendered,
+                "An explicitly supplied null must not be replaced by the declared default");
+    }
 }

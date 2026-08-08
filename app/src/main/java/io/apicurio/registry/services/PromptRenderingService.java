@@ -43,21 +43,21 @@ public class PromptRenderingService {
      * Group 1 = variable name, Group 2 = inner content.
      */
     private static final Pattern IF_BLOCK_PATTERN =
-            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}");
+            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
 
     /**
-     * Matches {{#if var}} ... {{else}} ... {{/if}} blocks.
+     * Matches if-else blocks: opening tag, truthy branch, else tag, falsy branch, closing tag.
      * Group 1 = variable name, Group 2 = truthy branch, Group 3 = falsy branch.
      */
     private static final Pattern IF_ELSE_BLOCK_PATTERN =
-            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}([\\s\\S]*?)\\{\\{else\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}");
+            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{else\\}\\})[\\s\\S])*?)\\{\\{else\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
 
     /**
-     * Matches {{#unless var}} ... {{/unless}} blocks.
+     * Matches unless blocks: opening tag, inner content, closing tag.
      * Group 1 = variable name, Group 2 = inner content.
      */
     private static final Pattern UNLESS_BLOCK_PATTERN =
-            Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}([\\s\\S]*?)\\{\\{/unless\\}\\}");
+            Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}((?:(?!\\{\\{/unless\\}\\})[\\s\\S])*?)\\{\\{/unless\\}\\}");
 
     /**
      * Renders a prompt template by substituting variables.
@@ -394,7 +394,7 @@ public class PromptRenderingService {
     private boolean isTruthy(Object value) {
         return value != null
                 && !Boolean.FALSE.equals(value)
-                && !(value instanceof String && ((String) value).isEmpty());
+                && !(value instanceof String s && s.isEmpty());
     }
 
     /**
@@ -408,7 +408,7 @@ public class PromptRenderingService {
      * </ol>
      */
     private String processConditionalBlocks(String template, Map<String, Object> variables) {
-        // 1. {{#if var}} ... {{else}} ... {{/if}}  (must run before plain {{#if}} to avoid partial match)
+        // Step 1: resolve if-else blocks first to prevent the plain-if pattern from partially matching them
         Matcher ifElseMatcher = IF_ELSE_BLOCK_PATTERN.matcher(template);
         StringBuffer ifElseResult = new StringBuffer();
         while (ifElseMatcher.find()) {
@@ -421,7 +421,7 @@ public class PromptRenderingService {
         ifElseMatcher.appendTail(ifElseResult);
         template = ifElseResult.toString();
 
-        // 2. {{#if var}} ... {{/if}}
+        // Step 2: resolve plain if blocks
         Matcher ifMatcher = IF_BLOCK_PATTERN.matcher(template);
         StringBuffer ifResult = new StringBuffer();
         while (ifMatcher.find()) {
@@ -433,7 +433,7 @@ public class PromptRenderingService {
         ifMatcher.appendTail(ifResult);
         template = ifResult.toString();
 
-        // 3. {{#unless var}} ... {{/unless}}
+        // Step 3: resolve unless blocks (logical complement of if)
         Matcher unlessMatcher = UNLESS_BLOCK_PATTERN.matcher(template);
         StringBuffer unlessResult = new StringBuffer();
         while (unlessMatcher.find()) {

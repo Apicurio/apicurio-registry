@@ -254,7 +254,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         String group1 = TestUtils.generateGroupId();
         String group2 = TestUtils.generateGroupId();
 
-        CreateArtifactResponse car = null;
+        CreateArtifactResponse car;
 
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
@@ -308,6 +308,41 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(results.getVersions().get(0).getLabels());
         Assertions.assertEquals(Map.of("key-1", "value-1", "id", "testSearchVersionsByIds_Group1_Artifact_1"),
                 results.getVersions().get(0).getLabels().getAdditionalData());
+    }
+
+    @Test
+    public void testSearchVersionsByLabelTrailingDelimiter() throws Exception {
+        String artifactContent = "testSearchVersionsByLabelTrailingDelimiter-content";
+        String group = TestUtils.generateGroupId();
+        CreateArtifactResponse car = null;
+
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "testSearchVersionsByLabelTrailingDelimiter_Artifact_" + idx;
+            car = createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+
+            // Add a label with a key and a value.
+            EditableVersionMetaData emd = new EditableVersionMetaData();
+            emd.setLabels(new Labels());
+            emd.getLabels().setAdditionalData(Map.of("trailing", "trailing-value-" + idx));
+            clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(car.getVersion().getVersion()).put(emd);
+        }
+
+        // A label filter with a trailing ':' (no value) must match the key with any value.
+        // This exercises the branch that was previously unreachable dead code (see #8734).
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing:" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Trailing-colon label filter should match all 3 versions by key");
+
+        // A label filter with no ':' at all must also match the key directly.
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Key-only label filter should match all 3 versions by key");
     }
 
     @Test

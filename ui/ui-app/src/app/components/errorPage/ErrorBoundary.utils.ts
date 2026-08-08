@@ -8,3 +8,11 @@ export const shouldResetOnLocationChange = (
     }
     return previousLocation !== currentLocation;
 };
+
+const normalizePath = (path: string): string => {
+    return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+};
+
+export const shouldOfferNavigateHome = (currentLocation: string, homeLocation: string): boolean => {
+    return normalizePath(currentLocation) !== normalizePath(homeLocation);
+};

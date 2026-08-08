@@ -1,5 +1,7 @@
 package io.apicurio.registry.rest;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
@@ -13,7 +15,7 @@ import jakarta.ws.rs.ext.Providers;
 
 @Provider
 @ApplicationScoped
-public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<ValueInstantiationException> {
+public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
 
     @Inject
     CoreRegistryExceptionMapperService coreMapper;
@@ -22,25 +24,32 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<ValueI
     Providers providers;
 
     @Override
-    public Response toResponse(ValueInstantiationException exception) {
-        if (exception.getType() != null && ContractStatusTransition.Status.class.equals(exception.getType().getRawClass())) {
-            String actualValue = "unknown";
-            if (exception.getCause() instanceof IllegalArgumentException
-                    && exception.getCause().getMessage() != null) {
-                actualValue = exception.getCause().getMessage();
+    public Response toResponse(JsonMappingException exception) {
+        String actualValue = null;
+        boolean isStatusEnum = false;
+
+        if (exception instanceof ValueInstantiationException) {
+            ValueInstantiationException vie = (ValueInstantiationException) exception;
+            if (vie.getType() != null && ContractStatusTransition.Status.class.equals(vie.getType().getRawClass())) {
+                isStatusEnum = true;
+                if (vie.getCause() instanceof IllegalArgumentException && vie.getCause().getMessage() != null) {
+                    actualValue = vie.getCause().getMessage();
+                }
             }
+        } else if (exception instanceof InvalidFormatException) {
+            InvalidFormatException ife = (InvalidFormatException) exception;
+            if (ContractStatusTransition.Status.class.equals(ife.getTargetType())) {
+                isStatusEnum = true;
+                if (ife.getValue() != null) {
+                    actualValue = String.valueOf(ife.getValue());
+                }
+            }
+        }
+
+        if (isStatusEnum && actualValue != null) {
             return coreMapper.mapException(new InvalidParameterValueException("status", "valid status enum value", actualValue));
         }
 
-        // Delegate to the framework's default mapper for JsonProcessingException if available
-        if (providers != null) {
-            ExceptionMapper<com.fasterxml.jackson.core.JsonProcessingException> mapper =
-                providers.getExceptionMapper(com.fasterxml.jackson.core.JsonProcessingException.class);
-            if (mapper != null && mapper != (Object) this) {
-                return mapper.toResponse(exception);
-            }
-        }
-
-        return Response.status(400).entity("Not able to deserialize data provided.").build();
+        return coreMapper.mapException(new jakarta.ws.rs.BadRequestException("Not able to deserialize data provided."));
     }
 }

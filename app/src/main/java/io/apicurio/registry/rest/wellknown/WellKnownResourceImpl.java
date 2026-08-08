@@ -72,7 +72,7 @@ import java.util.Set;
 @ApplicationScoped
 @Interceptors({ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class})
 @Logged
-public class    WellKnownResourceImpl implements WellKnownResource {
+public class WellKnownResourceImpl implements WellKnownResource {
 
     private static final Logger log = LoggerFactory.getLogger(WellKnownResourceImpl.class);
     private static final ObjectMapper mapper = new ObjectMapper();

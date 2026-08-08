@@ -48,9 +48,11 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.not;
 
 @QuarkusTest
 public class DataContractsResourceTest extends AbstractResourceTestBase {
@@ -1049,10 +1051,22 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testSearchContracts_ReturnsResults() throws Exception {
+        String artifactId = "testSearch_All-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200);
+
         given().when()
                 .get("/registry/v3/search/contracts")
                 .then().statusCode(200)
-                .body("count", notNullValue());
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
     }
 
     @Test
@@ -1068,10 +1082,80 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
+        // Filtering by the matching status returns the artifact.
         given().when()
                 .queryParam("status", "DRAFT")
                 .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
+
+        // Filtering by a non-matching status does not return the artifact.
+        given().when()
+                .queryParam("status", "STABLE")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", not(hasItem(artifactId)));
+    }
+
+    @Test
+    public void testSearchContracts_WithOwnerTeamFilter() throws Exception {
+        String artifactId = "testSearch_OwnerTeam-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT)
+                        .ownerTeam("search-team").build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
+
+        // Matching owner team returns the artifact.
+        given().when()
+                .queryParam("ownerTeam", "search-team")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
+
+        // Non-matching owner team does not return the artifact.
+        given().when()
+                .queryParam("ownerTeam", "other-team")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", not(hasItem(artifactId)));
+    }
+
+    @Test
+    public void testSearchContracts_WithCompatibilityGroupFilter() throws Exception {
+        String artifactId = "testSearch_CompatGroup-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT)
+                        .compatibilityGroup("orders-cg").build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200);
+
+        // Matching compatibility group returns the artifact.
+        given().when()
+                .queryParam("compatibilityGroup", "orders-cg")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
+
+        // Non-matching compatibility group does not return the artifact.
+        given().when()
+                .queryParam("compatibilityGroup", "inventory-cg")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", not(hasItem(artifactId)));
     }
 
     @Test

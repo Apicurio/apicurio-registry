@@ -179,16 +179,15 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
     private void checkAttributeChanges(XsdAttribute existing, XsdAttribute proposed,
             Set<XsdIncompatibility> incompatibilities) {
         String attrPath = "/attribute[" + existing.getName() + "]";
-        
-        // Check if optional became required
+
+        // Check if optional became required (making it more restrictive)
         if (!existing.isRequired() && proposed.isRequired()) {
-            // This is actually OK for backward (new schema can read old data)
-            // but NOT OK for forward (old schema cannot read new data)
-            // This will be caught in forward compatibility check
+            incompatibilities.add(new XsdIncompatibility(
+                "Attribute '" + existing.getName() + "' changed from optional to required",
+                attrPath
+            ));
         }
-        
-        // Check if required became optional - this is OK for backward
-        
+
         // Check type compatibility
         if (!isTypeCompatible(existing.getType(), proposed.getType(), false)) {
             incompatibilities.add(new XsdIncompatibility(

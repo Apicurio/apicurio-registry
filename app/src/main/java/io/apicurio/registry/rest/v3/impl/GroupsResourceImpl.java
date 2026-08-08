@@ -1985,9 +1985,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
 
-        // A disabled version's content is withdrawn from every other content-serving read path
-        // (see getArtifactVersionContent); rendering must honor that withdrawal too.
-        if (VersionState.DISABLED.equals(versionMetaData.getState())) {
+        if (versionMetaData.getState() == VersionState.DISABLED) {
             throw new VersionNotFoundException(groupId, artifactId, versionExpression);
         }
 
@@ -2030,6 +2028,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Verify the artifact exists and is of type PROTOBUF
         ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        if (versionMetaData.getState() == VersionState.DISABLED) {
+            throw new VersionNotFoundException(groupId, artifactId, versionExpression);
+        }
 
         String artifactType = versionMetaData.getArtifactType();
         if (!"PROTOBUF".equals(artifactType)) {

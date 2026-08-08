@@ -28,7 +28,8 @@ import java.util.*;
 public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCompatibilityChecker.XsdIncompatibility> {
 
     private static final String XSD_NS = "http://www.w3.org/2001/XMLSchema";
-    
+    private static final String ATTRIBUTE_LABEL = "Attribute '";
+
     @Override
     protected Set<XsdIncompatibility> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences) {
@@ -156,7 +157,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
                 // Attribute was removed - backward incompatible even if optional
                 // because old data may have this attribute
                 incompatibilities.add(new XsdIncompatibility(
-                    "Attribute '" + existingAttr.getName() + "' was removed",
+                    ATTRIBUTE_LABEL + existingAttr.getName() + "' was removed",
                     "/attribute[" + existingAttr.getName() + "]"
                 ));
             } else {
@@ -183,7 +184,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         // Check if optional became required (making it more restrictive)
         if (!existing.isRequired() && proposed.isRequired()) {
             incompatibilities.add(new XsdIncompatibility(
-                "Attribute '" + existing.getName() + "' changed from optional to required",
+                ATTRIBUTE_LABEL + existing.getName() + "' changed from optional to required",
                 attrPath
             ));
         }
@@ -191,7 +192,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         // Check type compatibility
         if (!isTypeCompatible(existing.getType(), proposed.getType(), false)) {
             incompatibilities.add(new XsdIncompatibility(
-                "Attribute '" + existing.getName() + "' type changed from " +
+                ATTRIBUTE_LABEL + existing.getName() + "' type changed from " +
                 existing.getType() + " to " + proposed.getType() + " in an incompatible way",
                 attrPath
             ));

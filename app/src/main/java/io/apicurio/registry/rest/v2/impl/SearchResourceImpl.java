@@ -128,8 +128,8 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
-                ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit),
-                false);
+                ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(results);
     }
 
@@ -180,8 +180,8 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
-                ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit),
-                false);
+                ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(results);
     }
 

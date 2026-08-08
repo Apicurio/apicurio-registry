@@ -402,7 +402,8 @@ public class GroupsResourceImpl implements GroupsResource {
         Set<SearchFilter> filters = Collections.emptySet();
 
         GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir,
-                ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit));
+                ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimitUnbounded(limit));
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -902,8 +903,8 @@ public class GroupsResourceImpl implements GroupsResource {
         filters.add(SearchFilter.ofGroupId(defaultGroupIdToNull(groupId)));
 
         ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir,
-                ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit),
-                false);
+                ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1138,7 +1139,7 @@ public class GroupsResourceImpl implements GroupsResource {
                 SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto resultsDto = storage.searchVersions(filters, OrderBy.createdOn,
                 OrderDirection.asc, ParameterValidationUtils.normalizeOffset(offset),
-                ParameterValidationUtils.normalizeLimit(limit), false);
+                ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 

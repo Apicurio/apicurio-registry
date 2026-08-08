@@ -64,8 +64,8 @@ public class PaginationV2Test extends AbstractResourceTestBase {
         given().when().queryParam("group", group).get("/registry/v2/search/artifacts").then()
                 .statusCode(200).body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
 
-        // Oversized values are capped (offset at Integer.MAX_VALUE, limit at MAX_LIMIT) instead of
-        // wrapping to a negative int, which would have produced a 500.
+        // Oversized values are clamped to Integer.MAX_VALUE instead of wrapping to a negative int,
+        // which would have produced a 500. Unlike v3, v2 does not cap limit at a fixed maximum.
         given().when().queryParam("group", group).queryParam("offset", 2147483648L)
                 .get("/registry/v2/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
@@ -163,7 +163,8 @@ public class PaginationV2Test extends AbstractResourceTestBase {
         given().when().queryParam("offset", 2147483648L).get("/registry/v2/groups").then()
                 .statusCode(200).body("groups.size()", equalTo(0));
 
-        // An oversized limit is capped at MAX_LIMIT instead of wrapping to a negative int.
+        // An oversized limit is clamped to Integer.MAX_VALUE instead of wrapping to a negative
+        // int. Unlike v3, v2 does not cap limit at a fixed maximum.
         given().when().queryParam("limit", 2147483648L).get("/registry/v2/groups").then()
                 .statusCode(200);
     }

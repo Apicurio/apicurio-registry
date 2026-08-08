@@ -81,6 +81,12 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Inject
     AuditLogService auditLog;
 
+    public static final String MECH_BASIC = "basic";
+    public static final String MECH_FORM = "form";
+    public static final String MECH_PROXY_HEADER = "proxy-header";
+    public static final String MECH_OIDC = "oidc";
+    public static final String MECH_KUBERNETES = "kubernetes";
+
     @Inject
     Logger log;
 
@@ -127,10 +133,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         }
 
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
-        strategyFactories.put("basic", () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
-                ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism.get())
+        strategyFactories.put(MECH_BASIC, () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
+                ? new DelegatingAuthenticationStrategy(MECH_BASIC, basicAuthenticationMechanism.get())
                 : null);
-        strategyFactories.put("form", () -> {
+        strategyFactories.put(MECH_FORM, () -> {
             if (!authConfig.isFormAuthEnabled()) {
                 return null;
             }
@@ -140,21 +146,21 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                         + "or a JDBC/LDAP realm) must be configured.");
                 return null;
             }
-            return new DelegatingAuthenticationStrategy("form", formAuthenticationMechanism.get());
+            return new DelegatingAuthenticationStrategy(MECH_FORM, formAuthenticationMechanism.get());
         });
-        strategyFactories.put("proxy-header", () -> authConfig.isProxyHeaderAuthEnabled()
-                ? new DelegatingAuthenticationStrategy("proxy-header",
+        strategyFactories.put(MECH_PROXY_HEADER, () -> authConfig.isProxyHeaderAuthEnabled()
+                ? new DelegatingAuthenticationStrategy(MECH_PROXY_HEADER,
                         proxyHeaderAuthenticationMechanism)
                 : null);
-        strategyFactories.put("oidc", () -> {
-            if (!authConfig.oidcAuthEnabled) {
+        strategyFactories.put(MECH_OIDC, () -> {
+            if (!authConfig.isOidcAuthEnabled()) {
                 return null;
             }
             return new OidcAuthenticationStrategy(oidcAuthenticationMechanism, authConfig,
                     auditLog, webClient, log, this);
         });
-        strategyFactories.put("kubernetes", () -> {
-            if (!authConfig.kubernetesAuthEnabled) {
+        strategyFactories.put(MECH_KUBERNETES, () -> {
+            if (!authConfig.isKubernetesAuthEnabled()) {
                 return null;
             }
             if (!kubernetesClient.isResolvable()) {
@@ -170,20 +176,20 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         List<String> priorityList = authConfig.getMechanismPriorityList();
         Set<String> prioritySet = new HashSet<>(priorityList);
 
-        if (authConfig.isBasicAuthEnabled() && !prioritySet.contains("basic")) {
-            log.warn("Basic auth is enabled but 'basic' is missing from apicurio.authn.mechanism.priority.");
+        if (authConfig.isBasicAuthEnabled() && !prioritySet.contains(MECH_BASIC)) {
+            log.warn("Basic auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_BASIC);
         }
-        if (authConfig.isFormAuthEnabled() && !prioritySet.contains("form")) {
-            log.warn("Form auth is enabled but 'form' is missing from apicurio.authn.mechanism.priority. This will result in a silent lockout.");
+        if (authConfig.isFormAuthEnabled() && !prioritySet.contains(MECH_FORM)) {
+            log.warn("Form auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority. This will result in a silent lockout.", MECH_FORM);
         }
-        if (authConfig.isProxyHeaderAuthEnabled() && !prioritySet.contains("proxy-header")) {
-            log.warn("Proxy header auth is enabled but 'proxy-header' is missing from apicurio.authn.mechanism.priority.");
+        if (authConfig.isProxyHeaderAuthEnabled() && !prioritySet.contains(MECH_PROXY_HEADER)) {
+            log.warn("Proxy header auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_PROXY_HEADER);
         }
-        if (authConfig.isOidcAuthEnabled() && !prioritySet.contains("oidc")) {
-            log.warn("OIDC auth is enabled but 'oidc' is missing from apicurio.authn.mechanism.priority.");
+        if (authConfig.isOidcAuthEnabled() && !prioritySet.contains(MECH_OIDC)) {
+            log.warn("OIDC auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_OIDC);
         }
-        if (authConfig.isKubernetesAuthEnabled() && !prioritySet.contains("kubernetes")) {
-            log.warn("Kubernetes auth is enabled but 'kubernetes' is missing from apicurio.authn.mechanism.priority.");
+        if (authConfig.isKubernetesAuthEnabled() && !prioritySet.contains(MECH_KUBERNETES)) {
+            log.warn("Kubernetes auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_KUBERNETES);
         }
 
         log.debug("Mechanism priority list: {}", priorityList);

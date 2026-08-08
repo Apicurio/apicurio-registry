@@ -324,6 +324,24 @@ public class XsdCompatibilityCheckerTest {
     }
 
     @Test
+    void testForwardIncompatible_AttributeRequiredToOptional() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(SCHEMA_WITH_ATTRIBUTE_MADE_REQUIRED);
+        TypedContent proposed = toTypedContent(SCHEMA_WITH_OPTIONAL_ATTRIBUTE);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Changing an attribute from required to optional should be forward incompatible "
+            + "(new data may omit the attribute, which the old schema still requires)");
+    }
+
+    @Test
     void testBackwardIncompatible_TightenRestriction() {
         XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
         TypedContent existing = toTypedContent(SCHEMA_WITH_RESTRICTION);

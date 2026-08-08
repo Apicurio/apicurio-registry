@@ -173,6 +173,10 @@ public class RegistryClientFacadeFactory {
         return new RegistryClientFacadeImpl(client, config.getRegistryUrl(), config.getUsageTelemetryClientId());
     }
 
+    // Suppressed: RegistryV2ClientFactory is intentionally still used here to support
+    // REST API v2 registries. Removal of this call site is tracked alongside the
+    // RegistryV2ClientFactory removal in https://github.com/Apicurio/apicurio-registry/issues/7336.
+    @SuppressWarnings("removal")
     private static RegistryClientFacade create_v2(SchemaResolverConfig config, Vertx vertx) {
         logger.warning("Using a deprecated version (2.x) of Apicurio Registry.  It is recommended to upgrade your Apicurio Registry to version 3.");
         RegistryClientOptions clientOptions = buildClientOptions(config, vertx);

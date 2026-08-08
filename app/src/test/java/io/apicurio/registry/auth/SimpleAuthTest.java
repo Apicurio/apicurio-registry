@@ -159,6 +159,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
      * This is the V2 API variant of testInvalidCredentialsReturnsProblemDetails.
      */
     @Test
+    @SuppressWarnings("removal")
     public void testInvalidCredentialsReturnsAuthErrorV2() throws Exception {
         // Create V2 client with invalid credentials
         var clientV2 = RegistryV2ClientFactory.create(RegistryClientOptions.create(registryV2ApiUrl, vertx)

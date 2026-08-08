@@ -1,10 +1,11 @@
-import React, { RefObject, useEffect, useState } from "react";
+import React, { RefObject, useEffect, useState, useMemo } from "react";
 import { Editor as DraftEditor, EditorProps } from "./editor-types";
 import "./OpenApiEditor.css";
 import { parseJson, parseYaml, toJsonString, toYamlString } from "@utils/content.utils.ts";
 import { IfNotLoading } from "@apicurio/common-ui-components";
 import { useConfigService } from "@services/useConfigService.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
+import { deriveOrigin } from "@utils/url.utils.ts";
 
 
 export type OpenApiEditorProps = {
@@ -30,6 +31,10 @@ export const OpenApiEditor: DraftEditor = (props: OpenApiEditorProps) => {
     }
     const ref: RefObject<any> = React.createRef();
 
+    const expectedOrigin = useMemo(() => {
+        return deriveOrigin(editorsUrl, window.location.origin);
+    }, [editorsUrl]);
+
     useEffect(() => {
         setIsLoading(false);
         // systemSvc.getOpenApiVendorExtensions().then(extensions => {
@@ -47,7 +52,10 @@ export const OpenApiEditor: DraftEditor = (props: OpenApiEditorProps) => {
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        const eventListener: any = (event) => {
+        const eventListener = (event: MessageEvent) => {
+            if (!expectedOrigin || event.origin !== expectedOrigin) {
+                return;
+            }
             if (event.data && event.data.type === "apicurio_onChange") {
                 let newContent: any = event.data.data.content;
                 if (typeof newContent === "object") {
@@ -105,7 +113,9 @@ export const OpenApiEditor: DraftEditor = (props: OpenApiEditorProps) => {
                 }
             }
         };
-        ref.current.contentWindow.postMessage(message, "*");
+        if (expectedOrigin) {
+            ref.current.contentWindow.postMessage(message, expectedOrigin);
+        }
     };
 
     return (

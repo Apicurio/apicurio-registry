@@ -433,16 +433,17 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<>();
 
-        // All contracts have labels in the reserved "contract.*" namespace. The "*" is
-        // required for a prefix match (label keys are namespaced per contract, e.g.
-        // "contract.{contractId}.status"), since the SQL layer only treats "*" as a
-        // wildcard. Without it the filter becomes an exact match on "contract." and
-        // never matches anything.
+        // Contract metadata is stored in labels within the reserved "contract.*" namespace.
+        // The key is "contract.{suffix}" when no contract id has been assigned yet (e.g.
+        // "contract.status"), or "contract.{contractId}.{suffix}" once a contract id exists
+        // (e.g. "contract.myid.status"). The trailing "*" is required for a prefix match
+        // covering both forms, since the SQL layer only treats "*" as a wildcard. Without it
+        // the filter becomes an exact match on "contract." and never matches anything.
         filters.add(SearchFilter.ofLabel("contract.*"));
 
-        // Suffix filters match the label key by suffix ("contract.status" for metadata
-        // written without a contract id, "contract.{contractId}.status" otherwise). The
-        // wildcard covers the optional "{contractId}." segment.
+        // Suffix filters match the label key by suffix. "contract.*" + suffix becomes
+        // "contract.%{suffix}" in SQL, where "%" covers the optional "{contractId}." segment
+        // (and the empty string), so both label forms above are matched.
         if (!StringUtil.isEmpty(status)) {
             filters.add(SearchFilter.ofLabel("contract.*" + ContractLabels.SUFFIX_STATUS, status));
         }

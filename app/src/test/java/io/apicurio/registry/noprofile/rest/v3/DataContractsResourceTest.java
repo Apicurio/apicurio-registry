@@ -1070,6 +1070,33 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchContracts_ExcludesArtifactsWithoutContractMetadata() throws Exception {
+        String withContract = "testSearch_Exclude_With-" + UUID.randomUUID();
+        String withoutContract = "testSearch_Exclude_Without-" + UUID.randomUUID();
+
+        createArtifact(GROUP, withContract, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, withoutContract, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", withContract)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200);
+
+        // Only the artifact with contract metadata is returned; the artifact without any
+        // contract.* labels is excluded by the base "contract.*" namespace filter.
+        given().when()
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", hasItem(withContract))
+                .body("artifacts.artifactId", not(hasItem(withoutContract)));
+    }
+
+    @Test
     public void testSearchContracts_WithStatusFilter() throws Exception {
         String artifactId = "testSearch_Status-" + UUID.randomUUID();
         createArtifact(GROUP, artifactId, ArtifactType.AVRO,
@@ -1105,14 +1132,16 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
                 ContentTypes.APPLICATION_JSON);
 
+        // Store a mixed-case owner team and query with a different case to verify the
+        // label value filter is case-insensitive (LOWER(l.labelValue) in the SQL layer).
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT)
-                        .ownerTeam("search-team").build())
+                        .ownerTeam("Search-Team").build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
-        // Matching owner team returns the artifact.
+        // Matching owner team (lowercase query, mixed-case stored value) returns the artifact.
         given().when()
                 .queryParam("ownerTeam", "search-team")
                 .get("/registry/v3/search/contracts")
@@ -1135,14 +1164,16 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
                 ContentTypes.APPLICATION_JSON);
 
+        // Store a mixed-case compatibility group and query with a different case to verify
+        // the label value filter is case-insensitive (LOWER(l.labelValue) in the SQL layer).
         given().when().contentType(CT_JSON)
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT)
-                        .compatibilityGroup("orders-cg").build())
+                        .compatibilityGroup("Orders-CG").build())
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
-        // Matching compatibility group returns the artifact.
+        // Matching compatibility group (lowercase query, mixed-case stored value) returns the artifact.
         given().when()
                 .queryParam("compatibilityGroup", "orders-cg")
                 .get("/registry/v3/search/contracts")

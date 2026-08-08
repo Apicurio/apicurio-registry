@@ -208,6 +208,37 @@ jobs:
           decide run-console-plugin  "$run_smoke" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
           decide run-go-sdk-freshness "$run_smoke" "$GO_SDK_GEN" "$CI"
 
+          # ── Phase 4: AI area-label augmentation (additive only) ─────────
+          # The PR classifier (classify-pr.yml) auto-assigns area/* labels to
+          # pull requests. These are an ADDITIONAL signal for test group
+          # selection: they can only enable a group whose lifecycle scope is
+          # already active — they never disable or narrow anything selected by
+          # the deterministic path-based logic in Phase 3. This lets a PR run
+          # the tests for an area its description calls out even when the
+          # changed files do not match the path filter. Per-PR opt-out is
+          # available via the `ci/disable-ai-select` label.
+          if [ "$EVENT" != "push" ] && ! has_label "ci/disable-ai-select"; then
+            ai_enable() {
+              local name="$1" scope="$2"; shift 2
+              [ "$scope" != "true" ] && return 0
+              for lbl in "$@"; do
+                if has_label "$lbl"; then
+                  echo "$name=true" >> "$GITHUB_OUTPUT"
+                  return 0
+                fi
+              done
+            }
+            ai_enable run-build           "$run_smoke" area/CI area/build area/dependencies
+            ai_enable run-unit-tests      "$run_smoke" area/CI area/build area/dependencies
+            ai_enable run-unit-tests      "$run_smoke" area/auth area/avro area/converter area/protobuf area/QE area/references area/rest area/rules area/search area/serdes area/storage
+            ai_enable run-integration     "$run_full"  area/auth area/avro area/converter area/protobuf area/QE area/references area/rest area/rules area/search area/serdes area/storage
+            ai_enable run-extras          "$run_full"  area/ui
+            ai_enable run-sdk             "$run_full"  area/sdk
+            ai_enable run-cli             "$run_full"  area/CLI
+            ai_enable run-operator        "$run_full"  area/operator
+            ai_enable run-go-sdk-freshness "$run_smoke" area/sdk
+          fi
+
           # Scalpel (affected-module detection) can be disabled via PR label
           if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then
             echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"

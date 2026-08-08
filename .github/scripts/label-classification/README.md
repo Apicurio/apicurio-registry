@@ -1,6 +1,6 @@
 # Label Classification
 
-Automatically assigns `area/*` labels and issue types to GitHub issues using sentence embeddings. Runs in GitHub Actions on every issue open/edit — no inference API calls, no API keys, no GPU required. The embedding model is downloaded from Hugging Face Hub on first run and cached between workflow runs.
+Automatically assigns `area/*` labels (and, for issues, the issue type) using sentence embeddings. Runs in GitHub Actions on every issue open/edit and every pull request open/edit/push — no inference API calls, no API keys, no GPU required. The embedding model is downloaded from Hugging Face Hub on first run and cached between workflow runs.
 
 ## Usage
 
@@ -10,11 +10,17 @@ python classify.py --repo Apicurio/apicurio-registry --issue 7891 --dry-run
 
 # Apply labels and issue type
 python classify.py --repo Apicurio/apicurio-registry --issue 7891
+
+# Classify a pull request (title + body + changed file paths)
+python classify.py --repo Apicurio/apicurio-registry --pr 7992
+
+# Dry run for a pull request
+python classify.py --repo Apicurio/apicurio-registry --pr 7992 --dry-run
 ```
 
 Requires: `pip install pyyaml sentence-transformers`
 
-In GitHub Actions, the workflow (`.github/workflows/classify-issues.yml`) runs this automatically.
+In GitHub Actions, the workflows (`.github/workflows/classify-issues.yml` and `.github/workflows/classify-pr.yml`) run this automatically.
 
 ## How It Works
 
@@ -24,7 +30,7 @@ The script compares the **meaning** of an issue's text against the **meaning** o
 
 The key technique is **sentence embeddings** — converting text into a vector (a list of 384 numbers) that captures its meaning. Texts with similar meaning produce vectors that point in similar directions.
 
-1. The issue title and body are concatenated into a single string. The **entire text** is embedded as one unit — not individual words. The model reads all words in context (e.g. it knows "Kubernetes operator" is different from "mathematical operator").
+1. The title and body are concatenated into a single string. For pull requests, the changed file paths are appended too (file paths carry strong signal about which area a PR affects). The **entire text** is embedded as one unit — not individual words. The model reads all words in context (e.g. it knows "Kubernetes operator" is different from "mathematical operator").
 
 2. Each label's description from `label-descriptions.yml` is embedded the same way.
 
@@ -55,6 +61,16 @@ The model is **not** being trained or fine-tuned. It's used as-is — all the "l
 ### Hierarchical Labels
 
 Some labels have parent-child relationships (e.g. `area/storage/sql` → `area/storage`). When a child label is assigned, the parent is automatically added too. This is configured via the `parent` field in `label-descriptions.yml`.
+
+## Pull Request Classification and CI Integration
+
+Pull requests are classified from their **title, body, and changed file paths** to auto-assign `area/*` labels. The `classify-pr.yml` workflow runs on `pull_request_target` (opened/edited/synchronize/ready_for_review) so labels are applied to PRs from forks too.
+
+Those labels are consumed by the **Verify** workflow's `decide` job as an *additional* signal for test group selection:
+
+- The deterministic path-based logic (`dorny/paths-filter` + the `decide()` function in `verify.yaml`) stays authoritative for **narrowing** which test groups run.
+- The AI area labels can only **widen** that selection: if the classifier flags an area whose test group the path filter didn't select, that group is enabled — provided the PR's lifecycle scope already permits it (e.g. `area/operator` enables the operator tests when the PR is `lifecycle/ready-for-review`).
+- Per-PR opt-out via the `ci/disable-ai-select` label.
 
 ## Tuning Accuracy
 
@@ -115,6 +131,9 @@ Labels with low recall are listed at the bottom with the specific issues they mi
 # Test all labels (default: 10 issues per label, 50 for precision)
 python test_classify.py --repo Apicurio/apicurio-registry
 
+# Evaluate accuracy on pull requests instead of issues
+python test_classify.py --repo Apicurio/apicurio-registry --prs
+
 # Test specific labels only
 python test_classify.py --repo Apicurio/apicurio-registry --labels area/auth area/ui
 
@@ -150,7 +169,9 @@ Key observations:
 
 | File | Purpose |
 |------|---------|
-| `classify.py` | Main classification script |
-| `test_classify.py` | Accuracy testing (recall + precision) |
+| `classify.py` | Main classification script (issues and pull requests) |
+| `test_classify.py` | Accuracy testing (recall + precision; `--prs` for pull requests) |
 | `label-descriptions.yml` | Label/type descriptions and threshold configuration |
 | `README.md` | This file |
+| `.github/workflows/classify-issues.yml` | Runs classification on issue open/edit |
+| `.github/workflows/classify-pr.yml` | Runs classification on PR open/edit/push |

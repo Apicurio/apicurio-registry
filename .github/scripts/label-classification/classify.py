@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """
-Classify GitHub issues by assigning area labels and issue type
-using sentence embeddings and cosine similarity.
+Classify GitHub issues and pull requests by assigning area labels
+(and, for issues, the issue type) using sentence embeddings and cosine similarity.
+
+Pull requests are classified from their title, body, and changed file paths,
+which lets the classification inform CI test group selection in the Verify
+workflow (see verify.yaml "AI area-label augmentation").
 
 Usage:
     python classify.py --repo OWNER/REPO --issue NUMBER
     python classify.py --repo OWNER/REPO --issue NUMBER --dry-run
+    python classify.py --repo OWNER/REPO --pr NUMBER
+    python classify.py --repo OWNER/REPO --pr NUMBER --dry-run
 """
 
 import argparse
@@ -32,6 +38,33 @@ def get_issue(repo, number):
         capture_output=True, text=True, check=True,
     )
     return json.loads(result.stdout)
+
+
+def get_pull_request(repo, number):
+    result = subprocess.run(
+        ["gh", "api", f"repos/{repo}/pulls/{number}"],
+        capture_output=True, text=True, check=True,
+    )
+    return json.loads(result.stdout)
+
+
+def get_changed_files(repo, number, limit=150):
+    """Returns the file paths changed in a pull request (capped to `limit`)."""
+    result = subprocess.run(
+        ["gh", "api", f"repos/{repo}/pulls/{number}/files", "--paginate"],
+        capture_output=True, text=True, check=True,
+    )
+    files = json.loads(result.stdout)
+    return [f.get("filename", "") for f in files if f.get("filename")][:limit]
+
+
+def build_text(title, body, extra=""):
+    text = f"{title}\n\n{body or ''}"
+    if extra:
+        text += f"\n\n{extra}"
+    if len(text) > 8000:
+        text = text[:8000]
+    return text
 
 
 def get_issue_type(repo, number):
@@ -134,6 +167,20 @@ def classify_issue_type(issue_embedding, type_embeddings, config):
     return None, None, scores
 
 
+def build_label_embeddings(model, config):
+    label_names = list(config["area_labels"]["labels"].keys())
+    label_descs = [config["area_labels"]["labels"][n]["description"] for n in label_names]
+    label_vecs = model.encode(label_descs)
+    return dict(zip(label_names, label_vecs))
+
+
+def build_type_embeddings(model, config):
+    type_names = list(config["issue_types"]["types"].keys())
+    type_descs = [config["issue_types"]["types"][n]["description"] for n in type_names]
+    type_vecs = model.encode(type_descs)
+    return dict(zip(type_names, type_vecs))
+
+
 def apply_labels(repo, number, labels):
     for label in labels:
         subprocess.run(
@@ -164,53 +211,32 @@ def apply_issue_type(repo, number, type_id):
     )
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Classify GitHub issues")
-    parser.add_argument("--repo", required=True, help="owner/repo")
-    parser.add_argument("--issue", required=True, type=int, help="Issue number")
-    parser.add_argument("--dry-run", action="store_true", help="Print results without applying")
-    args = parser.parse_args()
-
-    config = load_config()
-
-    print(f"Fetching issue #{args.issue} from {args.repo}...")
-    issue = get_issue(args.repo, args.issue)
-    title = issue.get("title", "")
-    body = issue.get("body", "") or ""
-    existing_labels = {l["name"] for l in issue.get("labels", [])}
-    existing_area_labels = {l for l in existing_labels if l.startswith("area/")}
-
-    issue_text = f"{title}\n\n{body}"
-    if len(issue_text) > 8000:
-        issue_text = issue_text[:8000]
-
-    print(f"Loading model '{config['model']}'...")
-    model = SentenceTransformer(config["model"])
-
-    print("Computing embeddings...")
-    issue_embedding = model.encode(issue_text)
-
-    label_names = list(config["area_labels"]["labels"].keys())
-    label_descs = [config["area_labels"]["labels"][n]["description"] for n in label_names]
-    label_vecs = model.encode(label_descs)
-    label_embeddings = dict(zip(label_names, label_vecs))
-
-    type_names = list(config["issue_types"]["types"].keys())
-    type_descs = [config["issue_types"]["types"][n]["description"] for n in type_names]
-    type_vecs = model.encode(type_descs)
-    type_embeddings = dict(zip(type_names, type_vecs))
-
-    # --- Area labels ---
+def print_area_scores(area_scores, new_labels, config):
     default_threshold = config["area_labels"]["threshold"]
     labels_config = config["area_labels"]["labels"]
-    new_labels, area_scores = classify_area_labels(issue_embedding, label_embeddings, config)
-    labels_to_add = new_labels - existing_area_labels
-
     print("\n=== Area Label Scores ===")
     for label, score in sorted(area_scores.items(), key=lambda x: x[1], reverse=True):
         effective_threshold = labels_config[label].get("threshold", default_threshold)
         marker = ">>>" if label in new_labels else "   "
         print(f"  {marker} {label}: {score:.4f} (threshold: {effective_threshold})")
+
+
+def classify_issue(args, model, config, label_embeddings, type_embeddings):
+    print(f"Fetching issue #{args.issue} from {args.repo}...")
+    issue = get_issue(args.repo, args.issue)
+    existing_labels = {l["name"] for l in issue.get("labels", [])}
+    existing_area_labels = {l for l in existing_labels if l.startswith("area/")}
+
+    text = build_text(issue.get("title", ""), issue.get("body", ""))
+
+    print("Computing embeddings...")
+    issue_embedding = model.encode(text)
+
+    # --- Area labels ---
+    new_labels, area_scores = classify_area_labels(issue_embedding, label_embeddings, config)
+    labels_to_add = new_labels - existing_area_labels
+
+    print_area_scores(area_scores, new_labels, config)
 
     if labels_to_add:
         print(f"\nLabels to add: {', '.join(sorted(labels_to_add))}")
@@ -256,6 +282,83 @@ def main():
         print("Issue type set.")
 
     print("\nDone.")
+
+
+def classify_pull_request(args, model, config, label_embeddings):
+    print(f"Fetching pull request #{args.pr} from {args.repo}...")
+    pr = get_pull_request(args.repo, args.pr)
+    existing_labels = {l["name"] for l in pr.get("labels", [])}
+    existing_area_labels = {l for l in existing_labels if l.startswith("area/")}
+
+    print("Fetching changed files...")
+    changed_files = get_changed_files(args.repo, args.pr)
+    print(f"  {len(changed_files)} changed file(s).")
+
+    extra = f"Changed files:\n{'\n'.join(changed_files)}" if changed_files else ""
+    text = build_text(pr.get("title", ""), pr.get("body", ""), extra)
+
+    print("Computing embeddings...")
+    pr_embedding = model.encode(text)
+
+    new_labels, area_scores = classify_area_labels(pr_embedding, label_embeddings, config)
+    labels_to_add = new_labels - existing_area_labels
+
+    print_area_scores(area_scores, new_labels, config)
+
+    if labels_to_add:
+        print(f"\nLabels to add: {', '.join(sorted(labels_to_add))}")
+    else:
+        print("\nNo new area labels to add.")
+
+    # Structured result so downstream steps (e.g. the Verify decide job) can
+    # consume it, and so workflow logs are greppable.
+    result = {
+        "pr": args.pr,
+        "area_labels": sorted(new_labels),
+        "labels_to_add": sorted(labels_to_add),
+        "scores": area_scores,
+        "changed_files": len(changed_files),
+    }
+    print(f"\nPR_CLASSIFICATION_JSON: {json.dumps(result)}")
+
+    # --- Apply ---
+    if args.dry_run:
+        print("\n[DRY RUN] No changes applied.")
+        return
+
+    if labels_to_add:
+        print("\nApplying labels...")
+        apply_labels(args.repo, args.pr, labels_to_add)
+        print("Labels applied.")
+
+    print("\nDone.")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Classify GitHub issues and pull requests")
+    parser.add_argument("--repo", required=True, help="owner/repo")
+    parser.add_argument("--issue", type=int, help="Issue number")
+    parser.add_argument("--pr", type=int, help="Pull request number")
+    parser.add_argument("--dry-run", action="store_true", help="Print results without applying")
+    args = parser.parse_args()
+
+    if bool(args.issue) == bool(args.pr):
+        parser.error("exactly one of --issue or --pr must be provided")
+
+    config = load_config()
+
+    print(f"Loading model '{config['model']}'...")
+    model = SentenceTransformer(config["model"])
+
+    print("Computing label embeddings...")
+    label_embeddings = build_label_embeddings(model, config)
+    type_embeddings = build_type_embeddings(model, config)
+
+    if args.pr is not None:
+        classify_pull_request(args, model, config, label_embeddings)
+    else:
+        classify_issue(args, model, config, label_embeddings, type_embeddings)
 
 
 if __name__ == "__main__":

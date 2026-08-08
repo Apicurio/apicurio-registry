@@ -2,10 +2,10 @@
 """
 Test classification accuracy by measuring recall and precision per label.
 
-Phase 1 (recall): For each area label, fetches issues that have that label
-and checks if the model would have assigned it.
+Phase 1 (recall): For each area label, fetches issues (or pull requests) that
+have that label and checks if the model would have assigned it.
 
-Phase 2 (precision): Fetches a broad sample of recent issues and checks
+Phase 2 (precision): Fetches a broad sample of recent issues/PRs and checks
 for false positives (labels assigned by the model but not by humans).
 
 Uses F2 score (recall-weighted) as the combined metric.
@@ -15,6 +15,7 @@ Usage:
     python test_classify.py --repo OWNER/REPO --labels area/auth area/ui
     python test_classify.py --repo OWNER/REPO --sample-size 10
     python test_classify.py --repo OWNER/REPO --recall-only
+    python test_classify.py --repo OWNER/REPO --prs
 """
 
 import argparse
@@ -34,63 +35,77 @@ def load_config():
         return yaml.safe_load(f)
 
 
-def fetch_issues_for_label(repo, label, limit):
-    result = subprocess.run(
-        ["gh", "issue", "list",
-         "--repo", repo,
-         "--label", label,
-         "--state", "all",
-         "--limit", str(limit),
-         "--json", "number,title,body,labels"],
-        capture_output=True, text=True, check=True,
-    )
+def fetch_for_label(repo, label, limit, is_pr):
+    if is_pr:
+        result = subprocess.run(
+            ["gh", "pr", "list",
+             "--repo", repo,
+             "--label", label,
+             "--state", "all",
+             "--limit", str(limit),
+             "--json", "number,title,body,labels"],
+            capture_output=True, text=True, check=True,
+        )
+    else:
+        result = subprocess.run(
+            ["gh", "issue", "list",
+             "--repo", repo,
+             "--label", label,
+             "--state", "all",
+             "--limit", str(limit),
+             "--json", "number,title,body,labels"],
+            capture_output=True, text=True, check=True,
+        )
     return json.loads(result.stdout)
 
 
-def fetch_recent_issues(repo, limit):
-    result = subprocess.run(
-        ["gh", "issue", "list",
-         "--repo", repo,
-         "--state", "all",
-         "--limit", str(limit),
-         "--json", "number,title,body,labels"],
-        capture_output=True, text=True, check=True,
-    )
+def fetch_recent(repo, limit, is_pr):
+    if is_pr:
+        result = subprocess.run(
+            ["gh", "pr", "list",
+             "--repo", repo,
+             "--state", "all",
+             "--limit", str(limit),
+             "--json", "number,title,body,labels"],
+            capture_output=True, text=True, check=True,
+        )
+    else:
+        result = subprocess.run(
+            ["gh", "issue", "list",
+             "--repo", repo,
+             "--state", "all",
+             "--limit", str(limit),
+             "--json", "number,title,body,labels"],
+            capture_output=True, text=True, check=True,
+        )
     return json.loads(result.stdout)
 
 
-def cosine_similarity(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+def fetch_changed_files(repo, number, limit=150):
+    """Returns the file paths changed in a pull request (capped to `limit`)."""
+    result = subprocess.run(
+        ["gh", "api", f"repos/{repo}/pulls/{number}/files", "--paginate"],
+        capture_output=True, text=True, check=True,
+    )
+    files = json.loads(result.stdout)
+    return [f.get("filename", "") for f in files if f.get("filename")][:limit]
 
 
-def issue_text(issue):
-    title = issue.get("title", "")
-    body = issue.get("body", "") or ""
+def entity_text(repo, item, is_pr):
+    title = item.get("title", "")
+    body = item.get("body", "") or ""
     text = f"{title}\n\n{body}"
+    if is_pr:
+        files = fetch_changed_files(repo, item["number"])
+        if files:
+            text += f"\n\nChanged files:\n{'\n'.join(files)}"
     if len(text) > 8000:
         text = text[:8000]
     return text
 
 
-def classify_issue(issue_embedding, label_embeddings, labels_config, default_threshold, max_labels):
-    scores = {}
-    for label_name, label_emb in label_embeddings.items():
-        scores[label_name] = float(cosine_similarity(issue_embedding, label_emb))
-
-    sorted_labels = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    selected = [
-        (name, score) for name, score in sorted_labels
-        if score >= labels_config[name].get("threshold", default_threshold)
-    ]
-    selected = selected[:max_labels]
-
-    result = set(name for name, _ in selected)
-    for name, _ in selected:
-        parent = labels_config[name].get("parent")
-        if parent:
-            result.add(parent)
-
-    return result, scores
+def cosine_similarity(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
 def fbeta(precision, recall, beta=2.0):
@@ -109,13 +124,18 @@ def main():
                         help="Number of recent issues for precision test (default: 50)")
     parser.add_argument("--recall-only", action="store_true",
                         help="Skip precision test")
+    parser.add_argument("--prs", action="store_true",
+                        help="Evaluate on pull requests instead of issues")
     args = parser.parse_args()
+    is_pr = args.prs
 
     config = load_config()
     label_config = config["area_labels"]
     default_threshold = label_config["threshold"]
     max_labels = label_config["max_labels"]
     all_labels = label_config["labels"]
+
+    entity = "pull requests" if is_pr else "issues"
 
     labels_to_test = all_labels
     if args.labels:
@@ -146,16 +166,16 @@ def main():
         print(f"Testing: {label_name} (threshold: {threshold})")
         print(f"{'=' * 60}")
 
-        issues = fetch_issues_for_label(args.repo, label_name, args.sample_size)
+        issues = fetch_for_label(args.repo, label_name, args.sample_size, is_pr)
         if not issues:
-            print(f"  No issues found with label '{label_name}'")
+            print(f"  No {entity} found with label '{label_name}'")
             recall_data[label_name] = {"found": 0, "total": 0, "missed": [], "scores": []}
             continue
 
         for iss in issues:
             recall_issue_numbers.add(iss["number"])
 
-        embeddings = model.encode([issue_text(iss) for iss in issues])
+        embeddings = model.encode([entity_text(args.repo, iss, is_pr) for iss in issues])
 
         found = 0
         missed = []
@@ -208,11 +228,11 @@ def main():
         print("PHASE 2: PRECISION (false positive check)")
         print(f"{'#' * 60}")
 
-        print(f"\nFetching {args.precision_sample} recent issues...")
-        recent_issues = fetch_recent_issues(args.repo, args.precision_sample)
-        # Exclude issues already used in the recall sample to avoid double-counting
+        print(f"\nFetching {args.precision_sample} recent {entity}...")
+        recent_issues = fetch_recent(args.repo, args.precision_sample, is_pr)
+        # Exclude entities already used in the recall sample to avoid double-counting
         recent_issues = [iss for iss in recent_issues if iss["number"] not in recall_issue_numbers]
-        recent_embeddings = model.encode([issue_text(iss) for iss in recent_issues])
+        recent_embeddings = model.encode([entity_text(args.repo, iss, is_pr) for iss in recent_issues])
 
         fp_by_label = defaultdict(list)
         tp_by_label = defaultdict(int)

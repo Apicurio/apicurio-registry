@@ -1,5 +1,4 @@
 import React, { FunctionComponent } from "react";
-import { Link } from "react-router";
 import "./PromptTemplateViewer.css";
 import {
     Card,
@@ -18,6 +17,7 @@ import {
     Title
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
+import { highlightVariables } from "./PromptTemplateViewer.utils";
 
 export interface PromptVariable {
     name?: string;
@@ -96,6 +96,15 @@ const getVariablesList = (variables: Record<string, PromptVariable> | PromptVari
     return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
 };
 
+// Format a variable default for display in the Variables table.
+// Objects and arrays go through JSON.stringify so they don't render as "[object Object]".
+const formatDefault = (value: any): string => {
+    if (typeof value === "object" && value !== null) {
+        return JSON.stringify(value);
+    }
+    return String(value);
+};
+
 export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> = (props: PromptTemplateViewerProps) => {
     const { promptTemplate, className } = props;
     const variablesList = getVariablesList(promptTemplate.variables);
@@ -146,6 +155,14 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                             <DescriptionListDescription>{meta.createdAt}</DescriptionListDescription>
                         </DescriptionListGroup>
                     )}
+                    {meta?.estimatedTokens && (
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Estimated Tokens</DescriptionListTerm>
+                            <DescriptionListDescription>
+                                {meta.estimatedTokens.input ?? 0} (+{meta.estimatedTokens.variableOverhead ?? 0} overhead)
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                    )}
                 </DescriptionList>
 
                 {promptTemplate.template && (
@@ -163,13 +180,14 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Variables</Title>
                         <div className="variables-table-wrapper">
-                            <table className="variables-table">
+                            <table className="variables-table" aria-label="Template variables">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>Required</th>
                                         <th>Default</th>
+                                        <th>Allowed Values</th>
                                         <th>Description</th>
                                     </tr>
                                 </thead>
@@ -188,8 +206,17 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                                 )}
                                             </td>
                                             <td>{variable.default !== undefined ? (
-                                                <code>{String(variable.default)}</code>
+                                                <code>{formatDefault(variable.default)}</code>
                                             ) : "-"}</td>
+                                            <td>
+                                                {variable.enum && variable.enum.length > 0 ? (
+                                                    <LabelGroup>
+                                                        {variable.enum.map((val, i) => (
+                                                            <Label key={i} color="grey" isCompact>{String(val)}</Label>
+                                                        ))}
+                                                    </LabelGroup>
+                                                ) : "-"}
+                                            </td>
                                             <td>{variable.description || "-"}</td>
                                         </tr>
                                     ))}
@@ -216,11 +243,9 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Recommended Models</Title>
                         <LabelGroup className="section-content">
-                            {meta.recommendedModels.map((model, index) => (
-                                <Label key={index} color="purple" isCompact>
-                                    <Link to={`/explore/default/${encodeURIComponent(model)}`} className="model-link">
-                                        {model}
-                                    </Link>
+                            {meta.recommendedModels.map((model) => (
+                                <Label key={model} color="purple" isCompact>
+                                    {model}
                                 </Label>
                             ))}
                         </LabelGroup>

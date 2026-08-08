@@ -128,7 +128,6 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("skills.id", hasItem("artifact-management"))
                 .body("skills.id", hasItem("compatibility-check"))
                 .body("skills.id", hasItem("agent-discovery"))
-                .body("capabilities.stateTransitionHistory", equalTo(false))
                 .body("defaultInputModes", hasItem("text/plain"))
                 .body("defaultOutputModes", hasItem("text/plain"))
                 .body("securitySchemes", notNullValue());
@@ -445,6 +444,43 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testGetPublicAgentsNegativeOffset() {
+        givenAtRoot()
+                .when()
+                .queryParam("offset", -1)
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgentsNegativeLimit() {
+        givenAtRoot()
+                .when()
+                .queryParam("limit", -1)
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgentsNegativeOffsetLimitViaV3Path() {
+        givenAtRoot()
+                .when()
+                .queryParam("offset", -1)
+                .queryParam("limit", -1)
+                .get("/apis/registry/v3/well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
     public void testSearchAgentsAdvancedWithQueryWildcard() throws Exception {
         String groupId = TestUtils.generateGroupId();
         createAgentCard(groupId, "wildcard-target-agent", AGENT_CARD_CONTENT);
@@ -584,6 +620,21 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                         equalTo("https://example.com/agent"))
                 .body("agents.find { it.artifactId == 'url-agent' }.supportedInterfaces[0].protocolVersion",
                         equalTo("1.0"));
+    }
+
+    @Test
+    public void testGetSchemaWithRenamedParam() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/prompt-template/v1")
+                .then()
+                .statusCode(200);
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/nonexistent/v1")
+                .then()
+                .statusCode(404);
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {

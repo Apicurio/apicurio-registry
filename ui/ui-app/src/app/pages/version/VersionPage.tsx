@@ -275,7 +275,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             pleaseWait(false);
             const gid: string = encodeURIComponent(groupId || "default");
             const aid: string = encodeURIComponent(artifactId as string);
-            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions`);
+            appNavigation.navigateTo(`/explore/${gid}/${aid}`);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting a version."));
         });
@@ -404,6 +404,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();

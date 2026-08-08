@@ -10,11 +10,7 @@ import {
     DescriptionListDescription,
     DescriptionListGroup,
     DescriptionListTerm,
-    Drawer,
-    DrawerContent,
-    DrawerContentBody,
     DrawerHead,
-    DrawerPanelContent,
     EmptyState,
     EmptyStateActions,
     EmptyStateBody,
@@ -42,6 +38,7 @@ import { labelsToAny } from "@utils/rest.utils.ts";
 import { Paging } from "@models/Paging.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { ArtifactVersionsToolbar, VersionsTable } from "@app/pages";
+import { ResizableOverviewDrawer } from "@app/components/common/ResizableOverviewDrawer";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
 import { UsageService, useUsageService } from "@services/useUsageService.ts";
 
@@ -203,98 +200,96 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
     );
 
     const panelContent = (
-        <DrawerPanelContent isResizable={true} defaultSize={"500px"} minSize={"300px"}>
-            <DrawerHead className="__drawer-head">
-                <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
-                    <div className="artifact-basics">
-                        <div className="title-and-type">
-                            <Flex>
-                                <FlexItem className="title">Artifact metadata</FlexItem>
-                                <FlexItem className="actions" align={{ default: "alignRight" }}>
-                                    <IfAuth isDeveloper={true} owner={props.artifact.owner}>
-                                        <IfFeature feature="readOnly" isNot={true}>
-                                            <Button icon={<PencilAltIcon />} id="edit-action"
-                                                data-testid="artifact-btn-edit"
-                                                onClick={props.onEditMetaData}
-                                                style={{ padding: "0" }}
-                                                variant="link">{" "}Edit</Button>
-                                        </IfFeature>
-                                    </IfAuth>
-                                </FlexItem>
-                            </Flex>
-                        </div>
-                        <DescriptionList className="metaData" isCompact={true}>
-                            <DescriptionListGroup>
-                                <DescriptionListTerm>Name</DescriptionListTerm>
-                                <DescriptionListDescription
-                                    data-testid="artifact-details-name"
-                                    className={!props.artifact.name ? "empty-state-text" : ""}
-                                >
-                                    { artifactName() }
-                                </DescriptionListDescription>
-                            </DescriptionListGroup>
-                            <DescriptionListGroup>
-                                <DescriptionListTerm>Description</DescriptionListTerm>
-                                <DescriptionListDescription
-                                    data-testid="artifact-details-description"
-                                    className={!props.artifact.description ? "empty-state-text" : ""}
-                                >
-                                    { description() }
-                                </DescriptionListDescription>
-                            </DescriptionListGroup>
-                            <DescriptionListGroup>
-                                <DescriptionListTerm>Type</DescriptionListTerm>
-                                <DescriptionListDescription data-testid="artifact-details-type">
-                                    <ArtifactTypeIcon artifactType={props.artifact.artifactType!} />
-                                    { props.artifact.artifactType }
-                                </DescriptionListDescription>
-                            </DescriptionListGroup>
-                            <DescriptionListGroup>
-                                <DescriptionListTerm>Created</DescriptionListTerm>
-                                <DescriptionListDescription data-testid="artifact-details-created-on">
-                                    <FromNow date={props.artifact.createdOn} />
-                                </DescriptionListDescription>
-                            </DescriptionListGroup>
-                            <If condition={!isStringEmptyOrUndefined(props.artifact.owner)}>
-                                <DescriptionListGroup>
-                                    <DescriptionListTerm>Owner</DescriptionListTerm>
-                                    <DescriptionListDescription data-testid="artifact-details-created-by">
-                                        <span>{props.artifact.owner}</span>
-                                        <span>
-                                            <IfAuth isAdminOrOwner={true} owner={props.artifact.owner}>
-                                                <IfFeature feature="readOnly" isNot={true}>
-                                                    <Button icon={<PencilAltIcon />} id="edit-action"
-                                                        data-testid="artifact-btn-change-owner"
-                                                        onClick={props.onChangeOwner}
-                                                        variant="link"></Button>
-                                                </IfFeature>
-                                            </IfAuth>
-                                        </span>
-                                    </DescriptionListDescription>
-                                </DescriptionListGroup>
-                            </If>
-                            <DescriptionListGroup>
-                                <DescriptionListTerm>Modified</DescriptionListTerm>
-                                <DescriptionListDescription data-testid="artifact-details-modified-on">
-                                    <FromNow date={props.artifact.modifiedOn} />
-                                </DescriptionListDescription>
-                            </DescriptionListGroup>
-                            <DescriptionListGroup>
-                                <DescriptionListTerm>Labels</DescriptionListTerm>
-                                {!labels || !Object.keys(labels).length ?
-                                    <DescriptionListDescription data-testid="artifact-details-labels" className="empty-state-text">No labels</DescriptionListDescription> :
-                                    <DescriptionListDescription data-testid="artifact-details-labels">{Object.entries(labels).map(([key, value]) =>
-                                        <Label key={`label-${key}`} color="purple" style={{ marginBottom: "2px", marginRight: "5px" }}>
-                                            <Truncate className="label-truncate" content={`${key}=${value}`} />
-                                        </Label>
-                                    )}</DescriptionListDescription>
-                                }
-                            </DescriptionListGroup>
-                        </DescriptionList>
+        <DrawerHead className="__drawer-head">
+            <span tabIndex={isExpanded ? 0 : -1} ref={drawerRef}>
+                <div className="artifact-basics">
+                    <div className="title-and-type">
+                        <Flex>
+                            <FlexItem className="title">Artifact metadata</FlexItem>
+                            <FlexItem className="actions" align={{ default: "alignRight" }}>
+                                <IfAuth isDeveloper={true} owner={props.artifact.owner}>
+                                    <IfFeature feature="readOnly" isNot={true}>
+                                        <Button icon={<PencilAltIcon />} id="edit-action"
+                                            data-testid="artifact-btn-edit"
+                                            onClick={props.onEditMetaData}
+                                            style={{ padding: "0" }}
+                                            variant="link">{" "}Edit</Button>
+                                    </IfFeature>
+                                </IfAuth>
+                            </FlexItem>
+                        </Flex>
                     </div>
-                </span>
-            </DrawerHead>
-        </DrawerPanelContent>
+                    <DescriptionList className="metaData" isCompact={true}>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Name</DescriptionListTerm>
+                            <DescriptionListDescription
+                                data-testid="artifact-details-name"
+                                className={!props.artifact.name ? "empty-state-text" : ""}
+                            >
+                                { artifactName() }
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Description</DescriptionListTerm>
+                            <DescriptionListDescription
+                                data-testid="artifact-details-description"
+                                className={!props.artifact.description ? "empty-state-text" : ""}
+                            >
+                                { description() }
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Type</DescriptionListTerm>
+                            <DescriptionListDescription data-testid="artifact-details-type">
+                                <ArtifactTypeIcon artifactType={props.artifact.artifactType!} />
+                                { props.artifact.artifactType }
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Created</DescriptionListTerm>
+                            <DescriptionListDescription data-testid="artifact-details-created-on">
+                                <FromNow date={props.artifact.createdOn} />
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <If condition={!isStringEmptyOrUndefined(props.artifact.owner)}>
+                            <DescriptionListGroup>
+                                <DescriptionListTerm>Owner</DescriptionListTerm>
+                                <DescriptionListDescription data-testid="artifact-details-created-by">
+                                    <span>{props.artifact.owner}</span>
+                                    <span>
+                                        <IfAuth isAdminOrOwner={true} owner={props.artifact.owner}>
+                                            <IfFeature feature="readOnly" isNot={true}>
+                                                <Button icon={<PencilAltIcon />} id="edit-action"
+                                                    data-testid="artifact-btn-change-owner"
+                                                    onClick={props.onChangeOwner}
+                                                    variant="link"></Button>
+                                            </IfFeature>
+                                        </IfAuth>
+                                    </span>
+                                </DescriptionListDescription>
+                            </DescriptionListGroup>
+                        </If>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Modified</DescriptionListTerm>
+                            <DescriptionListDescription data-testid="artifact-details-modified-on">
+                                <FromNow date={props.artifact.modifiedOn} />
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Labels</DescriptionListTerm>
+                            {!labels || !Object.keys(labels).length ?
+                                <DescriptionListDescription data-testid="artifact-details-labels" className="empty-state-text">No labels</DescriptionListDescription> :
+                                <DescriptionListDescription data-testid="artifact-details-labels">{Object.entries(labels).map(([key, value]) =>
+                                    <Label key={`label-${key}`} color="purple" style={{ marginBottom: "2px", marginRight: "5px" }}>
+                                        <Truncate className="label-truncate" content={`${key}=${value}`} />
+                                    </Label>
+                                )}</DescriptionListDescription>
+                            }
+                        </DescriptionListGroup>
+                    </DescriptionList>
+                </div>
+            </span>
+        </DrawerHead>
     );
 
     const drawerContent = (
@@ -344,11 +339,7 @@ export const ArtifactOverviewTabContent: FunctionComponent<ArtifactOverviewTabCo
         <div className="artifact-overview-tab-content">
             <Card variant="secondary">
                 <CardBody style={{ padding: "0" }}>
-                    <Drawer isExpanded={true} onExpand={() => {}} isInline={true} position="start">
-                        <DrawerContent panelContent={panelContent} style={{ backgroundColor: "white" }}>
-                            <DrawerContentBody hasPadding={false}>{drawerContent}</DrawerContentBody>
-                        </DrawerContent>
-                    </Drawer>
+                    <ResizableOverviewDrawer head={panelContent} body={drawerContent} />
                 </CardBody>
             </Card>
             <VersionCompareModal

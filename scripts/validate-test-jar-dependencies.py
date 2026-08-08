@@ -15,7 +15,7 @@ quieter failure is worse: if an earlier build left a stale test-jar in the
 local repository, the consumer compiles against that instead and the mismatch
 only surfaces later, somewhere unrelated.
 
-Two invariants are checked here, both cheap enough to run before the build:
+Three invariants are checked here, all cheap enough to run before the build:
 
   1. A module whose test sources use another module's test classes declares an
      explicit test-jar dependency on it.
@@ -23,6 +23,12 @@ Two invariants are checked here, both cheap enough to run before the build:
      the package phase. Binding maven-jar-plugin's test-jar goal to any other
      phase leaves the artifact outside the module's normal output, so the
      reactor cannot guarantee it exists when a consumer asks for it.
+  3. That dependency is spelled <type>test-jar</type> rather than
+     <classifier>tests</classifier> on a plain jar dependency. Both resolve to
+     the same file and both create the reactor edge, but the classifier form
+     keys differently in dependencyManagement and is invisible to the
+     <includeTypes>test-jar</includeTypes> filter that integration-tests
+     unpacks with, so it breaks in ways the first two invariants cannot see.
 
 The repository is located relative to this file, so the working directory does
 not matter. Every violation is printed; the exit status is non-zero if there
@@ -40,6 +46,33 @@ POM_NS = "{http://maven.apache.org/POM/4.0.0}"
 PRUNED_DIRS = {".git", "node_modules", "target"}
 
 IMPORT_PATTERN = re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+(?:\.\*)?)\s*;", re.MULTILINE)
+
+# Comments and literals, in one alternation so that a quote inside a comment
+# and a // inside a string are each consumed by whichever construct opened
+# first. Text blocks lead, otherwise their opening delimiter reads as an empty
+# string literal followed by an unterminated one.
+COMMENT_OR_LITERAL_PATTERN = re.compile(
+    r'"""(?:\\.|[^\\])*?"""'
+    r'|"(?:\\.|[^"\\\n])*"'
+    r"|'(?:\\.|[^'\\\n])*'"
+    r"|/\*.*?\*/"
+    r"|//[^\n]*",
+    re.DOTALL,
+)
+
+
+def strip_comments_and_literals(source):
+    """Blank out anything that is not code, keeping line structure intact.
+
+    Identifiers are matched textually further down, and a bare regex over raw
+    source cannot tell a type reference from the same word sitting in a
+    sentence of javadoc or inside a string. Each construct collapses to a
+    space, plus the newlines it spanned so that line-anchored patterns still
+    see the same lines.
+    """
+    return COMMENT_OR_LITERAL_PATTERN.sub(
+        lambda match: " " + "\n" * match.group(0).count("\n"), source
+    )
 
 
 def find_poms(root):
@@ -71,19 +104,26 @@ def declared_dependencies(project):
 
 
 def test_jar_dependencies(project):
-    """Artifact ids this module consumes as a test-jar.
+    """Artifact ids this module consumes as a test-jar, by spelling.
 
-    Both spellings resolve to the same artifact and both create the reactor
-    edge, so both are accepted: <type>test-jar</type>, and the older
-    <classifier>tests</classifier> on a plain jar dependency.
+    Returns (consumed, by_classifier). Both spellings create the reactor edge,
+    so both land in `consumed` and satisfy the first invariant. The subset
+    written as <classifier>tests</classifier> on a plain jar dependency is
+    reported separately, because that form is fragile for reasons the reactor
+    ordering check cannot detect.
     """
     consumed = set()
+    by_classifier = set()
     for dependency in declared_dependencies(project):
+        artifact_id = dependency.findtext(POM_NS + "artifactId")
         artifact_type = dependency.findtext(POM_NS + "type")
         classifier = dependency.findtext(POM_NS + "classifier")
-        if artifact_type == "test-jar" or (artifact_type is None and classifier == "tests"):
-            consumed.add(dependency.findtext(POM_NS + "artifactId"))
-    return consumed
+        if artifact_type == "test-jar":
+            consumed.add(artifact_id)
+        elif artifact_type is None and classifier == "tests":
+            consumed.add(artifact_id)
+            by_classifier.add(artifact_id)
+    return consumed, by_classifier
 
 
 def test_jar_execution_phases(project):
@@ -91,6 +131,15 @@ def test_jar_execution_phases(project):
 
     An empty string stands for "no explicit phase", which is the goal's own
     default of package.
+
+    Only the module's own <build><plugins> is read. An execution inherited from
+    a parent pom's <build><plugins>, or contributed by <pluginManagement>, is
+    not resolved here, so a producer that relied on inheritance would be
+    reported as producing no test-jar and a phase regression introduced that
+    way would go unnoticed. Every producer in the reactor currently declares
+    the binding locally, which is what makes the shortcut safe; resolving
+    inheritance properly means building the effective pom, which costs more
+    than this check is worth. Revisit if the plugin wiring is ever moved up.
     """
     phases = []
     build = project.find(POM_NS + "build")
@@ -141,7 +190,7 @@ class Module:
         self.pom_path = pom_path
         self.directory = os.path.dirname(pom_path)
         self.artifact_id = project.findtext(POM_NS + "artifactId")
-        self.test_jar_dependencies = test_jar_dependencies(project)
+        self.test_jar_dependencies, self.classifier_dependencies = test_jar_dependencies(project)
         self.test_jar_phases = test_jar_execution_phases(project)
         self.test_types = java_types(self.directory, "test")
         self.main_types = java_types(self.directory, "main")
@@ -168,22 +217,30 @@ def referenced_foreign_test_types(module, foreign_test_types):
 
     for qualified_name, path in module.test_types.items():
         with open(path, encoding="utf-8", errors="replace") as source_file:
-            source = source_file.read()
+            source = strip_comments_and_literals(source_file.read())
         imports = set(IMPORT_PATTERN.findall(source))
         # A static import names a member, so its declaring type is one segment up.
         imports.update(package_of(entry) for entry in list(imports))
+
+        # An imported type has to resolve at compile time whether or not the
+        # body goes on to use it, so the import alone settles the question.
+        for candidate in imports:
+            if candidate in foreign_test_types:
+                references.setdefault(foreign_test_types[candidate], set()).add(candidate)
+
+        # Everything else is reachable without an import: the file's own
+        # package, and any package pulled in wholesale by a wildcard import.
+        # Nothing here proves usage, so the simple name has to appear in the
+        # code before the dependency is claimed.
         visible_packages = {package_of(qualified_name)}
         visible_packages.update(
             package_of(entry) for entry in imports if entry.endswith(".*")
         )
-
-        candidates = set(imports)
+        candidates = set()
         for package in visible_packages:
             candidates.update(by_package.get(package, ()))
 
         for candidate in candidates:
-            if candidate not in foreign_test_types:
-                continue
             simple_name = simple_name_of(candidate)
             if simple_name in own_simple_names:
                 continue
@@ -248,6 +305,17 @@ def main():
                     os.path.relpath(module.pom_path, root),
                     producer,
                 )
+            )
+
+    for module in sorted(modules, key=lambda m: m.artifact_id or ""):
+        for producer_id in sorted(module.classifier_dependencies):
+            violations.append(
+                "%s depends on %s as a plain jar with <classifier>tests</classifier>.\n"
+                "  It resolves to the same file as a test-jar, but keys differently in\n"
+                "  dependencyManagement and is skipped by <includeTypes>test-jar</includeTypes>\n"
+                "  filters. Replace the classifier with:\n"
+                "    <type>test-jar</type>"
+                % (os.path.relpath(module.pom_path, root), producer_id)
             )
 
     consumers_by_producer = {}

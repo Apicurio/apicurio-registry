@@ -18,9 +18,11 @@ describe("validation.utils", () => {
             expect(checkIdValid("2.0.0-SNAPSHOT")).toBe(true);
             expect(checkIdValid("v1.0.0")).toBe(true);
             expect(checkIdValid("my-group.artifact_1")).toBe(true);
+            expect(checkIdValid("my:group:1.0")).toBe(true);
+            expect(checkIdValid("group,id")).toBe(true);
         });
 
-        it("should reject URL-unsafe characters (%, /, \\, #, ?, spaces)", () => {
+        it("should reject URL-unsafe and reserved characters (%, /, \\, #, ?, spaces, <, >, [, ], {, }, \", ', |)", () => {
             expect(checkIdValid("1%2")).toBe(false);
             expect(checkIdValid("1/2")).toBe(false);
             expect(checkIdValid("1\\2")).toBe(false);
@@ -28,13 +30,21 @@ describe("validation.utils", () => {
             expect(checkIdValid("1?2")).toBe(false);
             expect(checkIdValid("1 2")).toBe(false);
             expect(checkIdValid("1.0.0 ")).toBe(false);
+            expect(checkIdValid("1<2")).toBe(false);
+            expect(checkIdValid("1>2")).toBe(false);
+            expect(checkIdValid("1[2]")).toBe(false);
+            expect(checkIdValid("1{2}")).toBe(false);
+            expect(checkIdValid("1\"2")).toBe(false);
+            expect(checkIdValid("1'2")).toBe(false);
+            expect(checkIdValid("1|2")).toBe(false);
         });
 
-        it("should reject special characters (@, $, ^, *, (, ))", () => {
+        it("should reject special characters (@, $, ^, *, &, (, ))", () => {
             expect(checkIdValid("1@2")).toBe(false);
             expect(checkIdValid("1$2")).toBe(false);
             expect(checkIdValid("1^2")).toBe(false);
             expect(checkIdValid("1*2")).toBe(false);
+            expect(checkIdValid("1&2")).toBe(false);
             expect(checkIdValid("1(2)")).toBe(false);
         });
 

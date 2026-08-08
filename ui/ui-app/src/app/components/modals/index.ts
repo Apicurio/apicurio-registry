@@ -11,5 +11,6 @@ export * from "./EditMetaDataModal";
 export * from "./InvalidContentModal";
 export * from "./LabelsFormGroup";
 export * from "./ReferencesFormGroup";
+export * from "./ReferencesFormGroup.utils";
 export * from "./GenerateClientModal";
 export * from "./VersionCompareModal";

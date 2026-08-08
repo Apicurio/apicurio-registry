@@ -7,6 +7,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -432,17 +433,25 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<>();
 
-        // All contracts have a contract.*.status label
-        filters.add(SearchFilter.ofLabel("contract."));
+        // All contracts have labels in the reserved "contract.*" namespace. The "*" is
+        // required for a prefix match (label keys are namespaced per contract, e.g.
+        // "contract.{contractId}.status"), since the SQL layer only treats "*" as a
+        // wildcard. Without it the filter becomes an exact match on "contract." and
+        // never matches anything.
+        filters.add(SearchFilter.ofLabel("contract.*"));
 
+        // Suffix filters match the label key by suffix ("contract.status" for metadata
+        // written without a contract id, "contract.{contractId}.status" otherwise). The
+        // wildcard covers the optional "{contractId}." segment.
         if (!StringUtil.isEmpty(status)) {
-            filters.add(SearchFilter.ofLabel("contract.", status));
+            filters.add(SearchFilter.ofLabel("contract.*" + ContractLabels.SUFFIX_STATUS, status));
         }
         if (!StringUtil.isEmpty(ownerTeam)) {
-            filters.add(SearchFilter.ofLabel("contract.", ownerTeam));
+            filters.add(SearchFilter.ofLabel("contract.*" + ContractLabels.SUFFIX_OWNER_TEAM, ownerTeam));
         }
         if (!StringUtil.isEmpty(compatibilityGroup)) {
-            filters.add(SearchFilter.ofLabel("contract.", compatibilityGroup));
+            filters.add(SearchFilter.ofLabel("contract.*" + ContractLabels.SUFFIX_COMPATIBILITY_GROUP,
+                    compatibilityGroup));
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,

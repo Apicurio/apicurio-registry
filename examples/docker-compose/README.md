@@ -1,6 +1,6 @@
 # Docker Compose
 
-The `./src/main/resources` directory contains several *Docker Compose* files. Some of them require others as a dependency.
+The `src/main/resources` directory contains several *Docker Compose* files. Some of them require others as a dependency.
 You may need to create custom ones for your use-case, but these should provide simple examples 
 on how to deploy *Apicurio Registry* (e.g. for local testing). For more complicated deployments use the Kubernetes operator (*WIP*) 
 or the documentation.
@@ -21,8 +21,8 @@ and copy the content of the `./config` directory to the volume - `docker volume 
 
 ### Metrics with Prometheus and Grafana
 
-Run `compose-metrics.yaml` together with a base compose file, e.g. 
-`docker compose -f compose-metrics.yaml -f compose-base-sql.yaml up --abort-on-container-exit`.
+Run `compose-metrics.yml` together with a base compose file, e.g. 
+`docker compose -f compose-metrics.yml -f compose-base-sql.yml up --abort-on-container-exit`.
 
 *Grafana* console should be available at `http://localhost:3000` after logging in as *admin/password*.
 
@@ -44,27 +44,3 @@ You can start the whole stack with this command:
 
 ```console
 docker compose -f docker-compose.apicurio.yml up
-```
-
-To clear the environment, please run this command:
-
-```console
-docker compose -f docker-compose.apicurio.yml down --volumes
-```
-
-#### Configure users in Keycloak
-
-The Keycloak instance is already configured, you don't have to create the realms manually.
-
-At the first start there are no default users added to Keycloak. Please navigate to:
-`http://YOUR_IP:8080`
-
-The default credentials for Keycloak are: `admin` and the password is also `admin`.
-
-Select `Registry` realm and add a user to it. You'll need to also assign the appropriate role.
-
-#### Login to Apicurio and Keycloak
-
-Apicurio Registry UI URL: `http://YOUR_IP:8888`
-Apicurio Registry API URL: `http://YOUR_IP:8081`
-Keycloak URL: `http://YOUR_IP:8080`

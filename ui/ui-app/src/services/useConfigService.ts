@@ -312,8 +312,12 @@ export class ConfigServiceImpl implements ConfigService {
     }
 
     public uiImportMaxContentLength(): number {
-        // Default to 5 MB (5242880 bytes) if not explicitly configured.
-        return registryConfig.ui?.importMaxContentLength ?? 5242880;
+        const DEFAULT_MAX: number = 5242880; // 5 MB
+        const configured: unknown = registryConfig.ui?.importMaxContentLength;
+        // Coerce to number (guards against string values from JSON config) and
+        // fall back to the default for absent, NaN, zero, or negative values.
+        const value: number = Number(configured);
+        return Number.isFinite(value) && value > 0 ? value : DEFAULT_MAX;
     }
 
     public features(): FeaturesConfig {

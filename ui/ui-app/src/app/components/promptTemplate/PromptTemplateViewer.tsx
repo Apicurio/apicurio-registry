@@ -66,7 +66,7 @@ export type PromptTemplateViewerProps = {
 const highlightVariables = (template: string): React.ReactNode[] => {
     const parts: React.ReactNode[] = [];
     // Match both {{variable}} and {{#if variable}} / {{/if}} handlebars syntax
-    const regex = /\{\{(#?\/?(?:if|unless|each|with)\s+)?(\w+)\}\}/g;
+    const regex = /\{\{(\w+)\}\}/g;
     let lastIndex = 0;
     let match;
     let key = 0;
@@ -75,9 +75,8 @@ const highlightVariables = (template: string): React.ReactNode[] => {
         if (match.index > lastIndex) {
             parts.push(template.substring(lastIndex, match.index));
         }
-        const isBlock = !!match[1];
         parts.push(
-            <span key={key++} className={isBlock ? "template-block" : "template-variable"}>
+            <span key={key++} className="template-variable">
                 {match[0]}
             </span>
         );

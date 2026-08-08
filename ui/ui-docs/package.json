@@ -27,12 +27,12 @@
     "vite-tsconfig-paths": "6.1.1"
   },
   "dependencies": {
-    "core-js": "3.49.0",
+    "core-js": "3.50.0",
     "mobx": "6.16.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "redoc": "2.5.3",
-    "styled-components": "6.5.0",
+    "styled-components": "6.5.1",
     "yaml": "2.9.0"
   }
 }

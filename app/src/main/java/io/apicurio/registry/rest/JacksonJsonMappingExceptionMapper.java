@@ -7,21 +7,20 @@ import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
-import jakarta.ws.rs.ext.Providers;
 
+/**
+ * Intentionally handles JsonMappingException globally so malformed JSON
+ * responses use the consistent ProblemDetails format across the API.
+ */
 @Provider
 @ApplicationScoped
 public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
 
     @Inject
     CoreRegistryExceptionMapperService coreMapper;
-
-    @Context
-    Providers providers;
 
     @Override
     public Response toResponse(JsonMappingException exception) {
@@ -32,8 +31,13 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
             ValueInstantiationException vie = (ValueInstantiationException) exception;
             if (vie.getType() != null && ContractStatusTransition.Status.class.equals(vie.getType().getRawClass())) {
                 isStatusEnum = true;
-                if (vie.getCause() instanceof IllegalArgumentException && vie.getCause().getMessage() != null) {
-                    actualValue = vie.getCause().getMessage();
+                if (vie.getCause() instanceof IllegalArgumentException) {
+                    String message = vie.getCause().getMessage();
+                    if (message != null && !message.isBlank()
+                            && !message.contains(" ")
+                            && !message.contains(".")) {
+                        actualValue = message;
+                    }
                 }
             }
         } else if (exception instanceof InvalidFormatException) {

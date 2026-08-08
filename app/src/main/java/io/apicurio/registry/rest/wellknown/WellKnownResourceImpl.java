@@ -995,7 +995,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Filter by resolved visibility on DTOs first (cheap), then paginate, then convert (expensive)
         List<SearchedArtifactDto> visible = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
-            if ("public".equals(resolveVisibility(artifact.getLabels()))) {
+            if (A2AConstants.VISIBILITY_PUBLIC.equals(resolveVisibility(artifact.getLabels()))) {
                 visible.add(artifact);
             }
         }
@@ -1019,12 +1019,20 @@ public class WellKnownResourceImpl implements WellKnownResource {
     /**
      * Returns the effective visibility for an artifact. If the {@code apicurio.agent.visibility}
      * label is not set, falls back to the configured default visibility.
+     * <p>
+     * The label key is matched case-insensitively. Labels reach this method from the serialized
+     * {@code labels} column, which preserves the case they were supplied with, whereas the
+     * {@code artifact_labels} table used by label search filters is lowercased on insert. Matching
+     * exactly here would let a card labelled {@code Apicurio.Agent.Visibility=private} resolve to
+     * the configured default instead of to {@code private}.
      */
     private String resolveVisibility(Map<String, String> labels) {
         if (labels != null) {
-            String explicit = labels.get(A2AConstants.LABEL_AGENT_VISIBILITY);
-            if (explicit != null) {
-                return explicit.toLowerCase(Locale.ROOT);
+            for (Map.Entry<String, String> label : labels.entrySet()) {
+                if (A2AConstants.LABEL_AGENT_VISIBILITY.equalsIgnoreCase(label.getKey())
+                        && label.getValue() != null) {
+                    return label.getValue().toLowerCase(Locale.ROOT);
+                }
             }
         }
         return a2aConfig.getDefaultVisibility().toLowerCase(Locale.ROOT);

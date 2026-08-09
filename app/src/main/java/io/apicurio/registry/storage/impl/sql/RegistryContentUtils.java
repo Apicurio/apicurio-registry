@@ -238,10 +238,8 @@ public class RegistryContentUtils {
             return artifactTypeUtilProviderFactory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
                     .canonicalize(content, recursivelyResolvedReferences);
         } catch (Exception ex) {
-            // TODO: We should consider explicitly failing when a content could not be canonicalized.
-            // throw new RegistryException("Failed to canonicalize content.", ex);
-            log.debug("Failed to canonicalize content: {}", content.getContent());
-            return content;
+            log.debug("Failed to canonicalize content.", ex);
+            throw new RegistryException("Failed to canonicalize content.", ex);
         }
     }
 

@@ -86,7 +86,7 @@ public class SystemResourceImpl implements SystemResource {
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
                         .agents(uiConfig.featureAgents.get())
                         .searchIndex(esSearchConfig.isEnabled())
-                        .urlImportMaxContentLength(uiConfig.featureUrlImportMaxContentLength)
+                        .urlImportMaxContentLength(uiConfig.featureUrlImportMaxContentLength.get())
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
     }

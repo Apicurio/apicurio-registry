@@ -8265,8 +8265,8 @@
             "type": "boolean"
           },
           "urlImportMaxContentLength": {
-            "description": "",
-            "type": "string"
+            "description": "Maximum content length in bytes for URL imports.",
+            "type": "integer"
           }
         },
         "example": {

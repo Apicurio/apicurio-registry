@@ -50,18 +50,8 @@ describe("useConfigService uiImportMaxContentLength", () => {
         expect(service.featureUrlImportMaxContentLength()).toBe(5242880);
     });
 
-    it("returns default (5242880) when field is non-numeric string", () => {
-        config.features.urlImportMaxContentLength = "invalid";
-        expect(service.featureUrlImportMaxContentLength()).toBe(5242880);
-    });
-
     it("returns configured value when field is a valid positive number", () => {
         config.features.urlImportMaxContentLength = 10485760;
         expect(service.featureUrlImportMaxContentLength()).toBe(10485760);
-    });
-
-    it("returns coerced numeric value when field is a numeric string", () => {
-        config.features.urlImportMaxContentLength = "20971520";
-        expect(service.featureUrlImportMaxContentLength()).toBe(20971520);
     });
 });

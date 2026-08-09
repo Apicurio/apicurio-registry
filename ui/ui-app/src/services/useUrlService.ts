@@ -33,6 +33,9 @@ export const useUrlService: () => UrlService = (): UrlService => {
         const options: any = createOptions({
             "Accept": "*"
         });
+        // Note: axios only checks maxContentLength against the response Content-Length header.
+        // Responses sent with chunked transfer-encoding, or from servers that omit the header,
+        // bypass this cap entirely.
         options.maxContentLength = config.featureUrlImportMaxContentLength();
         options.responseType = "text";
         options.transformResponse = (data: any) => data;

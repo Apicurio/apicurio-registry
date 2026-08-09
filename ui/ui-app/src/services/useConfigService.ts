@@ -65,7 +65,7 @@ export interface FeaturesConfig {
     settings?: boolean;
     agents?: boolean;
     searchIndex?: boolean;
-    urlImportMaxContentLength?: string;
+    urlImportMaxContentLength?: number;
     alerts?: Alerts;
 }
 
@@ -366,8 +366,8 @@ export class ConfigServiceImpl implements ConfigService {
     }
 
     public featureUrlImportMaxContentLength(): number {
-        const configured = Number(this.features().urlImportMaxContentLength);
-        return Number.isFinite(configured) && configured > 0 ? configured : 5242880;
+        const configured = this.features().urlImportMaxContentLength;
+        return typeof configured === 'number' && configured > 0 ? configured : 5242880;
     }
 
     public authType(): string {

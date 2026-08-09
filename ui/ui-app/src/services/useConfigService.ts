@@ -65,6 +65,7 @@ export interface FeaturesConfig {
     settings?: boolean;
     agents?: boolean;
     searchIndex?: boolean;
+    urlImportMaxContentLength?: string;
     alerts?: Alerts;
 }
 
@@ -236,6 +237,7 @@ export interface ConfigService {
     featureDraftMutability(): boolean;
     featureAgents(): boolean;
     featureSearchIndex(): boolean;
+    featureUrlImportMaxContentLength(): number;
     authType(): string;
     authRbacEnabled(): boolean;
     authObacEnabled(): boolean;
@@ -361,6 +363,11 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureSearchIndex(): boolean {
         return this.features().searchIndex || false;
+    }
+
+    public featureUrlImportMaxContentLength(): number {
+        const configured = Number(this.features().urlImportMaxContentLength);
+        return Number.isFinite(configured) && configured > 0 ? configured : 5242880;
     }
 
     public authType(): string {

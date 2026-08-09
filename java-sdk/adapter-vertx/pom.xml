@@ -36,5 +36,11 @@
       <artifactId>vertx-auth-oauth2</artifactId>
       <optional>true</optional>
     </dependency>
+    <!-- Test only -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

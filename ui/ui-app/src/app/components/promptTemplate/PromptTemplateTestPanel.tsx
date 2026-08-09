@@ -149,8 +149,11 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 return (
                     <TextInput
                         type="number"
-                        value={values[name] || ""}
-                        onChange={(_event, val) => setValue(name, type === "integer" ? parseInt(val) || "" : parseFloat(val) || "")}
+                        value={values[name] ?? ""}
+                        onChange={(_event, val) => {
+                            const n = type === "integer" ? parseInt(val) : parseFloat(val);
+                            setValue(name, isNaN(n) ? "" : n);
+                        }}
                         aria-label={name}
                     />
                 );
@@ -228,7 +231,15 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                     <Alert variant="warning" title="Validation Errors" className="validation-errors">
                         <ul>
                             {validationErrors.map((ve, i) => (
-                                <li key={i}>{ve.path ? `${ve.path}: ` : ""}{ve.message}</li>
+                                <li key={i}>
+                                    {ve.variableName ? `${ve.variableName}: ` : ""}
+                                    {ve.message}
+                                    {ve.expectedType && ve.actualType && (
+                                        <span style={{ color: "var(--pf-t--global--color--600)", marginLeft: "0.5rem" }}>
+                                            (Expected: {ve.expectedType}, Actual: {ve.actualType})
+                                        </span>
+                                    )}
+                                </li>
                             ))}
                         </ul>
                     </Alert>

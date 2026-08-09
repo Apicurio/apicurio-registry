@@ -11,6 +11,7 @@ import {
     Title,
     Tooltip
 } from "@patternfly/react-core";
+import { If } from "@apicurio/common-ui-components";
 
 /**
  * Agent skill structure
@@ -45,7 +46,7 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
     };
 
     const renderSkillTags = (skill: AgentSkill): React.ReactElement | null => {
-        if (!skill.tags || skill.tags.length === 0) {
+        if (!skill.tags?.length) {
             return null;
         }
         return (
@@ -56,6 +57,24 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
                     </Label>
                 ))}
             </LabelGroup>
+        );
+    };
+
+    const renderSkillExamples = (skill: AgentSkill): React.ReactElement | null => {
+        if (!skill.examples?.length) {
+            return null;
+        }
+        return (
+            <div className="skill-examples" style={{ marginTop: "12px" }}>
+                <strong>Examples:</strong>
+                <LabelGroup className="skill-examples-list" style={{ marginTop: "4px" }}>
+                    {skill.examples.map((example, index) => (
+                        <Label key={index} color="green">
+                            {example}
+                        </Label>
+                    ))}
+                </LabelGroup>
+            </div>
         );
     };
 
@@ -94,6 +113,7 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
                                             {skill.description || <span className="empty-state-text">No description</span>}
                                         </div>
                                         {renderSkillTags(skill)}
+                                        {renderSkillExamples(skill)}
                                     </DataListCell>
                                 ]}
                             />
@@ -107,7 +127,9 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
     if (!hasSkills()) {
         return (
             <div className="agent-card-skills">
-                {showTitle && <Title headingLevel="h4" className="section-title">Skills</Title>}
+                <If condition={showTitle}>
+                    <Title headingLevel="h4" className="section-title">Skills</Title>
+                </If>
                 <span className="empty-state-text">No skills defined</span>
             </div>
         );
@@ -115,7 +137,9 @@ export const AgentCardSkills: FunctionComponent<AgentCardSkillsProps> = (props: 
 
     return (
         <div className="agent-card-skills">
-            {showTitle && <Title headingLevel="h4" className="section-title">Skills ({skills.length})</Title>}
+            <If condition={showTitle}>
+                <Title headingLevel="h4" className="section-title">Skills ({skills.length})</Title>
+            </If>
             {compact ? renderCompactSkills() : renderDetailedSkills()}
         </div>
     );

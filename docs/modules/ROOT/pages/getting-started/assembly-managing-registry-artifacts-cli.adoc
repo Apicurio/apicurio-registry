@@ -6,17 +6,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can use the {registry} command-line interface (CLI) to manage {registry} content from the command line. The CLI provides commands for managing CLI contexts and artifact groups.
+You can use the {registry} command-line interface (CLI) to manage {registry} content from the command line. The CLI provides commands for managing CLI contexts, authentication, groups, artifacts, artifact versions, rules, role mappings, and export and import of registry data.
 
 ifndef::service-registry-downstream[]
 [NOTE]
 ====
-The CLI is currently in *dev-preview* status. The CLI supports Linux (bash) and macOS (zsh). Windows is not supported yet. The CLI currently implements only group management commands. Future releases will include additional commands.
-====
-
-[IMPORTANT]
-====
-The CLI does not yet support authentication. You can only use the CLI with {registry} instances that do not require authentication.
+The CLI is currently in *dev-preview* status and is unstable; its arguments and behavior are subject to backwards-incompatible changes. The CLI supports Linux (x86_64, bash) and macOS (Apple Silicon, zsh). Windows is not supported.
 ====
 endif::[]
 
@@ -30,8 +25,7 @@ endif::[]
 == Prerequisites
 
 * You have installed {registry}.
-* You have Java 11 or higher installed.
-* You have access to a bash shell (Linux) or zsh shell (macOS).
+* You have access to a bash shell on Linux (x86_64) or a zsh shell on macOS (Apple Silicon).
 
 [id="installing-registry-cli_{context}"]
 == Installing the {registry} CLI
@@ -39,24 +33,23 @@ endif::[]
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can install the {registry} CLI to interact with {registry} from the command line. The CLI comes as a .zip file that has the executable program and required dependencies.
+You can install the {registry} CLI to interact with {registry} from the command line. The CLI is distributed as a native executable in a platform-specific .zip file, so it does not require a Java runtime.
 
 .Prerequisites
-* You have Java 11 or higher installed on your system.
-* You have access to a bash shell (Linux) or zsh shell (macOS).
+* You have a Linux x86_64 system with a bash shell, or a macOS Apple Silicon system with a zsh shell.
 
 .Procedure
 ifndef::service-registry-downstream[]
-. Download the latest `apicurio-registry-cli-VERSION.zip` file from the https://github.com/Apicurio/apicurio-registry/releases[{registry} GitHub Releases page]. Alternatively, you can download the CLI from the https://search.maven.org/search?q=g:io.apicurio%20AND%20a:apicurio-registry-cli[Maven Central repository] by searching for `apicurio-registry-cli`.
+. Download the .zip file for your platform, for example `apicurio-registry-cli-VERSION-linux-x86_64.zip` (Linux) or `apicurio-registry-cli-VERSION-osx-aarch64.zip` (macOS), from the https://github.com/Apicurio/apicurio-registry/releases[{registry} GitHub Releases page]. Alternatively, you can download the CLI from the https://search.maven.org/search?q=g:io.apicurio%20AND%20a:apicurio-registry-cli[Maven Central repository] by searching for `apicurio-registry-cli`.
 endif::[]
 ifdef::service-registry-downstream[]
-. Download the CLI .zip file from the Red{nbsp}Hat Customer Portal.
+. Download the CLI .zip file for your platform from the Red{nbsp}Hat Customer Portal.
 endif::[]
 . Extract the downloaded file to a location of your choice:
 +
 [source,bash]
 ----
-$ unzip apicurio-registry-cli-VERSION.zip -d ~/apicurio-cli
+$ unzip apicurio-registry-cli-VERSION-linux-x86_64.zip -d ~/apicurio-cli
 ----
 . Install the CLI for the current user:
 +
@@ -66,7 +59,7 @@ $ cd ~/apicurio-cli
 $ ./acr install
 ----
 +
-This command installs the CLI executable to `$HOME/bin` and creates a configuration directory at `$HOME/.apicurio/apicurio-registry-cli`. The command also updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS) and configures shell completions.
+This command copies the CLI files to `$HOME/.apicurio/apicurio-registry-cli`, creates symbolic links in `$HOME/bin`, updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configures shell completions.
 . Reload your shell configuration:
 +
 On Linux:
@@ -88,6 +81,11 @@ $ source ~/.zshrc
 ----
 $ acr --help
 ----
++
+[NOTE]
+====
+To update an installed CLI to a newer version, use the `acr update` command. The CLI checks for updates once per day. To disable the update check, run `acr config set update.check-enabled=false`.
+====
 
 [role="_additional-resources"]
 .Additional resources
@@ -102,7 +100,7 @@ endif::[]
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-An {registry} CLI context stores the registry URL and identifies the instance that the CLI commands target. You can create many contexts and switch between them as needed, similar to how you use contexts in {kubernetes}.
+An {registry} CLI context stores the registry URL, optional default group and artifact identifiers, and authentication settings for one {registry} instance. You can create many contexts and switch between them as needed, similar to how you use contexts in {kubernetes}.
 
 .Procedure
 . Create a new context for your {registry} instance:
@@ -120,6 +118,8 @@ $ acr context create dev http://localhost:8080
 ----
 +
 The CLI automatically switches to the newly created context.
++
+Optional: Set default group and artifact identifiers for the context by using the `--group` (`-g`) and `--artifact` (`-a`) options. Commands that accept these identifiers use the context defaults when you omit the corresponding option.
 . List all configured contexts:
 +
 [source,bash]
@@ -130,10 +130,10 @@ $ acr context
 .Example output
 [source]
 ----
-Current context is 'default'.
-ID        Registry URL
---------  ---------------------
-default*  http://localhost:8080
+Current context is 'dev'.
+ID    Registry URL           Group ID    Artifact ID
+----  ---------------------  ----------  -----------
+dev*  http://localhost:8080  my-schemas
 ----
 +
 The asterisk (*) indicates the current active context.
@@ -143,12 +143,70 @@ The asterisk (*) indicates the current active context.
 ----
 $ acr context create prod http://registry.example.com --no-switch-current
 ----
+. Switch to a different context:
++
+[source,bash,subs="+quotes"]
+----
+$ acr context use _CONTEXT_NAME_
+----
+. Update an existing context. If you omit the context name, the CLI updates the current context:
++
+[source,bash]
+----
+$ acr context update prod --registry-url http://registry.internal.example.com
+$ acr context update --group my-schemas
+----
 . Delete a context that you no longer need:
 +
 [source,bash,subs="+quotes"]
 ----
 $ acr context delete _CONTEXT_NAME_
 ----
++
+Optional: To delete all contexts, use the `--all` option.
+
+
+[id="authenticating-registry-cli_{context}"]
+== Authenticating the {registry} CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can log in to the {registry} instance of your current CLI context by using basic authentication or OAuth2 client credentials. The CLI stores secrets in the operating system keychain, and stores non-secret authentication settings in the context.
+
+.Prerequisites
+* You have configured a CLI context for a {registry} instance that requires authentication.
+* On Linux, the `secret-tool` utility (libsecret) is available for keychain storage. On macOS, the CLI uses the built-in keychain.
+
+.Procedure
+. To log in with basic authentication, provide a user name. The CLI prompts for the password:
++
+[source,bash]
+----
+$ acr login --username my-user
+----
++
+Alternatively, provide the password with the `--password` (`-p`) option.
+. To log in with OAuth2 client credentials, provide the token endpoint and client ID. The CLI prompts for the client secret:
++
+[source,bash]
+----
+$ acr login --token-endpoint https://auth.example.com/realms/registry/protocol/openid-connect/token --client-id registry-client
+----
++
+Optional: Provide an OAuth2 scope with the `--scope` option.
+. Optional: On systems without a keychain, for example in headless environments, use the `--allow-unsafe-credential-storage` option. The CLI stores secrets in a `credentials.json` file with `0600` permissions and prints a warning. This preference persists per context.
+. To log out of the current context, run the following command. The CLI removes the stored secrets and clears the authentication settings of the context:
++
+[source,bash]
+----
+$ acr logout
+----
++
+[NOTE]
+====
+Authentication is configured per context. Secret values are stored in the operating system keychain or in the `credentials.json` file, never in the `config.json` configuration file.
+====
 
 
 [id="managing-groups-using-registry-cli_{context}"]
@@ -189,6 +247,11 @@ Optional: Include a description and labels:
 ----
 $ acr group create my-schemas --description "Production schemas" --label env=prod --label team=platform
 ----
++
+[NOTE]
+====
+The group ID `default` is reserved. You cannot create or update the `default` group.
+====
 . Get details for a specific group:
 +
 [source,bash,subs="+quotes"]
@@ -247,13 +310,251 @@ Using `--force` deletes the group and all artifacts it contains. Use this option
 ====
 
 
+[id="managing-artifacts-using-registry-cli_{context}"]
+== Managing artifacts using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI to create, list, get, update, and delete artifacts in {registry}. When you omit the group option, the CLI uses the default group of the current context, or the `default` group.
+
+.Prerequisites
+* You have configured at least one CLI context.
+
+.Procedure
+. List the artifacts in a group:
++
+[source,bash]
+----
+$ acr artifact --group my-schemas
+----
+. Create a new artifact from a file:
++
+[source,bash]
+----
+$ acr artifact create my-artifact --group my-schemas --type AVRO --file schema.avsc
+----
++
+The `--type` option accepts the following values: `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `GRAPHQL`, `KCONNECT`, `WSDL`, `XSD`, and `XML`. To read content from standard input, use `--file -`.
++
+Optional: Provide metadata with the `--name`, `--description`, and `--label` options, and set the identifier of the first version with the `--version` option.
+. Get the metadata of an artifact:
++
+[source,bash]
+----
+$ acr artifact get my-artifact --group my-schemas
+----
++
+To retrieve the content of the latest version instead of the metadata, use the `--content` (`-c`) option. The `--content` and `--output-type` options are mutually exclusive.
+. Update the metadata of an artifact:
++
+[source,bash]
+----
+$ acr artifact update my-artifact --group my-schemas --description "Order event schema"
+----
++
+Optional: Manage labels with the `--set-label` and `--delete-label` options.
+. Delete an artifact:
++
+[source,bash]
+----
+$ acr artifact delete my-artifact --group my-schemas
+----
++
+[NOTE]
+====
+You must configure {registry} with `apicurio.rest.deletion.artifact.enabled=true` to allow artifact deletions.
+====
+
+
+[id="managing-artifact-versions-using-registry-cli_{context}"]
+== Managing artifact versions using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI to list, create, get, update, and delete the versions of an artifact, including draft versions. When you omit the artifact option, the CLI uses the default artifact of the current context.
+
+.Prerequisites
+* You have configured at least one CLI context.
+* The artifact exists in the registry.
+
+.Procedure
+. List the versions of an artifact:
++
+[source,bash]
+----
+$ acr artifact version --group my-schemas --artifact my-artifact
+----
+. Create a new version from a file:
++
+[source,bash]
+----
+$ acr artifact version create 2.0.0 --file schema-v2.avsc --group my-schemas --artifact my-artifact
+----
++
+If you omit the version identifier, the server generates one. To create the version in the `DRAFT` state, use the `--draft` option.
+. Get a version. The version expression is an explicit version identifier, such as `2.0.0`, or a branch expression, such as `branch=latest`:
++
+[source,bash]
+----
+$ acr artifact version get 2.0.0 --group my-schemas --artifact my-artifact
+----
++
+To retrieve the version content instead of the metadata, use the `--content` (`-c`) option.
+. Update the metadata or state of a version:
++
+[source,bash]
+----
+$ acr artifact version update 2.0.0 --group my-schemas --artifact my-artifact --state DEPRECATED
+----
++
+The `--state` option accepts the following values: `ENABLED`, `DISABLED`, `DEPRECATED`, and `DRAFT`. To update the content of a version, use the `--file` option. Content updates are only possible for versions in the `DRAFT` state.
+. Delete a version:
++
+[source,bash]
+----
+$ acr artifact version delete 2.0.0 --group my-schemas --artifact my-artifact
+----
++
+[NOTE]
+====
+You must configure {registry} with `apicurio.rest.deletion.artifact-version.enabled=true` to allow version deletions.
+====
+
+
+[id="managing-rules-using-registry-cli_{context}"]
+== Managing rules using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI to manage content rules at the global, group, and artifact levels. Rules at a more specific level override rules at a broader level.
+
+.Prerequisites
+* You have configured at least one CLI context.
+
+.Procedure
+. Manage global rules with the `acr rule` commands:
++
+[source,bash]
+----
+$ acr rule create VALIDITY --config FULL
+$ acr rule
+$ acr rule get VALIDITY
+$ acr rule update VALIDITY --config SYNTAX_ONLY
+$ acr rule delete VALIDITY
+----
+. Manage the rules of a group with the `acr group rule` commands:
++
+[source,bash]
+----
+$ acr group rule create COMPATIBILITY --config BACKWARD --group my-schemas
+----
+. Manage the rules of an artifact with the `acr artifact rule` commands:
++
+[source,bash]
+----
+$ acr artifact rule create INTEGRITY --config FULL --group my-schemas --artifact my-artifact
+----
+. Optional: Delete all rules at a level by using the `--all` option:
++
+[source,bash]
+----
+$ acr rule delete --all
+----
++
+For the valid rule types and configuration values, see the rule types table in the CLI reference section.
+
+
+[id="managing-role-mappings-using-registry-cli_{context}"]
+== Managing role mappings using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI to assign {registry} roles to principals, such as user accounts or service accounts, when role-based authorization is enabled on the registry.
+
+.Prerequisites
+* You have configured a CLI context for a {registry} instance with role-based authorization enabled.
+* You are authenticated as a user with permission to manage role mappings.
+
+.Procedure
+. Create a role mapping for a principal. The role is one of `ADMIN`, `DEVELOPER`, or `READ_ONLY`:
++
+[source,bash]
+----
+$ acr role create service-account-my-app DEVELOPER
+----
++
+Optional: Provide a display name with the `--name` option.
+. List all role mappings:
++
+[source,bash]
+----
+$ acr role
+----
+. Get the role mapping of a principal:
++
+[source,bash]
+----
+$ acr role get service-account-my-app
+----
+. Update the role of a principal:
++
+[source,bash]
+----
+$ acr role update service-account-my-app --role ADMIN
+----
+. Delete a role mapping:
++
+[source,bash]
+----
+$ acr role delete service-account-my-app
+----
+
+
+[id="exporting-importing-registry-data-using-registry-cli_{context}"]
+== Exporting and importing data using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI to export {registry} data to a .zip file and to import previously exported data into a registry instance.
+
+.Prerequisites
+* You have configured at least one CLI context.
+
+.Procedure
+. Export all registry data to a .zip file:
++
+[source,bash]
+----
+$ acr admin export --file registry-export.zip
+----
+. Optional: Export the data of a single group by using the `--group` option:
++
+[source,bash]
+----
+$ acr admin export --file group-export.zip --group my-schemas
+----
+. Import registry data from a .zip file:
++
+[source,bash]
+----
+$ acr admin import --file registry-export.zip
+----
++
+Optional: To import into a registry that already contains data, use the `--no-require-empty` option. To let the server generate new global and content identifiers instead of preserving the exported ones, use the `--no-preserve-ids` option.
+
+
 [id="registry-cli-output-formats_{context}"]
 == CLI output formats and pagination
 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The CLI supports different output formats and pagination options for managing large result sets.
+The CLI supports different output formats, pagination, ordering, and column selection options for managing command output.
 
 The CLI supports the following output formats:
 
@@ -268,10 +569,14 @@ $ acr group --output-type json
 $ acr group get my-schemas -o json
 ----
 
+The `acr content` command is an exception: its output types are `raw` (default) and `json`.
+
+In JSON mode, the CLI writes only data to standard output and diverts status messages to standard error, which makes the output suitable for scripting.
+
 For commands that return lists, you can use pagination options:
 
-* `--page` - The page number (starting from 1)
-* `--size` - The number of items per page
+* `--page` - The page number, starting from 1 (default: 1)
+* `--size` - The number of items per page (default: 10)
 
 For example:
 
@@ -279,6 +584,8 @@ For example:
 ----
 $ acr group --page 2 --size 25
 ----
+
+List commands also support ordering with the `--order-by` and `--order` options. The default sort order is ascending (`Asc`), and the default sort field depends on the command.
 
 *Selecting columns*
 
@@ -292,6 +599,10 @@ $ acr artifact version --columns version,state,createdOn
 
 An unknown column name produces an error that lists the valid columns. This option only affects `table` output, and is available on commands that list multiple records rather than commands that show details of a single record.
 
+*Verbose output*
+
+To enable verbose output for debugging, use the `--verbose` option. This option has no short form.
+
 
 [id="registry-cli-reference_{context}"]
 == CLI reference
@@ -299,7 +610,7 @@ An unknown column name produces an error that lists the valid columns. This opti
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following tables describe CLI global options and exit codes.
+The following tables describe CLI global options, exit codes, available commands, rule types, and CLI configuration properties.
 
 The following options are available for most CLI commands:
 
@@ -309,14 +620,14 @@ The following options are available for most CLI commands:
 | Option
 | Description
 
-| `--verbose`, `-v`
-| Enable verbose output for debugging.
+| `--verbose`
+| Enable verbose output for debugging. This option has no short form.
 
 | `--help`, `-h`
 | Display help information for the command.
 
 | `--output-type`, `-o`
-| Set the output format. Valid values are `table` (default) and `json`.
+| Set the output format. Valid values are `table` (default) and `json`. The `acr content` command uses `raw` (default) and `json`.
 |===
 
 The CLI uses the following exit codes:
@@ -340,7 +651,7 @@ The CLI uses the following exit codes:
 | {registry} server error.
 |===
 
-The following commands are currently available:
+The following commands are available. Running a parent command, such as `acr group`, without a subcommand lists the corresponding records.
 
 .Command summary
 [cols="2,3", options="header"]
@@ -349,28 +660,67 @@ The following commands are currently available:
 | Description
 
 | `acr context`
-| List all configured contexts.
+| List contexts. Subcommands: `create`, `update`, `use`, `delete`. Aliases: `contexts`, `ctx`.
 
-| `acr context create`
-| Create a new context.
+| `acr config`
+| List CLI configuration properties. Subcommands: `get`, `set`, `delete`. Alias: `cfg`.
 
-| `acr context delete`
-| Delete a context.
+| `acr login`
+| Log in to the current context by using basic authentication or OAuth2 client credentials.
+
+| `acr logout`
+| Log out of the current context and remove stored credentials.
 
 | `acr group`
-| List all groups.
+| List groups. Subcommands: `create`, `get`, `update`, `delete`. Alias: `groups`.
 
-| `acr group create`
-| Create a new group.
+| `acr group rule`
+| List the rules of a group. Subcommands: `create`, `get`, `update`, `delete`. Alias: `rules`.
 
-| `acr group get`
-| Get group details.
+| `acr artifact`
+| List the artifacts of a group. Subcommands: `create`, `get`, `update`, `delete`. Alias: `artifacts`.
 
-| `acr group update`
-| Update a group.
+| `acr artifact rule`
+| List the rules of an artifact. Subcommands: `create`, `get`, `update`, `delete`. Alias: `rules`.
 
-| `acr group delete`
-| Delete a group.
+| `acr artifact version`
+| List the versions of an artifact. Subcommands: `create`, `get`, `update`, `delete`. Alias: `versions`.
+
+| `acr artifact version comment`
+| Work with version comments. Subcommands: `list`, `create`, `update`, `delete`. Alias: `comments`.
+
+| `acr reference list`
+| List the outbound references of a version. Use the `--inbound` option to list inbound references instead. Aliases: `references`, `ref`.
+
+| `acr rule`
+| List global rules. Subcommands: `create`, `get`, `update`, `delete`. Alias: `rules`.
+
+| `acr role`
+| List role mappings. Subcommands: `create`, `get`, `update`, `delete`. Alias: `roles`.
+
+| `acr search group`
+| Search groups by identifier, description, or labels. Alias: `groups`.
+
+| `acr search artifact`
+| Search artifacts by name, description, group, type, labels, or identifiers. Alias: `artifacts`.
+
+| `acr search version`
+| Search versions, with additional version and state filters. Alias: `versions`.
+
+| `acr search content`
+| Search artifacts by content from a file or standard input. Supports canonical content matching with the `--canonical` option. Alias: `contents`.
+
+| `acr content`
+| Retrieve content by global ID, content ID, or SHA-256 hash.
+
+| `acr server-config`
+| List the dynamic configuration properties of the {registry} server. Subcommands: `get`, `set`, `reset`. Alias: `server-configs`.
+
+| `acr admin export`
+| Export registry data to a .zip file, optionally limited to one group.
+
+| `acr admin import`
+| Import registry data from a .zip file.
 
 | `acr install`
 | Install the CLI for the current user.
@@ -379,7 +729,47 @@ The following commands are currently available:
 | Update the CLI to a newer version.
 
 | `acr version`
-| Display CLI version information.
+| Display CLI version information and, if the server is reachable, server version information.
+|===
+
+The rule commands accept the following rule types and configuration values:
+
+.Rule types and configuration values
+[cols="1,3", options="header"]
+|===
+| Rule type
+| Configuration values
+
+| `VALIDITY`
+| `NONE`, `SYNTAX_ONLY`, `FULL`
+
+| `COMPATIBILITY`
+| `NONE`, `BACKWARD`, `BACKWARD_TRANSITIVE`, `FORWARD`, `FORWARD_TRANSITIVE`, `FULL`, `FULL_TRANSITIVE`
+
+| `INTEGRITY`
+| `NONE`, `REFS_EXIST`, `ALL_REFS_MAPPED`, `NO_DUPLICATES`, `NO_CIRCULAR_REFERENCES`, `FULL`
+|===
+
+You can adjust the behavior of the CLI itself with the `acr config set` command. The following CLI configuration properties are available:
+
+.CLI configuration properties
+[cols="2,1,3", options="header"]
+|===
+| Property
+| Default
+| Description
+
+| `update.check-enabled`
+| `true`
+| Check for CLI updates once per day.
+
+| `update.timeout-seconds`
+| `60`
+| Timeout for update operations, in seconds.
+
+| `update.skip-checksum-verification`
+| `false`
+| Skip checksum verification when updating the CLI.
 |===
 
 [role="_additional-resources"]

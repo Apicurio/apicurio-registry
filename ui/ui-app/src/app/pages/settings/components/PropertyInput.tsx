@@ -1,5 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { InputGroup, TextInput } from "@patternfly/react-core";
+import { FormHelperText, HelperText, HelperTextItem, InputGroup, TextInput } from "@patternfly/react-core";
+import { isNonNegativeInteger } from "@utils/validation.utils.ts";
 
 /**
  * Properties
@@ -40,11 +41,7 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
         if (props.type === "text") {
             return value.trim().length > 0;
         } else if (props.type === "number") {
-            if (value.trim().length === 0) {
-                return false;
-            }
-            const num: number = Number(value);
-            return Number.isInteger(num);
+            return isNonNegativeInteger(value);
         }
         return true;
     };
@@ -66,13 +63,34 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
         props.onChange(currentValue);
     }, [currentValue]);
 
-    return <InputGroup>
-        <TextInput name={ props.name }
-            value={ currentValue }
-            validated={ validated() }
-            onChange={ handleInputChange }
-            onKeyDown={ handleKeyPress }
-            aria-label="configuration property input"/>
-    </InputGroup>;
+    const getErrorMessage = (): string => {
+        if (props.type === "number") {
+            return "Value must be a non-negative integer.";
+        }
+        return "Value cannot be empty.";
+    };
+
+    return (
+        <div>
+            <InputGroup>
+                <TextInput name={ props.name }
+                    value={ currentValue }
+                    validated={ validated() }
+                    onChange={ handleInputChange }
+                    onKeyDown={ handleKeyPress }
+                    aria-label="configuration property input"/>
+            </InputGroup>
+            {!isValid && (
+                <FormHelperText>
+                    <HelperText>
+                        <HelperTextItem variant="error">
+                            {getErrorMessage()}
+                        </HelperTextItem>
+                    </HelperText>
+                </FormHelperText>
+            )}
+        </div>
+    );
 
 };
+

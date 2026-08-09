@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkIdValid, validateField } from "./validation.utils";
+import { checkIdValid, isNonNegativeInteger, validateField } from "./validation.utils";
 
 describe("validation.utils", () => {
     describe("checkIdValid", () => {
@@ -71,6 +71,32 @@ describe("validation.utils", () => {
             expect(validateField("1#2")).toBe("error");
             expect(validateField("1/2")).toBe("error");
             expect(validateField("1%2")).toBe("error");
+        });
+    });
+
+    describe("isNonNegativeInteger", () => {
+        it("should return true for 0, 1, and 100", () => {
+            expect(isNonNegativeInteger("0")).toBe(true);
+            expect(isNonNegativeInteger("1")).toBe(true);
+            expect(isNonNegativeInteger("100")).toBe(true);
+        });
+
+        it("should return false for negative numbers (-1, -58223)", () => {
+            expect(isNonNegativeInteger("-1")).toBe(false);
+            expect(isNonNegativeInteger("-58223")).toBe(false);
+        });
+
+        it("should return false for decimal numbers (10.5)", () => {
+            expect(isNonNegativeInteger("10.5")).toBe(false);
+            expect(isNonNegativeInteger("-0.5")).toBe(false);
+        });
+
+        it("should return false for empty, spaces, null, undefined, or non-numeric strings", () => {
+            expect(isNonNegativeInteger("")).toBe(false);
+            expect(isNonNegativeInteger("   ")).toBe(false);
+            expect(isNonNegativeInteger(null)).toBe(false);
+            expect(isNonNegativeInteger(undefined)).toBe(false);
+            expect(isNonNegativeInteger("abc")).toBe(false);
         });
     });
 });

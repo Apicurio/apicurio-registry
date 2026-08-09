@@ -222,6 +222,29 @@ Use `--verbose` to enable debug logging:
 acr --verbose artifact get my-artifact -g my-group
 ```
 
+Verbose output includes the raw request and response of every Registry call, with requests
+prefixed by `>` and responses by `<`:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+> Authorization: <redacted>
+
+HTTP response:
+< 200 OK
+< Content-Type: application/json
+<
+< {"groupId":"my-group", ...}
+```
+
+Headers that carry credentials (`Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`)
+are redacted, and bodies longer than 8192 characters are truncated. HTTP traffic is logged under
+the `io.apicurio.registry.client.http` category, so it can be quieted on its own:
+
+```bash
+acr config set 'quarkus.log.category."io.apicurio.registry.client.http".level=WARNING'
+```
+
 Verbose output can be noisy. To quiet a specific package while keeping the rest, set a
 per-package level using the `quarkus.log.category."<package>".level` config key:
 
@@ -527,7 +550,7 @@ All filters are optional and can be combined. Additional filters include `--desc
 
 These options work with most commands:
 
-- `--verbose, -v` - Enable verbose output for debugging
+- `--verbose, -v` - Enable verbose output for debugging, including raw HTTP requests and responses
 - `--help, -h` - Show help information
 - `--output-type, -o` - Set output format (table or json)
 

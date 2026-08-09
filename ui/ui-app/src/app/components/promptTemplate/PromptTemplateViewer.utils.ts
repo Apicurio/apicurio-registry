@@ -1,4 +1,5 @@
 import React from "react";
+import { VariableSchema } from "./promptTemplateVariables";
 
 export type TemplateTokenKind = "plain" | "variable" | "block";
 
@@ -62,4 +63,21 @@ export const highlightVariables = (template: string): React.ReactNode[] => {
             token.text
         );
     });
+};
+
+export const getVariablesList = (variables: Record<string, VariableSchema> | VariableSchema[] | undefined): { name: string; variable: VariableSchema }[] => {
+    if (!variables) return [];
+    if (Array.isArray(variables)) {
+        return variables.map(v => ({ name: v.name || "", variable: v }));
+    }
+    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
+};
+
+// Format a variable default for display in the Variables table.
+// Objects and arrays go through JSON.stringify so they don't render as "[object Object]".
+export const formatDefault = (value: any): string => {
+    if (typeof value === "object" && value !== null) {
+        return JSON.stringify(value);
+    }
+    return String(value);
 };

@@ -8,7 +8,9 @@ import io.apicurio.registry.rules.violation.RuleViolationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Tests the MCP tool content validator, accepter, and extractor.
@@ -131,5 +133,60 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
         TypedContent content = resourceToTypedContentHandle("mcptool-invalid-json.json");
         McpToolContentValidator validator = new McpToolContentValidator();
         validator.validate(ValidityLevel.NONE, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testMcpToolEmptyName() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-empty-name.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testMcpToolInvalidPriority() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-invalid-priority.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testMcpToolInvalidOutputSchema() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-invalid-outputschema.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testMcpToolInvalidRequiredArray() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-invalid-required-array.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testMcpToolReferencesRejected() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-valid.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        ArtifactReference ref = new ArtifactReference();
+        ref.setName("some-ref");
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validateReferences(content, List.of(ref));
+        }, "MCP tool definitions should not support references");
+    }
+
+    @Test
+    public void testMcpToolSyntaxOnlyPassesStructurallyInvalid() throws Exception {
+        // Valid JSON object but missing required MCP fields - SYNTAX_ONLY should pass
+        TypedContent content = resourceToTypedContentHandle("mcptool-missing-inputschema.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
     }
 }

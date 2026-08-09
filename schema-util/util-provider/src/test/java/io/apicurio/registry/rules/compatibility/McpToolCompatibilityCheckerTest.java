@@ -344,4 +344,92 @@ class McpToolCompatibilityCheckerTest {
 
         assertTrue(result.isCompatible(), "Identical schema with description change should be fully compatible");
     }
+
+    @Test
+    void testForwardCompatibleRemovingOptionalProperty() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "limit": { "type": "integer" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        // Proposed removes optional "limit" - forward incompatible (producers using new version
+        // won't send "limit" but old consumers might need it)
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult backwardResult = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(backwardResult.isCompatible(),
+                "Removing any property should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleNoChanges() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "description": "A tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(existing), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Identical schemas should be backward compatible");
+    }
+
+    @Test
+    void testIncompatibleWithParseError() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": { "type": "object" }
+                }
+                """;
+
+        String malformed = "{ this is not valid json }";
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(TypedContent.create(
+                        io.apicurio.registry.content.ContentHandle.create(existing),
+                        ContentTypes.APPLICATION_JSON)),
+                TypedContent.create(
+                        io.apicurio.registry.content.ContentHandle.create(malformed),
+                        ContentTypes.APPLICATION_JSON),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Malformed proposed content should be incompatible");
+    }
 }

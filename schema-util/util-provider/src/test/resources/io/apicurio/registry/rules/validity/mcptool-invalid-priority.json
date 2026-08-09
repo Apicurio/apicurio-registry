@@ -1,0 +1,9 @@
+{
+  "name": "priority_tool",
+  "inputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "priority": 1.5
+  }
+}

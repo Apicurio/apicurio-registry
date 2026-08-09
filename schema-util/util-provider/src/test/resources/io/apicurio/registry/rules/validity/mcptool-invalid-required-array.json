@@ -1,0 +1,10 @@
+{
+  "name": "required_tool",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string" }
+    },
+    "required": [42, true]
+  }
+}

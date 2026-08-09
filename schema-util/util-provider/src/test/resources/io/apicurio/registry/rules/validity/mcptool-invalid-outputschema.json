@@ -1,0 +1,7 @@
+{
+  "name": "outputschema_tool",
+  "inputSchema": {
+    "type": "object"
+  },
+  "outputSchema": "this-should-be-an-object"
+}

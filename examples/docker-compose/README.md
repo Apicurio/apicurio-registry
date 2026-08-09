@@ -15,14 +15,14 @@ Install *Docker*. You can either build *Apicurio Registry* images locally
 or use the pre-built images from a public registry.
 
 In order to provide configuration files to the containers, create a *config* docker volume `docker volume create config` 
-and copy the content of the `./config` directory to the volume - `docker volume inspect config | jq -r '.[0].Mountpoint'`.
+and copy the content of the `./src/main/resources/config` directory to the volume - `docker volume inspect config | jq -r '.[0].Mountpoint'`.
 
 ## Use-cases
 
 ### Metrics with Prometheus and Grafana
 
-Run `compose-metrics.yaml` together with a base compose file, e.g. 
-`docker compose -f compose-metrics.yaml -f compose-base-sql.yaml up --abort-on-container-exit`.
+Run `compose-metrics.yml` together with a base compose file, e.g. 
+`docker compose -f compose-metrics.yml -f compose-base-sql.yml up --abort-on-container-exit`.
 
 *Grafana* console should be available at `http://localhost:3000` after logging in as *admin/password*.
 

@@ -205,27 +205,27 @@ public class AuthConfig {
     @PostConstruct
     void onConstruct() {
         log.debug("===============================");
-        log.debug("OIDC Auth Enabled: " + oidcAuthEnabled);
-        log.debug("Basic Auth Enabled: " + basicAuthEnabled);
-        log.debug("Form Auth Enabled: " + formAuthEnabled);
-        log.debug("Proxy Auth Enabled: " + proxyHeaderAuthEnabled);
-        log.debug("Kubernetes Auth Enabled: " + kubernetesAuthEnabled);
-        log.debug("Mechanism Priority: " + mechanismPriority);
-        log.debug("Anonymous Read Access Enabled: " + anonymousReadAccessEnabled);
-        log.debug("Authenticated Read Access Enabled: " + authenticatedReadAccessEnabled);
-        log.debug("RBAC Enabled: " + roleBasedAuthorizationEnabled);
+        log.debug("OIDC Auth Enabled: {}", oidcAuthEnabled);
+        log.debug("Basic Auth Enabled: {}", basicAuthEnabled);
+        log.debug("Form Auth Enabled: {}", formAuthEnabled);
+        log.debug("Proxy Auth Enabled: {}", proxyHeaderAuthEnabled);
+        log.debug("Kubernetes Auth Enabled: {}", kubernetesAuthEnabled);
+        log.debug("Mechanism Priority: {}", mechanismPriority);
+        log.debug("Anonymous Read Access Enabled: {}", anonymousReadAccessEnabled);
+        log.debug("Authenticated Read Access Enabled: {}", authenticatedReadAccessEnabled);
+        log.debug("RBAC Enabled: {}", roleBasedAuthorizationEnabled);
         if (roleBasedAuthorizationEnabled) {
-            log.debug("   RBAC Roles: " + readOnlyRole + ", " + developerRole + ", " + adminRole);
-            log.debug("   Role Source: " + roleSource);
+            log.debug("   RBAC Roles: {}, {}, {}", readOnlyRole, developerRole, adminRole);
+            log.debug("   Role Source: {}", roleSource);
         }
-        log.debug("OBAC Enabled: " + ownerOnlyAuthorizationEnabled);
-        log.debug("Admin Override Enabled: " + adminOverrideEnabled);
+        log.debug("OBAC Enabled: {}", ownerOnlyAuthorizationEnabled);
+        log.debug("Admin Override Enabled: {}", adminOverrideEnabled);
         if (adminOverrideEnabled) {
-            log.debug("   Admin Override from: " + adminOverrideFrom);
-            log.debug("   Admin Override type: " + adminOverrideType);
-            log.debug("   Admin Override role: " + adminOverrideRole);
-            log.debug("   Admin Override claim: " + adminOverrideClaim);
-            log.debug("   Admin Override claim-value: " + adminOverrideClaimValue);
+            log.debug("   Admin Override from: {}", adminOverrideFrom);
+            log.debug("   Admin Override type: {}", adminOverrideType);
+            log.debug("   Admin Override role: {}", adminOverrideRole);
+            log.debug("   Admin Override claim: {}", adminOverrideClaim);
+            log.debug("   Admin Override claim-value: {}", adminOverrideClaimValue);
         }
         log.debug("===============================");
     }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.extract.NoopStructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 import io.apicurio.registry.core.System;
@@ -601,8 +602,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return;
         }
         try {
-            StructuredContentExtractor extractor = typeProviderFactory.getArtifactTypeProvider(artifactType)
-                    .getStructuredContentExtractor();
+            StructuredContentExtractor extractor = structuredContentExtractorFor(artifactType);
             if (extractor == null) {
                 return;
             }
@@ -630,6 +630,19 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             log.warn("Failed to update structured content for {}/{}: {}", groupId, artifactId,
                     e.getMessage(), e);
         }
+    }
+
+    /**
+     * Returns the structured content extractor for the given artifact type, or null when that type does
+     * not extract structured content. Providers never return null here - types without structured
+     * extraction get {@link NoopStructuredContentExtractor}, so that is what identifies them. Checking
+     * for null alone would treat every artifact type as extractable, making the callers do work for
+     * types (AVRO, PROTOBUF, ...) that can never produce structured elements.
+     */
+    private StructuredContentExtractor structuredContentExtractorFor(String artifactType) {
+        StructuredContentExtractor extractor = typeProviderFactory.getArtifactTypeProvider(artifactType)
+                .getStructuredContentExtractor();
+        return extractor instanceof NoopStructuredContentExtractor ? null : extractor;
     }
 
     private ArtifactVersionMetaDataDto createArtifactVersionRaw(Handle handle, boolean firstVersion,
@@ -1658,8 +1671,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             return;
         }
         try {
-            boolean hasExtractor = typeProviderFactory.getArtifactTypeProvider(artifactType)
-                    .getStructuredContentExtractor() != null;
+            boolean hasExtractor = structuredContentExtractorFor(artifactType) != null;
             if (hasExtractor && STRUCTURED_IMPORT_WARNING_LOGGED.compareAndSet(false, true)) {
                 log.warn("Imported artifacts are not indexed into artifact_structured_content; "
                         + "structure-based discovery filters will not match imported artifacts until "

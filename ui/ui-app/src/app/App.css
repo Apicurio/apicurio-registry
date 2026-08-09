@@ -3,7 +3,7 @@
   --registry-page-canvas-bg: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
 }
 
-.pf-c-page {
+.pf-v6-c-page {
   width: 100%;
   height: 100vh;
 }

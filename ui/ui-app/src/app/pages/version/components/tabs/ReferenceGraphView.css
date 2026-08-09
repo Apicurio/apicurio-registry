@@ -51,7 +51,7 @@
 
 /* Edge styling */
 .reference-graph-container .react-flow__edge-path {
-    stroke: var(--pf-t--global--border--color--100, #8a8d90);
+    stroke: var(--pf-t--global--border--color--300, #8a8d90);
     stroke-width: 1.5;
 }
 

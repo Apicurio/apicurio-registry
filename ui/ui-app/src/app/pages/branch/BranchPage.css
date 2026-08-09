@@ -1,4 +1,4 @@
-div.branch-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs__button::before {
+div.branch-page-tabs > ul > li.pf-v6-c-tabs__item.pf-m-current > button.pf-v6-c-tabs__link::before {
     border-bottom-color: transparent;
 }
 

@@ -194,6 +194,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
         assertThat(results.getArtifacts())
                 .as(withCliOutput("Type-filtered search should return JSON artifacts"))
+                .isNotEmpty()
                 .allMatch(a -> "JSON".equals(a.getArtifactType()));
     }
 

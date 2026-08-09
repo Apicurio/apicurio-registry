@@ -68,9 +68,10 @@ public class KafkaSqlSubmitter {
      *
      * @param key
      * @param value
+     * @param expectsResponse whether the caller expects a response to be coordinated
      */
-    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value) {
-        UUID requestId = coordinator.get().createUUID();
+    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value, boolean expectsResponse) {
+        UUID requestId = expectsResponse ? coordinator.get().createUUID() : UUID.randomUUID();
         RecordHeader requestIdHeader = new RecordHeader(REQUEST_ID_HEADER,
                 requestId.toString().getBytes(StandardCharsets.UTF_8));
         RecordHeader messageTypeHeader = new RecordHeader(MESSAGE_TYPE_HEADER,
@@ -88,12 +89,12 @@ public class KafkaSqlSubmitter {
     public void submitBootstrap(String bootstrapId) {
         KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
-        blockOnResult(send(key, null));
+        blockOnResult(send(key, null, false));
     }
 
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
         var key = message.getKey();
-        return send(key, message);
+        return send(key, message, true);
     }
 
 }

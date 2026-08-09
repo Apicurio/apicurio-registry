@@ -444,6 +444,43 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testGetPublicAgentsNegativeOffset() {
+        givenAtRoot()
+                .when()
+                .queryParam("offset", -1)
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgentsNegativeLimit() {
+        givenAtRoot()
+                .when()
+                .queryParam("limit", -1)
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgentsNegativeOffsetLimitViaV3Path() {
+        givenAtRoot()
+                .when()
+                .queryParam("offset", -1)
+                .queryParam("limit", -1)
+                .get("/apis/registry/v3/well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
     public void testSearchAgentsAdvancedWithQueryWildcard() throws Exception {
         String groupId = TestUtils.generateGroupId();
         createAgentCard(groupId, "wildcard-target-agent", AGENT_CARD_CONTENT);

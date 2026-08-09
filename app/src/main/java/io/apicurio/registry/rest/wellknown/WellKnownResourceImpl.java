@@ -137,8 +137,11 @@ public class WellKnownResourceImpl implements WellKnownResource {
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
         filters.add(SearchFilter.ofLabel("apicurio.agent.visibility", "public"));
 
+        int safeOffset = Math.max(0, offset);
+        int safeLimit = Math.max(1, Math.min(limit, 500));
+
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, offset, limit, false);
+                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
 
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : results.getArtifacts()) {

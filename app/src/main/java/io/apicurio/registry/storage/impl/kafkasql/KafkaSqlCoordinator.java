@@ -47,7 +47,11 @@ public class KafkaSqlCoordinator {
      */
     public Object waitForResponse(UUID uuid) {
         try {
-            latches.get(uuid).await(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            boolean completed = latches.get(uuid).await(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            if (!completed) {
+                throw new RegistryException(
+                        "[KafkaSqlCoordinator] Timeout waiting for a Kafka Sql response from consumer thread.");
+            }
 
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {

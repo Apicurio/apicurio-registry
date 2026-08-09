@@ -18,10 +18,11 @@ import {
     TextInput,
     Title
 } from "@patternfly/react-core";
-import { PromptVariable } from "./PromptTemplateViewer";
+import { PromptVariable } from "./promptTemplate.types";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
 import { coerceEnumValue } from "./PromptTemplateTestPanel.utils";
+import { getVariablesList } from "./promptTemplate.utils";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -29,14 +30,6 @@ export type PromptTemplateTestPanelProps = {
     version: string;
     variables: Record<string, PromptVariable> | PromptVariable[] | undefined;
     className?: string;
-};
-
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
-    }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
 };
 
 export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {

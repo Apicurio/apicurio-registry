@@ -18,7 +18,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -392,13 +391,16 @@ public class ProtobufExportTest extends AbstractResourceTestBase {
 
         // Exporting the main artifact must fail (not silently return a partial zip with HTTP 200)
         given()
+                .config(io.restassured.config.RestAssuredConfig.config()
+                        .decoderConfig(new io.restassured.config.DecoderConfig().noContentDecoders()))
+                .header("Accept-Encoding", "identity")
                 .when()
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", tableInfoArtifactId)
                 .pathParam("versionExpression", "branch=latest")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/export")
                 .then()
-                .statusCode(greaterThanOrEqualTo(400));
+                .statusCode(500);
     }
 
     @Test

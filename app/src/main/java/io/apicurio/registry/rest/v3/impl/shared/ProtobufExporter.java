@@ -2,6 +2,7 @@ package io.apicurio.registry.rest.v3.impl.shared;
 
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -153,10 +154,12 @@ public class ProtobufExporter {
 
                     // Recursively collect nested references
                     collectReferences(content.getReferences(), result, visited);
+                } else {
+                    throw new RegistryException("Could not resolve reference: " + ref.getName());
                 }
             } catch (Exception e) {
                 log.warn("Could not resolve reference: {} - {}", ref.getName(), e.getMessage());
-                throw new RuntimeException("Failed to resolve reference: " + ref.getName(), e);
+                throw new RegistryException("Could not resolve reference: " + ref.getName(), e);
             }
         }
     }

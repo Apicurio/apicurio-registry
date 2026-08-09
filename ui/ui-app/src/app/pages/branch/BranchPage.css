@@ -7,7 +7,7 @@ div.branch-page-tabs > ul > li.pf-v6-c-tabs__item.pf-m-current > button.pf-v6-c-
     flex-direction: column;
 }
 
-.branch-details-main .pf-c-tab-content,
+.branch-details-main .pf-v6-c-tab-content,
 .branch-details-main .pf-v6-c-tab-content {
     flex-grow: 1;
     display: flex;

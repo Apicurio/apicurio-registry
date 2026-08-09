@@ -126,6 +126,8 @@ public class RegistryClientOptions {
     private HttpAdapterType httpAdapterType = HttpAdapterType.AUTO;
     // OpenTelemetry config
     private boolean otelEnabled = false;
+    // HTTP logging config
+    private boolean httpLoggingEnabled = false;
 
     private RegistryClientOptions() {
     }
@@ -276,6 +278,10 @@ public class RegistryClientOptions {
 
     public boolean isOtelEnabled() {
         return otelEnabled;
+    }
+
+    public boolean isHttpLoggingEnabled() {
+        return httpLoggingEnabled;
     }
 
     /**
@@ -850,6 +856,25 @@ public class RegistryClientOptions {
      */
     public RegistryClientOptions enableOpenTelemetry() {
         this.otelEnabled = true;
+        return this;
+    }
+
+    /**
+     * Enables logging of the raw HTTP requests and responses exchanged with the Registry.
+     * Every call is logged with its method, URL, headers and body, followed by the response
+     * status code, headers and body.
+     *
+     * <p>Records are written to the {@code io.apicurio.registry.client.http} logger at
+     * {@code FINE} level, so the logger has to be enabled for anything to be printed.
+     * Headers that carry credentials are redacted, and long bodies are truncated.</p>
+     *
+     * <p><strong>Note:</strong> this is currently implemented by the Vert.x adapter only.
+     * With the JDK adapter the option has no effect.</p>
+     *
+     * @return this builder
+     */
+    public RegistryClientOptions enableHttpLogging() {
+        this.httpLoggingEnabled = true;
         return this;
     }
 }

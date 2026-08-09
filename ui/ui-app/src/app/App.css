@@ -1,6 +1,6 @@
 :root {
   --myApp-global--spacer--md: 30px;
-  --registry-page-canvas-bg: var(--pf-v5-global--BackgroundColor--200, #f0f0f0);
+  --registry-page-canvas-bg: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
 }
 
 .pf-c-page {

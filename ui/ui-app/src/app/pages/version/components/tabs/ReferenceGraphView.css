@@ -1,9 +1,9 @@
 .reference-graph-container {
     height: 500px;
     width: 100%;
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     border-radius: 4px;
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
     position: relative;
 }
 
@@ -14,25 +14,25 @@
     justify-content: center;
     height: 300px;
     gap: 16px;
-    color: var(--pf-v5-global--Color--200, #6a6e73);
+    color: var(--pf-t--global--text--color--secondary--default, #6a6e73);
 }
 
 /* Override React Flow default styles to match PatternFly */
 .reference-graph-container .react-flow__controls {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border-radius: 4px;
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
 }
 
 .reference-graph-container .react-flow__controls-button {
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
-    border-bottom: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     width: 28px;
     height: 28px;
 }
 
 .reference-graph-container .react-flow__controls-button:hover {
-    background: var(--pf-v5-global--BackgroundColor--200, #f0f0f0);
+    background: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
 }
 
 .reference-graph-container .react-flow__controls-button:last-child {
@@ -40,7 +40,7 @@
 }
 
 .reference-graph-container .react-flow__minimap {
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -51,12 +51,12 @@
 
 /* Edge styling */
 .reference-graph-container .react-flow__edge-path {
-    stroke: var(--pf-v5-global--BorderColor--200, #8a8d90);
+    stroke: var(--pf-t--global--border--color--100, #8a8d90);
     stroke-width: 1.5;
 }
 
 .reference-graph-container .react-flow__edge.selected .react-flow__edge-path {
-    stroke: var(--pf-v5-global--primary-color--100, #0066cc);
+    stroke: var(--pf-t--global--color--brand--default, #0066cc);
     stroke-width: 2;
 }
 
@@ -65,15 +65,15 @@
     position: absolute;
     bottom: 12px;
     right: 12px;
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     border-radius: 4px;
     padding: 8px 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
     font-size: 11px;
-    color: var(--pf-v5-global--Color--200, #6a6e73);
+    color: var(--pf-t--global--text--color--secondary--default, #6a6e73);
     z-index: 5;
 }
 
@@ -87,22 +87,22 @@
     width: 12px;
     height: 12px;
     border-radius: 2px;
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
 }
 
 .legend-color.root {
-    background: var(--pf-v5-global--BackgroundColor--light-200, #fafafa);
-    border-color: var(--pf-v5-global--primary-color--100, #0066cc);
+    background: var(--pf-t--global--background--color--secondary--default, #fafafa);
+    border-color: var(--pf-t--global--color--brand--default, #0066cc);
     border-width: 2px;
 }
 
 .legend-color.reference {
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
 }
 
 .legend-color.cycle {
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
-    border-color: var(--pf-v5-global--danger-color--100, #c9190b);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
+    border-color: var(--pf-t--global--color--status--danger--default, #c9190b);
     border-width: 2px;
 }
 
@@ -120,7 +120,7 @@
     width: 100vw;
     height: 100vh;
     z-index: 1000;
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
 }
 
 .reference-graph-wrapper.fullscreen .reference-graph-container {
@@ -132,13 +132,13 @@
 /* Graph controls toolbar */
 .graph-controls-toolbar {
     padding: 8px 16px;
-    border-bottom: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
 }
 
 .depth-label {
     font-weight: 500;
-    color: var(--pf-v5-global--Color--100, #151515);
+    color: var(--pf-t--global--text--color--primary--default, #151515);
 }
 
 .depth-slider-item {
@@ -151,7 +151,7 @@
 
 .hint-text {
     font-size: 12px;
-    color: var(--pf-v5-global--Color--200, #6a6e73);
+    color: var(--pf-t--global--text--color--secondary--default, #6a6e73);
     font-style: italic;
 }
 
@@ -159,8 +159,8 @@
 .graph-action-panel {
     display: flex;
     gap: 4px;
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     border-radius: 4px;
     padding: 4px;
 }
@@ -175,8 +175,8 @@
     position: absolute;
     top: 12px;
     left: 12px;
-    background: var(--pf-v5-global--BackgroundColor--100, #ffffff);
-    border: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    background: var(--pf-t--global--background--color--primary--default, #ffffff);
+    border: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     border-radius: 4px;
     padding: 12px;
     min-width: 250px;
@@ -191,9 +191,9 @@
     gap: 8px;
     margin-bottom: 12px;
     padding-bottom: 8px;
-    border-bottom: 1px solid var(--pf-v5-global--BorderColor--100, #d2d2d2);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default, #d2d2d2);
     font-weight: 600;
-    color: var(--pf-v5-global--Color--100, #151515);
+    color: var(--pf-t--global--text--color--primary--default, #151515);
 }
 
 .node-details-header button {
@@ -201,6 +201,6 @@
 }
 
 .cycle-warning {
-    color: var(--pf-v5-global--danger-color--100, #c9190b);
+    color: var(--pf-t--global--color--status--danger--default, #c9190b);
     font-weight: 500;
 }

@@ -1,6 +1,8 @@
 export interface RenderPromptValidationError {
-    path?: string;
+    variableName?: string;
     message: string;
+    expectedType?: string;
+    actualType?: string;
 }
 
 export interface RenderPromptResponse {

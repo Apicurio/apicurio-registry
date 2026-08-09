@@ -332,16 +332,13 @@ public class AdminResourceImpl implements AdminResource {
         }
 
         // The input should be a ZIP file
-        final ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8);
-
         // Unpack the ZIP file to the local file system (temp)
         Path tempDirectory = null;
-        try {
+        try (ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8)) {
             tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
                     "apicurio-import_");
             IoUtil.unpackToDisk(zip, tempDirectory, importExportProps.zipMaxEntrySize,
                     importExportProps.zipMaxTotalSize, importExportProps.zipMaxEntryCount);
-            zip.close();
         } catch (IOException e) {
             throw new BadRequestException("Error importing data: " + e.getMessage(), e);
         }

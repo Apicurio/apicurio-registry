@@ -284,8 +284,24 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
   }
 
   if (!run) {
-    core.warning(`PR #${pr.number} no Verify run found for ${pr.head.sha}, skipping re-trigger`);
-    return;
+    // No Verify run exists for this SHA (e.g. PR predates the current
+    // workflow, or the run was cleaned up). Update the PR branch to
+    // trigger a fresh synchronize event and a new Verify run.
+    // handlePrSynchronize will approve the new run for fork PRs.
+    core.warning(`PR #${pr.number} no Verify run found for ${pr.head.sha}, attempting branch update`);
+    try {
+      await api.updateBranch(pr.number, pr.head.sha);
+      core.info(`PR #${pr.number} branch updated to trigger fresh Verify run`);
+      return;
+    } catch (e) {
+      core.warning(`PR #${pr.number} branch update failed: ${e.message}`);
+      await api.postComment(pr.number,
+        `Could not trigger the test suite automatically — no existing workflow run ` +
+        `was found and the branch could not be updated. @${pr.user.login}, please push ` +
+        `a change to trigger CI.`
+      );
+      return;
+    }
   }
 
   // Fork PRs need workflow approval before they can run. Approve instead
@@ -579,11 +595,37 @@ async function reconcile(github, api, pr, core) {
       core.info(`PR #${pr.number} reconciler fixed waiting-on labels (changes addressed)`);
     }
 
+    if (approved) {
+      await api.addLabel(pr.number, LABELS.REVIEW_APPROVED);
+    }
+
     const result = await checkAndTransitionToReady(api, pr, core, reviews);
     if (result === 'auto-merge') {
       await performMerge(api, config, pr, core);
     } else if (result === 'ready-to-merge') {
       core.info(`PR #${pr.number} reconciler transitioned to ready-to-merge`);
+    }
+  }
+
+  // 3. Ready-to-merge: verify the review is still valid (handles dismissals
+  //    and changes-requested that arrived after the transition).
+  if (state === LABELS.READY_TO_MERGE) {
+    const reviews = await api.getReviews(pr.number);
+    const approved = isApproved(reviews);
+    const reviewSkipped = hasLabel(pr, LABELS.REVIEW_SKIPPED);
+
+    if (!approved && !reviewSkipped) {
+      await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
+      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
+
+      if (hasLatestChangesRequested(reviews)) {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+        await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      } else {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      }
+
+      core.info(`PR #${pr.number} reconciler reverted from ready-to-merge (review no longer approved)`);
     }
   }
 }
@@ -1040,75 +1082,17 @@ async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comm
       `Retrying: reconciled PR state. The Verify workflow is already running.`
     );
     core.info(`PR #${pr.number} retry: reconciled (Verify already running) by ${actor}`);
+  } else if (!latestRun) {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state. No Verify run found — attempting to trigger a fresh one.`
+    );
+    await retriggerVerify(api, freshPr, core);
+    core.info(`PR #${pr.number} retry: reconciled + triggered fresh Verify by ${actor}`);
   } else {
     await api.postComment(pr.number,
       `Retrying: reconciled PR state. No failed Verify run to re-trigger.`
     );
     core.info(`PR #${pr.number} retry: reconciled (no failed run) by ${actor}`);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Review Handler
-// ---------------------------------------------------------------------------
-
-async function handleReview({ github, context, core }) {
-  const review = context.payload.review;
-  const pr = context.payload.pull_request;
-  const { owner, repo } = context.repo;
-  const api = createApi(github, owner, repo);
-
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.READY_FOR_REVIEW && state !== LABELS.READY_TO_MERGE) {
-    core.info(`PR #${pr.number} review submitted but not in reviewable state (${state}), skipping`);
-    return;
-  }
-
-  try {
-    if (context.payload.action === 'dismissed') {
-      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
-      if (state === LABELS.READY_TO_MERGE) {
-        await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
-        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      }
-      core.info(`PR #${pr.number} review dismissed, removed review-approved`);
-      const freshPr = await api.getPr(pr.number);
-      await reconcile(github, api, freshPr, core);
-      return;
-    }
-
-    if (review.state === 'changes_requested') {
-      await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-      await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
-      core.info(`PR #${pr.number} changes requested by ${review.user.login}`);
-      return;
-    }
-
-    if (review.state === 'approved') {
-      if (hasLabel(pr, LABELS.TESTED)) {
-        await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-      }
-      await api.addLabel(pr.number, LABELS.REVIEW_APPROVED);
-      const freshPr = await api.getPr(pr.number);
-      const result = await checkAndTransitionToReady(api, freshPr, core);
-      if (result === 'auto-merge') {
-        const config = loadConfig();
-        await performMerge(api, config, freshPr, core);
-      }
-    }
-
-    const freshPr = await api.getPr(pr.number);
-    await reconcile(github, api, freshPr, core);
-  } catch (e) {
-    if (e.status === 403) {
-      // Fork PRs have read-only tokens for pull_request_review events.
-      // The reconciler will fix labels when the Verify workflow completes
-      // (workflow_run events always have write permissions).
-      core.warning(`PR #${pr.number} review handler lacks write permissions (fork PR). Labels will be reconciled when the Verify workflow completes.`);
-    } else {
-      throw e;
-    }
   }
 }
 
@@ -1696,7 +1680,6 @@ module.exports = {
   handlePrReadyForReview,
   handlePrConvertedToDraft,
   handleComment,
-  handleReview,
   handleLabelChange,
   handleTestResult,
   handleStale,

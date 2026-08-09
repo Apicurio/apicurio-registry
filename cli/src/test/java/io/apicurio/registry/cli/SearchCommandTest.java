@@ -206,8 +206,9 @@ public class SearchCommandTest extends AbstractCLITest {
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
         assertThat(results.getArtifacts())
-                .as(withCliOutput("Order by should return results"))
-                .isNotEmpty();
+                .as(withCliOutput("Type-filtered search should return JSON artifacts"))
+                .isNotEmpty()
+                .allMatch(a -> "JSON".equals(a.getArtifactType()));
     }
 
     @Test

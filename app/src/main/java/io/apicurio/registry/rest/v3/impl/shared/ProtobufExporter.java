@@ -5,6 +5,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.utils.protobuf.schema.ProtoContent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -48,11 +49,13 @@ public class ProtobufExporter {
      * @return Response containing the ZIP file
      */
     public Response exportVersionAsZip(String groupId, String artifactId, String version) {
+
+        // Resolve all artifacts before creating the response.
+        Map<String, ProtoContent> protoFiles =
+                collectAllProtoFiles(groupId, artifactId, version);
+
         StreamingOutput stream = os -> {
             try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
-                // Collect all proto files with their content
-                Map<String, ProtoContent> protoFiles = collectAllProtoFiles(groupId, artifactId, version);
-
                 // Build a mapping from original import paths to canonical paths
                 Map<String, String> importPathMapping = buildImportPathMapping(protoFiles);
 
@@ -101,12 +104,17 @@ public class ProtobufExporter {
      *
      * @return Map from original import path to ProtoContent
      */
-    private Map<String, ProtoContent> collectAllProtoFiles(String groupId, String artifactId, String version) {
+    private Map<String, ProtoContent> collectAllProtoFiles(
+            String groupId,
+            String artifactId,
+            String version) {
+
         Map<String, ProtoContent> result = new LinkedHashMap<>();
         Set<String> visited = new HashSet<>();
 
         // Get the main artifact
-        StoredArtifactVersionDto mainArtifact = storage.getArtifactVersionContent(groupId, artifactId, version);
+        StoredArtifactVersionDto mainArtifact =
+                storage.getArtifactVersionContent(groupId, artifactId, version);
         String mainContent = mainArtifact.getContent().content();
 
         // Use artifact ID as the filename for the main artifact
@@ -127,15 +135,20 @@ public class ProtobufExporter {
     /**
      * Recursively collects all references.
      */
-    private void collectReferences(List<ArtifactReferenceDto> references,
-                                   Map<String, ProtoContent> result,
-                                   Set<String> visited) {
+    private void collectReferences(
+            List<ArtifactReferenceDto> references,
+            Map<String, ProtoContent> result,
+            Set<String> visited) {
+
         if (references == null || references.isEmpty()) {
             return;
         }
 
         for (ArtifactReferenceDto ref : references) {
-            String key = buildVisitedKey(ref.getGroupId(), ref.getArtifactId(), ref.getVersion());
+            String key = buildVisitedKey(
+                    ref.getGroupId(),
+                    ref.getArtifactId(),
+                    ref.getVersion());
 
             if (visited.contains(key)) {
                 continue;
@@ -144,18 +157,36 @@ public class ProtobufExporter {
 
             try {
                 ContentWrapperDto content = storage.getContentByReference(ref);
-                if (content != null && content.getContent() != null) {
-                    String refContent = content.getContent().content();
-                    // Use the reference name as the import path
-                    String importPath = ref.getName();
-                    ProtoContent protoContent = new ProtoContent(importPath, refContent);
-                    result.put(importPath, protoContent);
 
-                    // Recursively collect nested references
-                    collectReferences(content.getReferences(), result, visited);
+                if (content == null || content.getContent() == null) {
+                    throw new RegistryException(
+                            "Could not resolve Protobuf reference: " + ref.getName());
                 }
+
+                String refContent = content.getContent().content();
+
+                // Use the reference name as the import path
+                String importPath = ref.getName();
+                ProtoContent protoContent = new ProtoContent(importPath, refContent);
+                result.put(importPath, protoContent);
+
+                // Recursively collect nested references
+                collectReferences(content.getReferences(), result, visited);
+
+            } catch (RegistryException e) {
+                throw e;
             } catch (Exception e) {
-                log.warn("Could not resolve reference: {} - {}", ref.getName(), e.getMessage());
+                log.error(
+                        "Could not resolve Protobuf reference: {}:{}:{} name={}",
+                        ref.getGroupId(),
+                        ref.getArtifactId(),
+                        ref.getVersion(),
+                        ref.getName(),
+                        e);
+
+                throw new RegistryException(
+                        "Could not resolve Protobuf reference: " + ref.getName(),
+                        e);
             }
         }
     }
@@ -163,7 +194,9 @@ public class ProtobufExporter {
     /**
      * Builds a mapping from original import paths to canonical package-based paths.
      */
-    private Map<String, String> buildImportPathMapping(Map<String, ProtoContent> protoFiles) {
+    private Map<String, String> buildImportPathMapping(
+            Map<String, ProtoContent> protoFiles) {
+
         Map<String, String> mapping = new HashMap<>();
 
         for (Map.Entry<String, ProtoContent> entry : protoFiles.entrySet()) {

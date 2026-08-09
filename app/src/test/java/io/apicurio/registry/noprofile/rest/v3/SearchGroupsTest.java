@@ -205,4 +205,32 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
                 .get("/registry/v3/search/groups").then().statusCode(200)
                 .body("count", equalTo(3)).body("groups.size()", equalTo(3));
     }
+
+    @Test
+    public void testSearchGroupsByLabelTrailingDelimiter() throws Exception {
+        String groupId = "testSearchGroupsByLabelTrailingDelimiter";
+        for (int idx = 0; idx < 3; idx++) {
+            Labels labels = new Labels();
+            labels.setAdditionalData(Map.of("trailing", "trailing-value-" + idx));
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(groupId + idx);
+            createGroup.setLabels(labels);
+            clientV3.groups().post(createGroup);
+        }
+
+        // A label filter with a trailing ':' (no value) must match the key with any value.
+        // This exercises the branch that was previously unreachable dead code (see #8734).
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "trailing:" };
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Trailing-colon label filter should match all 3 groups by key");
+
+        // A label filter with no ':' at all must also match the key directly.
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "trailing" };
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Key-only label filter should match all 3 groups by key");
+    }
 }

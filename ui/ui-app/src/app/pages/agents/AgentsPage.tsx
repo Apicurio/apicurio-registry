@@ -68,6 +68,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const [isSearching, setSearching] = useState<boolean>(false);
     const [results, setResults] = useState<AgentSearchResults>(EMPTY_RESULTS);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
+    const [appliedFilters, setAppliedFilters] = useState<AgentSearchFilters>({});
     const [nameFilter, setNameFilter] = useState<string>("");
     const [capabilityFilter, setCapabilityFilter] = useState<string>("");
     const [skillFilter, setSkillFilter] = useState<string>("");
@@ -91,6 +92,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     };
 
     const search = async (filters: AgentSearchFilters, paging: Paging): Promise<void> => {
+        setAppliedFilters(filters);
         setSearching(true);
         try {
             const results = await agentSvc.searchAgents(filters, paging);
@@ -102,14 +104,18 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
         }
     };
 
+    const applyFilters = (newFilters: AgentSearchFilters): void => {
+        const newPaging = { ...DEFAULT_PAGING };
+        setPaging(newPaging);
+        search(newFilters, newPaging);
+    };
+
     const createLoaders = (): Promise<any> => {
         return search(createFilters(), paging);
     };
 
     const handleSearch = (): void => {
-        const newPaging = { ...DEFAULT_PAGING };
-        setPaging(newPaging);
-        search(createFilters(), newPaging);
+        applyFilters(createFilters());
     };
 
     const handleKeyPress = (event: React.KeyboardEvent): void => {
@@ -121,26 +127,23 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const handlePageChange = (_event: any, page: number): void => {
         const newPaging = { ...paging, page };
         setPaging(newPaging);
-        search(createFilters(), newPaging);
+        search(appliedFilters, newPaging);
     };
 
     const handlePerPageChange = (_event: any, perPage: number): void => {
         const newPaging = { page: 1, pageSize: perPage };
         setPaging(newPaging);
-        search(createFilters(), newPaging);
+        search(appliedFilters, newPaging);
     };
 
     const handleCapabilitySelect = (_event: React.MouseEvent | undefined, value: string | number | undefined): void => {
         const selectedValue = value as string || "";
         setCapabilityFilter(selectedValue);
         setCapabilitySelectOpen(false);
-        const filters: AgentSearchFilters = {
-            name: nameFilter || undefined,
-            capability: selectedValue || undefined,
-            skill: skillFilter || undefined
-        };
-        search(filters, { ...DEFAULT_PAGING });
-        setPaging({ ...DEFAULT_PAGING });
+        applyFilters({
+            ...appliedFilters,
+            capability: selectedValue || undefined
+        });
     };
 
     const navigateToAgent = (agent: AgentSearchResult): void => {
@@ -249,7 +252,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     };
 
     const renderEmptyState = (): React.ReactElement => {
-        const isFiltered = !!(nameFilter || capabilityFilter || skillFilter);
+        const isFiltered = !!(appliedFilters.name || appliedFilters.capability || appliedFilters.skill);
         return (
             <EmptyState
                 headingLevel="h4"
@@ -276,12 +279,10 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             onSearch={handleSearch}
                             onClear={() => {
                                 setNameFilter("");
-                                const filters: AgentSearchFilters = {
-                                    capability: capabilityFilter || undefined,
-                                    skill: skillFilter || undefined
-                                };
-                                search(filters, { ...DEFAULT_PAGING });
-                                setPaging({ ...DEFAULT_PAGING });
+                                applyFilters({
+                                    ...appliedFilters,
+                                    name: undefined
+                                });
                             }}
                             onKeyDown={handleKeyPress}
                         />
@@ -294,12 +295,10 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             onSearch={handleSearch}
                             onClear={() => {
                                 setSkillFilter("");
-                                const filters: AgentSearchFilters = {
-                                    name: nameFilter || undefined,
-                                    capability: capabilityFilter || undefined
-                                };
-                                search(filters, { ...DEFAULT_PAGING });
-                                setPaging({ ...DEFAULT_PAGING });
+                                applyFilters({
+                                    ...appliedFilters,
+                                    skill: undefined
+                                });
                             }}
                             onKeyDown={handleKeyPress}
                         />

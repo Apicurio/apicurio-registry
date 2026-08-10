@@ -1789,6 +1789,29 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testArtifactCommentsNullValueValidation() throws Exception {
+        String artifactId = "testArtifactCommentsNullValueValidation/EmptyAPI";
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create OpenAPI artifact
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        // Try to add a comment with null value (should return 400)
+        NewComment nc = NewComment.builder().value(null).build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId).body(nc)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments")
+                .then().statusCode(400);
+
+        // Try to add a comment with empty object body (should return 400)
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId).body("{}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments")
+                .then().statusCode(400);
+    }
+
+    @Test
     public void testCreateArtifactIntegrityRuleViolation() throws Exception {
         String artifactContent = resourceToString("jsonschema-valid.json");
         String artifactId = "testCreateArtifact/IntegrityRuleViolation";

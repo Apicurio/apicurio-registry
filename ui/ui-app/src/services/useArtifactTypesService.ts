@@ -127,6 +127,19 @@ export class ArtifactTypes {
         return title;
     }
 
+    // All artifact types the UI knows about. Used as a fallback when the backend
+    // list of types can't be fetched. Keep in sync with the constants above so that
+    // new types don't silently drop out of the Create Artifact dropdown on API failure.
+    public static all(): string[] {
+        return [
+            ArtifactTypes.AVRO, ArtifactTypes.PROTOBUF, ArtifactTypes.JSON,
+            ArtifactTypes.OPENAPI, ArtifactTypes.ASYNCAPI, ArtifactTypes.GRAPHQL,
+            ArtifactTypes.KCONNECT, ArtifactTypes.WSDL, ArtifactTypes.XSD,
+            ArtifactTypes.XML, ArtifactTypes.THRIFT, ArtifactTypes.AGENT_CARD,
+            ArtifactTypes.MCP_TOOL, ArtifactTypes.MODEL_SCHEMA, ArtifactTypes.PROMPT_TEMPLATE
+        ];
+    }
+
     public static getClassNames(type: string): string {
         let classes: string = "artifact-type-icon";
         switch (type) {
@@ -191,7 +204,7 @@ const allTypes = async (admin: AdminService): Promise<string[]> => {
         try {
             ALL_TYPES = (await admin.getArtifactTypes()).map(t => t.name!);
         } catch {
-            ALL_TYPES = ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"];
+            ALL_TYPES = ArtifactTypes.all();
         }
     }
     return Promise.resolve(ALL_TYPES);

@@ -19,6 +19,8 @@
         "lint-docs": "cd ui-docs && npm run lint",
         "lint-editors": "cd ui-editors && npm run lint",
         "lint": "npm run lint-sdk && npm run lint-app && npm run lint-docs && npm run lint-editors",
+        "test-app": "cd ui-app && npm run test",
+        "test": "npm run test-app",
         "build-sdk": "cd ../typescript-sdk && npm run generate-sources && npm run build",
         "build-app": "cd ui-app && npm run build",
         "build-docs": "cd ui-docs && npm run build",

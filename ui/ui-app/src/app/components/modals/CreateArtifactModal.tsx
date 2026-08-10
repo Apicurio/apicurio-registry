@@ -1,4 +1,4 @@
-import { FunctionComponent, MouseEvent, Ref, useEffect, useState } from "react";
+import { FunctionComponent, MouseEvent, Ref, useEffect, useRef, useState } from "react";
 import "./CreateArtifactModal.css";
 import {
     FileUpload,
@@ -35,7 +35,7 @@ import { ArtifactTypesService, useArtifactTypesService } from "@services/useArti
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { ArtifactLabel, LabelsFormGroup, ArtifactReferenceFormItem, ReferencesFormGroup, formItemsToReferences, isReferencesValid } from "@app/components";
 import { listToLabels } from "@utils/labels.utils.ts";
-import { detectContentType } from "@utils/content.utils.ts";
+import { detectContentType, detectVersionInContent } from "@utils/content.utils.ts";
 
 
 export type ValidType = "default" | "success" | "error";
@@ -127,6 +127,10 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     const [versionLabels, setVersionLabels] = useState<ArtifactLabel[]>([]);
     const [versionReferences, setVersionReferences] = useState<ArtifactReferenceFormItem[]>([]);
     const [isDetectingRefs, setIsDetectingRefs] = useState(false);
+    const [autoDetectedVersion, setAutoDetectedVersion] = useState<string | undefined>();
+    // Ref rather than state: content change handlers can fire asynchronously (e.g. when
+    // a URL fetch resolves) and must see the current value, not a stale closure.
+    const versionIsDirty = useRef(false);
 
     const urlService: UrlService = useUrlService();
     const atService: ArtifactTypesService = useArtifactTypesService();
@@ -195,16 +199,28 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     };
 
     const onFileTextChange = (_event: any, value: string | undefined): void => {
-        setData({
-            ...data,
+        // Auto-detect the version from the content (e.g. "info.version" in an OpenAPI or
+        // AsyncAPI spec), but only while the user has not edited the version themselves.
+        // When nothing is detected (non-spec content, or content that is transiently
+        // unparseable mid-edit) the previous value is preserved rather than cleared.
+        // The functional update matters: this handler can be called asynchronously (URL
+        // fetch, file read), so spreading a captured `data` could clobber newer state.
+        const detectedVersion: string | undefined = detectVersionInContent(value);
+        const applyDetectedVersion: boolean = !versionIsDirty.current && detectedVersion !== undefined;
+        setData(prevData => ({
+            ...prevData,
             firstVersion: {
-                ...data.firstVersion,
+                ...prevData.firstVersion,
+                version: applyDetectedVersion ? detectedVersion : prevData.firstVersion?.version,
                 content: {
                     content: value,
-                    contentType: detectContentType(data.artifactType, value)
+                    contentType: detectContentType(prevData.artifactType, value)
                 }
             }
-        });
+        }));
+        if (applyDetectedVersion) {
+            setAutoDetectedVersion(detectedVersion);
+        }
     };
 
     const onFileClear = (): void => {
@@ -220,13 +236,16 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     };
 
     const setVersionNumber = (newVersion: string): void => {
-        setData({
-            ...data,
+        // The user edited the version (including clearing it): stop auto-detecting.
+        versionIsDirty.current = true;
+        setAutoDetectedVersion(undefined);
+        setData(prevData => ({
+            ...prevData,
             firstVersion: {
-                ...data.firstVersion,
+                ...prevData.firstVersion,
                 version: newVersion
             }
-        });
+        }));
     };
 
     const setVersionName = (newName: string): void => {
@@ -313,6 +332,8 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         if (props.isOpen) {
             setData(EMPTY_FORM_DATA);
             setVersionReferences([]);
+            setAutoDetectedVersion(undefined);
+            versionIsDirty.current = false;
             if (props.groupId) {
                 setGroupId(props.groupId);
             } else {
@@ -549,6 +570,13 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 onChange={(_evt, value) => setVersionNumber(value)}
                                 // validated={groupValidated()}
                             />
+                            <If condition={autoDetectedVersion !== undefined && data.firstVersion?.version === autoDetectedVersion}>
+                                <FormHelperText>
+                                    <HelperText>
+                                        <HelperTextItem>Version detected from the content.</HelperTextItem>
+                                    </HelperText>
+                                </FormHelperText>
+                            </If>
                         </FormGroup>
                         <FormGroup label="Content" isRequired={false} fieldId="form-content">
                             <Tabs

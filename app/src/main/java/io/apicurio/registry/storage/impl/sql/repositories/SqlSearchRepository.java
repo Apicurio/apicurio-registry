@@ -179,8 +179,11 @@ public class SqlSearchRepository {
                         // filter would also match artifacts that have no structured rows at all.
                         String structureValue = asLowerCase(filter.getStringValue());
                         if (structureValue == null || structureValue.isBlank()) {
-                            where.append("1 = 1");
-                            break;
+                            // Not reachable from the REST layer: the version search endpoint skips an
+                            // empty "structure" parameter, and the discovery endpoints always prefix the
+                            // value with "<artifactType>:<kind>:". Fail loudly rather than degrading to a
+                            // clause that silently matches every artifact.
+                            throw new RegistryStorageException("Structure filter value must not be blank.");
                         }
                         String[] structureParts = structureValue.trim().split(":", 3);
                         op = filter.isNot() ? "NOT EXISTS" : "EXISTS";

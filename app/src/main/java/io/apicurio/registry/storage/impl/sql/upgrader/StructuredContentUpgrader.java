@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.upgrader;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.NoopStructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
@@ -54,7 +55,11 @@ public class StructuredContentUpgrader implements IDbUpgrader {
         AtomicInteger examined = new AtomicInteger();
         for (ArtifactTypeUtilProvider provider : factory.getAllArtifactTypeProviders()) {
             StructuredContentExtractor extractor = provider.getStructuredContentExtractor();
-            if (extractor == null) {
+            if (extractor == null || extractor instanceof NoopStructuredContentExtractor) {
+                // Providers never return null here - types without structured extraction get
+                // NoopStructuredContentExtractor, so that is what identifies them. Checking for null
+                // alone would read and extract every artifact of every type (AVRO, PROTOBUF, ...) only
+                // to discard an always-empty element list, adding avoidable time to the backfill.
                 continue;
             }
             totalCount += handle.createQuery(sql).bind(0, provider.getArtifactType()).setFetchSize(50)

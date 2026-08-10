@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactNode, useEffect, useState } from "react";
+import { FunctionComponent, ReactNode, useEffect, useMemo, useState } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -77,8 +77,10 @@ const sourceLabel = (source: ReconciledVariable["source"]): { text: string; colo
 export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {
     const groups: GroupsService = useGroupsService();
 
-    const templateNames = extractTemplateVariableNames(props.template || "");
-    const reconciledVariables = reconcileTemplateVariables(templateNames, toDeclaredMap(props.variables));
+    const reconciledVariables = useMemo(() => {
+        const names = extractTemplateVariableNames(props.template || "");
+        return reconcileTemplateVariables(names, toDeclaredMap(props.variables));
+    }, [props.template, props.variables]);
 
     const initialValues: Record<string, any> = {};
     reconciledVariables.forEach((entry) => {
@@ -231,7 +233,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             return base;
         }
         return (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+            <span className="label-inline">
                 <span>{base}</span>
                 <Label color={indicator.color} isCompact>
                     {indicator.text}

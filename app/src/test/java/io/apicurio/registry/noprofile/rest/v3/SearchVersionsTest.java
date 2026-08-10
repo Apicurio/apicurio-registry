@@ -6,6 +6,8 @@ import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -126,6 +128,63 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         results = clientV3.search().versions().post(asInputStream(searchByUnknownContent),
                 ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(0, results.getCount());
+    }
+
+    @Test
+    public void testSearchVersionsByContentWithState() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+        String searchByCommonContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByContentWithState-api");
+
+        String artifactId = TestUtils.generateArtifactId();
+        createArtifact(group, artifactId, ArtifactType.OPENAPI, searchByCommonContent,
+                ContentTypes.APPLICATION_JSON);
+
+        // Change state to DISABLED
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(disabled);
+
+        // Search with NO state (regression test - should return all states except those filtered implicitly, which is none here)
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+
+        // Search with state=ENABLED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "ENABLED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+
+        // Search with state=DISABLED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "DISABLED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+
+        // Search with state=DEPRECATED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "DEPRECATED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
     }
 
     @Test

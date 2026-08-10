@@ -2,6 +2,7 @@ package io.apicurio.registry.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
 import io.apicurio.registry.storage.error.InvalidContentException;
@@ -12,8 +13,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
 import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
@@ -23,8 +22,6 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
  */
 @ApplicationScoped
 public class PromptRenderingService {
-
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{([^}]+)\\}\\}");
 
     /**
      * Renders a prompt template by substituting variables.
@@ -354,27 +351,11 @@ public class PromptRenderingService {
      * Substitute variables in the template text using {{variable}} syntax.
      */
     private String substituteVariables(String template, Map<String, Object> variables) {
-        StringBuffer result = new StringBuffer();
-        Matcher matcher = VARIABLE_PATTERN.matcher(template);
-
-        while (matcher.find()) {
-            String varName = matcher.group(1).trim();
+        return PromptTemplateVariableUtil.substituteVariables(template, varName -> {
             Object value = variables.get(varName);
-
-            String replacement;
-            if (value == null) {
-                // Keep the original placeholder if variable is not provided
-                replacement = matcher.group(0);
-            } else {
-                replacement = formatValue(value);
-            }
-
-            // Escape special characters for replacement
-            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(result);
-
-        return result.toString();
+            // Returning null keeps the original placeholder if the variable is not provided.
+            return value == null ? null : formatValue(value);
+        });
     }
 
     /**

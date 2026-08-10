@@ -18,8 +18,8 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.mcptools.McpToolsConfig;
 import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResult;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -570,8 +570,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
 
             int total = matchingTools.size();
-            int safeOffset = Math.max(0, offset == null ? 0 : offset);
-            int safeLimit = Math.max(1, limit == null ? 10 : limit);
             int fromIndex = Math.min(safeOffset, total);
             int toIndex = Math.min(fromIndex + safeLimit, total);
             List<McpToolSearchResult> page = matchingTools.subList(fromIndex, toIndex);

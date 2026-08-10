@@ -1,5 +1,7 @@
 package io.apicurio.registry.mcptools.rest.beans;
 
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
+
 import java.util.List;
 
 /**

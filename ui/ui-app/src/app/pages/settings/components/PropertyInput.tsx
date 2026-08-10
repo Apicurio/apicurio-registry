@@ -17,6 +17,8 @@ export type PropertyInputProps = {
     onSave: () => void;
 }
 
+import { isPropertyInputValid } from "./PropertyInput.utils";
+
 /**
  * Models a single editable config property.
  */
@@ -30,23 +32,10 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
     };
 
     const handleInputChange = (_event: any, value: string): void => {
-        const isValid: boolean = validate(value);
+        const isValid: boolean = isPropertyInputValid(props.type, value);
         setCurrentValue(value);
         setIsDirty(value !== props.value);
         setIsValid(isValid);
-    };
-
-    const validate = (value: string): boolean => {
-        if (props.type === "text") {
-            return value.trim().length > 0;
-        } else if (props.type === "number") {
-            if (value.trim().length === 0) {
-                return false;
-            }
-            const num: number = Number(value);
-            return Number.isInteger(num);
-        }
-        return true;
     };
 
     const handleKeyPress = (event: any): void => {
@@ -69,6 +58,8 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
     return <InputGroup>
         <TextInput name={ props.name }
             value={ currentValue }
+            type={ props.type === "number" ? "number" : "text" }
+            min={ props.type === "number" ? 0 : undefined }
             validated={ validated() }
             onChange={ handleInputChange }
             onKeyDown={ handleKeyPress }
@@ -76,3 +67,4 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
     </InputGroup>;
 
 };
+

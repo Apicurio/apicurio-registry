@@ -5,6 +5,8 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
 import io.apicurio.registry.contracts.odcs.OdcsContract;
@@ -1484,9 +1486,22 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 }
             }
 
-            // Create the artifact (with optional first version)
-            EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
-                    .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
+            // Create the artifact (with optional first version).
+            // Extract metadata (e.g. name) from the content first, then let any explicitly
+            // provided values on the request override the extracted ones. This mirrors the
+            // v2 behavior (see GroupsResourceImpl#extractMetaData in the v2 API) and is what
+            // allows content-derived names (e.g. an MCP_TOOL's top-level "name" field) to be
+            // searchable via artifact metadata rather than only via raw content lookups.
+            EditableArtifactMetaDataDto artifactMetaData = extractMetaData(artifactType, effectiveContent);
+            if (data.getName() != null && !data.getName().trim().isEmpty()) {
+                artifactMetaData.setName(data.getName());
+            }
+            if (data.getDescription() != null && !data.getDescription().trim().isEmpty()) {
+                artifactMetaData.setDescription(data.getDescription());
+            }
+            if (data.getLabels() != null && !data.getLabels().isEmpty()) {
+                artifactMetaData.setLabels(data.getLabels());
+            }
             String firstVersion = null;
             ContentWrapperDto firstVersionContent = null;
             EditableVersionMetaDataDto firstVersionMetaData = null;
@@ -2813,5 +2828,23 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         compatibilityGroupService.setCompatibilityGroup(
                 rawGroupId, artifactId, contractId, compatGroup);
+    }
+
+    /**
+     * Extracts metadata (name, description, labels) from the given content using the
+     * {@link ContentExtractor} registered for the artifact type, if any. Mirrors the v2 API's
+     * extract-then-override behavior so that content-derived fields (e.g. an MCP_TOOL's
+     * top-level "name") are used as metadata defaults when not explicitly provided on the
+     * request.
+     */
+    protected EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        ExtractedMetaData emd = extractor.extract(content);
+        if (emd != null) {
+            return EditableArtifactMetaDataDto.builder().name(emd.getName())
+                    .description(emd.getDescription()).labels(emd.getLabels()).build();
+        }
+        return EditableArtifactMetaDataDto.builder().build();
     }
 }

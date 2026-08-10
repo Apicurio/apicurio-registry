@@ -2,6 +2,7 @@ package io.apicurio.registry.noprofile.rest.mcptools;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.noprofile.rest.a2a.ExperimentalFeaturesEnabledProfile;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
@@ -13,6 +14,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -304,6 +306,47 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .body("tools[0].artifactId", equalTo(artifactId))
                 .body("tools[0].title", equalTo("Database Search Tool"))
                 .body("tools[0].parameters", hasItems("query", "limit"));
+    }
+
+    @Test
+    public void testCreateExtractsNameFromContentIntoMetadata() throws Exception {
+        // Reproduces #8622: creating an MCP_TOOL artifact without an explicit "name" on the
+        // create request should still populate artifact metadata name from the tool content's
+        // top-level "name" field, the same way the v2 API already does.
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = "content_derived_name_" + TestUtils.generateArtifactId().replace("-", "");
+        String toolContent = SEARCH_DATABASE_TOOL.replace("search_database", contentName);
+
+        createMcpTool(groupId, artifactId, toolContent);
+
+        ArtifactMetaData metaData = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).get();
+        Assertions.assertNotNull(metaData);
+        Assertions.assertEquals(contentName, metaData.getName());
+    }
+
+    @Test
+    public void testSearchMcpToolsByContentDerivedName() throws Exception {
+        // Companion to testCreateExtractsNameFromContentIntoMetadata: once the content-derived
+        // name lands in artifact metadata, well-known search by that name should find the tool,
+        // not just search by artifactId.
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = "content_derived_name_" + TestUtils.generateArtifactId().replace("-", "");
+        String toolContent = SEARCH_DATABASE_TOOL.replace("search_database", contentName);
+
+        createMcpTool(groupId, artifactId, toolContent);
+
+        givenAtRoot()
+                .when()
+                .queryParam("name", contentName)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("tools", hasSize(1))
+                .body("tools[0].artifactId", equalTo(artifactId));
     }
 
     @Test

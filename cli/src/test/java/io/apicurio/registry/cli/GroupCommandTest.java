@@ -133,10 +133,24 @@ public class GroupCommandTest extends AbstractCLITest {
 
     @Test
     public void testGroupGetCommandFails() {
+        // Assert on the error message so these cases cannot pass merely because the
+        // command failed for some other reason.
+
         // Required groupId parameter is missing
+        err.getBuffer().setLength(0);
         executeAndAssertFailure("group", "get");
+        assertThat(err.toString())
+                .as(withCliOutput("Missing groupId parameter must be reported"))
+                .contains("Missing required parameter")
+                .contains("groupId");
+
         // Unknown output type (rejected while parsing, so the group need not exist)
+        err.getBuffer().setLength(0);
         executeAndAssertFailure("group", "get", "some-group", "--output-type", "foo");
+        assertThat(err.toString())
+                .as(withCliOutput("Invalid --output-type value must be reported"))
+                .contains("--output-type")
+                .contains("foo");
     }
 
     @Test

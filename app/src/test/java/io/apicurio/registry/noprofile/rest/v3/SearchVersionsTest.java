@@ -7,6 +7,8 @@ import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -127,6 +129,63 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         results = clientV3.search().versions().post(asInputStream(searchByUnknownContent),
                 ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(0, results.getCount());
+    }
+
+    @Test
+    public void testSearchVersionsByContentWithState() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+        String searchByCommonContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByContentWithState-api");
+
+        String artifactId = TestUtils.generateArtifactId();
+        createArtifact(group, artifactId, ArtifactType.OPENAPI, searchByCommonContent,
+                ContentTypes.APPLICATION_JSON);
+
+        // Change state to DISABLED
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(disabled);
+
+        // Search with NO state (regression test - should return all states except those filtered implicitly, which is none here)
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+
+        // Search with state=ENABLED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "ENABLED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+
+        // Search with state=DISABLED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "DISABLED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+
+        // Search with state=DEPRECATED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "DEPRECATED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
     }
 
     @Test
@@ -255,7 +314,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         String group1 = TestUtils.generateGroupId();
         String group2 = TestUtils.generateGroupId();
 
-        CreateArtifactResponse car = null;
+        CreateArtifactResponse car;
 
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
@@ -309,6 +368,41 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(results.getVersions().get(0).getLabels());
         Assertions.assertEquals(Map.of("key-1", "value-1", "id", "testSearchVersionsByIds_Group1_Artifact_1"),
                 results.getVersions().get(0).getLabels().getAdditionalData());
+    }
+
+    @Test
+    public void testSearchVersionsByLabelTrailingDelimiter() throws Exception {
+        String artifactContent = "testSearchVersionsByLabelTrailingDelimiter-content";
+        String group = TestUtils.generateGroupId();
+        CreateArtifactResponse car = null;
+
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "testSearchVersionsByLabelTrailingDelimiter_Artifact_" + idx;
+            car = createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+
+            // Add a label with a key and a value.
+            EditableVersionMetaData emd = new EditableVersionMetaData();
+            emd.setLabels(new Labels());
+            emd.getLabels().setAdditionalData(Map.of("trailing", "trailing-value-" + idx));
+            clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(car.getVersion().getVersion()).put(emd);
+        }
+
+        // A label filter with a trailing ':' (no value) must match the key with any value.
+        // This exercises the branch that was previously unreachable dead code (see #8734).
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing:" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Trailing-colon label filter should match all 3 versions by key");
+
+        // A label filter with no ':' at all must also match the key directly.
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Key-only label filter should match all 3 versions by key");
     }
 
     @Test

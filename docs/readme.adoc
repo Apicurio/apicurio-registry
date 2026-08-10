@@ -25,7 +25,8 @@ The `apicurio-registry/docs` directory structure includes the following:
 |Component
 |Description
 |`getting-started`
-|AsciiDoc directory for the Getting Started guide. Includes the `master.adoc` file which defines what content assembly files are included, and symlinks to the `modules` directory. This is not required for building with Antora. 
+|AsciiDoc directory for the Getting Started guide. Includes the `master.adoc` file which defines what content assembly files are included, and symlinks to the `modules` directory.
+Note: This directory is optional and is not required when building documentation with Antora.
 | `modules`
 a|Includes all the assemblies and content modules required for Antora:  
 

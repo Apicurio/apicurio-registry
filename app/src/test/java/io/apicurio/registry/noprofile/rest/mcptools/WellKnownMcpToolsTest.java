@@ -327,6 +327,47 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testExplicitRequestNameOverridesContentName() throws Exception {
+        // The create path extracts metadata from the content first, then lets explicitly
+        // provided request values override it. This covers the override half of that
+        // behavior: when the request supplies a name, it must win over the MCP tool
+        // content's top-level "name".
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = "content_derived_name_" + TestUtils.generateArtifactId().replace("-", "");
+        String explicitName = "explicit_request_name_" + TestUtils.generateArtifactId().replace("-", "");
+        String toolContent = SEARCH_DATABASE_TOOL.replace("search_database", contentName);
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
+        createArtifact.setName(explicitName);
+
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(toolContent);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        createArtifact.setFirstVersion(createVersion);
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        ArtifactMetaData metaData = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).get();
+        Assertions.assertNotNull(metaData);
+        Assertions.assertEquals(explicitName, metaData.getName());
+
+        // The content-derived name must not have been used, so searching by it finds nothing.
+        givenAtRoot()
+                .when()
+                .queryParam("name", contentName)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+    }
+
+    @Test
     public void testSearchMcpToolsByContentDerivedName() throws Exception {
         // Companion to testCreateExtractsNameFromContentIntoMetadata: once the content-derived
         // name lands in artifact metadata, well-known search by that name should find the tool,

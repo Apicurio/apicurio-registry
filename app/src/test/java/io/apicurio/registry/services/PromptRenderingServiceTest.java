@@ -279,6 +279,225 @@ public class PromptRenderingServiceTest {
         Assertions.assertTrue(response.getRendered().contains("["));
     }
 
+    // ===== Default Value Tests =====
+
+    @Test
+    public void testDeclaredDefaultIsApplied() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                default: formal
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of();
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "tone", "1.0");
+
+        Assertions.assertEquals("Write in a formal tone.", response.getRendered());
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+    }
+
+    @Test
+    public void testCallerValueOverridesDefault() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                default: formal
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("tone", "casual");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "tone", "1.0");
+
+        Assertions.assertEquals("Write in a casual tone.", response.getRendered());
+    }
+
+    @Test
+    public void testNonStringDefaultsAreApplied() {
+        String yamlContent = """
+            templateId: limits
+            template: "Return {{count}} results. Verbose: {{verbose}}."
+            variables:
+              count:
+                type: integer
+                default: 10
+              verbose:
+                type: boolean
+                default: false
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of();
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "limits", "1.0");
+
+        Assertions.assertEquals("Return 10 results. Verbose: false.", response.getRendered());
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+    }
+
+    @Test
+    public void testVariableWithoutDefaultStillPreservesPlaceholder() {
+        String yamlContent = """
+            templateId: mixed
+            template: "Hello {{name}}, writing in a {{tone}} tone."
+            variables:
+              name:
+                type: string
+              tone:
+                type: string
+                default: formal
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of();
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "mixed", "1.0");
+
+        // "tone" has a default, "name" does not, so only "name" stays a placeholder.
+        Assertions.assertEquals("Hello {{name}}, writing in a formal tone.", response.getRendered());
+    }
+
+    @Test
+    public void testRequiredVariableWithDefaultStillReportsMissing() {
+        String yamlContent = """
+            templateId: required-with-default
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                required: true
+                default: formal
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of();
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "required-with-default", "1.0");
+
+        // The default is still substituted so the rendered prompt is usable, but declaring a
+        // variable both required and defaulted is contradictory, so the caller is still told
+        // that a required variable was not supplied.
+        Assertions.assertEquals("Write in a formal tone.", response.getRendered());
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("tone", response.getValidationErrors().get(0).getVariableName());
+    }
+
+    @Test
+    public void testDefaultsDoNotModifyCallerSuppliedMap() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                default: formal
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>();
+
+        renderingService.render(content, variables, "default", "tone", "1.0");
+
+        Assertions.assertTrue(variables.isEmpty(),
+                "Rendering must not mutate the caller-supplied variables map");
+    }
+
+    @Test
+    public void testNullDefaultIsTreatedAsAbsent() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                default:
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "tone", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Write in a {{tone}} tone.", response.getRendered());
+    }
+
+    @Test
+    public void testEmptyStringDefaultIsApplied() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}}tone."
+            variables:
+              tone:
+                type: string
+                default: ""
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "tone", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Write in a tone.", response.getRendered());
+    }
+
+    @Test
+    public void testDefaultViolatingEnumIsReported() {
+        String yamlContent = """
+            templateId: tone
+            template: "Write in a {{tone}} tone."
+            variables:
+              tone:
+                type: string
+                enum:
+                  - formal
+                  - casual
+                default: forma
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "tone", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("tone", response.getValidationErrors().get(0).getVariableName());
+    }
+
+    @Test
+    public void testDefaultViolatingTypeIsReported() {
+        String yamlContent = """
+            templateId: retries
+            template: "Retry {{count}} times."
+            variables:
+              count:
+                type: integer
+                default: many
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "retries", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("count", response.getValidationErrors().get(0).getVariableName());
+    }
+
     // ===== Enum Validation Tests =====
 
     @Test

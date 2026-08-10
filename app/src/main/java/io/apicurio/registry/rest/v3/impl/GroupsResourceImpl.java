@@ -1487,12 +1487,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
 
             // Create the artifact (with optional first version).
-            // Extract metadata (e.g. name) from the content first, then let any explicitly
-            // provided values on the request override the extracted ones. This mirrors the
-            // v2 behavior (see GroupsResourceImpl#extractMetaData in the v2 API) and is what
-            // allows content-derived names (e.g. an MCP_TOOL's top-level "name" field) to be
-            // searchable via artifact metadata rather than only via raw content lookups.
-            EditableArtifactMetaDataDto artifactMetaData = extractMetaData(artifactType, effectiveContent);
+            //
+            // MCP_TOOL is a special case: per the MCP spec, a tool's "name" is part of its
+            // content, not metadata a caller assigns independently, and the well-known
+            // discovery endpoint (/.well-known/mcp-tools?name=) searches on it. For MCP_TOOL
+            // only, extract metadata from the content first, then let any explicitly provided
+            // request values override it - mirroring v2's extractMetaData behavior for this
+            // one type. Every other artifact type keeps v3's existing request-only behavior
+            // unchanged (see discussion on #8622).
+            EditableArtifactMetaDataDto artifactMetaData;
+            if (ArtifactType.MCP_TOOL.equals(artifactType)) {
+                artifactMetaData = extractMetaData(artifactType, effectiveContent);
+            } else {
+                artifactMetaData = EditableArtifactMetaDataDto.builder().build();
+            }
             if (data.getName() != null && !data.getName().trim().isEmpty()) {
                 artifactMetaData.setName(data.getName());
             }
@@ -2838,6 +2846,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * request.
      */
     protected EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {
+        // createArtifact supports omitting the first version entirely (an "empty artifact"),
+        // in which case content is null here. Guard against that rather than passing null
+        // into the extractor, which is not required to handle it (JsonNameDescriptionContentExtractor
+        // calls content.bytes() unconditionally and would NPE).
+        if (content == null) {
+            return EditableArtifactMetaDataDto.builder().build();
+        }
         ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
         ContentExtractor extractor = provider.getContentExtractor();
         ExtractedMetaData emd = extractor.extract(content);

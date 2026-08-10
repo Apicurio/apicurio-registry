@@ -368,6 +368,37 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testCreateMcpToolWithNoFirstVersionDoesNotThrow() throws Exception {
+        // Regression test: createArtifact supports omitting the first version entirely (an
+        // "empty artifact", content added via a separate versions().post() call later). The
+        // extract-then-override metadata logic must handle that null-content case rather than
+        // NPE'ing when it tries to extract metadata from content that does not exist yet.
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
+        // No firstVersion set - this must not throw.
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        ArtifactMetaData metaData = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).get();
+        Assertions.assertNotNull(metaData);
+        Assertions.assertNull(metaData.getName());
+
+        // Adding content afterward should still extract the name normally.
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(SEARCH_DATABASE_TOOL);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(createVersion);
+    }
+
+    @Test
     public void testSearchMcpToolsByContentDerivedName() throws Exception {
         // Companion to testCreateExtractsNameFromContentIntoMetadata: once the content-derived
         // name lands in artifact metadata, well-known search by that name should find the tool,

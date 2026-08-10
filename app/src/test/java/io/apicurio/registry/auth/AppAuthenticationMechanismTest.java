@@ -27,9 +27,7 @@ public class AppAuthenticationMechanismTest {
         mechanism.authConfig = authConfig;
         
         mechanism.log = Mockito.mock(Logger.class);
-        mechanism.basicAuthenticationMechanism = Mockito.mock(Instance.class);
-        when(mechanism.basicAuthenticationMechanism.isResolvable()).thenReturn(true);
-        when(mechanism.basicAuthenticationMechanism.get()).thenReturn(Mockito.mock(BasicAuthenticationMechanism.class));
+        mechanism.basicAuthenticationMechanism = Mockito.mock(BasicAuthenticationMechanism.class);
         mechanism.formAuthenticationMechanism = Mockito.mock(Instance.class);
         when(mechanism.formAuthenticationMechanism.isResolvable()).thenReturn(true);
         when(mechanism.formAuthenticationMechanism.get()).thenReturn(Mockito.mock(FormAuthenticationMechanism.class));

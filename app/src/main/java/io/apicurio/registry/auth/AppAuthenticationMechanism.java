@@ -67,7 +67,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     AuthConfig authConfig;
 
     @Inject
-    Instance<BasicAuthenticationMechanism> basicAuthenticationMechanism;
+    BasicAuthenticationMechanism basicAuthenticationMechanism;
 
     @Inject
     Instance<FormAuthenticationMechanism> formAuthenticationMechanism;
@@ -133,8 +133,8 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         }
 
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
-        strategyFactories.put(MECH_BASIC, () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
-                ? new DelegatingAuthenticationStrategy(MECH_BASIC, basicAuthenticationMechanism.get())
+        strategyFactories.put(MECH_BASIC, () -> authConfig.isBasicAuthEnabled()
+                ? new DelegatingAuthenticationStrategy(MECH_BASIC, basicAuthenticationMechanism)
                 : null);
         strategyFactories.put(MECH_FORM, () -> {
             if (!authConfig.isFormAuthEnabled()) {

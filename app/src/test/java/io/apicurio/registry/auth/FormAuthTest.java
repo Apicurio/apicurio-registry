@@ -127,6 +127,7 @@ public class FormAuthTest extends AbstractResourceTestBase {
     @Test
     public void testInvalidLogin() {
         Response response = given()
+            .redirects().follow(false)
             .formParam("j_username", "admin")
             .formParam("j_password", "wrongpassword")
             .when()
@@ -134,8 +135,7 @@ public class FormAuthTest extends AbstractResourceTestBase {
             .then()
                 .extract().response();
         
-        // Form login usually redirects to an error page on failure or returns 401
-        assertTrue(response.statusCode() == 302 || response.statusCode() == 401, "Status should be 302 or 401 but was " + response.statusCode());
+        assertEquals(302, response.statusCode(), "Status should be 302 Redirect on invalid login");
         
         String cookie = response.getCookie("quarkus-credential");
         assertTrue(cookie == null || cookie.isEmpty(), "Cookie should not be set on invalid login");

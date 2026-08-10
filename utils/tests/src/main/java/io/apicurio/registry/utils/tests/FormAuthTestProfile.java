@@ -24,6 +24,7 @@ public class FormAuthTestProfile implements QuarkusTestProfile {
 
         // Enable role-based authorization to test group/role mapping
         props.put("apicurio.auth.role-based-authorization", "true");
+        // Note: role-source=token works with embedded users because TokenRoleProvider delegates through SecurityIdentity.hasRole()
         props.put("apicurio.auth.role-source", "token");
         props.put("apicurio.auth.admin-override.enabled", "true");
 

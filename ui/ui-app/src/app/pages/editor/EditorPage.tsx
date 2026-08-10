@@ -22,6 +22,9 @@ import {
     toPageError
 } from "@app/pages";
 import { RootPageHeader } from "@app/components";
+import { Link } from "react-router";
+import { Button } from "@patternfly/react-core";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { PleaseWaitModal } from "@apicurio/common-ui-components";
 import { Draft, DraftContent } from "@models/drafts";
@@ -106,6 +109,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
     const [referencesLoadFailed, setReferencesLoadFailed] = useState(false);
 
     const params = useParams();
+    const appNavigation: AppNavigation = useAppNavigation();
     const groupId = params.groupId as string;
     const draftId: string = params.artifactId || "";
     const version = params.version as string;
@@ -408,6 +412,17 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
             <EmptyStateBody>
                 This artifact is not in <em>DRAFT</em> status and so its content cannot be edited.
             </EmptyStateBody>
+            <Button
+                variant="primary"
+                component={(props: any) => (
+                    <Link
+                        {...props}
+                        to={appNavigation.createLink(`/explore/${groupId}/${draftId}/versions/${version}`)}
+                    />
+                )}
+            >
+                Go to version page
+            </Button>
         </EmptyState>
     );
 

@@ -5,9 +5,9 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.Map;
 
 /**
- * Test profile that enables the experimental features gate, A2A, and MCP tools so that
- * well-known discovery endpoints are accessible. Artifact version content mutability is enabled so
- * tests can rewrite a DRAFT version's content and assert how that affects structure-based search.
+ * Test profile that enables the experimental features gate, A2A, and MCP tools so that the
+ * corresponding well-known endpoints are accessible. Artifact version content mutability is enabled
+ * so tests can rewrite a DRAFT version's content and assert how that affects structure-based search.
  */
 public class ExperimentalFeaturesEnabledProfile implements QuarkusTestProfile {
 

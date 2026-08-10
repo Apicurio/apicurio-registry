@@ -251,22 +251,22 @@ public class SqlVersionRepository {
                             .bind(1, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
                             .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                 });
-
-                if (modified) {
-                    String modifiedBy = securityIdentity.getPrincipal().getName();
-                    Date modifiedOn = new Date();
-
-                    rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
-                            .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
-                            .bind(3, artifactId).bind(4, version).execute();
-                    if (rowCount == 0) {
-                        throw new VersionNotFoundException(groupId, artifactId, version);
-                    }
-                }
             }
 
-            outboxEvent.fire(SqlOutboxEvent
-                    .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
+            if (modified) {
+                String modifiedBy = securityIdentity.getPrincipal().getName();
+                Date modifiedOn = new Date();
+
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
+                        .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId).bind(4, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+
+                outboxEvent.fire(SqlOutboxEvent
+                        .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
+            }
 
             return null;
         });

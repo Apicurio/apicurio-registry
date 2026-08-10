@@ -530,18 +530,80 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertNull(dto.getLabels());
         Assertions.assertEquals("1", dto.getVersion());
 
-        String newName = "Updated Name";
-        String newDescription = "Updated description.";
-        Map<String, String> newLabels = new HashMap<>();
-        newLabels.put("foo", "bar");
-        newLabels.put("ting", "bin");
-        EditableVersionMetaDataDto emd = new EditableVersionMetaDataDto(newName, newDescription, newLabels);
-        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", emd);
+        // Wait to ensure timestamp changes for updates
+        Thread.sleep(100);
+        long originalModifiedOn = dto.getModifiedOn();
+
+        // a) name-only update
+        EditableVersionMetaDataDto nameOnly = EditableVersionMetaDataDto.builder().name("Updated Name").build();
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", nameOnly);
 
         ArtifactVersionMetaDataDto metaData = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
-        Assertions.assertNotNull(metaData);
-        Assertions.assertEquals(newName, metaData.getName());
-        Assertions.assertEquals(newDescription, metaData.getDescription());
+        Assertions.assertEquals("Updated Name", metaData.getName());
+        Assertions.assertTrue(metaData.getModifiedOn() > originalModifiedOn);
+        Assertions.assertNotNull(metaData.getModifiedBy());
+
+        long newModifiedOn1 = metaData.getModifiedOn();
+        String newModifiedBy1 = metaData.getModifiedBy();
+        Thread.sleep(100);
+
+        // b) description-only update
+        EditableVersionMetaDataDto descOnly = EditableVersionMetaDataDto.builder().description("Updated description.").build();
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", descOnly);
+
+        metaData = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals("Updated description.", metaData.getDescription());
+        Assertions.assertTrue(metaData.getModifiedOn() > newModifiedOn1);
+        Assertions.assertNotNull(metaData.getModifiedBy());
+
+        long newModifiedOn2 = metaData.getModifiedOn();
+        String newModifiedBy2 = metaData.getModifiedBy();
+        Thread.sleep(100);
+
+        // c) labels-only update
+        Map<String, String> newLabels = new HashMap<>();
+        newLabels.put("foo", "bar");
+        EditableVersionMetaDataDto labelsOnly = EditableVersionMetaDataDto.builder().labels(newLabels).build();
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", labelsOnly);
+
+        metaData = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals(newLabels, metaData.getLabels());
+        Assertions.assertTrue(metaData.getModifiedOn() > newModifiedOn2);
+        Assertions.assertNotNull(metaData.getModifiedBy());
+
+        long newModifiedOn3 = metaData.getModifiedOn();
+        String newModifiedBy3 = metaData.getModifiedBy();
+        Thread.sleep(100);
+
+        // d) update containing multiple fields
+        Map<String, String> multiLabels = new HashMap<>();
+        multiLabels.put("ting", "bin");
+        EditableVersionMetaDataDto multiUpdate = EditableVersionMetaDataDto.builder()
+                .name("Multi Name")
+                .description("Multi Desc")
+                .labels(multiLabels)
+                .build();
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", multiUpdate);
+
+        metaData = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals("Multi Name", metaData.getName());
+        Assertions.assertEquals("Multi Desc", metaData.getDescription());
+        Assertions.assertEquals(multiLabels, metaData.getLabels());
+        Assertions.assertTrue(metaData.getModifiedOn() > newModifiedOn3);
+        Assertions.assertNotNull(metaData.getModifiedBy());
+
+        long newModifiedOn4 = metaData.getModifiedOn();
+        String newModifiedBy4 = metaData.getModifiedBy();
+        Thread.sleep(100);
+
+        // e) empty/no-op update
+        EditableVersionMetaDataDto emptyUpdate = EditableVersionMetaDataDto.builder().build();
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", emptyUpdate);
+
+        metaData = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        // modifiedOn and modifiedBy should NOT have changed since no fields were updated
+        Assertions.assertEquals(newModifiedOn4, metaData.getModifiedOn());
+        Assertions.assertEquals(newModifiedBy4, metaData.getModifiedBy());
     }
 
     @Test

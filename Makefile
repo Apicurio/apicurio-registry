@@ -1,4 +1,4 @@
-.PHONY: all build-local build-full test-integration run-postgres check-deps
+.PHONY: all build-local build-full test-integration run-postgres clean-postgres check-deps
 
 all: build-full check-deps test-integration
 
@@ -34,9 +34,13 @@ test-integration:
 	./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am
 
 run-postgres:
-	./mvnw clean install -DskipTests -Pprod -Ddocker
-	echo "$$DOCKER_COMPOSE_YML" > test.yml
-	docker-compose -f test.yml up
+	@mkdir -p .work
+	echo "$$DOCKER_COMPOSE_YML" > .work/test.yml
+	docker compose -f .work/test.yml up
+
+clean-postgres:
+	docker compose -f .work/test.yml down -v
+	rm -f .work/test.yml
 
 check-deps:
 	./mvnw -T1 install -pl app -am -DskipTests -Dfull -DcliSkipNative -q

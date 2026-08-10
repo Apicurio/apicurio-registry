@@ -80,9 +80,9 @@ For convenience, a `Makefile` is provided at the root of the repository to wrap 
 | Target | Description | Equivalent Command |
 |--------|-------------|--------------------|
 | `make build-local` | Compiles the core server and Java SDK quickly | `./mvnw clean install -Dlocal -DskipTests` |
-| `make build-full` | Builds everything including CLI and Go/Python SDKs | `./mvnw clean install -Dfull -DskipTests` |
+| `make build-full` | Builds everything including Go/Python SDKs (skips native CLI) | `./mvnw clean install -Dfull -DskipTests -DcliSkipNative` |
 | `make test-integration` | Runs the default integration tests | `./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am` |
-| `make run-postgres` | Spins up a local Postgres-backed instance (using docker-compose) | Builds with `-Pprod -Ddocker` and runs `docker-compose up` |
+| `make run-postgres` | Spins up a local Postgres-backed instance (using docker compose) | Runs `docker compose up` using a generated compose file |
 | `make check-deps` | Runs the 2-step dependency check workflow | Runs `install` followed by `dependency-check` on the reactor |
 
 ## Build Properties
@@ -155,13 +155,13 @@ are in a separate module and need to be explicitly enabled:
 See the [integration tests module](integration-tests/) for test groups, deployment
 modes, and detailed usage instructions.
 
-## Running with Postgres (docker-compose)
+## Running with Postgres (docker compose)
 
 Run Apicurio Registry with Postgres:
 
  - Compile using `mvn clean install -DskipTests -Pprod -Ddocker`
 
- - Then create a docker-compose file `test.yml`:
+ - Then create a docker compose file `test.yml`:
 ```yaml
 version: '3.1'
 
@@ -182,7 +182,7 @@ services:
       APICURIO_DATASOURCE_USERNAME: apicurio-registry
       APICURIO_DATASOURCE_PASSWORD: password
 ```
-  - Run `docker-compose -f test.yml up`
+  - Run `docker compose -f test.yml up`
 
 ## Eclipse IDE
 

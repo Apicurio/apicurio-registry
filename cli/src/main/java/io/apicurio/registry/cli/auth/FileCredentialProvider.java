@@ -8,9 +8,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.AclEntry;
+import java.nio.file.attribute.AclEntryPermission;
+import java.nio.file.attribute.AclEntryType;
+import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.UserPrincipal;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.jboss.logging.Logger;
 
@@ -139,10 +145,59 @@ class FileCredentialProvider implements CredentialProvider {
         try {
             Files.setPosixFilePermissions(path, EnumSet.of(
                     PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
-        } catch (UnsupportedOperationException | IOException ex) {
-            log.warnf("Could not restrict file permissions on %s"
-                    + " — credentials may be readable by other users.", CREDENTIALS_FILE);
+        } catch (UnsupportedOperationException ex) {
+            // POSIX permissions are unavailable on Windows; fall back to an owner-only ACL.
+            restrictWindowsAcl(path);
+        } catch (IOException ex) {
+            warnPermissionsNotRestricted();
         }
+    }
+
+    private static void restrictWindowsAcl(final Path path) {
+        try {
+            final AclFileAttributeView view = Files.getFileAttributeView(path, AclFileAttributeView.class);
+            if (view == null) {
+                warnPermissionsNotRestricted();
+                return;
+            }
+            final UserPrincipal owner = view.getOwner();
+            final AclEntry entry = AclEntry.newBuilder()
+                    .setType(AclEntryType.ALLOW)
+                    .setPrincipal(owner)
+                    .setPermissions(EnumSet.allOf(AclEntryPermission.class))
+                    .build();
+            // Replace the DACL so that only the owner can read the credentials file.
+            //
+            // Entries inherited from the containing directory do not survive this, but that is a
+            // consequence of how the JDK writes the ACL rather than something it asks for:
+            // setAcl calls the legacy SetFileSecurity with DACL_SECURITY_INFORMATION alone, and
+            // because the descriptor it builds is not marked auto-inherited, Windows stores the
+            // DACL verbatim instead of merging inheritable entries back in. Since the guarantee
+            // rests on that detail rather than on an explicit request, it is checked below rather
+            // than assumed, and a failure is reported the same way as any other.
+            view.setAcl(List.of(entry));
+            if (!isRestrictedToOwner(view, owner)) {
+                warnPermissionsNotRestricted();
+            }
+        } catch (IOException | RuntimeException ex) {
+            warnPermissionsNotRestricted();
+        }
+    }
+
+    /**
+     * Whether the file's effective ACL grants access to nobody but its owner. The list returned
+     * for a Windows file is the whole DACL, so an entry inherited from the parent directory would
+     * appear here too.
+     */
+    private static boolean isRestrictedToOwner(final AclFileAttributeView view,
+                                               final UserPrincipal owner) throws IOException {
+        final List<AclEntry> acl = view.getAcl();
+        return acl.size() == 1 && owner.equals(acl.get(0).principal());
+    }
+
+    private static void warnPermissionsNotRestricted() {
+        log.warnf("Could not restrict file permissions on %s"
+                + " — credentials may be readable by other users.", CREDENTIALS_FILE);
     }
 
     private Path credentialsPath() {

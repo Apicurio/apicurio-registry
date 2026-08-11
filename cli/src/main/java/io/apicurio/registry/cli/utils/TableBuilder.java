@@ -8,6 +8,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
@@ -26,7 +28,9 @@ public class TableBuilder {
     private static final int MIN_COLUMN_WIDTH = 3;
     private static final int DEFAULT_MAX_COLUMN_WIDTH = 25;
     private static final int UPPER_MAX_COLUMN_WIDTH = 80;
-    private static final int MAX_COLUMN_WIDTH = resolveMaxColumnWidth();
+    private static final List<String> STTY_CANDIDATES = List.of("/bin/stty", "/usr/bin/stty");
+    private static final int TERMINAL_WIDTH_DETECTION_TIMEOUT_MS = 500;
+    private static Integer cachedMaxColumnWidth;
     private static final String COLUMN_SEPARATOR = "   ";
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]");
 
@@ -42,20 +46,31 @@ public class TableBuilder {
     private Pagination pagination;
 
     /**
+     * Returns the max column width to use for wrapping, resolving and caching it lazily on first
+     * use rather than eagerly at class load. Resolution can fork a {@code stty size} subprocess
+     * (see {@link #detectTerminalWidth()}), so deferring it means simply loading this class, or
+     * building a {@link TableBuilder} that never wraps a long value, never pays that cost.
+     */
+    private static synchronized int maxColumnWidth() {
+        if (cachedMaxColumnWidth == null) {
+            cachedMaxColumnWidth = resolveMaxColumnWidth();
+        }
+        return cachedMaxColumnWidth;
+    }
+
+    /**
      * Resolves the max column width to use for wrapping, preferring (in order): an explicitly
-     * exported {@code COLUMNS} environment variable, then the real terminal width detected via
-     * {@code stty size}, then {@link #DEFAULT_MAX_COLUMN_WIDTH}. The result is always capped at
-     * {@link #UPPER_MAX_COLUMN_WIDTH} so a single wrapped cell doesn't become unreasonably wide on
-     * very large terminals.
+     * exported, non-blank {@code COLUMNS} environment variable, then the real terminal width
+     * detected via {@code stty size}, then {@link #DEFAULT_MAX_COLUMN_WIDTH}. The result is always
+     * capped at {@link #UPPER_MAX_COLUMN_WIDTH} so a single wrapped cell doesn't become unreasonably
+     * wide on very large terminals.
      * <p>
-     * {@code COLUMNS} is checked first because it's an explicit, cheap override some CI/automation
-     * setups already export - see {@link #resolveMaxColumnWidth(String)}. Most interactive shells
-     * (bash, zsh) do <b>not</b> export it by default, so in practice this falls through to live
-     * detection via {@link #detectTerminalWidth()}.
+     * A blank (but non-null) {@code COLUMNS} - as some shell init files export - is treated the
+     * same as unset, so a stray empty value doesn't silently disable live detection.
      */
     private static int resolveMaxColumnWidth() {
         var columnsEnv = System.getenv("COLUMNS");
-        if (columnsEnv != null) {
+        if (columnsEnv != null && !columnsEnv.isBlank()) {
             return resolveMaxColumnWidth(columnsEnv);
         }
         Integer detected = detectTerminalWidth();
@@ -88,23 +103,39 @@ public class TableBuilder {
      * Attempts to detect the real terminal width by running {@code stty size} against the
      * controlling terminal. Returns {@code null} - rather than throwing - if stdout isn't attached
      * to an interactive terminal (e.g. output is piped/redirected, as in CI logs), {@code stty}
-     * isn't available (e.g. on Windows), or the call fails or takes longer than 500ms for any
-     * reason. Callers should treat {@code null} as "undetectable" and fall back to a default.
+     * can't be found at any of {@link #STTY_CANDIDATES}, or the call fails or takes longer than
+     * 500ms for any reason. Callers should treat {@code null} as "undetectable" and fall back to a
+     * default.
      * <p>
-     * Deliberately shells out rather than depending on a JNI-based library like JNA: this CLI ships
-     * as a GraalVM native image, and {@link ProcessBuilder} works there without any extra
+     * Deliberately checks a fixed list of absolute paths rather than letting the OS resolve a bare
+     * {@code "stty"} via {@code PATH}: resolving executables via PATH is flagged as a security risk
+     * by static analysis (SonarCloud java:S4036) since a compromised PATH could substitute a
+     * malicious binary. Checking more than one absolute path keeps that safety property while still
+     * covering distros/minimal containers that only ship {@code stty} under {@code /usr/bin} rather
+     * than {@code /bin}.
+     * <p>
+     * Also deliberately shells out rather than depending on a JNI-based library like JNA: this CLI
+     * ships as a GraalVM native image, and {@link ProcessBuilder} works there without any extra
      * reflection/resource-config, whereas JNI-based libraries typically need additional
      * native-image setup and can be fragile across platforms.
      */
     static Integer detectTerminalWidth() {
-        if (System.console() == null) {
+        if (System.console() == null || isWindows()) {
+            return null;
+        }
+        var sttyPath = STTY_CANDIDATES.stream().filter(p -> Files.isExecutable(Path.of(p))).findFirst();
+        if (sttyPath.isEmpty()) {
             return null;
         }
         try {
-            var process = new ProcessBuilder("/bin/stty", "size")
+            // Reads stty's output only after waitFor() returns below - safe here because
+            // `stty size` writes only a few bytes, well under the OS pipe buffer, so it can't
+            // block on write() waiting to be drained. Don't copy this ordering for a command with
+            // larger or unbounded output without reading concurrently instead.
+            var process = new ProcessBuilder(sttyPath.get(), "size")
                     .redirectInput(ProcessBuilder.Redirect.INHERIT)
                     .start();
-            if (!process.waitFor(500, TimeUnit.MILLISECONDS)) {
+            if (!process.waitFor(TERMINAL_WIDTH_DETECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
                 process.destroyForcibly();
                 return null;
             }
@@ -117,6 +148,10 @@ public class TableBuilder {
             Thread.currentThread().interrupt();
             return null;
         }
+    }
+
+    private static boolean isWindows() {
+        return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
     }
 
     public TableBuilder addColumn(String header) {
@@ -286,11 +321,11 @@ public class TableBuilder {
         private final int width;
 
         public Cell(String value) {
+            int maxWidth = maxColumnWidth();
             List.of(value.split("\n")).forEach(line -> {
-                if (line.length() > MAX_COLUMN_WIDTH) {
-                    // Split the line into chunks of MAX_COLUMN_WIDTH
-                    for (int i = 0; i < line.length(); i += MAX_COLUMN_WIDTH) {
-                        int end = min(i + MAX_COLUMN_WIDTH, line.length());
+                if (line.length() > maxWidth) {
+                    for (int i = 0; i < line.length(); i += maxWidth) {
+                        int end = min(i + maxWidth, line.length());
                         lines.add(line.substring(i, end));
                     }
                 } else {

@@ -58,6 +58,16 @@ class TableBuilderTest {
     }
 
     @Test
+    void resolveMaxColumnWidthAtUpperBoundIsUsedAsIs() {
+        assertEquals(80, TableBuilder.resolveMaxColumnWidth("80"));
+    }
+
+    @Test
+    void resolveMaxColumnWidthAboveUpperBoundIsCapped() {
+        assertEquals(80, TableBuilder.resolveMaxColumnWidth("81"));
+    }
+
+    @Test
     void longCellValuesWrapAcrossMultipleLinesUnderTheResolvedMaxColumnWidth() {
         var longValue = "x".repeat(200);
         var output = render(new TableBuilder()

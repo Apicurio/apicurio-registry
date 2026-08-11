@@ -215,12 +215,15 @@ function createAxiosConfig(method: string, url: string, options: any, data?: any
 }
 
 
-function unwrapErrorData(error: any): any {
+export function unwrapErrorData(error: any): any {
     console.debug("Error detected, unwrapping...");
     if (error && error.response && error.response.data) {
+        const errorData = (typeof error.response.data === "object" && error.response.data !== null && !Array.isArray(error.response.data))
+            ? error.response.data
+            : { message: String(error.response.data) };
         return {
             message: error.message,
-            ...error.response.data,
+            ...errorData,
             status: error.response.status
         };
     } else if (error && error.response) {

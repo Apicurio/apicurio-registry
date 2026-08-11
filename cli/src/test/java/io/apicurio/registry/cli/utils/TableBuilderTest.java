@@ -191,4 +191,12 @@ class TableBuilderTest {
                 .addRow("g1", "n1").setSelectedColumns(List.of()));
         assertThat(row(emptySelection, 0)).containsExactly("Group ID", "Name");
     }
+
+    @Test
+    void detectTerminalWidthReturnsNullUnderTestHarness() {
+        // Maven/Surefire test JVMs aren't attached to an interactive console, so System.console()
+        // is null and detection should short-circuit without ever shelling out to stty.
+        assertThat(System.console()).isNull();
+        assertThat(TableBuilder.detectTerminalWidth()).isNull();
+    }
 }

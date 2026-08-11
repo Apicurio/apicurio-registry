@@ -6,6 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,7 +26,7 @@ public class TableBuilder {
     private static final int MIN_COLUMN_WIDTH = 3;
     private static final int DEFAULT_MAX_COLUMN_WIDTH = 25;
     private static final int UPPER_MAX_COLUMN_WIDTH = 80;
-    private static final int MAX_COLUMN_WIDTH = resolveMaxColumnWidth(System.getenv("COLUMNS"));
+    private static final int MAX_COLUMN_WIDTH = resolveMaxColumnWidth();
     private static final String COLUMN_SEPARATOR = "   ";
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-z0-9]");
 
@@ -39,30 +42,81 @@ public class TableBuilder {
     private Pagination pagination;
 
     /**
-     * Resolves the max column width from the terminal width, when available, falling back to a
-     * sensible default. Reads the {@code COLUMNS} value passed in, which is normally sourced from the
-     * {@code COLUMNS} environment variable. Note that in most interactive shells (bash, zsh) {@code
-     * COLUMNS} is a shell-local variable that is <b>not</b> exported to child processes by default, so
-     * this only takes effect when the caller has explicitly exported it (e.g. {@code export COLUMNS}),
-     * as some CI/automation environments do. When the value is absent, not a number, or below {@link
-     * #MIN_COLUMN_WIDTH}, falls back to {@link #DEFAULT_MAX_COLUMN_WIDTH}. Otherwise, the result is
-     * capped at {@link #UPPER_MAX_COLUMN_WIDTH} so a single wrapped cell doesn't become unreasonably
-     * wide on very large terminals.
+     * Resolves the max column width to use for wrapping, preferring (in order): an explicitly
+     * exported {@code COLUMNS} environment variable, then the real terminal width detected via
+     * {@code stty size}, then {@link #DEFAULT_MAX_COLUMN_WIDTH}. The result is always capped at
+     * {@link #UPPER_MAX_COLUMN_WIDTH} so a single wrapped cell doesn't become unreasonably wide on
+     * very large terminals.
+     * <p>
+     * {@code COLUMNS} is checked first because it's an explicit, cheap override some CI/automation
+     * setups already export - see {@link #resolveMaxColumnWidth(String)}. Most interactive shells
+     * (bash, zsh) do <b>not</b> export it by default, so in practice this falls through to live
+     * detection via {@link #detectTerminalWidth()}.
+     */
+    private static int resolveMaxColumnWidth() {
+        var columnsEnv = System.getenv("COLUMNS");
+        if (columnsEnv != null) {
+            return resolveMaxColumnWidth(columnsEnv);
+        }
+        Integer detected = detectTerminalWidth();
+        return detected != null ? clampColumnWidth(detected) : DEFAULT_MAX_COLUMN_WIDTH;
+    }
+
+    /**
+     * Resolves the max column width from an explicit {@code COLUMNS} value (normally sourced from
+     * the {@code COLUMNS} environment variable). When the value is absent, not a number, or below
+     * {@link #MIN_COLUMN_WIDTH}, falls back to {@link #DEFAULT_MAX_COLUMN_WIDTH}.
      *
      * @param columnsEnv the raw value of the {@code COLUMNS} environment variable, or {@code null}
      */
     static int resolveMaxColumnWidth(String columnsEnv) {
         if (columnsEnv != null) {
             try {
-                int columns = Integer.parseInt(columnsEnv.trim());
-                if (columns >= MIN_COLUMN_WIDTH) {
-                    return min(columns, UPPER_MAX_COLUMN_WIDTH);
-                }
+                return clampColumnWidth(Integer.parseInt(columnsEnv.trim()));
             } catch (NumberFormatException ignored) {
                 // Fall through to default.
             }
         }
         return DEFAULT_MAX_COLUMN_WIDTH;
+    }
+
+    private static int clampColumnWidth(int candidate) {
+        return candidate >= MIN_COLUMN_WIDTH ? min(candidate, UPPER_MAX_COLUMN_WIDTH) : DEFAULT_MAX_COLUMN_WIDTH;
+    }
+
+    /**
+     * Attempts to detect the real terminal width by running {@code stty size} against the
+     * controlling terminal. Returns {@code null} - rather than throwing - if stdout isn't attached
+     * to an interactive terminal (e.g. output is piped/redirected, as in CI logs), {@code stty}
+     * isn't available (e.g. on Windows), or the call fails or takes longer than 500ms for any
+     * reason. Callers should treat {@code null} as "undetectable" and fall back to a default.
+     * <p>
+     * Deliberately shells out rather than depending on a JNI-based library like JNA: this CLI ships
+     * as a GraalVM native image, and {@link ProcessBuilder} works there without any extra
+     * reflection/resource-config, whereas JNI-based libraries typically need additional
+     * native-image setup and can be fragile across platforms.
+     */
+    static Integer detectTerminalWidth() {
+        if (System.console() == null) {
+            return null;
+        }
+        try {
+            var process = new ProcessBuilder("/bin/stty", "size")
+                    .redirectInput(ProcessBuilder.Redirect.INHERIT)
+                    .start();
+            if (!process.waitFor(500, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                return null;
+            }
+            var output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            var parts = output.split("\\s+");
+            return parts.length == 2 ? Integer.parseInt(parts[1]) : null;
+        } catch (IOException | NumberFormatException e) {
+            return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
     }
 
     public TableBuilder addColumn(String header) {

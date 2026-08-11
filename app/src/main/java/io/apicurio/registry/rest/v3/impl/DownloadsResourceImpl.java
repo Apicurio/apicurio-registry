@@ -6,6 +6,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
+import io.apicurio.registry.rest.v3.IdsResource;
 import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
 import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -38,6 +39,9 @@ public class DownloadsResourceImpl {
     @Inject
     ProtobufExporter protobufExporter;
 
+    @Inject
+    IdsResource idsResource;
+
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     @GET
     @Path("{downloadId}")
@@ -55,7 +59,17 @@ public class DownloadsResourceImpl {
                     downloadContext.getVersion());
         }
 
-        // TODO support other types of downloads (e.g. download content by contentId)
+        if (downloadContext.getType() == DownloadContextType.CONTENT_BY_CONTENT_ID) {
+            return idsResource.getContentById(downloadContext.getContentId());
+        }
+
+        if (downloadContext.getType() == DownloadContextType.CONTENT_BY_GLOBAL_ID) {
+            return idsResource.getContentByGlobalId(downloadContext.getGlobalId(), null, null);
+        }
+
+        if (downloadContext.getType() == DownloadContextType.CONTENT_BY_CONTENT_HASH) {
+            return idsResource.getContentByHash(downloadContext.getContentHash());
+        }
 
         throw new DownloadNotFoundException();
     }

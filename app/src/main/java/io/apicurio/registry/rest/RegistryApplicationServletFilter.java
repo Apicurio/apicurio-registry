@@ -44,7 +44,7 @@ public class RegistryApplicationServletFilter implements Filter {
             if (disabled) {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 // reset() would clear the security headers the upstream filters set; preserve them.
-                resetKeepingHeaders(httpResponse, "X-Content-Type-Options");
+                resetKeepingHeaders(httpResponse, "Strict-Transport-Security", "X-Content-Type-Options");
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 // important to return, to stop the filters chain
                 return;

@@ -199,7 +199,7 @@ public class SqlArtifactRepository {
                     labels.forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertArtifactLabel())
                                 .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                                .bind(2, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
+                                .bind(2, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
                                 .bind(3, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                     });
                 }
@@ -289,8 +289,8 @@ public class SqlArtifactRepository {
                 labels.forEach((k, v) -> {
                     handle.createUpdate(sqlStatements.insertArtifactLabel())
                             .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                            .bind(2, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
-                            .bind(3, limitStr(v.toLowerCase(), MAX_LABEL_VALUE_LENGTH)).execute();
+                            .bind(2, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
+                            .bind(3, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                 });
             }
         } catch (Exception ex) {
@@ -340,8 +340,8 @@ public class SqlArtifactRepository {
                         handle.createUpdate(sqlStatements.insertArtifactLabel())
                                 .bind(0, normalizeGroupId(entity.groupId))
                                 .bind(1, entity.artifactId)
-                                .bind(2, k.toLowerCase())
-                                .bind(3, v == null ? null : v.toLowerCase())
+                                .bind(2, asLowerCase(k))
+                                .bind(3, asLowerCase(v))
                                 .execute();
                     });
                 }

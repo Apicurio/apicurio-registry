@@ -36,24 +36,22 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KubernetesAuthenticationStrategy implements AuthenticationStrategy {
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final int MAX_CACHE_SIZE = 10_000;
 
     private final TokenReviewClient tokenReviewClient;
     private final AuthConfig authConfig;
     private final Logger log;
     private final AtomicBoolean circuitOpenWarned = new AtomicBoolean(false);
-    private final ConcurrentHashMap<String, WrappedValue<TokenReviewResult>> cache =
-            new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, WrappedValue<TokenReviewResult>> cache =
+            Caffeine.newBuilder().maximumSize(10_000).<String, WrappedValue<TokenReviewResult>>build().asMap();
 
     public KubernetesAuthenticationStrategy(TokenReviewClient tokenReviewClient,
             AuthConfig authConfig, Logger log) {
@@ -161,20 +159,7 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
     }
 
     private void cachePut(String key, WrappedValue<TokenReviewResult> value) {
-        evictExpiredEntries();
-        if (cache.size() >= MAX_CACHE_SIZE) {
-            return;
-        }
         cache.put(key, value);
-    }
-
-    private void evictExpiredEntries() {
-        Iterator<Map.Entry<String, WrappedValue<TokenReviewResult>>> it = cache.entrySet().iterator();
-        while (it.hasNext()) {
-            if (it.next().getValue().isExpired()) {
-                it.remove();
-            }
-        }
     }
 
     @Override

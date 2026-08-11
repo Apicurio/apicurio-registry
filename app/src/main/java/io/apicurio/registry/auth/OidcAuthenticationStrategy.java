@@ -44,7 +44,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.function.BiConsumer;
 
 /**
@@ -60,8 +61,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     private final Logger log;
     private final AppAuthenticationMechanism parent;
 
-    private final ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
-    private final ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
+    private final ConcurrentMap<String, WrappedValue<String>> cachedAccessTokens;
+    private final ConcurrentMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
     private final String oidcTokenUrl;
 
     /**
@@ -84,8 +85,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         this.log = log;
         this.parent = parent;
 
-        this.cachedAccessTokens = new ConcurrentHashMap<>();
-        this.cachedAuthFailures = new ConcurrentHashMap<>();
+        this.cachedAccessTokens = Caffeine.newBuilder().maximumSize(1000).<String, WrappedValue<String>>build().asMap();
+        this.cachedAuthFailures = Caffeine.newBuilder().maximumSize(1000).<String, WrappedValue<RuntimeException>>build().asMap();
 
         String tokenUrl;
         if (authConfig.oidcTokenPath.startsWith("http")) {

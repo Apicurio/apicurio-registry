@@ -560,9 +560,15 @@ public class WellKnownResourceImpl implements WellKnownResource {
             // Parameter filtering is performed after artifact search by inspecting tool.getParameters()
             ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                     OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+            warnIfTruncated(results);
+
+            // filter visibility before inspecting parameters
+            List<SearchedArtifactDto> candidates = isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled()
+                ? filterDtosByVisibility(results.getArtifacts())
+                : results.getArtifacts();
 
             List<McpToolSearchResult> matchingTools = new ArrayList<>();
-            for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            for (SearchedArtifactDto artifact : candidates) {
                 McpToolSearchResult tool = convertToMcpToolSearchResult(artifact);
                 if (tool.getParameters() != null && tool.getParameters().containsAll(parameters)) {
                     matchingTools.add(tool);
@@ -576,6 +582,26 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
             return McpToolSearchResults.builder().count(total).tools(page).build();
         }
+
+        if (isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled()) {
+                ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
+                        OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+                warnIfTruncated(results);
+        
+                List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+        
+                int total = visible.size();
+                int fromIndex = Math.min(safeOffset, total);
+                int toIndex = Math.min(fromIndex + safeLimit, total);
+                List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+        
+                List<McpToolSearchResult> tools = new ArrayList<>();
+                for (SearchedArtifactDto artifact : page) {
+                    tools.add(convertToMcpToolSearchResult(artifact));
+                }
+        
+                return McpToolSearchResults.builder().count(total).tools(tools).build();
+            }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.desc, safeOffset, safeLimit, false);

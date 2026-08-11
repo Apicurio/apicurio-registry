@@ -332,7 +332,7 @@ public class RegistryServiceTest {
     @Test
     public void testQueryParameterPropagation() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false);
-        int expectedLimit = DEFAULT_PAGING_LIMIT + 1;
+        int expectedLimit = service.config.paging().limit() + 1;
         service.searchAgentCards("abc", "java", "streaming");
         assertTrue(lastUri.contains("limit=" + expectedLimit));
         assertTrue(lastUri.contains("name=abc"));

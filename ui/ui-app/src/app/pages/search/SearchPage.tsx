@@ -13,15 +13,17 @@ import {
     SearchPageToolbar,
     toPageError, SearchGroupList, SearchVersionList
 } from "@app/pages";
-import { RootPageHeader } from "@app/components";
+import { CreateArtifactModal, RootPageHeader } from "@app/components";
 import { If, ListWithToolbar } from "@apicurio/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
     ArtifactSortByObject,
+    CreateArtifact,
     GroupSearchResults,
     GroupSortBy,
     GroupSortByObject, SearchedGroup, SearchedVersion,
@@ -85,9 +87,24 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const [isSearching, setSearching] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [results, setResults] = useState<ArtifactSearchResults | GroupSearchResults | VersionSearchResults>(EMPTY_RESULTS);
+    const [isCreateArtifactModalOpen, setIsCreateArtifactModalOpen] = useState<boolean>(false);
 
     const searchSvc = useSearchService();
     const appNav = useAppNavigation();
+    const groups = useGroupsService();
+
+    const doCreateArtifact = (groupId: string | undefined, data: CreateArtifact): void => {
+        setIsCreateArtifactModalOpen(false);
+        groups.createArtifact(groupId ?? null, data)
+            .then((response) => {
+                const gid = encodeURIComponent(response.artifact?.groupId || "default");
+                const aid = encodeURIComponent(response.artifact?.artifactId || "");
+                appNav.navigateTo(`/explore/${gid}/${aid}`);
+            })
+            .catch((error) => {
+                setPageError(toPageError(error, "Error creating artifact."));
+            });
+    };
 
     const createLoaders = (): Promise<any> => {
         return search(searchType, filters, sortBy, sortOrder, paging);
@@ -246,7 +263,8 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const emptyState = (
         <SearchPageEmptyState
             searchType={searchType}
-            isFiltered={isFiltered()}/>
+            isFiltered={isFiltered()}
+            onCreateArtifact={() => setIsCreateArtifactModalOpen(true)}/>
     );
 
     return (
@@ -294,6 +312,11 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                     </ListWithToolbar>
                 </PageSection>
             </PageDataLoader>
+            <CreateArtifactModal
+                isOpen={isCreateArtifactModalOpen}
+                onClose={() => setIsCreateArtifactModalOpen(false)}
+                onCreate={doCreateArtifact}
+            />
         </PageErrorHandler>
     );
 

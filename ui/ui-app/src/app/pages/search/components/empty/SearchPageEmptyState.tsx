@@ -1,7 +1,9 @@
 import { FunctionComponent } from "react";
 import "./SearchPageEmptyState.css";
 import {
+    Button,
     EmptyState,
+    EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
     EmptyStateVariant
@@ -16,6 +18,7 @@ import { SearchType } from "@app/pages/search/SearchType.ts";
 export type SearchPageEmptyStateProps = {
     searchType: SearchType;
     isFiltered: boolean;
+    onCreateArtifact?: () => void;
 };
 
 
@@ -52,8 +55,16 @@ export const SearchPageEmptyState: FunctionComponent<SearchPageEmptyStateProps> 
                 </EmptyStateBody>
             </If>
             <EmptyStateFooter>
+                <If condition={() => !!props.onCreateArtifact}>
+                    <EmptyStateActions>
+                        <Button className="empty-btn-create" variant="primary"
+                            icon={<PlusCircleIcon />}
+                            data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
+                    </EmptyStateActions>
+                </If>
             </EmptyStateFooter>
         </EmptyState>
     );
 
 };
+

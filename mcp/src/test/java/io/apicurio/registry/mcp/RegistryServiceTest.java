@@ -322,13 +322,13 @@ public class RegistryServiceTest {
     public void testQueryParameterPropagation() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false);
         service.searchAgentCards("abc", "java", "streaming");
-        assertTrue(lastUri.contains("limit=50"));
+        assertTrue(lastUri.contains("limit=201"));
         assertTrue(lastUri.contains("name=abc"));
         assertTrue(lastUri.contains("skill=java"));
         assertTrue(lastUri.contains("capability=streaming"));
 
         service.searchMcpTools("mytool", "param1");
-        assertTrue(lastUri.contains("limit=50"));
+        assertTrue(lastUri.contains("limit=201"));
         assertTrue(lastUri.contains("name=mytool"));
         assertTrue(lastUri.contains("parameter=param1"));
     }

@@ -31,6 +31,7 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 @ApplicationScoped
@@ -272,8 +273,14 @@ public class RegistryService {
             String versionExpression,
             String versionState
     ) {
+        VersionState state = Arrays.stream(VersionState.values())
+                .filter(v -> v.name().equalsIgnoreCase(versionState))
+                .findFirst()
+                .orElseThrow(() -> new ToolCallException(
+                        "Invalid version state: '" + versionState + "'. Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT."));
+
         var vs = new WrappedVersionState();
-        vs.setState(VersionState.valueOf(versionState));
+        vs.setState(state);
 
         client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)

@@ -1,8 +1,24 @@
 import { NavigateFunction, useNavigate } from "react-router";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
-const navigateTo = (config: ConfigService, path: string, navigateFunc: NavigateFunction): void => {
+// React Router's <Router basename={contextPath}> already prepends contextPath
+// to every navigation automatically. If navPrefixPath is also configured with
+// a value that overlaps with contextPath, applying both would double-prefix
+// the resulting URL (e.g. "/registry/registry/dashboard"), which does not
+// match any route. This resolves the effective prefix so it is only applied
+// once.
+const effectiveNavPrefixPath = (config: ConfigService): string => {
     const prefix: string = config.uiNavPrefixPath() || "";
+    const basename: string = config.uiContextPath() || "";
+    if (prefix !== "" && prefix === basename) {
+        // Router's basename already accounts for this; avoid double-prefixing.
+        return "";
+    }
+    return prefix;
+};
+
+const navigateTo = (config: ConfigService, path: string, navigateFunc: NavigateFunction): void => {
+    const prefix: string = effectiveNavPrefixPath(config);
     const to: string = `${prefix}${path}`;
     console.debug("[UseAppNavigation] Navigating to: ", to);
     setTimeout(() => {
@@ -24,7 +40,7 @@ export const useAppNavigation: () => AppNavigation = (): AppNavigation => {
             return navigateTo(config, path, navigate);
         },
         createLink: (path: string) => {
-            const prefix: string = config.uiNavPrefixPath() || "";
+            const prefix: string = effectiveNavPrefixPath(config);
             return `${prefix}${path}`;
         },
     };

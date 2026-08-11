@@ -18,66 +18,12 @@ import {
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
 import { highlightVariables } from "./PromptTemplateViewer.utils";
-
-export interface PromptVariable {
-    name?: string;
-    type?: string;
-    description?: string;
-    required?: boolean;
-    default?: any;
-    enum?: string[];
-    constraints?: any;
-}
-
-export interface PromptTemplateMetadata {
-    author?: string;
-    createdAt?: string;
-    tags?: string[];
-    recommendedModels?: string[];
-    useCases?: string[];
-    estimatedTokens?: {
-        input?: number;
-        variableOverhead?: number;
-    };
-}
-
-export interface PromptTemplate {
-    templateId?: string;
-    name?: string;
-    description?: string;
-    version?: string;
-    template?: string;
-    variables?: Record<string, PromptVariable> | PromptVariable[];
-    outputSchema?: any;
-    metadata?: PromptTemplateMetadata;
-    mcp?: {
-        enabled?: boolean;
-        name?: string;
-        description?: string;
-        arguments?: any[];
-    };
-}
+import { PromptTemplate } from "./promptTemplate.types";
+import { formatDefault, getVariablesList } from "./promptTemplate.utils";
 
 export type PromptTemplateViewerProps = {
     promptTemplate: PromptTemplate;
     className?: string;
-};
-
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
-    }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
-};
-
-// Format a variable default for display in the Variables table.
-// Objects and arrays go through JSON.stringify so they don't render as "[object Object]".
-const formatDefault = (value: any): string => {
-    if (typeof value === "object" && value !== null) {
-        return JSON.stringify(value);
-    }
-    return String(value);
 };
 
 export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> = (props: PromptTemplateViewerProps) => {

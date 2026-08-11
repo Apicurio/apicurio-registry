@@ -174,6 +174,7 @@ public class VersionsMCPServer {
             @ToolArg(description = SEARCH_NAME, required = false) String name,
             @ToolArg(description = SEARCH_DESCRIPTION, required = false) String description,
             @ToolArg(description = SEARCH_JSON_LABELS, required = false) String jsonLabels,
+            @ToolArg(description = VERSION_STATE, required = false) String versionState,
             @ToolArg(description = ORDER) String order,
             @ToolArg(description = VERSION_ORDER_BY) String versionOrderBy
     ) {
@@ -185,7 +186,8 @@ public class VersionsMCPServer {
                 description,
                 jsonLabels,
                 order,
-                versionOrderBy
+                versionOrderBy,
+                versionState != null ? io.apicurio.registry.rest.client.models.VersionState.valueOf(versionState) : null
         ));
     }
 }

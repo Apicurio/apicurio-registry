@@ -94,6 +94,10 @@ public class DownloadsResourceTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(content.contains("\"openapi\": \"3.0.2\""));
         Assertions.assertTrue(content.contains(title));
+
+        // Attempting to consume the single-use download link again should return 404
+        given().when().pathParam("downloadId", downloadId)
+                .get("/registry/v3/downloads/{downloadId}").then().statusCode(404);
     }
 
     @Test
@@ -123,5 +127,36 @@ public class DownloadsResourceTest extends AbstractResourceTestBase {
 
         Assertions.assertTrue(content.contains("\"openapi\": \"3.0.2\""));
         Assertions.assertTrue(content.contains(title));
+
+        // Attempting to consume the single-use download link again should return 404
+        given().when().pathParam("downloadId", downloadId)
+                .get("/registry/v3/downloads/{downloadId}").then().statusCode(404);
+    }
+
+    @Test
+    public void testDownloadXmlArtifact() throws Exception {
+        String artifactContent = resourceToString("sample.wsdl");
+        String artifactId = "testDownloadXmlArtifact/Wsdl";
+
+        CreateArtifact createArtifact = TestUtils.serverCreateArtifact(artifactId, ArtifactType.WSDL,
+                artifactContent, ContentTypes.APPLICATION_XML);
+        CreateArtifactResponse createArtifactResponse = given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).body(createArtifact)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
+                .as(CreateArtifactResponse.class);
+
+        long contentId = createArtifactResponse.getVersion().getContentId();
+
+        DownloadContextDto context = DownloadContextDto.builder()
+                .type(DownloadContextType.CONTENT_BY_CONTENT_ID)
+                .contentId(contentId)
+                .expires(System.currentTimeMillis() + 60000)
+                .build();
+        String downloadId = storage.createDownload(context);
+
+        // Verify that the file extension in Content-Disposition is dynamically derived as .xml
+        given().when().pathParam("downloadId", downloadId)
+                .get("/registry/v3/downloads/{downloadId}").then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + contentId + ".xml\""));
     }
 }

@@ -50,6 +50,7 @@ import { useEditorDraftRecovery } from "./useEditorDraftRecovery.ts";
 import { useEditorReauthentication } from "./useEditorReauthentication.ts";
 import { ArtifactReference, ReferenceTypeObject } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { buildNonDraftVersionLink } from "./EditorPage.utils.ts";
 
 const sectionContextStyle: CSSProperties = {
     borderBottom: "1px solid #ccc",
@@ -417,7 +418,7 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
                 component={(props: any) => (
                     <Link
                         {...props}
-                        to={appNavigation.createLink(`/explore/${groupId}/${draftId}/versions/${version}`)}
+                        to={appNavigation.createLink(buildNonDraftVersionLink(groupId, draftId, version))}
                     />
                 )}
             >

@@ -92,7 +92,8 @@ class AgentCardCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(), "Removing a skill should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("skill2")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("skill2")
+                        && "/skills".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -124,7 +125,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(), "Removing an interface should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
                 .anyMatch(d -> d.asRuleViolation().getDescription().contains("Interface")
-                        && d.asRuleViolation().getDescription().contains("removed")));
+                        && d.asRuleViolation().getDescription().contains("removed")
+                        && "/supportedInterfaces".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -163,7 +165,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Disabling a capability should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("pushNotifications")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("pushNotifications")
+                        && "/capabilities".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -192,7 +195,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Removing security scheme should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("apikey")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("apikey")
+                        && "/securitySchemes".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -227,7 +231,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Removing input modes should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("image")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("image")
+                        && "/modes".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -246,7 +251,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Removing output modes should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("json")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("json")
+                        && "/modes".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -327,6 +333,7 @@ class AgentCardCompatibilityCheckerTest {
                 "Changing protocol version should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
                 .anyMatch(d -> d.asRuleViolation().getDescription()
-                        .contains("Protocol version changed")));
+                        .contains("Protocol version changed")
+                        && "/supportedInterfaces".equals(d.asRuleViolation().getContext())));
     }
 }

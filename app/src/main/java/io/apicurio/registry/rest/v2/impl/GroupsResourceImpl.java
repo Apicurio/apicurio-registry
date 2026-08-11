@@ -787,6 +787,7 @@ public class GroupsResourceImpl implements GroupsResource {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("version", version);
+        ParameterValidationUtils.requireParameter("value", data.getValue());
 
         CommentDto newComment = storage.createArtifactVersionComment(defaultGroupIdToNull(groupId),
                 artifactId, version, data.getValue());

@@ -66,7 +66,7 @@ All submissions, including submissions by project members, need to be reviewed b
 
 ### Coding Guidelines
 
- * We primarily use the Git history to track authorship. GitHub also has [this nice page with your contributions](https://github.com/quarkusio/quarkus/graphs/contributors).
+ * We primarily use the Git history to track authorship. GitHub also has [this nice page with your contributions](https://github.com/Apicurio/apicurio-registry/graphs/contributors).
  * Please take care to write code that fits with existing code styles.  For your convenience we have Formatters and/or Code Templates for both [Eclipse](https://github.com/Apicurio/apicurio-configs/tree/main/eclipse) and [IntelliJ](https://github.com/Apicurio/apicurio-configs/tree/main/intellij).
  * Commits should be atomic and semantic. Please properly squash your pull requests before submitting them. Fixup commits can be used temporarily during the review process but things should be squashed at the end to have meaningful commits.
  * We typically squash and merge pull requests when they are approved.  This tends to keep the commit history a little bit more tidy without placing undue burden on the developers.

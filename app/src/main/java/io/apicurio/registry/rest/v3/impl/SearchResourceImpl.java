@@ -232,8 +232,8 @@ public class SearchResourceImpl implements SearchResource {
                 }
                 // If the delimiter is missing or simply exists at the end of the label filter with no value, then
                 // use null for the value (will match all groups containing a label with the key and *any* value).
-                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
-                    labelKey = prop.replace(":", "");
+                if (delimiterIndex < 0) {
+                    labelKey = prop;
                     labelValue = null;
                 } else if (delimiterIndex == (prop.length() - 1)) {
                     labelKey = prop.substring(0, delimiterIndex);
@@ -302,8 +302,8 @@ public class SearchResourceImpl implements SearchResource {
                 }
                 // If the delimiter is missing or simply exists at the end of the label filter with no value, then
                 // use null for the value (will match all versions containing a label with the key and *any* value).
-                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
-                    labelKey = prop.replace(":", "");
+                if (delimiterIndex < 0) {
+                    labelKey = prop;
                     labelValue = null;
                 } else if (delimiterIndex == (prop.length() - 1)) {
                     labelKey = prop.substring(0, delimiterIndex);
@@ -341,7 +341,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType,
             BigInteger offset, BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId,
-            String artifactId, Boolean skipCount, InputStream data) {
+            String artifactId, VersionState state, Boolean skipCount, InputStream data) {
 
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
@@ -363,6 +363,9 @@ public class SearchResourceImpl implements SearchResource {
         }
         if (!StringUtil.isEmpty(artifactId)) {
             filters.add(SearchFilter.ofArtifactId(artifactId));
+        }
+        if (state != null) {
+            filters.add(SearchFilter.ofState(state));
         }
 
         if (canonical == null) {

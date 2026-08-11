@@ -27,6 +27,7 @@ import {
 } from "./promptTemplateVariables";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
+import { coerceEnumValue } from "./PromptTemplateTestPanel.utils";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -103,7 +104,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 if (!(entry.name in next)) {
                     const schema = schemaForField(entry);
                     const type = (schema.type || "string").toLowerCase();
-                    next[entry.name] = type === "boolean" ? false : (schema.default ?? "");
+                    next[entry.name] = schema.default ?? (type === "boolean" ? false : "");
                 }
             });
             return next;
@@ -151,8 +152,8 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         if (variable.enum && variable.enum.length > 0) {
             return (
                 <FormSelect
-                    value={values[name] || ""}
-                    onChange={(_event, val) => setValue(name, val)}
+                    value={values[name] ?? ""}
+                    onChange={(_event, val) => setValue(name, coerceEnumValue(val, type))}
                     aria-label={name}
                 >
                     <FormSelectOption key="placeholder" value="" label="-- Select --" />
@@ -192,8 +193,11 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 return (
                     <TextInput
                         type="number"
-                        value={values[name] || ""}
-                        onChange={(_event, val) => setValue(name, type === "integer" ? parseInt(val) || "" : parseFloat(val) || "")}
+                        value={values[name] ?? ""}
+                        onChange={(_event, val) => {
+                            const n = type === "integer" ? parseInt(val) : parseFloat(val);
+                            setValue(name, isNaN(n) ? "" : n);
+                        }}
                         aria-label={name}
                     />
                 );
@@ -295,7 +299,15 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                     <Alert variant="warning" title="Validation Errors" className="validation-errors">
                         <ul>
                             {validationErrors.map((ve, i) => (
-                                <li key={i}>{ve.path ? `${ve.path}: ` : ""}{ve.message}</li>
+                                <li key={i}>
+                                    {ve.variableName ? `${ve.variableName}: ` : ""}
+                                    {ve.message}
+                                    {ve.expectedType && ve.actualType && (
+                                        <span style={{ color: "var(--pf-t--global--color--600)", marginLeft: "0.5rem" }}>
+                                            (Expected: {ve.expectedType}, Actual: {ve.actualType})
+                                        </span>
+                                    )}
+                                </li>
                             ))}
                         </ul>
                     </Alert>

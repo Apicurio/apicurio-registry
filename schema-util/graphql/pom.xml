@@ -23,6 +23,11 @@
       <artifactId>apicurio-registry-schema-util-common</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-common</artifactId>
+    </dependency>
+
     <!-- GraphQL -->
     <dependency>
       <groupId>com.graphql-java</groupId>

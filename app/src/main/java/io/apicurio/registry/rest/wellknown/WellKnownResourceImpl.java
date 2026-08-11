@@ -584,24 +584,24 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         if (isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled()) {
-                ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
-                        OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-                warnIfTruncated(results);
-        
-                List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
-        
-                int total = visible.size();
-                int fromIndex = Math.min(safeOffset, total);
-                int toIndex = Math.min(fromIndex + safeLimit, total);
-                List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
-        
-                List<McpToolSearchResult> tools = new ArrayList<>();
-                for (SearchedArtifactDto artifact : page) {
-                    tools.add(convertToMcpToolSearchResult(artifact));
-                }
-        
-                return McpToolSearchResults.builder().count(total).tools(tools).build();
+            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
+                    OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+            warnIfTruncated(results);
+    
+            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+    
+            int total = visible.size();
+            int fromIndex = Math.min(safeOffset, total);
+            int toIndex = Math.min(fromIndex + safeLimit, total);
+            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+    
+            List<McpToolSearchResult> tools = new ArrayList<>();
+            for (SearchedArtifactDto artifact : page) {
+                tools.add(convertToMcpToolSearchResult(artifact));
             }
+    
+            return McpToolSearchResults.builder().count(total).tools(tools).build();
+        }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.desc, safeOffset, safeLimit, false);

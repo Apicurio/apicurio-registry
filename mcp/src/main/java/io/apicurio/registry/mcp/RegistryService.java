@@ -274,10 +274,11 @@ public class RegistryService {
             String versionState
     ) {
         VersionState state = Arrays.stream(VersionState.values())
-                .filter(v -> v.name().equalsIgnoreCase(versionState))
+                .filter(v -> versionState != null && v.name().equalsIgnoreCase(versionState.trim()))
                 .findFirst()
                 .orElseThrow(() -> new ToolCallException(
-                        "Invalid version state: '" + versionState + "'. Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT."));
+                        "Invalid version state: '" + versionState + "'. Accepted values (case-insensitive): "
+                                + Arrays.toString(VersionState.values())));
 
         var vs = new WrappedVersionState();
         vs.setState(state);

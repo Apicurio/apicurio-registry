@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -22,7 +23,6 @@ import java.util.regex.Pattern;
 @ApplicationScoped
 public class PromptTemplateConverter {
 
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{(\\w+)\\}\\}");
     private static final Pattern IF_BLOCK_PATTERN = Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}");
 
     @Inject
@@ -434,14 +434,16 @@ public class PromptTemplateConverter {
             return template;
         }
 
-        String rendered = template;
-
-        // Simple {{variable}} substitution
-        for (Map.Entry<String, Object> entry : args.entrySet()) {
-            String placeholder = "\\{\\{" + entry.getKey() + "\\}\\}";
-            String value = entry.getValue() != null ? String.valueOf(entry.getValue()) : "";
-            rendered = rendered.replaceAll(placeholder, Matcher.quoteReplacement(value));
-        }
+        // Simple {{variable}} substitution, using the canonical pattern shared with the validity
+        // rule and the REST render endpoint so that {{name}} and {{ name }} resolve the same way.
+        String rendered = PromptTemplateVariableUtil.substituteVariables(template, varName -> {
+            if (!args.containsKey(varName)) {
+                // Returning null leaves the placeholder in the output, as before.
+                return null;
+            }
+            Object value = args.get(varName);
+            return value != null ? String.valueOf(value) : "";
+        });
 
         // Handle {{#if variable}} ... {{/if}} blocks
         rendered = processConditionalBlocks(rendered, args);

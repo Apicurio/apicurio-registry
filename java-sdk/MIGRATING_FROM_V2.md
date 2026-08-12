@@ -15,7 +15,7 @@ All new usage should target the `client` module (REST API v3 /
 > Maven artifact `apicurio-registry-v2-java-sdk`). If your application
 > instead uses the legacy `apicurio-registry-client` (2.6.13.Final) product
 > client, see the
-> [Migrating REST API and SDK client applications](https://github.com/Apicurio/apicurio-registry/blob/3.2.x/docs/modules/ROOT/pages/getting-started/assembly-migrating-registry-v2-v3.adoc)
+> [Migrating REST API and SDK client applications](https://github.com/Apicurio/apicurio-registry/blob/main/docs/modules/ROOT/pages/getting-started/assembly-migrating-registry-v2-v3.adoc)
 > section of the migration guide instead.
 
 ## 1. Update your Maven/Gradle dependency

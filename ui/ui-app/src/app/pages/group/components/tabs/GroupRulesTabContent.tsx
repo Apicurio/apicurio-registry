@@ -50,7 +50,7 @@ export const GroupRulesTabContent: FunctionComponent<GroupRulesTabContentProps> 
             </If>
             <If condition={props.group.groupId !== "default"}>
                 <div className="group-rules">
-                    <Card variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>
                             <div className="rules-label">Group-specific rules</div>
                         </CardTitle>

@@ -38,9 +38,14 @@ export const tokenizeTemplate = (template: string): TemplateToken[] => {
 };
 
 export const formatRange = (minimum?: number, maximum?: number): string | null => {
-    const hasMin = typeof minimum === "number" && Number.isFinite(minimum);
-    const hasMax = typeof maximum === "number" && Number.isFinite(maximum);
-    if (hasMin && hasMax) return `${minimum} – ${maximum}`;
+    const hasMin = Number.isFinite(minimum);
+    const hasMax = Number.isFinite(maximum);
+    if (hasMin && hasMax) {
+        // Malformed schema (min > max): render bounds separately so the
+        // contradiction is visible instead of a nonsensical inverted range.
+        if ((minimum as number) > (maximum as number)) return `≥ ${minimum}, ≤ ${maximum}`;
+        return `${minimum} – ${maximum}`;
+    }
     if (hasMin) return `≥ ${minimum}`;
     if (hasMax) return `≤ ${maximum}`;
     return null;

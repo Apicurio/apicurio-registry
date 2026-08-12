@@ -129,4 +129,22 @@ describe("formatRange", () => {
     it("ignores non-finite values", () => {
         expect(formatRange(NaN, Infinity)).toBeNull();
     });
+
+    it("ignores null values", () => {
+        // TS-loose call site (JSON parsers hand back null, not undefined)
+        expect(formatRange(null as unknown as number, null as unknown as number)).toBeNull();
+    });
+
+    it("ignores stringified numbers", () => {
+        // Number.isFinite does not coerce, so "5" is not treated as a bound
+        expect(formatRange("5" as unknown as number, "10" as unknown as number)).toBeNull();
+    });
+
+    it("renders separated bounds when minimum > maximum (malformed schema)", () => {
+        expect(formatRange(10, 1)).toBe("≥ 10, ≤ 1");
+    });
+
+    it("renders a normal range when minimum equals maximum", () => {
+        expect(formatRange(5, 5)).toBe("5 – 5");
+    });
 });

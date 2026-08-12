@@ -117,7 +117,7 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Download macOS CLI ZIP from GitHub Release
+      - name: Download macOS and Windows CLI ZIPs from GitHub Release
         working-directory: registry
         env:
           GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
@@ -125,6 +125,9 @@ jobs:
           RELEASE_VERSION=${{ needs.prepare.outputs.release-version }}
           gh release download "${RELEASE_VERSION}" \
             --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
+            --dir cli/target/
+          gh release download "${RELEASE_VERSION}" \
+            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-windows-x86_64.zip" \
             --dir cli/target/
 
       - name: Maven Deploy

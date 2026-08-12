@@ -61,17 +61,68 @@ public class McpAuthenticationTest {
         // Test creating a group - this requires write permissions (admin role)
         String testGroupId = "mcp-auth-test-group-" + System.currentTimeMillis();
 
-        var createdGroup = registryService.createGroup(testGroupId, "Test group for MCP authentication", null);
+        try {
+            var createdGroup = registryService.createGroup(testGroupId, "Test group for MCP authentication", null);
 
-        assertNotNull(createdGroup, "Created group should not be null");
-        assertNotNull(createdGroup.getGroupId(), "Group ID should not be null");
+            assertNotNull(createdGroup, "Created group should not be null");
+            assertNotNull(createdGroup.getGroupId(), "Group ID should not be null");
 
-        log.info("Successfully created group with OAuth2 authentication: {}", createdGroup.getGroupId());
+            log.info("Successfully created group with OAuth2 authentication: {}", createdGroup.getGroupId());
 
-        // Verify we can retrieve the group metadata
-        var groupMetadata = registryService.getGroupMetadata(testGroupId);
-        assertNotNull(groupMetadata, "Group metadata should not be null");
+            // Verify we can retrieve the group metadata
+            var groupMetadata = registryService.getGroupMetadata(testGroupId);
+            assertNotNull(groupMetadata, "Group metadata should not be null");
 
-        log.info("Successfully retrieved group metadata: {}", utils.toPrettyJson(groupMetadata));
+            log.info("Successfully retrieved group metadata: {}", utils.toPrettyJson(groupMetadata));
+        } finally {
+            try {
+                registryService.deleteGroup(testGroupId);
+            } catch (Exception e) {
+                log.warn("Failed to clean up test group {}", testGroupId, e);
+            }
+        }
+    }
+
+    @Test
+    public void testOAuth2AuthenticationSchemaCompatibility() {
+        String testGroupId = "mcp-auth-test-group-compat-" + System.currentTimeMillis();
+        String testArtifactId = "mcp-auth-test-artifact-compat-" + System.currentTimeMillis();
+        
+        try {
+            // Ensure group exists
+            registryService.createGroup(testGroupId, "Test group for schema compatibility", null);
+            
+            // Create an artifact
+            String initialSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}}}";
+            registryService.createArtifact(testGroupId, testArtifactId, "JSON", "Test Artifact", "Description", null);
+            
+            // Create first version to set initial schema
+            registryService.createVersion(testGroupId, testArtifactId, "1.0.0", "application/json", initialSchema, "Test Version", "Initial version", null, false);
+
+            // Add a compatibility rule to the artifact to enforce BACKWARD compatibility
+            registryService.createArtifactRule(testGroupId, testArtifactId, "COMPATIBILITY", "BACKWARD");
+            
+            // Test compatibility (Happy Path)
+            String compatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}}}";
+            String result = registryService.testSchemaCompatibility(testGroupId, testArtifactId, compatibleSchema, "application/json");
+            
+            org.junit.jupiter.api.Assertions.assertTrue(result.contains("compatible"), "Result should indicate schema is compatible");
+            log.info("Schema compatibility happy path result: {}", result);
+
+            // Test compatibility (Failure Path)
+            // Flip `id` from string to integer to break BACKWARD compatibility
+            String incompatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"integer\"}}}";
+            String negativeResult = registryService.testSchemaCompatibility(testGroupId, testArtifactId, incompatibleSchema, "application/json");
+
+            org.junit.jupiter.api.Assertions.assertTrue(negativeResult.contains("Schema compatibility check failed"), "Result should indicate schema is incompatible");
+            org.junit.jupiter.api.Assertions.assertTrue(negativeResult.contains("id"), "Result should contain the cause description mentioning the 'id' field");
+            log.info("Schema compatibility failure path result: {}", negativeResult);
+        } finally {
+            try {
+                registryService.deleteGroup(testGroupId);
+            } catch (Exception e) {
+                log.warn("Failed to clean up test group {}", testGroupId, e);
+            }
+        }
     }
 }

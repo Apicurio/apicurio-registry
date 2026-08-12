@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -14,6 +15,7 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,9 +24,11 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import static io.apicurio.registry.utils.CollectionsUtil.isEmpty;
@@ -52,8 +56,6 @@ public class RegistryContentUtils {
     /**
      * Recursively resolve references.
      * Generic version.
-     * <p>
-     * TODO: Use this also for recursivelyResolveReferencesWithContext(...)
      */
     public static <KEY, NODE extends HasReferences, VALUE> Map<KEY, VALUE> recursivelyResolveReferencesGeneric(
             HasReferences root,
@@ -65,7 +67,9 @@ public class RegistryContentUtils {
             return Map.of();
         } else {
             Map<KEY, VALUE> result = new LinkedHashMap<>();
-            recursivelyResolveReferencesGenericInternal(result, root.getReferences(), keyExtractor, nodeLoader, valueExtractor);
+            int maxReferenceDepth = getMaxReferenceDepth();
+            recursivelyResolveReferencesGenericInternal(result, root.getReferences(), keyExtractor, nodeLoader,
+                    valueExtractor, 0, new HashSet<>(), maxReferenceDepth);
             return result;
         }
     }
@@ -75,30 +79,44 @@ public class RegistryContentUtils {
             List<ArtifactReferenceDto> references,
             Function<ArtifactReferenceDto, KEY> keyExtractor,
             Function<ArtifactReferenceDto, NODE> nodeLoader,
-            Function<NODE, VALUE> valueExtractor
+            Function<NODE, VALUE> valueExtractor,
+            int currentDepth,
+            Set<KEY> visited,
+            int maxReferenceDepth
     ) {
-        if (references != null && !references.isEmpty()) {
-            for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
-                    throw new IllegalStateException("Invalid reference: " + reference);
-                } else {
-                    var key = keyExtractor.apply(reference);
-                    if (!partialRecursivelyResolvedReferences.containsKey(key)) {
-                        try {
-                            var nested = nodeLoader.apply(reference);
-                            if (nested != null) {
-                                recursivelyResolveReferencesGenericInternal(
-                                        partialRecursivelyResolvedReferences,
-                                        nested.getReferences(),
-                                        keyExtractor,
-                                        nodeLoader,
-                                        valueExtractor
-                                );
-                                partialRecursivelyResolvedReferences.put(key, valueExtractor.apply(nested));
-                            }
-                        } catch (Exception ex) {
-                            log.error("Could not resolve reference {}.", reference, ex);
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+
+        if (currentDepth > maxReferenceDepth) {
+            log.warn("Maximum generic reference resolution depth ({}) exceeded at depth {}. "
+                    + "Stopping resolution.", maxReferenceDepth, currentDepth);
+            return;
+        }
+
+        for (ArtifactReferenceDto reference : references) {
+            if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
+                throw new IllegalStateException("Invalid reference: " + reference);
+            } else {
+                var key = keyExtractor.apply(reference);
+                if (!partialRecursivelyResolvedReferences.containsKey(key) && visited.add(key)) {
+                    try {
+                        var nested = nodeLoader.apply(reference);
+                        if (nested != null) {
+                            recursivelyResolveReferencesGenericInternal(
+                                    partialRecursivelyResolvedReferences,
+                                    nested.getReferences(),
+                                    keyExtractor,
+                                    nodeLoader,
+                                    valueExtractor,
+                                    currentDepth + 1,
+                                    visited,
+                                    maxReferenceDepth
+                            );
+                            partialRecursivelyResolvedReferences.put(key, valueExtractor.apply(nested));
                         }
+                    } catch (Exception ex) {
+                        log.error("Could not resolve reference {}.", reference, ex);
                     }
                 }
             }
@@ -157,10 +175,12 @@ public class RegistryContentUtils {
             return new RewrittenContentHolder(mainContent, Collections.emptyMap());
         } else {
             Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
+            int maxReferenceDepth = getMaxReferenceDepth();
             // First we resolve all the references tree, re-writing the nested contents to use the artifact
             // version coordinates instead of the reference name.
             return resolveReferencesWithContext(artifactTypeUtilProviderFactory, mainContent, mainContentType,
-                    resolvedReferences, references, loader, new HashMap<>());
+                    resolvedReferences, references, loader, new HashMap<>(), 0, new HashSet<>(),
+                    maxReferenceDepth);
         }
     }
 
@@ -174,56 +194,89 @@ public class RegistryContentUtils {
             ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory, TypedContent mainContent,
             String schemaType, Map<String, TypedContent> partialRecursivelyResolvedReferences,
             List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentWrapperDto> loader,
-            Map<String, String> referencesRewrites) {
-        if (references != null && !references.isEmpty()) {
-            for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null
-                        || reference.getVersion() == null) {
-                    throw new IllegalStateException("Invalid reference: " + reference);
-                } else {
-                    String refName = reference.getName();
-                    JsonPointerExternalReference refPointer = new JsonPointerExternalReference(refName);
+            Map<String, String> referencesRewrites, int currentDepth, Set<String> visited,
+            int maxReferenceDepth) {
+        if (references == null || references.isEmpty()) {
+            return rewriteReferences(artifactTypeUtilProviderFactory, schemaType, mainContent, referencesRewrites,
+                    partialRecursivelyResolvedReferences);
+        }
 
-                    // Use only the resource part (without JSON pointer component) when building coordinates,
-                    // then reconstruct the full reference with the component to avoid duplication
-                    String resourceOnly = refPointer.getResource() != null ? refPointer.getResource() : refName;
-                    String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(
-                            reference.getGroupId(), reference.getArtifactId(), reference.getVersion(),
-                            resourceOnly);
+        if (currentDepth > maxReferenceDepth) {
+            log.warn("Maximum context-aware reference resolution depth ({}) exceeded at depth {}. "
+                    + "Stopping resolution.", maxReferenceDepth, currentDepth);
+            return rewriteReferences(artifactTypeUtilProviderFactory, schemaType, mainContent, referencesRewrites,
+                    partialRecursivelyResolvedReferences);
+        }
 
-                    JsonPointerExternalReference coordinatePointer = new JsonPointerExternalReference(
-                            referenceCoordinates, refPointer.getComponent());
+        for (ArtifactReferenceDto reference : references) {
+            if (reference.getArtifactId() == null || reference.getName() == null
+                    || reference.getVersion() == null) {
+                throw new IllegalStateException("Invalid reference: " + reference);
+            } else {
+                String refName = reference.getName();
+                JsonPointerExternalReference refPointer = new JsonPointerExternalReference(refName);
 
-                    String newRefName = coordinatePointer.toString();
+                // Use only the resource part (without JSON pointer component) when building coordinates,
+                // then reconstruct the full reference with the component to avoid duplication
+                String resourceOnly = refPointer.getResource() != null ? refPointer.getResource() : refName;
+                String referenceCoordinates = concatArtifactVersionCoordinatesWithRefName(
+                        reference.getGroupId(), reference.getArtifactId(), reference.getVersion(),
+                        resourceOnly);
 
-                    if (!partialRecursivelyResolvedReferences.containsKey(newRefName)) {
-                        try {
-                            var nested = loader.apply(reference);
-                            if (nested != null) {
-                                ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory
-                                        .getArtifactTypeProvider(nested.getArtifactType());
-                                RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
-                                        artifactTypeUtilProviderFactory,
-                                        TypedContent.create(nested.getContent(), nested.getArtifactType()),
-                                        nested.getArtifactType(), partialRecursivelyResolvedReferences,
-                                        nested.getReferences(), loader, referencesRewrites);
-                                referencesRewrites.put(refName, newRefName);
-                                TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
-                                        .rewriteReferences(rewrittenContentHolder.getRewrittenContent(),
-                                                referencesRewrites);
-                                partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
-                            }
-                        } catch (Exception ex) {
-                            log.error("Could not resolve reference " + reference + ".", ex);
+                JsonPointerExternalReference coordinatePointer = new JsonPointerExternalReference(
+                        referenceCoordinates, refPointer.getComponent());
+
+                String newRefName = coordinatePointer.toString();
+
+                if (!partialRecursivelyResolvedReferences.containsKey(newRefName)
+                        && visited.add(newRefName)) {
+                    try {
+                        var nested = loader.apply(reference);
+                        if (nested != null) {
+                            ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory
+                                    .getArtifactTypeProvider(nested.getArtifactType());
+                            RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
+                                    artifactTypeUtilProviderFactory,
+                                    TypedContent.create(nested.getContent(), nested.getArtifactType()),
+                                    nested.getArtifactType(), partialRecursivelyResolvedReferences,
+                                    nested.getReferences(), loader, referencesRewrites, currentDepth + 1,
+                                    visited, maxReferenceDepth);
+                            referencesRewrites.put(refName, newRefName);
+                            TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
+                                    .rewriteReferences(rewrittenContentHolder.getRewrittenContent(),
+                                            referencesRewrites);
+                            partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
                         }
+                    } catch (Exception ex) {
+                        log.error("Could not resolve reference " + reference + ".", ex);
                     }
                 }
             }
         }
-        ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory.getArtifactTypeProvider(schemaType);
+        return rewriteReferences(artifactTypeUtilProviderFactory, schemaType, mainContent, referencesRewrites,
+                partialRecursivelyResolvedReferences);
+    }
+
+    private static RewrittenContentHolder rewriteReferences(
+            ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory, String schemaType,
+            TypedContent mainContent, Map<String, String> referencesRewrites,
+            Map<String, TypedContent> resolvedReferences) {
+        ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory
+                .getArtifactTypeProvider(schemaType);
         TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
                 .rewriteReferences(mainContent, referencesRewrites);
-        return new RewrittenContentHolder(rewrittenContent, partialRecursivelyResolvedReferences);
+        return new RewrittenContentHolder(rewrittenContent, resolvedReferences);
+    }
+
+    private static int getMaxReferenceDepth() {
+        try {
+            return ConfigProvider.getConfig()
+                    .getOptionalValue(ReferenceResolutionConfigProperties.MAX_DEPTH_PROPERTY, Integer.class)
+                    .orElse(ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH);
+        } catch (IllegalStateException ex) {
+            // Static utility methods are also used outside CDI and MicroProfile Config runtimes.
+            return ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH;
+        }
     }
 
     /**

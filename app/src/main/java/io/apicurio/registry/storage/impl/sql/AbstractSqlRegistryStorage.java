@@ -17,6 +17,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.semver.SemVerConfigProperties;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageBehaviorProperties;
 import io.apicurio.registry.storage.StorageEvent;
@@ -120,9 +121,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Inject
     RestConfig restConfig;
 
-    @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
-    @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", availableSince = "3.0.6")
-    int maxReferenceDepth;
+    @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
 
     protected SqlStatements sqlStatements() {
         return sqlStatements;
@@ -279,7 +279,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         // Level 1: depend on level 0
         contentRepository = new SqlContentRepository(handleFactory, sqlStatements, log,
-                sequenceRepository, utils, maxReferenceDepth);
+                sequenceRepository, utils, referenceResolutionConfig.maxDepth);
         groupRepository = new SqlGroupRepository(handleFactory, sqlStatements, log,
                 securityIdentity, outboxEvent, restConfig);
 

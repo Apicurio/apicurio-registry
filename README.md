@@ -3,7 +3,7 @@
 [![Automated Release Notes by gren](https://img.shields.io/badge/%F0%9F%A4%96-release%20notes-00B2EE.svg)](https://github-tools.github.io/github-release-notes/)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry?ref=badge_shield)
 
-![Apicurio Registry](.assets/apicurio_registry_logo_default.svg)
+![Apicurio Registry](branding/logos/svg/apicurio_registry_logo_default.svg)
 
 An API/Schema registry - stores and retrieves APIs and Schemas.
 

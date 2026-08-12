@@ -191,6 +191,10 @@ Supported artifact types include:
 * `AGENT_CARD`: AI Agent Card (A2A protocol)
 * `ICEBERG_TABLE`: Apache Iceberg table metadata
 * `ICEBERG_VIEW`: Apache Iceberg view metadata
+* `OPENRPC`: OpenRPC specification for JSON-RPC APIs
+* `MCP_TOOL`: MCP tool definitions (Model Context Protocol)
+* `MODEL_SCHEMA`: AI/ML model input/output schema definitions
+* `PROMPT_TEMPLATE`: LLM prompt templates with variable schemas
 
 [role="_additional-resources"]
 .Additional resources

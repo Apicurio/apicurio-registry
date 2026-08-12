@@ -116,6 +116,74 @@ public class SearchGroupsTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(1, results.getGroups().size());
         Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        // Test trailing colon label queries
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels:" };
+        });
+        Assertions.assertEquals(5, results.getGroups().size());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels-3:" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        // Test namespace colon label queries (e.g. "env:tag:") to protect against regression
+        Labels nsLabels = new Labels();
+        nsLabels.setAdditionalData(Map.of("env:tag", "production"));
+        CreateGroup nsGroup = new CreateGroup();
+        nsGroup.setGroupId("testSearchGroupsByNsLabel");
+        nsGroup.setLabels(nsLabels);
+        clientV3.groups().post(nsGroup);
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env:tag:" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByNsLabel", results.getGroups().get(0).getGroupId());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env:tag:production" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByNsLabel", results.getGroups().get(0).getGroupId());
+    }
+
+    @Test
+    public void testSearchGroupsByLabelsColonInValue() throws Exception {
+        // Group 1: Namespaced label key (scope:tier = primary) — uses a distinct key to avoid
+        // polluting the global env:tag:production search in testSearchGroupsByLabels
+        Labels nsLabels = new Labels();
+        nsLabels.setAdditionalData(Map.of("scope:tier", "primary"));
+        CreateGroup nsGroup = new CreateGroup();
+        nsGroup.setGroupId("testSearchGroupsNsLabel-" + UUID.randomUUID());
+        nsGroup.setLabels(nsLabels);
+        clientV3.groups().post(nsGroup);
+
+        // Group 2: Colon in label value (color = red:dark)
+        Labels colonLabels = new Labels();
+        colonLabels.setAdditionalData(Map.of("color", "red:dark"));
+        CreateGroup colonGroup = new CreateGroup();
+        String colonGroupId = "testSearchGroupsColonValue-" + UUID.randomUUID();
+        colonGroup.setGroupId(colonGroupId);
+        colonGroup.setLabels(colonLabels);
+        clientV3.groups().post(colonGroup);
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Group 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "color:red:dark" };
+        });
+        Assertions.assertEquals(0, results.getGroups().stream()
+                .filter(g -> g.getGroupId().equals(colonGroupId)).count());
+
+        // Querying key-only "color" matches Group 2
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "color" };
+        });
+        Assertions.assertTrue(results.getGroups().stream()
+                .anyMatch(g -> g.getGroupId().equals(colonGroupId)));
     }
 
     @Test

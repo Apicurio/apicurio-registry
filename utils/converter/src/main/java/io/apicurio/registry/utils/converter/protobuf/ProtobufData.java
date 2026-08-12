@@ -76,14 +76,19 @@ public class ProtobufData {
     private static final String NESTED_MAP_UNSUPPORTED =
             "Nested map-in-collection is not supported. Wrap the inner map in a struct field.";
 
-    /** Memoised Descriptors keyed by the top-level Connect Schema. */
-    private final ConcurrentHashMap<Schema, Descriptors.Descriptor> descriptorCache = new ConcurrentHashMap<>();
+    /**
+     * Protobuf Descriptor plus the raw Connect field-name → sanitised proto field-name map,
+     * produced together by a single descriptor build.
+     */
+    private record CachedSchema(Descriptors.Descriptor descriptor, Map<String, String> nameMap) {
+    }
 
     /**
-     * Raw Connect field-name → sanitised proto field-name, keyed by the top-level Connect Schema.
-     * Populated atomically together with the Descriptor cache entry.
+     * Memoised descriptor and name map, keyed by the top-level Connect Schema.
+     * Populated via {@link ConcurrentHashMap#computeIfAbsent} so each schema key is built at
+     * most once, even under concurrent access.
      */
-    private final ConcurrentHashMap<Schema, Map<String, String>> nameMapCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Schema, CachedSchema> schemaCache = new ConcurrentHashMap<>();
 
 
     public DynamicMessage fromConnectData(Schema schema, Object value) {
@@ -95,14 +100,8 @@ public class ProtobufData {
             throw new IllegalArgumentException("Top-level Protobuf converter schema must be a struct");
         }
 
-        try {
-            ensureCached(schema);
-            Descriptors.Descriptor descriptor = descriptorCache.get(schema);
-            Map<String, String> nameMap = nameMapCache.get(schema);
-            return toMessage(descriptor, schema, value, nameMap);
-        } catch (Descriptors.DescriptorValidationException e) {
-            throw new IllegalArgumentException("Invalid Protobuf schema generated from Connect schema", e);
-        }
+        CachedSchema cached = cachedSchema(schema);
+        return toMessage(cached.descriptor(), schema, value, cached.nameMap());
     }
 
     public SchemaAndValue toConnectData(Message message) {
@@ -128,29 +127,29 @@ public class ProtobufData {
     }
 
     /**
-     * Ensures both the descriptor and the raw→sanitised name map for {@code schema} are in their
-     * caches. Uses {@code computeIfAbsent} so concurrent calls for the same schema key only build
-     * the descriptor once; a second thread that races past the containsKey check will find the
-     * entry already present and return immediately.
+     * Returns the cached descriptor and name map for {@code schema}, building them at most once
+     * per schema key. The checked {@code DescriptorValidationException} cannot escape the
+     * {@code computeIfAbsent} mapping function, so it is wrapped here.
      */
-    private void ensureCached(Schema schema) throws Descriptors.DescriptorValidationException {
-        if (descriptorCache.containsKey(schema)) {
-            return;
-        }
-        DescriptorProtos.FileDescriptorProto.Builder file = DescriptorProtos.FileDescriptorProto.newBuilder()
-                .setName(fileName(schema))
-                .setPackage(packageName(schema))
-                .setSyntax("proto3");
-        MessageBuilderContext context = new MessageBuilderContext(file);
-        String messageName = messageName(schema);
-        context.addMessage(messageName, schema);
-        Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(file.build(),
-                new Descriptors.FileDescriptor[0]);
-        Descriptors.Descriptor descriptor = fileDescriptor.findMessageTypeByName(messageName);
-        Map<String, String> nameMap = context.buildNameMap();
-
-        descriptorCache.putIfAbsent(schema, descriptor);
-        nameMapCache.putIfAbsent(schema, nameMap);
+    private CachedSchema cachedSchema(Schema schema) {
+        return schemaCache.computeIfAbsent(schema, s -> {
+            DescriptorProtos.FileDescriptorProto.Builder file = DescriptorProtos.FileDescriptorProto
+                    .newBuilder()
+                    .setName(fileName(s))
+                    .setPackage(packageName(s))
+                    .setSyntax("proto3");
+            MessageBuilderContext context = new MessageBuilderContext(file);
+            String messageName = messageName(s);
+            context.addMessage(messageName, s);
+            try {
+                Descriptors.FileDescriptor fileDescriptor = Descriptors.FileDescriptor.buildFrom(file.build(),
+                        new Descriptors.FileDescriptor[0]);
+                return new CachedSchema(fileDescriptor.findMessageTypeByName(messageName),
+                        context.buildNameMap());
+            } catch (Descriptors.DescriptorValidationException e) {
+                throw new IllegalArgumentException("Invalid Protobuf schema generated from Connect schema", e);
+            }
+        });
     }
 
     private DynamicMessage toMessage(Descriptors.Descriptor descriptor, Schema schema, Object value,

@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 107);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 108);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -123,3 +123,15 @@ CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
 
+CREATE TABLE webhook_subscriptions (subscriptionId VARCHAR(128) NOT NULL, name VARCHAR(512), endpointUrl VARCHAR(1024) NOT NULL, eventTypes TEXT NOT NULL, groupFilter VARCHAR(512), artifactIdFilter VARCHAR(512), enabled BOOLEAN NOT NULL DEFAULT TRUE, secret VARCHAR(512), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
+ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);
+CREATE INDEX IDX_webhook_subs_1 ON webhook_subscriptions(enabled);
+CREATE INDEX IDX_webhook_subs_2 ON webhook_subscriptions(createdOn);
+
+CREATE TABLE webhook_delivery_logs (deliveryId VARCHAR(128) NOT NULL, subscriptionId VARCHAR(128) NOT NULL, eventId VARCHAR(256) NOT NULL, eventType VARCHAR(128) NOT NULL, status VARCHAR(32) NOT NULL, attemptCount INT NOT NULL DEFAULT 0, lastAttemptAt TIMESTAMP WITHOUT TIME ZONE, nextRetryAt TIMESTAMP WITHOUT TIME ZONE, errorMessage TEXT, httpStatusCode INT, createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
+ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT UQ_webhook_delivery_logs_1 UNIQUE (subscriptionId, eventId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_webhook_delivery_logs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId) ON DELETE CASCADE;
+CREATE INDEX IDX_webhook_delivery_logs_1 ON webhook_delivery_logs(subscriptionId);
+CREATE INDEX IDX_webhook_delivery_logs_2 ON webhook_delivery_logs(status, nextRetryAt);
+CREATE INDEX IDX_webhook_delivery_logs_3 ON webhook_delivery_logs(eventId);

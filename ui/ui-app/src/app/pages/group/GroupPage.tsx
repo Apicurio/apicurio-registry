@@ -331,7 +331,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                         activeKey={activeTabKey}
                         children={tabs}
                         onSelect={handleTabClick}
-                        style={{ backgroundColor: "white" }}
+                        style={{ backgroundColor: "var(--registry-card-bg)" }}
                     />
                 </PageSection>
             </PageDataLoader>

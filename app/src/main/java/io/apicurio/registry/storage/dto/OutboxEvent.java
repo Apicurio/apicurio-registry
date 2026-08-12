@@ -1,7 +1,5 @@
 package io.apicurio.registry.storage.dto;
 
-import org.json.JSONObject;
-
 import java.time.Instant;
 
 public abstract class OutboxEvent {
@@ -34,7 +32,7 @@ public abstract class OutboxEvent {
         return timestamp;
     }
 
-    public abstract JSONObject getPayload();
+    public abstract Object getPayload();
 
     public abstract String getType();
 }

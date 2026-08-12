@@ -2,30 +2,32 @@ package io.apicurio.registry.events;
 
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.types.VersionState;
-import org.json.JSONObject;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_STATE_CHANGED;
 
 public class ArtifactVersionStateChanged extends OutboxEvent {
 
-    private final JSONObject eventPayload;
+    private final Map<String, Object> data;
 
-    private ArtifactVersionStateChanged(String id, String aggregateId, JSONObject eventPayload) {
+    private ArtifactVersionStateChanged(String id, String aggregateId, Map<String, Object> data) {
         super(id, aggregateId);
-        this.eventPayload = eventPayload;
+        this.data = data;
     }
 
     public static ArtifactVersionStateChanged of(String groupId, String artifactId, String version,
             VersionState oldState, VersionState newState) {
         String id = UUID.randomUUID().toString();
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId).put("version", version)
-                .put("oldState", oldState.name()).put("newState", newState.name())
-                .put("eventType", ARTIFACT_VERSION_STATE_CHANGED.name());
-
-        return new ArtifactVersionStateChanged(id, groupId + "-" + artifactId + "-" + version, jsonObject);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("groupId", groupId);
+        data.put("artifactId", artifactId);
+        data.put("version", version);
+        data.put("oldState", oldState.name());
+        data.put("newState", newState.name());
+        return new ArtifactVersionStateChanged(id, groupId + "-" + artifactId + "-" + version, data);
     }
 
     @Override
@@ -34,7 +36,7 @@ public class ArtifactVersionStateChanged extends OutboxEvent {
     }
 
     @Override
-    public JSONObject getPayload() {
-        return eventPayload;
+    public Object getPayload() {
+        return data;
     }
 }

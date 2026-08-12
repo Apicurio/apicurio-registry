@@ -133,10 +133,12 @@ public class CloudEventDto {
     }
 
     /**
-     * Registry events carry their payload as an {@link JSONObject}, which Jackson does not
-     * understand: it introspects the bean properties and emits {@code {"mapType":...,"empty":...}}
-     * instead of the payload. Convert to a plain {@link java.util.Map} so the payload survives
-     * serialization by any Jackson {@code ObjectMapper}.
+     * Normalizes the event payload for Jackson serialization.
+     * <p>
+     * If a legacy {@link JSONObject} is passed (e.g. from a custom event source), it is
+     * converted to a plain {@link java.util.Map} so Jackson can serialize it correctly.
+     * Modern registry events return typed DTOs or {@code Map<String, Object>} directly,
+     * which Jackson handles without conversion.
      */
     private static Object normalizeData(Object data) {
         if (data instanceof JSONObject jsonObject) {

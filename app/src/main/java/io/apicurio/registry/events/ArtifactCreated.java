@@ -2,7 +2,6 @@ package io.apicurio.registry.events;
 
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
-import org.json.JSONObject;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -10,26 +9,19 @@ import java.util.UUID;
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
 
 public class ArtifactCreated extends OutboxEvent {
-    private final JSONObject eventPayload;
+    private final ArtifactMetaDataDto data;
 
-    private ArtifactCreated(String id, String aggregateId, JSONObject eventPayload, Instant timestamp) {
+    private ArtifactCreated(String id, String aggregateId, ArtifactMetaDataDto data, Instant timestamp) {
         super(id, aggregateId, timestamp);
-        this.eventPayload = eventPayload;
+        this.data = data;
     }
 
     public static ArtifactCreated of(ArtifactMetaDataDto artifactMetaDataDto) {
         String id = UUID.randomUUID().toString();
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id", id).put("groupId", artifactMetaDataDto.getGroupId())
-                .put("artifactId", artifactMetaDataDto.getArtifactId())
-                .put("name", artifactMetaDataDto.getName())
-                .put("description", artifactMetaDataDto.getDescription())
-                .put("eventType", ARTIFACT_CREATED.name());
-
         Instant timestamp = Instant.ofEpochMilli(artifactMetaDataDto.getCreatedOn());
         return new ArtifactCreated(id,
-                artifactMetaDataDto.getGroupId() + "-" + artifactMetaDataDto.getArtifactId(), jsonObject,
-                timestamp);
+                artifactMetaDataDto.getGroupId() + "-" + artifactMetaDataDto.getArtifactId(),
+                artifactMetaDataDto, timestamp);
     }
 
     @Override
@@ -38,7 +30,7 @@ public class ArtifactCreated extends OutboxEvent {
     }
 
     @Override
-    public JSONObject getPayload() {
-        return eventPayload;
+    public Object getPayload() {
+        return data;
     }
 }

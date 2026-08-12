@@ -1,20 +1,21 @@
 package io.apicurio.registry.events;
 
 import io.apicurio.registry.storage.dto.OutboxEvent;
-import org.json.JSONObject;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
 
 public class ArtifactDeleted extends OutboxEvent {
 
-    private final JSONObject eventPayload;
+    private final Map<String, Object> data;
 
-    private ArtifactDeleted(String id, String aggregateId, JSONObject eventPayload, Instant timestamp) {
+    private ArtifactDeleted(String id, String aggregateId, Map<String, Object> data, Instant timestamp) {
         super(id, aggregateId, timestamp);
-        this.eventPayload = eventPayload;
+        this.data = data;
     }
 
     public static ArtifactDeleted of(String groupId, String artifactId) {
@@ -23,11 +24,10 @@ public class ArtifactDeleted extends OutboxEvent {
 
     public static ArtifactDeleted of(String groupId, String artifactId, Instant timestamp) {
         String id = UUID.randomUUID().toString();
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId).put("eventType",
-                ARTIFACT_DELETED.name());
-
-        return new ArtifactDeleted(id, groupId + "-" + artifactId, jsonObject, timestamp);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("groupId", groupId);
+        data.put("artifactId", artifactId);
+        return new ArtifactDeleted(id, groupId + "-" + artifactId, data, timestamp);
     }
 
     @Override
@@ -36,7 +36,7 @@ public class ArtifactDeleted extends OutboxEvent {
     }
 
     @Override
-    public JSONObject getPayload() {
-        return eventPayload;
+    public Object getPayload() {
+        return data;
     }
 }

@@ -1,28 +1,29 @@
 package io.apicurio.registry.events;
 
 import io.apicurio.registry.storage.dto.OutboxEvent;
-import org.json.JSONObject;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_DELETED;
 
 public class ArtifactVersionDeleted extends OutboxEvent {
 
-    private final JSONObject eventPayload;
+    private final Map<String, Object> data;
 
-    private ArtifactVersionDeleted(String id, String aggregateId, JSONObject eventPayload) {
+    private ArtifactVersionDeleted(String id, String aggregateId, Map<String, Object> data) {
         super(id, aggregateId);
-        this.eventPayload = eventPayload;
+        this.data = data;
     }
 
     public static ArtifactVersionDeleted of(String groupId, String artifactId, String version) {
         String id = UUID.randomUUID().toString();
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId).put("version", version)
-                .put("eventType", ARTIFACT_VERSION_DELETED.name());
-
-        return new ArtifactVersionDeleted(id, groupId + "-" + artifactId + "-" + version, jsonObject);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("groupId", groupId);
+        data.put("artifactId", artifactId);
+        data.put("version", version);
+        return new ArtifactVersionDeleted(id, groupId + "-" + artifactId + "-" + version, data);
     }
 
     @Override
@@ -31,7 +32,7 @@ public class ArtifactVersionDeleted extends OutboxEvent {
     }
 
     @Override
-    public JSONObject getPayload() {
-        return eventPayload;
+    public Object getPayload() {
+        return data;
     }
 }

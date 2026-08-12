@@ -20,8 +20,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.apicurio.registry.rest.client.models.ArtifactSortBy;
+import io.apicurio.registry.rest.client.models.GroupSortBy;
+import io.apicurio.registry.rest.client.models.SortOrder;
+import io.apicurio.registry.rest.client.models.VersionSortBy;
+import io.quarkiverse.mcp.server.ToolCallException;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -379,5 +386,51 @@ public class RegistryServiceTest {
         ToolCallException exEmpty = assertThrows(ToolCallException.class,
                 () -> service.updateVersionState("g1", "a1", "1", "  "));
         assertTrue(exEmpty.getMessage().contains("Invalid version state: '  '"));
+    }
+
+    @Test
+    public void testSortEnumValidation() {
+        RegistryService service = createService("http://localhost:" + port, false);
+
+        // SortOrder — valid inputs (case-insensitive)
+        assertEquals(SortOrder.Asc, service.parseSortOrder("asc"));
+        assertEquals(SortOrder.Asc, service.parseSortOrder("ASC"));
+        assertEquals(SortOrder.Asc, service.parseSortOrder("Asc"));
+        assertEquals(SortOrder.Desc, service.parseSortOrder("desc"));
+        assertEquals(SortOrder.Desc, service.parseSortOrder("DESC"));
+
+        // SortOrder — null/blank returns null
+        assertNull(service.parseSortOrder(null));
+        assertNull(service.parseSortOrder(""));
+        assertNull(service.parseSortOrder("   "));
+
+        // SortOrder — invalid throws ToolCallException with guidance
+        ToolCallException ex = assertThrows(ToolCallException.class,
+                () -> service.parseSortOrder("INVALID"));
+        assertTrue(ex.getMessage().contains("INVALID"));
+        assertTrue(ex.getMessage().contains("Accepted values"));
+
+        // GroupSortBy — valid
+        assertEquals(GroupSortBy.GroupId, service.parseGroupSortBy("groupid"));
+        assertEquals(GroupSortBy.GroupId, service.parseGroupSortBy("GROUPID"));
+        assertEquals(GroupSortBy.CreatedOn, service.parseGroupSortBy("createdon"));
+
+        // GroupSortBy — invalid
+        assertThrows(ToolCallException.class, () -> service.parseGroupSortBy("badvalue"));
+
+        // ArtifactSortBy — valid
+        assertEquals(ArtifactSortBy.ArtifactId, service.parseArtifactSortBy("artifactid"));
+        assertEquals(ArtifactSortBy.ArtifactId, service.parseArtifactSortBy("ARTIFACTID"));
+        assertEquals(ArtifactSortBy.Name, service.parseArtifactSortBy("name"));
+
+        // ArtifactSortBy — invalid
+        assertThrows(ToolCallException.class, () -> service.parseArtifactSortBy("xyz"));
+
+        // VersionSortBy — valid
+        assertEquals(VersionSortBy.Version, service.parseVersionSortBy("version"));
+        assertEquals(VersionSortBy.GlobalId, service.parseVersionSortBy("GLOBALID"));
+
+        // VersionSortBy — invalid
+        assertThrows(ToolCallException.class, () -> service.parseVersionSortBy("unknown"));
     }
 }

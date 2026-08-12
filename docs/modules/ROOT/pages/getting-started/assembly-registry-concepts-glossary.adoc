@@ -119,6 +119,8 @@ When an artifact version contains references, {registry} stores them to support 
 
 You can use labels for organization, categorization, and filtering when searching.
 
+NOTE: When searching by label using `key:value` syntax, the REST API splits on the last colon (`:`). Label values containing colons cannot be matched via `key:value` query syntax, but remain matchable using key-only queries.
+
 // con-concept-rule
 [id="concept-rule_{context}"]
 == Rule

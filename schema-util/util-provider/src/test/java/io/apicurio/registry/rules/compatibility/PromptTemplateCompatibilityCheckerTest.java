@@ -221,4 +221,45 @@ class PromptTemplateCompatibilityCheckerTest {
                 Map.of());
         assertTrue(result.isCompatible(), "Adding an enum value should be compatible");
     }
+
+    /**
+     * Control for the pair below, and the first coverage this rule has had: a variable that is
+     * genuinely still referenced by the template cannot be dropped from the schema.
+     */
+    @Test
+    void testRemovingAVariableStillUsedInTheTemplateIsIncompatible() {
+        String existing = template("Hello {{name}} in {{style}}", BASE_VARS, "");
+        String proposed = template("Hello {{name}} in {{style}}",
+                "\"name\": { \"type\": \"string\", \"required\": true }", "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(create(existing)),
+                create(proposed),
+                Map.of());
+        assertFalse(result.isCompatible(),
+                "Removing a variable the template still uses should be incompatible");
+    }
+
+    /**
+     * The compatibility checker shares the placeholder extractor with the validity rule, so
+     * tightening the pattern changes this path too: a name that appears only inside a triple-brace
+     * run is not a placeholder, so the template does not "use" it and dropping its declaration is
+     * compatible. Pinned because the previous behaviour - flagging it as removed-but-used - came
+     * from the same mis-match this change fixes.
+     */
+    @Test
+    void testRemovingAVariableOnlyInsideATripleBraceRunIsCompatible() {
+        String existing = template("Hello {{name}} in {{{style}}}", BASE_VARS, "");
+        String proposed = template("Hello {{name}} in {{{style}}}",
+                "\"name\": { \"type\": \"string\", \"required\": true }", "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(create(existing)),
+                create(proposed),
+                Map.of());
+        assertTrue(result.isCompatible(),
+                "A name only inside {{{...}}} is literal text, not a used variable");
+    }
 }

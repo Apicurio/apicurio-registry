@@ -5,6 +5,7 @@ import io.apicurio.registry.mcp.PromptTemplateConverter.MCPPrompt;
 import io.apicurio.registry.mcp.PromptTemplateConverter.PromptTemplate;
 import io.apicurio.registry.mcp.RegistryService;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
+import io.apicurio.registry.rest.client.models.VersionState;
 import io.quarkiverse.mcp.server.Prompt;
 import io.quarkiverse.mcp.server.PromptArg;
 import io.quarkiverse.mcp.server.PromptMessage;
@@ -46,7 +47,7 @@ public class PromptTemplateMCPServer {
         return handleError(() -> {
             List<MCPPrompt> prompts = new ArrayList<>();
 
-            // Search for PROMPT_TEMPLATE artifacts
+            // Search for ENABLED PROMPT_TEMPLATE artifacts
             var versions = service.searchVersions(
                     null,  // groupId - search all groups
                     null,  // artifactId
@@ -55,7 +56,8 @@ public class PromptTemplateMCPServer {
                     null,  // description
                     null,  // labels
                     "asc", // order
-                    "artifactId"  // orderBy
+                    "artifactId", // orderBy
+                    VersionState.ENABLED // state - filter for active enabled prompts
             );
 
             for (SearchedVersion version : versions) {

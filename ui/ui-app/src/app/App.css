@@ -1,20 +1,20 @@
 :root {
   --myApp-global--spacer--md: 30px;
-  --registry-page-canvas-bg: #f0f0f0;
-  --registry-card-bg: white;
+  --registry-page-canvas-bg: var(--pf-t--global--background--color--secondary--default, #f0f0f0);
+  --registry-card-bg: var(--pf-t--global--background--color--primary--default, white);
 }
 
 .pf-v6-theme-dark {
-  --registry-card-bg: #151515;
-  --registry-page-canvas-bg: #0f1011;
+  --registry-card-bg: var(--pf-t--global--background--color--primary--default, #151515);
+  --registry-page-canvas-bg: var(--pf-t--global--background--color--secondary--default, #0f1011);
 }
 
 .pf-v6-theme-dark input:disabled,
 .pf-v6-theme-dark textarea:disabled,
 .pf-v6-theme-dark select:disabled {
-  background-color: #212427 !important;
-  color: #8a8d90 !important;
-  border-color: #3c3f42 !important;
+  background-color: var(--pf-t--global--background--color--disabled--default, #212427) !important;
+  color: var(--pf-t--global--text--color--disabled, #8a8d90) !important;
+  border-color: var(--pf-t--global--border--color--disabled, #3c3f42) !important;
 }
 
 .pf-c-page {

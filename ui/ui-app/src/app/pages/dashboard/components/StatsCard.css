@@ -22,9 +22,9 @@
 .stats-card .stats-value .value-number {
     font-size: 36px;
     font-weight: 600;
-    color: #151515;
+    color: var(--pf-t--global--text--color--regular, #151515);
 }
 
 .pf-v6-theme-dark .stats-card .stats-value .value-number {
-    color: #f5f5f5;
+    color: var(--pf-t--global--text--color--regular, #f5f5f5);
 }

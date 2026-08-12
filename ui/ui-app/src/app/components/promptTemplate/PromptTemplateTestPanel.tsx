@@ -10,6 +10,8 @@ import {
     CardTitle,
     Checkbox,
     Form,
+    HelperText,
+    HelperTextItem,
     FormGroup,
     FormSelect,
     FormSelectOption,
@@ -27,7 +29,7 @@ import {
 } from "./promptTemplateVariables";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
-import { coerceEnumValue } from "./PromptTemplateTestPanel.utils";
+import { coerceEnumValue, describeNumericRange } from "./PromptTemplateTestPanel.utils";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -189,18 +191,29 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 );
             }
             case "integer":
-            case "number":
+            case "number": {
+                const rangeHint = describeNumericRange(variable.minimum, variable.maximum);
                 return (
-                    <TextInput
-                        type="number"
-                        value={values[name] ?? ""}
-                        onChange={(_event, val) => {
-                            const n = type === "integer" ? parseInt(val) : parseFloat(val);
-                            setValue(name, isNaN(n) ? "" : n);
-                        }}
-                        aria-label={name}
-                    />
+                    <>
+                        <TextInput
+                            type="number"
+                            value={values[name] ?? ""}
+                            min={variable.minimum}
+                            max={variable.maximum}
+                            onChange={(_event, val) => {
+                                const n = type === "integer" ? parseInt(val) : parseFloat(val);
+                                setValue(name, isNaN(n) ? "" : n);
+                            }}
+                            aria-label={name}
+                        />
+                        {rangeHint && (
+                            <HelperText>
+                                <HelperTextItem>{rangeHint}</HelperTextItem>
+                            </HelperText>
+                        )}
+                    </>
                 );
+            }
             case "array":
             case "object":
                 return (

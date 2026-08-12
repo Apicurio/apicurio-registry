@@ -11,3 +11,20 @@ export const coerceEnumValue = (val: string, type: string): any => {
             return val;
     }
 };
+
+
+export const describeNumericRange = (
+    minimum: number | undefined,
+    maximum: number | undefined
+): string | undefined => {
+    if (minimum !== undefined && maximum !== undefined) {
+        return `Must be between ${minimum} and ${maximum}`;
+    }
+    if (minimum !== undefined) {
+        return `Must be at least ${minimum}`;
+    }
+    if (maximum !== undefined) {
+        return `Must be at most ${maximum}`;
+    }
+    return undefined;
+};

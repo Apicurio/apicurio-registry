@@ -58,6 +58,8 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
+    private static final BigInteger MAX_INT_VALUE = BigInteger.valueOf(Integer.MAX_VALUE);
+    private static final BigInteger MAX_LIMIT = BigInteger.valueOf(1000);
 
     @Inject
     @Current
@@ -71,6 +73,27 @@ public class SearchResourceImpl implements SearchResource {
 
     @Inject
     RegistryStorageContentUtils contentUtils;
+
+    private static SearchFilter parseLabelFilter(String prop) {
+        int delimiterIndex = prop.lastIndexOf(":");
+        if (delimiterIndex == 0) {
+            throw new BadRequestException(
+                    "label search filter incorrectly formatted, missing left side of ':' delimiter");
+        }
+        String labelKey;
+        String labelValue;
+        if (delimiterIndex < 0) {
+            labelKey = prop;
+            labelValue = null;
+        } else if (delimiterIndex == (prop.length() - 1)) {
+            labelKey = prop.substring(0, delimiterIndex);
+            labelValue = null;
+        } else {
+            labelKey = prop.substring(0, delimiterIndex);
+            labelValue = prop.substring(delimiterIndex + 1);
+        }
+        return SearchFilter.ofLabel(labelKey, labelValue);
+    }
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
@@ -109,26 +132,9 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
-                int delimiterIndex = prop.indexOf(":");
-                String labelKey;
-                String labelValue;
-                if (delimiterIndex == 0) {
-                    throw new BadRequestException(
-                            "label search filter wrong format, missing left side of ':' delimiter");
-                }
-                if (delimiterIndex < 0) {
-                    labelKey = prop;
-                    labelValue = null;
-                } else if (delimiterIndex == (prop.length() - 1)) {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = null;
-                } else {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = prop.substring(delimiterIndex + 1);
-                }
-                return SearchFilter.ofLabel(labelKey, labelValue);
-            }).forEach(filters::add);
+            labels.stream().filter(prop -> prop != null && !prop.isBlank())
+                    .map(SearchResourceImpl::parseLabelFilter)
+                    .forEach(filters::add);
         }
         if (globalId != null && globalId > 0) {
             filters.add(SearchFilter.ofGlobalId(globalId));
@@ -137,8 +143,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifacts");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -187,8 +193,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifactsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -220,32 +226,13 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
-                int delimiterIndex = prop.indexOf(":");
-                String labelKey;
-                String labelValue;
-                if (delimiterIndex == 0) {
-                    throw new BadRequestException(
-                            "label search filter incorrectly formatted, missing left side of ':' delimiter");
-                }
-                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
-                // use null for the value (will match all groups containing a label with the key and *any* value).
-                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
-                    labelKey = prop.replace(":", "");
-                    labelValue = null;
-                } else if (delimiterIndex == (prop.length() - 1)) {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = null;
-                } else {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = prop.substring(delimiterIndex + 1);
-                }
-                return SearchFilter.ofLabel(labelKey, labelValue);
-            }).forEach(filters::add);
+            labels.stream().filter(prop -> prop != null && !prop.isBlank())
+                    .map(SearchResourceImpl::parseLabelFilter)
+                    .forEach(filters::add);
         }
 
-        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit));
         otelMetrics.recordSearchRequest("groups");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -290,28 +277,9 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofArtifactType(artifactType));
         }
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
-                int delimiterIndex = prop.indexOf(":");
-                String labelKey;
-                String labelValue;
-                if (delimiterIndex == 0) {
-                    throw new BadRequestException(
-                            "label search filter incorrectly formatted, missing left side of ':' delimiter");
-                }
-                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
-                // use null for the value (will match all versions containing a label with the key and *any* value).
-                if ((delimiterIndex == (prop.length() - 1)) || delimiterIndex < 0) {
-                    labelKey = prop.replace(":", "");
-                    labelValue = null;
-                } else if (delimiterIndex == (prop.length() - 1)) {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = null;
-                } else {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = prop.substring(delimiterIndex + 1);
-                }
-                return SearchFilter.ofLabel(labelKey, labelValue);
-            }).forEach(filters::add);
+            labels.stream().filter(prop -> prop != null && !prop.isBlank())
+                    .map(SearchResourceImpl::parseLabelFilter)
+                    .forEach(filters::add);
         }
         if (globalId != null && globalId > 0) {
             filters.add(SearchFilter.ofGlobalId(globalId));
@@ -329,8 +297,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofStructure(structure));
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versions");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -339,7 +307,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType,
             BigInteger offset, BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId,
-            String artifactId, Boolean skipCount, InputStream data) {
+            String artifactId, VersionState state, Boolean skipCount, InputStream data) {
 
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
@@ -361,6 +329,9 @@ public class SearchResourceImpl implements SearchResource {
         }
         if (!StringUtil.isEmpty(artifactId)) {
             filters.add(SearchFilter.ofArtifactId(artifactId));
+        }
+        if (state != null) {
+            filters.add(SearchFilter.ofState(state));
         }
 
         if (canonical == null) {
@@ -384,8 +355,8 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), skipCount != null && skipCount);
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, normalizeOffset(offset),
+                normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versionsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -476,9 +447,19 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
-                offset.intValue(), limit.intValue(), false);
+                normalizeOffset(offset), normalizeLimit(limit), false);
         otelMetrics.recordSearchRequest("contracts");
         return V3ApiUtil.dtoToSearchResults(results);
+    }
+
+    // Clamp the offset to [0, Integer.MAX_VALUE] so it never reaches storage as an invalid SQL query (500). See #8611.
+    private static int normalizeOffset(BigInteger offset) {
+        return offset.max(BigInteger.ZERO).min(MAX_INT_VALUE).intValue();
+    }
+
+    // Negative limit -> 1 (limit=0 keeps its empty-page semantics); cap at MAX_LIMIT to bound result size. See #8611.
+    private static int normalizeLimit(BigInteger limit) {
+        return limit.signum() < 0 ? 1 : limit.min(MAX_LIMIT).intValue();
     }
 
     /**

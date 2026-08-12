@@ -28,11 +28,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - name: Build Application (skip tests for speed)
         env:
@@ -44,7 +46,7 @@ jobs:
           # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
-          ./mvnw clean package -T 0.5C --no-transfer-progress \
+          ./mvnw clean package -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
@@ -115,6 +117,16 @@ jobs:
       - name: Lint
         working-directory: ui
         run: npm run lint
+
+      - name: Generate TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
+      - name: Test
+        working-directory: ui
+        run: npm run test
 
       - name: Build
         working-directory: ui

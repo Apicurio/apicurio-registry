@@ -140,6 +140,7 @@ CREATE TABLE versions (
     groupId      VARCHAR(512) NOT NULL,
     artifactId   VARCHAR(512) NOT NULL,
     version      VARCHAR(256),
+    versionSortKey VARCHAR(512),
     versionOrder INT          NOT NULL,
     state        VARCHAR(64)  NOT NULL,
     name         VARCHAR(512),

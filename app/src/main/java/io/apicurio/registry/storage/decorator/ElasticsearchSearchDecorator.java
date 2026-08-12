@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchService;
@@ -52,7 +53,7 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
             throws RegistryStorageException {
         if (searchService.requiresSearchIndex(filters)) {
             if (!startupIndexer.isReady()) {
-                throw new RegistryStorageException(
+                throw new ContentSearchNotSupportedException(
                         "Content search requires the Elasticsearch search index, which is not "
                         + "available. Enable the Elasticsearch search index to use content search.");
             }

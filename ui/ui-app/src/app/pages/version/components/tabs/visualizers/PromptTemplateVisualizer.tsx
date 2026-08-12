@@ -31,6 +31,7 @@ export const PromptTemplateVisualizer: FunctionComponent<PromptTemplateVisualize
                 groupId={props.groupId}
                 artifactId={props.artifactId}
                 version={props.version}
+                template={promptTemplate.template}
                 variables={promptTemplate.variables}
             />
         </div>

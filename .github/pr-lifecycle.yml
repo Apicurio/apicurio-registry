@@ -20,9 +20,16 @@ merge:
 stale:
   days_until_stale: 7
   days_until_close: 14
+  # PRs blocked on the author (lifecycle/waiting-on-author) get an earlier
+  # stale warning and a shorter total close timeout — they're explicitly
+  # stalled on contributor action and reviewers have already invested time.
+  # 4/7 gives a 3-day post-warning grace, shorter than the default 7/14 pair's
+  # 7 days — intentional, since the PR is explicitly stalled on the author.
+  days_until_stale_waiting_on_author: 4
+  days_until_close_waiting_on_author: 7
   stale_message: |
-    This PR has been inactive for 7 days. @{author}, please update or comment
-    to keep it open. It will be closed in 7 days if no activity occurs.
+    This PR has been inactive. @{author}, please update or comment
+    to keep it open. It will be closed {close_window} if no activity occurs.
     Use `/unstale` to remove this label.
   close_message: |
     Closing this PR due to inactivity. Feel free to reopen if you
@@ -37,16 +44,13 @@ welcome_message: |
   **Available commands:**
   | Command | Description |
   |---------|-------------|
-  | `/ready` | Mark as ready for review (after a maintainer accepts the PR) |
-  | `/disable-tests` | Disable smoke tests during development |
-  | `/enable-tests` | Re-enable smoke tests |
   | `/unstale` | Remove the stale label |
   | `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
 
   **Maintainer commands:**
   | Command | Description |
   |---------|-------------|
-  | `/accept` | Accept the PR and transition to WIP |
+  | `/accept` | Accept the PR and transition to ready-for-review, running the full test suite |
   | `/reject [reason]` | Reject and close the PR |
   | `/skip-review` | Skip review requirement for small changes (tests still required) |
   | `/auto-merge` | Toggle auto-merge |

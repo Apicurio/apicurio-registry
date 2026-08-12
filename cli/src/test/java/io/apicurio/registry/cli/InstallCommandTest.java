@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli;
 
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.utils.PlatformUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
@@ -14,11 +15,15 @@ import picocli.CommandLine;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 
 import static io.apicurio.registry.cli.InstallCommand.ACR_BINARY;
+import static io.apicurio.registry.cli.InstallCommand.ACR_BINARY_WINDOWS;
 import static io.apicurio.registry.cli.InstallCommand.ACR_ENV;
 import static io.apicurio.registry.cli.InstallCommand.ACR_HOME_PLACEHOLDER;
 import static io.apicurio.registry.cli.InstallCommand.ACR_SCRIPT;
+import static io.apicurio.registry.cli.InstallCommand.ACR_SCRIPT_WINDOWS;
+import static io.apicurio.registry.cli.InstallCommand.BACKUP_SUFFIX;
 import static io.apicurio.registry.cli.InstallCommand.BIN_DIR;
 import static io.apicurio.registry.cli.InstallCommand.CLI_MARKER_COMMENT;
 import static io.apicurio.registry.cli.InstallCommand.COMPLETIONS;
@@ -26,7 +31,10 @@ import static io.apicurio.registry.cli.InstallCommand.CONFIG_JSON;
 import static io.apicurio.registry.cli.InstallCommand.ENV_ACR_HOME;
 import static io.apicurio.registry.cli.InstallCommand.ENV_ACR_INSTALL_PATH;
 import static io.apicurio.registry.cli.InstallCommand.ENV_HOME;
+import static io.apicurio.registry.cli.InstallCommand.ENV_PATH;
 import static io.apicurio.registry.cli.InstallCommand.README;
+import static io.apicurio.registry.cli.InstallCommand.getAcrBinaryName;
+import static io.apicurio.registry.cli.InstallCommand.getAcrScriptName;
 import static io.apicurio.registry.cli.InstallCommand.getShellConfigFile;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,6 +57,9 @@ public class InstallCommandTest {
     @Inject
     CommandLine.IFactory factory;
 
+    @Inject
+    TestUserEnvironment userEnvironment;
+
     private Path tempDir;
     private Path acrHome;
     private Path userHome;
@@ -65,11 +76,14 @@ public class InstallCommandTest {
         Files.createDirectories(acrHome);
         Files.createDirectories(userHome);
 
-        // Create required files in acr-home (simulating distribution ZIP contents)
-        Files.writeString(acrHome.resolve(ACR_SCRIPT), "#!/bin/bash\necho 'acr'");
-        Files.writeString(acrHome.resolve(ACR_BINARY), "fake binary content");
+        // Create required files in acr-home (simulating distribution ZIP contents). The Windows
+        // ZIP ships acr.cmd and acr_runner.exe, and has no acr_env to source.
+        Files.writeString(acrHome.resolve(getAcrScriptName()), "#!/bin/bash\necho 'acr'");
+        Files.writeString(acrHome.resolve(getAcrBinaryName()), "fake binary content");
         Files.writeString(acrHome.resolve(COMPLETIONS), "# completions");
-        Files.writeString(acrHome.resolve(ACR_ENV), "export " + ENV_ACR_HOME + "=\"" + ACR_HOME_PLACEHOLDER + "\"");
+        if (!PlatformUtils.isWindows()) {
+            Files.writeString(acrHome.resolve(ACR_ENV), "export " + ENV_ACR_HOME + "=\"" + ACR_HOME_PLACEHOLDER + "\"");
+        }
         Files.writeString(acrHome.resolve(README), "# README");
         Files.writeString(acrHome.resolve(CONFIG_JSON), "{}");
 
@@ -80,12 +94,15 @@ public class InstallCommandTest {
         config.setEnvOverride(ENV_HOME, userHome.toString());
         config.setEnvOverride(ENV_ACR_INSTALL_PATH, installPath.toString());
         config.setEnvOverride(ENV_ACR_HOME, null); // Simulate fresh install
+
+        userEnvironment.reset();
     }
 
     @AfterEach
     public void tearDown() {
         // Clear environment overrides to avoid test interference
         config.clearEnvOverrides();
+        userEnvironment.reset();
     }
 
     // ========== Test Methods ==========
@@ -186,6 +203,220 @@ public class InstallCommandTest {
         assertThat(configContent)
             .as("Existing " + CONFIG_JSON + " should be preserved (not overwritten)")
             .isEqualTo(customConfig);
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testInstallRollsBackFilesWhenCopyFails() throws Exception {
+        createShellConfigFile("# existing config\n");
+
+        // Simulate an existing, working installation at the target location.
+        Files.createDirectories(installPath);
+        final String oldScript = "#!/bin/bash\necho 'old acr'";
+        final String oldBinary = "old binary content";
+        final String oldReadme = "# old readme";
+        final String oldCompletions = "# old completions";
+        Files.writeString(installPath.resolve(ACR_SCRIPT), oldScript);
+        Files.writeString(installPath.resolve(ACR_BINARY), oldBinary);
+        Files.writeString(installPath.resolve(README), oldReadme);
+        Files.writeString(installPath.resolve(COMPLETIONS), oldCompletions);
+
+        // Break the distribution so the copy fails after several files have been replaced.
+        Files.delete(acrHome.resolve(ACR_ENV));
+
+        final var acr = new Acr();
+        final var cmd = new CommandLine(acr, factory);
+        final int exitCode = cmd.execute("install");
+
+        assertThat(exitCode)
+            .as("Install should fail when the distribution is incomplete")
+            .isNotEqualTo(0);
+        // Every file overwritten before the failure should be rolled back to its previous version.
+        assertThat(Files.readString(installPath.resolve(ACR_SCRIPT))).isEqualTo(oldScript);
+        assertThat(Files.readString(installPath.resolve(ACR_BINARY))).isEqualTo(oldBinary);
+        assertThat(Files.readString(installPath.resolve(README))).isEqualTo(oldReadme);
+        assertThat(Files.readString(installPath.resolve(COMPLETIONS))).isEqualTo(oldCompletions);
+        // Backup files should be cleaned up after rollback.
+        for (final String name : new String[] {ACR_SCRIPT, ACR_BINARY, README, COMPLETIONS}) {
+            assertThat(installPath.resolve(name + BACKUP_SUFFIX))
+                .as(name + " backup should be removed after rollback")
+                .doesNotExist();
+        }
+    }
+
+    // ========== Windows ==========
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallCreatesAllNecessaryFilesOnWindows() throws Exception {
+        runInstallCommand();
+
+        assertThat(installPath.resolve(ACR_SCRIPT_WINDOWS))
+            .as("The cmd launcher should be copied to the install directory")
+            .isRegularFile();
+        assertThat(installPath.resolve(ACR_BINARY_WINDOWS))
+            .as("The .exe binary should be copied to the install directory")
+            .isRegularFile();
+        assertThat(installPath.resolve(README)).isRegularFile();
+        assertThat(installPath.resolve(CONFIG_JSON)).isRegularFile();
+        assertThat(installPath.resolve(COMPLETIONS)).isRegularFile();
+        assertThat(installPath.resolve(ACR_ENV))
+            .as("There is no shell to source acr_env on Windows, so it should not be installed")
+            .doesNotExist();
+        assertThat(installPath.resolve(ACR_SCRIPT))
+            .as("The POSIX launcher should not be installed on Windows")
+            .doesNotExist();
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallCopiesLauncherIntoBinDirectoryOnWindows() throws Exception {
+        runInstallCommand();
+
+        final Path launcher = userHome.resolve(BIN_DIR).resolve(ACR_SCRIPT_WINDOWS);
+        assertThat(launcher)
+            .as("The launcher is copied rather than symlinked, which needs Developer Mode on Windows")
+            .isRegularFile();
+        assertThat(Files.isSymbolicLink(launcher)).isFalse();
+        assertThat(Files.readString(launcher)).isEqualTo(Files.readString(acrHome.resolve(ACR_SCRIPT_WINDOWS)));
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallPersistsUserEnvironmentOnWindows() throws Exception {
+        runInstallCommand();
+
+        assertThat(userEnvironment.getUserVariable(ENV_ACR_HOME))
+            .as("ACR_HOME should point at the install directory so the launcher can find the binary")
+            .isEqualTo(installPath.toAbsolutePath().toString());
+        assertThat(userEnvironment.getUserVariable(ENV_PATH))
+            .as("The bin directory should be prepended to the user Path")
+            .isEqualTo(userHome.resolve(BIN_DIR).toString());
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallPrependsToExistingUserPathOnWindows() throws Exception {
+        userEnvironment.seed(ENV_PATH, "C:\\Existing;C:\\Other");
+
+        runInstallCommand();
+
+        assertThat(userEnvironment.getUserVariable(ENV_PATH))
+            .as("The existing user Path entries should be preserved")
+            .isEqualTo(userHome.resolve(BIN_DIR) + ";C:\\Existing;C:\\Other");
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallDoesNotDuplicateUserPathEntryOnWindows() throws Exception {
+        runInstallCommand();
+        final String pathAfterFirstInstall = userEnvironment.getUserVariable(ENV_PATH);
+
+        runInstallCommand();
+
+        assertThat(userEnvironment.getUserVariable(ENV_PATH))
+            .as("A second install should not add the bin directory to the Path again")
+            .isEqualTo(pathAfterFirstInstall);
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallMatchesExistingPathEntryIgnoringCaseAndTrailingSeparatorOnWindows() throws Exception {
+        // Windows paths are case-insensitive, and a trailing backslash names the same directory.
+        final String binDirectory = userHome.resolve(BIN_DIR).toString();
+        userEnvironment.seed(ENV_PATH, binDirectory.toUpperCase(Locale.ROOT) + "\\;C:\\Other");
+
+        runInstallCommand();
+
+        assertThat(userEnvironment.getUserVariable(ENV_PATH))
+            .as("An entry differing only in case or a trailing separator should not be added again")
+            .isEqualTo(binDirectory.toUpperCase(Locale.ROOT) + "\\;C:\\Other");
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallDoesNotTouchShellConfigOnWindows() throws Exception {
+        final String existingContent = "# My custom shell config\n";
+        final Path shellConfig = createShellConfigFile(existingContent);
+
+        runInstallCommand();
+
+        assertThat(Files.readString(shellConfig))
+            .as("Windows persists environment variables instead of editing a shell config file")
+            .isEqualTo(existingContent);
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallReplacesExistingBinaryOnWindows() throws Exception {
+        // The binary is renamed out of the way before being overwritten, because Windows locks
+        // the image of a running executable. Verify the replacement completes and leaves no
+        // backup files behind.
+        Files.createDirectories(installPath);
+        Files.writeString(installPath.resolve(ACR_SCRIPT_WINDOWS), "@echo old launcher");
+        Files.writeString(installPath.resolve(ACR_BINARY_WINDOWS), "old binary content");
+
+        runInstallCommand();
+
+        assertThat(Files.readString(installPath.resolve(ACR_BINARY_WINDOWS)))
+            .isEqualTo(Files.readString(acrHome.resolve(ACR_BINARY_WINDOWS)));
+        assertThat(Files.readString(installPath.resolve(ACR_SCRIPT_WINDOWS)))
+            .isEqualTo(Files.readString(acrHome.resolve(ACR_SCRIPT_WINDOWS)));
+        assertThat(installPath.resolve(ACR_BINARY_WINDOWS + BACKUP_SUFFIX))
+            .as("The backup should be removed once the install succeeds")
+            .doesNotExist();
+        assertThat(installPath.resolve(ACR_SCRIPT_WINDOWS + BACKUP_SUFFIX)).doesNotExist();
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallPreservesExistingConfigJsonOnWindows() throws Exception {
+        Files.createDirectories(installPath);
+        final String customConfig = "{\"custom\": \"settings\"}";
+        Files.writeString(installPath.resolve(CONFIG_JSON), customConfig);
+
+        runInstallCommand();
+
+        assertThat(Files.readString(installPath.resolve(CONFIG_JSON)))
+            .as("Existing " + CONFIG_JSON + " should be preserved (not overwritten)")
+            .isEqualTo(customConfig);
+    }
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    public void testInstallRollsBackFilesWhenCopyFailsOnWindows() throws Exception {
+        // Simulate an existing, working installation at the target location.
+        Files.createDirectories(installPath);
+        final String oldLauncher = "@echo old launcher";
+        final String oldBinary = "old binary content";
+        final String oldReadme = "# old readme";
+        final String oldCompletions = "# old completions";
+        Files.writeString(installPath.resolve(ACR_SCRIPT_WINDOWS), oldLauncher);
+        Files.writeString(installPath.resolve(ACR_BINARY_WINDOWS), oldBinary);
+        Files.writeString(installPath.resolve(README), oldReadme);
+        Files.writeString(installPath.resolve(COMPLETIONS), oldCompletions);
+
+        // Break the distribution so the copy fails after the launcher, binary and README have
+        // already been replaced.
+        Files.delete(acrHome.resolve(COMPLETIONS));
+
+        final var acr = new Acr();
+        final var cmd = new CommandLine(acr, factory);
+        final int exitCode = cmd.execute("install");
+
+        assertThat(exitCode)
+            .as("Install should fail when the distribution is incomplete")
+            .isNotEqualTo(0);
+        // The renamed launcher and binary, and the copied README, should all be back in place.
+        assertThat(Files.readString(installPath.resolve(ACR_SCRIPT_WINDOWS))).isEqualTo(oldLauncher);
+        assertThat(Files.readString(installPath.resolve(ACR_BINARY_WINDOWS))).isEqualTo(oldBinary);
+        assertThat(Files.readString(installPath.resolve(README))).isEqualTo(oldReadme);
+        assertThat(Files.readString(installPath.resolve(COMPLETIONS))).isEqualTo(oldCompletions);
+        for (final String name : new String[] {ACR_SCRIPT_WINDOWS, ACR_BINARY_WINDOWS, README, COMPLETIONS}) {
+            assertThat(installPath.resolve(name + BACKUP_SUFFIX))
+                .as(name + " backup should be removed after rollback")
+                .doesNotExist();
+        }
     }
 
     // ========== Helper Methods ==========

@@ -12,9 +12,6 @@ export type PromptTemplateVisualizerProps = {
 };
 
 export const PromptTemplateVisualizer: FunctionComponent<PromptTemplateVisualizerProps> = (props: PromptTemplateVisualizerProps) => {
-    // Keep a stable PromptTemplate / variables reference across re-renders for a given
-    // version content. PromptTemplateTestPanel resets on version identity; an unstable
-    // variables object would otherwise be unsafe if that effect ever depended on it.
     const promptTemplate: PromptTemplate = useMemo(() => ({
         templateId: props.spec?.templateId,
         name: props.spec?.name,

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.utils.converter.protobuf;
 
 import com.google.protobuf.ByteString;
@@ -231,6 +247,68 @@ public class ProtobufDataTest {
                 "Field schema type must be INT16 after round-trip");
         assertEquals((short) 1000, ((Number) val).shortValue(),
                 "INT16 value must survive round-trip");
+    }
+
+    @Test
+    public void testMapWithInt8ValueRoundTripsTypeAndValue() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.Int8Map")
+                .field("counts", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT8_SCHEMA).build())
+                .build();
+        Struct struct = new Struct(schema).put("counts", Map.of("a", (byte) 5));
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        Schema counts = schemaAndValue.schema().field("counts").schema();
+        assertEquals(Schema.Type.INT8, counts.valueSchema().type(),
+                "map<string, int8> value type must round-trip as INT8, not INT32");
+        assertEquals(Map.of("a", (byte) 5), result.getMap("counts"),
+                "map<string, int8> values must round-trip as Byte");
+    }
+
+    @Test
+    public void testMapWithInt16ValueRoundTripsTypeAndValue() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.Int16Map")
+                .field("counts", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT16_SCHEMA).build())
+                .build();
+        Struct struct = new Struct(schema).put("counts", Map.of("a", (short) 1000));
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        Schema counts = schemaAndValue.schema().field("counts").schema();
+        assertEquals(Schema.Type.INT16, counts.valueSchema().type(),
+                "map<string, int16> value type must round-trip as INT16, not INT32");
+        assertEquals(Map.of("a", (short) 1000), result.getMap("counts"),
+                "map<string, int16> values must round-trip as Short");
+    }
+
+    @Test
+    public void testArrayOfArrayOfInt8RoundTripsElementType() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.Int8Matrix")
+                .field("matrix", SchemaBuilder.array(
+                        SchemaBuilder.array(Schema.INT8_SCHEMA).build()).build())
+                .build();
+        Struct struct = new Struct(schema)
+                .put("matrix", List.of(List.of((byte) 1, (byte) 2), List.of((byte) 3)));
+
+        DynamicMessage message = protobufData.fromConnectData(schema, struct);
+        SchemaAndValue schemaAndValue = protobufData.toConnectData(message);
+        Struct result = assertInstanceOf(Struct.class, schemaAndValue.value());
+
+        Schema matrix = schemaAndValue.schema().field("matrix").schema();
+        assertEquals(Schema.Type.INT8, matrix.valueSchema().valueSchema().type(),
+                "array<array<int8>> inner element type must round-trip as INT8, not INT32");
+        assertEquals(List.of(List.of((byte) 1, (byte) 2), List.of((byte) 3)), result.getArray("matrix"),
+                "array<array<int8>> elements must round-trip as Byte");
     }
 
     @Test

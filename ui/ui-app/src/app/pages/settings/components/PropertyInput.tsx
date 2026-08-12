@@ -2,10 +2,14 @@ import { FunctionComponent, useEffect, useState } from "react";
 import {
     InputGroup,
     TextInput,
+    FormSelect,
+    FormSelectOption,
     HelperText,
     HelperTextItem
 } from "@patternfly/react-core";
-import { validatePropertyValue } from "./PropertyInput.utils";
+import { validatePropertyValue, LOG_LEVEL_OPTIONS } from "./PropertyInput.utils";
+
+export { LOG_LEVEL_OPTIONS };
 
 /**
  * Properties
@@ -14,6 +18,7 @@ export type PropertyInputProps = {
     name: string;
     value: string;
     type: "text" | "number";
+    options?: string[];
     onChange: (newValue: string) => void;
     onValid: (valid: boolean) => void;
     onCancel: () => void;
@@ -34,7 +39,16 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
     };
 
     const handleInputChange = (_event: any, value: string): void => {
-        const validation = validatePropertyValue(value, props.type);
+        const validation = validatePropertyValue(value, props.type, props.options);
+
+        setCurrentValue(value);
+        setIsDirty(value !== props.value);
+        setIsValid(validation.isValid);
+        setErrorMessage(validation.errorMessage);
+    };
+
+    const handleSelectChange = (_event: any, value: string): void => {
+        const validation = validatePropertyValue(value, props.type, props.options);
 
         setCurrentValue(value);
         setIsDirty(value !== props.value);
@@ -65,15 +79,30 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
     return (
         <>
             <InputGroup>
-                <TextInput
-                    name={props.name}
-                    value={currentValue}
-                    validated={validated()}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyPress}
-                    aria-label="configuration property input"
-                    aria-describedby={errorMessage ? errorId : undefined}
-                />
+                {props.options && props.options.length > 0 ? (
+                    <FormSelect
+                        name={props.name}
+                        value={currentValue}
+                        onChange={handleSelectChange}
+                        onKeyDown={handleKeyPress}
+                        aria-label="configuration property input"
+                        aria-describedby={errorMessage ? errorId : undefined}
+                    >
+                        {props.options.map((opt) => (
+                            <FormSelectOption key={opt} value={opt} label={opt} />
+                        ))}
+                    </FormSelect>
+                ) : (
+                    <TextInput
+                        name={props.name}
+                        value={currentValue}
+                        validated={validated()}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyPress}
+                        aria-label="configuration property input"
+                        aria-describedby={errorMessage ? errorId : undefined}
+                    />
+                )}
             </InputGroup>
 
             {errorMessage && (

@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useState } from "react";
 import "./ConfigProperty.css";
 import { Button, Flex, FlexItem, Switch } from "@patternfly/react-core";
-import { PropertyInput } from "@app/pages";
+import { PropertyInput, LOG_LEVEL_OPTIONS } from "@app/pages";
 import { If } from "@apicurio/common-ui-components";
 import { CheckIcon, CloseIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
@@ -69,7 +69,7 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
         );
     };
 
-    const renderStringProp = (type: "text" | "number"): React.ReactElement => {
+    const renderStringProp = (type: "text" | "number", options?: string[]): React.ReactElement => {
         return (
             <Flex className="configuration-property string-property" flexWrap={{ default: "nowrap" }}>
                 <FlexItem grow={{ default: "grow" }}>
@@ -78,13 +78,14 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
                     </div>
                     <div className="property-description">{property.description}</div>
                     <If condition={!isEditing}>
-                        <div className="property-value">{property.value}</div>
+                        <div className="property-value">{property.value || (property.name === "apicurio.log.level" ? "INFO" : "")}</div>
                     </If>
                     <If condition={isEditing}>
                         <div className="property-editor">
                             <PropertyInput name={ property.name! }
-                                value={ property.value! }
+                                value={ property.value! || (property.name === "apicurio.log.level" ? "INFO" : "") }
                                 type={ type }
+                                options={ options }
                                 onChange={ onPropertyValueChange }
                                 onValid={ onPropertyValueValid }
                                 onCancel={ onCancelEdit }
@@ -112,6 +113,8 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
         return renderStringProp("number");
     } else if (property.type === "java.lang.Long") {
         return renderStringProp("number");
+    } else if (property.name === "apicurio.log.level") {
+        return renderStringProp("text", LOG_LEVEL_OPTIONS);
     } else {
         return renderStringProp("text");
     }

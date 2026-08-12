@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validatePropertyValue } from "./PropertyInput.utils";
+import { validatePropertyValue, LOG_LEVEL_OPTIONS } from "./PropertyInput.utils";
 
 describe("validatePropertyValue", () => {
     it("rejects an empty text value", () => {
@@ -91,6 +91,27 @@ describe("validatePropertyValue", () => {
     it("accepts non-empty text", () => {
         expect(validatePropertyValue("hello", "text")).toEqual({
             isValid: true
+        });
+    });
+
+    describe("options validation for log levels", () => {
+        it("accepts all 7 valid log level options", () => {
+            for (const level of LOG_LEVEL_OPTIONS) {
+                expect(validatePropertyValue(level, "text", LOG_LEVEL_OPTIONS)).toEqual({
+                    isValid: true
+                });
+            }
+        });
+
+        it("rejects arbitrary log level strings like TEST or ABC", () => {
+            expect(validatePropertyValue("TEST", "text", LOG_LEVEL_OPTIONS)).toEqual({
+                isValid: false,
+                errorMessage: "Value must be one of: TRACE, DEBUG, INFO, WARN, ERROR, OFF, ALL"
+            });
+            expect(validatePropertyValue("ABC", "text", LOG_LEVEL_OPTIONS)).toEqual({
+                isValid: false,
+                errorMessage: "Value must be one of: TRACE, DEBUG, INFO, WARN, ERROR, OFF, ALL"
+            });
         });
     });
 });

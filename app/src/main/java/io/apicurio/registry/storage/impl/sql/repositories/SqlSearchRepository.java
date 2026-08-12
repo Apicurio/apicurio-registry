@@ -35,9 +35,9 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  */
 public class SqlSearchRepository {
 
-    private static void throwIndexOnlyFilterException(SearchFilterType type) {
+    private static ContentSearchNotSupportedException indexOnlyFilterException(SearchFilterType type) {
         String filterName = type == SearchFilterType.structure ? "Structure" : "Content";
-        throw new ContentSearchNotSupportedException(
+        return new ContentSearchNotSupportedException(
                 filterName + " search requires the search index, which is not enabled. "
                         + "Enable the search index to use " + filterName.toLowerCase(Locale.ROOT) + " search.");
     }
@@ -170,9 +170,8 @@ public class SqlSearchRepository {
                         });
                         where.append(")");
                         break;
-                    case content:
-                    case structure:
-                        throwIndexOnlyFilterException(filter.getType());
+                    case content, structure:
+                        throw indexOnlyFilterException(filter.getType());
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -350,9 +349,8 @@ public class SqlSearchRepository {
                         });
                         where.append(")");
                         break;
-                    case content:
-                    case structure:
-                        throwIndexOnlyFilterException(filter.getType());
+                    case content, structure:
+                        throw indexOnlyFilterException(filter.getType());
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }

@@ -1,6 +1,11 @@
 import { FunctionComponent, useEffect, useState } from "react";
-import { FormHelperText, HelperText, HelperTextItem, InputGroup, TextInput } from "@patternfly/react-core";
-import { isNonNegativeInteger } from "@utils/validation.utils";
+import {
+    InputGroup,
+    TextInput,
+    HelperText,
+    HelperTextItem
+} from "@patternfly/react-core";
+import { validatePropertyValue } from "./PropertyInput.utils";
 
 /**
  * Properties
@@ -8,15 +13,12 @@ import { isNonNegativeInteger } from "@utils/validation.utils";
 export type PropertyInputProps = {
     name: string;
     value: string;
-    type:
-        | "text"
-        | "number"
-        ;
+    type: "text" | "number";
     onChange: (newValue: string) => void;
     onValid: (valid: boolean) => void;
     onCancel: () => void;
     onSave: () => void;
-}
+};
 
 /**
  * Models a single editable config property.
@@ -25,31 +27,26 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
     const [currentValue, setCurrentValue] = useState<string>(props.value);
     const [isDirty, setIsDirty] = useState(false);
     const [isValid, setIsValid] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
     const validated = (): "success" | "warning" | "error" | "default" => {
         return isValid ? "default" : "error";
     };
 
     const handleInputChange = (_event: any, value: string): void => {
-        const isValid: boolean = validate(value);
+        const validation = validatePropertyValue(value, props.type);
+
         setCurrentValue(value);
         setIsDirty(value !== props.value);
-        setIsValid(isValid);
-    };
-
-    const validate = (value: string): boolean => {
-        if (props.type === "text") {
-            return value.trim().length > 0;
-        } else if (props.type === "number") {
-            return isNonNegativeInteger(value);
-        }
-        return true;
+        setIsValid(validation.isValid);
+        setErrorMessage(validation.errorMessage);
     };
 
     const handleKeyPress = (event: any): void => {
         if (event.code === "Escape") {
             props.onCancel();
         }
+
         if (event.code === "Enter" && isDirty && isValid) {
             props.onSave();
         }
@@ -63,34 +60,29 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
         props.onChange(currentValue);
     }, [currentValue]);
 
-    const getErrorMessage = (): string => {
-        if (props.type === "number") {
-            return "Value must be a non-negative integer.";
-        }
-        return "Value cannot be empty.";
-    };
+    const errorId = `${props.name}-error`;
 
     return (
-        <div>
+        <>
             <InputGroup>
-                <TextInput name={ props.name }
-                    value={ currentValue }
-                    validated={ validated() }
-                    onChange={ handleInputChange }
-                    onKeyDown={ handleKeyPress }
-                    aria-label="configuration property input"/>
+                <TextInput
+                    name={props.name}
+                    value={currentValue}
+                    validated={validated()}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyPress}
+                    aria-label="configuration property input"
+                    aria-describedby={errorMessage ? errorId : undefined}
+                />
             </InputGroup>
-            {!isValid && (
-                <FormHelperText>
-                    <HelperText>
-                        <HelperTextItem variant="error">
-                            {getErrorMessage()}
-                        </HelperTextItem>
-                    </HelperText>
-                </FormHelperText>
+
+            {errorMessage && (
+                <HelperText>
+                    <HelperTextItem id={errorId} variant="error">
+                        {errorMessage}
+                    </HelperTextItem>
+                </HelperText>
             )}
-        </div>
+        </>
     );
-
 };
-

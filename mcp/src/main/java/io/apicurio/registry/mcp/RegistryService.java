@@ -311,6 +311,20 @@ public class RegistryService {
             String order,
             String versionOrderBy
     ) {
+        return searchVersions(groupId, artifactId, artifactType, name, description, jsonLabels, order, versionOrderBy, (VersionState) null);
+    }
+
+    public List<SearchedVersion> searchVersions(
+            String groupId,
+            String artifactId,
+            String artifactType,
+            String name,
+            String description,
+            String jsonLabels,
+            String order,
+            String versionOrderBy,
+            VersionState state
+    ) {
         var page = client().search().versions().get(r -> {
             r.queryParameters.groupId = groupId;
             r.queryParameters.artifactId = artifactId;
@@ -318,6 +332,9 @@ public class RegistryService {
             r.queryParameters.name = name;
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(jsonLabels);
+            if (state != null) {
+                r.queryParameters.state = state;
+            }
 
             r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);

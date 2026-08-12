@@ -22,6 +22,8 @@ import static io.apicurio.registry.cli.utils.Columns.LABELS;
 import static io.apicurio.registry.cli.utils.Columns.MODIFIED_BY;
 import static io.apicurio.registry.cli.utils.Columns.MODIFIED_ON;
 import static io.apicurio.registry.cli.utils.Columns.OWNER;
+import static io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP;
+import static io.apicurio.registry.cli.common.IdUtil.injectDefaultGroup;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 
@@ -65,6 +67,8 @@ public class GroupCommand extends AbstractCommand {
             r.queryParameters.orderby = ordering.getOrderBy();
             r.queryParameters.order = ordering.getOrder();
         }));
+
+        injectDefaultGroup(groups, pagination.getPage());
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {
@@ -83,8 +87,11 @@ public class GroupCommand extends AbstractCommand {
                             LABELS
                     );
                     groups.getGroups().forEach(g -> {
+                        final String displayGroupId = DEFAULT_GROUP.equals(g.getGroupId())
+                                ? g.getGroupId() + " (implicit)"
+                                : g.getGroupId();
                         table.addRow(
-                                g.getGroupId(),
+                                displayGroupId,
                                 g.getDescription(),
                                 convertToString(g.getCreatedOn()),
                                 g.getOwner(),

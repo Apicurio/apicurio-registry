@@ -8,6 +8,7 @@ public final class PlatformUtils {
     public static final String OS_MAC_IDENTIFIER = "mac";
     public static final String OS_DARWIN_IDENTIFIER = "darwin";
     public static final String OS_LINUX = "linux";
+    public static final String OS_WINDOWS = "windows";
 
     private PlatformUtils() {
     }
@@ -19,6 +20,9 @@ public final class PlatformUtils {
         }
         if (osName.contains(OS_MAC_IDENTIFIER) || osName.contains(OS_DARWIN_IDENTIFIER)) {
             return OS_MAC;
+        }
+        if (osName.contains(OS_WINDOWS)) {
+            return OS_WINDOWS;
         }
         throw new UnsupportedOperationException("Unsupported OS: " + System.getProperty("os.name"));
     }
@@ -34,6 +38,10 @@ public final class PlatformUtils {
 
     public static boolean isMacOS() {
         return OS_MAC.equals(detectOsClassifier());
+    }
+
+    public static boolean isWindows() {
+        return OS_WINDOWS.equals(detectOsClassifier());
     }
 
     public static String detectPlatformClassifier() {

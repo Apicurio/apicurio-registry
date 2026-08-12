@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.wellknown;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.a2a.A2AConfig;
+import io.apicurio.registry.a2a.A2AConstants;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
@@ -18,8 +19,8 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.mcptools.McpToolsConfig;
 import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResult;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -148,7 +149,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
-        filters.add(SearchFilter.ofLabel("apicurio.agent.visibility", "public"));
+        filters.add(SearchFilter.ofLabel(A2AConstants.LABEL_AGENT_VISIBILITY, A2AConstants.VISIBILITY_PUBLIC));
 
         int safeOffset = Math.max(0, offset);
         int safeLimit = Math.max(1, Math.min(limit, 500));
@@ -221,13 +222,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
         if (f != null) {
             if (f.getSkills() != null) {
                 for (String skill : f.getSkills()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
                 }
             }
             if (f.getCapabilities() != null) {
                 for (Map.Entry<String, Object> entry : f.getCapabilities().getAdditionalProperties().entrySet()) {
                     SearchFilter filter = SearchFilter.ofStructure(
-                            "agent_card:capability:" + entry.getKey());
+                            A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + entry.getKey());
                     if (!Boolean.TRUE.equals(entry.getValue())) {
                         filter = filter.negated();
                     }
@@ -241,17 +242,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
             if (f.getInputModes() != null) {
                 for (String mode : f.getInputModes()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
                 }
             }
             if (f.getOutputModes() != null) {
                 for (String mode : f.getOutputModes()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
                 }
             }
             if (f.getProtocolBindings() != null) {
                 for (String binding : f.getProtocolBindings()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:protocolbinding:" + binding));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_PROTOCOL_BINDING + binding));
                 }
             }
         }
@@ -355,7 +356,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Filter by skills (indexed as structured content: agent_card:skill:<id>)
         if (skills != null && !skills.isEmpty()) {
             for (String skill : skills) {
-                filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
             }
         }
 
@@ -366,7 +367,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 String[] parts = capability.split(":", 2);
                 String capKey = parts[0];
                 String capValue = parts.length > 1 ? parts[1] : "true";
-                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + capKey);
+                SearchFilter filter = SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + capKey);
                 if ("false".equals(capValue)) {
                     filter = filter.negated();
                 }
@@ -377,14 +378,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Filter by input modes (indexed as structured content: agent_card:inputmode:<mode>)
         if (inputModes != null && !inputModes.isEmpty()) {
             for (String mode : inputModes) {
-                filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
             }
         }
 
         // Filter by output modes (indexed as structured content: agent_card:outputmode:<mode>)
         if (outputModes != null && !outputModes.isEmpty()) {
             for (String mode : outputModes) {
-                filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
             }
         }
 
@@ -570,8 +571,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
 
             int total = matchingTools.size();
-            int safeOffset = Math.max(0, offset == null ? 0 : offset);
-            int safeLimit = Math.max(1, limit == null ? 10 : limit);
             int fromIndex = Math.min(safeOffset, total);
             int toIndex = Math.min(fromIndex + safeLimit, total);
             List<McpToolSearchResult> page = matchingTools.subList(fromIndex, toIndex);
@@ -977,7 +976,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
      */
     private String resolveVisibility(Map<String, String> labels) {
         if (labels != null) {
-            String explicit = labels.get("apicurio.agent.visibility");
+            String explicit = labels.get(A2AConstants.LABEL_AGENT_VISIBILITY);
             if (explicit != null) {
                 return explicit.toLowerCase(Locale.ROOT);
             }

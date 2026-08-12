@@ -42,7 +42,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
       # forward-compatibility issues with GraalVM/native-image early in PRs.

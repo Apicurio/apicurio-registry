@@ -1430,7 +1430,7 @@ The following {registry} configuration options are available for each component 
 |Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
-|
+|`sql`
 |`3.0.0`
 |Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops
 |`apicurio.storage.read-only.enabled`

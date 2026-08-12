@@ -396,7 +396,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
                     filters, OrderBy.createdOn, OrderDirection.desc,
                     0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
+            warnIfTruncated(results, "Agent");
 
             List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
 
@@ -561,7 +561,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             // Parameter filtering is performed after artifact search by inspecting tool.getParameters()
             ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                     OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
+            warnIfTruncated(results, "MCP tool");
 
             // filter visibility before inspecting parameters
             List<SearchedArtifactDto> candidates = isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled()
@@ -927,10 +927,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     private void warnIfTruncated(ArtifactSearchResultsDto results) {
-        if (results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
-            log.warn("Agent visibility filtering may be incomplete: total agent count ({}) "
+        if (results != null && results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
+            log.warn("{} visibility filtering may be incomplete: total count ({}) "
                     + "reached the in-memory limit of {}. Results beyond this limit are not included.",
-                    results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);
+                    resourceName, results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);
         }
     }
 

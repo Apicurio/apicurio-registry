@@ -5,6 +5,7 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -34,13 +35,12 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  */
 public class SqlSearchRepository {
 
-    private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
-            "Content search requires the search index, which is not enabled. "
-            + "Enable the search index to use content search.";
-
-    private static final String STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE =
-            "Structure search requires the search index, which is not enabled. "
-                    + "Enable the search index to use structure search.";
+    private static void throwIndexOnlyFilterException(SearchFilterType type) {
+        String filterName = type == SearchFilterType.structure ? "Structure" : "Content";
+        throw new ContentSearchNotSupportedException(
+                filterName + " search requires the search index, which is not enabled. "
+                        + "Enable the search index to use " + filterName.toLowerCase(Locale.ROOT) + " search.");
+    }
 
     private final Logger log;
 
@@ -171,9 +171,8 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
                     case structure:
-                        throw new ContentSearchNotSupportedException(STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
+                        throwIndexOnlyFilterException(filter.getType());
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -352,9 +351,8 @@ public class SqlSearchRepository {
                         where.append(")");
                         break;
                     case content:
-                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
                     case structure:
-                        throw new ContentSearchNotSupportedException(STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
+                        throwIndexOnlyFilterException(filter.getType());
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }

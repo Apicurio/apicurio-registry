@@ -38,7 +38,7 @@ endif::[]
 [role="_abstract"]
 {registry} provides the following capabilities for managing event schemas and API designs across event-driven and API architectures:
 
-* Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, and more.
+* Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, OpenRPC, and more.
 * AI/ML artifact types for LLMOps: MODEL_SCHEMA for model input/output contracts and PROMPT_TEMPLATE for version-controlled prompts with variable schemas.
 * Pluggable {registry} storage options for storing content in Apache Kafka or PostgreSQL database.
 * Rules for content validation, compatibility, and integrity to govern how {registry} content evolves over time.

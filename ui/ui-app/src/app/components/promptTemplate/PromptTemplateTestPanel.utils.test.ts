@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coerceEnumValue, describeNumericRange } from "./PromptTemplateTestPanel.utils";
+import { coerceEnumValue, describeNumericRange, findOutOfRangeErrors } from "./PromptTemplateTestPanel.utils";
 
 describe("coerceEnumValue", () => {
     it("parses an integer enum selection to a number", () => {
@@ -47,5 +47,30 @@ describe("describeNumericRange", () => {
     });
     it("returns undefined when neither bound is set", () => {
         expect(describeNumericRange(undefined, undefined)).toBeUndefined();
+    });
+});
+
+describe("findOutOfRangeErrors", () => {
+    it("returns no errors when values are within range", () => {
+        const fields = [{ name: "rating", type: "integer", minimum: 1, maximum: 10 }];
+        expect(findOutOfRangeErrors(fields, { rating: 5 })).toEqual([]);
+    });
+    it("flags a value below the minimum", () => {
+        const fields = [{ name: "rating", type: "integer", minimum: 1, maximum: 10 }];
+        const errors = findOutOfRangeErrors(fields, { rating: 0 });
+        expect(errors).toEqual([{ variableName: "rating", message: "Value must be at least 1" }]);
+    });
+    it("flags a value above the maximum", () => {
+        const fields = [{ name: "rating", type: "integer", minimum: 1, maximum: 10 }];
+        const errors = findOutOfRangeErrors(fields, { rating: 999 });
+        expect(errors).toEqual([{ variableName: "rating", message: "Value must be at most 10" }]);
+    });
+    it("ignores non-numeric field types", () => {
+        const fields = [{ name: "label", type: "string", minimum: 1, maximum: 10 }];
+        expect(findOutOfRangeErrors(fields, { label: "hello" })).toEqual([]);
+    });
+    it("ignores a field with no value set yet", () => {
+        const fields = [{ name: "rating", type: "integer", minimum: 1, maximum: 10 }];
+        expect(findOutOfRangeErrors(fields, { rating: "" })).toEqual([]);
     });
 });

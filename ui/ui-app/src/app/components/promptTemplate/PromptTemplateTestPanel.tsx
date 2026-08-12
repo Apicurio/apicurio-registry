@@ -29,7 +29,7 @@ import {
 } from "./promptTemplateVariables";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
-import { coerceEnumValue, describeNumericRange } from "./PromptTemplateTestPanel.utils";
+import { coerceEnumValue, describeNumericRange, findOutOfRangeErrors } from "./PromptTemplateTestPanel.utils";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -123,6 +123,16 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     };
 
     const doRender = (): void => {
+        const rangeFields = reconciledVariables.map((entry) => {
+            const schema = schemaForField(entry);
+            return { name: entry.name, type: schema.type, minimum: schema.minimum, maximum: schema.maximum };
+        });
+        const outOfRangeErrors = findOutOfRangeErrors(rangeFields, values);
+        if (outOfRangeErrors.length > 0) {
+            setValidationErrors(outOfRangeErrors);
+            return;
+        }
+
         setIsLoading(true);
         setError("");
         setValidationErrors([]);
@@ -200,6 +210,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                             value={values[name] ?? ""}
                             min={variable.minimum}
                             max={variable.maximum}
+                            step={type === "integer" ? undefined : "any"}
                             onChange={(_event, val) => {
                                 const n = type === "integer" ? parseInt(val) : parseFloat(val);
                                 setValue(name, isNaN(n) ? "" : n);

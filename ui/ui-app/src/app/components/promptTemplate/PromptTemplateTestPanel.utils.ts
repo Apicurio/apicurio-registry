@@ -28,3 +28,39 @@ export const describeNumericRange = (
     }
     return undefined;
 };
+
+export type RangeCheckField = {
+    name: string;
+    type?: string;
+    minimum?: number;
+    maximum?: number;
+};
+
+export type RangeError = {
+    variableName: string;
+    message: string;
+};
+
+export const findOutOfRangeErrors = (
+    fields: RangeCheckField[],
+    values: Record<string, any>
+): RangeError[] => {
+    const errors: RangeError[] = [];
+    fields.forEach((field) => {
+        const type = (field.type || "string").toLowerCase();
+        if (type !== "integer" && type !== "number") {
+            return;
+        }
+        const val = values[field.name];
+        if (typeof val !== "number") {
+            return;
+        }
+        if (field.minimum !== undefined && val < field.minimum) {
+            errors.push({ variableName: field.name, message: `Value must be at least ${field.minimum}` });
+        }
+        if (field.maximum !== undefined && val > field.maximum) {
+            errors.push({ variableName: field.name, message: `Value must be at most ${field.maximum}` });
+        }
+    });
+    return errors;
+};

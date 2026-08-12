@@ -72,6 +72,10 @@ public class ProtobufData {
      */
     private static final String WRAPPER_ITEMS_FIELD = "items";
 
+    /** Error message for map-in-collection schemas, which this converter does not support. */
+    private static final String NESTED_MAP_UNSUPPORTED =
+            "Nested map-in-collection is not supported. Wrap the inner map in a struct field.";
+
     /** Memoised Descriptors keyed by the top-level Connect Schema. */
     private final ConcurrentHashMap<Schema, Descriptors.Descriptor> descriptorCache = new ConcurrentHashMap<>();
 
@@ -177,6 +181,9 @@ public class ProtobufData {
     private void setField(DynamicMessage.Builder builder, Descriptors.FieldDescriptor protoField,
             Schema schema, Object value, Map<String, String> nameMap) {
         if (protoField.isMapField()) {
+            if (schema.type() != Schema.Type.MAP) {
+                throw new IllegalArgumentException(NESTED_MAP_UNSUPPORTED);
+            }
             Map<Object, Object> map = (Map<Object, Object>) value;
             Descriptors.Descriptor entryDescriptor = protoField.getMessageType();
             Descriptors.FieldDescriptor keyField = entryDescriptor.findFieldByName("key");
@@ -242,8 +249,7 @@ public class ProtobufData {
                 }
                 return value;
             case MAP:
-                throw new IllegalArgumentException(
-                        "Nested map-in-collection is not supported. Wrap the inner map in a struct field.");
+                throw new IllegalArgumentException(NESTED_MAP_UNSUPPORTED);
             default:
                 throw new IllegalArgumentException("Unsupported Connect schema type: " + schema.type());
         }

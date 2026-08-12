@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ProtobufDataTest {
@@ -576,6 +577,42 @@ public class ProtobufDataTest {
 
         assertTrue(Double.isNaN(((Number) result.get("val")).doubleValue()),
                 "Double.NaN must round-trip as NaN");
+    }
+
+    @Test
+    public void testMapOfMapThrowsUnsupportedNestedMap() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.MapOfMap")
+                .field("outer", SchemaBuilder.map(Schema.STRING_SCHEMA,
+                        SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build()).build())
+                .build();
+        Struct struct = new Struct(schema)
+                .put("outer", Map.of("group", Map.of("key", "value")));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> protobufData.fromConnectData(schema, struct),
+                "map<string, map<string, string>> must be rejected with IllegalArgumentException");
+        assertEquals("Nested map-in-collection is not supported. Wrap the inner map in a struct field.",
+                ex.getMessage());
+    }
+
+    @Test
+    public void testArrayOfMapThrowsUnsupportedNestedMap() {
+        ProtobufData protobufData = new ProtobufData();
+        Schema schema = SchemaBuilder.struct()
+                .name("io.apicurio.registry.test.ArrayOfMap")
+                .field("entries", SchemaBuilder.array(
+                        SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build()).build())
+                .build();
+        Struct struct = new Struct(schema)
+                .put("entries", List.of(Map.of("key", "value")));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> protobufData.fromConnectData(schema, struct),
+                "array<map<string, string>> must be rejected with IllegalArgumentException");
+        assertEquals("Nested map-in-collection is not supported. Wrap the inner map in a struct field.",
+                ex.getMessage());
     }
 
     @Test

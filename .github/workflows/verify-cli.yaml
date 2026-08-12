@@ -26,8 +26,20 @@ jobs:
             # Docker is not available on macOS runners (see https://github.com/douglascamata/setup-docker-macos-action/issues/35),
             # skip @DockerRequired tests
             test-args: '-Dgroups=!docker-required'
+            timeout-minutes: 30
+          - runner: windows-latest
+            os-name: windows-x86_64
+            # Windows runners cannot run Linux containers, so skip @DockerRequired tests (as on macOS).
+            test-args: '-Dgroups=!docker-required'
+            # Native image is slowest on Windows; give it more headroom.
+            timeout-minutes: 45
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.timeout-minutes || 30 }}
+    # The build steps are bash scripts. Git Bash is available on all three runners
+    # (including windows-latest), so run every step with bash for a single script per OS.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -40,7 +52,14 @@ jobs:
           java-version: '25'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
+          # Job reports make setup-graalvm export
+          # NATIVE_IMAGE_OPTIONS=-H:BuildOutputJSONFile=<RUNNER_TEMP>/native-image-build-output.json,
+          # which registers that file as a build artifact. On windows-latest RUNNER_TEMP is on C:
+          # while the workspace is on D:, and BuildArtifactsExporter relativizes every artifact
+          # against the image output directory -- across drives that throws "'other' has different
+          # root" and fails the build after the image is already built. Platforms with a single
+          # filesystem root cannot hit this, so keep the reports everywhere except Windows.
+          native-image-job-reports: ${{ matrix.os-name != 'windows-x86_64' }}
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -50,10 +69,13 @@ jobs:
 
       - name: Install Pre-built Artifacts to Maven Repository
         run: |
-          VERSION=$(./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml help:evaluate -Dexpression=project.version -q -DforceStdout)
+          # github.workspace is a backslash path on windows-latest ("D:\a\repo\repo"), and these
+          # steps run under bash, which would eat the backslashes as escapes. Quote every expansion
+          # of it -- Maven accepts the resulting mixed separators on Windows.
+          VERSION=$(./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" help:evaluate -Dexpression=project.version -q -DforceStdout)
 
           # Install parent POM
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml install:install-file -B -Dfile=pom.xml -DpomFile=pom.xml
+          ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" install:install-file -B -Dfile=pom.xml -DpomFile=pom.xml
 
           # Install each dependency module
           for module_path in \
@@ -68,7 +90,7 @@ jobs:
             dir="${module_path%%:*}"
             artifact="${module_path##*:}"
 
-            ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml install:install-file -B \
+            ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" install:install-file -B \
               -Dfile="${dir}/target/${artifact}-${VERSION}.jar" \
               -DpomFile="${dir}/pom.xml"
           done
@@ -79,7 +101,7 @@ jobs:
           # matrix.test-args: per-OS test config (Linux uses Docker-based tests, macOS skips them)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify -pl cli \
+          ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" verify -pl cli \
             --no-transfer-progress \
             -Dquarkus.native.container-build=false \
             ${{ matrix.test-args }} \
@@ -90,8 +112,13 @@ jobs:
 
       - name: Verify Native Binary
         run: |
-          cli/target/apicurio-registry-cli-*-runner --help
-          cli/target/apicurio-registry-cli-*-runner version
+          # The binary is "-runner" on Linux/macOS and "-runner.exe" on Windows.
+          binary=$(ls cli/target/apicurio-registry-cli-*-runner.exe 2>/dev/null || true)
+          if [ -z "$binary" ]; then
+            binary=$(ls cli/target/apicurio-registry-cli-*-runner)
+          fi
+          "$binary" --help
+          "$binary" version
 
       - name: Run CLI Update E2E Tests
         if: matrix.os-name == 'linux-x86_64'

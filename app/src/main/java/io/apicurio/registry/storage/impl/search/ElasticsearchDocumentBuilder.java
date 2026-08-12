@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -184,14 +185,14 @@ public class ElasticsearchDocumentBuilder {
             ContentHandle contentHandle = ContentHandle.create(contentBytes);
             List<StructuredElement> elements = extractor.extract(contentHandle);
 
-            String artifactTypeLower = artifactType.toLowerCase();
+            String artifactTypeLower = artifactType.toLowerCase(Locale.ROOT);
             List<String> structureValues = new ArrayList<>();
             List<String> structureTextValues = new ArrayList<>();
             List<String> structureKindValues = new ArrayList<>();
 
             for (StructuredElement element : elements) {
-                String kindLower = element.kind().toLowerCase();
-                String nameLower = element.name().toLowerCase();
+                String kindLower = element.kind().toLowerCase(Locale.ROOT);
+                String nameLower = element.name().toLowerCase(Locale.ROOT);
 
                 // Exact match: "artifactType:kind:name"
                 structureValues.add(artifactTypeLower + ":" + kindLower + ":" + nameLower);

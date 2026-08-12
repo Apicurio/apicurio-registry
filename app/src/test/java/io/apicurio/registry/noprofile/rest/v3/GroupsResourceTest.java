@@ -163,7 +163,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testUpdateArtifactOwner/EmptyAPI/1").body(body)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
 
-        // TODO verify that the owner was changed.
+        given().when().pathParam("groupId", "testUpdateArtifactOwner")
+                .pathParam("artifactId", "testUpdateArtifactOwner/EmptyAPI/1")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(200)
+                .body("owner", equalTo("newOwner"));
     }
 
     @Test

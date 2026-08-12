@@ -12,6 +12,7 @@ import io.vertx.ext.web.client.WebClient;
  *   <li>Anonymous (no authentication)</li>
  *   <li>Basic authentication (username/password)</li>
  *   <li>OAuth2/OIDC authentication (client credentials)</li>
+ *   <li>Bearer token authentication (pre-obtained access token)</li>
  *   <li>Custom WebClient (for advanced scenarios)</li>
  * </ul>
  */
@@ -56,6 +57,7 @@ public class RegistryClientOptions {
         ANONYMOUS,
         BASIC,
         OAUTH2,
+        BEARER,
         CUSTOM_WEBCLIENT
     }
 
@@ -91,6 +93,7 @@ public class RegistryClientOptions {
     private String clientId;
     private String clientSecret;
     private String scope;
+    private String bearerToken;
     private WebClient webClient;
     // Retry config
     private boolean retryEnabled = false;
@@ -161,6 +164,10 @@ public class RegistryClientOptions {
 
     public String getScope() {
         return scope;
+    }
+
+    public String getBearerToken() {
+        return bearerToken;
     }
 
     public Vertx getVertx() {
@@ -346,6 +353,21 @@ public class RegistryClientOptions {
     }
 
     /**
+     * Configures bearer token authentication using a pre-obtained access token.
+     * <p>
+     * Currently supported with the JDK HTTP adapter only.
+     *
+     * @param accessToken the OAuth2/OIDC access token (without the "Bearer " prefix)
+     * @return this builder
+     */
+    public RegistryClientOptions bearerToken(String accessToken) {
+        clearAuth();
+        this.authType = AuthType.BEARER;
+        this.bearerToken = accessToken;
+        return this;
+    }
+
+    /**
      * Configures a custom WebClient for advanced authentication scenarios.
      *
      * @param webClient the pre-configured WebClient to use
@@ -366,6 +388,7 @@ public class RegistryClientOptions {
         this.clientId = null;
         this.clientSecret = null;
         this.scope = null;
+        this.bearerToken = null;
         this.webClient = null;
     }
 

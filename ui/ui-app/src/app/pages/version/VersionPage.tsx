@@ -50,6 +50,7 @@ import {
 } from "@app/pages/drafts/components/modals";
 import { EditAgentModal } from "@app/pages/agents/components";
 import { AgentCard } from "@app/components/agentCard";
+import { isErrorStatus } from "@utils/rest.utils.ts";
 
 
 /**
@@ -94,19 +95,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "documentation";
     }
 
-    const is404 = (e: any) => {
-        if (typeof e === "string") {
-            try {
-                const eo: any = JSON.parse(e);
-                if (eo && eo.status && eo.status === 404) {
-                    return true;
-                }
-            } catch {
-                // Do nothing
-            }
-        }
-        return false;
-    };
+    // Note: the SDK's generated client throws structured error objects (with a
+    // `responseStatusCode` or `status` field), not JSON strings, so status checks
+    // must go through the shared isErrorStatus() helper rather than JSON.parse().
+    const is404 = (e: any) => isErrorStatus(e, 404);
 
     const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
@@ -404,6 +396,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();

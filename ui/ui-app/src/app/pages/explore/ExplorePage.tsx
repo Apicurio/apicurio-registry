@@ -142,9 +142,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         search(criteria, newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         setPaging(newPaging);

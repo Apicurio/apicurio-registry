@@ -996,10 +996,10 @@ The following {registry} configuration options are available for each component 
 |`3.1.0`
 |Optional configuration to override default reference handling behavior. When not set, uses API defaults (PRESERVE for v3, false for v2, none for ccompat).
 |`apicurio.rest.compression.enabled`
-|`boolean`
+|`boolean [dynamic]`
 |`true`
 |`3.3.2`
-|Enable gzip compression of REST API responses
+|Enable gzip compression of REST API responses. This is a dynamic property and can be changed at runtime without restarting the server.
 |`apicurio.rest.deletion.artifact-version.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -1282,7 +1282,12 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`86400s`
 |`3.0.0`
-|Kafka sql journal topic snapshot every
+|Interval between automatic snapshots of the KafkaSQL journal topic.
+|`apicurio.kafkasql.snapshot.scheduled.enabled`
+|`boolean [dynamic]`
+|`false`
+|`3.3.2`
+|Enable automatic periodic KafkaSQL snapshot creation.
 |`apicurio.kafkasql.snapshots.topic`
 |`string`
 |`kafkasql-snapshots`
@@ -1420,7 +1425,7 @@ The following {registry} configuration options are available for each component 
 |Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
-|
+|`sql`
 |`3.0.0`
 |Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops
 |`apicurio.storage.read-only.enabled`
@@ -1692,6 +1697,11 @@ The following {registry} configuration options are available for each component 
 |`${registry.id}-producer`
 |
 |
+|`apicurio.kafkasql.snapshot.scheduled.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
+|
+|
 |`apicurio.limits.config.cache.check-period`
 |`unknown`
 |`30000`
@@ -1720,6 +1730,11 @@ The following {registry} configuration options are available for each component 
 |`apicurio.rest.artifact.deletion.enabled`
 |`unknown`
 |`false`
+|
+|
+|`apicurio.rest.compression.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
 |
 |
 |`apicurio.rest.deletion.artifact-version.enabled.dynamic.allow`

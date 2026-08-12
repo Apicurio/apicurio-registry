@@ -21,6 +21,8 @@
          Without this, Java 25+ treats the literal '@{argLine}' as an arg file reference
          and fails with 'could not open {argLine}'. -->
     <argLine/>
+    <!-- Max heap for the forked surefire JVM that runs the tests. -->
+    <surefire.maxHeap>4g</surefire.maxHeap>
   </properties>
 
   <dependencies>
@@ -65,6 +67,23 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-protobuf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-avro</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-json</artifactId>
     </dependency>
 
     <!-- Quarkus Dependencies -->
@@ -244,7 +263,7 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
+      <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -254,7 +273,7 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5-mockito</artifactId>
+      <artifactId>quarkus-junit-mockito</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -280,6 +299,51 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-v2-java-sdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-resolver</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-asyncapi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-openapi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-graphql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-xml</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-xsd</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-wsdl</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -361,6 +425,58 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-test-kubernetes-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-kafka-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common-avro</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common-jsonschema</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-maven-plugin</artifactId>
+      <type>maven-plugin</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>raml-test-micro-service</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -455,7 +571,10 @@
         <configuration>
           <groups>${groups}</groups>
           <forkCount>1</forkCount>
-          <argLine>@{argLine} -Xmx4g</argLine>
+          <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
+               MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
+               -Dsurefire.maxHeap=<size>. See issue #9265. -->
+          <argLine>@{argLine} -Xmx${surefire.maxHeap}</argLine>
           <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -685,52 +804,5 @@
     </plugins>
   </build>
 
-  <!-- Test-scoped dependencies on modules excluded from the reactor by the -Dlocal profile
-       (serdes, maven-plugin, raml-test-micro-service). Keep them out of -Dlocal builds so
-       dependency resolution succeeds even with -DskipTests; include them for non-local test runs. -->
-  <profiles>
-    <profile>
-      <id>local-excluded-test-deps</id>
-      <activation>
-        <property>
-          <name>!local</name>
-        </property>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>io.apicurio</groupId>
-          <artifactId>apicurio-registry-maven-plugin</artifactId>
-          <type>maven-plugin</type>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>${project.groupId}</groupId>
-          <artifactId>raml-test-micro-service</artifactId>
-          <version>${project.version}</version>
-          <scope>test</scope>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
 
 </project>

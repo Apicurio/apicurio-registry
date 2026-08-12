@@ -1,0 +1,33 @@
+name: Issue Assignment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: issue-assignment-user-${{ github.event.comment.user.login }}
+  cancel-in-progress: false
+
+jobs:
+  assign:
+    name: Issue Assignment
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      !github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Handle issue assignment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/issue-assignment.js');
+            await handler.handleIssueComment({ github, context, core });
+

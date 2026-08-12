@@ -37,6 +37,15 @@ export const tokenizeTemplate = (template: string): TemplateToken[] => {
     return tokens;
 };
 
+export const formatRange = (minimum?: number, maximum?: number): string | null => {
+    const hasMin = typeof minimum === "number" && Number.isFinite(minimum);
+    const hasMax = typeof maximum === "number" && Number.isFinite(maximum);
+    if (hasMin && hasMax) return `${minimum} – ${maximum}`;
+    if (hasMin) return `≥ ${minimum}`;
+    if (hasMax) return `≤ ${maximum}`;
+    return null;
+};
+
 export const highlightVariables = (template: string): React.ReactNode[] => {
     return tokenizeTemplate(template).map((token, index) => {
         if (token.kind === "plain") {

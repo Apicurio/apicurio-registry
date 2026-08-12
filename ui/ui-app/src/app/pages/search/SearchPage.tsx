@@ -18,7 +18,7 @@ import { If, ListWithToolbar } from "@apitomy/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";
-import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { useGroupsService } from "@services/useGroupsService.ts";
 import {
     ArtifactSearchResults,
     ArtifactSortBy,
@@ -264,7 +264,11 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
         <SearchPageEmptyState
             searchType={searchType}
             isFiltered={isFiltered()}
-            onCreateArtifact={() => setIsCreateArtifactModalOpen(true)}/>
+            onCreateArtifact={
+                searchType === SearchType.ARTIFACT
+                    ? () => setIsCreateArtifactModalOpen(true)
+                    : undefined
+            }/>
     );
 
     return (

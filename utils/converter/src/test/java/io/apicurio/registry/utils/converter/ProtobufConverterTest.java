@@ -1,6 +1,9 @@
 package io.apicurio.registry.utils.converter;
 
+import com.google.protobuf.DynamicMessage;
+import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.utils.converter.protobuf.ProtobufData;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -22,7 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Note: these tests exercise {@link ProtobufData} directly (not via the full Kafka Connect
  * serialization pipeline) to avoid a dependency on a running schema registry. The registry-wired
- * path is covered by the integration-tests module.
+ * path is covered by the integration-tests module. The one exception is the null-tombstone test,
+ * which goes through the real {@link SerdeBasedConverter} pipeline — safe without a registry
+ * because null values short-circuit before any registry call.
  */
 public class ProtobufConverterTest {
 
@@ -153,6 +158,39 @@ public class ProtobufConverterTest {
         Struct resultStruct = assertInstanceOf(Struct.class, result.value());
 
         assertEquals(Map.of("errors", 3L, "warnings", 12L), resultStruct.getMap("counts"));
+    }
+
+    @Test
+    public void testNullValueRoundTripsThroughConverterPipeline() {
+        ProtobufConverter<DynamicMessage> converter = new ProtobufConverter<>();
+        try {
+            converter.configure(
+                    Map.of(SerdeConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3"), false);
+            Schema schema = SchemaBuilder.struct()
+                    .name("io.apicurio.registry.test.converter.NullValue")
+                    .field("id", Schema.INT32_SCHEMA)
+                    .build();
+
+            byte[] serialized = converter.fromConnectData("test-topic", schema, null);
+            assertNull(serialized,
+                    "null Connect value must serialize to null bytes (Kafka tombstone), not throw");
+
+            SchemaAndValue deserialized = converter.toConnectData("test-topic", null);
+            assertEquals(SchemaAndValue.NULL, deserialized,
+                    "null bytes must deserialize to SchemaAndValue.NULL");
+
+            byte[] serializedWithHeaders = converter.fromConnectData("test-topic",
+                    new RecordHeaders(), schema, null);
+            assertNull(serializedWithHeaders,
+                    "null Connect value must serialize to null bytes via the Headers overload");
+
+            SchemaAndValue deserializedWithHeaders = converter.toConnectData("test-topic",
+                    new RecordHeaders(), null);
+            assertEquals(SchemaAndValue.NULL, deserializedWithHeaders,
+                    "null bytes must deserialize to SchemaAndValue.NULL via the Headers overload");
+        } finally {
+            converter.close();
+        }
     }
 
     @Test

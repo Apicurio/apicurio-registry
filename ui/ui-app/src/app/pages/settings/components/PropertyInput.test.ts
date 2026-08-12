@@ -48,11 +48,22 @@ describe("validatePropertyValue", () => {
         expect(validatePropertyValue("123", "number")).toEqual({
             isValid: true
         });
+        expect(validatePropertyValue("0", "number")).toEqual({
+            isValid: true
+        });
+        expect(validatePropertyValue("4000", "number")).toEqual({
+            isValid: true
+        });
     });
 
-    it("accepts a negative integer", () => {
+    it("rejects a negative integer", () => {
         expect(validatePropertyValue("-123", "number")).toEqual({
-            isValid: true
+            isValid: false,
+            errorMessage: "Value must be a number"
+        });
+        expect(validatePropertyValue("-4000", "number")).toEqual({
+            isValid: false,
+            errorMessage: "Value must be a number"
         });
     });
 

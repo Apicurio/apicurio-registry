@@ -20,8 +20,6 @@ export type PropertyInputProps = {
     onSave: () => void;
 };
 
-import { isPropertyInputValid } from "./PropertyInput.utils";
-
 /**
  * Models a single editable config property.
  */
@@ -36,10 +34,6 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
     };
 
     const handleInputChange = (_event: any, value: string): void => {
-        const isValid: boolean = isPropertyInputValid(props.type, value);
-        setCurrentValue(value);
-        setIsDirty(value !== props.value);
-        setIsValid(isValid);
         const validation = validatePropertyValue(value, props.type);
 
         setCurrentValue(value);
@@ -66,19 +60,6 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
         props.onChange(currentValue);
     }, [currentValue]);
 
-    return <InputGroup>
-        <TextInput name={ props.name }
-            value={ currentValue }
-            type={ props.type === "number" ? "number" : "text" }
-            min={ props.type === "number" ? 0 : undefined }
-            validated={ validated() }
-            onChange={ handleInputChange }
-            onKeyDown={ handleKeyPress }
-            aria-label="configuration property input"/>
-    </InputGroup>;
-
-};
-
     const errorId = `${props.name}-error`;
 
     return (
@@ -87,6 +68,8 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
                 <TextInput
                     name={props.name}
                     value={currentValue}
+                    type={props.type === "number" ? "number" : "text"}
+                    min={props.type === "number" ? 0 : undefined}
                     validated={validated()}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}

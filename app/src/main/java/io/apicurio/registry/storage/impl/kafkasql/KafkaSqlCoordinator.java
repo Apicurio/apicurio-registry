@@ -46,7 +46,7 @@ public class KafkaSqlCoordinator {
             CompletableFuture<Object> future = operations.get(uuid);
             if (future == null) {
                 throw new RegistryException(
-                        "[KafkaSqlCoordinator] Timeout waiting for a Kafka Sql response from consumer thread.");
+                        "[KafkaSqlCoordinator] Operation not registered or duplicate response for UUID: " + uuid);
             }
             return future.get(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
         } catch (java.util.concurrent.TimeoutException e) {
@@ -57,6 +57,8 @@ public class KafkaSqlCoordinator {
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
         } catch (java.util.concurrent.ExecutionException e) {
             Throwable cause = e.getCause();
+            // KafkaSqlSink.processMessage explicitly catches all Throwables and wraps non-RuntimeExceptions 
+            // into RegistryException. Therefore, `cause` will always be a RuntimeException (or a subclass).
             if (cause instanceof RuntimeException) {
                 throw (RuntimeException) cause;
             }

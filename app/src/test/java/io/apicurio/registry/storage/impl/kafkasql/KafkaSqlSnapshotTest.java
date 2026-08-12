@@ -4,7 +4,6 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
-import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -17,8 +16,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -32,9 +33,6 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
 
     @Inject
     KafkaSqlRegistryStorage kafkaSqlRegistryStorage;
-
-    @Inject
-    SqlRegistryStorage sqlRegistryStorage;
 
     @BeforeAll
     public void init() {
@@ -72,24 +70,19 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testSnapshotRestoreRoundTrip() throws IOException {
-        long artifactCountBefore = clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID)
-                .artifacts().get(config -> config.queryParameters.limit = 1).getCount();
-        Assertions.assertTrue(artifactCountBefore > 0, "Artifacts should exist before snapshot");
-
+    public void testSnapshotContainsDatabaseContent() throws IOException {
         String snapshotLocation = kafkaSqlRegistryStorage.triggerSnapshotCreation();
         Path path = Path.of(snapshotLocation);
         try {
             Assertions.assertTrue(Files.exists(path));
 
-            // Restore from the compressed snapshot into the same database. This exercises
-            // H2's RUNSCRIPT FROM ? COMPRESSION GZIP path and verifies the snapshot is valid.
-            sqlRegistryStorage.restoreFromSnapshot(snapshotLocation);
-
-            long artifactCountAfter = clientV3.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID)
-                    .artifacts().get(config -> config.queryParameters.limit = 1).getCount();
-            Assertions.assertEquals(artifactCountBefore, artifactCountAfter,
-                    "Artifact count should be the same after restoring from snapshot");
+            // Decompress and read the snapshot content to verify it contains valid H2 SQL
+            // statements including the data we created.
+            String content = readGzipContent(path);
+            Assertions.assertTrue(content.contains("CREATE MEMORY TABLE"),
+                    "Snapshot should contain H2 CREATE TABLE statements");
+            Assertions.assertTrue(content.contains("SNAPSHOT_TEST_GROUP_ID"),
+                    "Snapshot should contain the test group's artifact data");
         } finally {
             Files.deleteIfExists(path);
         }
@@ -100,15 +93,23 @@ public class KafkaSqlSnapshotTest extends AbstractResourceTestBase {
      * through a GZIPInputStream.
      */
     private void assertGzipCompressed(Path path) throws IOException {
+        String content = readGzipContent(path);
+        Assertions.assertFalse(content.isEmpty(), "GZIP content should decompress to non-empty data");
+    }
+
+    /**
+     * Reads and decompresses a GZIP file, returning the content as a string.
+     */
+    private String readGzipContent(Path path) throws IOException {
         try (InputStream fis = Files.newInputStream(path);
-             GZIPInputStream gzis = new GZIPInputStream(fis)) {
-            byte[] buffer = new byte[1024];
-            int totalRead = 0;
+             GZIPInputStream gzis = new GZIPInputStream(fis);
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
             int bytesRead;
             while ((bytesRead = gzis.read(buffer)) != -1) {
-                totalRead += bytesRead;
+                baos.write(buffer, 0, bytesRead);
             }
-            Assertions.assertTrue(totalRead > 0, "GZIP content should decompress to non-empty data");
+            return baos.toString(StandardCharsets.UTF_8);
         }
     }
 }

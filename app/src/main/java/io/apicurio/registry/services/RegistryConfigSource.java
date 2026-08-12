@@ -38,7 +38,7 @@ public class RegistryConfigSource implements ConfigSource {
 
     @Override
     public Set<String> getPropertyNames() {
-        return new HashSet<>(properties.values());
+        return new HashSet<>(getProperties().keySet());
     }
 
     @Override

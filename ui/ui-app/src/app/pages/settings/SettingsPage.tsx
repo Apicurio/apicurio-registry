@@ -77,6 +77,14 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
             "apicurio.semver.branching.coerce"
         ]
     },
+    {
+        id: "storage",
+        label: "Storage settings",
+        propertyNames: [
+            "apicurio.storage.read-only.enabled",
+            "apicurio.kafkasql.snapshot.scheduled.enabled"
+        ]
+    },
 ];
 
 /**

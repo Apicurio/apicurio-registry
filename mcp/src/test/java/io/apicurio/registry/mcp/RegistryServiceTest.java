@@ -2,14 +2,19 @@ package io.apicurio.registry.mcp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.util.TypeLiteral;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.annotation.Annotation;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,7 +57,7 @@ public class RegistryServiceTest {
                 return;
             }
 
-            // System info GET endpoint (called in init)
+            // System info GET endpoint (called in resolver init)
             if (path.endsWith("/system/info")) {
                 String response = "{\"version\":\"3.0.0\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
@@ -131,12 +136,7 @@ public class RegistryServiceTest {
     }
 
     private RegistryService createService(String rawUrl, boolean authEnabled) {
-        RegistryService service = new RegistryService();
-        service.rawBaseUrl = rawUrl;
-        Utils utils = new Utils();
-        utils.mapper = new ObjectMapper();
-        service.utils = utils;
-        service.config = new McpConfig() {
+        McpConfig config = new McpConfig() {
             @Override
             public boolean safeMode() {
                 return false;
@@ -188,6 +188,21 @@ public class RegistryServiceTest {
             }
 
             @Override
+            public Http http() {
+                return new Http() {
+                    @Override
+                    public boolean enabled() {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean forwardToken() {
+                        return true;
+                    }
+                };
+            }
+
+            @Override
             public Tls tls() {
                 return new Tls() {
                     @Override
@@ -227,8 +242,72 @@ public class RegistryServiceTest {
             }
         };
 
-        service.init();
+        RegistryClientResolver resolver = new RegistryClientResolver();
+        resolver.rawBaseUrl = rawUrl;
+        resolver.config = config;
+        resolver.securityIdentity = new UnresolvableInstance<>();
+        resolver.jwt = new UnresolvableInstance<>();
+        resolver.init();
+
+        RegistryService service = new RegistryService();
+        Utils utils = new Utils();
+        utils.mapper = new ObjectMapper();
+        service.utils = utils;
+        service.config = config;
+        service.clientResolver = resolver;
         return service;
+    }
+
+    private static final class UnresolvableInstance<T> implements Instance<T> {
+        @Override
+        public Instance<T> select(Annotation... qualifiers) {
+            return this;
+        }
+
+        @Override
+        public <U extends T> Instance<U> select(Class<U> subtype, Annotation... qualifiers) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public <U extends T> Instance<U> select(TypeLiteral<U> subtype, Annotation... qualifiers) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean isUnsatisfied() {
+            return true;
+        }
+
+        @Override
+        public boolean isAmbiguous() {
+            return false;
+        }
+
+        @Override
+        public Handle<T> getHandle() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Iterable<? extends Handle<T>> handles() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public T get() {
+            return null;
+        }
+
+        @Override
+        public Iterator<T> iterator() {
+            return Collections.emptyIterator();
+        }
+
+        @Override
+        public void destroy(T instance) {
+            // no-op
+        }
     }
 
     @Test

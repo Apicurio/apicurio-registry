@@ -6,6 +6,7 @@ import io.apicurio.registry.cli.services.CliVersion;
 import io.apicurio.registry.cli.services.Update;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.apicurio.registry.cli.utils.PlatformUtils;
 import jakarta.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +29,9 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class UpdateCommand extends AbstractCommand {
 
     private static final Logger log = Logger.getLogger(UpdateCommand.class);
+
+    // Set by the launcher scripts to the directory the running binary was started from.
+    private static final String ENV_ACR_CURRENT_HOME = "ACR_CURRENT_HOME";
 
     @Parameters(
             index = "0",
@@ -169,11 +173,15 @@ public class UpdateCommand extends AbstractCommand {
     private void runInstallFromZip(Path zipFilePath, Path targetDir, OutputBuffer output) throws Exception {
         FileUtils.unzip(zipFilePath, targetDir);
 
-        Path acrPath = targetDir.resolve(InstallCommand.ACR_SCRIPT);
-        Path acrRunnerPath = targetDir.resolve(InstallCommand.ACR_BINARY);
-        for (var executable : List.of(acrPath, acrRunnerPath)) {
-            if (executable.toFile().exists() && !executable.toFile().setExecutable(true, false)) {
-                throw new CliException("Failed to set executable permission on " + executable);
+        Path acrPath = targetDir.resolve(InstallCommand.getAcrScriptName());
+        Path acrRunnerPath = targetDir.resolve(InstallCommand.getAcrBinaryName());
+        // Windows has no executable bit to set — a file is executable there by virtue of its
+        // ".exe" or ".cmd" extension — so the call carries no meaning on that platform.
+        if (!PlatformUtils.isWindows()) {
+            for (var executable : List.of(acrPath, acrRunnerPath)) {
+                if (executable.toFile().exists() && !executable.toFile().setExecutable(true, false)) {
+                    throw new CliException("Failed to set executable permission on " + executable);
+                }
             }
         }
         // The file swap is performed by the NEW binary: this runs "<downloaded>/acr install",
@@ -182,14 +190,25 @@ public class UpdateCommand extends AbstractCommand {
         // checksum but cannot run (wrong architecture, glibc, missing dependency) fails to launch
         // here, before the swap, so the existing installation is left untouched. Once the swap is
         // running, InstallCommand additionally rolls back if a copy fails partway through.
-        log.debugf("Running subprocess: %s", acrPath);
+        // On Windows the binary is launched directly rather than through acr.cmd. A batch file is
+        // not an executable image, so it would have to be run by "cmd.exe /c", and cmd re-parses
+        // its command line: a target directory containing "&" — which ACR_HOME, and therefore
+        // this path, is derived from — would be split into a second command to execute. Running
+        // the executable directly removes that command interpreter entirely; the only thing the
+        // launcher would have contributed is ACR_CURRENT_HOME, which is set explicitly below.
+        final boolean windows = PlatformUtils.isWindows();
+        final Path executablePath = windows ? acrRunnerPath : acrPath;
+        log.debugf("Running subprocess: %s", executablePath);
         var cmd = new ArrayList<String>(3);
-        cmd.add(acrPath.toString());
+        cmd.add(executablePath.toString());
         cmd.add("install");
         if (parent.isVerbose()) {
             cmd.add("--verbose");
         }
         ProcessBuilder processBuilder = new ProcessBuilder(cmd);
+        if (windows) {
+            processBuilder.environment().put(ENV_ACR_CURRENT_HOME, targetDir.toString());
+        }
         processBuilder.inheritIO();
         Process process = processBuilder.start();
         int exitCode = process.waitFor();

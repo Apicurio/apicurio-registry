@@ -51,6 +51,7 @@ import {
 import { EditAgentModal } from "@app/pages/agents/components";
 import { AgentCard } from "@app/components/agentCard";
 import { isErrorStatus } from "@utils/rest.utils.ts";
+import { fileExtensionForContentType } from "@utils/content.utils.ts";
 
 
 /**
@@ -63,6 +64,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [artifactVersion, setArtifactVersion] = useState<VersionMetaData>();
     const [draft, setDraft] = useState<Draft | undefined>();
     const [versionContent, setArtifactContent] = useState("");
+    const [versionContentType, setVersionContentType] = useState(ContentTypes.APPLICATION_JSON);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
@@ -117,12 +119,16 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
                 })),
-            groups.getArtifactVersionContent(gid, artifactId as string, version as string)
-                .then(guard.wrap(setArtifactContent))
+            groups.getArtifactVersionContentWithType(gid, artifactId as string, version as string)
+                .then(guard.wrap(artifactContent => {
+                    setArtifactContent(artifactContent.content);
+                    setVersionContentType(artifactContent.contentType);
+                }))
                 .catch(guard.wrap((e: any) => {
                     logger.warn("Failed to get artifact content: ", e);
                     if (is404(e)) {
                         setArtifactContent("Artifact version content not available (404 Not Found).");
+                        setVersionContentType(ContentTypes.APPLICATION_JSON);
                     } else {
                         const pageError: PageError = toPageError(e, "Error loading page data.");
                         setPageError(pageError);
@@ -206,33 +212,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
 
     const doDownloadVersion = (): void => {
         const content: string = versionContent;
-
-        let contentType: string = ContentTypes.APPLICATION_JSON;
-        let fext: string = "json";
-        if (artifact?.artifactType === ArtifactTypes.PROTOBUF) {
-            contentType = ContentTypes.APPLICATION_PROTOBUF;
-            fext = "proto";
-        }
-        if (artifact?.artifactType === ArtifactTypes.WSDL) {
-            contentType = ContentTypes.APPLICATION_XML;
-            fext = "wsdl";
-        }
-        if (artifact?.artifactType === ArtifactTypes.XSD) {
-            contentType = ContentTypes.APPLICATION_XML;
-            fext = "xsd";
-        }
-        if (artifact?.artifactType === ArtifactTypes.XML) {
-            contentType = ContentTypes.APPLICATION_XML;
-            fext = "xml";
-        }
-        if (artifact?.artifactType === ArtifactTypes.GRAPHQL) {
-            contentType = ContentTypes.APPLICATION_JSON;
-            fext = "graphql";
-        }
-        if (artifact?.artifactType === ArtifactTypes.THRIFT) {
-            contentType = ContentTypes.APPLICATION_THRIFT;
-            fext = "thrift";
-        }
+        const contentType: string = versionContentType;
+        const fext: string = fileExtensionForContentType(contentType);
 
         const fname: string = nameOrId() + "." + fext;
         download.downloadToFS(content, contentType, fname).catch(error => {

@@ -7,7 +7,6 @@ div.artifact-page-tabs > ul > li.pf-v6-c-tabs__item.pf-m-current > button.pf-v6-
     flex-direction: column;
 }
 
-.artifact-details-main .pf-v6-c-tab-content,
 .artifact-details-main .pf-v6-c-tab-content {
     flex-grow: 1;
     display: flex;

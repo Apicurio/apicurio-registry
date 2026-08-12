@@ -8,7 +8,6 @@ div.group-page-tabs > ul > li.pf-v6-c-tabs__item.pf-m-current > button.pf-v6-c-t
     gap: 0;
 }
 
-.artifact-details-main .pf-v6-c-tab-content,
 .artifact-details-main .pf-v6-c-tab-content {
     flex-grow: 1;
     display: flex;

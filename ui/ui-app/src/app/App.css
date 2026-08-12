@@ -17,8 +17,6 @@
 
 .artifact-details-main .pf-v6-c-tab-content,
 .branch-details-main .pf-v6-c-tab-content,
-.artifact-details-main .pf-v6-c-tab-content,
-.branch-details-main .pf-v6-c-tab-content,
 #pf-tab-section-content-artifact-page-tabs,
 #pf-tab-section-content-group-page-tabs,
 #pf-tab-section-content-branch-page-tabs {
@@ -27,10 +25,7 @@
 
 /* Secondary cards inside detail tabs add a redundant gray frame on the canvas. */
 .artifact-details-main [class*="-tab-content"] .pf-v6-c-card.pf-m-secondary,
-.branch-details-main [class*="-tab-content"] .pf-v6-c-card.pf-m-secondary,
-.artifact-details-main [class*="-tab-content"] .pf-v6-c-card.pf-m-secondary,
 .branch-details-main [class*="-tab-content"] .pf-v6-c-card.pf-m-secondary {
-  --pf-v6-c-card--BackgroundColor: transparent;
   --pf-v6-c-card--BackgroundColor: transparent;
   border: none;
   box-shadow: none;

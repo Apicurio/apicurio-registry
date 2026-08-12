@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import { FormHelperText, HelperText, HelperTextItem, InputGroup, TextInput } from "@patternfly/react-core";
-import { isNonNegativeInteger } from "@utils/validation.utils.ts";
+import { isNonNegativeInteger } from "@utils/validation.utils";
 
 /**
  * Properties

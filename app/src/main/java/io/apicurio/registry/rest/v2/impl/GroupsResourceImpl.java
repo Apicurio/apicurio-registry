@@ -36,6 +36,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.rules.RuleApplicationContext;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
@@ -627,11 +628,15 @@ public class GroupsResourceImpl implements GroupsResource {
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
-                RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap()); // TODO:references
-                                                                                              // not supported
-                                                                                              // for testing
-                                                                                              // update
+        rulesService.applyRules(RuleApplicationContext.builder()
+                .groupId(defaultGroupIdToNull(groupId))
+                .artifactId(artifactId)
+                .artifactType(artifactType)
+                .content(typedContent)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
+                .references(Collections.emptyList())
+                .resolvedReferences(Collections.emptyMap())
+                .build());
     }
 
     /**
@@ -1086,8 +1091,15 @@ public class GroupsResourceImpl implements GroupsResource {
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
-            rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
-                    RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
+            rulesService.applyRules(RuleApplicationContext.builder()
+                    .groupId(defaultGroupIdToNull(groupId))
+                    .artifactId(artifactId)
+                    .artifactType(artifactType)
+                    .content(typedContent)
+                    .ruleApplicationType(RuleApplicationType.CREATE)
+                    .references(toV3Refs(references))
+                    .resolvedReferences(resolvedReferences)
+                    .build());
 
             // Extract metadata from content, then override extracted values with provided values.
             EditableArtifactMetaDataDto metaData = extractMetaData(artifactType, content);
@@ -1237,8 +1249,15 @@ public class GroupsResourceImpl implements GroupsResource {
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         TypedContent typedContent = TypedContent.create(content, ct);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
-                RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
+        rulesService.applyRules(RuleApplicationContext.builder()
+                .groupId(defaultGroupIdToNull(groupId))
+                .artifactId(artifactId)
+                .artifactType(artifactType)
+                .content(typedContent)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
+                .references(toV3Refs(references))
+                .resolvedReferences(resolvedReferences)
+                .build());
         EditableVersionMetaDataDto metaData = getEditableVersionMetaData(artifactName, artifactDescription);
         ContentWrapperDto contentDto = ContentWrapperDto.builder().content(content).contentType(ct)
                 .references(referencesAsDtos).build();
@@ -1346,8 +1365,15 @@ public class GroupsResourceImpl implements GroupsResource {
                 .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
         TypedContent typedContent = TypedContent.create(content, contentType);
-        rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
-                RuleApplicationType.UPDATE, toV3Refs(references), resolvedReferences);
+        rulesService.applyRules(RuleApplicationContext.builder()
+                .groupId(defaultGroupIdToNull(groupId))
+                .artifactId(artifactId)
+                .artifactType(artifactType)
+                .content(typedContent)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
+                .references(toV3Refs(references))
+                .resolvedReferences(resolvedReferences)
+                .build());
 
         // Extract metadata from content, then override extracted values with provided values.
         EditableArtifactMetaDataDto artifactMD = extractMetaData(artifactType, content);

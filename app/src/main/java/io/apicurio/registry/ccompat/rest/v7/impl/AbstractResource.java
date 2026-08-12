@@ -10,6 +10,7 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.RuleApplicationContext;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;

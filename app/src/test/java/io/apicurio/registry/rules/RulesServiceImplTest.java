@@ -45,7 +45,7 @@ public class RulesServiceImplTest {
         rulesService.storage = storage;
         rulesService.factory = mock(RuleExecutorFactory.class);
         rulesService.otelMetrics = mock(io.apicurio.registry.metrics.OTelMetricsProvider.class);
-        rulesService.rulesProperties = mock(io.apicurio.registry.rules.config.RulesProperties.class);
+        rulesService.rulesProperties = mock(io.apicurio.registry.rules.RulesProperties.class);
 
         when(storage.getArtifactRules(any(), any())).thenReturn(Collections.singletonList(RuleType.VALIDITY));
         when(rulesService.factory.createExecutor(any())).thenReturn(context -> {});
@@ -139,16 +139,100 @@ public class RulesServiceImplTest {
     }
 
     @Test
+    public void testApplyRuleWithContext() {
+        TypedContent content = TypedContent.create(ContentHandle.create("{\"type\":\"string\"}"), ContentTypes.APPLICATION_JSON);
+        RuleApplicationContext context = RuleApplicationContext.builder()
+                .storage(storage)
+                .groupId("testGroup")
+                .artifactId("testArtifact")
+                .artifactType(ArtifactType.JSON)
+                .content(content)
+                .ruleType(RuleType.VALIDITY)
+                .ruleConfiguration("FULL")
+                .build();
+
+        rulesService.applyRule(context);
+
+        verify(rulesService.factory).createExecutor(RuleType.VALIDITY);
+    }
+
+    @Test
+    public void testLegacyOverloads() {
+        TypedContent content = TypedContent.create(ContentHandle.create("{\"type\":\"string\"}"), ContentTypes.APPLICATION_JSON);
+        when(storage.getEnabledArtifactContentIds("testGroup", "testArtifact")).thenReturn(Collections.emptyList());
+
+        // Test 1: applyRules(groupId, artifactId, artifactType, content, ruleApplicationType, references, resolvedReferences)
+        rulesService.applyRules("testGroup", "testArtifact", ArtifactType.JSON, content,
+                RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap());
+        verify(storage, times(1)).getEnabledArtifactContentIds("testGroup", "testArtifact");
+
+        // Test 2: applyRules(storageToUse, groupId, artifactId, artifactType, content, ruleApplicationType, references, resolvedReferences)
+        rulesService.applyRules(storage, "testGroup", "testArtifact", ArtifactType.JSON, content,
+                RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap());
+        verify(storage, times(2)).getEnabledArtifactContentIds("testGroup", "testArtifact");
+
+        // Test 3: applyRules(storageToUse, groupId, artifactId, artifactType, content, existingContent, references, resolvedReferences)
+        rulesService.applyRules(storage, "testGroup", "testArtifact", ArtifactType.JSON, content,
+                Collections.singletonList(content), Collections.emptyList(), Collections.emptyMap());
+        verify(storage, times(3)).getArtifactRules("testGroup", "testArtifact");
+
+        // Test 4: applyRules(groupId, artifactId, artifactVersion, artifactType, updatedContent, references, resolvedReferences)
+        StoredArtifactVersionDto versionDto = StoredArtifactVersionDto.builder()
+                .content(ContentHandle.create("{\"type\":\"string\"}"))
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .build();
+        when(storage.getArtifactVersionContent("testGroup", "testArtifact", "1.0.0")).thenReturn(versionDto);
+        rulesService.applyRules("testGroup", "testArtifact", "1.0.0", ArtifactType.JSON, content,
+                Collections.emptyList(), Collections.emptyMap());
+        verify(storage).getArtifactVersionContent("testGroup", "testArtifact", "1.0.0");
+
+        // Test 5: applyRule(groupId, artifactId, artifactType, content, ruleType, ruleConfiguration, ruleApplicationType, references, resolvedReferences)
+        rulesService.applyRule("testGroup", "testArtifact", ArtifactType.JSON, content,
+                RuleType.VALIDITY, "FULL", RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap());
+        verify(rulesService.factory, times(2)).createExecutor(RuleType.VALIDITY);
+    }
+
+    @Test
     public void testApplyRuleNullGuards() {
         Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules((RuleApplicationContext) null));
         Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRule((RuleApplicationContext) null));
 
+        TypedContent content = TypedContent.create(ContentHandle.create("{}"), ContentTypes.APPLICATION_JSON);
+
+        // Missing artifactId
+        RuleApplicationContext contextMissingArtifactId = RuleApplicationContext.builder()
+                .storage(storage)
+                .groupId("testGroup")
+                .artifactType(ArtifactType.JSON)
+                .content(content)
+                .build();
+        Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules(contextMissingArtifactId));
+
+        // Missing artifactType
+        RuleApplicationContext contextMissingArtifactType = RuleApplicationContext.builder()
+                .storage(storage)
+                .groupId("testGroup")
+                .artifactId("testArtifact")
+                .content(content)
+                .build();
+        Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules(contextMissingArtifactType));
+
+        // Missing content
+        RuleApplicationContext contextMissingContent = RuleApplicationContext.builder()
+                .storage(storage)
+                .groupId("testGroup")
+                .artifactId("testArtifact")
+                .artifactType(ArtifactType.JSON)
+                .build();
+        Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules(contextMissingContent));
+
+        // Missing ruleType for applyRule
         RuleApplicationContext contextWithoutRuleType = RuleApplicationContext.builder()
                 .storage(storage)
                 .groupId("testGroup")
                 .artifactId("testArtifact")
                 .artifactType(ArtifactType.JSON)
-                .content(TypedContent.create(ContentHandle.create("{}"), ContentTypes.APPLICATION_JSON))
+                .content(content)
                 .build();
 
         Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRule(contextWithoutRuleType));

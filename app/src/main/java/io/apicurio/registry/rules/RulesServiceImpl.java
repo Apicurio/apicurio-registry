@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -46,6 +47,9 @@ public class RulesServiceImpl implements RulesService {
     @Override
     public void applyRules(RuleApplicationContext context) throws RuleViolationException {
         Objects.requireNonNull(context, "context must not be null");
+        Objects.requireNonNull(context.getArtifactId(), "artifactId must not be null");
+        Objects.requireNonNull(context.getArtifactType(), "artifactType must not be null");
+        Objects.requireNonNull(context.getContent(), "content must not be null");
         RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
 
         List<TypedContent> currentContent = resolveCurrentContent(context, storageToUse);
@@ -65,6 +69,9 @@ public class RulesServiceImpl implements RulesService {
     @Override
     public void applyRule(RuleApplicationContext context) throws RuleViolationException {
         Objects.requireNonNull(context, "context must not be null");
+        Objects.requireNonNull(context.getArtifactId(), "artifactId must not be null");
+        Objects.requireNonNull(context.getArtifactType(), "artifactType must not be null");
+        Objects.requireNonNull(context.getContent(), "content must not be null");
         Objects.requireNonNull(context.getRuleType(), "ruleType must not be null for applyRule");
         RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
 

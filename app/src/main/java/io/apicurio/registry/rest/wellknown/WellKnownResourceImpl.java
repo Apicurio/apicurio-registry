@@ -393,25 +393,15 @@ public class WellKnownResourceImpl implements WellKnownResource {
         int safeLimit = Math.max(1, Math.min(limit, 500));
 
         if (isAuthEnabled() && a2aConfig.isEntitlementsEnabled()) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(
-                    filters, OrderBy.createdOn, OrderDirection.desc,
-                    0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results, "Agent");
-
-            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
-
-            int total = visible.size();
-            int fromIndex = Math.min(safeOffset, total);
-            int toIndex = Math.min(fromIndex + safeLimit, total);
-            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
-
-            List<AgentSearchResult> agents = new ArrayList<>();
-            for (SearchedArtifactDto artifact : page) {
-                agents.add(convertToAgentSearchResult(artifact));
-            }
+            int totalHolder = new int[1];
+            List<AgentSearchResult> agents = executeVisibilityFilteredSearch(
+                    filters, "Agent", safeOffset, safeLimit,
+                    this::convertToAgentSearchResult,
+                    count -> totalHolder[0] = count
+            );
 
             return AgentSearchResults.builder()
-                    .count(total)
+                    .count(totalHolder[0])
                     .agents(agents)
                     .build();
         }
@@ -428,6 +418,35 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .count((int) results.getCount())
                 .agents(agents)
                 .build();
+    }
+
+    /**
+     * Executes an in-memory visibility-filtered search when entitlements are enabled.
+     * Fetches up to MAX_VISIBILITY_FILTER_RESULTS, filters by visibility on DTOs first,
+     * paginates, and converts to the target DTO type.
+     */
+    private <T> List<T> executeVisibilityFilteredSearch(Set<SearchFilter> filters, String resourceName, 
+            int offset, int limit, Function<SearchedArtifactDto, T> mapper, 
+            Consumer<Integer> totalCountConsumer) {
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+        warnIfTruncated(results, resourceName);
+
+        List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+
+        int total = visible.size();
+        totalCountConsumer.accept(total);
+
+        int fromIndex = Math.min(offset, total);
+        int toIndex = Math.min(fromIndex + limit, total);
+        List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+
+        List<T> items = new ArrayList<>(page.size());
+        for (SearchedArtifactDto artifact : page) {
+            items.add(mapper.apply(artifact));
+        }
+        return items;
     }
 
     /**
@@ -585,23 +604,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         if (isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled()) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
-                    OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
+            int[] totalHolder = new int[1];
+            List<McpToolSearchResult> tools = executeVisibilityFilteredSearch(
+                    filters, "MCP tool", safeOffset, safeLimit,
+                    this::convertToMcpToolSearchResult,
+                    count -> totalHolder[0] = count
+            );
     
-            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
-    
-            int total = visible.size();
-            int fromIndex = Math.min(safeOffset, total);
-            int toIndex = Math.min(fromIndex + safeLimit, total);
-            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
-    
-            List<McpToolSearchResult> tools = new ArrayList<>();
-            for (SearchedArtifactDto artifact : page) {
-                tools.add(convertToMcpToolSearchResult(artifact));
-            }
-    
-            return McpToolSearchResults.builder().count(total).tools(tools).build();
+            return McpToolSearchResults.builder().count(totalHolder[0]).tools(tools).build();
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,

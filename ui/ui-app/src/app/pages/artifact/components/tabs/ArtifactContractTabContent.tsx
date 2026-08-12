@@ -223,7 +223,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
             <Grid hasGutter>
                 {/* Metadata card */}
                 <GridItem span={6}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Contract Metadata</CardTitle>
                         <Divider />
                         <CardBody>
@@ -300,7 +300,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
 
                 {/* Quality score card */}
                 <GridItem span={6}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Quality Score</CardTitle>
                         <Divider />
                         <CardBody>
@@ -355,7 +355,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
 
                 {/* Contract rules card */}
                 <GridItem span={12}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Contract Rules</CardTitle>
                         <Divider />
                         <CardBody>
@@ -413,7 +413,7 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
 
                 {/* Audit log card */}
                 <GridItem span={12}>
-                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card className="contract-section" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>Audit Log</CardTitle>
                         <Divider />
                         <CardBody>

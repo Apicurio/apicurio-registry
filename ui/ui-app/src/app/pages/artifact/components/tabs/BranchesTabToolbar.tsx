@@ -31,9 +31,9 @@ export const BranchesTabToolbar: FunctionComponent<BranchesToolbarProps> = (prop
         props.onPageChange(newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: props.paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         props.onPageChange(newPaging);

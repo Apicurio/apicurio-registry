@@ -541,8 +541,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     labels.forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertArtifactLabel())
                                 .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                                .bind(2, limitStr(k.toLowerCase(), 256))
-                                .bind(3, limitStr(v.toLowerCase(), 512)).execute();
+                                .bind(2, limitStr(asLowerCase(k), 256))
+                                .bind(3, limitStr(asLowerCase(v), 512)).execute();
                     });
                 }
 
@@ -684,7 +684,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         labels.forEach((k, v) -> {
                             handle.createUpdate(sqlStatements.insertArtifactLabel())
                                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                                    .bind(2, limitStr(k.toLowerCase(), 256))
+                                    .bind(2, limitStr(asLowerCase(k), 256))
                                     .bind(3, limitStr(asLowerCase(v), 512)).execute();
                         });
                     }

@@ -74,6 +74,27 @@ public class SearchResourceImpl implements SearchResource {
     @Inject
     RegistryStorageContentUtils contentUtils;
 
+    private static SearchFilter parseLabelFilter(String prop) {
+        int delimiterIndex = prop.lastIndexOf(":");
+        if (delimiterIndex == 0) {
+            throw new BadRequestException(
+                    "label search filter incorrectly formatted, missing left side of ':' delimiter");
+        }
+        String labelKey;
+        String labelValue;
+        if (delimiterIndex < 0) {
+            labelKey = prop;
+            labelValue = null;
+        } else if (delimiterIndex == (prop.length() - 1)) {
+            labelKey = prop.substring(0, delimiterIndex);
+            labelValue = null;
+        } else {
+            labelKey = prop.substring(0, delimiterIndex);
+            labelValue = prop.substring(delimiterIndex + 1);
+        }
+        return SearchFilter.ofLabel(labelKey, labelValue);
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
@@ -111,26 +132,9 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
-                int delimiterIndex = prop.indexOf(":");
-                String labelKey;
-                String labelValue;
-                if (delimiterIndex == 0) {
-                    throw new BadRequestException(
-                            "label search filter wrong format, missing left side of ':' delimiter");
-                }
-                if (delimiterIndex < 0) {
-                    labelKey = prop;
-                    labelValue = null;
-                } else if (delimiterIndex == (prop.length() - 1)) {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = null;
-                } else {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = prop.substring(delimiterIndex + 1);
-                }
-                return SearchFilter.ofLabel(labelKey, labelValue);
-            }).forEach(filters::add);
+            labels.stream().filter(prop -> prop != null && !prop.isBlank())
+                    .map(SearchResourceImpl::parseLabelFilter)
+                    .forEach(filters::add);
         }
         if (globalId != null && globalId > 0) {
             filters.add(SearchFilter.ofGlobalId(globalId));
@@ -222,28 +226,9 @@ public class SearchResourceImpl implements SearchResource {
         }
 
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
-                int delimiterIndex = prop.indexOf(":");
-                String labelKey;
-                String labelValue;
-                if (delimiterIndex == 0) {
-                    throw new BadRequestException(
-                            "label search filter incorrectly formatted, missing left side of ':' delimiter");
-                }
-                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
-                // use null for the value (will match all groups containing a label with the key and *any* value).
-                if (delimiterIndex < 0) {
-                    labelKey = prop;
-                    labelValue = null;
-                } else if (delimiterIndex == (prop.length() - 1)) {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = null;
-                } else {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = prop.substring(delimiterIndex + 1);
-                }
-                return SearchFilter.ofLabel(labelKey, labelValue);
-            }).forEach(filters::add);
+            labels.stream().filter(prop -> prop != null && !prop.isBlank())
+                    .map(SearchResourceImpl::parseLabelFilter)
+                    .forEach(filters::add);
         }
 
         GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, normalizeOffset(offset),
@@ -292,28 +277,9 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofArtifactType(artifactType));
         }
         if (labels != null && !labels.isEmpty()) {
-            labels.stream().filter(prop -> prop != null && !prop.isBlank()).map(prop -> {
-                int delimiterIndex = prop.indexOf(":");
-                String labelKey;
-                String labelValue;
-                if (delimiterIndex == 0) {
-                    throw new BadRequestException(
-                            "label search filter incorrectly formatted, missing left side of ':' delimiter");
-                }
-                // If the delimiter is missing or simply exists at the end of the label filter with no value, then
-                // use null for the value (will match all versions containing a label with the key and *any* value).
-                if (delimiterIndex < 0) {
-                    labelKey = prop;
-                    labelValue = null;
-                } else if (delimiterIndex == (prop.length() - 1)) {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = null;
-                } else {
-                    labelKey = prop.substring(0, delimiterIndex);
-                    labelValue = prop.substring(delimiterIndex + 1);
-                }
-                return SearchFilter.ofLabel(labelKey, labelValue);
-            }).forEach(filters::add);
+            labels.stream().filter(prop -> prop != null && !prop.isBlank())
+                    .map(SearchResourceImpl::parseLabelFilter)
+                    .forEach(filters::add);
         }
         if (globalId != null && globalId > 0) {
             filters.add(SearchFilter.ofGlobalId(globalId));
@@ -341,7 +307,7 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public VersionSearchResults searchVersionsByContent(Boolean canonical, String artifactType,
             BigInteger offset, BigInteger limit, SortOrder order, VersionSortBy orderby, String groupId,
-            String artifactId, Boolean skipCount, InputStream data) {
+            String artifactId, VersionState state, Boolean skipCount, InputStream data) {
 
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
@@ -363,6 +329,9 @@ public class SearchResourceImpl implements SearchResource {
         }
         if (!StringUtil.isEmpty(artifactId)) {
             filters.add(SearchFilter.ofArtifactId(artifactId));
+        }
+        if (state != null) {
+            filters.add(SearchFilter.ofState(state));
         }
 
         if (canonical == null) {

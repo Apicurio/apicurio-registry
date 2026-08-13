@@ -10,7 +10,7 @@ vi.mock("@services/useArtifactTypesService.ts", () => ({
     }
 }));
 
-import { detectVersionInContent, fileExtensionForContentType } from "./content.utils";
+import { detectVersionInContent, fileExtensionForContentType, fileExtensionForDraft } from "./content.utils";
 
 const OPENAPI_JSON: string = `{
     "openapi": "3.0.2",
@@ -121,5 +121,25 @@ describe("fileExtensionForContentType", () => {
     it("falls back to text for missing or unknown content types", () => {
         expect(fileExtensionForContentType(undefined)).toBe("txt");
         expect(fileExtensionForContentType("application/vnd.example+json")).toBe("txt");
+    });
+});
+
+describe("fileExtensionForDraft", () => {
+    it("preserves the existing protobuf draft extension rule", () => {
+        expect(fileExtensionForDraft(
+            { type: "PROTOBUF" } as any,
+            { content: "syntax = \"proto3\";", contentType: ContentTypes.APPLICATION_PROTOBUF }
+        )).toBe("proto");
+    });
+
+    it("does not infer protobuf or thrift draft extensions from content type alone", () => {
+        expect(fileExtensionForDraft(
+            { type: "AVRO" } as any,
+            { content: "syntax = \"proto3\";", contentType: ContentTypes.APPLICATION_PROTOBUF }
+        )).toBe("txt");
+        expect(fileExtensionForDraft(
+            { type: "AVRO" } as any,
+            { content: "service Example {}", contentType: ContentTypes.APPLICATION_THRIFT }
+        )).toBe("txt");
     });
 });

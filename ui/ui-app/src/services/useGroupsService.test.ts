@@ -197,4 +197,28 @@ describe("useGroupsService content loading", () => {
             "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-prompt/versions/branch%3Dlatest/content"
         );
     });
+
+    it("returns non-prompt content without transforming the response body", async () => {
+        const xmlContent = "<?xml version=\"1.0\"?>\n<schema>\n    <element name=\"example\" />\n</schema>\n";
+        createAuthOptionsMock.mockResolvedValue({});
+        axiosGetMock.mockResolvedValue({
+            data: xmlContent,
+            headers: {
+                "content-type": "application/xml"
+            }
+        });
+
+        const service = useGroupsService();
+        const result = await service.getArtifactVersionContentWithType("default", "my-xsd", "2");
+
+        expect(axiosGetMock).toHaveBeenCalledWith(
+            "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-xsd/versions/2/content",
+            expect.objectContaining({
+                responseType: "text",
+                transformResponse: [expect.any(Function)]
+            })
+        );
+        expect(result.content).toBe(xmlContent);
+        expect(result.contentType).toBe("application/xml");
+    });
 });

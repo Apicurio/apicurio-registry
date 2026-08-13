@@ -225,10 +225,8 @@ const updateArtifactOwner = async (config: ConfigService, auth: AuthService, gro
 };
 
 const getArtifactVersionContent = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
-    groupId = normalizeGroupId(groupId);
-    const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
-        .byVersionExpression(versionExpression).content.get({
+    return getRegistryClient(config, auth).groups.byGroupId(normalizeGroupId(groupId)).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpressionFor(version)).content.get({
             headers: {
                 "Accept": "*"
             }
@@ -237,18 +235,25 @@ const getArtifactVersionContent = async (config: ConfigService, auth: AuthServic
         });
 };
 
+const versionExpressionFor = (version: string): string => {
+    return version === "latest" ? "branch=latest" : version;
+};
+
+const buildVersionContentEndpoint = (config: ConfigService, groupId: string|null, artifactId: string, version: string, queryParams?: any): string => {
+    return createEndpoint(config.artifactsUrl(), "/groups/:groupId/artifacts/:artifactId/versions/:version/content", {
+        groupId: normalizeGroupId(groupId),
+        artifactId,
+        version: versionExpressionFor(version)
+    }, queryParams);
+};
+
 const getResponseContentType = (headers: any): string => {
     const header = typeof headers?.get === "function" ? headers.get("content-type") : headers?.["content-type"];
     return typeof header === "string" ? header : ContentTypes.APPLICATION_JSON;
 };
 
 const getArtifactVersionContentWithType = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<ArtifactVersionContent> => {
-    groupId = normalizeGroupId(groupId);
-    const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    const baseHref = config.artifactsUrl();
-    const endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/content", {
-        groupId, artifactId, version: versionExpression
-    });
+    const endpoint = buildVersionContentEndpoint(config, groupId, artifactId, version);
     const options = await createAuthOptions(auth);
     return axios.get(endpoint, {
         ...options,
@@ -265,11 +270,7 @@ const getArtifactVersionContentWithType = async (config: ConfigService, auth: Au
 };
 
 const getArtifactVersionContentDereferenced = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
-    groupId = normalizeGroupId(groupId);
-    const baseHref = config.artifactsUrl();
-    const endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/content", {
-        groupId, artifactId, version
-    }, { references: "DEREFERENCE" });
+    const endpoint = buildVersionContentEndpoint(config, groupId, artifactId, version, { references: "DEREFERENCE" });
     const options = await createAuthOptions(auth);
     return axios.get(endpoint, {
         ...options,

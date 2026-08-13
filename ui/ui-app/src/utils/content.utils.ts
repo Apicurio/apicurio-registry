@@ -213,11 +213,36 @@ export function fileExtensionForDraft(draft: Draft, content: DraftContent): stri
         return "proto";
     }
 
-    return fileExtensionForContentType(content.contentType);
+    return fileExtensionForDraftContentType(content.contentType);
 }
 
+const normalizeContentType = (contentType: string | undefined): string | undefined => {
+    return contentType?.split(";")[0].trim().toLowerCase();
+};
+
+const fileExtensionForDraftContentType = (contentType: string | undefined): string => {
+    const normalized = normalizeContentType(contentType);
+    if (normalized === ContentTypes.APPLICATION_JSON) {
+        return "json";
+    }
+    if (normalized === ContentTypes.APPLICATION_YAML) {
+        return "yaml";
+    }
+    if (normalized === ContentTypes.APPLICATION_XML || normalized === ContentTypes.TEXT_XML) {
+        return "xml";
+    }
+    if (normalized === ContentTypes.APPLICATION_WSDL) {
+        return "wsdl";
+    }
+    if (normalized === ContentTypes.APPLICATION_GRAPHQL) {
+        return "graphql";
+    }
+
+    return "txt";
+};
+
 export function fileExtensionForContentType(contentType: string | undefined): string {
-    const normalized = contentType?.split(";")[0].trim().toLowerCase();
+    const normalized = normalizeContentType(contentType);
     if (normalized === ContentTypes.APPLICATION_JSON) {
         return "json";
     }

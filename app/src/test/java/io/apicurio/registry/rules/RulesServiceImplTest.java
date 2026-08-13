@@ -48,6 +48,7 @@ public class RulesServiceImplTest {
         rulesService.rulesProperties = mock(io.apicurio.registry.rules.RulesProperties.class);
 
         when(storage.getArtifactRules(any(), any())).thenReturn(Collections.singletonList(RuleType.VALIDITY));
+        when(storage.getArtifactRule(any(), any(), any())).thenReturn(new io.apicurio.registry.storage.dto.RuleConfigurationDto("FULL"));
         when(rulesService.factory.createExecutor(any())).thenReturn(context -> {});
     }
 
@@ -189,7 +190,7 @@ public class RulesServiceImplTest {
         // Test 5: applyRule(groupId, artifactId, artifactType, content, ruleType, ruleConfiguration, ruleApplicationType, references, resolvedReferences)
         rulesService.applyRule("testGroup", "testArtifact", ArtifactType.JSON, content,
                 RuleType.VALIDITY, "FULL", RuleApplicationType.UPDATE, Collections.emptyList(), Collections.emptyMap());
-        verify(rulesService.factory, times(2)).createExecutor(RuleType.VALIDITY);
+        verify(rulesService.factory, times(5)).createExecutor(RuleType.VALIDITY);
     }
 
     @Test

@@ -116,6 +116,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                             .artifactVersion(version)
                             .artifactType(artifactVersionMetaData.getArtifactType())
                             .content(typedContent)
+                            .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
                             .build());
                 }
             }
@@ -172,6 +173,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                                         .artifactVersion(version)
                                         .artifactType(artifact.getArtifactType())
                                         .content(typedContent)
+                                        .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
                                         .build());
                             }
                             CompatibilityCheckResponse response = new CompatibilityCheckResponse();

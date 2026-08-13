@@ -176,14 +176,18 @@ public class RulesServiceImpl implements RulesService {
 
         // Build the map of rules to apply (may be empty)
         List.of(RuleType.values()).forEach(rt -> {
+            RuleConfigurationDto dto = null;
             if (artifactRules.contains(rt)) {
-                allRules.put(rt, storageToUse.getArtifactRule(groupId, artifactId, rt));
+                dto = storageToUse.getArtifactRule(groupId, artifactId, rt);
             } else if (groupRules.contains(rt)) {
-                allRules.put(rt, storageToUse.getGroupRule(groupId, rt));
+                dto = storageToUse.getGroupRule(groupId, rt);
             } else if (globalRules.contains(rt)) {
-                allRules.put(rt, storageToUse.getGlobalRule(rt));
+                dto = storageToUse.getGlobalRule(rt);
             } else if (defaultGlobalRules.contains(rt)) {
-                allRules.put(rt, rulesProperties.getDefaultGlobalRuleConfiguration(rt));
+                dto = rulesProperties.getDefaultGlobalRuleConfiguration(rt);
+            }
+            if (dto != null && dto.getConfiguration() != null) {
+                allRules.put(rt, dto);
             }
         });
 

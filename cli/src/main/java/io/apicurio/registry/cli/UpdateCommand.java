@@ -119,7 +119,11 @@ public class UpdateCommand extends AbstractCommand {
     }
 
     private void handlePathInstall(OutputBuffer output) throws Exception {
-        var homePath = config.getAcrHomePath();
+        // Use the current binary's home (always set by the acr launcher) rather than ACR_HOME, which
+        // is only exported into a shell for per-user installs; a global install has no sourced env.
+        // For a per-user install the two resolve to the same directory, so existing behaviour is
+        // unchanged; this only makes the download scratch dir resolvable for global installs too.
+        var homePath = config.getAcrCurrentHomePath();
         var targetDir = homePath.resolve(UUID.randomUUID().toString().substring(0, 8));
         try {
             Files.createDirectories(targetDir);
@@ -132,7 +136,9 @@ public class UpdateCommand extends AbstractCommand {
     }
 
     private void handleAutoUpdate(OutputBuffer output, CliVersion currentVersion) throws Exception {
-        var homePath = config.getAcrHomePath();
+        // See handlePathInstall: use the current binary's home so updates work for global installs
+        // too. Equivalent to ACR_HOME for a per-user install, so the existing update path is unchanged.
+        var homePath = config.getAcrCurrentHomePath();
 
         String versionToDownload;
         if (targetVersion != null) {
@@ -199,12 +205,7 @@ public class UpdateCommand extends AbstractCommand {
         final boolean windows = PlatformUtils.isWindows();
         final Path executablePath = windows ? acrRunnerPath : acrPath;
         log.debugf("Running subprocess: %s", executablePath);
-        var cmd = new ArrayList<String>(3);
-        cmd.add(executablePath.toString());
-        cmd.add("install");
-        if (parent.isVerbose()) {
-            cmd.add("--verbose");
-        }
+        var cmd = buildInstallCommand(executablePath);
         ProcessBuilder processBuilder = new ProcessBuilder(cmd);
         if (windows) {
             processBuilder.environment().put(ENV_ACR_CURRENT_HOME, targetDir.toString());
@@ -218,6 +219,25 @@ public class UpdateCommand extends AbstractCommand {
         }
 
         output.writeStdOutLine("Update complete.");
+    }
+
+    /**
+     * Builds the argument list for the {@code acr install} subprocess that performs the actual
+     * update, forwarding {@code --global} when the current installation is global so the re-install
+     * keeps the same scope.
+     */
+    List<String> buildInstallCommand(Path acrPath) {
+        var cmd = new ArrayList<String>(4);
+        cmd.add(acrPath.toString());
+        cmd.add("install");
+        if (config.isGlobalInstall()) {
+            cmd.add("--global");
+        }
+        // parent is null only in unit tests that build the command directly (never during parsing).
+        if (parent != null && parent.isVerbose()) {
+            cmd.add("--verbose");
+        }
+        return cmd;
     }
 
 }

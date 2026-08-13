@@ -1425,7 +1425,7 @@ The following {registry} configuration options are available for each component 
 |Enable automatic creation of group when creating an artifact
 |`apicurio.storage.kind`
 |`string`
-|
+|`sql`
 |`3.0.0`
 |Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops
 |`apicurio.storage.read-only.enabled`
@@ -1551,6 +1551,11 @@ The following {registry} configuration options are available for each component 
 |`openid profile email`
 |`3.0.8`
 |UI auth OIDC scope value
+|`apicurio.ui.auth.oidc.use-nonce`
+|`optional<boolean>`
+|
+|`3.3.2`
+|Whether to include a nonce parameter in OIDC authorization requests. Required for providers that enforce nonce (e.g. Keycloak with FAPI policies). Defaults to false if not specified.
 |`apicurio.ui.contextPath`
 |`string`
 |`/`

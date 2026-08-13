@@ -1,10 +1,14 @@
 package io.apicurio.registry.cli;
 
+import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.config.ConfigModel;
+import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.PlatformUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -28,6 +32,9 @@ import static io.apicurio.registry.cli.InstallCommand.BIN_DIR;
 import static io.apicurio.registry.cli.InstallCommand.CLI_MARKER_COMMENT;
 import static io.apicurio.registry.cli.InstallCommand.COMPLETIONS;
 import static io.apicurio.registry.cli.InstallCommand.CONFIG_JSON;
+import static io.apicurio.registry.cli.InstallCommand.CONFIG_KEY_GLOBAL_INSTALL;
+import static io.apicurio.registry.cli.InstallCommand.ENV_ACR_GLOBAL_BIN;
+import static io.apicurio.registry.cli.InstallCommand.ENV_ACR_GLOBAL_HOME;
 import static io.apicurio.registry.cli.InstallCommand.ENV_ACR_HOME;
 import static io.apicurio.registry.cli.InstallCommand.ENV_ACR_INSTALL_PATH;
 import static io.apicurio.registry.cli.InstallCommand.ENV_HOME;
@@ -203,6 +210,109 @@ public class InstallCommandTest {
         assertThat(configContent)
             .as("Existing " + CONFIG_JSON + " should be preserved (not overwritten)")
             .isEqualTo(customConfig);
+    }
+
+    // ========== Global (system-wide) installation ==========
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testGlobalInstallCopiesFilesAndSymlinksIntoGlobalBin() throws Exception {
+        final Path[] locations = useTempGlobalLocations();
+        final Path globalHome = locations[0];
+        final Path globalBin = locations[1];
+
+        runInstallCommand("--global");
+
+        assertThat(globalHome.resolve(ACR_BINARY))
+            .as("Binary should be copied to the global home")
+            .exists();
+        assertThat(globalBin.resolve(ACR_SCRIPT))
+            .as("acr launcher should be symlinked into the global bin directory")
+            .exists();
+        assertThat(globalBin.resolve(ACR_ENV))
+            .as("acr_env should be symlinked into the global bin directory")
+            .exists();
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testGlobalInstallMarksConfigAsGlobal() throws Exception {
+        final Path globalHome = useTempGlobalLocations()[0];
+
+        runInstallCommand("--global");
+
+        final ConfigModel model = Mapper.MAPPER.readValue(globalHome.resolve(CONFIG_JSON).toFile(), ConfigModel.class);
+        assertThat(model.getConfig().get(CONFIG_KEY_GLOBAL_INSTALL))
+            .as("A global install should record the global marker in config.json (used by 'acr update')")
+            .isEqualTo("true");
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testGlobalInstallDoesNotTouchUserHomeOrShellConfig() throws Exception {
+        final Path shellConfig = createShellConfigFile("# My custom shell config\n");
+        useTempGlobalLocations();
+
+        runInstallCommand("--global");
+
+        assertThat(userHome.resolve(BIN_DIR))
+            .as("A global install must not create the per-user ~/bin directory")
+            .doesNotExist();
+        assertThat(Files.readString(shellConfig))
+            .as("A global install must not modify the user's shell configuration")
+            .doesNotContain(ACR_ENV);
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testGlobalInstallWithoutPrivilegesFailsWithClearError() throws Exception {
+        // The privilege check relies on the process not being able to write to the target dir, which
+        // is not true for root, so skip there rather than assert a check that cannot fire.
+        Assumptions.assumeFalse("root".equals(System.getProperty("user.name")),
+                "Privilege check cannot be exercised as root");
+
+        final Path globalHome = tempDir.resolve("global-home");
+        final Path readOnlyBin = tempDir.resolve("readonly-bin");
+        Files.createDirectories(readOnlyBin);
+        assertThat(readOnlyBin.toFile().setWritable(false, false))
+            .as("test setup: the bin directory must be made read-only")
+            .isTrue();
+
+        config.setEnvOverride(ENV_ACR_GLOBAL_HOME, globalHome.toString());
+        config.setEnvOverride(ENV_ACR_GLOBAL_BIN, readOnlyBin.toString());
+
+        final StringBuilder err = new StringBuilder();
+        final var originalErr = config.getStdErr();
+        config.setStdErr(err::append);
+        try {
+            final int exitCode = new CommandLine(new Acr(), factory).execute("install", "--global");
+
+            assertThat(exitCode)
+                .as("Install without write access should return the validation error code")
+                .isEqualTo(CliException.VALIDATION_ERROR_RETURN_CODE);
+            assertThat(err.toString())
+                .as("The error should tell the user to re-run with sudo")
+                .contains("sudo");
+            assertThat(globalHome)
+                .as("Nothing should be installed when the privilege check fails")
+                .doesNotExist();
+        } finally {
+            config.setStdErr(originalErr);
+            readOnlyBin.toFile().setWritable(true, false);
+        }
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    public void testUserInstallDoesNotSetGlobalMarker() throws Exception {
+        createShellConfigFile("# existing config\n");
+
+        runInstallCommand();
+
+        final ConfigModel model = Mapper.MAPPER.readValue(installPath.resolve(CONFIG_JSON).toFile(), ConfigModel.class);
+        assertThat(model.getConfig().get(CONFIG_KEY_GLOBAL_INSTALL))
+            .as("A per-user install must not set the global marker")
+            .isNull();
     }
 
     @Test
@@ -427,10 +537,28 @@ public class InstallCommandTest {
         return shellConfig;
     }
 
-    private void runInstallCommand() throws IOException {
+    private void runInstallCommand(final String... extraArgs) throws IOException {
         var acr = new Acr();
         var cmd = new CommandLine(acr, factory);
-        cmd.execute("install");
+        var args = new java.util.ArrayList<String>();
+        args.add("install");
+        java.util.Collections.addAll(args, extraArgs);
+        cmd.execute(args.toArray(new String[0]));
+    }
+
+    /**
+     * Points the global install locations at writable temp directories so the system-wide install
+     * path can be exercised without touching real system directories or needing root.
+     *
+     * @return the [globalHome, globalBin] paths configured for the test
+     */
+    private Path[] useTempGlobalLocations() throws IOException {
+        final Path globalHome = tempDir.resolve("global-home");
+        final Path globalBin = tempDir.resolve("global-bin");
+        Files.createDirectories(globalBin);
+        config.setEnvOverride(ENV_ACR_GLOBAL_HOME, globalHome.toString());
+        config.setEnvOverride(ENV_ACR_GLOBAL_BIN, globalBin.toString());
+        return new Path[] { globalHome, globalBin };
     }
 
     private void setupAndRunInstall() throws IOException {

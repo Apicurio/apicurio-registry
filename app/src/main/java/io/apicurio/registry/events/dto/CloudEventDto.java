@@ -10,9 +10,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.Array;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * CloudEvents 1.0 specification-compliant data transfer object.
@@ -141,10 +150,110 @@ public class CloudEventDto {
      * which Jackson handles without conversion.
      */
     private static Object normalizeData(Object data) {
-        if (data instanceof JSONObject jsonObject) {
-            return jsonObject.toMap();
+        if (data == null || isScalar(data)) {
+            return data;
         }
-        return data;
+        if (data instanceof JSONObject jsonObject) {
+            return normalizeJsonObject(jsonObject);
+        }
+        if (data instanceof JSONArray jsonArray) {
+            return normalizeJsonArray(jsonArray);
+        }
+        if (data instanceof Map<?, ?> map) {
+            return normalizeMap(map);
+        }
+        if (data.getClass().isArray()) {
+            return normalizeArray(data);
+        }
+        if (data instanceof Iterable<?> iterable) {
+            return normalizeIterable(iterable);
+        }
+        if (isJavaPlatformType(data)) {
+            return data;
+        }
+
+        return normalizeBean(data);
+    }
+
+    private static boolean isScalar(Object data) {
+        return data instanceof String || data instanceof Number || data instanceof Boolean
+                || data instanceof Character || data instanceof Enum<?> || data instanceof Instant;
+    }
+
+    private static Map<String, Object> normalizeJsonObject(JSONObject jsonObject) {
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        for (String key : jsonObject.keySet()) {
+            normalized.put(key, normalizeData(jsonObject.get(key)));
+        }
+        return normalized;
+    }
+
+    private static List<Object> normalizeJsonArray(JSONArray jsonArray) {
+        List<Object> normalized = new ArrayList<>();
+        for (int i = 0; i < jsonArray.length(); i++) {
+            normalized.add(normalizeData(jsonArray.get(i)));
+        }
+        return normalized;
+    }
+
+    private static Map<String, Object> normalizeMap(Map<?, ?> map) {
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            normalized.put(String.valueOf(entry.getKey()), normalizeData(entry.getValue()));
+        }
+        return normalized;
+    }
+
+    private static List<Object> normalizeArray(Object data) {
+        List<Object> normalized = new ArrayList<>();
+        for (int i = 0; i < Array.getLength(data); i++) {
+            normalized.add(normalizeData(Array.get(data, i)));
+        }
+        return normalized;
+    }
+
+    private static List<Object> normalizeIterable(Iterable<?> iterable) {
+        List<Object> normalized = new ArrayList<>();
+        for (Object item : iterable) {
+            normalized.add(normalizeData(item));
+        }
+        return normalized;
+    }
+
+    private static boolean isJavaPlatformType(Object data) {
+        return data.getClass().getPackageName().startsWith("java.");
+    }
+
+    private static Object normalizeBean(Object data) {
+
+        try {
+            Map<String, Object> normalized = new LinkedHashMap<>();
+            for (PropertyDescriptor pd : Introspector.getBeanInfo(data.getClass()).getPropertyDescriptors()) {
+                if (pd.getReadMethod() == null || "class".equals(pd.getName())) {
+                    continue;
+                }
+                Object value = pd.getReadMethod().invoke(data);
+                normalized.put(pd.getName(), normalizeData(value));
+            }
+            return normalized;
+        } catch (ReflectiveOperationException | IntrospectionException e) {
+            return data;
+        }
+    }
+
+    private static Object addEventEnvelope(OutboxEvent event, Object data) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        Object normalized = normalizeData(data);
+        if (normalized instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                payload.put(String.valueOf(entry.getKey()), normalizeData(entry.getValue()));
+            }
+        } else if (normalized != null) {
+            payload.put("value", normalized);
+        }
+        payload.put("eventType", event.getType());
+        payload.put("id", event.getId());
+        return payload;
     }
 
     public Instant getTime() {
@@ -177,7 +286,7 @@ public class CloudEventDto {
                 .withSource(source)
                 .withType(eventType)
                 .withTime(event.getTimestamp())
-                .withData(event.getPayload());
+                .withData(addEventEnvelope(event, event.getPayload()));
         if (isBlank(dto.getId())) {
             throw new IllegalArgumentException("CloudEvent 'id' is a required attribute and must not be blank");
         }

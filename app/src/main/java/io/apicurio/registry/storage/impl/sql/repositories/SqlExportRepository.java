@@ -4,7 +4,7 @@ import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
-import org.json.JSONObject;
+import io.apicurio.registry.storage.impl.util.OutboxPayloadJsonUtil;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactRuleEntityMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionEntityMapper;
@@ -364,7 +364,7 @@ public class SqlExportRepository {
         handles.withHandle(handle -> {
             handle.createUpdate(sqlStatements.createOutboxEvent()).bind(0, event.getId())
                     .bind(1, eventsTopic).bind(2, event.getAggregateId()).bind(3, event.getType())
-                    .bind(4, new JSONObject(event.getPayload()).toString()).execute();
+                    .bind(4, OutboxPayloadJsonUtil.toJsonString(event.getPayload())).execute();
 
             return handle.createUpdate(sqlStatements.deleteOutboxEvent()).bind(0, event.getId())
                     .execute();

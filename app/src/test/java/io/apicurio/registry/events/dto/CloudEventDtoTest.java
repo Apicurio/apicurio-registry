@@ -11,10 +11,10 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -116,8 +116,8 @@ public class CloudEventDtoTest {
     public void testFromRejectsMissingId() {
         OutboxEvent event = new OutboxEvent(null, "test-aggregate", Instant.now()) {
             @Override
-            public JSONObject getPayload() {
-                return new JSONObject();
+            public Object getPayload() {
+                return Map.of();
             }
 
             @Override
@@ -134,8 +134,8 @@ public class CloudEventDtoTest {
     public void testFromRejectsMissingSource() {
         OutboxEvent event = new OutboxEvent("test-id", "test-aggregate", Instant.now()) {
             @Override
-            public JSONObject getPayload() {
-                return new JSONObject();
+            public Object getPayload() {
+                return Map.of();
             }
 
             @Override
@@ -152,8 +152,8 @@ public class CloudEventDtoTest {
     public void testFromRejectsMissingType() {
         OutboxEvent event = new OutboxEvent("test-id", "test-aggregate", Instant.now()) {
             @Override
-            public JSONObject getPayload() {
-                return new JSONObject();
+            public Object getPayload() {
+                return Map.of();
             }
 
             @Override

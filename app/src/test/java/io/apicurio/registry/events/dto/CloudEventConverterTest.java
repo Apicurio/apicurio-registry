@@ -10,12 +10,12 @@ import io.apicurio.registry.events.ArtifactDeleted;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -51,8 +51,8 @@ public class CloudEventConverterTest {
     private static OutboxEvent eventOfType(StorageEventType eventType) {
         return new OutboxEvent("id-" + eventType.name(), "aggregate-" + eventType.name(), Instant.now()) {
             @Override
-            public JSONObject getPayload() {
-                return new JSONObject().put("eventType", eventType.name());
+            public Object getPayload() {
+                return Map.of("eventType", eventType.name());
             }
 
             @Override
@@ -111,8 +111,8 @@ public class CloudEventConverterTest {
     public void testConvertUnsupportedEventType() {
         OutboxEvent unsupportedEvent = new OutboxEvent("test-id", "test-aggregate", Instant.now()) {
             @Override
-            public JSONObject getPayload() {
-                return new JSONObject();
+            public Object getPayload() {
+                return Map.of();
             }
 
             @Override

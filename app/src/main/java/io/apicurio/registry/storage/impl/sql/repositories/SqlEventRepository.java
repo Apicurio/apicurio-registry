@@ -3,7 +3,7 @@ package io.apicurio.registry.storage.impl.sql.repositories;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
-import org.json.JSONObject;
+import io.apicurio.registry.storage.impl.util.OutboxPayloadJsonUtil;
 import org.slf4j.Logger;
 
 /**
@@ -38,7 +38,7 @@ public class SqlEventRepository {
                         .bind(1, eventsTopic)
                         .bind(2, event.getAggregateId())
                         .bind(3, event.getType())
-                        .bind(4, new JSONObject(event.getPayload()).toString())
+                    .bind(4, OutboxPayloadJsonUtil.toJsonString(event.getPayload()))
                         .execute();
 
                 return handle.createUpdate(sqlStatements.deleteOutboxEvent())

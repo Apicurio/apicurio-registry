@@ -2,7 +2,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.storage.dto.OutboxEvent;
-import org.json.JSONObject;
+import io.apicurio.registry.storage.impl.util.OutboxPayloadJsonUtil;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
@@ -46,7 +46,8 @@ public class KafkaSqlEventsProcessor {
         // Explicitly send to partition 0 to guarantee total ordering of all events.
         // See KafkaSqlConfiguration.getEventsTopicProperties() for details on this design decision.
         ProducerRecord<String, String> record = new ProducerRecord<>(configuration.get().getEventsTopic(), 0,
-                outboxEvent.getAggregateId(), new JSONObject(outboxEvent.getPayload()).toString(), Collections.emptyList());
+            outboxEvent.getAggregateId(), OutboxPayloadJsonUtil.toJsonString(outboxEvent.getPayload()),
+            Collections.emptyList());
         blockOnResult(eventsProducer.get().apply(record));
     }
 }

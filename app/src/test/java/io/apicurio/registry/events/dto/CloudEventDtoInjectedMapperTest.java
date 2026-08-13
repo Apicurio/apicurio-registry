@@ -95,12 +95,10 @@ public class CloudEventDtoInjectedMapperTest {
                 "Expected specversion in serialized output, but was: " + json);
     }
 
-    /**
-     * The event payload is an {@code org.json.JSONObject}. Jackson has no knowledge of that type
-     * and, left alone, serializes its bean properties ({@code mapType}, {@code empty}) instead of
-     * the payload, silently dropping every event field. Assert the payload fields are present on
-     * the wire.
-     */
+        /**
+         * Storage events now provide typed payload DTOs/maps that are wrapped in a CloudEvent data
+         * envelope. Assert the envelope fields and payload fields are preserved on the wire.
+         */
     @Test
     public void testEventPayloadSurvivesSerializationWithInjectedMapper() throws Exception {
         ArtifactMetaDataDto metaDataDto = new ArtifactMetaDataDto();

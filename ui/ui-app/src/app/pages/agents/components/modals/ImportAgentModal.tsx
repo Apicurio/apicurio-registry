@@ -16,7 +16,7 @@ import {
 } from "@patternfly/react-core";
 import { Modal } from "@patternfly/react-core/deprecated";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
-import { UrlUpload } from "@apicurio/common-ui-components";
+import { UrlUpload } from "@apitomy/common-ui-components";
 import { AgentCard, AgentCardViewer } from "@app/components/agentCard";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";

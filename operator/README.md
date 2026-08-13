@@ -10,9 +10,11 @@ an environment variable, or with the command, e.g. `make SKIP_TESTS=true build`.
 
 | Tool            | Version |
 |-----------------|---------|
-| JDK             | 17      |
-| Maven           | TODO    |
-| Docker / Podman | TODO    |
+| JDK             | 21+     |
+| Maven           | 3.9+    |
+| Docker / Podman | Required for integration tests and image builds |
+
+You can use the Maven wrapper from the repository root (`./mvnw`) instead of installing Maven locally.
 
 ### Test and Deploy
 

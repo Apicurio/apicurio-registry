@@ -1,36 +1,30 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
+:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
 [id="assembly-mcp-tool-features_{context}"]
 = MCP tool definition features in {registry}
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can store and manage MCP (Model Context Protocol) tool definitions as first-class artifacts in {registry}. You can use MCP tool features for central governance, version management, and discovery of MCP tools across your organization.
 
 ifdef::service-registry-downstream[]
-WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope].
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
 endif::[]
 
-* xref:mcp-tool-features-overview_{context}[]
-* xref:mcp-tool-configuration_{context}[]
-* xref:mcp-tool-definition-schema_{context}[]
-* xref:mcp-well-known-endpoints_{context}[]
-* xref:creating-mcp-tool-artifact_{context}[]
-* xref:mcp-validation-rules_{context}[]
-* xref:mcp-compatibility-checking_{context}[]
-* xref:mcp-automatic-label-extraction_{context}[]
-
 // con-mcp-tool-features-overview
-:_mod-docs-content-type: CONCEPT
 [id="mcp-tool-features-overview_{context}"]
 == Overview
 
+:_mod-docs-content-type: CONCEPT
+
 [role="_abstract"]
-The https://modelcontextprotocol.io/[Model Context Protocol (MCP)] defines a standard for servers to expose tools that language models can invoke. With MCP tools, models can interact with external systems, such as querying databases, calling APIs, or running computations.
+The Model Context Protocol (MCP) defines a standard for servers to expose tools that language models can invoke. With MCP tools, models can interact with external systems, such as querying databases, calling APIs, or running computations.
 
 {registry} provides a Tool Registry that stores MCP tool definitions with the following capabilities:
 
-NOTE: Storing an `MCP_TOOL` definition in {registry} provides governance, versioning, and searchability for tool definitions. To make stored tools available to LLM clients such as Claude Desktop, you must also deploy the {registry} MCP server. For more information, see xref:getting-started/assembly-mcp-server-integration.adoc[MCP server integration].
+NOTE: Storing an `MCP_TOOL` definition in {registry} provides governance, versioning, and searchability for tool definitions. To make stored tools available to LLM clients such as Claude Desktop, you must also deploy the {registry} MCP server. For more information, see Additional resources.
 
 Version management:: Track tool evolution with full version history.
 Validation:: Ensure that tool definitions conform to the MCP specification.
@@ -55,10 +49,16 @@ a|
 * Validation and compatibility checking
 |===
 
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-mcp-server-integration.adoc[MCP server integration]
+* https://modelcontextprotocol.io/[Model Context Protocol specification]
+
 // ref-mcp-tool-configuration
-:_mod-docs-content-type: REFERENCE
 [id="mcp-tool-configuration_{context}"]
 == Configuration
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure MCP tool features by using the following configuration properties.
@@ -85,9 +85,10 @@ apicurio.mcp-tools.enabled=true
 ----
 
 // ref-mcp-tool-definition-schema
-:_mod-docs-content-type: REFERENCE
 [id="mcp-tool-definition-schema_{context}"]
 == MCP tool definition schema
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Tool definitions follow the https://modelcontextprotocol.io/specification/2025-11-25/server/tools[MCP specification (2025-11-25)].
@@ -141,9 +142,9 @@ NOTE: The MCP specification has two authoritative sources: the formal https://gi
 |Optional execution-related properties such as task support. _Described in the spec docs but not yet present in the formal MCP Tool JSON schema._ Passed through without validation.
 |===
 
-.Input schema
-
 The `inputSchema` field is a JSON Schema object with the following properties:
+
+.Input schema
 
 [cols="1,1,1,3"]
 |===
@@ -165,9 +166,9 @@ The `inputSchema` field is a JSON Schema object with the following properties:
 |List of required parameter names
 |===
 
-.Annotations (ToolAnnotations)
-
 Annotations provide metadata about the tool by using the MCP `ToolAnnotations` type:
+
+.Annotations (ToolAnnotations)
 
 [cols="1,1,3"]
 |===
@@ -227,18 +228,16 @@ Annotations provide metadata about the tool by using the MCP `ToolAnnotations` t
 ----
 
 // ref-mcp-well-known-endpoints
-:_mod-docs-content-type: REFERENCE
 [id="mcp-well-known-endpoints_{context}"]
 == Well-known endpoints
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can search for and retrieve MCP tool definitions by using the following well-known endpoints.
 
-.GET /.well-known/mcp-tools
+The `GET /.well-known/mcp-tools` endpoint searches for registered MCP tool definitions with filtering support. It accepts the following query parameters:
 
-Search for registered MCP tool definitions with filtering support.
-
-.Query parameters
 [cols="1,1,3"]
 |===
 |Parameter |Type |Description
@@ -287,23 +286,18 @@ curl "http://localhost:8080/.well-known/mcp-tools?parameter=location"
 }
 ----
 
-.GET /.well-known/mcp-tools/{groupId}/{artifactId}
+The `GET /.well-known/mcp-tools/{groupId}/{artifactId}` endpoint retrieves a specific registered MCP tool definition. It accepts the following path parameters:
 
-Retrieve a specific registered MCP tool definition.
-
-.Path parameters
 `groupId`:: The group containing the tool definition
 `artifactId`:: The artifact ID of the tool definition
 
-.Query parameters
+You can optionally specify the following query parameter:
+
 `version` (optional):: Specific version (defaults to latest)
 
-.Response
-MCP tool definition JSON document
+The response is the MCP tool definition JSON document.
 
-.GET /.well-known/schemas/mcp-tool/v1
-
-Use this endpoint to retrieve the JSON Schema for MCP tool definitions. You can use the schema for IDE autocompletion and validation.
+The `GET /.well-known/schemas/mcp-tool/v1` endpoint retrieves the JSON Schema for MCP tool definitions. You can use the schema for IDE autocompletion and validation.
 
 .Example
 [source,bash]
@@ -312,9 +306,10 @@ curl "http://localhost:8080/.well-known/schemas/mcp-tool/v1"
 ----
 
 // proc-creating-mcp-tool-artifact
-:_mod-docs-content-type: PROCEDURE
 [id="creating-mcp-tool-artifact_{context}"]
 == Creating an MCP tool artifact
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can create an MCP tool artifact in {registry} by using the REST API.
@@ -344,9 +339,10 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/mcp-tools/artifacts"
 ----
 
 // ref-mcp-validation-rules
-:_mod-docs-content-type: REFERENCE
 [id="mcp-validation-rules_{context}"]
 == Validation rules
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} validates MCP tool definitions at three levels.
@@ -372,29 +368,33 @@ a|Complete validation including:
 |===
 
 // ref-mcp-compatibility-checking
-:_mod-docs-content-type: REFERENCE
 [id="mcp-compatibility-checking_{context}"]
 == Compatibility checking
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you version MCP tool definitions, {registry} checks for breaking changes based on compatibility rules.
 
-.Compatible changes (allowed)
+The following changes are compatible and are allowed:
+
 * Adding optional input parameters
 * Changing name, title, or description
 * Changing annotations
 * Adding or modifying outputSchema
 
-.Incompatible changes (might break clients)
+The following changes are incompatible and might break clients:
+
 * Removing input parameters from inputSchema.properties
 * Adding new required parameters
 * Removing required parameters
 * Changing the inputSchema type
 
 // ref-mcp-automatic-label-extraction
-:_mod-docs-content-type: REFERENCE
 [id="mcp-automatic-label-extraction_{context}"]
 == Automatic label extraction
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you store MCP tool definitions, {registry} automatically extracts structured elements for search.

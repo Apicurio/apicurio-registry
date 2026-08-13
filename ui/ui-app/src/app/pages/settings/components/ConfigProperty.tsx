@@ -2,7 +2,7 @@ import React, { FunctionComponent, useState } from "react";
 import "./ConfigProperty.css";
 import { Button, Flex, FlexItem, Switch } from "@patternfly/react-core";
 import { PropertyInput } from "@app/pages";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { CheckIcon, CloseIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
 
@@ -95,11 +95,11 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
                 </FlexItem>
                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                     <If condition={!isEditing}>
-                        <Button icon={<PencilAltIcon />} variant="plain" className="action single" onClick={onStartEditing} />
+                        <Button icon={<PencilAltIcon />} variant="plain" aria-label="Edit configuration property" className="action single" onClick={onStartEditing} />
                     </If>
                     <If condition={isEditing}>
-                        <Button icon={<CheckIcon />} variant="plain" className="action" onClick={onSavePropertyValue} isDisabled={!isValid} />
-                        <Button icon={<CloseIcon />} variant="plain" className="action" onClick={onCancelEdit} />
+                        <Button icon={<CheckIcon />} variant="plain" aria-label="Save configuration property" className="action" onClick={onSavePropertyValue} isDisabled={!isValid} />
+                        <Button icon={<CloseIcon />} variant="plain" aria-label="Cancel editing configuration property" className="action" onClick={onCancelEdit} />
                     </If>
                 </FlexItem>
             </Flex>

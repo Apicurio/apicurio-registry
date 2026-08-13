@@ -29,7 +29,8 @@
     "examples/**",
     "utils/maven-plugin/src/test/resources/test-builds",
     "support-chat/**",
-    "console-plugin/**"
+    "console-plugin/**",
+    ".github/workflows/verify-console-plugin.yaml"
   ],
   "prConcurrentLimit": 10,
   "prHourlyLimit": 10,

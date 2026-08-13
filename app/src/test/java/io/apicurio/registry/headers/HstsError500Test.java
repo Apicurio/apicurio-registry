@@ -25,17 +25,19 @@ public class HstsError500Test {
     }
 
     private static final String HSTS = "Strict-Transport-Security";
+    private static final String X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
 
     @Test
     public void testHstsOnInternalServerError500() {
         given().when().get("/apis/test/hsts-500-boom").then().statusCode(500).header(HSTS,
-                containsString("max-age="));
+                containsString("max-age=")).header(X_CONTENT_TYPE_OPTIONS, equalTo("nosniff"));
     }
 
     // #8713: pin the exact directive casing on 500 responses too, not just success responses.
     @Test
     public void testHstsDirectiveCasingIsRfcCompliantOn500() {
         given().when().get("/apis/test/hsts-500-boom").then().statusCode(500).header(HSTS,
-                equalTo("max-age=31536000; includeSubDomains"));
+                equalTo("max-age=31536000; includeSubDomains")).header(X_CONTENT_TYPE_OPTIONS,
+                        equalTo("nosniff"));
     }
 }

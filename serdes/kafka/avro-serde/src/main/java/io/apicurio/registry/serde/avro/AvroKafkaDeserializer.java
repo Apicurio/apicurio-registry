@@ -21,8 +21,9 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaDeserializer(RegistryClientFacade clientFacade) {
         super(() -> new AvroDeserializer<>(clientFacade));
     }
@@ -30,8 +31,9 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaDeserializer(SchemaResolver<Schema, U> schemaResolver) {
         super(() -> new AvroDeserializer<>(schemaResolver));
     }
@@ -39,8 +41,9 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaDeserializer(RegistryClientFacade clientFacade,
                                  SchemaResolver<Schema, U> schemaResolver) {
         super(() -> new AvroDeserializer<>(clientFacade, schemaResolver));
@@ -50,8 +53,9 @@ public class AvroKafkaDeserializer<U> extends KafkaDeserializer<Schema, U> {
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
      * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaDeserializer(RegistryClientFacade clientFacade,
                                  ArtifactReferenceResolverStrategy<Schema, U> strategy, SchemaResolver<Schema, U> schemaResolver) {
         super(() -> new AvroDeserializer<>(clientFacade, strategy, schemaResolver));

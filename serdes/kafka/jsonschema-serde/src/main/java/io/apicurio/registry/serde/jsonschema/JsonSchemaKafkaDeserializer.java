@@ -26,8 +26,9 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade) {
         super(() -> new JsonSchemaDeserializer<>(clientFacade));
     }
@@ -35,8 +36,9 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
         super(() -> new JsonSchemaDeserializer<>(schemaResolver));
     }
@@ -44,8 +46,9 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
                                        SchemaResolver<JsonSchema, T> schemaResolver) {
         super(() -> new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
@@ -55,8 +58,9 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
      * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
                                        ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
                                        SchemaResolver<JsonSchema, T> schemaResolver) {

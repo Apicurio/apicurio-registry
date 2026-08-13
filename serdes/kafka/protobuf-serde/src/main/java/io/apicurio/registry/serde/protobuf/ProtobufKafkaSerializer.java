@@ -27,8 +27,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaSerializer(RegistryClientFacade clientFacade) {
         super(() -> new ProtobufSerializer<>(clientFacade));
     }
@@ -36,8 +37,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(() -> new ProtobufSerializer<>(schemaResolver));
     }
@@ -45,8 +47,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaSerializer(RegistryClientFacade clientFacade,
                                    SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(() -> new ProtobufSerializer<>(clientFacade, schemaResolver));
@@ -56,8 +59,9 @@ public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
      * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaSerializer(RegistryClientFacade clientFacade,
                                    ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
                                    SchemaResolver<ProtobufSchema, U> schemaResolver) {

@@ -24,8 +24,9 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaSerializer(RegistryClientFacade clientFacade) {
         super(() -> new AvroSerializer<>(clientFacade));
     }
@@ -33,8 +34,9 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaSerializer(SchemaResolver<Schema, U> schemaResolver) {
         super(() -> new AvroSerializer<>(schemaResolver));
     }
@@ -42,8 +44,9 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<Schema, U> schemaResolver) {
         super(() -> new AvroSerializer<>(clientFacade, schemaResolver));
     }
@@ -52,8 +55,9 @@ public class AvroKafkaSerializer<U> extends KafkaSerializer<Schema, U> {
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
      * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public AvroKafkaSerializer(RegistryClientFacade clientFacade,
                                ArtifactReferenceResolverStrategy<Schema, U> strategy, SchemaResolver<Schema, U> schemaResolver) {
         super(() -> new AvroSerializer<>(clientFacade, strategy, schemaResolver));

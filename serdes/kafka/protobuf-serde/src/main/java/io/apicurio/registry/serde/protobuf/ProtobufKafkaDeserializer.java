@@ -24,8 +24,9 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade) {
         super(() -> new ProtobufDeserializer<>(clientFacade));
     }
@@ -33,8 +34,9 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaDeserializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(() -> new ProtobufDeserializer<>(schemaResolver));
     }
@@ -42,8 +44,9 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
     /**
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
                                      SchemaResolver<ProtobufSchema, U> schemaResolver) {
         super(() -> new ProtobufDeserializer<>(clientFacade, schemaResolver));
@@ -53,8 +56,9 @@ public class ProtobufKafkaDeserializer<U extends Message> extends KafkaDeseriali
      * @deprecated inject dependencies via the configuration map instead
      * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
      * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
      */
-    @Deprecated
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaDeserializer(RegistryClientFacade clientFacade,
                                      ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
                                      SchemaResolver<ProtobufSchema, U> schemaResolver) {

@@ -102,8 +102,7 @@ public class BaseSerde<T, U> implements AutoCloseable {
             RegistryClientFacade resolverFacade = this.schemaResolver.getClientFacade();
             if (explicitFacade) {
                 if (resolverFacade != null && resolverFacade != this.clientFacade) {
-                    log.warn("apicurio.registry.client-facade overrides facade already set " +
-                            "on apicurio.registry.schema-resolver");
+                    log.warn(SerdeConfig.REGISTRY_CLIENT_FACADE + " overrides facade already set " + SerdeConfig.SCHEMA_RESOLVER);
                 }
                 this.schemaResolver.setClientFacade(this.clientFacade);
             } else if (resolverFacade == null) {

@@ -31,9 +31,7 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
         initializeHeaders(configs, isKey);
     }
 
-    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
-        // Empty by default, designed to be overridden by subclasses if needed
-    }
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {}
 
     @Override
     public U deserialize(String topic, byte[] data) {

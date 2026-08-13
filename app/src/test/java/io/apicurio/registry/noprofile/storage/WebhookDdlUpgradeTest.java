@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,11 +15,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -97,6 +103,70 @@ public class WebhookDdlUpgradeTest {
         }
         assertEquals(0, countDeliveryLogs(connection, subscriptionId));
         assertEquals(1, countDeliveryLogs(connection, otherSubscriptionId));
+
+        assertDeliveryLogIndexesAreNotRedundant(connection);
+    }
+
+    /**
+     * The unique (subscriptionId, eventId) index has subscriptionId as its leading column, so it already
+     * serves subscriptionId lookups. A subscriptionId-only index declared by the DDL would only add write
+     * cost. Indexes the database creates on its own (H2, for instance, adds one to back the foreign key) are
+     * ignored - only the explicitly declared IDX_ indexes are asserted on.
+     */
+    private void assertDeliveryLogIndexesAreNotRedundant(Connection connection) throws SQLException {
+        Map<String, List<String>> indexes = new LinkedHashMap<>();
+        DatabaseMetaData metaData = connection.getMetaData();
+        for (String tableName : List.of("webhook_delivery_logs", "WEBHOOK_DELIVERY_LOGS")) {
+            try (ResultSet rs = metaData.getIndexInfo(null, null, tableName, false, false)) {
+                while (rs.next()) {
+                    String indexName = rs.getString("INDEX_NAME");
+                    String columnName = rs.getString("COLUMN_NAME");
+                    if (indexName == null || columnName == null) {
+                        continue;
+                    }
+                    indexes.computeIfAbsent(indexName.toUpperCase(Locale.ROOT), k -> new ArrayList<>())
+                            .add(columnName.toUpperCase(Locale.ROOT));
+                }
+            }
+        }
+
+        assertFalse(indexes.isEmpty(), "No index metadata was returned for webhook_delivery_logs");
+        assertTrue(indexes.values().stream().anyMatch(List.of("SUBSCRIPTIONID", "EVENTID")::equals),
+                "The unique (subscriptionId, eventId) index must exist, but found: " + indexes);
+        assertTrue(
+                indexes.entrySet().stream()
+                        .noneMatch(index -> index.getKey().startsWith("IDX_")
+                                && List.of("SUBSCRIPTIONID").equals(index.getValue())),
+                "A subscriptionId-only index is redundant with the (subscriptionId, eventId) unique index, "
+                        + "but found: " + indexes);
+    }
+
+    /**
+     * Guards against the redundant subscriptionId-only index reappearing in any dialect, in either the base
+     * DDL or the 110 upgrade script.
+     */
+    @Test
+    void testNoDialectCreatesASubscriptionIdOnlyIndex() throws Exception {
+        for (String dbKind : List.of("h2", "postgresql", "mysql", "mssql")) {
+            assertNoSubscriptionIdOnlyIndex(dbKind + ".ddl");
+            assertNoSubscriptionIdOnlyIndex("upgrades/110/" + dbKind + ".upgrade.ddl");
+        }
+    }
+
+    private void assertNoSubscriptionIdOnlyIndex(String resource) throws IOException {
+        List<String> statements;
+        try (InputStream input = DdlParser.class.getResourceAsStream(resource)) {
+            assertNotNull(input, "DDL resource not found: " + resource);
+            statements = new DdlParser().parse(input);
+        }
+        assertTrue(statements.size() > 1, "DDL resource could not be read: " + resource);
+        for (String sql : statements) {
+            String normalized = sql.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
+            assertFalse(
+                    normalized.startsWith("CREATEINDEX")
+                            && normalized.contains("ONWEBHOOK_DELIVERY_LOGS(SUBSCRIPTIONID)"),
+                    "Redundant subscriptionId-only index in " + resource + ": " + sql);
+        }
     }
 
     private void seedVersion109(Connection connection) throws SQLException {

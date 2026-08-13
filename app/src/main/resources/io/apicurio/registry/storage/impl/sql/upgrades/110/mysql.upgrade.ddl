@@ -38,6 +38,5 @@ CREATE TABLE webhook_delivery_logs (
     CONSTRAINT UQ_webhook_delivery_logs_1 UNIQUE (subscriptionId, eventId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_webhook_delivery_logs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId) ON DELETE CASCADE;
-CREATE INDEX IDX_webhook_delivery_logs_1 ON webhook_delivery_logs(subscriptionId);
-CREATE INDEX IDX_webhook_delivery_logs_2 ON webhook_delivery_logs(status, nextRetryAt);
-CREATE INDEX IDX_webhook_delivery_logs_3 ON webhook_delivery_logs(eventId);
+CREATE INDEX IDX_webhook_delivery_logs_1 ON webhook_delivery_logs(status, nextRetryAt);
+CREATE INDEX IDX_webhook_delivery_logs_2 ON webhook_delivery_logs(eventId);

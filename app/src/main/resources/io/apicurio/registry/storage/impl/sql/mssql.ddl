@@ -135,6 +135,5 @@ CREATE TABLE webhook_delivery_logs (deliveryId NVARCHAR(128) NOT NULL, subscript
 ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
 ALTER TABLE webhook_delivery_logs ADD CONSTRAINT UQ_webhook_delivery_logs_1 UNIQUE (subscriptionId, eventId);
 ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_webhook_delivery_logs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId) ON DELETE CASCADE;
-CREATE INDEX IDX_webhook_delivery_logs_1 ON webhook_delivery_logs(subscriptionId);
-CREATE INDEX IDX_webhook_delivery_logs_2 ON webhook_delivery_logs(status, nextRetryAt);
-CREATE INDEX IDX_webhook_delivery_logs_3 ON webhook_delivery_logs(eventId);
+CREATE INDEX IDX_webhook_delivery_logs_1 ON webhook_delivery_logs(status, nextRetryAt);
+CREATE INDEX IDX_webhook_delivery_logs_2 ON webhook_delivery_logs(eventId);

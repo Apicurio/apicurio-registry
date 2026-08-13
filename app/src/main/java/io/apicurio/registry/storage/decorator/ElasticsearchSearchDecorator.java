@@ -4,6 +4,8 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -14,6 +16,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -24,6 +29,10 @@ import java.util.Set;
 @ApplicationScoped
 public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
         implements RegistryStorageDecorator {
+
+    private static final String INDEX_NOT_AVAILABLE_MESSAGE =
+            "Content search requires the Elasticsearch search index, which is not "
+            + "available. Enable the Elasticsearch search index to use content search.";
 
     @Inject
     ElasticsearchSearchConfig config;
@@ -54,9 +63,7 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
             throws RegistryStorageException {
         if (searchService.requiresSearchIndex(filters)) {
             if (!startupIndexer.isReady()) {
-                throw new ContentSearchNotSupportedException(
-                        "Content search requires the Elasticsearch search index, which is not "
-                        + "available. Enable the Elasticsearch search index to use content search.");
+                throw new ContentSearchNotSupportedException(INDEX_NOT_AVAILABLE_MESSAGE);
             }
             try {
                 return searchService.searchVersions(filters, orderBy, orderDirection,
@@ -69,23 +76,77 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
         return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit, skipCount);
     }
 
+    /**
+     * Intercepts artifact search requests that include index-only filters (content or structure,
+     * e.g. A2A agent skill/capability filters). The search index resolves which artifacts have a
+     * matching version, while the underlying SQL storage evaluates the remaining filters and
+     * supplies the authoritative artifact metadata (name, labels, timestamps) and ordering; the
+     * two result sets are intersected and paginated in memory. Searches without index-only
+     * filters fall through to the underlying SQL-based storage unchanged.
+     *
+     * <p>Only the index-only filters (plus the artifact-type filter, which has identical
+     * exact-match semantics in both backends) are evaluated by the index; every other filter is
+     * evaluated by SQL. This keeps filters with backend-specific semantics (wildcard-wrapped
+     * name matching, case-normalized labels) on the SQL side, where the behavior matches
+     * non-index searches.</p>
+     *
+     * <p>Both the index scan and the SQL scan are capped at
+     * {@link ElasticsearchSearchService#MAX_ARTIFACT_SEARCH_HITS} entries, so results beyond
+     * that many candidates are not included.</p>
+     */
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDirection, int offset, int limit, boolean skipCount)
             throws RegistryStorageException {
-        if (searchService.requiresSearchIndex(filters)) {
-            if (!startupIndexer.isReady()) {
-                throw new ContentSearchNotSupportedException(
-                        "Content search requires the Elasticsearch search index, which is not "
-                        + "available. Enable the Elasticsearch search index to use content search.");
-            }
-            try {
-                return searchService.searchArtifacts(filters, orderBy, orderDirection,
-                        offset, limit, skipCount);
-            } catch (IOException e) {
-                throw new RegistryStorageException(
-                        "Elasticsearch search failed for index-only filters.", e);
+        if (!searchService.requiresSearchIndex(filters)) {
+            return delegate.searchArtifacts(filters, orderBy, orderDirection, offset, limit,
+                    skipCount);
+        }
+        if (!startupIndexer.isReady()) {
+            throw new ContentSearchNotSupportedException(INDEX_NOT_AVAILABLE_MESSAGE);
+        }
+
+        Set<SearchFilter> esFilters = new HashSet<>();
+        Set<SearchFilter> sqlFilters = new HashSet<>();
+        for (SearchFilter filter : filters) {
+            if (searchService.isIndexOnlyFilter(filter)) {
+                esFilters.add(filter);
+            } else {
+                sqlFilters.add(filter);
+                if (filter.getType() == SearchFilterType.artifactType) {
+                    esFilters.add(filter);
+                }
             }
         }
-        return delegate.searchArtifacts(filters, orderBy, orderDirection, offset, limit, skipCount);
+
+        Set<String> matchedIdentities;
+        try {
+            matchedIdentities = searchService.searchArtifactIdentities(esFilters);
+        } catch (IOException e) {
+            throw new RegistryStorageException(
+                    "Elasticsearch search failed for index-only filters.", e);
+        }
+
+        ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
+        if (matchedIdentities.isEmpty()) {
+            return results;
+        }
+
+        ArtifactSearchResultsDto sqlResults = delegate.searchArtifacts(sqlFilters, orderBy,
+                orderDirection, 0, ElasticsearchSearchService.MAX_ARTIFACT_SEARCH_HITS, true);
+
+        List<SearchedArtifactDto> matched = new ArrayList<>();
+        for (SearchedArtifactDto artifact : sqlResults.getArtifacts()) {
+            if (matchedIdentities.contains(ElasticsearchSearchService.identityKey(
+                    artifact.getGroupId(), artifact.getArtifactId()))) {
+                matched.add(artifact);
+            }
+        }
+
+        int total = matched.size();
+        int fromIndex = Math.min(Math.max(0, offset), total);
+        int toIndex = Math.min(fromIndex + Math.max(0, limit), total);
+        results.setArtifacts(new ArrayList<>(matched.subList(fromIndex, toIndex)));
+        results.setCount(skipCount ? 0 : total);
+        return results;
     }
 }

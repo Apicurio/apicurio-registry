@@ -1,10 +1,11 @@
 package io.apicurio.registry.storage.decorator;
 
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
@@ -14,11 +15,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -92,44 +102,114 @@ public class ElasticsearchSearchDecoratorTest {
 
     @Test
     void searchArtifactsThrowsContentSearchNotSupportedWhenIndexerNotReady() {
-        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("test"));
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofStructure("agent_card:skill:test-skill"));
         when(searchService.requiresSearchIndex(filters)).thenReturn(true);
         when(startupIndexer.isReady()).thenReturn(false);
 
         assertThrows(ContentSearchNotSupportedException.class,
-                () -> decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false));
+                () -> decorator.searchArtifacts(filters, OrderBy.createdOn, OrderDirection.desc, 0, 10, false));
 
-        verifyNoInteractions(delegate);
-    }
-
-    @Test
-    void searchArtifactsDelegatesToSearchServiceWhenIndexerReady() throws IOException {
-        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("test"));
-        ArtifactSearchResultsDto results = ArtifactSearchResultsDto.builder().count(1).build();
-        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
-        when(startupIndexer.isReady()).thenReturn(true);
-        when(searchService.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false))
-                .thenReturn(results);
-
-        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc,
-                0, 10, false);
-
-        assertEquals(results, actual);
         verifyNoInteractions(delegate);
     }
 
     @Test
     void searchArtifactsFallsThroughToDelegateWhenIndexNotRequired() {
         Set<SearchFilter> filters = Set.of(SearchFilter.ofName("test"));
-        ArtifactSearchResultsDto results = ArtifactSearchResultsDto.builder().count(1).build();
+        ArtifactSearchResultsDto results = new ArtifactSearchResultsDto();
         when(searchService.requiresSearchIndex(filters)).thenReturn(false);
-        when(delegate.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false))
+        when(delegate.searchArtifacts(filters, OrderBy.createdOn, OrderDirection.desc, 0, 10, false))
                 .thenReturn(results);
 
-        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc,
-                0, 10, false);
+        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, 0, 10, false);
 
         assertEquals(results, actual);
         verifyNoInteractions(startupIndexer);
+    }
+
+    @Test
+    void searchArtifactsReturnsEmptyWithoutSqlQueryWhenIndexHasNoMatches() throws IOException {
+        SearchFilter structureFilter = SearchFilter.ofStructure("agent_card:skill:no-such-skill");
+        Set<SearchFilter> filters = Set.of(structureFilter);
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(true);
+        when(searchService.isIndexOnlyFilter(structureFilter)).thenReturn(true);
+        when(searchService.searchArtifactIdentities(filters)).thenReturn(Set.of());
+
+        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, 0, 10, false);
+
+        assertEquals(0, actual.getCount());
+        assertEquals(0, actual.getArtifacts().size());
+        verify(delegate, never()).searchArtifacts(anySet(), any(), any(), anyInt(), anyInt(), anyBoolean());
+    }
+
+    @Test
+    void searchArtifactsIntersectsIndexMatchesWithSqlResults() throws IOException {
+        SearchFilter structureFilter = SearchFilter.ofStructure("agent_card:skill:test-skill");
+        SearchFilter typeFilter = SearchFilter.ofArtifactType("AGENT_CARD");
+        Set<SearchFilter> filters = Set.of(structureFilter, typeFilter);
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(true);
+        when(searchService.isIndexOnlyFilter(structureFilter)).thenReturn(true);
+        when(searchService.isIndexOnlyFilter(typeFilter)).thenReturn(false);
+        when(searchService.searchArtifactIdentities(filters)).thenReturn(Set.of(
+                ElasticsearchSearchService.identityKey(null, "agent-1"),
+                ElasticsearchSearchService.identityKey("group-1", "agent-3")));
+
+        // SQL returns three artifacts; only two of them have a matching version in the index
+        ArtifactSearchResultsDto sqlResults = new ArtifactSearchResultsDto();
+        sqlResults.setArtifacts(new ArrayList<>(List.of(
+                searchedArtifact(null, "agent-1"),
+                searchedArtifact(null, "agent-2"),
+                searchedArtifact("group-1", "agent-3"))));
+        when(delegate.searchArtifacts(eq(Set.of(typeFilter)), eq(OrderBy.createdOn),
+                eq(OrderDirection.desc), eq(0), eq(ElasticsearchSearchService.MAX_ARTIFACT_SEARCH_HITS),
+                eq(true))).thenReturn(sqlResults);
+
+        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, 0, 10, false);
+
+        assertEquals(2, actual.getCount());
+        assertEquals(2, actual.getArtifacts().size());
+        assertEquals("agent-1", actual.getArtifacts().get(0).getArtifactId());
+        assertEquals("agent-3", actual.getArtifacts().get(1).getArtifactId());
+        assertEquals("group-1", actual.getArtifacts().get(1).getGroupId());
+    }
+
+    @Test
+    void searchArtifactsAppliesOffsetAndLimitAfterIntersection() throws IOException {
+        SearchFilter structureFilter = SearchFilter.ofStructure("agent_card:skill:test-skill");
+        Set<SearchFilter> filters = Set.of(structureFilter);
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(true);
+        when(searchService.isIndexOnlyFilter(structureFilter)).thenReturn(true);
+        when(searchService.searchArtifactIdentities(filters)).thenReturn(Set.of(
+                ElasticsearchSearchService.identityKey(null, "agent-1"),
+                ElasticsearchSearchService.identityKey(null, "agent-2"),
+                ElasticsearchSearchService.identityKey(null, "agent-3")));
+
+        ArtifactSearchResultsDto sqlResults = new ArtifactSearchResultsDto();
+        sqlResults.setArtifacts(new ArrayList<>(List.of(
+                searchedArtifact(null, "agent-1"),
+                searchedArtifact(null, "agent-2"),
+                searchedArtifact(null, "agent-3"))));
+        when(delegate.searchArtifacts(eq(Set.of()), eq(OrderBy.createdOn), eq(OrderDirection.desc),
+                eq(0), eq(ElasticsearchSearchService.MAX_ARTIFACT_SEARCH_HITS), eq(true)))
+                .thenReturn(sqlResults);
+
+        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.createdOn,
+                OrderDirection.desc, 1, 1, false);
+
+        assertEquals(3, actual.getCount());
+        assertEquals(1, actual.getArtifacts().size());
+        assertEquals("agent-2", actual.getArtifacts().get(0).getArtifactId());
+    }
+
+    private static SearchedArtifactDto searchedArtifact(String groupId, String artifactId) {
+        SearchedArtifactDto dto = new SearchedArtifactDto();
+        dto.setGroupId(groupId);
+        dto.setArtifactId(artifactId);
+        return dto;
     }
 }

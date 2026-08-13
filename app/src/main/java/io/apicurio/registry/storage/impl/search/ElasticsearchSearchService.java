@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,6 +52,14 @@ public class ElasticsearchSearchService {
      */
     private static final Set<SearchFilterType> INDEX_ONLY_FILTER_TYPES = EnumSet.of(
             SearchFilterType.content, SearchFilterType.structure);
+
+    /**
+     * Maximum number of version documents scanned when resolving artifact identities for an
+     * artifact-level search with index-only filters. Kept at Elasticsearch's default
+     * {@code index.max_result_window} (10,000) so a single request can retrieve the full scan
+     * window without paging.
+     */
+    public static final int MAX_ARTIFACT_SEARCH_HITS = 10000;
 
     @Inject
     ElasticsearchClient client;
@@ -196,6 +205,73 @@ public class ElasticsearchSearchService {
                 .artifacts(artifacts)
                 .count(totalCount)
                 .build();
+    }
+
+    /**
+     * Checks whether the given filter can only be served by the search index (no SQL fallback).
+     *
+     * @param filter the search filter to check
+     * @return true if the filter requires the search index, false otherwise
+     */
+    public boolean isIndexOnlyFilter(SearchFilter filter) {
+        return INDEX_ONLY_FILTER_TYPES.contains(filter.getType());
+    }
+
+    /**
+     * Searches the Elasticsearch index for versions matching the given filters and returns the
+     * identity keys (see {@link #identityKey(String, String)}) of the distinct artifacts those
+     * versions belong to. Because the index stores one document per artifact <em>version</em>,
+     * an artifact matches when <em>any</em> of its versions matches the filters — consistent
+     * with how SQL artifact search evaluates other version-level filters ({@code EXISTS} over
+     * versions).
+     *
+     * <p>At most {@link #MAX_ARTIFACT_SEARCH_HITS} version documents are scanned; a warning is
+     * logged when the cap is reached.</p>
+     *
+     * @param filters the search filters to apply
+     * @return the identity keys of artifacts with at least one matching version
+     * @throws IOException if an error occurs during search
+     */
+    public Set<String> searchArtifactIdentities(Set<SearchFilter> filters) throws IOException {
+        Query query = buildEsQuery(filters);
+
+        SearchResponse<Map> response = client.search(s -> s
+                .index(config.getIndexName())
+                .query(query)
+                .from(0)
+                .size(MAX_ARTIFACT_SEARCH_HITS)
+                .source(src -> src.filter(f -> f.includes("groupId", "artifactId")))
+                .trackTotalHits(t -> t.enabled(false)), Map.class);
+
+        Set<String> identities = new LinkedHashSet<>();
+        for (Hit<Map> hit : response.hits().hits()) {
+            Map<String, Object> source = hit.source();
+            if (source != null && source.get("artifactId") != null) {
+                identities.add(identityKey(toStr(source.get("groupId")),
+                        toStr(source.get("artifactId"))));
+            }
+        }
+
+        if (response.hits().hits().size() >= MAX_ARTIFACT_SEARCH_HITS) {
+            log.warn("Artifact identity search reached the scan cap of {} version documents; "
+                    + "matches beyond the cap are not included.", MAX_ARTIFACT_SEARCH_HITS);
+        }
+
+        return identities;
+    }
+
+    /**
+     * Builds a normalized identity key for an artifact. The index stores {@code "default"} for
+     * the default group while SQL search results use {@code null}; both normalize to the same
+     * key so identities from either source can be compared.
+     *
+     * @param groupId the group ID (may be null for the default group)
+     * @param artifactId the artifact ID
+     * @return the identity key
+     */
+    public static String identityKey(String groupId, String artifactId) {
+        String normalizedGroupId = groupId == null ? "default" : groupId;
+        return normalizedGroupId + '\0' + artifactId;
     }
 
     /**

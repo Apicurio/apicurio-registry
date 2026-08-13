@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -103,5 +104,17 @@ public class ElasticsearchSearchServiceTest {
 
         assertNotNull(query.bool());
         assertEquals(2, query.bool().must().size());
+    }
+
+    @Test
+    void identityKeyNormalizesDefaultGroup() {
+        // SQL search results use null for the default group while the index stores "default";
+        // both must map to the same identity key.
+        assertEquals(ElasticsearchSearchService.identityKey("default", "artifact-1"),
+                ElasticsearchSearchService.identityKey(null, "artifact-1"));
+        assertNotEquals(ElasticsearchSearchService.identityKey("group-1", "artifact-1"),
+                ElasticsearchSearchService.identityKey("group-2", "artifact-1"));
+        assertNotEquals(ElasticsearchSearchService.identityKey("group-1", "artifact-1"),
+                ElasticsearchSearchService.identityKey("group-1", "artifact-2"));
     }
 }

@@ -843,6 +843,120 @@ class AgentCardCompatibilityCheckerTest {
         return baseCard(SKILL1, "").replace(", \"protocolVersion\": \"1.0\" }", " }");
     }
 
+    private static final String IFACE_V1 = "{ \"url\": \"https://example.com/agent\","
+            + " \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\" }";
+    private static final String IFACE_NO_VERSION = "{ \"url\": \"https://example.com/agent\","
+            + " \"protocolBinding\": \"http+json\" }";
+
+    private static String cardWithInterfaces(String interfaces) {
+        return baseCard(SKILL1, "").replace(IFACE_V1, interfaces);
+    }
+
+    private static String cardWithScopes(String scopes) {
+        return cardWithScheme("oauth", "{ \"type\": \"oauth2\", \"flows\": {"
+                + " \"clientCredentials\": { \"scopes\": " + scopes + " } } }");
+    }
+
+    @Test
+    void testBackwardCompatibleEditingOAuth2ScopeDescription() {
+        String existing = cardWithScopes("{ \"read\": \"Read access\" }");
+        String proposed = cardWithScopes("{ \"read\": \"Read-only access\" }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "An OAuth2 scope map holds a short description per scope name, so rewording one is"
+                        + " documentation and must stay compatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleRemovingMapValuedOAuth2Scope() {
+        String existing = cardWithScopes("{ \"read\": \"Read access\", \"write\": \"Write access\" }");
+        String proposed = cardWithScopes("{ \"read\": \"Read access\" }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Withdrawing a scope name should still be backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+        assertTrue(reports(result, "Security scheme 'oauth' no longer offers 'write' in"
+                + " 'flows/clientCredentials/scopes'"));
+    }
+
+    @Test
+    void testBackwardCompatibleDuplicateInterfaceRetainingProtocolVersion() {
+        String existing = cardWithInterfaces(IFACE_V1);
+        String proposed = cardWithInterfaces(IFACE_V1 + ", " + IFACE_NO_VERSION);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "url+protocolBinding is not unique, so a matching interface that keeps the version"
+                        + " means nothing was withdrawn");
+    }
+
+    @Test
+    void testBackwardIncompatibleDuplicateInterfacesAllDroppingProtocolVersion() {
+        String existing = cardWithInterfaces(IFACE_V1);
+        String proposed = cardWithInterfaces(IFACE_NO_VERSION + ", " + IFACE_NO_VERSION);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "When no matching interface keeps the version it really was withdrawn");
+        assertEquals(1, result.getIncompatibleDifferences().size(),
+                "Duplicate entries must not multiply the difference");
+    }
+
+    @Test
+    void testBackwardIncompatibleInterfaceProtocolVersionBecomingNonTextual() {
+        String existing = cardWithInterfaces(IFACE_V1);
+        String proposed = cardWithInterfaces("{ \"url\": \"https://example.com/agent\","
+                + " \"protocolBinding\": \"http+json\", \"protocolVersion\": 2 }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible());
+        assertTrue(reports(result, "Protocol version changed from '1.0' to '2'"),
+                "The value changed, so it must not be reported as a removal");
+    }
+
+    @Test
+    void testBackwardIncompatibleCardProtocolVersionBecomingNonTextual() {
+        String existing = baseCard(SKILL1, ", \"protocolVersion\": \"1.0\"");
+        String proposed = baseCard(SKILL1, ", \"protocolVersion\": 2");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible());
+        assertTrue(reports(result, "The agent protocolVersion changed from '1.0' to '2'"),
+                "The value changed, so it must not be reported as a removal");
+    }
+
     @Test
     void testBackwardCompatibleWhenBothInterfacesOmitProtocolVersion() {
         String existing = cardWithoutInterfaceProtocolVersion();

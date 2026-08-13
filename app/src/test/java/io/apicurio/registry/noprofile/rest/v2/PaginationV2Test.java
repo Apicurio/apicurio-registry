@@ -87,35 +87,36 @@ public class PaginationV2Test extends AbstractResourceTestBase {
         }
 
         // A negative offset is normalized to 0, returning the full result set.
-        given().when().body(artifactContent).queryParam("offset", -1)
+        given().when().contentType(CT_JSON).body(artifactContent).queryParam("offset", -1)
                 .post("/registry/v2/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
 
         // A negative limit is normalized to 1, not passed to storage as an invalid query (#9369).
-        given().when().body(artifactContent).queryParam("limit", -1)
+        given().when().contentType(CT_JSON).body(artifactContent).queryParam("limit", -1)
                 .post("/registry/v2/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
 
         // Both parameters invalid at once: offset -> 0, limit -> 1.
-        given().when().body(artifactContent).queryParam("offset", -1).queryParam("limit", -1)
-                .post("/registry/v2/search/artifacts").then().statusCode(200)
-                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+        given().when().contentType(CT_JSON).body(artifactContent).queryParam("offset", -1)
+                .queryParam("limit", -1).post("/registry/v2/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
 
         // limit=0 keeps its current semantics (empty page); only negative values are normalized.
-        given().when().body(artifactContent).queryParam("limit", 0)
+        given().when().contentType(CT_JSON).body(artifactContent).queryParam("limit", 0)
                 .post("/registry/v2/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
 
         // Omitted offset/limit fall back to the endpoint's defaults (0 / 20).
-        given().when().body(artifactContent).post("/registry/v2/search/artifacts").then()
-                .statusCode(200).body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+        given().when().contentType(CT_JSON).body(artifactContent)
+                .post("/registry/v2/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
 
         // Oversized values are capped instead of wrapping to a negative int, which would have
         // produced a 500.
-        given().when().body(artifactContent).queryParam("offset", 2147483648L)
+        given().when().contentType(CT_JSON).body(artifactContent).queryParam("offset", 2147483648L)
                 .post("/registry/v2/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
-        given().when().body(artifactContent).queryParam("limit", 2147483648L)
+        given().when().contentType(CT_JSON).body(artifactContent).queryParam("limit", 2147483648L)
                 .post("/registry/v2/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
     }

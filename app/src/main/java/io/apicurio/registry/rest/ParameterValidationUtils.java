@@ -74,7 +74,7 @@ public final class ParameterValidationUtils {
      * A negative limit is normalized to 1 (limit=0 keeps its existing empty-page semantics);
      * otherwise the limit is capped to bound the size of the result set.
      *
-     * @param limit the raw limit value provided by the client
+     * @param limit the raw limit value provided by the client; must not be {@code null}
      * @return the normalized limit, safe to pass to the storage layer
      */
     public static int normalizeLimit(BigInteger limit) {
@@ -87,7 +87,7 @@ public final class ParameterValidationUtils {
      * (limit=0 keeps its existing empty-page semantics); otherwise the limit is clamped to
      * Integer.MAX_VALUE to prevent BigInteger-to-int overflow.
      *
-     * @param limit the raw limit value provided by the client
+     * @param limit the raw limit value provided by the client; must not be {@code null}
      * @return the normalized limit, safe to pass to the storage layer
      */
     public static int normalizeLimitUnbounded(BigInteger limit) {

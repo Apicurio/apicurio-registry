@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class ElasticsearchSearchServiceTest {
 
@@ -33,5 +34,17 @@ public class ElasticsearchSearchServiceTest {
         } finally {
             Locale.setDefault(originalLocale);
         }
+    }
+
+    @Test
+    void identityKeyNormalizesDefaultGroup() {
+        // SQL search results use null for the default group while the index stores "default";
+        // both must map to the same identity key.
+        assertEquals(ElasticsearchSearchService.identityKey("default", "artifact-1"),
+                ElasticsearchSearchService.identityKey(null, "artifact-1"));
+        assertNotEquals(ElasticsearchSearchService.identityKey("group-1", "artifact-1"),
+                ElasticsearchSearchService.identityKey("group-2", "artifact-1"));
+        assertNotEquals(ElasticsearchSearchService.identityKey("group-1", "artifact-1"),
+                ElasticsearchSearchService.identityKey("group-1", "artifact-2"));
     }
 }

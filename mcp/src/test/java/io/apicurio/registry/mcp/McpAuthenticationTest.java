@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration test that verifies MCP server authentication works correctly
@@ -104,18 +105,18 @@ public class McpAuthenticationTest {
             
             // Test compatibility (Happy Path)
             String compatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}}}";
-            String result = registryService.testSchemaCompatibility(testGroupId, testArtifactId, compatibleSchema, "application/json");
+            String result = registryService.testSchemaRules(testGroupId, testArtifactId, compatibleSchema, "application/json");
             
-            org.junit.jupiter.api.Assertions.assertTrue(result.contains("compatible"), "Result should indicate schema is compatible");
+            assertTrue(result.contains("compatible"), "Result should indicate schema is compatible");
             log.info("Schema compatibility happy path result: {}", result);
 
             // Test compatibility (Failure Path)
             // Flip `id` from string to integer to break BACKWARD compatibility
             String incompatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"integer\"}}}";
-            String negativeResult = registryService.testSchemaCompatibility(testGroupId, testArtifactId, incompatibleSchema, "application/json");
+            String negativeResult = registryService.testSchemaRules(testGroupId, testArtifactId, incompatibleSchema, "application/json");
 
-            org.junit.jupiter.api.Assertions.assertTrue(negativeResult.contains("Schema compatibility check failed"), "Result should indicate schema is incompatible");
-            org.junit.jupiter.api.Assertions.assertTrue(negativeResult.contains("id"), "Result should contain the cause description mentioning the 'id' field");
+            assertTrue(negativeResult.contains("Schema rules check failed"), "Result should indicate schema is incompatible");
+            assertTrue(negativeResult.contains("id"), "Result should contain the cause description mentioning the 'id' field");
             log.info("Schema compatibility failure path result: {}", negativeResult);
         } finally {
             try {

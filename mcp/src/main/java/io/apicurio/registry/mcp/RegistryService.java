@@ -1,5 +1,6 @@
 package io.apicurio.registry.mcp;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -9,17 +10,18 @@ import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.ConfigurationProperty;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateGroup;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSortBy;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.SearchedGroup;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
-import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.rest.client.models.SortOrder;
 import io.apicurio.registry.rest.client.models.SystemInfo;
 import io.apicurio.registry.rest.client.models.UpdateConfigurationProperty;
@@ -372,7 +374,7 @@ public class RegistryService {
         return client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v);
     }
 
-    public String testSchemaCompatibility(
+    public String testSchemaRules(
             String groupId,
             String artifactId,
             String versionContent,
@@ -388,10 +390,10 @@ public class RegistryService {
             client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v, r -> {
                 r.queryParameters.dryRun = true;
             });
-            return "Schema is compatible.";
+            return "Schema is valid and compatible.";
         } catch (RuleViolationProblemDetails e) {
             StringBuilder sb = new StringBuilder();
-            sb.append("Schema compatibility check failed: ").append(e.getDetail()).append("\n");
+            sb.append("Schema rules check failed: ").append(e.getDetail()).append("\n");
             if (e.getCauses() != null) {
                 for (var cause : e.getCauses()) {
                     sb.append("- ").append(cause.getDescription());
@@ -403,7 +405,7 @@ public class RegistryService {
             }
             return sb.toString();
         } catch (ApiException e) {
-            throw new ToolCallException("Failed to test schema compatibility: " + e.getMessage(), e);
+            throw new ToolCallException("Failed to test schema rules: " + e.getMessage(), e);
         }
     }
 
@@ -518,8 +520,8 @@ public class RegistryService {
     }
 
     public void createArtifactRule(String groupId, String artifactId, String ruleType, String ruleConfig) {
-        var createRule = new io.apicurio.registry.rest.client.models.CreateRule();
-        createRule.setRuleType(io.apicurio.registry.rest.client.models.RuleType.forValue(ruleType));
+        var createRule = new CreateRule();
+        createRule.setRuleType(RuleType.forValue(ruleType));
         createRule.setConfig(ruleConfig);
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }

@@ -832,7 +832,19 @@ The deserializer class can determine the values for these options from the messa
 
 The deserializer determines the ID location by checking for the magic byte at the start of the message payload. If that byte is found, the deserializer reads the ID from the message payload by using the configured handler. If the magic byte is not found, the deserializer reads the ID from the message headers.
 
-NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation, but rather to a `DynamicMessage` instance. No appropriate API exists to do otherwise.
+NOTE: By default, the Protobuf deserializer deserializes to a `DynamicMessage` instance. To deserialize to your generated Protobuf message class instead, set the `apicurio.registry.deserializer.value.return-class` property to the generated class.
+
+**Deserializer fallback parsing**
+
+By default, a schema resolution failure causes deserialization to fail. When you configure a specific return class, you can enable an opt-in fallback that parses the message payload directly with the generated class when schema lookup or parsing fails, for example, during a registry outage or when a transitive import is missing:
+
+[source,properties]
+----
+apicurio.protobuf.fallback.on-schema-error=true
+apicurio.registry.deserializer.value.return-class=com.example.MyProtobufMessage
+----
+
+The fallback never applies when the deserializer returns `DynamicMessage` instances. When the fallback activates, the deserializer logs a warning that includes the original error.
 
 **Confluent interoperability**
 

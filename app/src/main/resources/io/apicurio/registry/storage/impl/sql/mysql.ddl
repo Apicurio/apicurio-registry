@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 109);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -272,3 +272,14 @@ CREATE TABLE schema_usage (
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
+
+CREATE TABLE webhook_subscriptions (subscriptionId VARCHAR(128) NOT NULL, endpointUrl VARCHAR(1024) NOT NULL, eventTypes TEXT, groupFilter VARCHAR(512), artifactFilter VARCHAR(512), authType VARCHAR(32) NOT NULL DEFAULT 'NONE', authConfig TEXT, isEnabled BOOLEAN NOT NULL DEFAULT TRUE, owner VARCHAR(256), createdOn TIMESTAMP NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP NULL);
+ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);
+CREATE INDEX IDX_whsubs_1 ON webhook_subscriptions(isEnabled);
+CREATE INDEX IDX_whsubs_2 ON webhook_subscriptions(createdOn);
+CREATE TABLE webhook_delivery_logs (deliveryId BIGINT AUTO_INCREMENT NOT NULL, subscriptionId VARCHAR(128) NOT NULL, eventId VARCHAR(128) NOT NULL, attemptCount INT NOT NULL DEFAULT 0, lastAttemptOn TIMESTAMP NULL, status VARCHAR(32) NOT NULL, responseCode INT, createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
+ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId) ON DELETE CASCADE;
+CREATE INDEX IDX_whdlogs_1 ON webhook_delivery_logs(subscriptionId, status);
+CREATE INDEX IDX_whdlogs_2 ON webhook_delivery_logs(lastAttemptOn);
+CREATE INDEX IDX_whdlogs_3 ON webhook_delivery_logs(status);

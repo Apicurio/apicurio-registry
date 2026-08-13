@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 109);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -126,3 +126,13 @@ CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
 
+CREATE TABLE webhook_subscriptions (subscriptionId NVARCHAR(128) NOT NULL, endpointUrl NVARCHAR(1024) NOT NULL, eventTypes TEXT, groupFilter NVARCHAR(512), artifactFilter NVARCHAR(512), authType NVARCHAR(32) NOT NULL DEFAULT 'NONE', authConfig TEXT, isEnabled BIT NOT NULL DEFAULT 1, owner NVARCHAR(256), createdOn DATETIME2 NOT NULL, modifiedBy NVARCHAR(256), modifiedOn DATETIME2);
+ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);
+CREATE INDEX IDX_whsubs_1 ON webhook_subscriptions(isEnabled);
+CREATE INDEX IDX_whsubs_2 ON webhook_subscriptions(createdOn);
+CREATE TABLE webhook_delivery_logs (deliveryId BIGINT IDENTITY(1,1) NOT NULL, subscriptionId NVARCHAR(128) NOT NULL, eventId NVARCHAR(128) NOT NULL, attemptCount INT NOT NULL DEFAULT 0, lastAttemptOn DATETIME2, status NVARCHAR(32) NOT NULL, responseCode INT, createdOn DATETIME2 NOT NULL DEFAULT GETDATE());
+ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId) ON DELETE CASCADE;
+CREATE INDEX IDX_whdlogs_1 ON webhook_delivery_logs(subscriptionId, status);
+CREATE INDEX IDX_whdlogs_2 ON webhook_delivery_logs(lastAttemptOn);
+CREATE INDEX IDX_whdlogs_3 ON webhook_delivery_logs(status);

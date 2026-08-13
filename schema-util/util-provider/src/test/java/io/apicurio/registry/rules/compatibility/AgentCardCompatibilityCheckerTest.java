@@ -839,6 +839,43 @@ class AgentCardCompatibilityCheckerTest {
                 + " 'flows/clientCredentials/scopes'"));
     }
 
+    private static String cardWithoutInterfaceProtocolVersion() {
+        return baseCard(SKILL1, "").replace(", \"protocolVersion\": \"1.0\" }", " }");
+    }
+
+    @Test
+    void testBackwardCompatibleWhenBothInterfacesOmitProtocolVersion() {
+        String existing = cardWithoutInterfaceProtocolVersion();
+        String proposed = cardWithoutInterfaceProtocolVersion();
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "An interface that never declared a protocolVersion has none to lose, so this must"
+                        + " not be reported as a removal");
+        assertEquals(0, result.getIncompatibleDifferences().size());
+    }
+
+    @Test
+    void testBackwardCompatibleWhenProposedInterfaceAddsProtocolVersion() {
+        String existing = cardWithoutInterfaceProtocolVersion();
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Declaring a protocolVersion on an interface that lacked one is additive");
+        assertEquals(0, result.getIncompatibleDifferences().size());
+    }
+
     @Test
     void testBackwardIncompatibleCardProtocolVersionChange() {
         String existing = baseCard(SKILL1, ", \"protocolVersion\": \"1.0\"");

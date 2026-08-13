@@ -21,7 +21,7 @@ export const validatePropertyValue = (
         if (!/^\d+$/.test(trimmedValue) || !Number.isInteger(num) || num < 0) {
             return {
                 isValid: false,
-                errorMessage: "Value must be a number"
+                errorMessage: "Value must be a non-negative integer"
             };
         }
     }

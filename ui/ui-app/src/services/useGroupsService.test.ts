@@ -15,7 +15,7 @@ const { axiosGetMock, createAuthOptionsMock, getRegistryClientMock } = vi.hoiste
     };
 });
 
-vi.mock("@apicurio/common-ui-components", () => ({
+vi.mock("@apitomy/common-ui-components", () => ({
     useAuth: () => ({})
 }));
 

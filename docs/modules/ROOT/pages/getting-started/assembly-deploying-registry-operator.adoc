@@ -446,7 +446,7 @@ IMPORTANT: KubernetesOps storage is an *experimental* feature. You must enable t
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
-* You must have access to create ConfigMaps and RBAC resources in your cluster.
+* You must have access to create ConfigMaps in your cluster. The {operator} creates the required RBAC resources automatically.
 
 .Procedure
 
@@ -479,8 +479,10 @@ NOTE: Replace `registryId` with a unique identifier for your registry instance, 
 `namespace` with the namespace containing your ConfigMaps. The operator automatically enables
 the experimental features gate required by KubernetesOps storage.
 
-. Create the required RBAC resources (ServiceAccount, Role, RoleBinding) to grant the registry read access
-to ConfigMaps. See xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-rbac-requirements_{context}[RBAC requirements] for details.
+. Optional: Verify that the {operator} created the RBAC resources that grant the registry read access
+to ConfigMaps. The {operator} automatically creates a ServiceAccount, a Role, and a RoleBinding, each named
+`<cr-name>-kubeops`, and sets the service account on the registry deployment. For deployments without the
+{operator}, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-rbac-requirements_{context}[RBAC requirements].
 
 . Create ConfigMaps containing your registry data. See
 xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-configmap-format_{context}[ConfigMap data format] for the required format.
@@ -841,6 +843,66 @@ spec:
       host: registry-ui.example.com
 ----
 
+// ref-configuring-autoscaling
+[id="configuring-autoscaling_{context}"]
+== Autoscaling configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+You can configure the {operator} to manage a horizontal pod autoscaler (HPA) for the app and UI components. When autoscaling is enabled, the {operator} creates an HPA that targets the component's Deployment, and the static `replicas` field is ignored.
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+----
+
+.Autoscaling fields
+[cols="2,3,1,1",options="header"]
+|===
+|Field
+|Description
+|Type
+|Default
+
+|`enabled`
+|Whether the {operator} manages a HorizontalPodAutoscaler for the component.
+|Boolean
+|`false`
+
+|`minReplicas`
+|Minimum number of replicas.
+|Integer
+|`1`
+
+|`maxReplicas`
+|Maximum number of replicas. Set this field when you enable autoscaling; when omitted, it falls back to the `minReplicas` value.
+|Integer
+|`minReplicas`
+
+|`targetCPUUtilizationPercentage`
+|Target average CPU utilization percentage across all pods.
+|Integer
+|`80`
+
+|`targetMemoryUtilizationPercentage`
+|Target average memory utilization percentage across all pods. When not set, memory-based scaling is not configured.
+|Integer
+|Not set
+|===
+
+The autoscaling configuration is available on both `spec.app.autoscaling` and `spec.ui.autoscaling`. If you set both `replicas` and `autoscaling` on a component, the {operator} reports a validation error condition and ignores the `replicas` field. The {operator} also manages a PodDisruptionBudget when autoscaling is enabled with `maxReplicas` greater than 1.
+
 // ref-configuring-poddisruptionbudget
 [id="configuring-poddisruptionbudget_{context}"]
 == PodDisruptionBudget configuration
@@ -939,6 +1001,28 @@ You can also add additional containers to the pod if needed.
 IMPORTANT: *Order of evaluation:* The operator first extends the provided PodTemplateSpec with default values and then applies additional configuration based on other fields in the `ApicurioRegistry3` CR. Therefore, other configuration fields might override settings in the PodTemplateSpec.
 
 // ref-configuring-app-tls
+[id="configuring-console-plugin_{context}"]
+== OpenShift Console plugin configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+On OpenShift, the {operator} can deploy a console plugin that adds an *Apicurio* section to the OpenShift Console administrator perspective, with pages for listing and inspecting `ApicurioRegistry3` instances.
+
+To deploy the console plugin, both of the following conditions must be met:
+
+* The top-level `spec.consolePlugin.enabled` field is set to `true` in the custom resource. The field defaults to `false`.
+* The console plugin image is configured on the {operator}, by using the `REGISTRY_CONSOLE_PLUGIN_IMAGE` environment variable on the operator deployment.
+
+[source,yaml]
+----
+spec:
+  consolePlugin:
+    enabled: true
+----
+
+The {operator} then creates a console plugin Deployment and Service secured with OpenShift service serving certificates, and registers a cluster-scoped `ConsolePlugin` resource named `<cr-name>-console-plugin`. The plugin backend forwards the logged-in user's OpenShift bearer token to the registry API. On clusters that are not OpenShift, the console plugin is not deployed.
+
 [id="configuring-app-tls_{context}"]
 == Application TLS configuration
 

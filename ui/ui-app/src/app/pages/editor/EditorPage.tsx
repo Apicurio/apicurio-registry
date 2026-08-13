@@ -26,7 +26,7 @@ import { Link } from "react-router";
 import { Button } from "@patternfly/react-core";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { Draft, DraftContent } from "@models/drafts";
 import { useDraftsService } from "@services/useDraftsService.ts";
 import { useDownloadService } from "@services/useDownloadService.ts";

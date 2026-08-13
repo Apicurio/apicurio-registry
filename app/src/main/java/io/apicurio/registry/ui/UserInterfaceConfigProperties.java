@@ -61,7 +61,7 @@ public class UserInterfaceConfigProperties {
     public Optional<Boolean> loadUserInfo;
 
     @ConfigProperty(name = "apicurio.ui.auth.oidc.use-nonce")
-    @Info(category = CATEGORY_UI, description = "Whether to include a nonce parameter in OIDC authorization requests. Required for providers that enforce nonce (e.g. Keycloak with FAPI policies). Defaults to false if not specified.", availableSince = "3.2.0")
+    @Info(category = CATEGORY_UI, description = "Whether to include a nonce parameter in OIDC authorization requests. Required for providers that enforce nonce (e.g. Keycloak with FAPI policies). Defaults to false if not specified.", availableSince = "3.3.2")
     public Optional<Boolean> useNonce;
 
 }

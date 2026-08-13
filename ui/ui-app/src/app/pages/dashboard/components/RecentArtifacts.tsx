@@ -39,7 +39,7 @@ export const RecentArtifacts: FunctionComponent<RecentArtifactsProps> = ({
     };
 
     return (
-        <Card className="recent-artifacts-card" variant="secondary" style={{ backgroundColor: "white" }}>
+        <Card className="recent-artifacts-card" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
             <CardTitle>Recent Artifacts</CardTitle>
             <CardBody>
                 {isLoading ? (

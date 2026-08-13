@@ -29,7 +29,7 @@ $ARGUMENTS — Optional: module name, test class, or "all"
 
 4. **If storage layer was changed**, suggest integration tests:
    ```bash
-   ./mvnw verify -pl integration-tests -Plocal-tests
+   ./mvnw verify -Pintegration-tests -pl integration-tests -am
    ```
 
 5. **If UI was changed**:

@@ -287,6 +287,13 @@ jobs:
       - name: Run linter
         run: ./scripts/validate-files.sh
 
+      # Fails if any app/ test class is claimed by zero shards (it would never run in CI, and
+      # -Dsurefire.failIfNoSpecifiedTests=false means no shard would complain) or by more than
+      # one (wasted runner time). Runs here rather than in verify-unit-tests.yaml so it is checked
+      # once instead of once per shard, and so it fails fast. See issue #9265.
+      - name: Verify unit test shard partition
+        run: python3 .github/scripts/verify-test-shards.py
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then

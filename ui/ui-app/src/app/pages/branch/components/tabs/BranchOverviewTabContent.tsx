@@ -102,7 +102,7 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
     return (
         <div className="branch-overview-tab-content">
             <div className="branch-basics">
-                <Card variant="secondary" style={{ backgroundColor: "white" }}>
+                <Card variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>
@@ -165,7 +165,7 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
                 </Card>
             </div>
             <div className="branch-versions">
-                <Card variant="secondary" style={{ backgroundColor: "white" }}>
+                <Card variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                     <CardTitle>
                         <div className="title-and-type">
                             <Flex>

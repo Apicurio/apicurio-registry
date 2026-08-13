@@ -803,6 +803,7 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(400)
                 .body("detail", allOf(
                         containsString("search index"),
+                        // Guard: error body must not leak SQL/stacktrace
                         not(containsStringIgnoringCase("select"))));
     }
 }

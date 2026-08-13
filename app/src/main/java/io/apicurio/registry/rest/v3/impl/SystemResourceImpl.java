@@ -110,6 +110,8 @@ public class SystemResourceImpl implements SystemResource {
             }
             // Only include loadUserInfo if explicitly configured
             uiConfig.loadUserInfo.ifPresent(loadUserInfo -> options.put("loadUserInfo", String.valueOf(loadUserInfo)));
+            // Only include useNonce if explicitly configured
+            uiConfig.useNonce.ifPresent(useNonce -> options.put("useNonce", String.valueOf(useNonce)));
             rval.setOptions(options);
         }
         return rval;

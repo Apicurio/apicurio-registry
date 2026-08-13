@@ -64,4 +64,8 @@ public class UserInterfaceConfigProperties {
     @Info(category = CATEGORY_UI, description = "Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.", availableSince = "3.1.6")
     public Optional<Boolean> loadUserInfo;
 
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.use-nonce")
+    @Info(category = CATEGORY_UI, description = "Whether to include a nonce parameter in OIDC authorization requests. Required for providers that enforce nonce (e.g. Keycloak with FAPI policies). Defaults to false if not specified.", availableSince = "3.3.2")
+    public Optional<Boolean> useNonce;
+
 }

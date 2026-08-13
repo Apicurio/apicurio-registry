@@ -2,17 +2,24 @@ package io.apicurio.registry.storage.impl.search;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import io.apicurio.registry.a2a.A2AConstants;
+import io.apicurio.registry.content.extract.AgentCardStructuredContentExtractor;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Unit tests for the structure-filter query construction in {@link ElasticsearchSearchService}.
+ * Unit tests for the structure-filter query construction in {@link ElasticsearchSearchService}, plus
+ * a consistency check against the indexing side.
  *
  * <p>Structured elements are indexed as {@code type:kind:name} (see
  * {@link ElasticsearchDocumentBuilder}), where {@code type} and {@code kind} are colon-free
@@ -70,5 +77,43 @@ class ElasticsearchStructureQueryTest {
         Query clause = structureClause("summarize");
         assertTrue(clause.isMatch(), "a plain name should be a text query on structure_text");
         assertEquals("structure_text", clause.match().field());
+    }
+
+    @Test
+    void indexedStructureValueMatchesQueryTerm() {
+        // The query-only tests above build the expected term from the same lowercased input on both
+        // sides, so they cannot detect a mismatch with the indexer. Drive the real indexing path for
+        // an Agent Card whose skill id mixes case and contains a colon, then assert the query for the
+        // same skill resolves to an exact term on the identical stored value. Both sides normalize
+        // with Locale.ROOT, so the indexed value and the query term must agree exactly.
+        String agentCard = """
+                {
+                    "protocolVersion": "1.0",
+                    "name": "Translator Agent",
+                    "skills": [ { "id": "Acme:Translate" } ]
+                }
+                """;
+        ArtifactVersionMetaDataDto metadata = ArtifactVersionMetaDataDto.builder()
+                .artifactType(ArtifactType.AGENT_CARD)
+                .build();
+        ElasticsearchSearchConfig config = new ElasticsearchSearchConfig();
+        config.contentMaxSize = 1_048_576;
+        ElasticsearchDocumentBuilder documentBuilder = new ElasticsearchDocumentBuilder();
+        documentBuilder.config = config;
+
+        Map<String, Object> doc = documentBuilder.buildVersionDocument(metadata,
+                agentCard.getBytes(StandardCharsets.UTF_8), new AgentCardStructuredContentExtractor());
+
+        @SuppressWarnings("unchecked")
+        List<String> indexedStructure = (List<String>) doc.get("structure");
+        String expected = "agent_card:skill:acme:translate";
+        assertTrue(indexedStructure != null && indexedStructure.contains(expected),
+                "the indexer should store the lowercased type:kind:name value");
+
+        Query clause = structureClause(A2AConstants.PREFIX_AGENT_CARD_SKILL + "Acme:Translate");
+        assertTrue(clause.isTerm(), "the query for the same skill must be an exact term query");
+        assertEquals("structure", clause.term().field());
+        assertEquals(expected, clause.term().value().stringValue(),
+                "the query term must equal the value the indexer stored");
     }
 }

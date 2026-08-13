@@ -225,7 +225,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                     setImporting(false);
                     setImportProgress(100);
                     setImportModalOpen(false);
-                    search(criteria, paging);
+                    const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+                    setPaging(resetPaging);
+                    search(criteria, resetPaging);
                 }, 1500);
             }).catch(error => {
                 setPageError(toPageError(error, "Error importing multiple artifacts"));
@@ -253,7 +255,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         pleaseWait(true, "Deleting group, please wait.");
         groups.deleteGroup(groupToDelete?.groupId as string).then( () => {
             pleaseWait(false);
-            search(criteria, paging);
+            const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+            setPaging(resetPaging);
+            search(criteria, resetPaging);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting group."));
         });

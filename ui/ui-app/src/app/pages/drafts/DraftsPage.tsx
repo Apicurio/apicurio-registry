@@ -217,6 +217,7 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
         if (!updated) {
             newCriteria.push(dsf);
         }
+        setPaging(prev => ({ ...prev, page: 1 }));
         setCriteria(newCriteria);
     };
 
@@ -247,7 +248,10 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
                 setSortBy(by);
                 setSortOrder(dir);
             }}
-            onCriteriaChange={setCriteria}
+            onCriteriaChange={newCriteria => {
+                setPaging(prev => ({ ...prev, page: 1 }));
+                setCriteria(newCriteria);
+            }}
             onRefresh={() => {
                 search(criteria, sortBy, sortOrder, paging);
             }}

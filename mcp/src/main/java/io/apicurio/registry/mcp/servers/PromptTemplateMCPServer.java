@@ -75,8 +75,8 @@ public class PromptTemplateMCPServer {
                             prompts.add(prompt);
                         }
                     }
-                } catch (IOException e) {
-                    // Skip artifacts that can't be read
+                } catch (Exception e) {
+                    // Skip artifacts that can't be read or are disabled/deprecated
                 }
             }
 

@@ -416,9 +416,9 @@ In advanced use cases, you might want to use customized implementations for the 
 
 [NOTE]
 ====
-Convenience constructors such as `new AvroKafkaSerializer<>(clientFacade)` or `new AvroKafkaSerializer<>(clientFacade, schemaResolver)` have been removed; pass pre-instantiated dependencies via the configuration map instead (for example, `SerdeConfig.REGISTRY_CLIENT_FACADE`, `SerdeConfig.SCHEMA_RESOLVER`).
+Convenience constructors such as `new AvroKafkaSerializer<>(clientFacade)` or `new AvroKafkaSerializer<>(clientFacade, schemaResolver)` are deprecated; pass pre-instantiated dependencies via the configuration map instead (for example, `SerdeConfig.REGISTRY_CLIENT_FACADE`, `SerdeConfig.SCHEMA_RESOLVER`).
 
-For `ARTIFACT_RESOLVER_STRATEGY` and `SCHEMA_RESOLVER`, you can pass a fully qualified class name (or `Class` object) or a pre-instantiated object. Use a pre-instantiated object when your implementation carries configuration or state (for example, a custom strategy built with constructor arguments). Passing only a class name causes {registry} to instantiate the type via its no-arg constructor, which does not preserve pre-built state from the removed `AvroKafkaSerializer(clientFacade, strategy, schemaResolver)` constructor overloads.
+For `ARTIFACT_RESOLVER_STRATEGY` and `SCHEMA_RESOLVER`, you can pass a fully qualified class name (or `Class` object) or a pre-instantiated object. Use a pre-instantiated object when your implementation carries configuration or state (for example, a custom strategy built with constructor arguments). Passing only a class name causes {registry} to instantiate the type via its no-arg constructor, which does not preserve pre-built state from the deprecated `AvroKafkaSerializer(clientFacade, strategy, schemaResolver)` constructor overloads.
 ====
 
 .Prerequisites

@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.serde.kafka.KafkaSerializer;
 import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
 
@@ -25,6 +28,46 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
 
     public JsonSchemaKafkaSerializer() {
         super(JsonSchemaSerializer::new);
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade) {
+        super(() -> new JsonSchemaSerializer<>(clientFacade));
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(() -> new JsonSchemaSerializer<>(schemaResolver));
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
+                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(() -> new JsonSchemaSerializer<>(clientFacade, schemaResolver));
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
+     * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
+                                     ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(() -> new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
     /**

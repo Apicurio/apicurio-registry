@@ -8,6 +8,9 @@ import org.apache.kafka.common.header.Headers;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.kafka.KafkaDeserializer;
 import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
@@ -18,6 +21,46 @@ public class JsonSchemaKafkaDeserializer<T> extends KafkaDeserializer<JsonSchema
 
     public JsonSchemaKafkaDeserializer() {
         super(JsonSchemaDeserializer::new);
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade) {
+        super(() -> new JsonSchemaDeserializer<>(clientFacade));
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaDeserializer(SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(() -> new JsonSchemaDeserializer<>(schemaResolver));
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
+                                       SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(() -> new JsonSchemaDeserializer<>(clientFacade, schemaResolver));
+    }
+
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
+     * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     */
+    @Deprecated
+    public JsonSchemaKafkaDeserializer(RegistryClientFacade clientFacade,
+                                       ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
+                                       SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(() -> new JsonSchemaDeserializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override

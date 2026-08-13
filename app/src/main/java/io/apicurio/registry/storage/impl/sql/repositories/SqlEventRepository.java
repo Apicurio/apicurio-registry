@@ -19,7 +19,8 @@ public class SqlEventRepository {
 
     private final String eventsTopic;
 
-    public SqlEventRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log, String eventsTopic) {
+    public SqlEventRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            String eventsTopic) {
         this.handles = handles;
         this.sqlStatements = sqlStatements;
         this.log = log;
@@ -30,20 +31,26 @@ public class SqlEventRepository {
      * Create an outbox event for database-driven event publishing.
      */
     public String createEvent(OutboxEvent event) {
+        if(event == null)
+        {
+            log.warn("Cannot create outbox event: event is null");
+            return null;
+        }
         if (supportsDatabaseEvents()) {
             handles.withHandle(handle -> {
-                handle.createUpdate(sqlStatements.createOutboxEvent())
-                        .bind(0, event.getId())
-                        .bind(1, eventsTopic)
-                        .bind(2, event.getAggregateId())
-                        .bind(3, event.getType())
-                        .bind(4, event.getPayload().toString())
-                        .execute();
+                handle.createUpdate(sqlStatements.createOutboxEvent()).bind(0, event.getId())
+                        .bind(1, eventsTopic).bind(2, event.getAggregateId()).bind(3, event.getType())
+                        .bind(4, (event.getPayload() != null ? event.getPayload().toString() : null)).execute();
 
-                return handle.createUpdate(sqlStatements.deleteOutboxEvent())
-                        .bind(0, event.getId())
+                return handle.createUpdate(sqlStatements.deleteOutboxEvent()).bind(0, event.getId())
                         .execute();
             });
+            log.trace("Created outbox event {} of type {} for aggregate {}", event.getId(), event.getType(),
+                    event.getAggregateId());
+        } else {
+            log.debug(
+                    "Database-driven events are not supported for db type '{}'; event {} of type {} was not persisted to the outbox",
+                    sqlStatements.dbType(), event.getId(), event.getType());
         }
         return event.getId();
     }
@@ -56,10 +63,10 @@ public class SqlEventRepository {
     }
 
     private boolean isPostgresql() {
-        return sqlStatements.dbType().equals("postgresql");
+        return "postgresql".equals(sqlStatements.dbType());
     }
 
     private boolean isMssql() {
-        return sqlStatements.dbType().equals("mssql");
+        return "mssql".equals(sqlStatements.dbType());
     }
 }

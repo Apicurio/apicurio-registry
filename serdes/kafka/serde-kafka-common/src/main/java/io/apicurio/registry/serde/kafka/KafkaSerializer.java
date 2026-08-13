@@ -32,6 +32,14 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
         this.delegatedSerializer = factory.create();
     }
 
+    /**
+     * @deprecated pass a {@link SerializerFactory} instead. Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
+    protected KafkaSerializer(AbstractSerializer<T, U> delegatedSerializer) {
+        this.delegatedSerializer = delegatedSerializer;
+    }
+
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedSerializer.configure(new SerdeConfig(configs), isKey);

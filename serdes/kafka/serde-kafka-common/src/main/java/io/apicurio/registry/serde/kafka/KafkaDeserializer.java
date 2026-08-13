@@ -24,6 +24,14 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
         this.delegatedDeserializer = factory.create();
     }
 
+    /**
+     * @deprecated pass a {@link DeserializerFactory} instead. Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
+    protected KafkaDeserializer(AbstractDeserializer<T, U> delegatedDeserializer) {
+        this.delegatedDeserializer = delegatedDeserializer;
+    }
+
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedDeserializer.configure(new SerdeConfig(configs), isKey);

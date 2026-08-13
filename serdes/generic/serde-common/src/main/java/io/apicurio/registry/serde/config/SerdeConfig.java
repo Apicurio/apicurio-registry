@@ -195,10 +195,10 @@ public class SerdeConfig extends SchemaResolverConfig {
     public static final String CONTRACT_RULES_MIGRATION_TARGET_VERSION = "apicurio.registry.serde.contract-rules.migration.target-version";
 
     /**
-     * Fully qualified Java classname of a class that implements
-     * {@link io.apicurio.registry.resolver.client.RegistryClientFacade}, or an instance of
-     * {@link io.apicurio.registry.resolver.client.RegistryClientFacade}. Used by the Serde
-     * classes to communicate with the registry.
+     * A pre-instantiated {@link io.apicurio.registry.resolver.client.RegistryClientFacade} used by
+     * the Serde classes to communicate with the registry. Pass an instance, not a class name:
+     * typical implementations (including {@code RegistryClientFacadeImpl}) have no no-arg
+     * constructor, so classname instantiation will fail.
      */
     public static final String REGISTRY_CLIENT_FACADE = "apicurio.registry.client-facade";
 

@@ -192,6 +192,45 @@ public class AvroSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    @SuppressWarnings({"removal"})
+    @ParameterizedTest(name = "testAvroDeprecatedFacadeConstructor [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testAvroDeprecatedFacadeConstructor(ClientFacadeSupplier clientFacadeSupplier)
+            throws Exception {
+        Schema schema = new Schema.Parser().parse(
+                "{\"type\":\"record\",\"name\":\"myrecord3\",\"fields\":[{\"name\":\"bar\",\"type\":\"string\"}]}");
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+        try (AvroKafkaSerializer<GenericData.Record> serializer = new AvroKafkaSerializer<>(clientFacade);
+                Deserializer<GenericData.Record> deserializer = new AvroKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            serializer.configure(config, false);
+
+            config = new HashMap<>();
+            deserializer.configure(config, false);
+
+            GenericData.Record record = new GenericData.Record(schema);
+            record.put("bar", "somebar");
+
+            String topic = generateArtifactId();
+            byte[] bytes = serializer.serialize(topic, record);
+
+            waitForSchema(contentId -> {
+                try {
+                    return isolatedClientV3.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+
+            GenericData.Record deserialized = deserializer.deserialize(topic, bytes);
+            Assertions.assertEquals(record, deserialized);
+            Assertions.assertEquals("somebar", deserialized.get("bar").toString());
+        }
+    }
+
     private void testAvroAutoRegisterIdInBody(
             RegistryClientFacade clientFacade,
             Class<? extends ArtifactReferenceResolverStrategy<?, ?>> strategy,

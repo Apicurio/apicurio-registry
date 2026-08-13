@@ -188,6 +188,41 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    @SuppressWarnings({"removal"})
+    @ParameterizedTest(name = "testJsonSchemaDeprecatedFacadeConstructor [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaDeprecatedFacadeConstructor(ClientFacadeSupplier clientFacadeSupplier)
+            throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+        Person person = new Person("Carles", "Arnal", 30);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+                Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.SCHEMA_LOCATION, "/io/apicurio/registry/util/json-schema.json");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
+            config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            serializer.configure(config, false);
+
+            deserializer.configure(Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true"), false);
+
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, person);
+
+            person = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("Carles", person.getFirstName());
+            Assertions.assertEquals("Arnal", person.getLastName());
+            Assertions.assertEquals(30, person.getAge());
+        }
+    }
+
     @ParameterizedTest(name = "testJsonSchemaSerdeHeaders [{0}]")
     @MethodSource("isolatedClientFacadeProvider")
     public void testJsonSchemaSerdeHeaders(ClientFacadeSupplier clientFacadeSupplier) throws Exception {

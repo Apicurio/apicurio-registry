@@ -110,6 +110,51 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    @SuppressWarnings({"removal"})
+    @ParameterizedTest(name = "testProtoDeprecatedFacadeConstructor [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testProtoDeprecatedFacadeConstructor(ClientFacadeSupplier clientFacadeSupplier)
+            throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+
+            TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
+
+            String topic = generateArtifactId();
+
+            byte[] bytes = serializer.serialize(topic, record);
+
+            waitForSchema(contentId -> {
+                try {
+                    if (isolatedClientV3.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0) {
+                        VersionMetaData artifactMetadata = isolatedClientV3.groups().byGroupId(groupId)
+                                .artifacts().byArtifactId(topic).versions()
+                                .byVersionExpression("branch=latest").get();
+                        assertEquals(contentId.longValue(), artifactMetadata.getContentId());
+                        return true;
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return false;
+            }, bytes);
+
+            DynamicMessage dm = deserializer.deserialize(topic, bytes);
+            assertProtobufEquals(record, dm);
+        }
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @ParameterizedTest(name = "testProtobufSchemaWithReferences [{0}]")
     @MethodSource("isolatedClientFacadeProvider")

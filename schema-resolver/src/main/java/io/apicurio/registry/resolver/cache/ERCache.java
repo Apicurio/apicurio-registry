@@ -443,6 +443,10 @@ public class ERCache<V> {
                 if (i == retries || !isRetryableRateLimit(e)) {
                     log.error("Failed to load schema from Registry after {} retries: {}", i,
                             describeRegistryError(e), e);
+                    ApiException apiException = findApiException(e);
+                    if (apiException != null) {
+                        return Result.error(apiException);
+                    }
                     return Result.error(e);
                 }
             }

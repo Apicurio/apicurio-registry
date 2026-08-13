@@ -24,7 +24,7 @@ import { SortOrder } from "@models/SortOrder.ts";
 import { RuleViolationProblemDetails, SearchedVersion } from "@sdk/lib/generated-client/models";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { DraftsService, useDraftsService } from "@services/useDraftsService.ts";
-import { ListWithToolbar, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { ListWithToolbar, PleaseWaitModal } from "@apitomy/common-ui-components";
 import {
     ConfirmFinalizeModal,
     CreateDraftModal,

@@ -7406,7 +7406,7 @@ metadata:
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.3.2-SNAPSHOT
-  name: apicurio-registry-operator-clusterrole
+  name: apicurio-registry-operator-clusterrole-PLACEHOLDER_NAMESPACE
 rules:
 - apiGroups:
   - registry.apicur.io
@@ -7455,11 +7455,11 @@ metadata:
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
     app.kubernetes.io/version: 3.3.2-SNAPSHOT
-  name: apicurio-registry-operator-clusterrolebinding
+  name: apicurio-registry-operator-clusterrolebinding-PLACEHOLDER_NAMESPACE
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: apicurio-registry-operator-clusterrole
+  name: apicurio-registry-operator-clusterrole-PLACEHOLDER_NAMESPACE
 subjects:
 - kind: ServiceAccount
   name: apicurio-registry-operator

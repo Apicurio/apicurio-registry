@@ -1,9 +1,9 @@
 -- *********************************************************************
 -- DDL for the Apicurio Registry - Database: mssql
--- Upgrade Script from 109 to 110
+-- Upgrade Script from 110 to 111
 -- *********************************************************************
 
-UPDATE apicurio SET propValue = 110 WHERE propName = 'db_version';
+UPDATE apicurio SET propValue = 111 WHERE propName = 'db_version';
 
 CREATE TABLE webhook_subscriptions (subscriptionId NVARCHAR(128) NOT NULL, name NVARCHAR(512), endpointUrl NVARCHAR(1024) NOT NULL, eventTypes NVARCHAR(MAX) NOT NULL, groupFilter NVARCHAR(512), artifactIdFilter NVARCHAR(512), enabled BIT NOT NULL DEFAULT 1, secret NVARCHAR(512), createdBy NVARCHAR(256), createdOn DATETIME2(6) NOT NULL, modifiedOn DATETIME2(6) NOT NULL);
 ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);

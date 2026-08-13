@@ -1551,6 +1551,11 @@ The following {registry} configuration options are available for each component 
 |`openid profile email`
 |`3.0.8`
 |UI auth OIDC scope value
+|`apicurio.ui.auth.oidc.use-nonce`
+|`optional<boolean>`
+|
+|`3.3.2`
+|Whether to include a nonce parameter in OIDC authorization requests. Required for providers that enforce nonce (e.g. Keycloak with FAPI policies). Defaults to false if not specified.
 |`apicurio.ui.contextPath`
 |`string`
 |`/`

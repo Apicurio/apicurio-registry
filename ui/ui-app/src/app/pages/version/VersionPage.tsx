@@ -27,7 +27,7 @@ import {
     RootPageHeader
 } from "@app/components";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";

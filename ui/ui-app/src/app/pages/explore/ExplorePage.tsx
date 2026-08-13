@@ -13,7 +13,7 @@ import {
     toPageError
 } from "@app/pages";
 import { ConfirmDeleteModal, CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
-import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
+import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apitomy/common-ui-components";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { Paging } from "@models/Paging.ts";

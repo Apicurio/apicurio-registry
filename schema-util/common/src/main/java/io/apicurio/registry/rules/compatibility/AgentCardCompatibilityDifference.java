@@ -12,10 +12,13 @@ public class AgentCardCompatibilityDifference implements CompatibilityDifference
     public enum Type {
         INTERFACE_REMOVED("supportedInterfaces"),
         PROTOCOL_VERSION_CHANGED("supportedInterfaces"),
+        PROTOCOL_VERSION_REMOVED("supportedInterfaces"),
+        CARD_PROTOCOL_VERSION_CHANGED("protocolVersion"),
         SKILL_REMOVED("skills"),
         CAPABILITY_REMOVED("capabilities"),
         CAPABILITY_EXTENSION_REMOVED("capabilities/extensions"),
         SECURITY_SCHEME_REMOVED("securitySchemes"),
+        SECURITY_SCHEME_CHANGED("securitySchemes"),
         MODE_REMOVED("modes"),
         PARSE_ERROR("document");
 

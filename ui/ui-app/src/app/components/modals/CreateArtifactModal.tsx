@@ -38,7 +38,9 @@ import { listToLabels } from "@utils/labels.utils.ts";
 import { detectContentType, detectVersionInContent } from "@utils/content.utils.ts";
 
 
-export type ValidType = "default" | "success" | "error";
+import { checkIdValid, checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
+
+export type { ValidType };
 
 export type Validities = {
     groupId?: ValidType;
@@ -49,35 +51,6 @@ export type Validities = {
     versionNumber?: ValidType;
     versionName?: ValidType;
     versionDescription?: ValidType;
-};
-
-const checkIdValid = (id: string | undefined | null): boolean => {
-    if (!id) {
-        //id is optional, server can generate it
-        return true;
-    } else {
-        // character % breaks the ui
-        const isAscii = (str: string) => {
-            for (let i = 0; i < str.length; i++){
-                if (str.charCodeAt(i) > 127){
-                    return false;
-                }
-            }
-            return true;
-        };
-        return id.indexOf("%") == -1 && isAscii(id);
-    }
-};
-
-const validateField = (value: string | undefined | null): ValidType => {
-    const isValid: boolean = checkIdValid(value);
-    if (!isValid) {
-        return "error";
-    }
-    if (value === undefined || value === null || value === "") {
-        return "default";
-    }
-    return "success";
 };
 
 
@@ -361,7 +334,8 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     useEffect(() => {
         setValidities({
             groupId: validateField(groupId),
-            artifactId: validateField(data.artifactId)
+            artifactId: validateField(data.artifactId),
+            versionNumber: validateVersionField(data.firstVersion?.version)
         });
     }, [groupId, data]);
 
@@ -371,9 +345,10 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
 
     const isGroupIdValid: boolean = validities.groupId !== "error";
     const isArtifactIdValid: boolean = validities.artifactId !== "error";
+    const isVersionNumberValid: boolean = validities.versionNumber !== "error";
     const isCoordinates1Valid: boolean = isGroupIdValid && isArtifactIdValid;
     const areReferencesValid: boolean = isReferencesValid(versionReferences);
-    const isValid: boolean = isCoordinates1Valid && areReferencesValid;
+    const isValid: boolean = isCoordinates1Valid && isVersionNumberValid && areReferencesValid;
 
     const coordinatesStepFooter: Partial<WizardFooterProps> = {
         nextButtonProps: {
@@ -568,9 +543,16 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                 value={data.firstVersion?.version || ""}
                                 placeholder="1.0.0 (optional) will be generated if left blank"
                                 onChange={(_evt, value) => setVersionNumber(value)}
-                                // validated={groupValidated()}
+                                validated={validities.versionNumber}
                             />
-                            <If condition={autoDetectedVersion !== undefined && data.firstVersion?.version === autoDetectedVersion}>
+                            <If condition={!isVersionNumberValid}>
+                                <FormHelperText>
+                                    <HelperText>
+                                        <HelperTextItem variant="error" icon={ <ExclamationCircleIcon /> }>Only alphanumeric characters, dots, underscores, hyphens, and plus signs are allowed (max 256 characters)</HelperTextItem>
+                                    </HelperText>
+                                </FormHelperText>
+                            </If>
+                            <If condition={isVersionNumberValid && autoDetectedVersion !== undefined && data.firstVersion?.version === autoDetectedVersion}>
                                 <FormHelperText>
                                     <HelperText>
                                         <HelperTextItem>Version detected from the content.</HelperTextItem>

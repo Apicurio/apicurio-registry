@@ -19,41 +19,12 @@ import { If } from "@apitomy/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { VersionMetaData } from "@sdk/lib/generated-client/models";
 
-type ValidType = "default" | "success" | "error";
+import { checkIdValid, checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
 
 type Validities = {
     groupId?: ValidType;
     draftId?: ValidType;
     version?: ValidType;
-};
-
-const checkIdValid = (id: string | undefined | null): boolean => {
-    if (!id) {
-        //id is optional, server can generate it
-        return true;
-    } else {
-        // character % breaks the ui
-        const isAscii = (str: string) => {
-            for (let i = 0; i < str.length; i++){
-                if (str.charCodeAt(i) > 127){
-                    return false;
-                }
-            }
-            return true;
-        };
-        return id.indexOf("%") == -1 && isAscii(id);
-    }
-};
-
-const validateField = (value: string | undefined | null): ValidType => {
-    const isValid: boolean = checkIdValid(value);
-    if (!isValid) {
-        return "error";
-    }
-    if (value === undefined || value === null || value === "") {
-        return "default";
-    }
-    return "success";
 };
 
 /**
@@ -135,15 +106,17 @@ export const NewDraftFromModal: FunctionComponent<NewDraftFromModalProps> = (pro
     useEffect(() => {
         setValidities({
             groupId: validateField(groupId),
-            draftId: validateField(draftId)
+            draftId: validateField(draftId),
+            version: validateVersionField(version)
         });
     }, [groupId, draftId, version]);
 
     useEffect(() => {
         const isGroupIdValid: boolean = validateField(groupId) !== "error";
         const isDraftIdValid: boolean = validateField(draftId) !== "error";
+        const isVersionValid: boolean = validateVersionField(version) !== "error";
 
-        if (draftId && draftId.length > 0 && version && version.length > 0 && isGroupIdValid && isDraftIdValid) {
+        if (draftId && draftId.length > 0 && version && version.length > 0 && isGroupIdValid && isDraftIdValid && isVersionValid) {
             setIsCoordinatesAvailable(false);
             setIsValidatingCoordinates(true);
             // Debounce the validation logic because it hits the REST API each time.
@@ -156,7 +129,8 @@ export const NewDraftFromModal: FunctionComponent<NewDraftFromModalProps> = (pro
 
     const isGroupIdValid: boolean = validities.groupId !== "error";
     const isDraftIdValid: boolean = validities.draftId !== "error";
-    const isCoordinatesValid: boolean = isGroupIdValid && isDraftIdValid;
+    const isVersionValid: boolean = validities.version !== "error";
+    const isCoordinatesValid: boolean = isGroupIdValid && isDraftIdValid && isVersionValid;
     const isValid: boolean = isCoordinatesValid && isCoordinatesAvailable;
 
     return (
@@ -232,6 +206,13 @@ export const NewDraftFromModal: FunctionComponent<NewDraftFromModalProps> = (pro
                         validated={validities.version}
                         onChange={(_evt, value) => setVersion(value)}
                     />
+                    <If condition={validities.version === "error"}>
+                        <FormHelperText>
+                            <HelperText>
+                                <HelperTextItem variant="error" icon={ <ExclamationCircleIcon /> }>Only alphanumeric characters, dots, underscores, hyphens, and plus signs are allowed (max 256 characters)</HelperTextItem>
+                            </HelperText>
+                        </FormHelperText>
+                    </If>
                 </FormGroup>
                 <If condition={isValidatingCoordinates}>
                     <FormGroup>

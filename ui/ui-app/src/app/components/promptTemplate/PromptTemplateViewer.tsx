@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import "./PromptTemplateViewer.css";
 import {
     Card,
@@ -17,17 +17,8 @@ import {
     Title
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
+import { VariableSchema } from "./promptTemplateVariables";
 import { highlightVariables } from "./PromptTemplateViewer.utils";
-
-export interface PromptVariable {
-    name?: string;
-    type?: string;
-    description?: string;
-    required?: boolean;
-    default?: any;
-    enum?: string[];
-    constraints?: any;
-}
 
 export interface PromptTemplateMetadata {
     author?: string;
@@ -47,7 +38,7 @@ export interface PromptTemplate {
     description?: string;
     version?: string;
     template?: string;
-    variables?: Record<string, PromptVariable> | PromptVariable[];
+    variables?: Record<string, VariableSchema> | VariableSchema[];
     outputSchema?: any;
     metadata?: PromptTemplateMetadata;
     mcp?: {
@@ -63,7 +54,7 @@ export type PromptTemplateViewerProps = {
     className?: string;
 };
 
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
+const getVariablesList = (variables: Record<string, VariableSchema> | VariableSchema[] | undefined): { name: string; variable: VariableSchema }[] => {
     if (!variables) return [];
     if (Array.isArray(variables)) {
         return variables.map(v => ({ name: v.name || "", variable: v }));

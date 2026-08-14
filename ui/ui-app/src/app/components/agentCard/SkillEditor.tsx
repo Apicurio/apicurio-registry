@@ -24,7 +24,7 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon, TrashIcon } from "@patternfly/react-icons";
 import { AgentSkill } from "./AgentCardSkills";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 /**
  * Properties

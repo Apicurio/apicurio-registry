@@ -11,7 +11,7 @@ Configure {registry} to use Kubernetes ConfigMaps as the data source for registr
 == Prerequisites
 
 * You have installed {registry} on Kubernetes or OpenShift.
-* You have access to create ConfigMaps and RBAC resources in your cluster.
+* You have access to create ConfigMaps in your cluster. Deployments without the {operator} also require access to create RBAC resources.
 
 //INCLUDES
 
@@ -642,9 +642,11 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} requires read access to ConfigMaps in the configured namespace.
+{registry} requires read access to ConfigMaps in the configured namespace. When you deploy {registry} with the {operator}, the {operator} creates the required RBAC resources automatically. For deployments without the {operator}, create the resources manually.
 
-Create the following RBAC resources:
+The {operator} automatically creates a ServiceAccount, a Role, and a RoleBinding, each named `<cr-name>-kubeops`, and sets the service account on the registry deployment. The Role is created in the configured ConfigMap namespace, so cross-namespace configurations work without manual steps.
+
+For deployments without the {operator}, create the following RBAC resources:
 
 [source,yaml]
 ----

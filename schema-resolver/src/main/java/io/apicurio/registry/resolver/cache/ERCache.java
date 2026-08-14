@@ -460,11 +460,23 @@ public class ERCache<V> {
      * Whether a schema-cache load failure should be retried: HTTP 429, connection
      * failures, timeouts, connection resets, and Vert.x HTTP closed errors.
      */
+    private static final Class<?> VERTX_HTTP_CLOSED_EXCEPTION;
+
+    static {
+        Class<?> cls = null;
+        try {
+            cls = Class.forName("io.vertx.core.http.HttpClosedException", false,
+                    ERCache.class.getClassLoader());
+        } catch (ClassNotFoundException ignored) {
+            // Vert.x may not be on the classpath for all consumers.
+        }
+        VERTX_HTTP_CLOSED_EXCEPTION = cls;
+    }
+
     private static boolean isRetriableCacheLoadFailure(Throwable e) {
         Throwable current = e;
         while (current != null) {
-            if (current instanceof ApiException
-                    && ((ApiException) current).getResponseStatusCode() == 429) {
+            if (current instanceof ApiException api && api.getResponseStatusCode() == 429) {
                 return true;
             }
             if (current instanceof java.net.ConnectException) {
@@ -473,11 +485,11 @@ public class ERCache<V> {
             if (current instanceof java.net.SocketTimeoutException) {
                 return true;
             }
-            if (current instanceof java.io.IOException && current.getMessage() != null
-                    && current.getMessage().contains("Connection reset")) {
+            if (current instanceof java.io.IOException io && io.getMessage() != null
+                    && io.getMessage().contains("Connection reset")) {
                 return true;
             }
-            if ("io.vertx.core.http.HttpClosedException".equals(current.getClass().getName())) {
+            if (VERTX_HTTP_CLOSED_EXCEPTION != null && VERTX_HTTP_CLOSED_EXCEPTION.isInstance(current)) {
                 return true;
             }
             current = current.getCause();

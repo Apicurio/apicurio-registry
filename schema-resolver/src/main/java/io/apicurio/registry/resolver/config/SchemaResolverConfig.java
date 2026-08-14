@@ -481,11 +481,11 @@ public class SchemaResolverConfig extends AbstractConfig {
         if (value == null) {
             return CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
         }
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        } else if (value instanceof String) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        } else if (value instanceof String string) {
             try {
-                return Double.parseDouble((String) value);
+                return Double.parseDouble(string);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid configuration property value for '"
                         + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"

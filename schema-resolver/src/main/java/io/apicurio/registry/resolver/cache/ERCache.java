@@ -494,7 +494,7 @@ public class ERCache<V> {
                 message = apiException.getClass().getSimpleName();
             }
             Integer status = apiException.getResponseStatusCode();
-            return "HTTP " + (status != null ? status : "Unknown") + " — " + message;
+            return "HTTP " + (status != null ? status : "Unknown") + " - " + message;
         }
         if (fallback.getMessage() != null && !fallback.getMessage().isBlank()) {
             return fallback.getMessage();

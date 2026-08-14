@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.decorator;
 
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
+import co.elastic.clients.elasticsearch._types.ErrorResponse;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
@@ -8,6 +10,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchService;
 import io.apicurio.registry.storage.impl.search.ElasticsearchStartupIndexer;
@@ -204,6 +207,47 @@ public class ElasticsearchSearchDecoratorTest {
         assertEquals(3, actual.getCount());
         assertEquals(1, actual.getArtifacts().size());
         assertEquals("agent-2", actual.getArtifacts().get(0).getArtifactId());
+    }
+
+    @Test
+    void searchVersionsWrapsElasticsearchExceptionAsStorageException() throws IOException {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("test"));
+        ElasticsearchException esException = esException();
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(true);
+        when(searchService.searchVersions(filters, OrderBy.name, OrderDirection.asc, 0, 10, false))
+                .thenThrow(esException);
+
+        RegistryStorageException exception = assertThrows(RegistryStorageException.class,
+                () -> decorator.searchVersions(filters, OrderBy.name, OrderDirection.asc, 0, 10, false));
+
+        assertEquals("Elasticsearch search failed for index-only filters.", exception.getMessage());
+        assertEquals(esException, exception.getCause());
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    void searchArtifactsWrapsElasticsearchExceptionAsStorageException() throws IOException {
+        SearchFilter structureFilter = SearchFilter.ofStructure("agent_card:skill:test-skill");
+        Set<SearchFilter> filters = Set.of(structureFilter);
+        ElasticsearchException esException = esException();
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(true);
+        when(searchService.isIndexOnlyFilter(structureFilter)).thenReturn(true);
+        when(searchService.searchArtifactIdentities(filters)).thenThrow(esException);
+
+        RegistryStorageException exception = assertThrows(RegistryStorageException.class,
+                () -> decorator.searchArtifacts(filters, OrderBy.createdOn, OrderDirection.desc, 0, 10, false));
+
+        assertEquals("Elasticsearch search failed for index-only filters.", exception.getMessage());
+        assertEquals(esException, exception.getCause());
+        verify(delegate, never()).searchArtifacts(anySet(), any(), any(), anyInt(), anyInt(), anyBoolean());
+    }
+
+    private static ElasticsearchException esException() {
+        return new ElasticsearchException("search", ErrorResponse.of(r -> r
+                .error(e -> e.type("transport_error").reason("connection refused"))
+                .status(500)));
     }
 
     private static SearchedArtifactDto searchedArtifact(String groupId, String artifactId) {

@@ -303,7 +303,7 @@ public class ElasticsearchSearchService {
             return Query.of(q -> q.matchAll(m -> m));
         }
 
-        String lowered = value.toLowerCase().trim();
+        String lowered = value.toLowerCase(Locale.ROOT).trim();
         String[] parts = lowered.split(":", -1);
 
         if (parts.length == 3) {

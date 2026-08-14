@@ -122,31 +122,27 @@
 }
 
 .mcp-tool-icon24 {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='5.5' stroke='%236366f1' stroke-width='1.5'/%3E%3Cpath d='M12 3.5v2.5' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M12 18v2.5' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M3.5 12h2.5' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M18 12h2.5' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M5.8 5.8l1.8 1.8' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16.4 16.4l1.8 1.8' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M5.8 18.2l1.8-1.8' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16.4 7.6l1.8-1.8' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjNjM2NmYxIj48cGF0aCBkPSJNNyAyaDJ2NGg2VjJoMnY0aDFhMiAyIDAgMCAxIDIgMnYzYTYgNiAwIDAgMS01IDUuOTJWMjFoLTJ2LTQuMDhBNiA2IDAgMCAxIDggMTFWOEg3YTIgMiAwIDAgMS0yLTJWNGEyIDIgMCAwIDEgMi0yem0xIDZ2M2E0IDQgMCAwIDAgOCAwVjhIOHoiLz48L3N2Zz4=');
     background-repeat: no-repeat;
-    background-size: 30px 30px;
-    background-position: center;
 }
 
 .iceberg-table-icon24 {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Crect x='4' y='4' width='16' height='16' rx='2' stroke='%236366f1' stroke-width='1.5'/%3E%3Cpath d='M4 9h16' stroke='%236366f1' stroke-width='1.5'/%3E%3Cpath d='M4 14h16' stroke='%236366f1' stroke-width='1.5'/%3E%3Cpath d='M9 4v16' stroke='%236366f1' stroke-width='1.5'/%3E%3Cpath d='M15 4v16' stroke='%236366f1' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjZDk3NzA2Ij48cGF0aCBkPSJNNCA0aDE2djRINHptMCA2aDd2MTBINHptOSAwaDd2MTBoLTd6Ii8+PC9zdmc+');
     background-repeat: no-repeat;
 }
 
 .iceberg-view-icon24 {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z' stroke='%236366f1' stroke-width='1.5'/%3E%3Ccircle cx='12' cy='12' r='3' stroke='%236366f1' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjZTExZDQ4Ij48cGF0aCBkPSJNMTIgNUM2IDUgMi43IDkuNCAyIDEyYy43IDIuNiA0IDcgMTAgN3M5LjMtNC40IDEwLTdjLS43LTIuNi00LTctMTAtN3ptMCAxMS41QTQuNSA0LjUgMCAxIDEgMTIgNy41YTQuNSA0LjUgMCAwIDEgMCA5em0wLTdhMi41IDIuNSAwIDEgMCAwIDUgMi41IDIuNSAwIDAgMCAwLTV6Ii8+PC9zdmc+');
     background-repeat: no-repeat;
 }
 
 .openrpc-icon24 {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Crect x='4.5' y='4.5' width='15' height='15' rx='2' stroke='%236366f1' stroke-width='1.5'/%3E%3Cpath d='M7.5 8.5h9' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M7.5 12h6.5' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M12.5 15.5 14.5 13.5 16.5 15.5' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMGQ5NDg4Ij48cGF0aCBkPSJNOS40IDQuNiA0IDEybDUuNCA3LjQgMS42LTEuMkw2LjYgMTJsNC40LTYuMnptNS4yIDAtMS42IDEuMkwxNy40IDEybC00LjQgNi4yIDEuNiAxLjJMMjAgMTJ6Ii8+PC9zdmc+');
     background-repeat: no-repeat;
-    background-size: 30px 30px;
-    background-position: center;
 }
 
 .odcs-contract-icon24 {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Crect x='5' y='3' width='14' height='18' rx='2' stroke='%236366f1' stroke-width='1.5'/%3E%3Cpath d='M8 7h8' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M8 11h8' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M8 15h5' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M15 15 17 17 20 14' stroke='%236366f1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjNDc1NTY5Ij48cGF0aCBkPSJNNiAyaDlsNSA1djE1SDZ6bTggMS41VjhoNC41ek04LjcgMTUuM2wyIDIgNC42LTQuNi0xLjEtMS4xLTMuNSAzLjUtLjktLjl6Ii8+PC9zdmc+');
     background-repeat: no-repeat;
 }
 

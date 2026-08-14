@@ -44,7 +44,7 @@ import {
 } from "@app/components";
 
 
-type ValidType = "default" | "success" | "error";
+import { checkIdValid, checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
 
 type Validities = {
     groupId?: ValidType;
@@ -54,35 +54,6 @@ type Validities = {
     content?: ValidType;
     name?: ValidType;
     description?: ValidType;
-};
-
-const checkIdValid = (id: string | undefined | null): boolean => {
-    if (!id) {
-        //id is optional, server can generate it
-        return true;
-    } else {
-        // character % breaks the ui
-        const isAscii = (str: string) => {
-            for (let i = 0; i < str.length; i++){
-                if (str.charCodeAt(i) > 127){
-                    return false;
-                }
-            }
-            return true;
-        };
-        return id.indexOf("%") == -1 && isAscii(id);
-    }
-};
-
-const validateField = (value: string | undefined | null): ValidType => {
-    const isValid: boolean = checkIdValid(value);
-    if (!isValid) {
-        return "error";
-    }
-    if (value === undefined || value === null || value === "") {
-        return "default";
-    }
-    return "success";
 };
 
 const validateContent = (content: string | undefined | null): ValidType => {
@@ -340,6 +311,7 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
         setValidities({
             groupId: validateField(data.groupId),
             draftId: validateField(data.draftId),
+            version: validateVersionField(data.version),
             content: validateContent(data.content)
         });
     }, [data]);
@@ -347,8 +319,9 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
     useEffect(() => {
         const isGroupIdValid: boolean = validateField(data.groupId) !== "error";
         const isDraftIdValid: boolean = validateField(data.draftId) !== "error";
+        const isVersionValid: boolean = validateVersionField(data.version) !== "error";
 
-        if (data.draftId && data.draftId.length > 0 && data.version && data.version.length > 0 && isGroupIdValid && isDraftIdValid) {
+        if (data.draftId && data.draftId.length > 0 && data.version && data.version.length > 0 && isGroupIdValid && isDraftIdValid && isVersionValid) {
             setIsCoordinatesAvailable(false);
             setIsValidatingCoordinates(true);
             // Debounce the validation logic because it hits the REST API each time.
@@ -361,7 +334,8 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
 
     const isGroupIdValid: boolean = validities.groupId !== "error";
     const isDraftIdValid: boolean = validities.draftId !== "error";
-    const isCoordinatesValid: boolean = isGroupIdValid && isDraftIdValid;
+    const isVersionValid: boolean = validities.version !== "error";
+    const isCoordinatesValid: boolean = isGroupIdValid && isDraftIdValid && isVersionValid;
     const isContentValid: boolean = validities.content === "success";
     const areReferencesValid: boolean = isReferencesValid(versionReferences);
     const isValid: boolean = isCoordinatesValid && isContentValid && isCoordinatesAvailable && areReferencesValid;
@@ -464,8 +438,15 @@ export const CreateDraftModal: FunctionComponent<CreateDraftModalProps> = (props
                                 value={data.version || ""}
                                 placeholder="1.0.0 (optional) will be generated if left blank"
                                 onChange={(_evt, value) => setVersionNumber(value)}
-                                // validated={groupValidated()}
+                                validated={validities.version}
                             />
+                            <If condition={validities.version === "error"}>
+                                <FormHelperText>
+                                    <HelperText>
+                                        <HelperTextItem variant="error" icon={ <ExclamationCircleIcon /> }>Only alphanumeric characters, dots, underscores, hyphens, and plus signs are allowed (max 256 characters)</HelperTextItem>
+                                    </HelperText>
+                                </FormHelperText>
+                            </If>
                         </FormGroup>
                         <If condition={isValidatingCoordinates}>
                             <FormGroup>

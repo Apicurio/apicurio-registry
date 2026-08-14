@@ -11,22 +11,39 @@ export type ArtifactReferenceFormItem = {
     name: string;
 };
 
-type ValidType = "default" | "success" | "error";
+import { checkIdValid, checkVersionValid, ValidType } from "@utils/validation.utils.ts";
 
-const validateRefField = (value: string): ValidType => {
-    if (value === "") {
+export type ArtifactReferenceFormItem = {
+    groupId: string;
+    artifactId: string;
+    version: string;
+    name: string;
+};
+
+const validateRefIdField = (value: string): ValidType => {
+    if (value === "" || !checkIdValid(value)) {
+        return "error";
+    }
+    return "success";
+};
+
+const validateRefVersionField = (value: string): ValidType => {
+    if (value === "" || !checkVersionValid(value)) {
         return "error";
     }
     return "success";
 };
 
 /**
- * Returns true if all reference rows have all four fields populated.
+ * Returns true if all reference rows have valid populated fields.
  * Returns true if there are no references (empty list is valid).
  */
 export const isReferencesValid = (items: ArtifactReferenceFormItem[]): boolean => {
     return items.every(item =>
-        item.name !== "" && item.groupId !== "" && item.artifactId !== "" && item.version !== ""
+        item.name !== "" && checkIdValid(item.name) &&
+        item.groupId !== "" && checkIdValid(item.groupId) &&
+        item.artifactId !== "" && checkIdValid(item.artifactId) &&
+        item.version !== "" && checkVersionValid(item.version)
     );
 };
 
@@ -101,7 +118,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                         data-testid={`references-form-name-${idx}`}
                                         name={`form-ref-name-${idx}`}
                                         value={ref.name}
-                                        validated={validateRefField(ref.name)}
+                                        validated={validateRefIdField(ref.name)}
                                         onChange={(_event, newVal) => {
                                             ref.name = newVal;
                                             onChange([...references]);
@@ -120,7 +137,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                         data-testid={`references-form-group-id-${idx}`}
                                         name={`form-ref-group-${idx}`}
                                         value={ref.groupId}
-                                        validated={validateRefField(ref.groupId)}
+                                        validated={validateRefIdField(ref.groupId)}
                                         onChange={(_event, newVal) => {
                                             ref.groupId = newVal;
                                             onChange([...references]);
@@ -139,7 +156,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                         data-testid={`references-form-artifact-id-${idx}`}
                                         name={`form-ref-artifact-${idx}`}
                                         value={ref.artifactId}
-                                        validated={validateRefField(ref.artifactId)}
+                                        validated={validateRefIdField(ref.artifactId)}
                                         onChange={(_event, newVal) => {
                                             ref.artifactId = newVal;
                                             onChange([...references]);
@@ -159,7 +176,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                             data-testid={`references-form-version-${idx}`}
                                             name={`form-ref-version-${idx}`}
                                             value={ref.version}
-                                            validated={validateRefField(ref.version)}
+                                            validated={validateRefVersionField(ref.version)}
                                             onChange={(_event, newVal) => {
                                                 ref.version = newVal;
                                                 onChange([...references]);

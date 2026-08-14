@@ -493,4 +493,15 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         checkReadOnly();
         return delegate.getContentByReference(reference);
     }
+    
+    public void deleteOldUsageEvents(long cutoffTimestamp) {
+        checkReadOnly();
+        delegate.deleteOldUsageEvents(cutoffTimestamp);
+    } 
+   
+    public void recordUsageEvent(SchemaUsageEventDto event) {
+        checkReadOnly();
+        delegate.recordUsageEvent(event);
+    }
+
 }

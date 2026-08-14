@@ -12,6 +12,8 @@ import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import java.util.Map;
 import java.util.Set;
 
@@ -121,6 +123,45 @@ public class AsyncApiContentDereferencerTest extends ArtifactUtilProviderTestBas
         String expectedContent = resourceToString("expected-testDereference-asyncapi30-avro.json");
         Assertions.assertEquals(normalizeMultiLineString(expectedContent),
                 normalizeMultiLineString(modifiedContent.getContent().content()));
+    }
+
+    /**
+     * Test dereferencing an AsyncAPI 3.0 document referencing an Avro schema explicitly asserts that
+     * schemaFormat contains the version parameter (;version=1.9.0).
+     */
+    @Test
+    public void testDereferenceAsyncApi30ToAvroEmitsVersionedSchemaFormat() throws Exception {
+        ContentHandle content = resourceToContentHandle("asyncapi30-to-deref-avro.json");
+        AsyncApiDereferencer dereferencer = new AsyncApiDereferencer();
+        Map<String, TypedContent> resolvedReferences = Map.of("http://schemas.example.org/user-event.avsc",
+                TypedContent.create(resourceToContentHandle("user-event.avsc"), ContentTypes.APPLICATION_JSON));
+        TypedContent modifiedContent = dereferencer
+                .dereference(TypedContent.create(content, ContentTypes.APPLICATION_JSON), resolvedReferences);
+
+        JsonNode jsonNode = ContentTypeUtil.parseJsonOrYaml(modifiedContent);
+        String schemaFormat = jsonNode.get("components").get("schemas").get("UserEvent").get("schemaFormat").asText();
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0", schemaFormat);
+    }
+
+    /**
+     * Test dereferencing an AsyncAPI 3.0 document where the message payload already declares a versioned Avro schemaFormat.
+     */
+    @Test
+    public void testDereferenceAsyncApi30ToAvroWithVersionedSchemaFormatPayload() throws Exception {
+        ContentHandle content = resourceToContentHandle("asyncapi30-to-deref-avro-versioned-payload.json");
+        AsyncApiDereferencer dereferencer = new AsyncApiDereferencer();
+        Map<String, TypedContent> resolvedReferences = Map.of("http://schemas.example.org/user-event.avsc",
+                TypedContent.create(resourceToContentHandle("user-event.avsc"), ContentTypes.APPLICATION_JSON));
+        TypedContent modifiedContent = dereferencer
+                .dereference(TypedContent.create(content, ContentTypes.APPLICATION_JSON), resolvedReferences);
+
+        String expectedContent = resourceToString("expected-testDereference-asyncapi30-avro-versioned-payload.json");
+        Assertions.assertEquals(normalizeMultiLineString(expectedContent),
+                normalizeMultiLineString(modifiedContent.getContent().content()));
+
+        JsonNode jsonNode = ContentTypeUtil.parseJsonOrYaml(modifiedContent);
+        String schemaFormat = jsonNode.get("components").get("schemas").get("UserEvent").get("schemaFormat").asText();
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0", schemaFormat);
     }
 
     /**

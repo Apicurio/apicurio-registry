@@ -131,6 +131,21 @@
                     <exclude>module-info.class</exclude>
                   </excludes>
                 </filter>
+                <!-- jackson-core ships its vendored FastDoubleParser as a multi-release jar.
+                     maven-shade-plugin's relocator rewrites the class bytecode of the
+                     META-INF/versions/{N}/ variants but doesn't move the jar entry to the
+                     relocated path (MSHADE-406, open/unresolved as of shade-plugin 3.6.2 -
+                     the latest release). That mismatch between entry path and internal class
+                     name makes the leftover entries unloadable, so they're excluded outright;
+                     the relocated base (non-versioned) implementation is a fully functional
+                     fallback on every JDK version, so this only drops a JDK-specific
+                     micro-optimization, not functionality. -->
+                <filter>
+                  <artifact>com.fasterxml.jackson.core:jackson-core</artifact>
+                  <excludes>
+                    <exclude>META-INF/versions/*/com/fasterxml/jackson/core/internal/shaded/fdp/**</exclude>
+                  </excludes>
+                </filter>
               </filters>
               <relocations>
                 <relocation>

@@ -131,7 +131,10 @@ jobs:
           name: operator-test-images
           path: /tmp/
 
-
+      - name: Create CNI directory
+        run: |
+          sudo mkdir -p /etc/cni/net.d
+          sudo chmod 755 /etc/cni/net.d
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         with:
@@ -240,7 +243,10 @@ jobs:
           name: operator-test-images
           path: /tmp/
 
-
+      - name: Create CNI directory
+        run: |
+          sudo mkdir -p /etc/cni/net.d
+          sudo chmod 755 /etc/cni/net.d
 
       # driver=none: Kubernetes runs directly on the host, sharing all runner
       # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).

@@ -26,11 +26,11 @@ const ADVISORY_MARKER = '<!-- pr-validation:duplicate -->';
 
 const BOT_LOGIN = 'github-actions[bot]';
 
-// "Closes #123", "fixed #123", etc. GitHub's own closing keywords.
+// GitHub's own closing keywords.
 const CLOSING_KEYWORD_PATTERN =
   /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)\b/gi;
 
-// Same, but written as a full URL. Only issues in this repository count.
+// Only issues in this repository count (owner/repo checked in extractLinkedIssues).
 const ISSUE_URL_PATTERN =
   /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d+)\b/gi;
 
@@ -38,10 +38,6 @@ const ISSUE_URL_PATTERN =
 // many open PRs we skip file-based duplicate detection rather than burn the
 // rate limit; issue-based detection still runs and is the more precise signal.
 const MAX_PRS_FOR_FILE_COMPARISON = 40;
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function loadConfig() {
   const configPath = path.join(process.cwd(), '.github', 'pr-lifecycle.json');
@@ -85,10 +81,6 @@ function firstLine(message) {
   return message.split('\n')[0];
 }
 
-// ---------------------------------------------------------------------------
-// Checks
-// ---------------------------------------------------------------------------
-
 function checkIssueLink(linkedIssues) {
   if (linkedIssues.size > 0) {
     return null;
@@ -116,10 +108,6 @@ function checkDcoSignOff(commits) {
       + '`git rebase --signoff upstream/main` and force-push.',
   };
 }
-
-// ---------------------------------------------------------------------------
-// Duplicate detection
-// ---------------------------------------------------------------------------
 
 async function findDuplicates(github, owner, repo, pr, linkedIssues, core) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
@@ -160,10 +148,6 @@ async function findDuplicates(github, owner, repo, pr, linkedIssues, core) {
 
   return { byIssue, byFile };
 }
-
-// ---------------------------------------------------------------------------
-// Reporting
-// ---------------------------------------------------------------------------
 
 function buildComment(pr, violations, duplicates) {
   const lines = [COMMENT_MARKER, '## PR validation', ''];
@@ -271,10 +255,6 @@ async function postDuplicateAdvisories(github, owner, repo, pr, duplicates, core
     await upsertComment(github, owner, repo, dup.pr.number, body, marker, core);
   }
 }
-
-// ---------------------------------------------------------------------------
-// Entry point
-// ---------------------------------------------------------------------------
 
 async function validate({ github, context, core }) {
   const { owner, repo } = context.repo;

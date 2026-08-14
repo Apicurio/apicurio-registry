@@ -101,9 +101,28 @@ public class RegistryClientFacadeFactory {
             throw new IllegalStateException(e);
         }
 
-        // FIXME push retry options into the SchemaResolverConfig
-        if (Boolean.TRUE) {
-            clientOptions.retry();
+        // PR #9091 + lab diagnostics: log effective HTTP client retry knobs so
+        // Connect logs show whether SerDes config actually reached RegistryClientOptions.
+        if (config.getClientRetryEnabled()) {
+            int maxAttempts = (int) config.getClientRetryMaxAttempts();
+            long delayMs = config.getClientRetryDelayMs();
+            double backoff = config.getClientRetryBackoffMultiplier();
+            long maxDelayMs = config.getClientRetryMaxDelayMs();
+            logger.info(String.format(
+                    "Apicurio registry HTTP client retry ENABLED url=%s maxAttempts=%d delayMs=%d backoff=%s maxDelayMs=%d (cache retry-count=%d retry-backoff-ms=%d)",
+                    config.getRegistryUrl(), maxAttempts, delayMs, backoff, maxDelayMs,
+                    config.getRetryCount(), config.getRetryBackoff().toMillis()));
+            System.out.println("[apicurio-pr9091] HTTP client retry ENABLED"
+                    + " maxAttempts=" + maxAttempts
+                    + " delayMs=" + delayMs
+                    + " backoff=" + backoff
+                    + " maxDelayMs=" + maxDelayMs
+                    + " cacheRetryCount=" + config.getRetryCount());
+            clientOptions.retry(true, maxAttempts, delayMs, backoff, maxDelayMs);
+        } else {
+            logger.info("Apicurio registry HTTP client retry DISABLED for url=" + config.getRegistryUrl());
+            System.out.println("[apicurio-pr9091] HTTP client retry DISABLED");
+            clientOptions.disableRetry();
         }
 
         // Configure TLS/SSL

@@ -83,6 +83,17 @@ public class RegistryClientRequestAdapterFactory {
 
         // Wrap with retry proxy if retry is enabled
         if (options.isRetryEnabled()) {
+            log.log(Level.INFO,
+                    "[apicurio-pr9091] wrapping RequestAdapter with retry maxAttempts={0} delayMs={1} backoff={2} maxDelayMs={3}",
+                    new Object[]{
+                            options.getMaxRetryAttempts(),
+                            options.getRetryDelayMs(),
+                            options.getBackoffMultiplier(),
+                            options.getMaxRetryDelayMs()
+                    });
+            System.out.println("[apicurio-pr9091] RequestAdapter retry proxy maxAttempts="
+                    + options.getMaxRetryAttempts()
+                    + " delayMs=" + options.getRetryDelayMs());
             adapter = createRetryProxy(adapter, options);
         }
 
@@ -204,6 +215,18 @@ public class RegistryClientRequestAdapterFactory {
                     if (isRetryable(cause) && attempt < maxRetryAttempts) {
                         attempt++;
                         long delayMs = calculateRetryDelay(attempt);
+                        log.log(Level.WARNING,
+                                "[apicurio-pr9091] HTTP retry {0}/{1} after {2}: {3}; sleeping {4}ms",
+                                new Object[]{
+                                        attempt,
+                                        maxRetryAttempts,
+                                        cause.getClass().getName(),
+                                        cause.getMessage(),
+                                        delayMs
+                                });
+                        System.out.println("[apicurio-pr9091] HTTP retry " + attempt + "/" + maxRetryAttempts
+                                + " sleepMs=" + delayMs + " err=" + cause.getClass().getSimpleName()
+                                + ": " + cause.getMessage());
                         try {
                             Thread.sleep(delayMs);
                         } catch (InterruptedException interruptedException) {
@@ -214,6 +237,11 @@ public class RegistryClientRequestAdapterFactory {
                         if (isRetryable(cause) && attempt >= maxRetryAttempts) {
                             log.log(Level.WARNING, "Maximum retry attempts ({0}) exceeded for {1}: {2}",
                                     new Object[]{maxRetryAttempts, cause.getClass().getName(), cause.getMessage()});
+                            System.out.println("[apicurio-pr9091] HTTP retry EXHAUSTED maxAttempts="
+                                    + maxRetryAttempts + " last=" + cause.getMessage());
+                        } else if (!isRetryable(cause)) {
+                            System.out.println("[apicurio-pr9091] HTTP error NOT retryable: "
+                                    + cause.getClass().getName() + ": " + cause.getMessage());
                         }
                         throw originalCause;
                     }

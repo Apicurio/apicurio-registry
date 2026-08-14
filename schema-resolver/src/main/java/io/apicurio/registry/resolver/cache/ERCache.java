@@ -438,15 +438,15 @@ public class ERCache<V> {
                             "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
-                // TODO: verify if this is really needed, retries are already baked into the adapter ...
-                // if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
-                // && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
-                // && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
-                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ApiException
-                        && (((ApiException) e.getCause()).getResponseStatusCode() == 429))) {
-                    log.error("Cache load failed after {} retries", i, e);
+                // Lab: retry rate-limits AND registry outages (connect refused / timeouts).
+                // Stock Apicurio only retried HTTP 429 here.
+                if (i == retries || !isRetriableCacheLoadFailure(e)) {
+                    log.error("Cache load failed after {} retries (retriable={})", i,
+                            isRetriableCacheLoadFailure(e), e);
                     return Result.error(new RuntimeException(e));
                 }
+                log.warn("Cache load attempt {}/{} failed with retriable error, backing off {}ms: {}",
+                        i + 1, retries + 1, backoff.toMillis(), rootMessage(e));
             }
             try {
                 Thread.sleep(backoff.toMillis());
@@ -456,6 +456,43 @@ public class ERCache<V> {
             }
         }
         return Result.error(new IllegalStateException("Unreachable."));
+    }
+
+    /**
+     * Retriable = rate-limit (429) OR transient network / registry-down errors.
+     * Stock upstream only treated 429 as retriable.
+     */
+    private static boolean isRetriableCacheLoadFailure(Throwable e) {
+        Throwable current = e;
+        while (current != null) {
+            if (current instanceof ApiException
+                    && ((ApiException) current).getResponseStatusCode() == 429) {
+                return true;
+            }
+            if (current instanceof java.net.ConnectException) {
+                return true;
+            }
+            if (current instanceof java.net.SocketTimeoutException) {
+                return true;
+            }
+            if (current instanceof java.io.IOException && current.getMessage() != null
+                    && current.getMessage().contains("Connection reset")) {
+                return true;
+            }
+            if ("io.vertx.core.http.HttpClosedException".equals(current.getClass().getName())) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private static String rootMessage(Throwable e) {
+        Throwable current = e;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getClass().getSimpleName() + ": " + current.getMessage();
     }
 
     private static class WrappedValue<V> {

@@ -401,7 +401,7 @@ For the Docker method, pass environment variables by using separate `-e` element
 |When HTTP mode is enabled, forwards the caller's bearer token to {registry} REST API calls (same RBAC as the UI). If `false`, callers authenticate with OIDC but {registry} calls use shared `apicurio.mcp.auth.*` credentials. Stdio mode always uses `apicurio.mcp.auth.*`.
 |===
 
-.TLS properties (outbound to {registry} only)
+**TLS properties (outbound to {registry} only)**
 
 These properties apply to the MCP server's TLS connection to {registry}. They do not control the inbound HTTPS listener. Use Quarkus HTTP SSL settings (`quarkus.http.ssl.*`) for inbound TLS.
 
@@ -525,9 +525,10 @@ Replace `<your-client-secret>` with the client secret from your OIDC provider.
 . Restart Claude Desktop to apply the changes.
 
 // proc-configuring-mcp-server-http-oauth
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-mcp-server-http-oauth_{context}"]
 == Configuring MCP server HTTP transport with OAuth
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can run the {registry} MCP server as an HTTP service for MCP clients that connect over the network, whether they run locally or remotely. Clients authenticate with the same Keycloak realm as {registry} and the UI. The MCP server validates the inbound bearer token and forwards it unchanged to {registry} REST API calls, so role-based access control applies per user.
@@ -577,22 +578,29 @@ WARNING: `QUARKUS_HTTP_CORS_ORIGINS=http://localhost:6274` is for local developm
 . Connect your MCP client to `http://<mcp-host>:<port>/mcp` with `Authorization: Bearer <access-token>`.
 
 . Verify that operations respect {registry} roles: a token with `sr-readonly` cannot create artifacts or groups.
-
++
 For a complete local example, see the `examples/mcp-keycloak` directory in the {registry} repository.
 
-=== HTTP mode without token forwarding
+// con-mcp-http-mode-without-token-forwarding
+[id="mcp-http-mode-without-token-forwarding_{context}"]
+== MCP HTTP mode without token forwarding
 
-HTTP mode forwards each caller's bearer token to {registry} by default, so per-user RBAC applies. Set `apicurio.mcp.http.forward-token=false` to turn that off.
+:_mod-docs-content-type: CONCEPT
 
-With forwarding disabled, callers still authenticate to the MCP server with OIDC (same Keycloak realm and HTTP auth settings as above). MCP tool calls use the shared `apicurio.mcp.auth.*` service account against {registry}, not the caller's token.
+[role="_abstract"]
+By default, HTTP mode forwards each caller's bearer token to {registry}, so role-based access control applies per user. You can disable token forwarding so that all callers act as one shared service account, for example, in shared deployments where OIDC only controls access to the MCP endpoint.
 
-This fits shared HTTP MCP setups where OIDC only needs to control access to the MCP endpoint, and every caller can act as the same service account in {registry}.
+To disable token forwarding, set `apicurio.mcp.http.forward-token=false`. Callers still authenticate to the MCP server with OIDC, by using the same Keycloak realm and HTTP authentication settings as with token forwarding enabled. MCP tool calls then use the shared `apicurio.mcp.auth.*` service account against {registry}, not the caller's token.
 
-You need:
+Disabled token forwarding requires the following configuration:
 
-* `apicurio.mcp.http.enabled=true` and the Quarkus MCP HTTP / OIDC settings from the procedure above
+* `apicurio.mcp.http.enabled=true`, together with the Quarkus MCP HTTP and OIDC settings that HTTP transport requires
 * `apicurio.mcp.http.forward-token=false`
-* `apicurio.mcp.auth.*` client credentials (token endpoint, client ID, and client secret), as in stdio mode when {registry} is secured
+* `apicurio.mcp.auth.*` client credentials (token endpoint, client ID, and client secret), the same as in stdio mode when {registry} is secured
+
+[role="_additional-resources"]
+.Additional resources
+* xref:configuring-mcp-server-http-oauth_{context}[]
 
 // proc-configuring-mcp-server-tls
 [id="configuring-mcp-server-tls_{context}"]

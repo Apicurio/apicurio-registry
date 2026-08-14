@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Integration tests for well-known A2A agent searches that use skill/capability/mode filters.
@@ -159,6 +160,28 @@ public class WellKnownAgentSearchViaIndexTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("count", equalTo(2));
+    }
+
+    @Test
+    public void testSearchAgentsBySkillInDefaultGroup() throws Exception {
+        String artifactId = "default-group-agent-" + TestUtils.generateArtifactId();
+        String skillId = "default-group-skill-" + TestUtils.generateArtifactId();
+
+        createAgentCard("default", artifactId, agentCard("DefaultGroupAgent", skillId, true));
+
+        indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("skill", skillId)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("agents[0].artifactId", equalTo(artifactId))
+                .body("agents[0].groupId", nullValue())
+                .body("agents[0].skills", hasItem(skillId));
     }
 
     @Test

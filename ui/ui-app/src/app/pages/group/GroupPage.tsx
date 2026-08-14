@@ -7,6 +7,7 @@ import {
     EXPLORE_PAGE_IDX,
     GroupOverviewTabContent,
     GroupPageHeader, GroupRulesTabContent,
+    handleMutatingActionError,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -122,7 +123,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
             pleaseWait(false);
             appNavigation.navigateTo("/explore");
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting group."));
+            handleMutatingActionError(error, "Error deleting group.", setPageError, () => pleaseWait(false));
         });
     };
 
@@ -134,6 +135,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
             if (artifactDeleteSuccessCallback) {
                 artifactDeleteSuccessCallback();
             }
+        }).catch(error => {
+            handleMutatingActionError(error, "Error deleting artifact.", setPageError, () => pleaseWait(false));
         });
     };
 

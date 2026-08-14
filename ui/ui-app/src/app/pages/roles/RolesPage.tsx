@@ -2,6 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./RolesPage.css";
 import { PageSection, PageSectionVariants } from "@patternfly/react-core";
 import {
+    handleMutatingActionError,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -86,7 +87,7 @@ export const RolesPage: FunctionComponent<PageProperties> = () => {
             pleaseWait(false, "");
             setRoles([...currentRoleMappings]);
         }).catch(error => {
-            setPageError(toPageError(error, "Error updating access."));
+            handleMutatingActionError(error, "Error updating access.", setPageError, () => pleaseWait(false, ""));
         });
     };
 
@@ -105,7 +106,7 @@ export const RolesPage: FunctionComponent<PageProperties> = () => {
                     // and we should instead update.
                     updateRoleMapping(principal, role);
                 } else {
-                    setPageError(toPageError(error, "Error granting access."));
+                    handleMutatingActionError(error, "Error granting access.", setPageError, () => pleaseWait(false, ""));
                 }
             });
         }
@@ -117,7 +118,7 @@ export const RolesPage: FunctionComponent<PageProperties> = () => {
             pleaseWait(false, "");
             removeMapping(role.principalId!);
         }).catch(error => {
-            setPageError(toPageError(error, "Error revoking access."));
+            handleMutatingActionError(error, "Error revoking access.", setPageError, () => pleaseWait(false, ""));
         });
     };
 

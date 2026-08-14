@@ -135,6 +135,15 @@ make image-push
 
 *Options are the same as `image-build`.*
 
+Alternatively, to build and push a multi-arch image in one step (this is what CI uses when publishing), run:
+
+```shell
+make image-buildx-push
+```
+
+*Options are the same as `image-build`, plus `IMAGE_PLATFORMS` (default:
+`linux/amd64,linux/arm64,linux/s390x,linux/ppc64le`). Requires a Docker Buildx builder with QEMU emulation.*
+
 You can now deploy the operator to your current cluster (as configured by `kubectl`):
 
 ```shell
@@ -394,11 +403,16 @@ make bundle-image-push
 
 *Options are the same as `bundle-image-build`.*
 
+Alternatively, run `make bundle-image-buildx-push` (or `make bundle-buildx` to also generate the bundle files) to
+build and push a multi-arch bundle image. This is what CI uses when publishing. Options are the same as
+`bundle-image-build`, plus `IMAGE_PLATFORMS`.
+
 ### Operator Catalog
 
 After you have built and pushed the bundle image, you can build a catalog to use with OLM:
 
-*NOTE: We do not currently release our own upstream catalog image, we only build one for testing.*
+*NOTE: The catalog image is published to quay.io by CI alongside the operator and bundle images, and is used for
+testing. Most users install the operator from the community catalogs (OperatorHub) instead.*
 
 ```shell
 make catalog-build
@@ -417,7 +431,7 @@ Available options:
 | IMAGE_REGISTRY         | string | `quay.io/apicurio`                                                  | -                                     |
 | CATALOG_IMAGE_NAME     | string | `apicurio-registry-3-operator-catalog`                              | -                                     |
 | CATALOG_IMAGE_TAG      | string | *(current version, lowercase)*                                      | -                                     |
-| ADDITIONAL_CATALOG_TAG | string | `latest` *(with version suffix, lowercase, e.g. `latest-snapshot`)* | Tag the image with an additional tag. |
+| ADDITIONAL_CATALOG_IMAGE_TAG | string | - | Tag the image with an additional tag (e.g. `latest`). |
 
 After the catalog image is built, push it by running:
 
@@ -426,6 +440,10 @@ make catalog-image-push
 ```
 
 *Options are the same as `catalog-image-build`.*
+
+Alternatively, run `make catalog-image-buildx-push` (or `make catalog-buildx` to also render the catalog) to build
+and push a multi-arch catalog image. This is what CI uses when publishing. Options are the same as
+`catalog-image-build`, plus `IMAGE_PLATFORMS`.
 
 ### OLM On-cluster Quickstart
 

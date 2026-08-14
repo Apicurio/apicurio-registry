@@ -130,7 +130,7 @@ jobs:
           if [ "$BRANCH" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle-buildx
 
       - name: Build operator catalog
         working-directory: registry/operator
@@ -139,7 +139,7 @@ jobs:
           if [ "$BRANCH" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
-          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog-buildx
 
       - name: Generate install file for tests
         working-directory: registry/operator

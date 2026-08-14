@@ -398,13 +398,13 @@ jobs:
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
-          make bundle
+          make bundle-buildx
 
       - name: Build and publish operator catalog
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
-          make catalog
+          make catalog-buildx
 
   # Slack notification using reusable workflow
   notify-slack:

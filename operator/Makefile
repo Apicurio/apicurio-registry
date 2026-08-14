@@ -415,8 +415,21 @@ endif
 endif
 
 
+.PHONY: bundle-image-buildx-push
+bundle-image-buildx-push: ## Build and push a multi-arch OLM bundle image
+	docker buildx build --push -f $(BUNDLE_DIR)/bundle.Dockerfile \
+		--platform $(IMAGE_PLATFORMS) \
+		-t $(BUNDLE_IMAGE) \
+		$(if $(and $(ADDITIONAL_BUNDLE_IMAGE),$(ADDITIONAL_BUNDLE_TAG)),-t $(ADDITIONAL_BUNDLE_IMAGE),) \
+		.
+
+
 .PHONY: bundle
 bundle: bundle-build bundle-image-build bundle-image-push ## TODO
+
+
+.PHONY: bundle-buildx
+bundle-buildx: bundle-build bundle-image-buildx-push ## Generate the OLM bundle and push it as a multi-arch image
 
 
 .PHONY: catalog-build
@@ -452,8 +465,21 @@ endif
 endif
 
 
+.PHONY: catalog-image-buildx-push
+catalog-image-buildx-push: ## Build and push a multi-arch OLM catalog image
+	docker buildx build --push -f $(CATALOG_TARGET_DIR)/configs.Dockerfile \
+		--platform $(IMAGE_PLATFORMS) \
+		-t $(CATALOG_IMAGE) \
+		$(if $(and $(ADDITIONAL_CATALOG_IMAGE),$(ADDITIONAL_CATALOG_IMAGE_TAG)),-t $(ADDITIONAL_CATALOG_IMAGE),) \
+		$(CATALOG_TARGET_DIR)
+
+
 .PHONY: catalog
 catalog: catalog-build catalog-image-build catalog-image-push ## TODO
+
+
+.PHONY: catalog-buildx
+catalog-buildx: catalog-build catalog-image-buildx-push ## Build the OLM catalog and push it as a multi-arch image
 
 
 .PHONY: catalog-deploy

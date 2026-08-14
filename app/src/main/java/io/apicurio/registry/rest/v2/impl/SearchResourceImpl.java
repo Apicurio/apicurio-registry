@@ -22,6 +22,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -33,7 +34,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
 
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -49,9 +49,6 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
-
-    @Inject
-    Logger log;
 
     @Inject
     @Current
@@ -209,11 +206,9 @@ public class SearchResourceImpl implements SearchResource {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            TypedContent canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
-            return canonicalContent;
+            return canonicalizer.canonicalize(content, Collections.emptyMap());
         } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType);
-            return content;
+            throw new RegistryException("Failed to canonicalize content.", e);
         }
     }
 }

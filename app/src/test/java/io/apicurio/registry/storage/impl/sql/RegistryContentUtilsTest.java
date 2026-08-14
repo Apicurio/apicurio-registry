@@ -16,8 +16,18 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.types.RegistryException;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.*;
 
@@ -47,5 +57,58 @@ public class RegistryContentUtilsTest {
         expected.put("two", "2");
         expected.put("three", "3");
         Assertions.assertEquals(expected, actual);
+    }
+
+    /**
+     * Regression test for GH #9590: a failing ContentCanonicalizer must not be silently
+     * swallowed and must not result in the raw, non-canonicalized content being returned.
+     */
+    @Test
+    void testCanonicalizeContentPropagatesCanonicalizerFailure() {
+        RuntimeException canonicalizerFailure = new IllegalStateException("boom");
+
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class);
+        ArtifactTypeUtilProvider provider = mock(ArtifactTypeUtilProvider.class);
+        ContentCanonicalizer canonicalizer = mock(ContentCanonicalizer.class);
+
+        when(factory.getArtifactTypeProvider("AVRO")).thenReturn(provider);
+        when(provider.getContentCanonicalizer()).thenReturn(canonicalizer);
+        when(canonicalizer.canonicalize(any(), any())).thenThrow(canonicalizerFailure);
+
+        ContentWrapperDto data = ContentWrapperDto.builder()
+                .content(ContentHandle.create("{}")).contentType("application/json")
+                .artifactType("AVRO").references(List.of()).build();
+
+        RegistryException ex = Assertions.assertThrows(RegistryException.class,
+                () -> RegistryContentUtils.canonicalizeContent(factory, "AVRO", data, ref -> null));
+
+        // The public wrapper re-wraps the failure raised internally, so the original
+        // canonicalizer failure is preserved a level deeper in the cause chain.
+        Assertions.assertNotNull(ex.getCause());
+        Assertions.assertEquals(canonicalizerFailure, ex.getCause().getCause());
+    }
+
+    /**
+     * Regression test for GH #9590: canonical content hash computation must fail, not
+     * silently hash the raw content, when the underlying canonicalizer fails.
+     */
+    @Test
+    void testCanonicalContentHashPropagatesCanonicalizerFailure() {
+        RuntimeException canonicalizerFailure = new IllegalStateException("boom");
+
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class);
+        ArtifactTypeUtilProvider provider = mock(ArtifactTypeUtilProvider.class);
+        ContentCanonicalizer canonicalizer = mock(ContentCanonicalizer.class);
+
+        when(factory.getArtifactTypeProvider("AVRO")).thenReturn(provider);
+        when(provider.getContentCanonicalizer()).thenReturn(canonicalizer);
+        when(canonicalizer.canonicalize(any(), any())).thenThrow(canonicalizerFailure);
+
+        ContentWrapperDto data = ContentWrapperDto.builder()
+                .content(ContentHandle.create("{}")).contentType("application/json")
+                .artifactType("AVRO").references(List.of()).build();
+
+        Assertions.assertThrows(RegistryException.class,
+                () -> RegistryContentUtils.canonicalContentHash(factory, "AVRO", data, ref -> null));
     }
 }

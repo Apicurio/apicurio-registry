@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useState } from "react";
 import { Avatar, Dropdown, DropdownItem, DropdownList, MenuToggle, MenuToggleElement } from "@patternfly/react-core";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { UserService, useUserService } from "@services/useUserService.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 

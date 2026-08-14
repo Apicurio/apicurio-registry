@@ -315,7 +315,7 @@ make dist-install-file
 There are two install variants:
 
 - **`install.yaml`** (`make dist-install-file`) - all-namespaces install with cluster-wide RBAC. The operator watches every namespace. This is the default.
-- **`install-namespaced.yaml`** (`make dist-install-file-namespaced`) - single-namespace, least-privilege install. Namespace-scoped RBAC (plus a small ClusterRole for CR discovery), and the operator only watches the namespace it is deployed into. Like `install.yaml`, it has `PLACEHOLDER_NAMESPACE` baked into the manifests, so substitute your target namespace before applying (a plain `kubectl -n` does not override the `metadata.namespace` already set in the file), e.g. `sed "s/PLACEHOLDER_NAMESPACE/my-namespace/g" install-namespaced.yaml | kubectl -n my-namespace apply -f -`.
+- **`install-namespaced.yaml`** (`make dist-install-file-namespaced`) - single-namespace, least-privilege install. Namespace-scoped RBAC (plus a small ClusterRole for CR discovery), and the operator only watches the namespace it is deployed into. Like `install.yaml`, it has `PLACEHOLDER_NAMESPACE` baked into the manifests, so substitute your target namespace before applying (a plain `kubectl -n` does not override the `metadata.namespace` already set in the file), e.g. `sed "s/PLACEHOLDER_NAMESPACE/my-namespace/g" install-namespaced.yaml | kubectl -n my-namespace apply -f -`. If the target namespace previously ran `install.yaml`, see [RBAC](#rbac) for the cluster-scoped objects you need to delete afterwards.
 
 `make dist` produces both.
 
@@ -475,6 +475,15 @@ For non-OLM (manifest) installs there are two variants:
 - `install-namespaced.yaml` uses `rbac/namespaced` (the same split as the OLM bundle) and watches only its own namespace. Built from `controller/src/main/deploy/install/namespaced`.
 
 Both variants can live on the same cluster, and `install-namespaced.yaml` can be applied more than once for different namespaces. That works because the namespaced variant suffixes its cluster-scoped RBAC object names with the install namespace, so every install owns its own ClusterRole and ClusterRoleBinding. Without the suffix, `kubectl apply` would replace the other install's objects outright (`rules` and `subjects` are atomic lists, not merged), leaving the other operator without the permissions it needs. The suffix is applied by a patch in `install/namespaced/kustomization.yaml` rather than in `rbac/namespaced`, because `rbac/namespaced` is also consumed by the CSV overlay, where OLM owns cluster-scoped naming. `NamespacedInstallFileTest` fails if the names ever collide again. The CRD is shared by both files on purpose and is not suffixed.
+
+**Replacing an all-namespaces install with the namespaced one needs a manual cleanup step.** Both variants use the same ServiceAccount name (`apicurio-registry-operator`) and the same Deployment name, so applying `install-namespaced.yaml` into a namespace that already runs `install.yaml` replaces the Deployment in place and adds the suffixed ClusterRole and ClusterRoleBinding, but it does not touch the previous unsuffixed `apicurio-registry-operator-clusterrolebinding`, which still names that same ServiceAccount. RBAC grants are additive, so the operator keeps its cluster-wide verbs and `kubectl apply` still reports success: the privileges are not actually dropped. Remove the leftover pair explicitly:
+
+```shell
+kubectl delete clusterrolebinding apicurio-registry-operator-clusterrolebinding
+kubectl delete clusterrole apicurio-registry-operator-clusterrole
+```
+
+Both of those objects are shared by every all-namespaces install on the cluster, so only delete them once no `install.yaml` deployment is left. This does not affect a fresh namespaced install on a cluster that never ran `install.yaml`.
 
 **Keep permissions in sync manually.** These rules are duplicated transitively in `olm-tests/src/test/deploy/olmv1/cluster-role.yaml` (the installer ClusterRole used by the OLM v1 tests). There is no generation step that rewrites one from the other, so any change to the operator's permissions must be applied in both places, and the RBAC files carry a comment reminding of this. Two unit tests guard against mistakes: `RbacInstallerSyncTest` fails if the installer ClusterRole is not a superset of the operator's runtime permissions, and `RbacSplitTest` fails if the cluster/namespace tier split is broken (for example a workload rule added to `cluster-role.yaml`, which OLM would then grant cluster-wide in every install mode).
 

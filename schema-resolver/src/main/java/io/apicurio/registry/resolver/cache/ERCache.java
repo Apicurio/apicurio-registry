@@ -438,12 +438,14 @@ public class ERCache<V> {
                             "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
+                ApiException apiException = findApiException(e);
+                boolean isRateLimit = apiException != null && Integer.valueOf(429).equals(apiException.getResponseStatusCode());
+
                 // Only retry on HTTP 429 (rate limit). All other Registry/client errors fail fast
                 // and are rethrown as-is so callers see the original Registry error response.
-                if (i == retries || !isRetryableRateLimit(e)) {
+                if (i == retries || !isRateLimit) {
                     log.error("Failed to load schema from Registry after {} retries: {}", i,
-                            describeRegistryError(e), e);
-                    ApiException apiException = findApiException(e);
+                            describeRegistryError(apiException, e), e);
                     if (apiException != null) {
                         return Result.error(apiException);
                     }
@@ -460,13 +462,7 @@ public class ERCache<V> {
         return Result.error(new IllegalStateException("Unreachable."));
     }
 
-    /**
-     * Returns true when the failure (or its cause chain) is an HTTP 429 from the Registry client.
-     */
-    private static boolean isRetryableRateLimit(RuntimeException e) {
-        ApiException apiException = findApiException(e);
-        return apiException != null && apiException.getResponseStatusCode() == 429;
-    }
+
 
     private static ApiException findApiException(Throwable throwable) {
         Throwable current = throwable;
@@ -488,18 +484,22 @@ public class ERCache<V> {
      * and message from {@link ApiException} when present.
      */
     static String describeRegistryError(Throwable throwable) {
-        ApiException apiException = findApiException(throwable);
+        return describeRegistryError(findApiException(throwable), throwable);
+    }
+
+    private static String describeRegistryError(ApiException apiException, Throwable fallback) {
         if (apiException != null) {
             String message = apiException.getMessage();
             if (message == null || message.isBlank()) {
                 message = apiException.getClass().getSimpleName();
             }
-            return "HTTP " + apiException.getResponseStatusCode() + " — " + message;
+            Integer status = apiException.getResponseStatusCode();
+            return "HTTP " + (status != null ? status : "Unknown") + " — " + message;
         }
-        if (throwable.getMessage() != null && !throwable.getMessage().isBlank()) {
-            return throwable.getMessage();
+        if (fallback.getMessage() != null && !fallback.getMessage().isBlank()) {
+            return fallback.getMessage();
         }
-        return throwable.getClass().getName();
+        return fallback.getClass().getName();
     }
 
     private static class WrappedValue<V> {

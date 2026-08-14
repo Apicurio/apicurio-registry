@@ -89,13 +89,13 @@ public class ERCacheTest {
 
         String firstValue = cache.getByContentHash(contentHashKey, firstLoader);
         assertEquals("a value", firstValue);
-        
+
         try {
-            Thread.sleep(1);
+            Thread.sleep(50);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         String secondValue = cache.getByContentHash(contentHashKey, secondLoader);
         assertEquals("another value", secondValue);
     }

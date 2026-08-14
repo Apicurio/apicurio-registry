@@ -23,4 +23,16 @@ public interface CompatibilityChecker {
             List<TypedContent> existingArtifacts, TypedContent proposedArtifact,
             Map<String, TypedContent> resolvedReferences);
 
+    /**
+     * Whether this checker can actually evaluate compatibility. Implementations that do not compare the
+     * proposed content against the existing versions (i.e. stubs such as
+     * {@link NoopCompatibilityChecker}) MUST return <code>false</code> so that callers can distinguish
+     * "verified compatible" from "not checked at all" instead of treating both as a passing verdict.
+     *
+     * @return true if {@link #testCompatibility} produces a meaningful verdict, false if it is a stub
+     */
+    default boolean isCompatibilitySupported() {
+        return true;
+    }
+
 }

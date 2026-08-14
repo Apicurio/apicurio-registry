@@ -22,4 +22,15 @@ public class NoopCompatibilityChecker implements CompatibilityChecker {
         requireNonNull(proposedArtifact, "proposedSchema MUST NOT be null");
         return CompatibilityExecutionResult.compatible();
     }
+
+    /**
+     * This checker performs no comparison at all, so the "compatible" result returned by
+     * {@link #testCompatibility} carries no guarantee. Callers must not interpret it as a passing check.
+     *
+     * @see CompatibilityChecker#isCompatibilitySupported()
+     */
+    @Override
+    public boolean isCompatibilitySupported() {
+        return false;
+    }
 }

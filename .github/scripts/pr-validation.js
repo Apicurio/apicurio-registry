@@ -39,6 +39,10 @@ const ISSUE_URL_PATTERN =
 // rate limit; issue-based detection still runs and is the more precise signal.
 const MAX_PRS_FOR_FILE_COMPARISON = 40;
 
+// A single shared file (e.g. both PRs touch pom.xml) is common and rarely a
+// real duplicate; require more overlap before flagging one.
+const MIN_SHARED_FILES_FOR_DUPLICATE = 2;
+
 function loadConfig() {
   const configPath = path.join(process.cwd(), '.github', 'pr-lifecycle.json');
   return JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -69,8 +73,22 @@ function extractLinkedIssues(body, owner, repo) {
   return issues;
 }
 
-function hasSignOff(message) {
-  return message.split('\n').some(line => /^\s*Signed-off-by:\s*.+<.+@.+>\s*$/i.test(line));
+/**
+ * A Signed-off-by trailer only counts if its email matches the commit's
+ * author or committer email -- otherwise anyone could paste an arbitrary
+ * trailer onto an unsigned commit and pass the DCO check.
+ */
+function hasSignOff(commit) {
+  const { message, author, committer } = commit.commit;
+  const ownEmails = new Set(
+    [author && author.email, committer && committer.email]
+      .filter(Boolean)
+      .map(e => e.toLowerCase())
+  );
+  return message.split('\n').some(line => {
+    const match = /^\s*Signed-off-by:\s*.+<(.+@.+)>\s*$/i.exec(line);
+    return Boolean(match) && ownEmails.has(match[1].toLowerCase());
+  });
 }
 
 function shortSha(sha) {
@@ -94,7 +112,7 @@ function checkIssueLink(linkedIssues) {
 }
 
 function checkDcoSignOff(commits) {
-  const unsigned = commits.filter(c => !hasSignOff(c.commit.message));
+  const unsigned = commits.filter(c => !hasSignOff(c));
   if (unsigned.length === 0) {
     return null;
   }
@@ -109,11 +127,12 @@ function checkDcoSignOff(commits) {
   };
 }
 
-async function findDuplicates(github, owner, repo, pr, linkedIssues, core) {
+async function findDuplicates(github, owner, repo, pr, linkedIssues, config, core) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
     owner, repo, state: 'open', per_page: 100,
   });
-  const others = openPrs.filter(p => p.number !== pr.number && !p.draft);
+  const others = openPrs.filter(p => p.number !== pr.number && !p.draft
+    && !isExemptAuthor(config, p.user.login));
 
   const byIssue = [];
   for (const other of others) {
@@ -140,7 +159,7 @@ async function findDuplicates(github, owner, repo, pr, linkedIssues, core) {
         owner, repo, pull_number: other.number, per_page: 100,
       });
       const shared = otherFiles.map(f => f.filename).filter(f => ourFiles.has(f));
-      if (shared.length > 0) {
+      if (shared.length >= MIN_SHARED_FILES_FOR_DUPLICATE) {
         byFile.push({ pr: other, files: shared });
       }
     }
@@ -276,12 +295,22 @@ async function validate({ github, context, core }) {
     checkDcoSignOff(commits),
   ].filter(Boolean);
 
-  const duplicates = await findDuplicates(github, owner, repo, pr, linkedIssues, core);
+  let duplicates = { byIssue: [], byFile: [] };
+  try {
+    duplicates = await findDuplicates(github, owner, repo, pr, linkedIssues, config, core);
+  } catch (e) {
+    core.warning(`Duplicate detection failed, continuing without it: ${e.message}`);
+  }
 
   await upsertComment(github, owner, repo, pr.number,
     buildComment(pr, violations, duplicates), COMMENT_MARKER, core);
   await setFailedLabel(github, owner, repo, pr, violations.length > 0, core);
-  await postDuplicateAdvisories(github, owner, repo, pr, duplicates, core);
+
+  try {
+    await postDuplicateAdvisories(github, owner, repo, pr, duplicates, core);
+  } catch (e) {
+    core.warning(`Posting duplicate advisories failed: ${e.message}`);
+  }
 
   if (violations.length > 0) {
     core.setFailed(`PR validation failed: ${violations.map(v => v.name).join(', ')}`);

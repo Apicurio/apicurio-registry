@@ -151,7 +151,7 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         JsonNode avroNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
                         return ResolvedReference.fromJson(avroNode,
-                                "application/vnd.apache.avro+json");
+                                "application/vnd.apache.avro+json;version=1.9.0");
 
                     case PROTOBUF:
                         // For Protobuf, return as text with appropriate media type

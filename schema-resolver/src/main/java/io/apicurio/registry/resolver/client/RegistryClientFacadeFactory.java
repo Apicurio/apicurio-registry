@@ -7,6 +7,7 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.vertx.core.Vertx;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -101,27 +102,18 @@ public class RegistryClientFacadeFactory {
             throw new IllegalStateException(e);
         }
 
-        // PR #9091 + lab diagnostics: log effective HTTP client retry knobs so
-        // Connect logs show whether SerDes config actually reached RegistryClientOptions.
         if (config.getClientRetryEnabled()) {
             int maxAttempts = (int) config.getClientRetryMaxAttempts();
             long delayMs = config.getClientRetryDelayMs();
             double backoff = config.getClientRetryBackoffMultiplier();
             long maxDelayMs = config.getClientRetryMaxDelayMs();
-            logger.info(String.format(
-                    "Apicurio registry HTTP client retry ENABLED url=%s maxAttempts=%d delayMs=%d backoff=%s maxDelayMs=%d (cache retry-count=%d retry-backoff-ms=%d)",
-                    config.getRegistryUrl(), maxAttempts, delayMs, backoff, maxDelayMs,
-                    config.getRetryCount(), config.getRetryBackoff().toMillis()));
-            System.out.println("[apicurio-pr9091] HTTP client retry ENABLED"
-                    + " maxAttempts=" + maxAttempts
-                    + " delayMs=" + delayMs
-                    + " backoff=" + backoff
-                    + " maxDelayMs=" + maxDelayMs
-                    + " cacheRetryCount=" + config.getRetryCount());
+            logger.log(Level.INFO,
+                    "Registry HTTP client retry enabled: url={0}, maxAttempts={1}, delayMs={2}, backoffMultiplier={3}, maxDelayMs={4}",
+                    new Object[]{config.getRegistryUrl(), maxAttempts, delayMs, backoff, maxDelayMs});
             clientOptions.retry(true, maxAttempts, delayMs, backoff, maxDelayMs);
         } else {
-            logger.info("Apicurio registry HTTP client retry DISABLED for url=" + config.getRegistryUrl());
-            System.out.println("[apicurio-pr9091] HTTP client retry DISABLED");
+            logger.log(Level.INFO,
+                    "Registry HTTP client retry disabled: url={0}", config.getRegistryUrl());
             clientOptions.disableRetry();
         }
 

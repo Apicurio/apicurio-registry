@@ -31,17 +31,18 @@ public class SqlEventRepository {
      * Create an outbox event for database-driven event publishing.
      */
     public String createEvent(OutboxEvent event) {
-        if(event == null)
-        {
-            log.warn("Cannot create outbox event: event is null");
-            return null;
+        if (event == null) {
+            throw new IllegalArgumentException("OutboxEvent must not be null");
+        }
+        if (event.getPayload() == null) {
+            throw new IllegalArgumentException("OutboxEvent payload must not be null");
         }
         if (supportsDatabaseEvents()) {
             handles.withHandle(handle -> {
                 handle.createUpdate(sqlStatements.createOutboxEvent()).bind(0, event.getId())
                         .bind(1, eventsTopic).bind(2, event.getAggregateId()).bind(3, event.getType())
-                        .bind(4, (event.getPayload() != null ? event.getPayload().toString() : null)).execute();
-
+                        .bind(4, event.getPayload().toString()).execute();
+                
                 return handle.createUpdate(sqlStatements.deleteOutboxEvent()).bind(0, event.getId())
                         .execute();
             });

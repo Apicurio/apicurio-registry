@@ -81,8 +81,14 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
                 }
             } catch (RuleViolationException rve) {
                 throw rve;
-            } catch (Throwable e) {
+            } catch (Exception e) {
+                // The webhook is unreachable, timed out, or returned an error.
+                // Fail closed: reject the artifact rather than silently accepting it.
+                // Catching Exception (not Throwable) so JVM-level Errors (OOM, etc.)
+                // are not misrepresented as rule violations.
                 log.error("Error invoking webhook", e);
+                throw new RuleViolationException("Webhook validation failed to execute.",
+                        RuleType.VALIDITY, level.name(), e);
             }
         }
 
@@ -101,8 +107,16 @@ public class ConfiguredContentValidator extends AbstractConfiguredArtifactTypeUt
                 }
             } catch (RuleViolationException rve) {
                 throw rve;
-            } catch (Throwable e) {
+            } catch (Exception e) {
+                // The webhook is unreachable, timed out, or returned an error.
+                // Fail closed: reject the artifact rather than silently accepting it.
+                // Catching Exception (not Throwable) so JVM-level Errors (OOM, etc.)
+                // are not misrepresented as rule violations.
+                // ALL_REFS_MAPPED is the integrity level that triggers validateReferences()
+                // (see IntegrityRuleExecutor), so it is the correct cause to report here.
                 log.error("Error invoking webhook", e);
+                throw new RuleViolationException("Webhook reference validation failed to execute.",
+                        RuleType.INTEGRITY, IntegrityLevel.ALL_REFS_MAPPED.name(), e);
             }
         }
 

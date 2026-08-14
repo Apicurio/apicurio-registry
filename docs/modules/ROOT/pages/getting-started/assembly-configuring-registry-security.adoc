@@ -250,7 +250,7 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 |The name of the claim in which Azure AD stores roles.
 |`roles`
 |`APICURIO_UI_AUTH_OIDC_LOAD_USER_INFO`
-|Whether the web console loads user details from the OIDC userinfo endpoint. Set to `false` for Azure AD, where the userinfo endpoint has incompatible audience requirements and the call fails after login.
+|Whether the web console loads user details from the OIDC userinfo endpoint. The default is `true`. You must set this variable to `false` for Azure AD, where the userinfo endpoint has incompatible audience requirements and the call fails after login.
 |`false`
 |===
 +

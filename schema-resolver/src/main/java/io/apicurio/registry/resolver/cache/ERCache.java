@@ -438,14 +438,12 @@ public class ERCache<V> {
                             "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
-                // Lab: retry rate-limits AND registry outages (connect refused / timeouts).
-                // Stock Apicurio only retried HTTP 429 here.
+                // Retry rate-limits (429) and transient network / registry-down failures.
                 if (i == retries || !isRetriableCacheLoadFailure(e)) {
-                    log.error("Cache load failed after {} retries (retriable={})", i,
-                            isRetriableCacheLoadFailure(e), e);
+                    log.error("Schema cache load failed after {} retries", i, e);
                     return Result.error(new RuntimeException(e));
                 }
-                log.warn("Cache load attempt {}/{} failed with retriable error, backing off {}ms: {}",
+                log.debug("Schema cache load attempt {}/{} failed with retriable error; backing off {}ms: {}",
                         i + 1, retries + 1, backoff.toMillis(), rootMessage(e));
             }
             try {
@@ -459,8 +457,8 @@ public class ERCache<V> {
     }
 
     /**
-     * Retriable = rate-limit (429) OR transient network / registry-down errors.
-     * Stock upstream only treated 429 as retriable.
+     * Whether a schema-cache load failure should be retried: HTTP 429, connection
+     * failures, timeouts, connection resets, and Vert.x HTTP closed errors.
      */
     private static boolean isRetriableCacheLoadFailure(Throwable e) {
         Throwable current = e;

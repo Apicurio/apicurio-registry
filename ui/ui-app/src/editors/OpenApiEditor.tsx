@@ -2,7 +2,7 @@ import React, { RefObject, useEffect, useState } from "react";
 import { Editor as DraftEditor, EditorProps } from "./editor-types";
 import "./OpenApiEditor.css";
 import { parseJson, parseYaml, toJsonString, toYamlString } from "@utils/content.utils.ts";
-import { IfNotLoading } from "@apicurio/common-ui-components";
+import { IfNotLoading } from "@apitomy/common-ui-components";
 import { useConfigService } from "@services/useConfigService.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
 

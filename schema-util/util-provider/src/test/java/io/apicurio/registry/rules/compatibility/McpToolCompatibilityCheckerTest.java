@@ -408,15 +408,50 @@ class McpToolCompatibilityCheckerTest {
                 "Changing an inputSchema property type should be backward incompatible");
     }
 
+
     @Test
-    void testBackwardIncompatibleAddingRequiredInputParameter() {
+    void testBackwardIncompatibleChangingInputSchemaPropertyUnionType() {
         String existing = """
                 {
                     "name": "test_tool",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "query": { "type": "string" }
+                            "query": { "type": ["integer", "null"] }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": ["string"] }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing an inputSchema property union type should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleAddingInputSchemaPropertyTypeConstraint() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {}
                         }
                     }
                 }
@@ -429,8 +464,7 @@ class McpToolCompatibilityCheckerTest {
                         "type": "object",
                         "properties": {
                             "query": { "type": "string" }
-                        },
-                        "required": ["query"]
+                        }
                     }
                 }
                 """;
@@ -440,6 +474,6 @@ class McpToolCompatibilityCheckerTest {
                 createMcpTool(proposed), Map.of());
 
         assertFalse(result.isCompatible(),
-                "Adding a required input parameter should be backward incompatible");
+                "Adding an inputSchema property type constraint should be backward incompatible");
     }
 }

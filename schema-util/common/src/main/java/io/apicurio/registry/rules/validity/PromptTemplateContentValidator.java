@@ -28,6 +28,13 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
     private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
             "string", "integer", "number", "boolean", "array", "object");
 
+    /**
+     * Template formats the registry is able to render. Rendering is implemented by substituting
+     * {@code {{variable}}} placeholders, which is mustache syntax. Any other format would be
+     * accepted at write time and then rendered with the wrong engine, so it is rejected here.
+     */
+    private static final List<String> SUPPORTED_TEMPLATE_FORMATS = List.of("mustache");
+
     @Override
     public void validate(ValidityLevel level, TypedContent content,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
@@ -164,6 +171,57 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
         if (tree.has("metadata") && !tree.get("metadata").isObject()) {
             violations.add(new RuleViolation(
                     "Field 'metadata' must be an object if provided.", "/metadata"));
+        }
+
+        if (tree.has("model") && !tree.get("model").isObject()) {
+            violations.add(new RuleViolation(
+                    "Field 'model' must be an object if provided.", "/model"));
+        }
+
+        validateStringArray(tree, "authors", violations);
+        validateStringArray(tree, "tags", violations);
+        validateTemplateFormat(tree, violations);
+    }
+
+    private void validateTemplateFormat(JsonNode tree, Set<RuleViolation> violations) {
+        if (!tree.has("templateFormat")) {
+            return;
+        }
+
+        JsonNode templateFormat = tree.get("templateFormat");
+        if (!templateFormat.isTextual()) {
+            violations.add(new RuleViolation(
+                    "Field 'templateFormat' must be a string if provided.", "/templateFormat"));
+            return;
+        }
+
+        String format = templateFormat.asText();
+        if (!SUPPORTED_TEMPLATE_FORMATS.contains(format)) {
+            violations.add(new RuleViolation(
+                    "Field 'templateFormat' has unsupported value '" + format + "'. Must be one of: "
+                            + String.join(", ", SUPPORTED_TEMPLATE_FORMATS) + ".",
+                    "/templateFormat"));
+        }
+    }
+
+    private void validateStringArray(JsonNode tree, String fieldName, Set<RuleViolation> violations) {
+        if (!tree.has(fieldName)) {
+            return;
+        }
+
+        JsonNode field = tree.get(fieldName);
+        if (!field.isArray()) {
+            violations.add(new RuleViolation(
+                    "Field '" + fieldName + "' must be an array if provided.", "/" + fieldName));
+            return;
+        }
+
+        for (JsonNode element : field) {
+            if (!element.isTextual()) {
+                violations.add(new RuleViolation(
+                        "Field '" + fieldName + "' must contain only strings.", "/" + fieldName));
+                return;
+            }
         }
     }
 

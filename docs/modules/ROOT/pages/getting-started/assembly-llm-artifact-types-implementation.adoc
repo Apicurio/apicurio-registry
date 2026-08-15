@@ -157,7 +157,7 @@ tags:
   - sentiment
   - nlp
 
-templateFormat: mustache  # or jinja2, handlebars
+templateFormat: mustache  # only mustache is supported
 
 # Model configuration (Prompty-aligned)
 model:
@@ -434,7 +434,7 @@ interface PromptTemplate {
     // Prompty-aligned fields
     authors?: string[];         // Contributors list
     tags?: string[];            // Categorization tags
-    templateFormat?: string;    // 'mustache' | 'jinja2' | 'handlebars'
+    templateFormat?: string;    // 'mustache' (the only supported value)
     model?: ModelConfiguration; // Model configuration
 
     // Input/output definitions (Prompty: inputs/outputs)

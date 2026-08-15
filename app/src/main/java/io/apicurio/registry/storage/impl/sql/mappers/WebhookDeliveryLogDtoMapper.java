@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.sql.mappers;
 
 import io.apicurio.registry.storage.dto.WebhookDeliveryLogDto;
 import io.apicurio.registry.storage.dto.WebhookDeliveryStatus;
+import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.sql.jdb.RowMapper;
 
 import java.sql.ResultSet;
@@ -25,10 +26,18 @@ public class WebhookDeliveryLogDtoMapper implements RowMapper<WebhookDeliveryLog
         return WebhookDeliveryLogDto.builder().deliveryId(rs.getString("deliveryId"))
                 .subscriptionId(rs.getString("subscriptionId")).eventId(rs.getString("eventId"))
                 .eventType(rs.getString("eventType"))
-                .status(WebhookDeliveryStatus.valueOf(rs.getString("status")))
+                .status(toStatus(rs.getString("status")))
                 .attemptCount(rs.getInt("attemptCount")).lastAttemptAt(rs.getTimestamp("lastAttemptAt"))
                 .nextRetryAt(rs.getTimestamp("nextRetryAt")).errorMessage(rs.getString("errorMessage"))
                 .httpStatusCode(httpStatusCode).lockedBy(rs.getString("lockedBy"))
                 .leaseUntil(rs.getTimestamp("leaseUntil")).createdOn(rs.getTimestamp("createdOn")).build();
+    }
+
+    private WebhookDeliveryStatus toStatus(String status) {
+        try {
+            return WebhookDeliveryStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new RegistryStorageException("Unknown webhook delivery status: " + status, e);
+        }
     }
 }

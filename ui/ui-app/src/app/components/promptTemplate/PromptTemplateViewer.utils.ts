@@ -29,31 +29,51 @@ const tagCloserAt = (template: string, openerIndex: number): { closer: string; o
     return { closer: "}}", openerLength: 2 };
 };
 
+const findTagCloser = (
+    template: string,
+    openerIndex: number,
+    closer: string,
+    openerLength: number
+): { closerIndex: number; closerLength: number } | null => {
+    const searchFrom = openerIndex + openerLength;
+    const preferredIndex = template.indexOf(closer, searchFrom);
+    if (preferredIndex !== -1) {
+        return { closerIndex: preferredIndex, closerLength: closer.length };
+    }
+    // Match the old regex fallback: {{!-- / {{{ still close on }} when the preferred terminator is missing.
+    if (closer !== "}}") {
+        const fallbackIndex = template.indexOf("}}", searchFrom);
+        if (fallbackIndex !== -1) {
+            return { closerIndex: fallbackIndex, closerLength: 2 };
+        }
+    }
+    return null;
+};
+
 export const tokenizeTemplate = (template: string): TemplateToken[] => {
     const tokens: TemplateToken[] = [];
     let lastIndex = 0;
-    let searchFrom = 0;
 
-    while (searchFrom < template.length) {
-        const openerIndex = template.indexOf("{{", searchFrom);
+    while (lastIndex < template.length) {
+        const openerIndex = template.indexOf("{{", lastIndex);
         if (openerIndex === -1) {
             break;
         }
 
         const { closer, openerLength } = tagCloserAt(template, openerIndex);
-        const closerIndex = template.indexOf(closer, openerIndex + openerLength);
-        if (closerIndex === -1) {
+        const found = findTagCloser(template, openerIndex, closer, openerLength);
+        if (found === null) {
             break;
         }
 
         if (openerIndex > lastIndex) {
             tokens.push({ text: template.substring(lastIndex, openerIndex), kind: "plain" });
         }
-        const tag = template.substring(openerIndex, closerIndex + closer.length);
+        const tagEnd = found.closerIndex + found.closerLength;
+        const tag = template.substring(openerIndex, tagEnd);
         const kind = tag.startsWith("{{!") ? "plain" : classifyTag(tag);
         tokens.push({ text: tag, kind });
-        lastIndex = closerIndex + closer.length;
-        searchFrom = lastIndex;
+        lastIndex = tagEnd;
     }
 
     if (lastIndex < template.length) {

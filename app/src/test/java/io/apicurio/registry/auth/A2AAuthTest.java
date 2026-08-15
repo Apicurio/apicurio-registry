@@ -324,13 +324,88 @@ public class A2AAuthTest extends AbstractResourceTestBase {
                 .body("agents.artifactId", hasItem(artifactId));
     }
 
+    // --- MCP Tool visibility and entitlement filtering ---
+
+    @Test
+    public void testMcpToolsSearchReturns401WhenUnauthenticated() {
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body("{\"limit\": 10}")
+                .post("/.well-known/mcp/tools/search")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    public void testPrivateMcpToolVisibleOnlyToOwnerAndAdmin() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "private-mcp-tool-auth-test";
+
+        String mcpToolContent = """
+                {
+                    "name": "TestMcpTool",
+                    "description": "A test MCP tool",
+                    "version": "1.0.0"
+                }
+                """;
+
+        createMcpTool(developerClient(), groupId, artifactId, mcpToolContent);
+        setVisibility(adminClient(), groupId, artifactId, "private");
+
+        String searchBody = """
+                {
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        // Developer (owner) can see it via MCP search
+        givenAsDeveloper()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(searchBody)
+                .post("/.well-known/mcp/tools/search")
+                .then()
+                .statusCode(200)
+                .body("tools.artifactId", hasItem(artifactId));
+
+        // Admin can see it via MCP search
+        givenAsAdmin()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(searchBody)
+                .post("/.well-known/mcp/tools/search")
+                .then()
+                .statusCode(200)
+                .body("tools.artifactId", hasItem(artifactId));
+
+        // Readonly user (non-owner, non-admin) cannot see private MCP tool
+        givenAsReadonly()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(searchBody)
+                .post("/.well-known/mcp/tools/search")
+                .then()
+                .statusCode(200)
+                .body("tools.artifactId", not(hasItem(artifactId)));
+    }
+
     // --- Helpers ---
 
-    private void createAgentCard(RegistryClient client, String groupId, String artifactId,
-            String content) {
+    private void createAgentCard(RegistryClient client, String groupId, String artifactId, String content) {
+        createArtifact(client, groupId, artifactId, ArtifactType.AGENT_CARD, content);
+    }
+
+    private void createMcpTool(RegistryClient client, String groupId, String artifactId, String content) {
+        createArtifact(client, groupId, artifactId, ArtifactType.MCP_TOOL, content);
+    }
+
+    private void createArtifact(RegistryClient client, String groupId, String artifactId, 
+            ArtifactType artifactType, String content) {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
-        createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+        createArtifact.setArtifactType(artifactType);
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();

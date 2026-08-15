@@ -37,7 +37,10 @@ public class McpToolCompatibilityChecker
             // Check inputSchema type changes
             checkInputSchemaTypeChange(existingNode, proposedNode, differences);
 
-            // Check removed properties
+// Check property type changes
+            checkPropertyTypeChanges(existingNode, proposedNode, differences);
+
+// Check removed properties
             checkPropertyRemovals(existingNode, proposedNode, differences);
 
             // Check added required parameters
@@ -67,6 +70,48 @@ public class McpToolCompatibilityChecker
                             + "'"));
         }
     }
+
+    private void checkPropertyTypeChanges(JsonNode existing, JsonNode proposed,
+        Set<McpToolCompatibilityDifference> differences) {
+    JsonNode existingSchema = existing.get("inputSchema");
+    JsonNode proposedSchema = proposed.get("inputSchema");
+
+    if (existingSchema == null || proposedSchema == null
+            || !existingSchema.isObject() || !proposedSchema.isObject()) {
+        return;
+    }
+
+    JsonNode existingProps = existingSchema.get("properties");
+    JsonNode proposedProps = proposedSchema.get("properties");
+
+    if (existingProps == null || proposedProps == null
+            || !existingProps.isObject() || !proposedProps.isObject()) {
+        return;
+    }
+
+    Iterator<String> fieldNames = existingProps.fieldNames();
+    while (fieldNames.hasNext()) {
+        String property = fieldNames.next();
+
+        if (!proposedProps.has(property)) {
+            continue;
+        }
+
+        JsonNode existingProperty = existingProps.get(property);
+        JsonNode proposedProperty = proposedProps.get(property);
+
+        JsonNode existingType = existingProperty.get("type");
+        JsonNode proposedType = proposedProperty.get("type");
+
+        if (existingType != null && proposedType != null
+                && !existingType.asText().equals(proposedType.asText())) {
+            differences.add(new McpToolCompatibilityDifference(
+                    McpToolCompatibilityDifference.Type.PROPERTY_TYPE_CHANGED,
+                    "Input property '" + property + "' type changed from '"
+                            + existingType.asText() + "' to '" + proposedType.asText() + "'"));
+        }
+    }
+}
 
     private void checkPropertyRemovals(JsonNode existing, JsonNode proposed,
             Set<McpToolCompatibilityDifference> differences) {

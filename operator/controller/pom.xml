@@ -77,6 +77,13 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- POC: mock Kubernetes API server for fast, non-cluster reconciliation tests (see operator/controller/.../mock) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-test-kubernetes-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>

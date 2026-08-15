@@ -107,4 +107,36 @@ describe("tokenizeTemplate", () => {
     it("handles an empty template", () => {
         expect(tokenizeTemplate("")).toEqual([]);
     });
+
+    it("treats unmatched opening delimiters as plain text", () => {
+        expect(tokenizeTemplate("Hello {{")).toEqual([
+            { text: "Hello {{", kind: "plain" }
+        ]);
+    });
+
+    it("keeps a valid tag and treats a later unmatched opener as plain text", () => {
+        expect(tokenizeTemplate("{{name}} leftover {{")).toEqual([
+            { text: "{{name}}", kind: "variable" },
+            { text: " leftover {{", kind: "plain" }
+        ]);
+    });
+
+    it("treats an unmatched block comment opener as plain text", () => {
+        expect(tokenizeTemplate("{{!-- never closed")).toEqual([
+            { text: "{{!-- never closed", kind: "plain" }
+        ]);
+    });
+
+    it("treats an unmatched triple-stash opener as plain text", () => {
+        expect(tokenizeTemplate("{{{raw")).toEqual([
+            { text: "{{{raw", kind: "plain" }
+        ]);
+    });
+
+    it("does not rescan a large unmatched suffix", () => {
+        const input = "{{".repeat(64_000);
+        expect(tokenizeTemplate(input)).toEqual([
+            { text: input, kind: "plain" }
+        ]);
+    }, 1000);
 });

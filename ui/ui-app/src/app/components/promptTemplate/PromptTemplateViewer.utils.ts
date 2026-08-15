@@ -7,8 +7,6 @@ export interface TemplateToken {
     kind: TemplateTokenKind;
 }
 
-const HANDLEBARS_TAG = /\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}|\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g;
-
 const classifyTag = (tag: string): "variable" | "block" => {
     const inner = tag.replace(/^\{+|\}+$/g, "").trim();
     const head = inner.split(/\s+/, 1)[0];
@@ -18,19 +16,46 @@ const classifyTag = (tag: string): "variable" | "block" => {
     return "variable";
 };
 
+const tagCloserAt = (template: string, openerIndex: number): { closer: string; openerLength: number } => {
+    if (template.startsWith("{{!--", openerIndex)) {
+        return { closer: "--}}", openerLength: 5 };
+    }
+    if (template.startsWith("{{!", openerIndex)) {
+        return { closer: "}}", openerLength: 3 };
+    }
+    if (template.startsWith("{{{", openerIndex)) {
+        return { closer: "}}}", openerLength: 3 };
+    }
+    return { closer: "}}", openerLength: 2 };
+};
+
 export const tokenizeTemplate = (template: string): TemplateToken[] => {
     const tokens: TemplateToken[] = [];
     let lastIndex = 0;
-    let match;
-    while ((match = HANDLEBARS_TAG.exec(template)) !== null) {
-        if (match.index > lastIndex) {
-            tokens.push({ text: template.substring(lastIndex, match.index), kind: "plain" });
+    let searchFrom = 0;
+
+    while (searchFrom < template.length) {
+        const openerIndex = template.indexOf("{{", searchFrom);
+        if (openerIndex === -1) {
+            break;
         }
-        const tag = match[0];
+
+        const { closer, openerLength } = tagCloserAt(template, openerIndex);
+        const closerIndex = template.indexOf(closer, openerIndex + openerLength);
+        if (closerIndex === -1) {
+            break;
+        }
+
+        if (openerIndex > lastIndex) {
+            tokens.push({ text: template.substring(lastIndex, openerIndex), kind: "plain" });
+        }
+        const tag = template.substring(openerIndex, closerIndex + closer.length);
         const kind = tag.startsWith("{{!") ? "plain" : classifyTag(tag);
         tokens.push({ text: tag, kind });
-        lastIndex = match.index + match[0].length;
+        lastIndex = closerIndex + closer.length;
+        searchFrom = lastIndex;
     }
+
     if (lastIndex < template.length) {
         tokens.push({ text: template.substring(lastIndex), kind: "plain" });
     }

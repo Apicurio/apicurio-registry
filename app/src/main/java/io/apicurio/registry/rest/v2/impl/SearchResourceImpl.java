@@ -22,7 +22,6 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -202,13 +201,23 @@ public class SearchResourceImpl implements SearchResource {
         return groupId;
     }
 
+    /**
+     * Canonicalize the given content.
+     * <p>
+     * This is invoked directly against client-supplied content and artifact type, so a
+     * canonicalization failure here means the request content could not be canonicalized for the
+     * given artifact type - a client error, not a server error.
+     *
+     * @throws BadRequestException if the content could not be canonicalized for the given artifact
+     *         type.
+     */
     protected TypedContent canonicalizeContent(String artifactType, TypedContent content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
             return canonicalizer.canonicalize(content, Collections.emptyMap());
         } catch (Exception e) {
-            throw new RegistryException("Failed to canonicalize content.", e);
+            throw new BadRequestException("Failed to canonicalize content of type: " + artifactType, e);
         }
     }
 }

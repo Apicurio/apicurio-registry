@@ -17,6 +17,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.types.RegistryException;
@@ -27,6 +28,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.*;
@@ -61,11 +64,13 @@ public class RegistryContentUtilsTest {
 
     /**
      * Regression test for GH #9590: a failing ContentCanonicalizer must not be silently
-     * swallowed and must not result in the raw, non-canonicalized content being returned.
+     * swallowed and must not result in the raw, non-canonicalized content being returned. The
+     * cause must be exactly the exception thrown by the canonicalizer (not e.g. an unrelated NPE
+     * from a mis-set-up mock), and must not be double-wrapped by the public wrapper method.
      */
     @Test
     void testCanonicalizeContentPropagatesCanonicalizerFailure() {
-        RuntimeException canonicalizerFailure = new IllegalStateException("boom");
+        IllegalStateException canonicalizerFailure = new IllegalStateException("simulated canonicalizer failure");
 
         ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class);
         ArtifactTypeUtilProvider provider = mock(ArtifactTypeUtilProvider.class);
@@ -82,19 +87,20 @@ public class RegistryContentUtilsTest {
         RegistryException ex = Assertions.assertThrows(RegistryException.class,
                 () -> RegistryContentUtils.canonicalizeContent(factory, "AVRO", data, ref -> null));
 
-        // The public wrapper re-wraps the failure raised internally, so the original
-        // canonicalizer failure is preserved a level deeper in the cause chain.
-        Assertions.assertNotNull(ex.getCause());
-        Assertions.assertEquals(canonicalizerFailure, ex.getCause().getCause());
+        // Single wrap only: the public wrapper must propagate the RegistryException raised by
+        // the canonicalizer invocation as-is, not wrap it a second time.
+        Assertions.assertSame(canonicalizerFailure, ex.getCause());
+        verify(canonicalizer).canonicalize(any(), any());
     }
 
     /**
      * Regression test for GH #9590: canonical content hash computation must fail, not
-     * silently hash the raw content, when the underlying canonicalizer fails.
+     * silently hash the raw content, when the underlying canonicalizer fails. The cause must be
+     * exactly the canonicalizer's exception.
      */
     @Test
     void testCanonicalContentHashPropagatesCanonicalizerFailure() {
-        RuntimeException canonicalizerFailure = new IllegalStateException("boom");
+        IllegalStateException canonicalizerFailure = new IllegalStateException("simulated canonicalizer failure");
 
         ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class);
         ArtifactTypeUtilProvider provider = mock(ArtifactTypeUtilProvider.class);
@@ -108,7 +114,60 @@ public class RegistryContentUtilsTest {
                 .content(ContentHandle.create("{}")).contentType("application/json")
                 .artifactType("AVRO").references(List.of()).build();
 
-        Assertions.assertThrows(RegistryException.class,
+        RegistryException ex = Assertions.assertThrows(RegistryException.class,
                 () -> RegistryContentUtils.canonicalContentHash(factory, "AVRO", data, ref -> null));
+
+        Assertions.assertSame(canonicalizerFailure, ex.getCause());
+    }
+
+    /**
+     * Success-path regression test for GH #9590: proves the error-handling changes did not alter
+     * the happy path - the canonicalizer is invoked and its output is returned unmodified.
+     */
+    @Test
+    void testCanonicalizeContentSuccess() {
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class);
+        ArtifactTypeUtilProvider provider = mock(ArtifactTypeUtilProvider.class);
+        ContentCanonicalizer canonicalizer = mock(ContentCanonicalizer.class);
+
+        TypedContent canonicalizedContent = TypedContent.create(ContentHandle.create("{\"canonical\":true}"),
+                "application/json");
+
+        when(factory.getArtifactTypeProvider("AVRO")).thenReturn(provider);
+        when(provider.getContentCanonicalizer()).thenReturn(canonicalizer);
+        when(canonicalizer.canonicalize(any(), any())).thenReturn(canonicalizedContent);
+
+        ContentWrapperDto data = ContentWrapperDto.builder()
+                .content(ContentHandle.create("{\"raw\":true}")).contentType("application/json")
+                .artifactType("AVRO").references(List.of()).build();
+
+        TypedContent result = RegistryContentUtils.canonicalizeContent(factory, "AVRO", data, ref -> null);
+
+        Assertions.assertSame(canonicalizedContent, result);
+        verify(canonicalizer).canonicalize(any(), any());
+    }
+
+    /**
+     * Regression test for GH #9590: a failure resolving the artifact type provider (e.g. an
+     * unknown/unsupported artifact type) must be distinguished from a canonicalizer execution
+     * failure - the canonicalizer itself must never be invoked in this case.
+     */
+    @Test
+    void testCanonicalizeContentProviderLookupFailure() {
+        IllegalArgumentException lookupFailure = new IllegalArgumentException("Unknown artifact type: BOGUS");
+
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class);
+        ContentCanonicalizer canonicalizer = mock(ContentCanonicalizer.class);
+        when(factory.getArtifactTypeProvider("BOGUS")).thenThrow(lookupFailure);
+
+        ContentWrapperDto data = ContentWrapperDto.builder()
+                .content(ContentHandle.create("{}")).contentType("application/json")
+                .artifactType("BOGUS").references(List.of()).build();
+
+        RegistryException ex = Assertions.assertThrows(RegistryException.class,
+                () -> RegistryContentUtils.canonicalizeContent(factory, "BOGUS", data, ref -> null));
+
+        Assertions.assertSame(lookupFailure, ex.getCause());
+        verifyNoInteractions(canonicalizer);
     }
 }

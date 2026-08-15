@@ -37,7 +37,7 @@ public class RegistryStorageContentUtils {
             return factory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
                     .canonicalize(content, resolvedReferences);
         } catch (Exception ex) {
-            throw new RegistryException("Failed to canonicalize content.", ex);
+            throw new RegistryException("Failed to canonicalize content of type: " + artifactType, ex);
         }
     }
 
@@ -51,8 +51,12 @@ public class RegistryStorageContentUtils {
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
         try {
             return canonicalizeContent(artifactType, content, referenceResolver.apply(references));
+        } catch (RegistryException ex) {
+            // Already wrapped (e.g. by the canonicalizer invocation above) - propagate as-is
+            // instead of wrapping it a second time.
+            throw ex;
         } catch (Exception ex) {
-            throw new RegistryException("Failed to canonicalize content.", ex);
+            throw new RegistryException("Failed to canonicalize content of type: " + artifactType, ex);
         }
     }
 

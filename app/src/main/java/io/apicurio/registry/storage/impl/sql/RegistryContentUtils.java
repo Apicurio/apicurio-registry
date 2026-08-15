@@ -238,7 +238,7 @@ public class RegistryContentUtils {
             return artifactTypeUtilProviderFactory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
                     .canonicalize(content, recursivelyResolvedReferences);
         } catch (Exception ex) {
-            throw new RegistryException("Failed to canonicalize content.", ex);
+            throw new RegistryException("Failed to canonicalize content of type: " + artifactType, ex);
         }
     }
 
@@ -254,8 +254,12 @@ public class RegistryContentUtils {
             return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
                     TypedContent.create(data.getContent(), data.getArtifactType()),
                     recursivelyResolveReferences(data.getReferences(), loader));
+        } catch (RegistryException ex) {
+            // Already wrapped (e.g. by the canonicalizer invocation above) - propagate as-is
+            // instead of wrapping it a second time.
+            throw ex;
         } catch (Exception ex) {
-            throw new RegistryException("Failed to canonicalize content.", ex);
+            throw new RegistryException("Failed to canonicalize content of type: " + artifactType, ex);
         }
     }
 

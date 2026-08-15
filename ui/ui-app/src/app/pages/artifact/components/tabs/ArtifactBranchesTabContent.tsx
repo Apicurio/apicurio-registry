@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactBranchesTabContent.css";
 import "@app/styles/empty.css";
-import { ListWithToolbar } from "@apicurio/common-ui-components";
+import { ListWithToolbar } from "@apitomy/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import {

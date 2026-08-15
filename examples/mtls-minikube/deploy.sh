@@ -44,8 +44,8 @@ echo ""
 echo "5. Checking for Apicurio Registry Operator..."
 if ! kubectl get crd apicurioregistries3.registry.apicur.io > /dev/null 2>&1; then
     echo "   WARNING: Apicurio Registry Operator CRD not found."
-    echo "   Please install the operator first. You can use:"
-    echo "   kubectl apply -f https://github.com/Apicurio/apicurio-registry-operator/releases/latest/download/install.yaml"
+    echo "   Please install the 3.x operator first. See examples/mtls-minikube/README.md"
+    echo "   (use operator/install/install.yaml from Apicurio/apicurio-registry, not the old 2.x operator repo)."
     echo ""
     read -p "   Do you want to continue anyway? (y/n) " -n 1 -r
     echo
@@ -66,7 +66,7 @@ echo ""
 echo "7. Waiting for deployment to be ready..."
 echo "   This may take a few minutes..."
 kubectl wait --for=condition=ready pod \
-    -l app.kubernetes.io/name=apicurio-registry-mtls \
+    -l app=apicurio-registry-mtls,app.kubernetes.io/component=app \
     -n ${NAMESPACE} \
     --timeout=300s 2>/dev/null || true
 echo ""
@@ -77,7 +77,7 @@ echo "Deployment completed!"
 echo "========================================="
 echo ""
 echo "To access the registry, you need to set up port forwarding:"
-echo "  kubectl port-forward -n ${NAMESPACE} svc/apicurio-registry-mtls-app-service 8443:8443"
+echo "  kubectl port-forward -n ${NAMESPACE} svc/apicurio-registry-mtls-app-service 8443:443"
 echo ""
 echo "Then you can access the registry at: https://localhost:8443"
 echo ""

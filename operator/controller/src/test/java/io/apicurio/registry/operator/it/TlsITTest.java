@@ -366,4 +366,55 @@ public class TlsITTest extends ITBase {
             return true;
         });
     }
+
+    /**
+     * Operator must wire Service/NetworkPolicy/probes for app TLS and set client-auth
+     * when {@code spec.app.tls.clientAuth} is {@code required}. This test does not perform
+     * an mTLS handshake (no client certificate in the IT client).
+     */
+    @Test
+    void testMTLSClientAuthRequired() {
+        var registry = ResourceFactory.deserialize("/k8s/examples/tls/mtls.apicurioregistry3.yaml",
+                ApicurioRegistry3.class);
+        registry.getMetadata().setNamespace(namespace);
+
+        client.resource(registry).create();
+
+        await().ignoreExceptions().until(() -> {
+            assertThat(client.apps().deployments().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
+                    .getReadyReplicas()).isEqualTo(1);
+
+            var appEnv = getContainerFromDeployment(
+                    client.apps().deployments().inNamespace(namespace)
+                            .withName(registry.getMetadata().getName() + "-app-deployment").get(),
+                    REGISTRY_APP_CONTAINER_NAME).getEnv();
+
+            assertThat(appEnv).map(ev -> ev.getName() + "=" + ev.getValue())
+                    .contains(EnvironmentVariables.QUARKUS_HTTP_INSECURE_REQUESTS + "=" + "disabled")
+                    .contains(EnvironmentVariables.QUARKUS_HTTP_SSL_CLIENT_AUTH + "=" + "required");
+
+            return true;
+        });
+
+        await().ignoreExceptions().until(() -> {
+            var service = client.services().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-service").get().getSpec();
+
+            Assertions.assertEquals(1, service.getPorts().size());
+            assertThat(service.getPorts().get(0).getPort()).isEqualTo(443);
+            return true;
+        });
+
+        await().ignoreExceptions().until(() -> {
+            var networkPolicyIngressRules = client.network().v1().networkPolicies().inNamespace(namespace)
+                    .withName("mtls-app-networkpolicy").get().getSpec().getIngress();
+
+            assertThat(networkPolicyIngressRules)
+                    .flatMap(NetworkPolicyIngressRule::getPorts)
+                    .map(p -> p.getPort().getIntVal())
+                    .containsExactlyInAnyOrder(8443, 9000);
+            return true;
+        });
+    }
 }

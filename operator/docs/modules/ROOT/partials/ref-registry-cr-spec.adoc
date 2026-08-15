@@ -91,6 +91,7 @@ spec:
           claimValue: <string>
     tls:
       insecureRequests: <string>
+      clientAuth: <string>
       keystoreSecretRef:
         name: <string>
         key: <string>
@@ -221,6 +222,7 @@ spec:
           claimValue: <string>
     tls:
       insecureRequests: <string>
+      clientAuth: <string>
       keystoreSecretRef:
         name: <string>
         key: <string>
@@ -590,15 +592,20 @@ endif::[]
 | _empty_
 | If insecure (HTTP) requests are allowed. `enabled` allows HTTP normally, `redirect` redirects HTTP to HTTPS, `disabled` prevents HTTP port from opening.
 
+| `app/tls/clientAuth`
+| string
+| _empty_
+| Mutual TLS client authentication. `none` does not request a client certificate, `request` asks for one but still allows connections without it, `required` rejects connections that do not present a valid client certificate. Requires a truststore so the server can verify client certificates.
+
 | `app/tls/keystoreSecretRef`
 | SecretKeyRef
 | _empty_
-| Reference to a Secret containing the TLS keystore (PKCS12 format). Default key: `ca.p12`
+| Reference to a Secret containing the TLS keystore (PKCS12 format). Default key: `user.p12`
 
 | `app/tls/keystorePasswordSecretRef`
 | SecretKeyRef
 | _empty_
-| Reference to a Secret containing the TLS keystore password. Default key: `ca.password`
+| Reference to a Secret containing the TLS keystore password. Default key: `user.password`
 
 | `app/tls/truststoreSecretRef`
 | SecretKeyRef

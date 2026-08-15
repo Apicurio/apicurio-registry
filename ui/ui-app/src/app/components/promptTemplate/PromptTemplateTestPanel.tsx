@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FunctionComponent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -27,7 +27,7 @@ import {
 } from "./promptTemplateVariables";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
-import { coerceEnumValue } from "./PromptTemplateTestPanel.utils";
+import { coerceEnumValue, hasAllRequiredValues, isAbortError } from "./PromptTemplateTestPanel.utils";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -116,11 +116,27 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    const clearDebounceTimer = (): void => {
+        if (debounceTimerRef.current !== null) {
+            clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
+        }
+    };
+
     const setValue = (name: string, value: any): void => {
         setValues(prev => ({ ...prev, [name]: value }));
     };
 
     const doRender = (): void => {
+        clearDebounceTimer();
+
+        abortControllerRef.current?.abort();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         setIsLoading(true);
         setError("");
         setValidationErrors([]);
@@ -131,20 +147,50 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             gid = null;
         }
 
-        groups.renderPromptTemplate(gid, props.artifactId, props.version, values)
+        groups.renderPromptTemplate(gid, props.artifactId, props.version, values, controller.signal)
             .then((response: RenderPromptResponse) => {
+                if (abortControllerRef.current !== controller || controller.signal.aborted) {
+                    return;
+                }
                 setRenderedOutput(response.rendered || "");
                 if (response.validationErrors && response.validationErrors.length > 0) {
                     setValidationErrors(response.validationErrors);
                 }
             })
             .catch((err: any) => {
+                if (isAbortError(err)) {
+                    return;
+                }
                 setError(err?.message || "Error rendering prompt template");
             })
             .finally(() => {
+                if (controller.signal.aborted) {
+                    return;
+                }
                 setIsLoading(false);
             });
     };
+
+    useEffect(() => {
+        clearDebounceTimer();
+        debounceTimerRef.current = setTimeout(() => {
+            debounceTimerRef.current = null;
+            if (!hasAllRequiredValues(reconciledVariables, values)) {
+                return;
+            }
+            doRender();
+        }, 500);
+
+        return () => {
+            clearDebounceTimer();
+        };
+    }, [reconciledVariables, values, props.template]);
+
+    useEffect(() => {
+        return () => {
+            abortControllerRef.current?.abort();
+        };
+    }, []);
 
     const renderField = (name: string, variable: VariableSchema): ReactNode => {
         const type = (variable.type || "string").toLowerCase();

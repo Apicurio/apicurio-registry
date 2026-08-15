@@ -426,7 +426,7 @@ const updateArtifactVersionState = async (config: ConfigService, auth: AuthServi
         .versions.byVersionExpression(version).state.put({ state });
 };
 
-const renderPromptTemplate = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse> => {
+const renderPromptTemplate = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string, variables: Record<string, any>, signal?: AbortSignal): Promise<RenderPromptResponse> => {
     groupId = normalizeGroupId(groupId);
     const baseHref = config.artifactsUrl();
     const endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/render", {
@@ -439,7 +439,8 @@ const renderPromptTemplate = async (config: ConfigService, auth: AuthService, gr
             ...options.headers,
             "Content-Type": "application/json",
             "Accept": "application/json"
-        }
+        },
+        signal
     }).then(response => response.data as RenderPromptResponse)
         .catch(error => {
             if (error?.response?.data) {
@@ -515,7 +516,7 @@ export interface GroupsService {
     appendArtifactBranchVersion(groupId: string|null, artifactId: string, branchId: string, data: AddVersionToBranch): Promise<void>;
     replaceArtifactBranchVersions(groupId: string|null, artifactId: string, branchId: string, data: ReplaceBranchVersions): Promise<void>;
 
-    renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse>;
+    renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>, signal?: AbortSignal): Promise<RenderPromptResponse>;
 
     detectContentReferences(content: string, contentType: string, artifactType?: string): Promise<ArtifactReference[]>;
 }
@@ -665,8 +666,8 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
             return replaceArtifactBranchVersions(config, auth, groupId, artifactId, branchId, data);
         },
 
-        renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>): Promise<RenderPromptResponse> {
-            return renderPromptTemplate(config, auth, groupId, artifactId, version, variables);
+        renderPromptTemplate(groupId: string|null, artifactId: string, version: string, variables: Record<string, any>, signal?: AbortSignal): Promise<RenderPromptResponse> {
+            return renderPromptTemplate(config, auth, groupId, artifactId, version, variables, signal);
         },
 
         detectContentReferences(content: string, contentType: string, artifactType?: string): Promise<ArtifactReference[]> {

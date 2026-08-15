@@ -167,7 +167,9 @@ public class JdkAuthFactory {
             StringBuilder body = new StringBuilder();
             body.append("grant_type=client_credentials");
             body.append("&client_id=").append(urlEncode(clientId));
-            body.append("&client_secret=").append(urlEncode(clientSecret));
+            if (clientSecret != null) {
+                body.append("&client_secret=").append(urlEncode(clientSecret));
+            }
             if (scope != null && !scope.isEmpty()) {
                 body.append("&scope=").append(urlEncode(scope));
             }

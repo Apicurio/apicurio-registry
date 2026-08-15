@@ -83,11 +83,6 @@ public class RegistryClientFacadeFactory {
                             "Missing registry auth clientId, set " + SchemaResolverConfig.AUTH_CLIENT_ID);
                 }
 
-                if (clientSecret == null) {
-                    throw new IllegalArgumentException(
-                            "Missing registry auth secret, set " + SchemaResolverConfig.AUTH_CLIENT_SECRET);
-                }
-
                 clientOptions.oauth2(tokenEndpoint, clientId, clientSecret, clientScope);
             } else if (username != null) {
                 final String password = config.getAuthPassword();

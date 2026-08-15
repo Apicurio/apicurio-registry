@@ -98,4 +98,15 @@ class RegistryClientFacadeFactoryTest {
         RegistryClientFacade facade = RegistryClientFacadeFactory.create(new SchemaResolverConfig(props));
         assertInstanceOf(RegistryClientFacadeImpl.class, facade);
     }
+
+    @Test
+    void testCreateClientWithWorkloadIdentityOAuthNoSecret() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(SchemaResolverConfig.REGISTRY_URL, "http://apicurio:8081");
+        props.put(SchemaResolverConfig.AUTH_TOKEN_ENDPOINT, "http://auth-server/token");
+        props.put(SchemaResolverConfig.AUTH_CLIENT_ID, "workload-client-id");
+
+        RegistryClientFacade facade = RegistryClientFacadeFactory.create(new SchemaResolverConfig(props));
+        assertInstanceOf(RegistryClientFacadeImpl.class, facade);
+    }
 }

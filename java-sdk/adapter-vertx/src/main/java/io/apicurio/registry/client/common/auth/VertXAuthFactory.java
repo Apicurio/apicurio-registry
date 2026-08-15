@@ -36,18 +36,22 @@ public class VertXAuthFactory {
         }
         WebClient webClient = WebClient.create(vertx, options);
 
-        OAuth2Auth oAuth2Options = OAuth2Auth.create(vertx, new OAuth2Options()
+        OAuth2Options oAuth2Options = new OAuth2Options()
                 .setFlow(OAuth2FlowType.CLIENT)
                 .setHttpClientOptions(options)
                 .setClientId(clientId)
-                .setClientSecret(clientSecret)
-                .setTokenPath(tokenUrl));
+                .setTokenPath(tokenUrl);
+        if (clientSecret != null) {
+            oAuth2Options.setClientSecret(clientSecret);
+        }
+
+        OAuth2Auth oAuth2Auth = OAuth2Auth.create(vertx, oAuth2Options);
 
         Oauth2Credentials oauth2Credentials = new Oauth2Credentials();
         if (scope != null) {
             oauth2Credentials.addScope(scope);
         }
-        OAuth2WebClient oauth2WebClient = OAuth2WebClient.create(webClient, oAuth2Options);
+        OAuth2WebClient oauth2WebClient = OAuth2WebClient.create(webClient, oAuth2Auth);
         oauth2WebClient.withCredentials(oauth2Credentials);
 
         return oauth2WebClient;

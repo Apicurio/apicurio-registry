@@ -2,7 +2,7 @@ import { FunctionComponent, useState } from "react";
 import { Button, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from "@patternfly/react-core";
 import { QuestionCircleIcon, SunIcon, MoonIcon } from "@patternfly/react-icons";
 import { AvatarDropdown, IfAuth } from "@app/components";
-import { AppAboutModal, BackendInfo, FrontendInfo } from "@apicurio/common-ui-components";
+import { AppAboutModal, BackendInfo, FrontendInfo } from "@apitomy/common-ui-components";
 import { useVersionService, VersionService } from "@services/useVersionService.ts";
 import { SystemService, useSystemService } from "@services/useSystemService.ts";
 

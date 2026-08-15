@@ -281,7 +281,7 @@ CREATE TABLE webhook_subscriptions (
     groupFilter      VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     artifactIdFilter VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     enabled          BOOLEAN       NOT NULL DEFAULT TRUE,
-    secret           VARCHAR(512),
+    secret           VARCHAR(2048),
     createdBy        VARCHAR(256),
     createdOn        TIMESTAMP     NOT NULL,
     modifiedOn       TIMESTAMP     NOT NULL,

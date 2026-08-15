@@ -7,6 +7,7 @@ import io.apicurio.registry.storage.dto.WebhookDeliveryLogDto;
 import io.apicurio.registry.storage.dto.WebhookDeliveryStatus;
 import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
+import io.apicurio.registry.storage.impl.sql.WebhookSecretEncryption;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.mappers.WebhookDeliveryLogDtoMapper;
 import io.apicurio.registry.storage.impl.sql.mappers.WebhookSubscriptionDtoMapper;
@@ -43,6 +44,8 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    private static final WebhookSecretEncryption ENCRYPTION = new WebhookSecretEncryption(new byte[32]);
+
     @Inject
     HandleFactory handles;
 
@@ -66,7 +69,7 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
         assertEquals("^dev-.*", dto.getGroupFilter());
         assertEquals("^order-.*", dto.getArtifactIdFilter());
         assertTrue(dto.isEnabled());
-        assertEquals("s3cr3t", dto.getSecret());
+        assertEquals("s3cr3t", ENCRYPTION.decrypt(dto.getSecret()));
         assertEquals("alice", dto.getCreatedBy());
         assertEquals(createdOn, dto.getCreatedOn());
         assertEquals(modifiedOn, dto.getModifiedOn());
@@ -98,6 +101,28 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
         assertFalse(dto.toString().contains("super-secret-hmac-key"),
                 "The HMAC secret must never appear in toString() output");
         assertTrue(dto.toString().contains("sub-1"));
+    }
+
+    @Test
+    void testSecretIsNotSerializedToJson() throws Exception {
+        WebhookSubscriptionDto dto = WebhookSubscriptionDto.builder().subscriptionId("sub-1")
+                .endpointUrl("https://example.com/hook").secret("super-secret-hmac-key").build();
+        String json = objectMapper.writeValueAsString(dto);
+        assertFalse(json.contains("super-secret-hmac-key"),
+                "The HMAC secret must never be serialized into a JSON response");
+    }
+
+    @Test
+    void testSecretEncryptionRoundTrip() {
+        String plaintext = "my-super-secret-hmac-key";
+        String encrypted = ENCRYPTION.encrypt(plaintext);
+        assertTrue(WebhookSecretEncryption.isEncrypted(encrypted),
+                "Stored secret must be flagged as encrypted");
+        assertFalse(WebhookSecretEncryption.isEncrypted(plaintext),
+                "Plain text secret must not be flagged as encrypted");
+        assertEquals(plaintext, ENCRYPTION.decrypt(encrypted));
+        assertThrows(IllegalArgumentException.class, () -> ENCRYPTION.decrypt("not-encrypted"),
+                "Decrypting a non-encrypted value must fail");
     }
 
     @Test
@@ -250,8 +275,8 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
         handles.<Void, RuntimeException> withHandleNoException((Handle handle) -> {
             handle.createUpdate(INSERT_SUBSCRIPTION).bind(0, subscriptionId).bind(1, name)
                     .bind(2, endpointUrl).bind(3, eventTypesJson).bind(4, groupFilter)
-                    .bind(5, artifactIdFilter).bind(6, enabled).bind(7, secret).bind(8, createdBy)
-                    .bind(9, createdOn).bind(10, modifiedOn).execute();
+                    .bind(5, artifactIdFilter).bind(6, enabled).bind(7, ENCRYPTION.encrypt(secret))
+                    .bind(8, createdBy).bind(9, createdOn).bind(10, modifiedOn).execute();
             return null;
         });
     }

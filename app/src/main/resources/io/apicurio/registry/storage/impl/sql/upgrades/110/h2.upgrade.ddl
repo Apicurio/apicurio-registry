@@ -5,7 +5,7 @@
 
 UPDATE apicurio SET propValue = 110 WHERE propName = 'db_version';
 
-CREATE TABLE webhook_subscriptions (subscriptionId VARCHAR(128) NOT NULL, name VARCHAR(512), endpointUrl VARCHAR(1024) NOT NULL, eventTypes TEXT NOT NULL, groupFilter VARCHAR(512), artifactIdFilter VARCHAR(512), enabled BOOLEAN NOT NULL DEFAULT TRUE, secret VARCHAR(512), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
+CREATE TABLE webhook_subscriptions (subscriptionId VARCHAR(128) NOT NULL, name VARCHAR(512), endpointUrl VARCHAR(1024) NOT NULL, eventTypes TEXT NOT NULL, groupFilter VARCHAR(512), artifactIdFilter VARCHAR(512), enabled BOOLEAN NOT NULL DEFAULT TRUE, secret VARCHAR(2048), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
 ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);
 
 CREATE TABLE webhook_delivery_logs (deliveryId VARCHAR(128) NOT NULL, subscriptionId VARCHAR(128) NOT NULL, eventId VARCHAR(256) NOT NULL, eventType VARCHAR(128) NOT NULL, status VARCHAR(32) NOT NULL, attemptCount INT NOT NULL DEFAULT 0, lastAttemptAt TIMESTAMP WITHOUT TIME ZONE, nextRetryAt TIMESTAMP WITHOUT TIME ZONE, errorMessage TEXT, httpStatusCode INT, lockedBy VARCHAR(256), leaseUntil TIMESTAMP WITHOUT TIME ZONE, createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);

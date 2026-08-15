@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.apicurio.registry.storage.StorageEventType;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.AllArgsConstructor;
@@ -18,8 +19,9 @@ import java.util.Set;
  * should receive CloudEvents for a set of storage event types, optionally narrowed by group and artifact ID
  * filters.
  * <p>
- * The {@code secret} field is used to compute the HMAC signature sent with each delivery. It is deliberately
- * excluded from {@link #toString()} so it cannot leak into logs.
+ * The {@code secret} field is used to compute the HMAC signature sent with each delivery. It is stored
+ * encrypted at rest and is deliberately excluded from {@link #toString()} and JSON serialization so it
+ * cannot leak into logs or API responses.
  */
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,6 +42,7 @@ public class WebhookSubscriptionDto {
     @Builder.Default
     private boolean enabled = true;
     @ToString.Exclude
+    @JsonIgnore
     private String secret;
     private String createdBy;
     private Date createdOn;

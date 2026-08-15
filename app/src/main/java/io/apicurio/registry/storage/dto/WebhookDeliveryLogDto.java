@@ -36,5 +36,7 @@ public class WebhookDeliveryLogDto {
     private Date nextRetryAt;
     private String errorMessage;
     private Integer httpStatusCode;
+    private String lockedBy;
+    private Date leaseUntil;
     private Date createdOn;
 }

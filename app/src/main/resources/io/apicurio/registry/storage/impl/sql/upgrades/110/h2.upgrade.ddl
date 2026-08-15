@@ -10,7 +10,7 @@ ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);
 CREATE INDEX IDX_webhook_subs_1 ON webhook_subscriptions(enabled);
 CREATE INDEX IDX_webhook_subs_2 ON webhook_subscriptions(createdOn);
 
-CREATE TABLE webhook_delivery_logs (deliveryId VARCHAR(128) NOT NULL, subscriptionId VARCHAR(128) NOT NULL, eventId VARCHAR(256) NOT NULL, eventType VARCHAR(128) NOT NULL, status VARCHAR(32) NOT NULL, attemptCount INT NOT NULL DEFAULT 0, lastAttemptAt TIMESTAMP WITHOUT TIME ZONE, nextRetryAt TIMESTAMP WITHOUT TIME ZONE, errorMessage TEXT, httpStatusCode INT, createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
+CREATE TABLE webhook_delivery_logs (deliveryId VARCHAR(128) NOT NULL, subscriptionId VARCHAR(128) NOT NULL, eventId VARCHAR(256) NOT NULL, eventType VARCHAR(128) NOT NULL, status VARCHAR(32) NOT NULL, attemptCount INT NOT NULL DEFAULT 0, lastAttemptAt TIMESTAMP WITHOUT TIME ZONE, nextRetryAt TIMESTAMP WITHOUT TIME ZONE, errorMessage TEXT, httpStatusCode INT, lockedBy VARCHAR(256), leaseUntil TIMESTAMP WITHOUT TIME ZONE, createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
 ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
 ALTER TABLE webhook_delivery_logs ADD CONSTRAINT UQ_webhook_delivery_logs_1 UNIQUE (subscriptionId, eventId);
 ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_webhook_delivery_logs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId) ON DELETE CASCADE;

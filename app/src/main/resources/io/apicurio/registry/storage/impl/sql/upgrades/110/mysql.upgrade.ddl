@@ -33,6 +33,8 @@ CREATE TABLE webhook_delivery_logs (
     nextRetryAt     TIMESTAMP    NULL,
     errorMessage    TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     httpStatusCode  INT,
+    lockedBy        VARCHAR(256),
+    leaseUntil      TIMESTAMP    NULL,
     createdOn       TIMESTAMP    NOT NULL,
     PRIMARY KEY (deliveryId),
     CONSTRAINT UQ_webhook_delivery_logs_1 UNIQUE (subscriptionId, eventId)

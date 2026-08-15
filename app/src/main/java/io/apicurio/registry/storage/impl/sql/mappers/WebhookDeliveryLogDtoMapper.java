@@ -28,6 +28,7 @@ public class WebhookDeliveryLogDtoMapper implements RowMapper<WebhookDeliveryLog
                 .status(WebhookDeliveryStatus.valueOf(rs.getString("status")))
                 .attemptCount(rs.getInt("attemptCount")).lastAttemptAt(rs.getTimestamp("lastAttemptAt"))
                 .nextRetryAt(rs.getTimestamp("nextRetryAt")).errorMessage(rs.getString("errorMessage"))
-                .httpStatusCode(httpStatusCode).createdOn(rs.getTimestamp("createdOn")).build();
+                .httpStatusCode(httpStatusCode).lockedBy(rs.getString("lockedBy"))
+                .leaseUntil(rs.getTimestamp("leaseUntil")).createdOn(rs.getTimestamp("createdOn")).build();
     }
 }

@@ -39,7 +39,7 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
 
     private static final String INSERT_DELIVERY_LOG = "INSERT INTO webhook_delivery_logs "
             + "(deliveryId, subscriptionId, eventId, eventType, status, attemptCount, lastAttemptAt, "
-            + "nextRetryAt, errorMessage, httpStatusCode, createdOn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            + "nextRetryAt, errorMessage, httpStatusCode, lockedBy, leaseUntil, createdOn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -112,9 +112,12 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
         Date nextRetryAt = new Date(1700000200000L);
         Date createdOn = new Date(1700000000000L);
 
+        String lockedBy = "node-1";
+        Date leaseUntil = new Date(1700000300000L);
+
         insertDeliveryLog(deliveryId, subscriptionId, "event-abc-123", StorageEventType.ARTIFACT_CREATED,
                 WebhookDeliveryStatus.RETRYING, 3, lastAttemptAt, nextRetryAt, "Connection reset by peer",
-                503, createdOn);
+                503, lockedBy, leaseUntil, createdOn);
 
         WebhookDeliveryLogDto dto = getDeliveryLog(deliveryId);
 
@@ -128,6 +131,8 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
         assertEquals(nextRetryAt, dto.getNextRetryAt());
         assertEquals("Connection reset by peer", dto.getErrorMessage());
         assertEquals(Integer.valueOf(503), dto.getHttpStatusCode());
+        assertEquals(lockedBy, dto.getLockedBy());
+        assertEquals(leaseUntil, dto.getLeaseUntil());
         assertEquals(createdOn, dto.getCreatedOn());
     }
 
@@ -150,6 +155,8 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
         assertNull(dto.getNextRetryAt());
         assertNull(dto.getErrorMessage());
         assertNull(dto.getHttpStatusCode(), "httpStatusCode must map to null, not 0, when the column is NULL");
+        assertNull(dto.getLockedBy());
+        assertNull(dto.getLeaseUntil());
     }
 
     @Test
@@ -251,14 +258,23 @@ public class WebhookSchemaTest extends AbstractResourceTestBase {
 
     private void insertDeliveryLog(String deliveryId, String subscriptionId, String eventId,
             StorageEventType eventType, WebhookDeliveryStatus status, int attemptCount, Date lastAttemptAt,
-            Date nextRetryAt, String errorMessage, Integer httpStatusCode, Date createdOn) {
+            Date nextRetryAt, String errorMessage, Integer httpStatusCode, String lockedBy, Date leaseUntil,
+            Date createdOn) {
         handles.<Void, RuntimeException> withHandleNoException((Handle handle) -> {
             handle.createUpdate(INSERT_DELIVERY_LOG).bind(0, deliveryId).bind(1, subscriptionId)
                     .bind(2, eventId).bind(3, eventType).bind(4, status).bind(5, attemptCount)
                     .bind(6, lastAttemptAt).bind(7, nextRetryAt).bind(8, errorMessage)
-                    .bind(9, httpStatusCode).bind(10, createdOn).execute();
+                    .bind(9, httpStatusCode).bind(10, lockedBy).bind(11, leaseUntil).bind(12, createdOn)
+                    .execute();
             return null;
         });
+    }
+
+    private void insertDeliveryLog(String deliveryId, String subscriptionId, String eventId,
+            StorageEventType eventType, WebhookDeliveryStatus status, int attemptCount, Date lastAttemptAt,
+            Date nextRetryAt, String errorMessage, Integer httpStatusCode, Date createdOn) {
+        insertDeliveryLog(deliveryId, subscriptionId, eventId, eventType, status, attemptCount, lastAttemptAt,
+                nextRetryAt, errorMessage, httpStatusCode, null, null, createdOn);
     }
 
     private WebhookSubscriptionDto getSubscription(String subscriptionId) {

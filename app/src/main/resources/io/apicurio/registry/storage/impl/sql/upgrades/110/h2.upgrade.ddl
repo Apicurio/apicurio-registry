@@ -1,9 +1,9 @@
 -- *********************************************************************
--- DDL for the Apicurio Registry - Database: postgresql
--- Upgrade Script from 110 to 111
+-- DDL for the Apicurio Registry - Database: h2
+-- Upgrade Script from 109 to 110
 -- *********************************************************************
 
-UPDATE apicurio SET propValue = 111 WHERE propName = 'db_version';
+UPDATE apicurio SET propValue = 110 WHERE propName = 'db_version';
 
 CREATE TABLE webhook_subscriptions (subscriptionId VARCHAR(128) NOT NULL, name VARCHAR(512), endpointUrl VARCHAR(1024) NOT NULL, eventTypes TEXT NOT NULL, groupFilter VARCHAR(512), artifactIdFilter VARCHAR(512), enabled BOOLEAN NOT NULL DEFAULT TRUE, secret VARCHAR(512), createdBy VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL);
 ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);

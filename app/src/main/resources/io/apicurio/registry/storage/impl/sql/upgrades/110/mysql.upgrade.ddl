@@ -1,9 +1,9 @@
 -- *********************************************************************
 -- DDL for the Apicurio Registry - Database: mysql
--- Upgrade Script from 110 to 111
+-- Upgrade Script from 109 to 110
 -- *********************************************************************
 
-UPDATE apicurio SET propValue = 111 WHERE propName = 'db_version';
+UPDATE apicurio SET propValue = 110 WHERE propName = 'db_version';
 
 CREATE TABLE webhook_subscriptions (
     subscriptionId   VARCHAR(128)  NOT NULL,

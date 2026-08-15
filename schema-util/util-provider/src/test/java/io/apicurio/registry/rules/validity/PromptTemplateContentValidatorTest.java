@@ -441,6 +441,87 @@ class PromptTemplateContentValidatorTest {
     }
 
     @Test
+    void testInvalidModelApiIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "model": { "api": 42 }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/model/api")
+                        && v.getDescription().contains("must be a string")));
+    }
+
+    @Test
+    void testInvalidModelParametersIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "model": { "api": "chat", "parameters": "nope" }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/model/parameters")
+                        && v.getDescription().contains("must be an object")));
+    }
+
+    @Test
+    void testModelWithUnknownMembersIsAccepted() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "model": { "api": "chat", "configuration": { "azure_deployment": "gpt-4" } }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+    }
+
+    @Test
+    void testUnsupportedTemplateFormatValueIsTruncated() {
+        String longFormat = "x".repeat(200);
+        String template = """
+                {
+                    "templateId": "test",
+                    "templateFormat": "%s",
+                    "template": "Hello"
+                }
+                """.formatted(longFormat);
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        String description = error.getCauses().stream()
+                .filter(v -> v.getContext().equals("/templateFormat"))
+                .map(v -> v.getDescription())
+                .findFirst()
+                .orElseThrow();
+        Assertions.assertFalse(description.contains(longFormat),
+                "The full unsupported value must not be echoed back");
+        Assertions.assertTrue(description.contains("..."), "The echoed value should be truncated");
+    }
+
+    @Test
+    void testSupportedTemplateFormatsIsExposedAndImmutable() {
+        Assertions.assertEquals(List.of("mustache"),
+                PromptTemplateContentValidator.getSupportedTemplateFormats());
+        Assertions.assertThrows(UnsupportedOperationException.class,
+                () -> PromptTemplateContentValidator.getSupportedTemplateFormats().add("jinja2"));
+    }
+
+    @Test
     void testInvalidAuthorsIsRejected() {
         String template = """
                 {

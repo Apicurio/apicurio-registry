@@ -9,7 +9,6 @@ import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,15 +24,33 @@ import java.util.Set;
  */
 public class PromptTemplateContentValidator extends AbstractContentValidator {
 
-    private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
+    private static final List<String> VALID_VARIABLE_TYPES = List.of(
             "string", "integer", "number", "boolean", "array", "object");
 
     /**
      * Template formats the registry is able to render. Rendering is implemented by substituting
      * {@code {{variable}}} placeholders, which is mustache syntax. Any other format would be
      * accepted at write time and then rendered with the wrong engine, so it is rejected here.
+     * <p>
+     * This is the single source of truth for the supported formats. The {@code templateFormat}
+     * enum in {@code prompt-template-v1.json} must list the same values, and
+     * {@code PromptTemplateSchemaSyncTest} fails if the two drift apart.
      */
     private static final List<String> SUPPORTED_TEMPLATE_FORMATS = List.of("mustache");
+
+    /**
+     * Maximum number of characters of a rejected field value echoed back in a violation message.
+     * Values come from user supplied content, so they are truncated to keep error responses and
+     * logs to a sensible size.
+     */
+    private static final int MAX_ECHOED_VALUE_LENGTH = 40;
+
+    /**
+     * @return the template formats the registry can render, in the order they are advertised
+     */
+    public static List<String> getSupportedTemplateFormats() {
+        return SUPPORTED_TEMPLATE_FORMATS;
+    }
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -173,14 +190,38 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
                     "Field 'metadata' must be an object if provided.", "/metadata"));
         }
 
-        if (tree.has("model") && !tree.get("model").isObject()) {
-            violations.add(new RuleViolation(
-                    "Field 'model' must be an object if provided.", "/model"));
-        }
-
+        validateModel(tree, violations);
         validateStringArray(tree, "authors", violations);
         validateStringArray(tree, "tags", violations);
         validateTemplateFormat(tree, violations);
+    }
+
+    /**
+     * The registry stores {@code model} without interpreting it, but the published schema still
+     * constrains the shape of its two known members. The same constraints are applied here so a
+     * document cannot pass validation while violating the schema the registry serves.
+     */
+    private void validateModel(JsonNode tree, Set<RuleViolation> violations) {
+        if (!tree.has("model")) {
+            return;
+        }
+
+        JsonNode model = tree.get("model");
+        if (!model.isObject()) {
+            violations.add(new RuleViolation(
+                    "Field 'model' must be an object if provided.", "/model"));
+            return;
+        }
+
+        if (model.has("api") && !model.get("api").isTextual()) {
+            violations.add(new RuleViolation(
+                    "Field 'model.api' must be a string if provided.", "/model/api"));
+        }
+
+        if (model.has("parameters") && !model.get("parameters").isObject()) {
+            violations.add(new RuleViolation(
+                    "Field 'model.parameters' must be an object if provided.", "/model/parameters"));
+        }
     }
 
     private void validateTemplateFormat(JsonNode tree, Set<RuleViolation> violations) {
@@ -198,10 +239,18 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
         String format = templateFormat.asText();
         if (!SUPPORTED_TEMPLATE_FORMATS.contains(format)) {
             violations.add(new RuleViolation(
-                    "Field 'templateFormat' has unsupported value '" + format + "'. Must be one of: "
+                    "Field 'templateFormat' has unsupported value '" + truncate(format)
+                            + "'. Must be one of: "
                             + String.join(", ", SUPPORTED_TEMPLATE_FORMATS) + ".",
                     "/templateFormat"));
         }
+    }
+
+    private static String truncate(String value) {
+        if (value.length() <= MAX_ECHOED_VALUE_LENGTH) {
+            return value;
+        }
+        return value.substring(0, MAX_ECHOED_VALUE_LENGTH) + "...";
     }
 
     private void validateStringArray(JsonNode tree, String fieldName, Set<RuleViolation> violations) {

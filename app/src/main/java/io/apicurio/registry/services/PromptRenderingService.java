@@ -5,8 +5,11 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
+import io.apicurio.registry.rules.validity.PromptTemplateContentValidator;
 import io.apicurio.registry.storage.error.InvalidContentException;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +25,8 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
  */
 @ApplicationScoped
 public class PromptRenderingService {
+
+    private static final Logger log = LoggerFactory.getLogger(PromptRenderingService.class);
 
     /**
      * Renders a prompt template by substituting variables.
@@ -45,6 +50,8 @@ public class PromptRenderingService {
         String templateText = extractTemplateText(templateNode);
         JsonNode variablesSchema = templateNode.path("variables");
 
+        warnOnUnsupportedTemplateFormat(templateNode, groupId, artifactId, version);
+
         // Validate variables against schema. Validation intentionally runs against the
         // caller-supplied variables, so that a missing required variable is still reported
         // even when the schema declares a default for it.
@@ -67,6 +74,30 @@ public class PromptRenderingService {
                 .version(version)
                 .validationErrors(validationErrors)
                 .build();
+    }
+
+    /**
+     * Logs a warning when a template declares a format this service cannot render.
+     * <p>
+     * The VALIDITY rule rejects such templates at write time, but that rule is optional and can be
+     * disabled, and artifacts stored before it was enabled are still rendered. Rendering continues
+     * with mustache substitution so those artifacts keep working, and the warning records that the
+     * output is unlikely to be what the template intended.
+     */
+    private void warnOnUnsupportedTemplateFormat(JsonNode templateNode, String groupId,
+            String artifactId, String version) {
+        JsonNode templateFormat = templateNode.path("templateFormat");
+        if (!templateFormat.isTextual()) {
+            return;
+        }
+
+        String format = templateFormat.asText();
+        if (!PromptTemplateContentValidator.getSupportedTemplateFormats().contains(format)) {
+            log.warn("Prompt template {}/{}/{} declares templateFormat '{}', which is not supported. "
+                    + "Rendering with mustache substitution instead. Supported formats: {}.",
+                    groupId, artifactId, version, format,
+                    PromptTemplateContentValidator.getSupportedTemplateFormats());
+        }
     }
 
     /**

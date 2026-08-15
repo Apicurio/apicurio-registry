@@ -1003,4 +1003,52 @@ public class PromptRenderingServiceTest {
             renderingService.render(content, variables, "default", "comment", "1.0");
         });
     }
+
+    // ===== Template Format Tests =====
+
+    @Test
+    public void testUnsupportedTemplateFormatStillRenders() {
+        // The VALIDITY rule rejects this at write time, but it can be disabled and artifacts
+        // stored before it was enabled must keep rendering. The service logs a warning and
+        // falls back to mustache substitution rather than failing.
+        String yamlContent = """
+                templateId: greeting
+                templateFormat: jinja2
+                template: "Hello {{name}}"
+                variables:
+                  name:
+                    type: string
+                    required: true
+                """;
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", "akshat");
+
+        RenderPromptResponse response = renderingService.render(content, variables, "default",
+                "greeting", "1.0");
+
+        Assertions.assertEquals("Hello akshat", response.getRendered());
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+    }
+
+    @Test
+    public void testSupportedTemplateFormatRenders() {
+        String yamlContent = """
+                templateId: greeting
+                templateFormat: mustache
+                template: "Hello {{name}}"
+                variables:
+                  name:
+                    type: string
+                    required: true
+                """;
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", "akshat");
+
+        RenderPromptResponse response = renderingService.render(content, variables, "default",
+                "greeting", "1.0");
+
+        Assertions.assertEquals("Hello akshat", response.getRendered());
+    }
 }

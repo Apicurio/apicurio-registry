@@ -1,6 +1,11 @@
 package io.apicurio.registry.noprofile.storage;
 
+import io.apicurio.registry.storage.impl.sql.CommonSqlStatements;
 import io.apicurio.registry.storage.impl.sql.DdlParser;
+import io.apicurio.registry.storage.impl.sql.H2SqlStatements;
+import io.apicurio.registry.storage.impl.sql.MySQLSqlStatements;
+import io.apicurio.registry.storage.impl.sql.PostgreSQLSqlStatements;
+import io.apicurio.registry.storage.impl.sql.SQLServerSqlStatements;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -63,10 +69,12 @@ public class WebhookDdlUpgradeTest {
     }
 
     private void assertUpgradeCreatesUsableSchema(Connection connection, String dbKind) throws Exception {
+        int fromVersion = 109;
+        int toVersion = dbVersion();
         seedVersion109(connection);
-        applyUpgrade(connection, dbKind);
+        applyUpgrade(connection, dbKind, fromVersion, toVersion);
 
-        assertEquals("110", currentDbVersion(connection),
+        assertEquals(String.valueOf(toVersion), currentDbVersion(connection),
                 "The upgrade script must advance the recorded db_version");
 
         String subscriptionId = UUID.randomUUID().toString();
@@ -177,17 +185,38 @@ public class WebhookDdlUpgradeTest {
         }
     }
 
-    private void applyUpgrade(Connection connection, String dbKind) throws IOException, SQLException {
-        List<String> statements;
-        try (InputStream input = DdlParser.class
-                .getResourceAsStream("upgrades/110/" + dbKind + ".upgrade.ddl")) {
-            statements = new DdlParser().parse(input);
-        }
-        assertTrue(statements.size() > 1, "The 110 upgrade script for " + dbKind + " could not be read");
+    private void applyUpgrade(Connection connection, String dbKind, int fromVersion, int toVersion)
+            throws SQLException {
+        CommonSqlStatements sqlStatements = sqlStatementsFor(dbKind);
+        List<String> statements = sqlStatements.databaseUpgrade(fromVersion, toVersion);
+        assertFalse(statements.isEmpty(),
+                "No upgrade statements produced for " + dbKind + " from version " + fromVersion + " to " + toVersion);
         try (Statement statement = connection.createStatement()) {
             for (String sql : statements) {
                 statement.execute(sql);
             }
+        }
+    }
+
+    private CommonSqlStatements sqlStatementsFor(String dbKind) {
+        switch (dbKind) {
+            case "h2":
+                return new H2SqlStatements();
+            case "postgresql":
+                return new PostgreSQLSqlStatements();
+            case "mysql":
+                return new MySQLSqlStatements();
+            case "mssql":
+                return new SQLServerSqlStatements();
+            default:
+                throw new IllegalArgumentException("Unsupported db kind: " + dbKind);
+        }
+    }
+
+    private int dbVersion() throws IOException {
+        try (InputStream input = CommonSqlStatements.class.getResourceAsStream("db-version")) {
+            assertNotNull(input, "db-version resource not found");
+            return Integer.parseInt(new String(input.readAllBytes(), StandardCharsets.UTF_8).trim());
         }
     }
 

@@ -90,6 +90,16 @@ class V3ApiUtilTest {
     }
 
     @Test
+    void testContractIdPrefixTakesPrecedenceOverBarePrefix() {
+        ContractMetadata cm = convert(Map.of(
+                "contract.orders.id", "orders",
+                "contract.orders.status", "STABLE",
+                "contract.status", "DRAFT")).getContractMetadata();
+
+        assertEquals(ContractMetadata.Status.STABLE, cm.getStatus());
+    }
+
+    @Test
     void testAllContractFieldsAreProjected() {
         ContractMetadata cm = convert(Map.of(
                 "contract.orders.id", "orders",

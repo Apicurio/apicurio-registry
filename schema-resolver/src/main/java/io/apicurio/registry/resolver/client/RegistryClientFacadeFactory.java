@@ -105,8 +105,8 @@ public class RegistryClientFacadeFactory {
             throw new IllegalStateException(e);
         }
 
-        // Defaults for CLIENT_RETRY_* match RegistryClientOptions#retry()
-        // (3 attempts, 250ms initial delay, multiplier 2.0, max delay 10000ms).
+        // Defaults for CLIENT_RETRY_* must match RegistryClientOptions#retry()
+        // (3 / 250ms / 2.0 / 10000ms); pinned by RegistryClientOptionsRetryDefaultsTest.
         if (config.getClientRetryEnabled()) {
             int maxAttempts = Math.toIntExact(config.getClientRetryMaxAttempts());
             long delayMs = config.getClientRetryDelayMs();

@@ -3,6 +3,8 @@ package io.apicurio.registry.resolver.cache;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
+import io.vertx.core.VertxException;
+import io.vertx.core.http.HttpClosedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -440,7 +442,8 @@ public class ERCache<V> {
             } catch (RuntimeException e) {
                 // Schema-cache retries compose with the HTTP client retry layer
                 // (apicurio.registry.client.retry.*). Each cache attempt may run a full
-                // client retry ladder before returning here.
+                // client retry ladder before returning here; there is no overall deadline,
+                // so worst-case blocking is multiplicative (see SchemaResolverConfig docs).
                 if (i == retries || !isRetriableCacheLoadFailure(e)) {
                     log.error("Schema cache load failed after {} retries", i, e);
                     return Result.error(new RuntimeException(e));
@@ -458,28 +461,6 @@ public class ERCache<V> {
         return Result.error(new IllegalStateException("Unreachable."));
     }
 
-    private static final Class<?> VERTX_HTTP_CLOSED_EXCEPTION;
-    private static final Class<?> VERTX_EXCEPTION;
-
-    static {
-        Class<?> httpClosed = null;
-        Class<?> vertxException = null;
-        try {
-            httpClosed = Class.forName("io.vertx.core.http.HttpClosedException", false,
-                    ERCache.class.getClassLoader());
-        } catch (ClassNotFoundException ignored) {
-            // Vert.x may not be on the classpath for all consumers.
-        }
-        try {
-            vertxException = Class.forName("io.vertx.core.VertxException", false,
-                    ERCache.class.getClassLoader());
-        } catch (ClassNotFoundException ignored) {
-            // Vert.x may not be on the classpath for all consumers.
-        }
-        VERTX_HTTP_CLOSED_EXCEPTION = httpClosed;
-        VERTX_EXCEPTION = vertxException;
-    }
-
     /**
      * Whether a schema-cache load failure should be retried.
      * <p>
@@ -487,30 +468,38 @@ public class ERCache<V> {
      * <ul>
      *   <li>HTTP 429 (rate limit) and 502/503/504 (typical registry outage / LB responses)</li>
      *   <li>{@link java.net.SocketException} (connection refused / reset; covers
-     *       {@link java.net.ConnectException})</li>
+     *       {@link java.net.ConnectException}). Note this also matches broader socket
+     *       failures such as resource exhaustion ("Too many open files") or
+     *       "Network is unreachable", which will then consume the full retry ladder.</li>
      *   <li>{@link java.net.SocketTimeoutException} (JDK HTTP timeouts)</li>
-     *   <li>Vert.x {@code HttpClosedException}</li>
-     *   <li>Vert.x {@code VertxException} whose message or class name indicates a timeout
-     *       (for example {@code NoStackTraceTimeoutException})</li>
+     *   <li>{@link HttpClosedException}</li>
+     *   <li>{@link VertxException} whose message or class name indicates a timeout
+     *       (for example {@code NoStackTraceTimeoutException}; message matching is
+     *       brittle across Vert.x versions and may false-negative)</li>
      * </ul>
      * Other {@link ApiException} status codes (for example 404/500) are not retried so
-     * genuine application errors fail fast.
+     * genuine application errors fail fast. An {@link ApiException} with a null status
+     * code is treated as non-retriable (not as an NPE).
      */
     static boolean isRetriableCacheLoadFailure(Throwable e) {
         Throwable current = e;
         while (current != null) {
-            if (current instanceof ApiException api && isRetriableHttpStatus(api.getResponseStatusCode())) {
-                return true;
+            if (current instanceof ApiException api) {
+                Integer code = api.getResponseStatusCode();
+                if (code != null && isRetriableHttpStatus(code)) {
+                    return true;
+                }
             }
             // Covers ConnectException and connection-reset SocketExceptions without
-            // matching JDK-specific message text.
+            // matching JDK-specific message text. Also matches unrelated SocketExceptions
+            // (fd exhaustion, unreachable network); see class javadoc above.
             if (current instanceof java.net.SocketException) {
                 return true;
             }
             if (current instanceof java.net.SocketTimeoutException) {
                 return true;
             }
-            if (VERTX_HTTP_CLOSED_EXCEPTION != null && VERTX_HTTP_CLOSED_EXCEPTION.isInstance(current)) {
+            if (current instanceof HttpClosedException) {
                 return true;
             }
             if (isVertxTimeout(current)) {
@@ -526,7 +515,7 @@ public class ERCache<V> {
     }
 
     private static boolean isVertxTimeout(Throwable current) {
-        if (VERTX_EXCEPTION == null || !VERTX_EXCEPTION.isInstance(current)) {
+        if (!(current instanceof VertxException)) {
             return false;
         }
         String message = current.getMessage();

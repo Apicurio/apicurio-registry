@@ -199,6 +199,12 @@ public class SchemaResolverConfig extends AbstractConfig {
      * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
      * {@link #CLIENT_RETRY_MAX_ATTEMPTS}, which configures the underlying HTTP client retry ladder that may
      * run inside each cache attempt.
+     * <p>
+     * <strong>Sizing:</strong> the layers multiply. Worst-case blocking for one cache load is roughly
+     * {@code (retry-count + 1) × (full client retry ladder including connect timeouts and client
+     * backoffs) + (retry-count × retry-backoff-ms)}. There is no overall deadline. Keep this low when
+     * elevating {@link #CLIENT_RETRY_MAX_ATTEMPTS}, especially for Kafka producers where a long block can
+     * trip {@code max.block.ms}.
      */
     public static final String RETRY_COUNT = "apicurio.registry.retry-count";
     public static final long RETRY_COUNT_DEFAULT = 3;
@@ -210,7 +216,7 @@ public class SchemaResolverConfig extends AbstractConfig {
      * <p>
      * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
      * {@link #CLIENT_RETRY_DELAY_MS}, which configures the underlying HTTP client retry ladder that may run
-     * inside each cache attempt.
+     * inside each cache attempt. See {@link #RETRY_COUNT} for how the two layers multiply.
      */
     public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
@@ -219,14 +225,20 @@ public class SchemaResolverConfig extends AbstractConfig {
      * Enable or disable retry for the underlying registry HTTP client
      * ({@code RegistryClientOptions} / {@code RetryInvocationHandler}).
      * Distinct from {@link #RETRY_COUNT}, which controls schema-cache retries in {@code ERCache}.
-     * The two layers stack: each cache attempt may run a full HTTP client retry ladder.
+     * The two layers stack: each cache attempt may run a full HTTP client retry ladder
+     * (see {@link #RETRY_COUNT} for multiplicative blocking guidance).
      */
     public static final String CLIENT_RETRY_ENABLED = "apicurio.registry.client.retry.enabled";
     public static final boolean CLIENT_RETRY_ENABLED_DEFAULT = true;
 
     /**
      * Maximum number of retry attempts for the underlying registry HTTP client.
-     * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms).
+     * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms); SDK parity is
+     * pinned by {@code RegistryClientOptionsRetryDefaultsTest} in java-sdk/common.
+     * <p>
+     * Size together with {@link #RETRY_COUNT}: each of the {@code (retry-count + 1)} cache attempts may
+     * run this many HTTP attempts plus client backoff sleeps, with no overall deadline. Large values can
+     * block Kafka {@code Producer.send()} long enough to hit {@code max.block.ms}.
      */
     public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
     public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;

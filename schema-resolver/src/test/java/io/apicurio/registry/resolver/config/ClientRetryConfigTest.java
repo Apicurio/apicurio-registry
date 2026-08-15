@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.resolver.config;
 
 import org.junit.jupiter.api.Test;
@@ -17,7 +33,8 @@ class ClientRetryConfigTest {
         SchemaResolverConfig config = new SchemaResolverConfig(Map.of());
 
         assertTrue(config.getClientRetryEnabled());
-        // Must stay aligned with RegistryClientOptions#retry() defaults.
+        // Must stay aligned with RegistryClientOptions#retry() defaults
+        // (pinned by RegistryClientOptionsRetryDefaultsTest in java-sdk/common).
         assertEquals(3L, config.getClientRetryMaxAttempts());
         assertEquals(250L, config.getClientRetryDelayMs());
         assertEquals(2.0d, config.getClientRetryBackoffMultiplier());

@@ -25,6 +25,7 @@ import org.mockito.Mockito;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -59,21 +60,26 @@ public class KafkaSqlCoordinatorTest {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Object> resultRef = new AtomicReference<>();
         
-        Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                Object res = coordinator.waitForResponse(uuid);
-                resultRef.set(res);
-            } catch (Exception e) {
-                resultRef.set(e);
-            } finally {
-                latch.countDown();
-            }
-        });
-        
-        coordinator.notifyResponse(uuid, "success");
-        
-        assertTrue(latch.await(2, TimeUnit.SECONDS));
-        assertEquals("success", resultRef.get());
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            executor.submit(() -> {
+                try {
+                    Object res = coordinator.waitForResponse(uuid);
+                    resultRef.set(res);
+                } catch (Exception e) {
+                    resultRef.set(e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+            
+            coordinator.notifyResponse(uuid, "success");
+            
+            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertEquals("success", resultRef.get());
+        } finally {
+            executor.shutdown();
+        }
     }
 
     @Test
@@ -85,21 +91,26 @@ public class KafkaSqlCoordinatorTest {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Object> resultRef = new AtomicReference<>("initial");
         
-        Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                Object res = coordinator.waitForResponse(uuid);
-                resultRef.set(res);
-            } catch (Exception e) {
-                resultRef.set(e);
-            } finally {
-                latch.countDown();
-            }
-        });
-        
-        coordinator.notifyResponse(uuid, null);
-        
-        assertTrue(latch.await(2, TimeUnit.SECONDS));
-        assertNull(resultRef.get());
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            executor.submit(() -> {
+                try {
+                    Object res = coordinator.waitForResponse(uuid);
+                    resultRef.set(res);
+                } catch (Exception e) {
+                    resultRef.set(e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+            
+            coordinator.notifyResponse(uuid, null);
+            
+            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertNull(resultRef.get());
+        } finally {
+            executor.shutdown();
+        }
     }
 
     @Test
@@ -111,22 +122,27 @@ public class KafkaSqlCoordinatorTest {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Object> resultRef = new AtomicReference<>();
         
-        Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                coordinator.waitForResponse(uuid);
-            } catch (Exception e) {
-                resultRef.set(e);
-            } finally {
-                latch.countDown();
-            }
-        });
-        
-        IllegalArgumentException expectedException = new IllegalArgumentException("test error");
-        coordinator.notifyResponse(uuid, expectedException);
-        
-        assertTrue(latch.await(2, TimeUnit.SECONDS));
-        assertTrue(resultRef.get() instanceof IllegalArgumentException);
-        assertEquals("test error", ((IllegalArgumentException) resultRef.get()).getMessage());
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            executor.submit(() -> {
+                try {
+                    coordinator.waitForResponse(uuid);
+                } catch (Exception e) {
+                    resultRef.set(e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+            
+            IllegalArgumentException expectedException = new IllegalArgumentException("test error");
+            coordinator.notifyResponse(uuid, expectedException);
+            
+            assertTrue(latch.await(2, TimeUnit.SECONDS));
+            assertTrue(resultRef.get() instanceof IllegalArgumentException);
+            assertEquals("test error", ((IllegalArgumentException) resultRef.get()).getMessage());
+        } finally {
+            executor.shutdown();
+        }
     }
 
     @Test

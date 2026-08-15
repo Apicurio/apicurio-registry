@@ -112,8 +112,8 @@ public class AuthorizedInterceptor {
             throw t;
         }
 
-        log.info("principalId:" + securityIdentity.getPrincipal().getName());
-        log.info("roles:" + securityIdentity.getRoles());
+        log.debug("principalId: {}", securityIdentity.getPrincipal().getName());
+        log.debug("roles: {}", securityIdentity.getRoles());
 
         // If the user is authenticated and the operation auth level is None, allow it
         if (annotation.level() == AuthorizedLevel.None) {
@@ -134,9 +134,9 @@ public class AuthorizedInterceptor {
 
         // If RBAC is enabled, apply role based rules
         if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
-            log.warn("RBAC enabled and required role missing.");
-            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                    + " is not authorized to perform the requested operation.");
+            log.warn("RBAC enabled and required role missing for user: {}",
+                    securityIdentity.getPrincipal().getName());
+            throw new ForbiddenException("User is not authorized to perform the requested operation.");
         }
 
         // If Owner-only is enabled, apply ownership rules
@@ -144,9 +144,9 @@ public class AuthorizedInterceptor {
             if (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin()) {
                 // User is admin, that's good enough.
             } else if (!obac.isAuthorized(context)) {
-                log.warn("OBAC enabled and operation not permitted due to wrong owner.");
-                throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                        + " is not authorized to perform the requested operation.");
+                log.warn("OBAC enabled and operation not permitted due to wrong owner. User: {}",
+                        securityIdentity.getPrincipal().getName());
+                throw new ForbiddenException("User is not authorized to perform the requested operation.");
             }
         }
 

@@ -14,7 +14,7 @@ import {
 } from "@app/pages";
 import { RootPageHeader } from "@app/components";
 import { GrantAccessModal } from "@app/pages/roles/components/modals/GrantAccessModal.tsx";
-import { If, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { If, PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { Principal } from "@services/useConfigService.ts";
 import { Paging } from "@models/Paging.ts";

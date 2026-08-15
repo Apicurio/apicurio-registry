@@ -2,7 +2,7 @@ import { FunctionComponent } from "react";
 import "./GroupPageHeader.css";
 import { Button, Flex, FlexItem, Content, ContentVariants } from "@patternfly/react-core";
 import { IfAuth, IfFeature } from "@app/components";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 
 /**

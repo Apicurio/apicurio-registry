@@ -14,7 +14,7 @@ import {
 import {
     Modal
 } from "@patternfly/react-core/deprecated";
-import { If, ObjectSelect } from "@apicurio/common-ui-components";
+import { If, ObjectSelect } from "@apitomy/common-ui-components";
 import { ClientGeneration } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { CheckCircleIcon } from "@patternfly/react-icons";

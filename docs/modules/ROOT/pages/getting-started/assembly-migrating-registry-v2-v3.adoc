@@ -1647,7 +1647,7 @@ Configure the following properties on the `apicurio-registry` (API) container:
 
 | `apicurio.ui.auth.oidc.logout-url`
 | OAuth2/OIDC logout URL
-| `f5`
+|
 
 | `apicurio.ui.auth.oidc.scope`
 | OAuth2/OIDC scope

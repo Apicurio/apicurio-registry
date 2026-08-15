@@ -195,44 +195,60 @@ public class SchemaResolverConfig extends AbstractConfig {
      * If a schema can not be retrieved from the Registry, serdes may retry a number of times. This
      * configuration option controls the number of retries before failing. Valid values are non-negative
      * integers.
+     * <p>
+     * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
+     * {@link #CLIENT_RETRY_MAX_ATTEMPTS}, which configures the underlying HTTP client retry ladder that may
+     * run inside each cache attempt.
      */
     public static final String RETRY_COUNT = "apicurio.registry.retry-count";
     public static final long RETRY_COUNT_DEFAULT = 3;
 
     /**
-     * If a schema can not be be retrieved from the Registry, serdes may retry a number of times. This
+     * If a schema can not be retrieved from the Registry, serdes may retry a number of times. This
      * configuration option controls the delay between the retry attempts, in milliseconds. Valid values are
      * non-negative integers.
+     * <p>
+     * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
+     * {@link #CLIENT_RETRY_DELAY_MS}, which configures the underlying HTTP client retry ladder that may run
+     * inside each cache attempt.
      */
     public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
-     * Enable or disable retry for the underlying registry client.
+     * Enable or disable retry for the underlying registry HTTP client
+     * ({@code RegistryClientOptions} / {@code RetryInvocationHandler}).
+     * Distinct from {@link #RETRY_COUNT}, which controls schema-cache retries in {@code ERCache}.
+     * The two layers stack: each cache attempt may run a full HTTP client retry ladder.
      */
     public static final String CLIENT_RETRY_ENABLED = "apicurio.registry.client.retry.enabled";
     public static final boolean CLIENT_RETRY_ENABLED_DEFAULT = true;
 
     /**
-     * Maximum number of retry attempts for the underlying registry client.
+     * Maximum number of retry attempts for the underlying registry HTTP client.
+     * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms).
      */
     public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
     public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;
 
     /**
-     * Initial retry delay in milliseconds for the underlying registry client.
+     * Initial retry delay in milliseconds for the underlying registry HTTP client.
+     * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms).
      */
     public static final String CLIENT_RETRY_DELAY_MS = "apicurio.registry.client.retry.delay-ms";
     public static final long CLIENT_RETRY_DELAY_MS_DEFAULT = 250;
 
     /**
-     * Exponential backoff multiplier for the underlying registry client.
+     * Exponential backoff multiplier for the underlying registry HTTP client.
+     * Must be finite and {@code > 1.0} (same constraint as {@code RegistryClientOptions#retry}).
+     * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms).
      */
     public static final String CLIENT_RETRY_BACKOFF_MULTIPLIER = "apicurio.registry.client.retry.backoff-multiplier";
     public static final double CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT = 2.0;
 
     /**
-     * Maximum retry delay in milliseconds for the underlying registry client.
+     * Maximum retry delay in milliseconds for the underlying registry HTTP client.
+     * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms).
      */
     public static final String CLIENT_RETRY_MAX_DELAY_MS = "apicurio.registry.client.retry.max-delay-ms";
     public static final long CLIENT_RETRY_MAX_DELAY_MS_DEFAULT = 10000;
@@ -481,11 +497,12 @@ public class SchemaResolverConfig extends AbstractConfig {
         if (value == null) {
             return CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
         }
+        double parsed;
         if (value instanceof Number number) {
-            return number.doubleValue();
+            parsed = number.doubleValue();
         } else if (value instanceof String string) {
             try {
-                return Double.parseDouble(string);
+                parsed = Double.parseDouble(string);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid configuration property value for '"
                         + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
@@ -496,6 +513,13 @@ public class SchemaResolverConfig extends AbstractConfig {
                     + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
                     + value + "'.");
         }
+        // Match RegistryClientOptions#retry(boolean,int,long,double,long): multiplier must be > 1.0.
+        if (!Double.isFinite(parsed) || parsed <= 1.0) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a finite number greater than 1.0, but got '"
+                    + value + "'.");
+        }
+        return parsed;
     }
 
     public long getClientRetryMaxDelayMs() {

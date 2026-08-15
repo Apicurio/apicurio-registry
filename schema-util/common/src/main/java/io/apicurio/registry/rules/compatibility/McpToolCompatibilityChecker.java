@@ -24,6 +24,8 @@ public class McpToolCompatibilityChecker
         extends AbstractCompatibilityChecker<McpToolCompatibilityDifference> {
 
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final String INPUT_SCHEMA = "inputSchema";
+    private static final String PROPERTIES = "properties";
 
     @Override
     protected Set<McpToolCompatibilityDifference> isBackwardsCompatibleWith(String existing,
@@ -73,16 +75,16 @@ public class McpToolCompatibilityChecker
 
     private void checkPropertyTypeChanges(JsonNode existing, JsonNode proposed,
         Set<McpToolCompatibilityDifference> differences) {
-    JsonNode existingSchema = existing.get("inputSchema");
-    JsonNode proposedSchema = proposed.get("inputSchema");
+    JsonNode existingSchema = existing.get(INPUT_SCHEMA);
+    JsonNode proposedSchema = proposed.get(INPUT_SCHEMA);
 
     if (existingSchema == null || proposedSchema == null
             || !existingSchema.isObject() || !proposedSchema.isObject()) {
         return;
     }
 
-    JsonNode existingProps = existingSchema.get("properties");
-    JsonNode proposedProps = proposedSchema.get("properties");
+    JsonNode existingProps = existingSchema.get(PROPERTIES);
+    JsonNode proposedProps = proposedSchema.get(PROPERTIES);
 
     if (existingProps == null || proposedProps == null
             || !existingProps.isObject() || !proposedProps.isObject()) {
@@ -156,7 +158,7 @@ public class McpToolCompatibilityChecker
     }
 
     private String getInputSchemaType(JsonNode node) {
-        JsonNode inputSchema = node.get("inputSchema");
+        JsonNode inputSchema = node.get(INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
             JsonNode type = inputSchema.get("type");
             if (type != null && type.isTextual()) {
@@ -168,9 +170,9 @@ public class McpToolCompatibilityChecker
 
     private Set<String> extractPropertyNames(JsonNode node) {
         Set<String> properties = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
+        JsonNode inputSchema = node.get(INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
-            JsonNode props = inputSchema.get("properties");
+            JsonNode props = inputSchema.get(PROPERTIES);
             if (props != null && props.isObject()) {
                 Iterator<String> fieldNames = props.fieldNames();
                 while (fieldNames.hasNext()) {
@@ -183,7 +185,7 @@ public class McpToolCompatibilityChecker
 
     private Set<String> extractRequiredParams(JsonNode node) {
         Set<String> required = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
+        JsonNode inputSchema = node.get(INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
             JsonNode requiredNode = inputSchema.get("required");
             if (requiredNode != null && requiredNode.isArray()) {

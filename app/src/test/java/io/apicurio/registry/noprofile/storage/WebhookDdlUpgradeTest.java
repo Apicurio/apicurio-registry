@@ -30,9 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the 109 -> 110 upgrade scripts, which add the webhook subscription and delivery log tables. The
- * scripts are applied to a database that only contains the "apicurio" bookkeeping table at version 109, which
- * is all the 110 upgrade depends on.
+ * Verifies the 109 -> 110 -> 111 upgrade path, where the 111 scripts add the webhook subscription and
+ * delivery log tables. The scripts are applied to a database that only contains the "apicurio" bookkeeping
+ * table at version 109, which is all the 111 upgrade depends on.
  * <p>
  * This is a plain JDBC test (no Quarkus) so that the same assertions can be run against more than one
  * database kind. The fresh-install path (base DDL) is covered by {@link WebhookSchemaTest}.

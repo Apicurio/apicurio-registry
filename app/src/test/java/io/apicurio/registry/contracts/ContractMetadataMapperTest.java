@@ -337,4 +337,10 @@ public class ContractMetadataMapperTest {
             Assertions.assertEquals(stage, result.getStage());
         }
     }
+
+    @Test
+    void testBareContractIdLabelDoesNotThrow() {
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> new ContractMetadataMapper().fromLabels(java.util.Map.of("contract.id", "orders")));
+    }
 }

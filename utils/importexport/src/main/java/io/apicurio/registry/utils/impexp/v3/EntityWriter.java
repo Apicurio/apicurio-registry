@@ -22,6 +22,9 @@ public class EntityWriter {
 
     private final transient ZipOutputStream zip;
 
+    /** Disambiguates contract rule zip entries; see {@link #writeEntity(ContractRuleEntity)}. */
+    private int contractRuleSequence = 0;
+
     /**
      * Constructor.
      * 
@@ -59,6 +62,9 @@ public class EntityWriter {
                 break;
             case GlobalRule:
                 writeEntity((GlobalRuleEntity) entity);
+                break;
+            case ContractRule:
+                writeEntity((ContractRuleEntity) entity);
                 break;
             case Comment:
                 writeEntity((CommentEntity) entity);
@@ -126,6 +132,19 @@ public class EntityWriter {
         write(mdEntry, entity, GlobalRuleEntity.class);
     }
 
+    private void writeEntity(ContractRuleEntity entity) throws IOException {
+        // The rule name is user supplied, and contract_rules has no unique constraint beyond its ruleId
+        // primary key, so no combination of the exported columns is guaranteed distinct. Duplicate zip
+        // entry names would silently drop rules from the export, so a per-writer sequence number is
+        // appended. The name is descriptive only: the reader derives the entity type from the
+        // ".ContractRule.json" suffix and reads every field from the file body.
+        String fileName = String.format("%s-%s-%d-%d", entity.globalId == null ? "all" : entity.globalId,
+                entity.ruleCategory, entity.orderIndex, contractRuleSequence++);
+        ZipEntry mdEntry = createZipEntry(EntityType.ContractRule, entity.groupId, entity.artifactId,
+                fileName, "json");
+        write(mdEntry, entity, ContractRuleEntity.class);
+    }
+
     private void writeEntity(CommentEntity entity) throws IOException {
         ZipEntry mdEntry = createZipEntry(EntityType.Comment, entity.globalId + '-' + entity.commentId,
                 "json");
@@ -154,6 +173,10 @@ public class EntityWriter {
             case ArtifactRule:
                 path = String.format("groups/%s/artifacts/%s/rules/%s.%s.%s", groupOrDefault(groupId),
                         artifactId, fileName, type.name(), fileExt);
+                break;
+            case ContractRule:
+                path = String.format("groups/%s/artifacts/%s/contract-rules/%s.%s.%s",
+                        groupOrDefault(groupId), artifactId, fileName, type.name(), fileExt);
                 break;
             case Artifact:
                 path = String.format("groups/%s/artifacts/%s/%s.%s.%s", groupOrDefault(groupId), artifactId,

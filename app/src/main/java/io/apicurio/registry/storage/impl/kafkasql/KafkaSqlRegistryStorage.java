@@ -10,12 +10,14 @@ import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
 import io.apicurio.registry.events.ArtifactVersionStateChanged;
+import io.apicurio.registry.events.ContractRulesetConfigured;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
 import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.apicurio.registry.events.GroupRuleConfigured;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
@@ -691,6 +693,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetArtifactContractRuleset3Message(groupId, artifactId, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -699,6 +703,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteArtifactContractRuleset2Message(groupId, artifactId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -713,6 +719,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetVersionContractRuleset4Message(groupId, artifactId, version, ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -721,6 +729,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteVersionContractRuleset3Message(groupId, artifactId, version);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -741,6 +751,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new SetGlobalContractRuleset1Message(ruleset);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
@@ -748,6 +760,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteGlobalContractRuleset0Message();
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -1273,7 +1287,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // First we generate an identifier for the snapshot, then we send a snapshot marker to the journal
         // topic.
         String snapshotId = UUID.randomUUID().toString();
-        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + ".sql");
+        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + SqlStatements.COMPRESSED_SNAPSHOT_EXTENSION);
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
         this.lastTriggeredSnapshot = snapshotId;
         log.debug("Snapshot with id {} triggered.", snapshotId);

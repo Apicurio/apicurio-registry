@@ -29,13 +29,15 @@ public class RegistryClientFacadeFactory {
 
         Vertx vertx = config.getVertx();
 
-        String endpointVersion = null;
-        if (config.getRegistryUrlVersion() != null) {
-            endpointVersion = config.getRegistryUrlVersion();
+        String endpointVersion = config.getRegistryUrlVersion();
+        if (endpointVersion != null) {
+            endpointVersion = endpointVersion.trim();
         }
-        if (endpointVersion == null && baseUrl.contains("/apis/registry/v2")) {
+        if (endpointVersion == null || endpointVersion.isEmpty()) {
+            endpointVersion = baseUrl.contains("/apis/registry/v2") ? "2" : "3";
+        } else if (endpointVersion.startsWith("2") || endpointVersion.toLowerCase().startsWith("v2")) {
             endpointVersion = "2";
-        } else {
+        } else if (endpointVersion.startsWith("3") || endpointVersion.toLowerCase().startsWith("v3")) {
             endpointVersion = "3";
         }
 

@@ -44,7 +44,7 @@ import {
 } from "@app/components";
 
 
-import { checkIdValid, checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
+import { checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
 
 type Validities = {
     groupId?: ValidType;

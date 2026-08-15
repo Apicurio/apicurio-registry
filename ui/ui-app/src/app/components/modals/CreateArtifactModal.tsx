@@ -40,8 +40,6 @@ import { detectContentType, detectVersionInContent } from "@utils/content.utils.
 
 import { checkIdValid, checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
 
-export type { ValidType };
-
 export type Validities = {
     groupId?: ValidType;
     artifactId?: ValidType;

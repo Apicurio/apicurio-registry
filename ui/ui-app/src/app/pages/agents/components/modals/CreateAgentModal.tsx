@@ -50,8 +50,15 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
     const [name, setName] = useState<string>("");
     const [description, setDescription] = useState<string>("");
 
+    useEffect(() => {
+        setValidities({
+            groupId: validateField(groupId),
+            artifactId: validateField(artifactId),
+            version: validateVersionField(version)
+        });
+    }, [groupId, artifactId, version]);
+
     const resetForm = (): void => {
-        setValidities({});
         setGroupId("");
         setArtifactId("");
         setVersion("");
@@ -209,7 +216,6 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
                                         validated={validities.version}
                                         onChange={(_event, value) => {
                                             setVersion(value);
-                                            setValidities({ ...validities, version: validateVersionField(value) });
                                         }}
                                     />
                                     <FormHelperText>
@@ -219,7 +225,7 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
                                                 icon={validities.version === "error" ? <ExclamationCircleIcon /> : undefined}
                                             >
                                                 {validities.version === "error"
-                                                    ? "Only alphanumeric characters, dots, underscores, hyphens, and plus signs are allowed (max 256 characters)."
+                                                    ? "Only alphanumeric characters, dots, underscores, hyphens, and plus signs are allowed (max 256 characters)"
                                                     : "The initial version number."}
                                             </HelperTextItem>
                                         </HelperText>

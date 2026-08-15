@@ -3,49 +3,16 @@ import "./ReferencesFormGroup.css";
 import { Button, FormGroup, Grid, GridItem, Spinner, TextInput } from "@patternfly/react-core";
 import { MinusCircleIcon, PlusCircleIcon, SearchIcon } from "@patternfly/react-icons";
 import { ArtifactReference } from "@sdk/lib/generated-client/models";
+import {
+    ArtifactReferenceFormItem,
+    isReferencesValid,
+    validateRefIdField,
+    validateRefVersionField
+} from "@utils/validation.utils.ts";
 
-export type ArtifactReferenceFormItem = {
-    groupId: string;
-    artifactId: string;
-    version: string;
-    name: string;
-};
+export type { ArtifactReferenceFormItem };
+export { isReferencesValid };
 
-import { checkIdValid, checkVersionValid, ValidType } from "@utils/validation.utils.ts";
-
-export type ArtifactReferenceFormItem = {
-    groupId: string;
-    artifactId: string;
-    version: string;
-    name: string;
-};
-
-const validateRefIdField = (value: string): ValidType => {
-    if (value === "" || !checkIdValid(value)) {
-        return "error";
-    }
-    return "success";
-};
-
-const validateRefVersionField = (value: string): ValidType => {
-    if (value === "" || !checkVersionValid(value)) {
-        return "error";
-    }
-    return "success";
-};
-
-/**
- * Returns true if all reference rows have valid populated fields.
- * Returns true if there are no references (empty list is valid).
- */
-export const isReferencesValid = (items: ArtifactReferenceFormItem[]): boolean => {
-    return items.every(item =>
-        item.name !== "" && checkIdValid(item.name) &&
-        item.groupId !== "" && checkIdValid(item.groupId) &&
-        item.artifactId !== "" && checkIdValid(item.artifactId) &&
-        item.version !== "" && checkVersionValid(item.version)
-    );
-};
 
 /**
  * Converts form items to SDK ArtifactReference objects.

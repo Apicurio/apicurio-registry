@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { checkIdValid, checkVersionValid, validateField, validateVersionField } from "./validation.utils.ts";
+import {
+    checkIdValid,
+    checkVersionValid,
+    isReferencesValid,
+    validateField,
+    validateVersionField
+} from "./validation.utils.ts";
 
 describe("validation.utils", () => {
     describe("checkIdValid", () => {
@@ -49,6 +55,12 @@ describe("validation.utils", () => {
             expect(checkVersionValid("1.2.3+build.5")).toBe(true);
             expect(checkVersionValid("2.0.0-SNAPSHOT")).toBe(true);
             expect(checkVersionValid("v1.0.0")).toBe(true);
+        });
+
+        it("rejects trailing or embedded newlines", () => {
+            expect(checkVersionValid("1.0.0\n")).toBe(false);
+            expect(checkVersionValid("1.0.0\r\n")).toBe(false);
+            expect(checkVersionValid("\n1.0.0")).toBe(false);
         });
 
         it("rejects reserved or unsafe special characters, whitespace, non-ASCII", () => {
@@ -103,4 +115,44 @@ describe("validation.utils", () => {
             expect(validateVersionField("1.0.0")).toBe("success");
         });
     });
+
+    describe("isReferencesValid", () => {
+        it("returns true for empty references list", () => {
+            expect(isReferencesValid([])).toBe(true);
+        });
+
+        it("returns true for a fully valid reference row", () => {
+            expect(isReferencesValid([
+                { groupId: "default", artifactId: "my-artifact", version: "1.0.0", name: "ref1" }
+            ])).toBe(true);
+        });
+
+        it("returns false if name contains %", () => {
+            expect(isReferencesValid([
+                { groupId: "default", artifactId: "my-artifact", version: "1.0.0", name: "ref%1" }
+            ])).toBe(false);
+        });
+
+        it("returns false if groupId contains non-ASCII characters", () => {
+            expect(isReferencesValid([
+                { groupId: "group-ñ", artifactId: "my-artifact", version: "1.0.0", name: "ref1" }
+            ])).toBe(false);
+        });
+
+        it("returns false if artifactId is 513 characters long", () => {
+            expect(isReferencesValid([
+                { groupId: "default", artifactId: "a".repeat(513), version: "1.0.0", name: "ref1" }
+            ])).toBe(false);
+        });
+
+        it("returns false if version is invalid ('1 0' or '1.0\\n')", () => {
+            expect(isReferencesValid([
+                { groupId: "default", artifactId: "my-artifact", version: "1 0", name: "ref1" }
+            ])).toBe(false);
+            expect(isReferencesValid([
+                { groupId: "default", artifactId: "my-artifact", version: "1.0.0\n", name: "ref1" }
+            ])).toBe(false);
+        });
+    });
 });
+

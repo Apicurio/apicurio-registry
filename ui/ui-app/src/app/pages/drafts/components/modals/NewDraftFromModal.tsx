@@ -19,7 +19,7 @@ import { If } from "@apitomy/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { VersionMetaData } from "@sdk/lib/generated-client/models";
 
-import { checkIdValid, checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
+import { checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
 
 type Validities = {
     groupId?: ValidType;

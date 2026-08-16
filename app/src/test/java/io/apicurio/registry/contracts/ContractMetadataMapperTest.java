@@ -5,6 +5,7 @@ import io.apicurio.registry.storage.dto.ContractStatus;
 import io.apicurio.registry.storage.dto.DataClassification;
 import io.apicurio.registry.storage.dto.EditableContractMetadataDto;
 import io.apicurio.registry.storage.dto.PromotionStage;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -340,7 +341,7 @@ public class ContractMetadataMapperTest {
 
     @Test
     void testBareContractIdLabelDoesNotThrow() {
-        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                () -> new ContractMetadataMapper().fromLabels(java.util.Map.of("contract.id", "orders")));
+        var result = new ContractMetadataMapper().fromLabels(Map.of("contract.id", "orders"));
+        assertNotNull(result);
     }
 }

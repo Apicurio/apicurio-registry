@@ -450,6 +450,19 @@ Available options:
 
 Namespace that are watched by the operator are configured using `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable. Its value is configured to reflect the OLM annotation `olm.targetNamespaces` by default. This means that if the operator is not installed by OLM (e.g. using the install file), the annotation is empty, which means the operator will watch **all namespaces**. Because of this, cluster-level RBAC resources are used by default. In the future, we may release additional install file with reduced permissions, intended to be used when the operator only manages its own namespace.
 
+### RBAC
+
+The RBAC consumed by the OLM bundle is split by scope so that single-namespace installs stay least-privilege:
+
+- `controller/src/main/deploy/rbac/namespaced/cluster-role.yaml` holds only cluster-scoped rules (watching `apicurioregistries3` CRs cluster-wide plus reading the CRD). It becomes `clusterPermissions` in the CSV.
+- `controller/src/main/deploy/rbac/namespaced/role.yaml` holds workload rules (deployments, services, secrets, and mutating access to the CR it reconciles). It becomes `permissions` in the CSV.
+
+How OLM materializes `permissions` depends on the OperatorGroup's install mode, not on the CSV. For SingleNamespace/OwnNamespace/MultiNamespace, OLM creates a Role + RoleBinding in the target namespace(s), so the workload verbs stay namespace-scoped. For AllNamespaces (target `*`), OLM promotes each `permissions` rule to a ClusterRole + ClusterRoleBinding, so those verbs (including `patch`/`update` on the CR) become cluster-wide. In other words the least-privilege / namespace-scoped guarantee applies to single-namespace installs; AllNamespaces is intentionally cluster-wide (as it was before this split). The read-only CR discovery verbs in `cluster-role.yaml` stay cluster-scoped and least-privilege in every mode.
+
+The install file (non-OLM) still uses the all-namespaces variant in `controller/src/main/deploy/rbac/cluster`.
+
+**Keep permissions in sync manually.** These rules are duplicated transitively in `olm-tests/src/test/deploy/olmv1/cluster-role.yaml` (the installer ClusterRole used by the OLM v1 tests). There is no generation step that rewrites one from the other, so any change to the operator's permissions must be applied in both places, and the RBAC files carry a comment reminding of this. Two unit tests guard against mistakes: `RbacInstallerSyncTest` fails if the installer ClusterRole is not a superset of the operator's runtime permissions, and `RbacSplitTest` fails if the cluster/namespace tier split is broken (for example a workload rule added to `cluster-role.yaml`, which OLM would then grant cluster-wide in every install mode).
+
 ### Leader Election
 
 The operator supports Kubernetes leader election to enable high availability (HA) deployments.
@@ -474,3 +487,13 @@ env:
 ```
 
 **RBAC**: The operator's ClusterRole already includes the required permissions for `coordination.k8s.io` leases (`get`, `create`, `update`). No additional RBAC configuration is needed.
+
+### HTTP Compression
+
+Starting with recent versions, Apicurio Registry enables HTTP request and response compression by default at the application level (via Quarkus `quarkus.http.enable-compression=true`). 
+
+**Note for Operator Deployments:** If your deployment is fronted by an Ingress controller, reverse proxy (e.g., Nginx), or CDN that also performs gzip compression, you may experience double-compression or unnecessary CPU overhead. `quarkus.http.enable-compression`, `quarkus.http.enable-decompression`, and `quarkus.http.compress-media-types` are all `BUILD_AND_RUN_TIME_FIXED` properties in Quarkus — they can be set via environment variable at build time, but once the Registry image is built, that value is baked in and setting the environment variable on a running Pod (via `env:` in the CR) has no effect. In such cases, you should configure your Ingress or proxy to pass through the compressed responses or handle decompression at the edge appropriately.
+
+**Runtime Kill Switch:** To disable application-level **response** compression at runtime without rebuilding the image, set `APICURIO_REST_COMPRESSION_ENABLED=false` in your CR's `env:` block. This disables the custom JAX-RS response compression interceptor, so REST API responses will be returned uncompressed. Note that Vert.x-level request decompression (`quarkus.http.enable-decompression`) is a build-time-fixed property and remains active independently of this setting — clients can still send gzip-compressed request bodies.
+
+**Decompression Limits:** Compressed request bodies that exceed `quarkus.http.limits.max-body-size` (50 MB) after decompression are rejected, preventing decompression-bomb attacks. Note that the rejection surfaces as HTTP 400 (not 413) because Vert.x decompresses the payload before the body-size limiter evaluates it, so the application layer rejects the oversized content first.

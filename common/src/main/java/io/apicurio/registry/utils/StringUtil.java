@@ -1,5 +1,7 @@
 package io.apicurio.registry.utils;
 
+import java.util.Locale;
+
 import static java.util.Objects.requireNonNull;
 
 public class StringUtil {
@@ -16,7 +18,7 @@ public class StringUtil {
         if (value == null) {
             return null;
         }
-        return value.toLowerCase();
+        return value.toLowerCase(Locale.ROOT);
     }
 
     public static String limitStr(String value, int limit, boolean withEllipsis) {

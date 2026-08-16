@@ -49,12 +49,12 @@ The project uses a three-tier build system to allow developers to build only wha
 
 | Tier        | Flag      | What's included                                         | Use case                           |
 |-------------|-----------|--------------------------------------------------------|------------------------------------|
-| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
-| **Default** | *(none)*  | Local + serializers, CLI, docs, distribution            | Normal development                 |
+| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities, serializers — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
+| **Default** | *(none)*  | Local + CLI, docs, distribution                         | Normal development                 |
 | **Full**    | `-Dfull`  | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
 
 ```bash
-# Local: core server only, skip non-essential plugins (~3 min)
+# Local: core server + serializers, skip non-essential plugins
 ./mvnw clean install -Dlocal -DskipTests
 
 # Default: normal development
@@ -62,6 +62,12 @@ The project uses a three-tier build system to allow developers to build only wha
 
 # Full: everything
 ./mvnw clean install -Dfull -DskipTests
+```
+
+Dev mode:
+
+```bash
+cd app && ../mvnw quarkus:dev -Dlocal
 ```
 
 Integration tests and examples are always opt-in via their own profiles:
@@ -72,9 +78,57 @@ Integration tests and examples are always opt-in via their own profiles:
 | Property              | Purpose                                                                                  |
 |-----------------------|------------------------------------------------------------------------------------------|
 | `-Pprod`              | Enables Quarkus *prod* configuration profile (higher logging level, production defaults) |
-| `-DskipTests`         | Skip all tests                                                                           |
+| `-DskipTests`         | Skip running tests (test sources are still compiled)                                     |
+| `-Dmaven.test.skip=true` | Skip compiling and running tests                                                      |
 | `-DcliSkipNative`     | Skip CLI native image compilation (no executable is produced, but tests can still run)   |
 | `-DskipOperatorTests` | Skip operator tests (default: `true`, requires a running cluster)                        |
+
+## Dependency Analysis
+
+`dependency:analyze` cannot be run directly over the full reactor: the `app` module
+declares a test dependency of type `maven-plugin` on `apicurio-registry-maven-plugin`,
+and Maven cannot satisfy `maven-plugin`-typed dependencies from the reactor when
+`dependency:analyze` forks `test-compile`. Both commands below carry `-Dfull` to
+ensure full reactor coverage (all modules including CLI, operator, Go SDK, etc.). The
+`dependency-check` Maven profile works around this by using
+[`dependency:analyze-only`](https://maven.apache.org/plugins/maven-dependency-plugin/analyze-only-mojo.html)
+instead, which does not fork the build, binding it to the `package` phase instead of
+running it as a standalone goal. `analyze-only` requires the classes it inspects to
+already be compiled. Binding it to `package` guarantees that, because Maven runs the
+normal (non-forked) `compile`, `test-compile`, and `package` phases for every module,
+in reactor order, before `analyze-only` runs for that module. This is what actually
+gives full reactor coverage. Binding it to an earlier phase such as `validate` was
+tried first and failed partway through the reactor (`BUILD FAILURE` at module 46/67),
+because sibling modules outside `app`'s own dependency closure hadn't been
+compiled/packaged yet and Maven couldn't resolve them as dependencies. The check is
+still a two-step procedure:
+
+```bash
+# Step 1: build app and its dependency closure so apicurio-registry-maven-plugin
+# (and everything else app needs) is installed to the local repository.
+./mvnw -T1 install -pl app -am -DskipTests -Dfull -DcliSkipNative -q
+
+# Step 2: run the report-only dependency analysis over the full reactor.
+./mvnw -T1 -Pdependency-check package -DskipTests -Dfull -DcliSkipNative
+```
+
+The profile configures `analyze-only` with `ignoreNonCompile=true` (ignore
+runtime/provided/test/system scopes when flagging unused dependencies) and
+`failOnWarning=false` (report only, never breaks the build).
+
+**`-T1` is required**, not optional: `.mvn/maven.config` sets `-T 1C` globally, and a
+parallel build interleaves per-module log output, which silently misattributes
+warnings to the wrong module. Always pass `-T1` explicitly for both steps when reading
+the analyze output.
+
+**Results on the `app` module are false-positive-heavy.** `app` is a Quarkus
+application, and Quarkus extensions inject capabilities (e.g. CDI beans, config) at
+build time in ways a bytecode-based analyzer cannot see, so `analyze-only` routinely
+flags used Quarkus extensions (e.g. `io.quarkus:quarkus-core`, `io.quarkus:quarkus-arc`)
+as "used undeclared" or unused. Treat `app` warnings with skepticism and cross-check
+before acting on them. See [issue #9136](https://github.com/Apicurio/apicurio-registry/issues/9136)
+for background, and [quarkus-extension-analyzer](https://github.com/paoloantinori/quarkus-extension-analyzer)
+for a Quarkus-aware alternative that is being explored separately.
 
 ## Testing
 
@@ -83,7 +137,7 @@ are in a separate module and need to be explicitly enabled:
 
 ```bash
 # Run default integration tests (smoke + serdes + acceptance)
-./mvnw verify -Pintegration-tests -Plocal-tests -pl integration-tests -am
+./mvnw verify -Pintegration-tests -pl integration-tests -am
 ```
 
 See the [integration tests module](integration-tests/) for test groups, deployment

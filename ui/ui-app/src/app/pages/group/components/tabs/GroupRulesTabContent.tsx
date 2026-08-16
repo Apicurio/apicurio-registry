@@ -15,7 +15,7 @@ import {
 } from "@patternfly/react-core";
 import { GroupMetaData, Rule } from "@sdk/lib/generated-client/models";
 import { WarningTriangleIcon } from "@patternfly/react-icons";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 /**
  * Properties

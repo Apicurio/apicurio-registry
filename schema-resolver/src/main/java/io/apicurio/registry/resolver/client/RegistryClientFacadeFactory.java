@@ -112,13 +112,18 @@ public class RegistryClientFacadeFactory {
             long delayMs = config.getClientRetryDelayMs();
             double backoff = config.getClientRetryBackoffMultiplier();
             long maxDelayMs = config.getClientRetryMaxDelayMs();
-            logger.log(Level.INFO,
-                    "Registry HTTP client retry enabled: url={0}, maxAttempts={1}, delayMs={2}, backoffMultiplier={3}, maxDelayMs={4}",
-                    new Object[]{sanitizeRegistryUrl(config.getRegistryUrl()), maxAttempts, delayMs, backoff, maxDelayMs});
+            if (logger.isLoggable(Level.INFO)) {
+                logger.log(Level.INFO,
+                        "Registry HTTP client retry enabled: url={0}, maxAttempts={1}, delayMs={2}, backoffMultiplier={3}, maxDelayMs={4}",
+                        new Object[]{sanitizeRegistryUrl(config.getRegistryUrl()), maxAttempts, delayMs, backoff,
+                                maxDelayMs});
+            }
             clientOptions.retry(true, maxAttempts, delayMs, backoff, maxDelayMs);
         } else {
-            logger.log(Level.INFO,
-                    "Registry HTTP client retry disabled: url={0}", sanitizeRegistryUrl(config.getRegistryUrl()));
+            if (logger.isLoggable(Level.INFO)) {
+                logger.log(Level.INFO, "Registry HTTP client retry disabled: url={0}",
+                        sanitizeRegistryUrl(config.getRegistryUrl()));
+            }
             clientOptions.disableRetry();
         }
 

@@ -525,7 +525,7 @@ public class SchemaResolverConfig extends AbstractConfig {
                     + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
                     + value + "'.");
         }
-        // Match RegistryClientOptions#retry(boolean,int,long,double,long): multiplier must be > 1.0.
+        // Align with RegistryClientOptions retry: backoff multiplier must be greater than 1.0.
         if (!Double.isFinite(parsed) || parsed <= 1.0) {
             throw new IllegalArgumentException("Invalid configuration property value for '"
                     + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a finite number greater than 1.0, but got '"

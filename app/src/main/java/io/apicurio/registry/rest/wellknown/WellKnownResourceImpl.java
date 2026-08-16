@@ -180,7 +180,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
                 filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-        warnIfTruncated(results);
+        warnIfTruncated(results, "Agent");
 
         // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
         List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -263,7 +263,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
                     filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
+            warnIfTruncated(results, "Agent");
 
             // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
             List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -964,8 +964,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return authConfig.isOidcAuthEnabled() || authConfig.isBasicAuthEnabled();
     }
 
-    private void warnIfTruncated(ArtifactSearchResultsDto results) {
-        if (results != null && results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
+    private void warnIfTruncated(ArtifactSearchResultsDto results, String resourceName) {
+        if (results != null && results.getCount() != null && results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
             log.warn("{} visibility filtering may be incomplete: total count ({}) "
                     + "reached the in-memory limit of {}. Results beyond this limit are not included.",
                     resourceName, results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);

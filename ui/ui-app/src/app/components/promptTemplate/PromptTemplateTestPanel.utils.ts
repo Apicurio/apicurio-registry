@@ -103,7 +103,16 @@ export const reconcileForPanel = (
 };
 
 const isEmptyValue = (value: unknown): boolean => {
-    return value === "" || value === undefined || value === null;
+    if (value === "" || value === undefined || value === null) {
+        return true;
+    }
+    if (Array.isArray(value)) {
+        return value.length === 0;
+    }
+    if (typeof value === "object") {
+        return Object.keys(value as object).length === 0;
+    }
+    return false;
 };
 
 /** Whether every required reconciled variable currently has a non-empty value. */

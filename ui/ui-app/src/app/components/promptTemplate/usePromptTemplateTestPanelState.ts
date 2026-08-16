@@ -9,7 +9,7 @@ import {
     reconcileForPanel,
     shouldAcceptRenderResponse
 } from "./PromptTemplateTestPanel.utils";
-import { VariableSchema } from "./promptTemplateVariables";
+import { ReconciledVariable, VariableSchema } from "./promptTemplateVariables";
 
 const AUTO_RENDER_DEBOUNCE_MS = 500;
 
@@ -27,6 +27,7 @@ export type UsePromptTemplateTestPanelStateArgs = PromptTemplateTestPanelIdentit
 
 export type PromptTemplateTestPanelState = {
     values: Record<string, any>;
+    reconciledVariables: ReconciledVariable[];
     renderedOutput: string;
     validationErrors: RenderPromptValidationError[];
     isLoading: boolean;
@@ -65,6 +66,7 @@ export const usePromptTemplateTestPanelState = (
 
     const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const isDirtyRef = useRef(false);
 
     const clearDebounceTimer = (): void => {
         if (debounceTimerRef.current !== null) {
@@ -78,6 +80,8 @@ export const usePromptTemplateTestPanelState = (
     // parent object cannot wipe in-progress user input on every re-render.
     useEffect(() => {
         clearDebounceTimer();
+        abortControllerRef.current?.abort();
+        isDirtyRef.current = false;
         versionIdentityRef.current = versionIdentity;
         renderRequestIdRef.current += 1;
         setValues(buildInitialValues(templateRef.current, variablesRef.current));
@@ -88,6 +92,7 @@ export const usePromptTemplateTestPanelState = (
     }, [versionIdentity]);
 
     const setValue = (name: string, value: any): void => {
+        isDirtyRef.current = true;
         setValues(prev => ({ ...prev, [name]: value }));
     };
 
@@ -155,22 +160,22 @@ export const usePromptTemplateTestPanelState = (
             });
     };
 
-    // Reconciled variables for the template + declared schema currently shown, used only to
-    // gate auto-render on required fields — not passed back out, the panel computes its own
-    // copy for display via the same pure helper inputs.
+    // Reconciled variables for the template + declared schema for the current version.
+    // Keyed on versionIdentity (not template/variables object identity) so an unstable parent
+    // object cannot tear down and re-arm the debounce timer on every render.
     const reconciledVariables = useMemo(
-        () => reconcileForPanel(args.template, args.variables),
-        [args.template, args.variables]
+        () => reconcileForPanel(templateRef.current, variablesRef.current),
+        [versionIdentity]
     );
 
-    // Auto-render 500ms after the last edit to values/template/variables, as long as every
-    // required variable is filled in — skips firing while the user is still mid-edit on a
-    // required field, so we don't flash validation errors on every keystroke.
+    // Auto-render 500ms after the last user edit, as long as every required variable is filled
+    // and the panel has been dirtied via setValue — skips firing on mount/version load and
+    // while the user is still mid-edit on a required field.
     useEffect(() => {
         clearDebounceTimer();
         debounceTimerRef.current = setTimeout(() => {
             debounceTimerRef.current = null;
-            if (!hasAllRequiredValues(reconciledVariables, values)) {
+            if (!isDirtyRef.current || !hasAllRequiredValues(reconciledVariables, values)) {
                 return;
             }
             doRender();
@@ -191,6 +196,7 @@ export const usePromptTemplateTestPanelState = (
 
     return {
         values,
+        reconciledVariables,
         renderedOutput,
         validationErrors,
         isLoading,

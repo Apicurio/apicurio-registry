@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactNode, useMemo } from "react";
+import { FunctionComponent, ReactNode } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -20,16 +20,13 @@ import {
     Title
 } from "@patternfly/react-core";
 import {
-    extractTemplateVariableNames,
-    reconcileTemplateVariables,
     ReconciledVariable,
     VariableSchema
 } from "./promptTemplateVariables";
 import { useGroupsService } from "@services/useGroupsService.ts";
 import {
     coerceEnumValue,
-    schemaForField,
-    toDeclaredMap
+    schemaForField
 } from "./PromptTemplateTestPanel.utils";
 import { usePromptTemplateTestPanelState } from "./usePromptTemplateTestPanelState";
 
@@ -55,13 +52,9 @@ const sourceLabel = (source: ReconciledVariable["source"]): { text: string; colo
 export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {
     const groups = useGroupsService();
 
-    const reconciledVariables = useMemo(() => {
-        const names = extractTemplateVariableNames(props.template || "");
-        return reconcileTemplateVariables(names, toDeclaredMap(props.variables));
-    }, [props.template, props.variables]);
-
     const {
         values,
+        reconciledVariables,
         renderedOutput,
         validationErrors,
         isLoading,

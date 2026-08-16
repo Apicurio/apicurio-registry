@@ -6,6 +6,7 @@ import {
     coerceEnumValue,
     hasAllRequiredValues,
     isAbortError,
+    reconcileForPanel,
     shouldAcceptRenderResponse
 } from "./PromptTemplateTestPanel.utils";
 import { ReconciledVariable } from "./promptTemplateVariables";
@@ -176,6 +177,63 @@ describe("hasAllRequiredValues", () => {
     it("treats null and undefined as empty for a required field", () => {
         expect(hasAllRequiredValues([requiredVar("name")], { name: null })).toBe(false);
         expect(hasAllRequiredValues([requiredVar("name")], {})).toBe(false);
+    });
+
+    // Whitespace is intentionally treated as filled (unlike empty arrays/objects) —
+    // the server may legitimately render a variable as a space.
+    it("treats a whitespace-only string as filled for a required field", () => {
+        expect(hasAllRequiredValues([requiredVar("name")], { name: "   " })).toBe(true);
+    });
+
+    it("treats an empty array as empty for a required array field", () => {
+        const items: ReconciledVariable = {
+            name: "items",
+            schema: { type: "array", required: true },
+            source: "both"
+        };
+        expect(hasAllRequiredValues([items], { items: [] })).toBe(false);
+    });
+
+    it("treats a non-empty array as filled for a required array field", () => {
+        const items: ReconciledVariable = {
+            name: "items",
+            schema: { type: "array", required: true },
+            source: "both"
+        };
+        expect(hasAllRequiredValues([items], { items: ["a"] })).toBe(true);
+    });
+
+    it("treats an empty object as empty for a required object field", () => {
+        const meta: ReconciledVariable = {
+            name: "meta",
+            schema: { type: "object", required: true },
+            source: "both"
+        };
+        expect(hasAllRequiredValues([meta], { meta: {} })).toBe(false);
+    });
+
+    it("treats a non-empty object as filled for a required object field", () => {
+        const meta: ReconciledVariable = {
+            name: "meta",
+            schema: { type: "object", required: true },
+            source: "both"
+        };
+        expect(hasAllRequiredValues([meta], { meta: { x: 1 } })).toBe(true);
+    });
+
+    it("does not assume a declared schema exists for detected-only variables", () => {
+        const detected: ReconciledVariable = {
+            name: "city",
+            schema: undefined,
+            source: "detected"
+        };
+        expect(hasAllRequiredValues([detected], { city: "" })).toBe(true);
+    });
+});
+
+describe("reconcileForPanel", () => {
+    it("returns an empty array when template and variables are both unset", () => {
+        expect(reconcileForPanel(undefined, undefined)).toEqual([]);
     });
 });
 

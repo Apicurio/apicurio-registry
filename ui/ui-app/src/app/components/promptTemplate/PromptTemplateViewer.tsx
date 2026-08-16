@@ -237,7 +237,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <DescriptionList isCompact className="section-content">
                             {promptTemplate.mcp.name && (
                                 <DescriptionListGroup>
-                                    <DescriptionListTerm>Tool Name</DescriptionListTerm>
+                                    <DescriptionListTerm>MCP Prompt Name</DescriptionListTerm>
                                     <DescriptionListDescription>
                                         <code>{promptTemplate.mcp.name}</code>
                                     </DescriptionListDescription>

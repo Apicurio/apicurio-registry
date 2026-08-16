@@ -627,8 +627,8 @@ public class SchemaResolverConfig extends AbstractConfig {
      */
     public Vertx getVertx() {
         Object vertx = getObject(VERTX_INSTANCE);
-        if (vertx instanceof Vertx) {
-            return (Vertx) vertx;
+        if (vertx instanceof Vertx configuredVertx) {
+            return configuredVertx;
         }
         return null;
     }

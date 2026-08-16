@@ -72,14 +72,15 @@ class ClientRetryConfigTest {
 
     @Test
     void backoffMultiplierRejectsInvalidValues() {
-        assertThrows(IllegalArgumentException.class,
-                () -> configWithBackoff("NaN").getClientRetryBackoffMultiplier());
-        assertThrows(IllegalArgumentException.class,
-                () -> configWithBackoff("-1").getClientRetryBackoffMultiplier());
-        assertThrows(IllegalArgumentException.class,
-                () -> configWithBackoff("1.0").getClientRetryBackoffMultiplier());
-        assertThrows(IllegalArgumentException.class,
-                () -> configWithBackoff("not-a-number").getClientRetryBackoffMultiplier());
+        SchemaResolverConfig nan = configWithBackoff("NaN");
+        SchemaResolverConfig negative = configWithBackoff("-1");
+        SchemaResolverConfig one = configWithBackoff("1.0");
+        SchemaResolverConfig notANumber = configWithBackoff("not-a-number");
+
+        assertThrows(IllegalArgumentException.class, nan::getClientRetryBackoffMultiplier);
+        assertThrows(IllegalArgumentException.class, negative::getClientRetryBackoffMultiplier);
+        assertThrows(IllegalArgumentException.class, one::getClientRetryBackoffMultiplier);
+        assertThrows(IllegalArgumentException.class, notANumber::getClientRetryBackoffMultiplier);
     }
 
     private static SchemaResolverConfig configWithBackoff(Object value) {

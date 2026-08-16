@@ -156,8 +156,26 @@ class PromptTemplateVariableUtilTest {
     void testIsControlKeyword() {
         Assertions.assertTrue(PromptTemplateVariableUtil.isControlKeyword("else"));
         Assertions.assertTrue(PromptTemplateVariableUtil.isControlKeyword("this"));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isControlKeyword("lookup"));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isControlKeyword("log"));
         Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword("name"));
         Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword("Else"));
         Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword(null));
+    }
+
+    @Test
+    void testExtractIgnoresLookupAndLogHelpers() {
+        // {{lookup}} and {{log}} are Handlebars helpers spelled as bare words, so the pattern cannot
+        // tell them apart from a variable. The UI filters them in BLOCK_KEYWORDS, so the server has
+        // to as well or the two disagree about what has to be declared in 'variables'.
+        Assertions.assertEquals(List.of("greeting"),
+                PromptTemplateVariableUtil.extractVariableNames("{{lookup}}{{greeting}}{{log}}"));
+    }
+
+    @Test
+    void testSubstituteLeavesLookupAndLogAlone() {
+        Assertions.assertEquals("{{lookup}}Alice{{log}}",
+                PromptTemplateVariableUtil.substituteVariables("{{lookup}}{{name}}{{log}}",
+                        varName -> "Alice"));
     }
 }

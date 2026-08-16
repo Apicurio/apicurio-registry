@@ -59,10 +59,17 @@ public final class PromptTemplateVariableUtil {
      *
      * <code>{{#if x}}</code> and <code>{{/if}}</code> are already excluded by the pattern itself,
      * because <code>#</code> and <code>/</code> are not word characters. The inverse section
-     * <code>{{else}}</code> and the current-context reference <code>{{this}}</code> are bare words,
-     * so without this set they would be reported as variables that are used but never defined.
+     * <code>{{else}}</code>, the current-context reference <code>{{this}}</code>, and the
+     * <code>{{lookup}}</code> and <code>{{log}}</code> helpers are bare words, so without this set
+     * they would be reported as variables that are used but never defined.
+     *
+     * This set is deliberately kept in step with <code>BLOCK_KEYWORDS</code> in the UI, in
+     * <code>ui/ui-app/src/app/components/promptTemplate/promptTemplateVariables.ts</code>. The UI
+     * additionally lists the block helpers themselves (<code>if</code>, <code>unless</code>,
+     * <code>each</code>, <code>with</code>) because its pattern captures the subject of a block;
+     * this pattern never matches those, so they are not needed here.
      */
-    private static final Set<String> CONTROL_KEYWORDS = Set.of("else", "this");
+    private static final Set<String> CONTROL_KEYWORDS = Set.of("else", "this", "lookup", "log");
 
     private PromptTemplateVariableUtil() {
     }

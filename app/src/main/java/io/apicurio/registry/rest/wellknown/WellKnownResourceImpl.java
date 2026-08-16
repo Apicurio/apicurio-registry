@@ -334,6 +334,16 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
     }
 
+    private record PagedResult<T>(List<T> items, int totalCount) {}
+
+    private boolean isA2aEntitlementsEnabled() {
+        return isAuthEnabled() && a2aConfig.isEntitlementsEnabled();
+    }
+    
+    private boolean isMcpEntitlementsEnabled() {
+        return isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled();
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
@@ -392,30 +402,34 @@ public class WellKnownResourceImpl implements WellKnownResource {
         int safeOffset = Math.max(0, offset);
         int safeLimit = Math.max(1, Math.min(limit, 500));
 
-        if (isAuthEnabled() && a2aConfig.isEntitlementsEnabled()) {
-            int totalHolder = new int[1];
-            List<AgentSearchResult> agents = executeVisibilityFilteredSearch(
+        if (isA2aEntitlementsEnabled()) {
+            PagedResult<AgentSearchResult> pageResult = executeVisibilityFilteredSearch(
                     filters, "Agent", safeOffset, safeLimit,
-                    this::convertToAgentSearchResult,
-                    count -> totalHolder[0] = count
+                    this::convertToAgentSearchResult
             );
-
+            
             return AgentSearchResults.builder()
-                    .count(totalHolder[0])
-                    .agents(agents)
+                    .count(pageResult.totalCount())
+                    .agents(pageResult.items())
                     .build();
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
                 filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
+        
+        List<SearchedArtifactDto> artifacts = results != null && results.getArtifacts() != null
+                ? results.getArtifacts()
+                : Collections.emptyList();
+
+        int count = results != null && results.getCount() != null ? (int) results.getCount() : artifacts.size();
 
         List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+        for (SearchedArtifactDto artifact : artifacts) {
             agents.add(convertToAgentSearchResult(artifact));
         }
 
         return AgentSearchResults.builder()
-                .count((int) results.getCount())
+                .count(count)
                 .agents(agents)
                 .build();
     }
@@ -425,28 +439,31 @@ public class WellKnownResourceImpl implements WellKnownResource {
      * Fetches up to MAX_VISIBILITY_FILTER_RESULTS, filters by visibility on DTOs first,
      * paginates, and converts to the target DTO type.
      */
-    private <T> List<T> executeVisibilityFilteredSearch(Set<SearchFilter> filters, String resourceName, 
-            int offset, int limit, Function<SearchedArtifactDto, T> mapper, 
-            Consumer<Integer> totalCountConsumer) {
+    private <T> PagedResult<T> executeVisibilityFilteredSearch(Set<SearchFilter> filters, String resourceName,
+            int offset, int limit, Function<SearchedArtifactDto, T> mapper) {
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-        warnIfTruncated(results, resourceName);
+            filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
 
-        List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
+        warnIfTruncated(results, resourceName);
+    
+        List<SearchedArtifactDto> rawArtifacts = results != null && results.getArtifacts() != null
+                ? results.getArtifacts()
+                : Collections.emptyList();
+
+        List<SearchedArtifactDto> visible = filterDtosByVisibility(rawArtifacts);
 
         int total = visible.size();
-        totalCountConsumer.accept(total);
-
         int fromIndex = Math.min(offset, total);
         int toIndex = Math.min(fromIndex + limit, total);
         List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
-
+    
         List<T> items = new ArrayList<>(page.size());
         for (SearchedArtifactDto artifact : page) {
             items.add(mapper.apply(artifact));
         }
-        return items;
+    
+        return new PagedResult<>(items, total);
     }
 
     /**
@@ -580,12 +597,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
             // Parameter filtering is performed after artifact search by inspecting tool.getParameters()
             ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                     OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+
             warnIfTruncated(results, "MCP tool");
 
             // filter visibility before inspecting parameters
-            List<SearchedArtifactDto> candidates = isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled()
-                ? filterDtosByVisibility(results.getArtifacts())
-                : results.getArtifacts();
+            List<SearchedArtifactDto> rawArtifacts = results != null && results.getArtifacts() != null
+                    ? results.getArtifacts()
+                    : Collections.emptyList();
+            
+            List<SearchedArtifactDto> candidates = isMcpEntitlementsEnabled()
+                    ? filterDtosByVisibility(rawArtifacts)
+                    : rawArtifacts;
 
             List<McpToolSearchResult> matchingTools = new ArrayList<>();
             for (SearchedArtifactDto artifact : candidates) {
@@ -598,31 +620,37 @@ public class WellKnownResourceImpl implements WellKnownResource {
             int total = matchingTools.size();
             int fromIndex = Math.min(safeOffset, total);
             int toIndex = Math.min(fromIndex + safeLimit, total);
-            List<McpToolSearchResult> page = matchingTools.subList(fromIndex, toIndex);
+            List<McpToolSearchResult> page = new ArrayList<>(matchingTools.subList(fromIndex, toIndex));
 
             return McpToolSearchResults.builder().count(total).tools(page).build();
         }
 
-        if (isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled()) {
-            int[] totalHolder = new int[1];
-            List<McpToolSearchResult> tools = executeVisibilityFilteredSearch(
+        if (isMcpEntitlementsEnabled()) {
+            PagedResult<McpToolSearchResult> pageResult = executeVisibilityFilteredSearch(
                     filters, "MCP tool", safeOffset, safeLimit,
-                    this::convertToMcpToolSearchResult,
-                    count -> totalHolder[0] = count
+                    this::convertToMcpToolSearchResult
             );
-    
-            return McpToolSearchResults.builder().count(totalHolder[0]).tools(tools).build();
+            return McpToolSearchResults.builder()
+                    .count(pageResult.totalCount())
+                    .tools(pageResult.items())
+                    .build();
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.desc, safeOffset, safeLimit, false);
+        
+        List<SearchedArtifactDto> artifacts = results != null && results.getArtifacts() != null
+                ? results.getArtifacts()
+                : Collections.emptyList();
+
+        int count = results != null && results.getCount() != null ? (int) results.getCount() : artifacts.size();
 
         List<McpToolSearchResult> tools = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+        for (SearchedArtifactDto artifact : artifacts) {
             tools.add(convertToMcpToolSearchResult(artifact));
         }
 
-        return McpToolSearchResults.builder().count((int) results.getCount()).tools(tools).build();
+        return McpToolSearchResults.builder().count(count).tools(tools).build();
     }
 
     private int parsePaginationParam(String value, String name, int defaultValue) {

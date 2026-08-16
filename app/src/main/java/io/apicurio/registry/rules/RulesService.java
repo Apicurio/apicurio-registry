@@ -1,13 +1,22 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.rules;
 
-import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.types.RuleType;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * A service used to apply configured rules to a given content update. In other words, when artifact content
@@ -21,7 +30,7 @@ public interface RulesService {
      * @param context the rule application context
      * @throws RuleViolationException if a rule violation occurs
      */
-    public void applyRules(RuleApplicationContext context) throws RuleViolationException;
+    void applyRules(RuleApplicationContext context) throws RuleViolationException;
 
     /**
      * Primary entry point to apply a single specific rule using a {@link RuleApplicationContext}.
@@ -29,47 +38,5 @@ public interface RulesService {
      * @param context the rule application context (must specify {@code ruleType})
      * @throws RuleViolationException if a rule violation occurs
      */
-    public void applyRule(RuleApplicationContext context) throws RuleViolationException;
-
-    /**
-     * Applies all configured rules to check whether a content update for an artifact is allowed.
-     */
-    public void applyRules(String groupId, String artifactId, String artifactType, TypedContent content,
-            RuleApplicationType ruleApplicationType, List<ArtifactReference> references,
-            Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
-
-    /**
-     * Applies a single, specific rule to the content update for the given artifact.
-     */
-    public void applyRule(String groupId, String artifactId, String artifactType, TypedContent content,
-            RuleType ruleType, String ruleConfiguration, RuleApplicationType ruleApplicationType,
-            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
-            throws RuleViolationException;
-
-    /**
-     * Applies configured rules to the content update, relative to ANY artifact version.
-     */
-    public void applyRules(String groupId, String artifactId, String artifactVersion, String artifactType,
-            TypedContent updatedContent, List<ArtifactReference> references,
-            Map<String, TypedContent> resolvedReferences) throws RuleViolationException;
-
-    /**
-     * Applies all configured rules using the provided storage instance.
-     * This allows validation against a different storage (e.g., the inactive database
-     * during GitOps blue-green loading).
-     */
-    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String artifactType,
-            TypedContent content, RuleApplicationType ruleApplicationType,
-            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
-            throws RuleViolationException;
-
-    /**
-     * Applies all configured rules using the provided storage instance and explicit
-     * existing content for comparison (e.g., for compatibility checks during GitOps loading
-     * where all versions are already imported into the same storage).
-     */
-    public void applyRules(RegistryStorage storage, String groupId, String artifactId, String artifactType,
-            TypedContent content, List<TypedContent> existingContent,
-            List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
-            throws RuleViolationException;
+    void applyRule(RuleApplicationContext context) throws RuleViolationException;
 }

@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 @Priority(Priorities.Interceptors.AUTHORIZATION)
 public class AuthorizedInterceptor {
 
+    static final String FORBIDDEN_MESSAGE = "User is not authorized to perform the requested operation.";
+
     @Inject
     Logger log;
 
@@ -134,9 +136,9 @@ public class AuthorizedInterceptor {
 
         // If RBAC is enabled, apply role based rules
         if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
-            log.warn("RBAC enabled and required role missing for user: {}",
-                    securityIdentity.getPrincipal().getName());
-            throw new ForbiddenException("User is not authorized to perform the requested operation.");
+            log.warn("RBAC enabled and required role missing.");
+            log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+            throw new ForbiddenException(FORBIDDEN_MESSAGE);
         }
 
         // If Owner-only is enabled, apply ownership rules
@@ -144,9 +146,9 @@ public class AuthorizedInterceptor {
             if (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin()) {
                 // User is admin, that's good enough.
             } else if (!obac.isAuthorized(context)) {
-                log.warn("OBAC enabled and operation not permitted due to wrong owner. User: {}",
-                        securityIdentity.getPrincipal().getName());
-                throw new ForbiddenException("User is not authorized to perform the requested operation.");
+                log.warn("OBAC enabled and operation not permitted due to wrong owner.");
+                log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+                throw new ForbiddenException(FORBIDDEN_MESSAGE);
             }
         }
 

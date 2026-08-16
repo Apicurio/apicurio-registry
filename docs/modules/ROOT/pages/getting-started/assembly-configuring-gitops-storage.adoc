@@ -23,7 +23,7 @@ Configure {registry} to use a Git repository as the source of registry data. Wit
 [role="_abstract"]
 GitOps storage is a read-only storage variant that loads registry data from a Git repository. You declare the desired state of the registry in files, and the registry serves that state, so all changes flow through your Git workflow with reviews, history, and rollbacks.
 
-IMPORTANT: GitOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it. If the gate is not enabled, the application fails at startup. The data format (`*-v0`) might change in future releases.
+IMPORTANT: GitOps storage is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it. The data format (`*-v0`) might change in future releases.
 
 *Architecture*
 
@@ -78,7 +78,7 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), and `properties`. The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
 
 | `group-v0`
-| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, and `createdOn`.
+| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `rules`, and `createdOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
 
 | `artifact-v0`
 | An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType`, `name`, `description`, `createdOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file.
@@ -87,7 +87,7 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Optional content metadata, for explicit content identifiers and references.
 |===
 
-The following example declares a registry configuration and an artifact:
+The following example declares a registry configuration, a group, and an artifact. All three files are required: a load that references an undeclared group fails, and the registry does not become ready.
 
 [source,yaml]
 ----
@@ -96,6 +96,12 @@ registryId: main
 globalRules:
   - ruleType: VALIDITY
     config: FULL
+----
+
+[source,yaml]
+----
+$type: group-v0
+groupId: my-schemas
 ----
 
 [source,yaml]
@@ -110,22 +116,19 @@ versions:
     content: order-event-1.0.0.avsc
 ----
 
-Content files are plain schema files referenced by relative path. The registry detects the artifact content type from the file extension:
+Content files are plain schema files that metadata files reference by a path relative to the directory of the metadata file. The artifact type comes from the `artifactType` field of the artifact metadata, or from automatic content detection when you omit the field. The file extension determines only the media type that the registry stores with the content:
 
-.Content file extensions
+.Content file extensions and stored media types
 [cols="1,2", options="header"]
 |===
 | Extension
-| Content type
-
-| `.avsc`, `.avro`
-| Apache Avro
-
-| `.json`
-| JSON Schema
+| Stored media type
 
 | `.yaml`, `.yml`
-| OpenAPI or AsyncAPI
+| YAML
+
+| `.xml`, `.xsd`, `.wsdl`
+| XML
 
 | `.proto`
 | Protobuf
@@ -133,15 +136,18 @@ Content files are plain schema files referenced by relative path. The registry d
 | `.graphql`
 | GraphQL
 
-| `.xml`, `.xsd`, `.wsdl`
-| XML, XML Schema, or WSDL
+| `.thrift`
+| Thrift
+
+| All other extensions
+| JSON
 |===
 
 The following additional rules apply:
 
 * If `registryIds` is omitted or empty on a group or artifact, any registry instance loads it.
 * Timestamps such as `createdOn` are optional. When omitted, the Git commit time is used. Supported formats are ISO 8601, with or without a time zone or as a date only, and Unix milliseconds.
-* The optional `validatedUpTo` field on an artifact controls rule validation during a load. When unset, only the latest version is validated against its predecessor. When set to a version identifier, versions up to and including that version are not re-validated.
+* The optional `validatedUpTo` field on an artifact controls rule validation during a load. When unset, only the latest version is validated, against all preceding versions. When set to a version identifier, versions up to and including that version are not re-validated. When the value matches no version, all versions are validated.
 
 
 [id="configuring-gitops-storage-single-repository_{context}"]
@@ -166,7 +172,7 @@ APICURIO_STORAGE_KIND=gitops
 APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
 APICURIO_POLLING_STORAGE_ID=main
 ----
-. Mount the local clone of the repository into the registry container at `/repos/default`. A read-only mount is sufficient, because the registry does not write to the repository. The mount path is the workspace directory (`apicurio.gitops.workspace`, default `/repos`) combined with the repository directory name (`apicurio.gitops.repo.dir`, default `default`).
+. Mount the local clone of the repository into the registry container at `/repos/default`. A read-only mount is sufficient for serving content, because the registry does not write to the repository. If you use dry-run validation, mount the workspace writable instead, because the registry writes validation request files under the workspace directory. The mount path is the workspace directory (`apicurio.gitops.workspace`, default `/repos`) combined with the repository directory name (`apicurio.gitops.repo.dir`, default `default`).
 +
 For example, with Docker Compose:
 +
@@ -184,7 +190,7 @@ volumes:
 $ curl http://localhost:8080/apis/registry/v3/admin/gitops/status
 ----
 +
-The registry reports not ready on its readiness probe until the first load succeeds. After the first successful load, it stays ready even if a later load fails, and it keeps serving the last successfully loaded data.
+The registry reports not ready on its readiness probe until the first load succeeds. After the first successful load, it stays ready even if a later load fails, and it keeps serving the last successfully loaded data. With the default poll and debounce settings, expect a new commit to become visible after roughly 20 to 30 seconds.
 
 ifndef::service-registry-downstream[]
 [role="_additional-resources"]
@@ -222,7 +228,7 @@ The sync container clones the repository and then updates it every 30 seconds. Y
 APICURIO_GITOPS_PULL_SSH_KEYS=/etc/gitops/ssh/id_ed25519
 APICURIO_GITOPS_PULL_SSH_KNOWN_HOSTS=/etc/gitops/ssh/known_hosts
 ----
-. Optional: Adjust the security level with the `APICURIO_GITOPS_SECURITY` environment variable. The default level, `strict`, requires a known hosts file for SSH pulls and rejects loose key file permissions. The `dev` level relaxes host key checking for development. Plaintext `http://` remote URLs are rejected at both levels.
+. Optional: Adjust the security level with the `APICURIO_GITOPS_SECURITY` environment variable. The default level, `strict`, rejects loose key file permissions, and fails at startup when an SSH remote is configured without any SSH keys. When you provide keys without a known hosts file, the container accepts a host key on first connection. The `dev` level relaxes host key checking for development. Plaintext `http://` remote URLs are rejected at both levels.
 . Optional: To accept Git pushes instead of pulling from a remote, set `APICURIO_GITOPS_MODE=push`. The sync container runs a restricted SSH server for the `git` user on port `2222`. Configure the authorized client keys and the host key:
 +
 [source,bash]
@@ -297,6 +303,7 @@ You can validate a Git reference, such as a pull request branch, against the ful
 .Prerequisites
 * Validation is enabled on the registry (`apicurio.gitops.validate.enabled`, default `true`). When validation is disabled, the validation endpoints return an HTTP `503` response.
 * The sync container is running, because it fetches the reference to validate.
+* The workspace volume is writable by the registry, because the registry writes validation request files under the workspace directory.
 
 .Procedure
 . Create a validation task for the reference:
@@ -308,7 +315,7 @@ $ curl -X POST -H "Content-Type: application/json" \
   http://localhost:8080/apis/registry/v3/admin/gitops/validate
 ----
 +
-The `repoId` value must match a configured repository. The response contains a `taskId`.
+The `repoId` value must match the directory name of a configured repository; identifiers that you assign with `APICURIO_GITOPS_REPOS_N_ID` are not recognized by the sync container. An unknown value fails the created task instead of rejecting the request. The response contains a `taskId`.
 . Poll the task until it completes:
 +
 [source,bash,subs="+quotes"]
@@ -390,10 +397,6 @@ All GitOps storage properties are experimental and require `apicurio.features.ex
 | `apicurio.gitops.validate.max-tasks` (`APICURIO_GITOPS_VALIDATE_MAX_TASKS`)
 | `5`
 | Maximum number of validation tasks that hold disk resources at the same time. Further requests are queued.
-
-| `apicurio.gitops.validate.fetch.timeout.seconds` (`APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS`)
-| `120`
-| Timeout for the sync container to fetch a Git reference during validation.
 
 | `apicurio.polling-storage.id` (`APICURIO_POLLING_STORAGE_ID`)
 | `main`
@@ -560,7 +563,7 @@ The status response contains the following fields:
 | Timestamp of the last successful load.
 
 | `lastSyncAttempt`
-| Timestamp of the last load attempt.
+| Timestamp of the last poll attempt, successful or not.
 
 | `groupCount`, `artifactCount`, `versionCount`
 | Counts of the currently loaded data.

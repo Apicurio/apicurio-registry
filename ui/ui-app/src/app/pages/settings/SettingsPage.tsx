@@ -19,7 +19,7 @@ import {
     SETTINGS_PAGE_IDX,
     toPageError
 } from "@app/pages";
-import { If, IfNotEmpty } from "@apicurio/common-ui-components";
+import { If, IfNotEmpty } from "@apitomy/common-ui-components";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { AlertsService, useAlertsService } from "@services/useAlertsService.tsx";
 import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
@@ -75,6 +75,14 @@ const PROPERTY_GROUPS: PropertyGroup[] = [
             "apicurio.semver.validation.enabled",
             "apicurio.semver.branching.enabled",
             "apicurio.semver.branching.coerce"
+        ]
+    },
+    {
+        id: "storage",
+        label: "Storage settings",
+        propertyNames: [
+            "apicurio.storage.read-only.enabled",
+            "apicurio.kafkasql.snapshot.scheduled.enabled"
         ]
     },
 ];

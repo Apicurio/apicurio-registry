@@ -27,7 +27,7 @@ public class ContractMetadataMapper {
         }
 
         if (contractId == null) {
-            contractId = detectContractId(labels);
+            contractId = ContractLabels.detectContractId(labels);
         }
 
         String p = contractId != null
@@ -98,20 +98,6 @@ public class ContractMetadataMapper {
         return labels;
     }
 
-    private String detectContractId(Map<String, String> labels) {
-        String suffix = "." + ContractLabels.SUFFIX_ID;
-        for (var entry : labels.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
-                String middle = key.substring(ContractLabels.PREFIX.length(),
-                        key.length() - suffix.length());
-                if (!middle.isEmpty() && !middle.contains(".")) {
-                    return entry.getValue();
-                }
-            }
-        }
-        return null;
-    }
 
     private <T extends Enum<T>> T parseEnum(String value, Class<T> enumClass) {
         if (value == null || value.isBlank()) {

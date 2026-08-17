@@ -6,6 +6,8 @@ import java.util.Map;
 
 public abstract class AbstractConfig {
 
+    private static final String EXPECTED_NON_NULL_VALUE = "a non-null value";
+
     protected Map<String, Object> originals;
 
     protected abstract Map<String, ?> getDefaults();
@@ -13,7 +15,7 @@ public abstract class AbstractConfig {
     protected Duration getDurationNonNegativeMillis(String key) {
         Object value = getObject(key);
         if (value == null) {
-            reportError(key, "a non-null value", value);
+            reportError(key, EXPECTED_NON_NULL_VALUE, value);
         }
         long millis;
 
@@ -36,7 +38,7 @@ public abstract class AbstractConfig {
     protected long getLongNonNegative(String key) {
         Object value = getObject(key);
         if (value == null) {
-            reportError(key, "a non-null value", value);
+            reportError(key, EXPECTED_NON_NULL_VALUE, value);
         }
         long result;
         if (value instanceof Number) {
@@ -146,7 +148,7 @@ public abstract class AbstractConfig {
     protected double getDouble(String key) {
         Object value = getObject(key);
         if (value == null) {
-            reportError(key, "a non-null value", value);
+            reportError(key, EXPECTED_NON_NULL_VALUE, value);
             throw new IllegalStateException("Unreachable");
         }
         if (value instanceof Number number) {

@@ -9,6 +9,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JsonSchemaDiffUtilTest {
@@ -27,5 +33,12 @@ public class JsonSchemaDiffUtilTest {
                 DiffType.NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_DIVISIBLE,
                 DiffType.NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_NOT_DIVISIBLE);
         assertEquals(context.foundIncompatibleDifference(), isIncompatible);
+    }
+
+    @Test
+    void findDifferencesThrowsUnprocessableForUnsupportedDraft() {
+        String draft2020 = "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\"}";
+        Assertions.assertThrows(UnprocessableSchemaException.class,
+            () -> JsonSchemaDiffLibrary.findDifferences(draft2020, draft2020, Collections.emptyMap()));
     }
 }

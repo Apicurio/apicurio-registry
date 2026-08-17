@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { GroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
 import {
-    buildInitialRawTexts,
-    buildInitialValues,
+    buildInitialPanelState,
     buildVersionIdentity,
-    shouldAcceptRenderResponse
+    shouldAcceptRenderResponse,
+    shouldResetPanelState
 } from "./PromptTemplateTestPanel.utils";
 import { VariableSchema } from "./promptTemplateVariables";
 
@@ -40,40 +40,44 @@ export type PromptTemplateTestPanelState = {
 export const usePromptTemplateTestPanelState = (
     args: UsePromptTemplateTestPanelStateArgs
 ): PromptTemplateTestPanelState => {
-    // Keep the latest template/variables for the version-identity reset without depending on
-    // object identity — the parent may rebuild these on every render for a given version.
-    const templateRef = useRef(args.template);
-    templateRef.current = args.template;
-    const variablesRef = useRef(args.variables);
-    variablesRef.current = args.variables;
-
     // Version identity at the time of the latest reset / Render. Used to ignore stale
     // async Render resolutions after the viewed version has moved on.
     const versionIdentity = buildVersionIdentity(args.groupId, args.artifactId, args.version);
     const versionIdentityRef = useRef(versionIdentity);
     const renderRequestIdRef = useRef(0);
 
+    // Whether artifact content had arrived as of the latest reset. Lets the reset effect
+    // distinguish "content just loaded" from "same content, new object reference".
+    const contentWasPresentRef = useRef(args.template !== undefined || args.variables !== undefined);
+
     const [values, setValues] = useState<Record<string, any>>(
-        () => buildInitialValues(args.template, args.variables)
+        () => buildInitialPanelState(args.template, args.variables).values
     );
     const [rawTexts, setRawTexts] = useState<Record<string, string>>(
-        () => buildInitialRawTexts(args.template, args.variables)
+        () => buildInitialPanelState(args.template, args.variables).rawTexts
     );
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
-    // Reset form values and render results whenever the viewed version identity changes,
-    // OR when the artifact content (template/variables) transitions from absent to present.
-    // The parent memoizes template/variables, so these refs only change when the version
-    // key changes or when the artifact content is loaded asynchronously — user input isn't
-    // wiped on incidental re-renders.
+    // Reset form values and render results when the viewed version identity changes, or
+    // when the artifact content transitions from absent to present (async load after
+    // mount). Guarded by shouldResetPanelState rather than raw reference equality, so a
+    // caller that fails to memoize template/variables cannot wipe in-progress user input
+    // on an incidental re-render.
     useEffect(() => {
+        const contentPresent = args.template !== undefined || args.variables !== undefined;
+        const versionChanged = versionIdentityRef.current !== versionIdentity;
+        if (!shouldResetPanelState(versionChanged, contentPresent, contentWasPresentRef.current)) {
+            return;
+        }
+        contentWasPresentRef.current = contentPresent;
         versionIdentityRef.current = versionIdentity;
         renderRequestIdRef.current += 1;
-        setValues(buildInitialValues(templateRef.current, variablesRef.current));
-        setRawTexts(buildInitialRawTexts(templateRef.current, variablesRef.current));
+        const initial = buildInitialPanelState(args.template, args.variables);
+        setValues(initial.values);
+        setRawTexts(initial.rawTexts);
         setRenderedOutput("");
         setValidationErrors([]);
         setError("");

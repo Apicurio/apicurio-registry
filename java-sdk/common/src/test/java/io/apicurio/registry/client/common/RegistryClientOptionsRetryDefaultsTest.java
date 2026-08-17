@@ -19,6 +19,7 @@ package io.apicurio.registry.client.common;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -37,5 +38,11 @@ class RegistryClientOptionsRetryDefaultsTest {
         assertEquals(250L, options.getRetryDelayMs());
         assertEquals(2.0d, options.getBackoffMultiplier());
         assertEquals(10000L, options.getMaxRetryDelayMs());
+    }
+
+    @Test
+    void retryRejectsMultiplierOfOneSameAsSchemaResolverConfig() {
+        assertThrows(IllegalArgumentException.class,
+                () -> RegistryClientOptions.create().retry(true, 3, 250, 1.0, 10000));
     }
 }

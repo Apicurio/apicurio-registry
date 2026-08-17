@@ -81,16 +81,8 @@ public class RegistryClientRequestAdapterFactory {
 
         adapter.setBaseUrl(registryUrl);
 
-        // Wrap with retry proxy if retry is enabled
+        // Wrap with retry proxy if retry is enabled (settings already logged at client creation).
         if (options.isRetryEnabled()) {
-            log.log(Level.FINE,
-                    "Enabling registry HTTP client retry: maxAttempts={0}, delayMs={1}, backoffMultiplier={2}, maxDelayMs={3}",
-                    new Object[]{
-                            options.getMaxRetryAttempts(),
-                            options.getRetryDelayMs(),
-                            options.getBackoffMultiplier(),
-                            options.getMaxRetryDelayMs()
-                    });
             adapter = createRetryProxy(adapter, options);
         }
 
@@ -229,9 +221,10 @@ public class RegistryClientRequestAdapterFactory {
                         }
                     } else {
                         if (isRetryable(cause) && attempt >= maxRetryAttempts) {
+                            String causeMessage = cause.getMessage() != null ? cause.getMessage() : "<no message>";
                             log.log(Level.WARNING,
                                     "Registry HTTP client exhausted {0} retry attempts due to {1}: {2}",
-                                    new Object[]{maxRetryAttempts, cause.getClass().getName(), cause.getMessage()});
+                                    new Object[]{maxRetryAttempts, cause.getClass().getName(), causeMessage});
                         }
                         throw originalCause;
                     }

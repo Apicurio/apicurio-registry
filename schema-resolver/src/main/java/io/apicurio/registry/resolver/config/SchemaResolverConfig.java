@@ -200,11 +200,12 @@ public class SchemaResolverConfig extends AbstractConfig {
      * {@link #CLIENT_RETRY_MAX_ATTEMPTS}, which configures the underlying HTTP client retry ladder that may
      * run inside each cache attempt.
      * <p>
-     * <strong>Sizing:</strong> the layers multiply. Worst-case blocking for one cache load is roughly
-     * {@code (retry-count + 1) × (full client retry ladder including connect timeouts and client
-     * backoffs) + (retry-count × retry-backoff-ms)}. There is no overall deadline. Keep this low when
-     * elevating {@link #CLIENT_RETRY_MAX_ATTEMPTS}, especially for Kafka producers where a long block can
-     * trip {@code max.block.ms}.
+     * By default the cache layer only retries HTTP 429. Enable {@link #RETRY_TRANSIENT_ERRORS} to also retry
+     * network/outage failures (502/503/504 and connection errors). When that opt-in is enabled, the layers
+     * multiply: worst-case blocking is roughly
+     * {@code (retry-count + 1) × (full client retry ladder) + (retry-count × retry-backoff-ms)} with no
+     * overall deadline — size together with {@link #CLIENT_RETRY_MAX_ATTEMPTS}, especially for Kafka
+     * producers ({@code max.block.ms}) and Connect polls.
      */
     public static final String RETRY_COUNT = "apicurio.registry.retry-count";
     public static final long RETRY_COUNT_DEFAULT = 3;
@@ -216,17 +217,27 @@ public class SchemaResolverConfig extends AbstractConfig {
      * <p>
      * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
      * {@link #CLIENT_RETRY_DELAY_MS}, which configures the underlying HTTP client retry ladder that may run
-     * inside each cache attempt. See {@link #RETRY_COUNT} for how the two layers multiply.
+     * inside each cache attempt. See {@link #RETRY_COUNT} for how the two layers multiply when transient
+     * retries are enabled.
      */
     public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
+     * When {@code false} (default), the schema-cache retry layer only retries HTTP 429, matching historical
+     * behavior so existing deployments do not silently gain multiplicative blocking on connection failures.
+     * When {@code true}, also retries typical registry outage signals (502/503/504) and retriable network
+     * failures. See {@link #RETRY_COUNT} for sizing guidance when enabling this.
+     */
+    public static final String RETRY_TRANSIENT_ERRORS = "apicurio.registry.retry.transient-errors";
+    public static final boolean RETRY_TRANSIENT_ERRORS_DEFAULT = false;
+
+    /**
      * Enable or disable retry for the underlying registry HTTP client
      * ({@code RegistryClientOptions} / {@code RetryInvocationHandler}).
      * Distinct from {@link #RETRY_COUNT}, which controls schema-cache retries in {@code ERCache}.
-     * The two layers stack: each cache attempt may run a full HTTP client retry ladder
-     * (see {@link #RETRY_COUNT} for multiplicative blocking guidance).
+     * The two layers stack when {@link #RETRY_TRANSIENT_ERRORS} is enabled: each cache attempt may run a full
+     * HTTP client retry ladder (see {@link #RETRY_COUNT}).
      */
     public static final String CLIENT_RETRY_ENABLED = "apicurio.registry.client.retry.enabled";
     public static final boolean CLIENT_RETRY_ENABLED_DEFAULT = true;
@@ -235,10 +246,11 @@ public class SchemaResolverConfig extends AbstractConfig {
      * Maximum number of retry attempts for the underlying registry HTTP client.
      * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms); SDK parity is
      * pinned by {@code RegistryClientOptionsRetryDefaultsTest} in java-sdk/common.
+     * Must be an integer in {@code [1, Integer.MAX_VALUE]}.
      * <p>
-     * Size together with {@link #RETRY_COUNT}: each of the {@code (retry-count + 1)} cache attempts may
-     * run this many HTTP attempts plus client backoff sleeps, with no overall deadline. Large values can
-     * block Kafka {@code Producer.send()} long enough to hit {@code max.block.ms}.
+     * Size together with {@link #RETRY_COUNT} when {@link #RETRY_TRANSIENT_ERRORS} is enabled: each of the
+     * {@code (retry-count + 1)} cache attempts may run this many HTTP attempts plus client backoff sleeps.
+     * Large values can block Kafka {@code Producer.send()} long enough to hit {@code max.block.ms}.
      */
     public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
     public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;
@@ -492,12 +504,23 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getDurationNonNegativeMillis(RETRY_BACKOFF_MS);
     }
 
+    public boolean getRetryTransientErrors() {
+        return getBoolean(RETRY_TRANSIENT_ERRORS);
+    }
+
     public boolean getClientRetryEnabled() {
         return getBoolean(CLIENT_RETRY_ENABLED);
     }
 
     public long getClientRetryMaxAttempts() {
-        return getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
+        // Fail fast with the property name rather than ArithmeticException at Math.toIntExact later.
+        long value = getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
+        if (value < 1 || value > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_MAX_ATTEMPTS
+                    + "'. Expected an integer in [1, " + Integer.MAX_VALUE + "], but got '" + value + "'.");
+        }
+        return value;
     }
 
     public long getClientRetryDelayMs() {
@@ -509,27 +532,13 @@ public class SchemaResolverConfig extends AbstractConfig {
         if (value == null) {
             return CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
         }
-        double parsed;
-        if (value instanceof Number number) {
-            parsed = number.doubleValue();
-        } else if (value instanceof String string) {
-            try {
-                parsed = Double.parseDouble(string);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid configuration property value for '"
-                        + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
-                        + value + "'.", e);
-            }
-        } else {
-            throw new IllegalArgumentException("Invalid configuration property value for '"
-                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
-                    + value + "'.");
-        }
-        // Align with RegistryClientOptions retry: backoff multiplier must be greater than 1.0.
+        // Same constraint as RegistryClientOptions#retry(...): multiplier must be > 1.0
+        // (constant-delay backoff is not supported by the HTTP client layer).
+        double parsed = getDouble(CLIENT_RETRY_BACKOFF_MULTIPLIER);
         if (!Double.isFinite(parsed) || parsed <= 1.0) {
             throw new IllegalArgumentException("Invalid configuration property value for '"
-                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a finite number greater than 1.0, but got '"
-                    + value + "'.");
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER
+                    + "'. Expected a finite number greater than 1.0, but got '" + value + "'.");
         }
         return parsed;
     }
@@ -627,8 +636,8 @@ public class SchemaResolverConfig extends AbstractConfig {
      */
     public Vertx getVertx() {
         Object vertx = getObject(VERTX_INSTANCE);
-        if (vertx instanceof Vertx configuredVertx) {
-            return configuredVertx;
+        if (vertx instanceof Vertx) {
+            return (Vertx) vertx;
         }
         return null;
     }
@@ -673,6 +682,7 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
+            entry(RETRY_TRANSIENT_ERRORS, RETRY_TRANSIENT_ERRORS_DEFAULT),
             entry(CLIENT_RETRY_ENABLED, CLIENT_RETRY_ENABLED_DEFAULT),
             entry(CLIENT_RETRY_MAX_ATTEMPTS, CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT),
             entry(CLIENT_RETRY_DELAY_MS, CLIENT_RETRY_DELAY_MS_DEFAULT),

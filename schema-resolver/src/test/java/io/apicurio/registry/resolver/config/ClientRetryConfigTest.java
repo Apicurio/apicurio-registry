@@ -33,6 +33,7 @@ class ClientRetryConfigTest {
         SchemaResolverConfig config = new SchemaResolverConfig(Map.of());
 
         assertTrue(config.getClientRetryEnabled());
+        assertFalse(config.getRetryTransientErrors());
         // Must stay aligned with RegistryClientOptions#retry() defaults
         // (pinned by RegistryClientOptionsRetryDefaultsTest in java-sdk/common).
         assertEquals(3L, config.getClientRetryMaxAttempts());
@@ -49,14 +50,34 @@ class ClientRetryConfigTest {
         originals.put(SchemaResolverConfig.CLIENT_RETRY_DELAY_MS, "1000");
         originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, "1.5");
         originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_DELAY_MS, "30000");
+        originals.put(SchemaResolverConfig.RETRY_TRANSIENT_ERRORS, "true");
 
         SchemaResolverConfig config = new SchemaResolverConfig(originals);
 
         assertFalse(config.getClientRetryEnabled());
+        assertTrue(config.getRetryTransientErrors());
         assertEquals(30L, config.getClientRetryMaxAttempts());
         assertEquals(1000L, config.getClientRetryDelayMs());
         assertEquals(1.5d, config.getClientRetryBackoffMultiplier());
         assertEquals(30000L, config.getClientRetryMaxDelayMs());
+    }
+
+    @Test
+    void maxAttemptsRejectsValuesThatDoNotFitInt() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, "5000000000");
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::getClientRetryMaxAttempts);
+        assertTrue(ex.getMessage().contains(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS));
+    }
+
+    @Test
+    void maxAttemptsRejectsZero() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, "0");
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        assertThrows(IllegalArgumentException.class, config::getClientRetryMaxAttempts);
     }
 
     @Test

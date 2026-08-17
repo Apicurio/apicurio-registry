@@ -190,6 +190,7 @@ public class RegistryClientFacadeFactory {
 
     /**
      * Strip userinfo from registry URLs before logging to avoid leaking credentials.
+     * Returns {@code <invalid-url>} when the input cannot be parsed (never echoes the raw string).
      */
     static String sanitizeRegistryUrl(String url) {
         if (url == null || url.isBlank()) {
@@ -203,7 +204,7 @@ public class RegistryClientFacadeFactory {
             return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(),
                     uri.getFragment()).toString();
         } catch (Exception e) {
-            return "<redacted>";
+            return "<invalid-url>";
         }
     }
 

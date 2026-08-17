@@ -140,4 +140,38 @@ public abstract class AbstractConfig {
                 + "Expected " + expectedText + ", but got a '" + value + "'.");
     }
 
+    /**
+     * Parse a double from a Number or String configuration value.
+     */
+    protected double getDouble(String key) {
+        Object value = getObject(key);
+        if (value == null) {
+            reportError(key, "a non-null value", value);
+            throw new IllegalStateException("Unreachable");
+        }
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String string) {
+            try {
+                return Double.parseDouble(string);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid configuration property value for '" + key
+                        + "'. Expected a number-like value, but got a '" + value + "'.", e);
+            }
+        }
+        reportError(key, "a number-like value", value);
+        throw new IllegalStateException("Unreachable");
+    }
+
+    /**
+     * Ensure a non-negative long fits in a Java {@code int} (for APIs that take int).
+     */
+    protected int getIntNonNegative(String key) {
+        long value = getLongNonNegative(key);
+        if (value > Integer.MAX_VALUE) {
+            reportError(key, "an integer-compatible value (<= " + Integer.MAX_VALUE + ")", value);
+        }
+        return (int) value;
+    }
 }

@@ -59,6 +59,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureLifetime(config.getCheckPeriod());
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
         schemaCache.configureRetryCount(config.getRetryCount());
+        schemaCache.configureRetryTransientErrors(config.getRetryTransientErrors());
         schemaCache.configureCacheLatest(config.getCacheLatest());
         schemaCache.configureFaultTolerantRefresh(config.getFaultTolerantRefresh());
         schemaCache.configureBackgroundRefresh(config.getBackgroundRefresh());

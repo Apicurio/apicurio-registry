@@ -45,6 +45,7 @@ public class ERCache<V> {
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
     private long retries;
+    private boolean retryTransientErrors;
     private boolean cacheLatest;
     private boolean faultTolerantRefresh;
     private boolean backgroundRefresh;
@@ -67,6 +68,15 @@ public class ERCache<V> {
 
     public void configureRetryCount(long retries) {
         this.retries = retries;
+    }
+
+    /**
+     * When {@code true}, schema-cache loads also retry network/outage failures (502/503/504 and
+     * retriable socket errors) in addition to HTTP 429. Default {@code false} preserves historical
+     * 429-only cache retries so existing deployments do not silently gain multiplicative blocking.
+     */
+    public void configureRetryTransientErrors(boolean retryTransientErrors) {
+        this.retryTransientErrors = retryTransientErrors;
     }
 
     /**
@@ -353,7 +363,7 @@ public class ERCache<V> {
      * @return Result containing either the refreshed value or an exception
      */
     private <T> Result<V, RuntimeException> performRefresh(T key, Function<T, V> loaderFunction) {
-        Result<V, RuntimeException> newValue = retry(backoff, retries, () -> {
+        Result<V, RuntimeException> newValue = retry(backoff, retries, retryTransientErrors, () -> {
             return loaderFunction.apply(key);
         });
         if (newValue.isOk()) {
@@ -423,8 +433,8 @@ public class ERCache<V> {
         return refreshExecutor;
     }
 
-    private static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
-                                                         Supplier<T> supplier) {
+    static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
+                                                 boolean retryTransientErrors, Supplier<T> supplier) {
         if (retries < 0)
             throw new IllegalArgumentException();
         Objects.requireNonNull(supplier);
@@ -442,9 +452,9 @@ public class ERCache<V> {
             } catch (RuntimeException e) {
                 // Schema-cache retries compose with the HTTP client retry layer
                 // (apicurio.registry.client.retry.*). Each cache attempt may run a full
-                // client retry ladder before returning here; there is no overall deadline,
-                // so worst-case blocking is multiplicative (see SchemaResolverConfig docs).
-                if (i == retries || !isRetriableCacheLoadFailure(e)) {
+                // client retry ladder before returning here. Widened (non-429) retries are
+                // opt-in via apicurio.registry.retry.transient-errors; see SchemaResolverConfig.
+                if (i == retries || !isRetriableCacheLoadFailure(e, retryTransientErrors)) {
                     log.error("Schema cache load failed after {} retries", i, e);
                     return Result.error(new RuntimeException(e));
                 }
@@ -461,41 +471,59 @@ public class ERCache<V> {
         return Result.error(new IllegalStateException("Unreachable."));
     }
 
+    /** Max cause-chain depth when classifying failures (guards against cyclic causes). */
+    static final int MAX_CAUSE_DEPTH = 32;
+
     /**
      * Whether a schema-cache load failure should be retried.
      * <p>
-     * Retriable cases:
+     * Always retriable: HTTP 429 (rate limit).
+     * <p>
+     * When {@code retryTransientErrors} is {@code true}, also retriable:
      * <ul>
-     *   <li>HTTP 429 (rate limit) and 502/503/504 (typical registry outage / LB responses)</li>
-     *   <li>{@link java.net.SocketException} (connection refused / reset; covers
-     *       {@link java.net.ConnectException}). Note this also matches broader socket
-     *       failures such as resource exhaustion ("Too many open files") or
-     *       "Network is unreachable", which will then consume the full retry ladder.</li>
+     *   <li>HTTP 502/503/504 (typical registry outage / LB responses)</li>
+     *   <li>{@link java.net.ConnectException} and other {@link java.net.SocketException}s except
+     *       resource-exhaustion / unreachable-route cases</li>
      *   <li>{@link java.net.SocketTimeoutException} (JDK HTTP timeouts)</li>
      *   <li>{@link HttpClosedException}</li>
      *   <li>{@link VertxException} whose message or class name indicates a timeout
      *       (for example {@code NoStackTraceTimeoutException}; message matching is
      *       brittle across Vert.x versions and may false-negative)</li>
      * </ul>
-     * Other {@link ApiException} status codes (for example 404/500) are not retried so
-     * genuine application errors fail fast. An {@link ApiException} with a null status
-     * code is treated as non-retriable (not as an NPE).
+     * If any {@link ApiException} with a non-null status code appears in the cause chain, that status
+     * decides and network matching is skipped (so a 404/500 above a {@code SocketException} is not
+     * retried). An {@link ApiException} with a null status code is ignored for the status decision.
      */
+    static boolean isRetriableCacheLoadFailure(Throwable e, boolean retryTransientErrors) {
+        Integer apiStatus = findFirstApiResponseStatus(e);
+        if (apiStatus != null) {
+            return isRetriableHttpStatus(apiStatus, retryTransientErrors);
+        }
+        return retryTransientErrors && hasRetriableNetworkFailure(e);
+    }
+
+    /** Backward-compatible overload used by older call sites/tests; transient retries disabled. */
     static boolean isRetriableCacheLoadFailure(Throwable e) {
+        return isRetriableCacheLoadFailure(e, false);
+    }
+
+    private static Integer findFirstApiResponseStatus(Throwable e) {
         Throwable current = e;
-        while (current != null) {
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
             if (current instanceof ApiException api) {
                 Integer code = api.getResponseStatusCode();
-                if (code != null && isRetriableHttpStatus(code)) {
-                    return true;
+                if (code != null) {
+                    return code;
                 }
             }
-            // Covers ConnectException and connection-reset SocketExceptions without
-            // matching JDK-specific message text. Also matches unrelated SocketExceptions
-            // (fd exhaustion, unreachable network); see class javadoc above.
-            if (current instanceof java.net.SocketException) {
-                return true;
-            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private static boolean hasRetriableNetworkFailure(Throwable e) {
+        Throwable current = e;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
             if (current instanceof java.net.SocketTimeoutException) {
                 return true;
             }
@@ -505,13 +533,33 @@ public class ERCache<V> {
             if (isVertxTimeout(current)) {
                 return true;
             }
+            if (current instanceof java.net.SocketException socketException
+                    && !isNonRetriableSocketException(socketException)) {
+                return true;
+            }
             current = current.getCause();
         }
         return false;
     }
 
-    private static boolean isRetriableHttpStatus(int statusCode) {
-        return statusCode == 429 || statusCode == 502 || statusCode == 503 || statusCode == 504;
+    private static boolean isNonRetriableSocketException(java.net.SocketException exception) {
+        if (exception instanceof java.net.NoRouteToHostException) {
+            return true;
+        }
+        String message = exception.getMessage();
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(java.util.Locale.ROOT);
+        return lower.contains("too many open files") || lower.contains("no buffer space");
+    }
+
+    private static boolean isRetriableHttpStatus(int statusCode, boolean retryTransientErrors) {
+        if (statusCode == 429) {
+            return true;
+        }
+        return retryTransientErrors
+                && (statusCode == 502 || statusCode == 503 || statusCode == 504);
     }
 
     private static boolean isVertxTimeout(Throwable current) {
@@ -520,14 +568,14 @@ public class ERCache<V> {
         }
         String message = current.getMessage();
         if (message == null) {
-            return current.getClass().getSimpleName().toLowerCase().contains("timeout");
+            return current.getClass().getSimpleName().toLowerCase(java.util.Locale.ROOT).contains("timeout");
         }
-        return message.toLowerCase().contains("timeout");
+        return message.toLowerCase(java.util.Locale.ROOT).contains("timeout");
     }
 
     private static String rootMessage(Throwable e) {
         Throwable current = e;
-        while (current.getCause() != null) {
+        for (int depth = 0; current.getCause() != null && depth < MAX_CAUSE_DEPTH; depth++) {
             current = current.getCause();
         }
         return current.getClass().getSimpleName() + ": " + current.getMessage();

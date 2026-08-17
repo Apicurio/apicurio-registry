@@ -1,5 +1,5 @@
 import { ConfigService, useConfigService } from "./useConfigService";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { createAuthOptions } from "../utils/rest.utils";
 
 export interface McpToolSearchResult {

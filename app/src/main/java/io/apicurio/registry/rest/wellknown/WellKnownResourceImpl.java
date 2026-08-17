@@ -18,7 +18,6 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.mcptools.McpToolsConfig;
-import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
@@ -58,14 +57,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -687,7 +682,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
             // Exclude the target artifact itself if targetGa is specified
             if (targetGa != null
-                    && java.util.Objects.equals(artifact.getGroupId(), targetGa.getRawGroupIdWithNull())
+                    && isSameGroup(artifact.getGroupId(), targetGa.getRawGroupIdWithNull())
                     && java.util.Objects.equals(artifact.getArtifactId(), targetGa.getRawArtifactId())) {
                 continue;
             }
@@ -718,7 +713,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         List<McpToolSearchResult> page = compatibleTools.subList(fromIndex, toIndex);
 
         return McpToolSearchResults.builder()
-                .count((long) total)
+                .count(total)
                 .tools(page)
                 .build();
     }
@@ -799,7 +794,11 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return true;
     }
 
-
+    private boolean isSameGroup(String g1, String g2) {
+        String norm1 = new GroupId(g1).getRawGroupIdWithNull();
+        String norm2 = new GroupId(g2).getRawGroupIdWithNull();
+        return java.util.Objects.equals(norm1, norm2);
+    }
 
     private int parsePaginationParam(String value, String name, int defaultValue) {
         if (StringUtil.isEmpty(value)) {
@@ -810,200 +809,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
         } catch (NumberFormatException e) {
             throw new BadRequestException("Invalid " + name + ": must be an integer");
         }
-    }
-
-    @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public McpCompatibleToolsResults findCompatibleTools(String groupId, String artifactId,
-            String version, Integer offset, Integer limit) {
-        if (!mcpToolsConfig.isEnabled()) {
-            throw new NotFoundException("MCP tools support is disabled");
-        }
-
-        StoredArtifactVersionDto sourceArtifact = fetchMcpToolArtifact(groupId, artifactId, version);
-        Map<String, String> sourceOutputProps = extractOutputProperties(sourceArtifact);
-
-        if (sourceOutputProps.isEmpty()) {
-            return McpCompatibleToolsResults.builder().count(0).tools(Collections.emptyList()).build();
-        }
-
-        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-        List<McpToolSearchResult> compatibleTools = findCompatibleCandidates(rawGroupId, artifactId, sourceOutputProps);
-
-        return buildPaginatedCompatibleResults(compatibleTools, offset, limit);
-    }
-
-    private StoredArtifactVersionDto fetchMcpToolArtifact(String groupId, String artifactId, String version) {
-        GroupId gid = new GroupId(groupId);
-        String rawGroupId = gid.getRawGroupIdWithNull();
-        GA ga = new GA(rawGroupId, artifactId);
-
-        try {
-            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
-            GAV gav = VersionExpressionParser.parse(ga, versionExpression,
-                    (g, branchId) -> storage.getBranchTip(g, branchId,
-                            RetrievalBehavior.SKIP_DISABLED_LATEST));
-
-            ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(
-                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
-
-            if (!ArtifactType.MCP_TOOL.equals(metadata.getArtifactType())) {
-                throw new NotFoundException("Artifact is not an MCP tool definition");
-            }
-
-            return storage.getArtifactVersionContent(
-                    gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
-
-        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
-            throw new NotFoundException("MCP tool not found: " + groupId + "/" + artifactId);
-        }
-    }
-
-    private Map<String, String> extractOutputProperties(StoredArtifactVersionDto sourceArtifact) {
-        Map<String, String> sourceOutputProps = new HashMap<>();
-        try {
-            JsonNode sourceRoot = mapper.readTree(sourceArtifact.getContent().content());
-            JsonNode outputSchema = sourceRoot.path("outputSchema");
-            if (outputSchema.isObject()) {
-                JsonNode properties = outputSchema.path(PROPERTIES_FIELD);
-                if (properties.isObject()) {
-                    Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
-                    while (fields.hasNext()) {
-                        Map.Entry<String, JsonNode> field = fields.next();
-                        sourceOutputProps.put(field.getKey(), extractJsonSchemaType(field.getValue()));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse source MCP tool outputSchema: {}", e.getMessage());
-        }
-        return sourceOutputProps;
-    }
-
-    /**
-     * Extracts the scalar JSON Schema type string from a property node.
-     *
-     * <p><b>Lenient by design:</b> Only the simple string form {@code {"type": "string"}} is
-     * matched.  Array forms such as {@code {"type": ["string","null"]}} or schema composition
-     * keywords ({@code oneOf}, {@code $ref}) return {@code null}, which causes
-     * {@link #candidateAcceptsAllProperties} to skip the type comparison entirely and treat
-     * the property as compatible.  This is intentional — MCP tool schemas are frequently
-     * nullable or polymorphic, and a strict rejection would produce false-negatives.  Callers
-     * that require strict type enforcement should perform their own JSON Schema validation.
-     */
-    private String extractJsonSchemaType(JsonNode node) {
-        return node.has("type") && node.get("type").isTextual()
-                ? node.get("type").asText() : null;
-    }
-
-    /**
-     * Scans at most {@link #MAX_COMPATIBLE_CANDIDATE_SCAN} MCP tools and returns those whose
-     * {@code inputSchema} accepts every property produced by the source tool's {@code outputSchema}.
-     *
-     * <p><b>Authorization note:</b> candidate identity and metadata are exposed at the same
-     * read-level scope as {@code searchMcpTools}, which also returns all MCP tools visible
-     * to the caller via {@link AuthorizedLevel#Read}.  No per-artifact visibility label is
-     * applied because MCP tools (unlike A2A agents) do not carry an
-     * {@code apicurio.agent.visibility} label; the caller's read-level authorization is the
-     * sole gate for both endpoints.
-     */
-    private List<McpToolSearchResult> findCompatibleCandidates(String rawGroupId, String sourceArtifactId,
-            Map<String, String> sourceOutputProps) {
-        Set<SearchFilter> filters = new HashSet<>();
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
-
-        ArtifactSearchResultsDto candidateResults = storage.searchArtifacts(filters, OrderBy.createdOn,
-                OrderDirection.desc, 0, MAX_COMPATIBLE_CANDIDATE_SCAN, false);
-
-        if (candidateResults.getCount() >= MAX_COMPATIBLE_CANDIDATE_SCAN) {
-            log.warn("Compatible-tools candidate scan reached the cap of {}; results beyond this"
-                    + " limit are not evaluated. Consider raising MAX_COMPATIBLE_CANDIDATE_SCAN"
-                    + " or implementing storage-side filtering.", MAX_COMPATIBLE_CANDIDATE_SCAN);
-        }
-
-        List<McpToolSearchResult> compatibleTools = new ArrayList<>();
-        for (SearchedArtifactDto candidate : candidateResults.getArtifacts()) {
-            Optional<JsonNode> compatibleRoot = tryGetCompatibleCandidateRoot(
-                    candidate, rawGroupId, sourceArtifactId, sourceOutputProps);
-            compatibleRoot.ifPresent(root ->
-                    compatibleTools.add(convertToMcpToolSearchResultFromContent(candidate, root)));
-        }
-        return compatibleTools;
-    }
-
-    /**
-     * Fetches and parses the candidate's latest content exactly once, checks whether its
-     * {@code inputSchema} accepts all required output properties, and — if compatible —
-     * returns the already-parsed {@link JsonNode} so the caller can reuse it for result
-     * conversion without a second storage round-trip.
-     *
-     * @return the candidate's parsed content root when compatible; {@link Optional#empty()} otherwise
-     */
-    private Optional<JsonNode> tryGetCompatibleCandidateRoot(SearchedArtifactDto candidate,
-            String rawGroupId, String sourceArtifactId, Map<String, String> sourceOutputProps) {
-        if (sourceArtifactId.equals(candidate.getArtifactId())
-                && isSameGroup(rawGroupId, candidate.getGroupId())) {
-            return Optional.empty();
-        }
-
-        try {
-            GA candidateGa = new GA(candidate.getGroupId(), candidate.getArtifactId());
-            GAV candidateGav = VersionExpressionParser.parse(candidateGa, "branch=latest",
-                    (g, branchId) -> storage.getBranchTip(g, branchId,
-                            RetrievalBehavior.SKIP_DISABLED_LATEST));
-            StoredArtifactVersionDto candidateStored = storage.getArtifactVersionContent(
-                    candidateGav.getRawGroupIdWithNull(), candidateGav.getRawArtifactId(),
-                    candidateGav.getRawVersionId());
-
-            JsonNode candidateRoot = mapper.readTree(candidateStored.getContent().content());
-            JsonNode candidateInputSchema = candidateRoot.path("inputSchema");
-            if (candidateInputSchema.isObject()) {
-                JsonNode candidateProps = candidateInputSchema.path(PROPERTIES_FIELD);
-                if (candidateProps.isObject()
-                        && candidateAcceptsAllProperties(candidateProps, sourceOutputProps)) {
-                    return Optional.of(candidateRoot);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to evaluate compatibility for candidate MCP tool {}/{}: {}",
-                    candidate.getGroupId(), candidate.getArtifactId(), e.getMessage());
-        }
-        return Optional.empty();
-    }
-
-    private boolean isSameGroup(String sourceGroupId, String candidateGroupId) {
-        return (sourceGroupId == null && candidateGroupId == null)
-                || (sourceGroupId != null && sourceGroupId.equals(candidateGroupId));
-    }
-
-    private boolean candidateAcceptsAllProperties(JsonNode candidateProps, Map<String, String> sourceOutputProps) {
-        for (Map.Entry<String, String> entry : sourceOutputProps.entrySet()) {
-            String reqProp = entry.getKey();
-            String reqType = entry.getValue();
-
-            if (!candidateProps.has(reqProp)) {
-                return false;
-            }
-            if (reqType != null) {
-                String candType = extractJsonSchemaType(candidateProps.get(reqProp));
-                if (candType != null && !reqType.equals(candType)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    private McpCompatibleToolsResults buildPaginatedCompatibleResults(List<McpToolSearchResult> compatibleTools,
-            Integer offset, Integer limit) {
-        int total = compatibleTools.size();
-        int safeOffset = Math.max(0, offset);
-        int safeLimit = Math.max(1, limit);
-        int fromIndex = Math.min(safeOffset, total);
-        int toIndex = Math.min(fromIndex + safeLimit, total);
-        List<McpToolSearchResult> page = compatibleTools.subList(fromIndex, toIndex);
-
-        return McpCompatibleToolsResults.builder().count(total).tools(page).build();
     }
 
     /**

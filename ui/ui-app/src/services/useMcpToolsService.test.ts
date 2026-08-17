@@ -1,4 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.hoisted(() => {
+    const registryConfig = { artifacts: { url: "http://localhost:8080/apis/registry/v3/" } };
+    (globalThis as any).ApicurioRegistryConfig = registryConfig;
+    (globalThis as any).window = { ApicurioRegistryConfig: registryConfig };
+});
+
+vi.mock("@apitomy/common-ui-components", () => ({
+    useAuth: () => ({})
+}));
+
 import { getBaseUrl } from "./useMcpToolsService";
 import { ConfigService } from "./useConfigService";
 

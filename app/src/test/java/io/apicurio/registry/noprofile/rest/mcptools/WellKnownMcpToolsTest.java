@@ -336,7 +336,7 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         String compatId = "compat-tool-" + unique;
         String incompatId = "incompat-tool-" + unique;
 
-        // Target tool: outputSchema defines { "result": string, "count": integer }
+        // Target tool: outputSchema defines { "compat_base_res": string, "count": integer }
         String baseTargetTool = """
                 {
                     "name": "base_search",
@@ -351,15 +351,15 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                     "outputSchema": {
                         "type": "object",
                         "properties": {
-                            "result": { "type": "string" },
+                            "compat_base_res": { "type": "string" },
                             "count": { "type": "integer" }
                         },
-                        "required": ["result"]
+                        "required": ["compat_base_res"]
                     }
                 }
                 """;
 
-        // Compatible candidate: requires input { "result": string }, which target produces
+        // Compatible candidate: requires input { "compat_base_res": string }, which target produces
         String compatibleTool = """
                 {
                     "name": "result_formatter",
@@ -367,14 +367,14 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "result": { "type": "string" }
+                            "compat_base_res": { "type": "string" }
                         },
-                        "required": ["result"]
+                        "required": ["compat_base_res"]
                     }
                 }
                 """;
 
-        // Incompatible candidate: requires input { "result": string, "missing_field": string }, where missing_field is not in target output
+        // Incompatible candidate: requires input { "compat_base_res": string, "missing_field": string }, where missing_field is not in target output
         String incompatibleTool = """
                 {
                     "name": "strict_consumer",
@@ -382,10 +382,10 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "result": { "type": "string" },
+                            "compat_base_res": { "type": "string" },
                             "missing_field": { "type": "string" }
                         },
-                        "required": ["result", "missing_field"]
+                        "required": ["compat_base_res", "missing_field"]
                     }
                 }
                 """;
@@ -423,30 +423,30 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         String unique = TestUtils.generateArtifactId().replace("-", "");
         String compatId = "post-compat-" + unique;
 
-        // Raw target content: produces output { "payload": string }
+        // Raw target content: produces output { "post_payload_prop": string }
         String rawContent = """
                 {
                     "name": "raw_tool",
                     "outputSchema": {
                         "type": "object",
                         "properties": {
-                            "payload": { "type": "string" }
+                            "post_payload_prop": { "type": "string" }
                         },
-                        "required": ["payload"]
+                        "required": ["post_payload_prop"]
                     }
                 }
                 """;
 
-        // Candidate tool: requires input { "payload": string }
+        // Candidate tool: requires input { "post_payload_prop": string }
         String compatContent = """
                 {
                     "name": "payload_processor",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "payload": { "type": "string" }
+                            "post_payload_prop": { "type": "string" }
                         },
-                        "required": ["payload"]
+                        "required": ["post_payload_prop"]
                     }
                 }
                 """;
@@ -487,27 +487,34 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         String targetTool = """
                 {
                     "name": "optional_output_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "unused_opt_target_input": { "type": "string" }
+                        },
+                        "required": ["unused_opt_target_input"]
+                    },
                     "outputSchema": {
                         "type": "object",
                         "properties": {
-                            "result": { "type": "string" },
-                            "count": { "type": "integer" }
+                            "opt_result_prop": { "type": "string" },
+                            "opt_count_prop": { "type": "integer" }
                         },
-                        "required": ["result"]
+                        "required": ["opt_result_prop"]
                     }
                 }
                 """;
 
-        // Candidate tool: requires "count" as input
+        // Candidate tool: requires "opt_count_prop" as input
         String candidateTool = """
                 {
                     "name": "requires_count_consumer",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "count": { "type": "integer" }
+                            "opt_count_prop": { "type": "integer" }
                         },
-                        "required": ["count"]
+                        "required": ["opt_count_prop"]
                     }
                 }
                 """;
@@ -533,30 +540,37 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         String targetId = "tm-target-" + unique;
         String candidateId = "tm-consumer-" + unique;
 
-        // Target tool: outputSchema defines required output { "data": { "type": "string" } }
+        // Target tool: outputSchema defines required output { "mismatch_data_prop": { "type": "string" } }
         String targetTool = """
                 {
                     "name": "string_output_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "unrelated": { "type": "string" }
+                        },
+                        "required": ["unrelated"]
+                    },
                     "outputSchema": {
                         "type": "object",
                         "properties": {
-                            "data": { "type": "string" }
+                            "mismatch_data_prop": { "type": "string" }
                         },
-                        "required": ["data"]
+                        "required": ["mismatch_data_prop"]
                     }
                 }
                 """;
 
-        // Candidate tool: inputSchema requires { "data": { "type": "integer" } }
+        // Candidate tool: inputSchema requires { "mismatch_data_prop": { "type": "integer" } }
         String candidateTool = """
                 {
                     "name": "integer_input_consumer",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "data": { "type": "integer" }
+                            "mismatch_data_prop": { "type": "integer" }
                         },
-                        "required": ["data"]
+                        "required": ["mismatch_data_prop"]
                     }
                 }
                 """;
@@ -582,30 +596,37 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         String targetId = "widen-target-" + unique;
         String candidateId = "widen-consumer-" + unique;
 
-        // Target tool: outputSchema defines required output { "count": { "type": "integer" } }
+        // Target tool: outputSchema defines required output { "widen_count_prop": { "type": "integer" } }
         String targetTool = """
                 {
                     "name": "integer_output_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "unrelated": { "type": "string" }
+                        },
+                        "required": ["unrelated"]
+                    },
                     "outputSchema": {
                         "type": "object",
                         "properties": {
-                            "count": { "type": "integer" }
+                            "widen_count_prop": { "type": "integer" }
                         },
-                        "required": ["count"]
+                        "required": ["widen_count_prop"]
                     }
                 }
                 """;
 
-        // Candidate tool: inputSchema requires { "count": { "type": "number" } }
+        // Candidate tool: inputSchema requires { "widen_count_prop": { "type": "number" } }
         String candidateTool = """
                 {
                     "name": "number_input_consumer",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "count": { "type": "number" }
+                            "widen_count_prop": { "type": "number" }
                         },
-                        "required": ["count"]
+                        "required": ["widen_count_prop"]
                     }
                 }
                 """;
@@ -632,30 +653,37 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         String targetId = "fallback-target-" + unique;
         String candidateId = "fallback-consumer-" + unique;
 
-        // Target tool: outputSchema has "data" required, but omits type field ({ "data": {} })
+        // Target tool: outputSchema has "fallback_data_prop" required, but omits type field ({ "fallback_data_prop": {} })
         String targetTool = """
                 {
                     "name": "untyped_output_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "unrelated": { "type": "string" }
+                        },
+                        "required": ["unrelated"]
+                    },
                     "outputSchema": {
                         "type": "object",
                         "properties": {
-                            "data": {}
+                            "fallback_data_prop": {}
                         },
-                        "required": ["data"]
+                        "required": ["fallback_data_prop"]
                     }
                 }
                 """;
 
-        // Candidate tool: inputSchema requires { "data": { "type": "string" } }
+        // Candidate tool: inputSchema requires { "fallback_data_prop": { "type": "string" } }
         String candidateTool = """
                 {
                     "name": "typed_input_consumer",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "data": { "type": "string" }
+                            "fallback_data_prop": { "type": "string" }
                         },
-                        "required": ["data"]
+                        "required": ["fallback_data_prop"]
                     }
                 }
                 """;
@@ -674,6 +702,7 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .body("tools", hasSize(1))
                 .body("tools[0].artifactId", equalTo(candidateId));
     }
+
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

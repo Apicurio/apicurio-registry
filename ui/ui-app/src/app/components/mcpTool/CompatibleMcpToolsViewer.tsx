@@ -13,8 +13,6 @@ import {
     Divider,
     EmptyState,
     EmptyStateBody,
-    EmptyStateHeader,
-    EmptyStateIcon,
     Label,
     LabelGroup,
     Spinner,
@@ -99,22 +97,22 @@ export const CompatibleMcpToolsViewer: FunctionComponent<CompatibleMcpToolsViewe
             )}
 
             {!isLoading && error && (
-                <EmptyState data-testid="error-state">
-                    <EmptyStateHeader
-                        titleText="Error Loading Compatible Tools"
-                        headingLevel="h4"
-                    />
+                <EmptyState
+                    titleText="Error Loading Compatible Tools"
+                    headingLevel="h4"
+                    data-testid="error-state"
+                >
                     <EmptyStateBody>{error}</EmptyStateBody>
                 </EmptyState>
             )}
 
             {!isLoading && !error && tools.length === 0 && (
-                <EmptyState data-testid="empty-state">
-                    <EmptyStateHeader
-                        titleText="No Compatible Tools Found"
-                        icon={<EmptyStateIcon icon={PlugIcon} />}
-                        headingLevel="h4"
-                    />
+                <EmptyState
+                    titleText="No Compatible Tools Found"
+                    icon={PlugIcon}
+                    headingLevel="h4"
+                    data-testid="empty-state"
+                >
                     <EmptyStateBody>
                         No registered MCP tools in the registry can accept this tool&apos;s guaranteed output as input.
                     </EmptyStateBody>

@@ -1,6 +1,5 @@
 package io.apicurio.registry.rest.wellknown;
 
-import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;

@@ -10,6 +10,7 @@ import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
@@ -63,6 +64,8 @@ public class EntityReader {
                         return readContent(entityInfo);
                     case GlobalRule:
                         return readGlobalRule(entityInfo);
+                    case ContractRule:
+                        return readContractRule(entityInfo);
                     case Group:
                         return readGroup(entityInfo);
                     case GroupRule:
@@ -104,6 +107,7 @@ public class EntityReader {
      * <li>Group Rules</li>
      * <li>Artifact Rules</li>
      * <li>Artifact Versions</li>
+     * <li>Contract Rules</li>
      * <li>Artifact Branches</li>
      * <li>Comments</li>
      * </ol>
@@ -117,6 +121,7 @@ public class EntityReader {
         List<EntityInfo> artifacts = new LinkedList<>();
         List<EntityInfo> artifactRules = new LinkedList<>();
         List<EntityInfo> versions = new LinkedList<>();
+        List<EntityInfo> contractRules = new LinkedList<>();
         List<EntityInfo> branches = new LinkedList<>();
         List<EntityInfo> comments = new LinkedList<>();
 
@@ -132,6 +137,9 @@ public class EntityReader {
                     break;
                 case ArtifactRule:
                     artifactRules.add(entityInfo);
+                    break;
+                case ContractRule:
+                    contractRules.add(entityInfo);
                     break;
                 case ArtifactVersion:
                     versions.add(entityInfo);
@@ -190,6 +198,9 @@ public class EntityReader {
         entities.addAll(artifacts);
         entities.addAll(versions);
         entities.addAll(artifactRules);
+        // Contract rules must come after versions: a version scoped rule has a foreign key to
+        // versions(globalId).
+        entities.addAll(contractRules);
         entities.addAll(branches);
         entities.addAll(comments);
     }
@@ -264,6 +275,10 @@ public class EntityReader {
 
     private Entity readBranch(EntityInfo entry) throws IOException {
         return readEntry(entry, BranchEntity.class);
+    }
+
+    private Entity readContractRule(EntityInfo entry) throws IOException {
+        return readEntry(entry, ContractRuleEntity.class);
     }
 
     private Entity readGlobalRule(EntityInfo entry) throws IOException {

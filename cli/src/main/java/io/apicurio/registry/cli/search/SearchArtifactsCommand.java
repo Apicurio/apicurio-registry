@@ -2,6 +2,7 @@ package io.apicurio.registry.cli.search;
 
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.utils.Conversions;
@@ -78,6 +79,9 @@ public class SearchArtifactsCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @Override
     public void run(final OutputBuffer output) throws Exception {
         //noinspection ConstantConditions
@@ -85,7 +89,7 @@ public class SearchArtifactsCommand extends AbstractCommand {
             //noinspection ConstantConditions
             applyFilters(r.queryParameters);
         }));
-        SearchUtil.printArtifactResults(output, results, outputType, pagination);
+        SearchUtil.printArtifactResults(output, results, outputType, pagination, columns);
     }
 
     private void applyFilters(final ArtifactsRequestBuilder.GetQueryParameters params) {

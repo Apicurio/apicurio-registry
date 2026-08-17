@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.artifact;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.ContentTypeDetector;
 import io.apicurio.registry.cli.utils.Conversions;
 import io.apicurio.registry.cli.utils.FileUtils;
 import io.apicurio.registry.cli.utils.OutputBuffer;
@@ -46,7 +47,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
     private String groupId;
 
     @Option(
-            names = {"-t", "--type"},
+            names = {"--type"},
             description = "Artifact type (e.g. AVRO, PROTOBUF, JSON, OPENAPI, ASYNCAPI, GRAPHQL, KCONNECT, WSDL, XSD, XML)."
     )
     private String artifactType;
@@ -58,13 +59,13 @@ public class ArtifactCreateCommand extends AbstractCommand {
     private String file;
 
     @Option(
-            names = {"-n", "--name"},
+            names = {"--name"},
             description = "Provide artifact name."
     )
     private String name;
 
     @Option(
-            names = {"-d", "--description"},
+            names = {"--description"},
             description = "Provide artifact description."
     )
     private String description;
@@ -84,7 +85,7 @@ public class ArtifactCreateCommand extends AbstractCommand {
     @Option(
             names = {"--content-type"},
             description = "Content type of the artifact (e.g. application/json, application/x-protobuf). " +
-                    "Defaults to 'application/json' if not specified."
+                    "Defaults based on --type or the file extension if not specified."
     )
     private String contentType;
 
@@ -120,7 +121,9 @@ public class ArtifactCreateCommand extends AbstractCommand {
             }
             final var versionContent = new VersionContent();
             versionContent.setContent(content);
-            versionContent.setContentType(!isBlank(contentType) ? contentType : "application/json");
+            versionContent.setContentType(!isBlank(contentType)
+                        ? contentType
+                        : ContentTypeDetector.detect(artifactType, file));
             firstVersion.setContent(versionContent);
             newArtifact.setFirstVersion(firstVersion);
         }

@@ -48,17 +48,21 @@ public class PodLogManager {
                 activePodLogMap.put(podID, stop);
                 var lastWriteAt = Instant.now();
                 while (!stop.get()) {
-                    var line = reader.readLine();
-                    if (line != null) {
-                        chunk.append(getNamespace(podID)).append("/").append(podID.getName()).append(" >>> ")
-                                .append(line).append("\n");
+                    if (reader.ready()) {
+                        var line = reader.readLine();
+                        if (line == null) {
+                            break;
+                        }
+                        chunk.append(getNamespace(podID)).append("/").append(podID.getName())
+                                .append(" >>> ").append(line).append("\n");
                         if (lastWriteAt.plus(Duration.ofSeconds(5)).isBefore(Instant.now())) {
-                            log.debug("LOG of pod {}/{}:\n{}", getNamespace(podID), podID.getName(), chunk);
+                            log.debug("LOG of pod {}/{}:\n{}", getNamespace(podID), podID.getName(),
+                                    chunk);
                             chunk.setLength(0);
                             lastWriteAt = Instant.now();
                         }
                     } else {
-                        stop.set(true);
+                        Thread.sleep(100);
                     }
                 }
             } catch (Exception ex) {

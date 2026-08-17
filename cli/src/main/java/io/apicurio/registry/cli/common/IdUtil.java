@@ -3,6 +3,11 @@ package io.apicurio.registry.cli.common;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.rest.client.RegistryClient;
 
+import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedGroup;
+
+import java.util.ArrayList;
+
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
 
@@ -11,9 +16,13 @@ import static io.apicurio.registry.cli.utils.Utils.isBlank;
  */
 public final class IdUtil {
 
-    private static final String DEFAULT_GROUP = "default";
+    public static final String DEFAULT_GROUP = "default";
 
     private IdUtil() {
+    }
+
+    public static boolean isDefaultGroup(final String groupId) {
+        return isBlank(groupId) || DEFAULT_GROUP.equals(groupId);
     }
 
     public static String resolveGroupId(final String groupId, final Config config) {
@@ -49,7 +58,7 @@ public final class IdUtil {
 
     // Validates the group exists. Skips validation for the "default" group as it is implicit.
     public static void validateGroup(final RegistryClient client, final String groupId) {
-        if (!DEFAULT_GROUP.equals(groupId)) {
+        if (!isDefaultGroup(groupId)) {
             client.groups().byGroupId(groupId).get();
         }
     }
@@ -64,5 +73,35 @@ public final class IdUtil {
                                        final String artifactId, final String versionExpression) {
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression).get();
+    }
+
+    public static String displayGroupId(String groupId) {
+        return isDefaultGroup(groupId) ? DEFAULT_GROUP : groupId;
+    }
+
+    public static void injectDefaultGroup(GroupSearchResults results, int pageNumber) {
+        // count is the total number of matching groups across all pages (per OpenAPI schema),
+        // so we always bump it by 1 for the implicit default group.
+        if (results.getCount() != null) {
+            results.setCount(results.getCount() + 1);
+        }
+        // Only inject the visual row on the first page.
+        // This may produce pageSize + 1 rows on page 1, bounded by +1 since the default
+        // group is a singleton.
+        if (pageNumber == 1) {
+            var groups = results.getGroups();
+            if (groups == null) {
+                groups = new ArrayList<>();
+                results.setGroups(groups);
+            }
+            var defaultGroup = SearchedGroup.builder()
+                    .groupId(DEFAULT_GROUP)
+                    .build();
+            // Intentionally pinned to the top: the default group is a special implicit
+            // group that always exists and is not returned by the server. Pinning it at
+            // index 0 ensures it is immediately visible regardless of --order/--orderby,
+            // which is the desired UX for discoverability (see issue #8643).
+            groups.add(0, defaultGroup);
+        }
     }
 }

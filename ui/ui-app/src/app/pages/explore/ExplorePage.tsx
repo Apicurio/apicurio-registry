@@ -13,7 +13,7 @@ import {
     toPageError
 } from "@app/pages";
 import { ConfirmDeleteModal, CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
-import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
+import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apitomy/common-ui-components";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { Paging } from "@models/Paging.ts";
@@ -24,6 +24,9 @@ import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
+import { LocalStorageService, useLocalStorageService } from "@services/useLocalStorageService.ts";
+
+const EXPLORE_SORT_KEY = "explore.ascending";
 
 /**
  * Properties
@@ -48,11 +51,28 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [isPleaseWaitModalOpen, setPleaseWaitModalOpen] = useState<boolean>(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
-    const [criteria, setCriteria] = useState<ExplorePageToolbarFilterCriteria>({
+
+    const localStorage: LocalStorageService = useLocalStorageService();
+
+    // Read the user's last saved sort preference from localStorage, defaulting to ascending.
+    const getInitialAscending = (): boolean => {
+        try {
+            const stored = localStorage.getConfigProperty(EXPLORE_SORT_KEY, undefined);
+            if (stored === "false") {
+                return false;
+            }
+            return true;
+        } catch (err) {
+            console.warn("[ExplorePage] Failed to restore explore sort preference.", err);
+            return true;
+        }
+    };
+
+    const [criteria, setCriteria] = useState<ExplorePageToolbarFilterCriteria>(() => ({
         filterBy: FilterBy.name,
         filterValue: "",
-        ascending: true
-    });
+        ascending: getInitialAscending()
+    }));
     const [isSearching, setSearching] = useState<boolean>(false);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [results, setResults] = useState<GroupSearchResults>(EMPTY_RESULTS);
@@ -83,6 +103,10 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
 
     const onFilterCriteriaChange = (newCriteria: ExplorePageToolbarFilterCriteria): void => {
         setCriteria(newCriteria);
+        // Persist the user's sort-order preference so it survives page navigation and reloads.
+        if (newCriteria.ascending !== criteria.ascending) {
+            localStorage.setConfigProperty(EXPLORE_SORT_KEY, String(newCriteria.ascending));
+        }
         const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
         setPaging(resetPaging);
         search(newCriteria, resetPaging);
@@ -118,9 +142,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         search(criteria, newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         setPaging(newPaging);
@@ -201,7 +225,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                     setImporting(false);
                     setImportProgress(100);
                     setImportModalOpen(false);
-                    search(criteria, paging);
+                    const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+                    setPaging(resetPaging);
+                    search(criteria, resetPaging);
                 }, 1500);
             }).catch(error => {
                 setPageError(toPageError(error, "Error importing multiple artifacts"));
@@ -229,7 +255,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         pleaseWait(true, "Deleting group, please wait.");
         groups.deleteGroup(groupToDelete?.groupId as string).then( () => {
             pleaseWait(false);
-            search(criteria, paging);
+            const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+            setPaging(resetPaging);
+            search(criteria, resetPaging);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting group."));
         });

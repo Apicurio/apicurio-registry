@@ -1,21 +1,33 @@
 package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.Set;
 
 @QuarkusTest
 public class VersionSearchTest extends AbstractResourceTestBase {
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     @Test
     void testFilterByArtifactType() throws Exception {
@@ -88,5 +100,168 @@ public class VersionSearchTest extends AbstractResourceTestBase {
         });
         Assertions.assertNotNull(results);
         Assertions.assertEquals(0, results.getCount());
+    }
+
+    @Test
+    void testFilterByGlobalId() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        CreateArtifactResponse car1 = createArtifact(groupId, "global-id-artifact-1", ArtifactType.JSON,
+                "{}", ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car2 = createArtifact(groupId, "global-id-artifact-2", ArtifactType.JSON,
+                "{\"type\":\"string\"}", ContentTypes.APPLICATION_JSON);
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.globalId = car1.getVersion().getGlobalId();
+        });
+
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(car1.getVersion().getGlobalId(), results.getVersions().get(0).getGlobalId());
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto negatedResults = storage.searchVersions(
+                    Set.of(SearchFilter.ofGroupId(groupId),
+                            SearchFilter.ofGlobalId(car1.getVersion().getGlobalId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(negatedResults);
+            Assertions.assertEquals(1, negatedResults.getCount());
+            Assertions.assertEquals(car2.getVersion().getGlobalId(),
+                    negatedResults.getVersions().get(0).getGlobalId());
+        });
+    }
+
+    @Test
+    void testFilterByContentId() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        CreateArtifactResponse car1 = createArtifact(groupId, "content-id-artifact-1", ArtifactType.JSON,
+                "{}", ContentTypes.APPLICATION_JSON);
+        CreateArtifactResponse car2 = createArtifact(groupId, "content-id-artifact-2", ArtifactType.JSON,
+                "{\"type\":\"string\"}", ContentTypes.APPLICATION_JSON);
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.contentId = car1.getVersion().getContentId();
+        });
+
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(car1.getVersion().getContentId(), results.getVersions().get(0).getContentId());
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto negatedResults = storage.searchVersions(
+                    Set.of(SearchFilter.ofGroupId(groupId),
+                            SearchFilter.ofContentId(car1.getVersion().getContentId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(negatedResults);
+            Assertions.assertEquals(1, negatedResults.getCount());
+            Assertions.assertEquals("content-id-artifact-2",
+                    negatedResults.getVersions().get(0).getArtifactId());
+            Assertions.assertEquals(car2.getVersion().getContentId(),
+                    negatedResults.getVersions().get(0).getContentId());
+        });
+    }
+
+    /**
+     * Tests that version name search supports exact matching and wildcard patterns, consistent with
+     * artifact name search (see {@code ArtifactSearchTest#testArtifactNameSearchWildcards}, introduced
+     * in #6298). Verifies the fix for #8002, where version name search previously performed substring
+     * matching and treated {@code *} literally. Now:
+     * <ul>
+     * <li>"name" performs exact match</li>
+     * <li>"name*" matches names starting with "name"</li>
+     * <li>"*name" matches names ending with "name"</li>
+     * <li>"*name*" matches names containing "name"</li>
+     * </ul>
+     */
+    @Test
+    void testVersionNameSearchWildcards() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Create artifacts whose first version has various names. The artifact IDs deliberately do
+        // not contain "name"/"test" so the counts are driven purely by the version name matching.
+        createArtifact(groupId, "va-1", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.getFirstVersion().setName("name");
+                });
+        createArtifact(groupId, "va-2", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.getFirstVersion().setName("name-test");
+                });
+        createArtifact(groupId, "va-3", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.getFirstVersion().setName("test-name");
+                });
+        createArtifact(groupId, "va-4", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.getFirstVersion().setName("some-name-here");
+                });
+        createArtifact(groupId, "va-5", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON,
+                (createArtifact) -> {
+                    createArtifact.getFirstVersion().setName("other");
+                });
+
+        // Exact match - only the version named exactly "name"
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "name";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount(), "Exact match for 'name' should return 1 result");
+
+        // End wildcard - names starting with "name"
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "name*";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount(),
+                "Wildcard 'name*' should return 2 results (name, name-test)");
+
+        // Start wildcard - names ending with "name"
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "*name";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(2, results.getCount(),
+                "Wildcard '*name' should return 2 results (name, test-name)");
+
+        // Both wildcards - names containing "name"
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "*name*";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(4, results.getCount(),
+                "Wildcard '*name*' should return 4 results (name, name-test, test-name, some-name-here)");
+
+        // Exact match with no results
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "nonexistent";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(0, results.getCount(),
+                "Exact match for 'nonexistent' should return 0 results");
+
+        // Name filter also matches the artifact ID, consistent with artifact name search
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "va-1";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getCount(),
+                "Name filter should also match by artifact ID (va-1)");
+
+        // A wildcard-only value matches everything in scope and must not error
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = groupId;
+            config.queryParameters.name = "*";
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(5, results.getCount(), "'*' should match all versions in the group");
     }
 }

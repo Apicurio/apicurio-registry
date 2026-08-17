@@ -2,12 +2,10 @@ name: PR Lifecycle
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
     branches: [main]
   issue_comment:
     types: [created]
-  pull_request_review:
-    types: [submitted, dismissed]
   workflow_run:
     workflows: ["Verify"]
     types: [completed]
@@ -44,7 +42,7 @@ jobs:
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -69,7 +67,7 @@ jobs:
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -94,7 +92,7 @@ jobs:
       !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -105,6 +103,28 @@ jobs:
           script: |
             const handler = require('./.github/scripts/pr-lifecycle.js');
             await handler.handlePrReadyForReview({ github, context, core });
+
+  # ==========================================================================
+  # PR Converted Back to Draft
+  # ==========================================================================
+  pr-converted-to-draft:
+    name: Ready to Draft
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'converted_to_draft' &&
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Handle converted to draft
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handlePrConvertedToDraft({ github, context, core });
 
   # ==========================================================================
   # Comment Commands
@@ -121,7 +141,7 @@ jobs:
       !contains(github.event.issue.labels.*.name, 'orchestrator/disabled')
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -132,31 +152,6 @@ jobs:
           script: |
             const handler = require('./.github/scripts/pr-lifecycle.js');
             await handler.handleComment({ github, context, core });
-
-  # ==========================================================================
-  # Review Submitted
-  # ==========================================================================
-  review:
-    name: Review
-    runs-on: ubuntu-latest
-    if: |
-      github.repository_owner == 'Apicurio' &&
-      github.event_name == 'pull_request_review' &&
-      (github.event.action == 'submitted' || github.event.action == 'dismissed') &&
-      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-
-      - name: Convert config to JSON
-        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
-
-      - name: Handle review
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
-        with:
-          script: |
-            const handler = require('./.github/scripts/pr-lifecycle.js');
-            await handler.handleReview({ github, context, core });
 
   # ==========================================================================
   # Label Protection
@@ -172,7 +167,7 @@ jobs:
       (startsWith(github.event.label.name, 'lifecycle/') || startsWith(github.event.label.name, 'orchestrator/'))
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -195,7 +190,7 @@ jobs:
       github.event_name == 'workflow_run'
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -217,7 +212,7 @@ jobs:
       github.repository_owner == 'Apicurio' &&
       failure() &&
       github.event_name != 'schedule'
-    needs: [pr-opened, pr-synchronize, pr-ready-for-review, command, review, label-guard, test-result, reconcile]
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, command, label-guard, test-result, reconcile]
     steps:
       - name: Post warning comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
@@ -258,7 +253,7 @@ jobs:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
@@ -279,7 +274,7 @@ jobs:
     if: github.repository_owner == 'Apicurio' && github.event_name == 'schedule'
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json

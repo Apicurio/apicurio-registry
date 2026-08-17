@@ -1,7 +1,5 @@
 package io.apicurio.registry.mcp;
 
-import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
@@ -27,24 +25,16 @@ import io.apicurio.registry.rest.client.models.VersionSortBy;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.quarkiverse.mcp.server.ToolCallException;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @ApplicationScoped
 public class RegistryService {
-
-    private static final Logger log = LoggerFactory.getLogger(RegistryService.class);
-
-    @ConfigProperty(name = "registry.url", defaultValue = "localhost:8080")
-    String rawBaseUrl;
 
     @Inject
     McpConfig config;
@@ -52,116 +42,22 @@ public class RegistryService {
     @Inject
     Utils utils;
 
-    private RegistryClient client;
+    @Inject
+    RegistryClientResolver clientResolver;
 
-    @PostConstruct
-    void init() {
-        var options = RegistryClientOptions.create(rawBaseUrl).retry();
-        configureAuthentication(options);
-        configureTls(options);
-        client = RegistryClientFactory.create(options);
-        // Test the connection
-        var info = client.system().info().get();
-        log.info("Successfully connected to Apicurio Registry version {} at {}", info.getVersion(), rawBaseUrl);
-    }
-
-    private void configureAuthentication(RegistryClientOptions options) {
-        var auth = config.auth();
-        if (!auth.enabled()) {
-            log.info("Authentication is disabled");
-            return;
-        }
-
-        if (auth.tokenEndpoint().isEmpty() || auth.clientId().isEmpty() || auth.clientSecret().isEmpty()) {
-            throw new IllegalStateException(
-                    "OAuth2 authentication requires 'apicurio.mcp.auth.token-endpoint', "
-                            + "'apicurio.mcp.auth.client-id', and 'apicurio.mcp.auth.client-secret' to be configured");
-        }
-
-        if (auth.scope().isPresent()) {
-            options.oauth2(auth.tokenEndpoint().get(), auth.clientId().get(), auth.clientSecret().get(),
-                    auth.scope().get());
-        } else {
-            options.oauth2(auth.tokenEndpoint().get(), auth.clientId().get(), auth.clientSecret().get());
-        }
-        log.info("Configured OAuth2 authentication with token endpoint: {}", auth.tokenEndpoint().get());
-    }
-
-    private void configureTls(RegistryClientOptions options) {
-        var tls = config.tls();
-
-        // Trust all certificates (development only)
-        if (tls.trustAll()) {
-            log.warn("TLS trust-all is enabled. This should only be used in development environments.");
-            options.trustAll(true);
-        }
-
-        // Hostname verification
-        if (!tls.verifyHost()) {
-            log.warn("TLS hostname verification is disabled. This reduces security.");
-            options.verifyHost(false);
-        }
-
-        // Trust store configuration
-        var truststore = tls.truststore();
-        if (truststore.type().isPresent() && truststore.path().isPresent()) {
-            String type = truststore.type().get().toUpperCase();
-            String path = truststore.path().get();
-            String password = truststore.password().orElse(null);
-
-            switch (type) {
-                case "JKS":
-                    options.trustStoreJks(path, password);
-                    log.info("Configured JKS trust store: {}", path);
-                    break;
-                case "PKCS12":
-                case "P12":
-                    options.trustStorePkcs12(path, password);
-                    log.info("Configured PKCS12 trust store: {}", path);
-                    break;
-                case "PEM":
-                    options.trustStorePem(path);
-                    log.info("Configured PEM trust store: {}", path);
-                    break;
-                default:
-                    throw new IllegalStateException("Unsupported trust store type: " + type
-                            + ". Supported types: JKS, PKCS12, PEM");
-            }
-        }
-
-        // Key store configuration (mTLS)
-        var keystore = tls.keystore();
-        if (keystore.type().isPresent() && keystore.path().isPresent()) {
-            String type = keystore.type().get().toUpperCase();
-            String path = keystore.path().get();
-            String password = keystore.password().orElse(null);
-
-            switch (type) {
-                case "JKS":
-                    options.keystoreJks(path, password);
-                    log.info("Configured JKS key store for mTLS: {}", path);
-                    break;
-                case "PKCS12":
-                case "P12":
-                    options.keystorePkcs12(path, password);
-                    log.info("Configured PKCS12 key store for mTLS: {}", path);
-                    break;
-                default:
-                    throw new IllegalStateException("Unsupported key store type: " + type
-                            + ". Supported types: JKS, PKCS12");
-            }
-        }
+    private RegistryClient client() {
+        return clientResolver.getClient();
     }
 
     public SystemInfo getServerInfo() {
-        return client.system().info().get();
+        return client().system().info().get();
     }
 
     public List<SearchedGroup> listGroups(
             String order,
             String groupOrderBy
     ) {
-        var page = client.groups().get(r -> {
+        var page = client().groups().get(r -> {
             r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
             r.queryParameters.orderby = GroupSortBy.forValue(groupOrderBy);
@@ -189,13 +85,13 @@ public class RegistryService {
         g.setDescription(description);
         g.setLabels(utils.toLabels(jsonLabels));
 
-        return client.groups().post(g);
+        return client().groups().post(g);
     }
 
     public GroupMetaData getGroupMetadata(
             String groupId
     ) {
-        return client.groups().byGroupId(groupId).get();
+        return client().groups().byGroupId(groupId).get();
     }
 
     public void updateGroupMetadata(
@@ -207,11 +103,11 @@ public class RegistryService {
         m.setDescription(description);
         m.setLabels(utils.toLabels(jsonLabels));
 
-        client.groups().byGroupId(groupId).put(m);
+        client().groups().byGroupId(groupId).put(m);
     }
 
     public List<ArtifactTypeInfo> getArtifactTypes() {
-        return client.admin().config().artifactTypes().get();
+        return client().admin().config().artifactTypes().get();
     }
 
     public List<SearchedArtifact> listArtifacts(
@@ -219,7 +115,7 @@ public class RegistryService {
             String order,
             String artifactOrderBy
     ) {
-        var page = client.groups().byGroupId(groupId).artifacts().get(r -> {
+        var page = client().groups().byGroupId(groupId).artifacts().get(r -> {
             r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
             r.queryParameters.orderby = ArtifactSortBy.forValue(artifactOrderBy);
@@ -232,7 +128,7 @@ public class RegistryService {
             String groupId,
             String artifactId
     ) {
-        return client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+        return client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
     }
 
     public void updateArtifactMetadata(
@@ -247,7 +143,7 @@ public class RegistryService {
         m.setDescription(description);
         m.setLabels(utils.toLabels(jsonLabels));
 
-        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(m);
+        client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(m);
     }
 
     public void updateVersionMetadata(
@@ -263,7 +159,7 @@ public class RegistryService {
         m.setDescription(description);
         m.setLabels(utils.toLabels(jsonLabels));
 
-        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+        client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression).put(m);
     }
 
@@ -272,7 +168,7 @@ public class RegistryService {
             String artifactId,
             String versionExpression
     ) throws IOException {
-        return new String(client
+        return new String(client()
                 .groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression)
@@ -285,7 +181,7 @@ public class RegistryService {
             String artifactId,
             String versionExpression
     ) {
-        return client.groups().byGroupId(groupId)
+        return client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression)
                 .get();
@@ -302,7 +198,7 @@ public class RegistryService {
         vc.setContentType(versionContentType);
         vc.setContent(versionContent);
 
-        client.groups().byGroupId(groupId)
+        client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression)
                 .content().put(vc);
@@ -314,7 +210,7 @@ public class RegistryService {
             String order,
             String versionOrderBy
     ) {
-        var page = client.groups().byGroupId(groupId)
+        var page = client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
                 .versions()
                 .get(r -> {
@@ -341,7 +237,7 @@ public class RegistryService {
         a.setDescription(description);
         a.setLabels(utils.toLabels(jsonLabels));
 
-        return client.groups().byGroupId(groupId).artifacts().post(a).getArtifact();
+        return client().groups().byGroupId(groupId).artifacts().post(a).getArtifact();
     }
 
     public VersionMetaData createVersion(
@@ -367,7 +263,7 @@ public class RegistryService {
         c.setContent(versionContent);
         v.setContent(c);
 
-        return client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v);
+        return client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v);
     }
 
     public void updateVersionState(
@@ -379,7 +275,7 @@ public class RegistryService {
         var vs = new WrappedVersionState();
         vs.setState(VersionState.valueOf(versionState));
 
-        client.groups().byGroupId(groupId)
+        client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression(versionExpression)
                 .state().put(vs);
@@ -392,7 +288,7 @@ public class RegistryService {
             String order,
             String groupOrderBy
     ) {
-        var page = client.search().groups().get(r -> {
+        var page = client().search().groups().get(r -> {
             r.queryParameters.groupId = groupId;
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(labels);
@@ -415,13 +311,30 @@ public class RegistryService {
             String order,
             String versionOrderBy
     ) {
-        var page = client.search().versions().get(r -> {
+        return searchVersions(groupId, artifactId, artifactType, name, description, jsonLabels, order, versionOrderBy, (VersionState) null);
+    }
+
+    public List<SearchedVersion> searchVersions(
+            String groupId,
+            String artifactId,
+            String artifactType,
+            String name,
+            String description,
+            String jsonLabels,
+            String order,
+            String versionOrderBy,
+            VersionState state
+    ) {
+        var page = client().search().versions().get(r -> {
             r.queryParameters.groupId = groupId;
             r.queryParameters.artifactId = artifactId;
             r.queryParameters.artifactType = artifactType;
             r.queryParameters.name = name;
             r.queryParameters.description = description;
             r.queryParameters.labels = utils.toQueryLabels(jsonLabels);
+            if (state != null) {
+                r.queryParameters.state = state;
+            }
 
             r.queryParameters.limit = config.paging().limit() + 1;
             r.queryParameters.order = SortOrder.forValue(order);
@@ -441,7 +354,7 @@ public class RegistryService {
             String order,
             String artifactOrderBy
     ) {
-        var page = client.search().artifacts().get(r -> {
+        var page = client().search().artifacts().get(r -> {
             r.queryParameters.groupId = groupId;
             r.queryParameters.artifactId = artifactId;
             r.queryParameters.artifactType = artifactType;
@@ -458,11 +371,58 @@ public class RegistryService {
     }
 
     public List<ConfigurationProperty> listConfigurationProperties() {
-        return client.admin().config().properties().get();
+        return client().admin().config().properties().get();
     }
 
     public ConfigurationProperty getConfigurationProperty(String propertyName) {
-        return client.admin().config().properties().byPropertyName(propertyName).get();
+        return client().admin().config().properties().byPropertyName(propertyName).get();
+    }
+
+    public String searchAgentCards(String name, String skill, String capability) throws Exception {
+        var results = client().wellKnown().agents().get(config -> {
+            config.queryParameters.limit = 50;
+            if (name != null && !name.isBlank()) {
+                config.queryParameters.name = name;
+            }
+            if (skill != null && !skill.isBlank()) {
+                config.queryParameters.skill = new String[]{ skill };
+            }
+            if (capability != null && !capability.isBlank()) {
+                config.queryParameters.capability = new String[]{ capability };
+            }
+        });
+        return utils.toPrettyJson(results);
+    }
+
+    public String getAgentCard(String groupId, String artifactId) throws Exception {
+        try (InputStream is = client().wellKnown().agents().byGroupId(groupId).byArtifactId(artifactId).get()) {
+            if (is == null) {
+                throw new ToolCallException("Unable to retrieve Agent Card.");
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    public String searchMcpTools(String name, String parameter) throws Exception {
+        var results = client().wellKnown().mcpTools().get(config -> {
+            config.queryParameters.limit = 50;
+            if (name != null && !name.isBlank()) {
+                config.queryParameters.name = name;
+            }
+            if (parameter != null && !parameter.isBlank()) {
+                config.queryParameters.parameter = new String[]{ parameter };
+            }
+        });
+        return utils.toPrettyJson(results);
+    }
+
+    public String getMcpTool(String groupId, String artifactId) throws Exception {
+        try (InputStream is = client().wellKnown().mcpTools().byGroupId(groupId).byArtifactId(artifactId).get()) {
+            if (is == null) {
+                throw new ToolCallException("Unable to retrieve MCP tool.");
+            }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     public void updateConfigurationProperty(String propertyName, String propertyValue) {
@@ -473,6 +433,6 @@ public class RegistryService {
         }
         var p = new UpdateConfigurationProperty();
         p.setValue(propertyValue);
-        client.admin().config().properties().byPropertyName(propertyName).put(p);
+        client().admin().config().properties().byPropertyName(propertyName).put(p);
     }
 }

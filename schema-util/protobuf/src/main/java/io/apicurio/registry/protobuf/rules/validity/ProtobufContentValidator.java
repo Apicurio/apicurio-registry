@@ -4,6 +4,8 @@ import com.squareup.wire.schema.SchemaException;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.refs.ExternalReference;
+import io.apicurio.registry.protobuf.content.refs.ProtobufReferenceFinder;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -13,7 +15,6 @@ import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,13 +114,15 @@ public class ProtobufContentValidator extends AbstractContentValidator {
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
         try {
-            ProtoFileElement protoFileElement = ProtobufFile
-                    .toProtoFileElement(content.getContent().content());
-            Set<String> allImports = new HashSet<>();
-            allImports.addAll(protoFileElement.getImports());
-            allImports.addAll(protoFileElement.getPublicImports());
+            // Reuse ProtobufReferenceFinder so well-known google/protobuf/* imports
+            // (descriptor, timestamp, etc.) are excluded — same as auto-ref discovery.
+            // Those are provided by the protobuf runtime and must not require registry mappings.
+            ProtobufReferenceFinder referenceFinder = new ProtobufReferenceFinder();
+            Set<String> requiredReferenceNames = referenceFinder.findExternalReferences(content).stream()
+                    .map(ExternalReference::getResource)
+                    .collect(Collectors.toSet());
 
-            validateMappedReferences(references, allImports, "Unmapped reference detected.");
+            validateMappedReferences(references, requiredReferenceNames, "Unmapped reference detected.");
         }
         catch (RuleViolationException rve) {
             throw rve;

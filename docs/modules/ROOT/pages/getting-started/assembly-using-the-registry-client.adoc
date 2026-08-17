@@ -1,25 +1,27 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
+// assembly-using-the-registry-client
 [id="using-the-registry-sdk_{context}"]
-= Managing {registry} content using a SDK
+= Managing {registry} content using an SDK
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can write a {registry} client application (in Java, Typescript, Python, or Golang) and use it to manage artifacts stored in {registry}:
-
-* xref:registry-sdk-intro_{context}[]
-* xref:writing-registry-sdk_{context}[]
-* xref:registry-sdk-config_{context}[]
+You can write a {registry} client application in Java, Typescript, Python, or Golang to manage artifacts stored in {registry}.
 
 //INCLUDES
 
 
 // Metadata created by nebel
 
+// con-registry-sdk-intro
 [id="registry-sdk-intro_{context}"]
 == {registry} SDK
 
+:_mod-docs-content-type: CONCEPT
+
 [role="_abstract"]
-You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any desired operation supported by the REST API, including create, read, update, or delete of artifacts. You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
+You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any operation supported by the REST API, including create, read, update, or delete of artifacts. You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
 
 You can use any of the following SDKs provided as part of {registry}:
 
@@ -28,43 +30,47 @@ You can use any of the following SDKs provided as part of {registry}:
 - Python
 - Golang
 
-==== Java
+**Java**
+
 You can access the {registry} Java SDK by adding the correct dependency to your Apache Maven project.
-For more details, see xref:writing-registry-sdk_registry[].
 
-The {registry} client is implemented by using the HTTP client provided by the JDK, which you can customize as needed. For example, you can add custom headers or enable configuration options for Transport Layer Security (TLS) authentication.
-For more details, see xref:registry-sdk-config_registry[].
+By default, the {registry} Java client uses a Vert.x HTTP client, and falls back to the HTTP client provided by the JDK when Vert.x is not available. You can customize the client as needed, for example, by configuring retry behavior, an HTTP proxy, or Transport Layer Security (TLS) trust options.
 
-==== Typescript
+**Typescript**
+
 You can access the {registry} Typescript SDK by adding the correct dependency to your application's `package.json`
-file (assumes a node.js application):
+file (assumes a node.js application).
 
-https://www.npmjs.com/package/@apicurio/apicurio-registry-sdk
+**Python**
 
-==== Python
 You can access the {registry} Python SDK by adding the correct dependency to your python project (assumes you
-are using pypi):
+are using pypi).
 
-https://pypi.org/project/apicurioregistrysdk/
+**Golang**
 
-==== Golang
-You can access the {registry} Golang SDK by adding the correct dependency to your project:
+You can access the {registry} Golang SDK by adding the correct dependency to your project.
 
-https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk
-
+[role="_additional-resources"]
+.Additional resources
+* xref:writing-registry-sdk_{context}[]
+* xref:registry-sdk-config_{context}[]
+* link:https://www.npmjs.com/package/@apicurio/apicurio-registry-sdk[Apicurio Registry Typescript SDK npm package]
+* link:https://pypi.org/project/apicurioregistrysdk/[Apicurio Registry Python SDK PyPI package]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/go-sdk[Apicurio Registry Golang SDK]
 
 
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
+// proc-writing-registry-sdk
 [id="writing-registry-sdk_{context}"]
 == Writing {registry} SDK applications
 
+:_mod-docs-content-type: PROCEDURE
+
 [role="_abstract"]
 You can write a client application to manage artifacts stored in {registry} by using one of the {registry} SDKs.
-
-=== Using the {registry} Java SDK
 
 .Prerequisites
 * {registry} is installed and running in your environment.
@@ -86,92 +92,114 @@ You can write a client application to manage artifacts stored in {registry} by u
 +
 [source,java,subs="+quotes,attributes"]
 ----
-import io.vertx.core.Vertx;public class ClientExample {
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.vertx.core.Vertx;
+
+public class ClientExample {
 
     public static void main(String[] args) throws Exception {
         // Create a registry client
-        String registryUrl = "https://my-registry.my-domain.com/apis/registry/v3"; <1>
-        Vertx vertx = Vertx.vertx(); <2>
-        VertXRequestAdapter vertXRequestAdapter = new VertXRequestAdapter(vertx);
-        vertXRequestAdapter.setBaseUrl(REGISTRY_URL);
-
-        RegistryClient client = new RegistryClient(vertXRequestAdapter); <3>
+        Vertx vertx = Vertx.vertx();
+        RegistryClientOptions options = RegistryClientOptions
+                .create("https://my-registry.my-domain.com", vertx);
+        RegistryClient client = RegistryClientFactory.create(options);
 
         // Use client here
 
-        vertx.close(); <4>
+        vertx.close();
     }
 }
 ----
 +
-<1> If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client will automatically append `/apis/registry/v3`.
-<2> Create a new Vertx object (needed by the VertxRequestAdapter)
-<3> For more options when creating a {registry} client, see the Java client configuration in the next section.
-<4> When you are done with the client, close the Vertx object to free its resources.
+The registry URL:: If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client automatically appends `/apis/registry/v3`.
+The Vertx object:: Create a new Vertx object that the client uses for HTTP requests, so that you control its lifecycle.
+The registry client:: For more options when creating a {registry} client, see xref:registry-sdk-config_registry[].
+Closing the client:: When you are done with the client, close the Vertx object to free its resources.
 
+.Results
 When the client is created, you can use all of the operations available in the {registry} REST API in the client. For more details, see the {registry-rest-api}.
 
 [role="_additional-resources"]
 .Additional resources
-* For an open source example of how to use and customize the {registry} client, see the https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration].
-
-* For details on how to use the {registry} Kafka client serializers/deserializers (SerDes) in producer and consumer applications, see {kafka-client-serdes}.
+* https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration]
+* {kafka-client-serdes}
 
 
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/assembly-using-the-registry-sdk.adoc
 
+// ref-registry-sdk-config
 [id="registry-sdk-config_{context}"]
 == {registry} Java SDK configuration
 
+:_mod-docs-content-type: REFERENCE
+
 [role="_abstract"]
-The {registry} Java client includes the following configuration options, based on the client factory:
+The {registry} Java client supports several configuration options, including retry behavior, HTTP proxy settings, TLS trust options, and OpenTelemetry distributed tracing.
 
-.{registry} Java client configuration options
-[%header,cols="1,2,1"]
+You configure the client by calling methods on a `RegistryClientOptions` instance and passing it to `RegistryClientFactory.create`. The following methods are available:
+
+.{registry} Java client configuration methods
+[%header,cols="2,3"]
 |===
-|Option
+|Method
 |Description
-|Arguments
-|Plain client
-|Basic REST client used to interact with a running {registry}.
-|`baseUrl`
-|Client with custom configuration
-|{registry} client using the configuration provided by the user.
-|`baseUrl`, `Map<String Object> configs`
-|Client with custom configuration and authentication
-|{registry} client that accepts a map containing custom configuration. For example, this is useful to add custom headers to the calls.
-You must also provide an authentication server to authenticate the requests.
-|`baseUrl, Map<String Object> configs, Auth auth`
+|`create(registryUrl)`, `create(registryUrl, vertx)`
+|Create client options for a registry URL, optionally with an existing Vert.x instance.
+|`retry()`, `retry(enabled, maxAttempts, initialDelayMs, backoffMultiplier, maxDelayMs)`
+|Enable retry with exponential backoff for transient network failures.
+|`proxy(host, port)`, `proxyAuth(username, password)`
+|Route requests through an HTTP proxy.
+|`trustStoreJks(path, password)`, `trustStorePkcs12(path, password)`, `trustStorePem(path)`
+|Configure TLS trust for a registry served over HTTPS with custom certificates.
+|`enableOpenTelemetry()`
+|Enable OpenTelemetry trace context propagation.
 |===
 
-[discrete]
-=== Custom header configuration
-To configure custom headers, you must add the `apicurio.registry.request.headers` prefix to the `configs` map key. For example, a `configs` map key of `apicurio.registry.request.headers.Authorization` with a value of `Basic: YWxhZGRpbjpvcGVuc2VzYW1` sets the `Authorization` header with the same value.
+**Retry configuration**
 
+Retry is disabled by default. The no-argument `retry()` method enables retry with the default settings: 3 attempts, an initial delay of 250 milliseconds, a backoff multiplier of 2.0, and a maximum delay of 10 seconds. The five-argument variant gives you full control:
 
-[discrete]
-=== TLS configuration options
-You can configure Transport Layer Security (TLS) authentication for the {registry} Java client using the following properties:
+[source,java]
+----
+RegistryClientOptions options = RegistryClientOptions
+        .create("http://localhost:8080", vertx)
+        .retry(true, 5, 500, 2.0, 15000);
+RegistryClient client = RegistryClientFactory.create(options);
+----
 
-* `apicurio.registry.request.ssl.truststore.location`
-* `apicurio.registry.request.ssl.truststore.password`
-* `apicurio.registry.request.ssl.truststore.type`
-* `apicurio.registry.request.ssl.keystore.location`
-* `apicurio.registry.request.ssl.keystore.password`
-* `apicurio.registry.request.ssl.keystore.type`
-* `apicurio.registry.request.ssl.key.password`
+The client retries transient network failures only, such as refused or reset connections, socket timeouts, and closed connections. HTTP error responses from the registry are not retried. The delay grows by the backoff multiplier after each attempt, up to the maximum delay. When all attempts fail, the client throws the original exception.
 
+**HTTP proxy configuration**
 
-[discrete]
-=== OpenTelemetry distributed tracing
-The {registry} Java SDK supports optional OpenTelemetry trace context propagation. When enabled,
-W3C trace context headers (`traceparent` and `tracestate`) are injected into every HTTP request
-made to {registry}, enabling end-to-end distributed tracing across your services and the registry.
+To route requests through an HTTP proxy, set the proxy host and port. For proxies that require authentication, also provide credentials:
 
-To enable this feature, call `enableOpenTelemetry()` when building the client options:
+[source,java]
+----
+RegistryClientOptions options = RegistryClientOptions
+        .create("http://localhost:8080", vertx)
+        .proxy("proxy.example.com", 3128)
+        .proxyAuth("proxyuser", "proxypass");
+RegistryClient client = RegistryClientFactory.create(options);
+----
 
+The proxy configuration applies to registry API calls and to OAuth token endpoint calls. When you supply your own Vert.x `WebClient` with the `customWebClient` option, the client uses that `WebClient` unchanged, so you must configure the proxy on the `WebClient` yourself.
+
+NOTE: The Kafka client SerDes expose the same proxy settings as configuration properties: `apicurio.registry.proxy.host`, `apicurio.registry.proxy.port`, `apicurio.registry.proxy.username`, and `apicurio.registry.proxy.password`. For details, see {registry-client-serdes-config}.
+
+**TLS configuration**
+
+For a registry served over HTTPS with certificates that the default Java trust store does not trust, configure a trust store with the `trustStoreJks`, `trustStorePkcs12`, or `trustStorePem` method. Methods for client certificates (mutual TLS), including `keystoreJks` and `keystorePkcs12`, are also available.
+
+**OpenTelemetry distributed tracing**
+
+The {registry} Java SDK supports optional OpenTelemetry trace context propagation. When enabled, W3C trace context headers (`traceparent` and `tracestate`) are injected into every HTTP request made to {registry}, providing end-to-end distributed tracing across your services and the registry.
+
+Enabling tracing:: Call `enableOpenTelemetry()` when building the client options:
++
 [source,java]
 ----
 RegistryClientOptions options = RegistryClientOptions.create()
@@ -180,9 +208,8 @@ RegistryClientOptions options = RegistryClientOptions.create()
 RegistryClient client = RegistryClientFactory.create(options);
 ----
 
-The `opentelemetry-api` library must be on the classpath. Add it to your project if it is not
-already provided transitively:
-
+Required dependency:: The `opentelemetry-api` library must be on the classpath. Add it to your project if it is not already provided transitively:
++
 [source,xml,subs="+quotes,attributes"]
 ----
 <dependency>
@@ -192,19 +219,12 @@ already provided transitively:
 </dependency>
 ----
 
-When an OpenTelemetry SDK is initialized in your application (for example, via the OpenTelemetry
-Java agent or the Quarkus OpenTelemetry extension), the {registry} SDK will participate in the
-active trace. If no OpenTelemetry SDK is configured, the behavior is a no-op and no trace headers
-are added.
+Runtime behavior:: When an OpenTelemetry SDK is initialized in your application (for example, through the OpenTelemetry Java agent or the Quarkus OpenTelemetry extension), the {registry} SDK participates in the active trace. If no OpenTelemetry SDK is configured, the behavior is a no-op and no trace headers are added.
 
-NOTE: This feature also applies to the {registry} Kafka client serializers/deserializers (SerDes),
-which use the SDK internally to communicate with {registry}. See
-{kafka-client-serdes} for SerDes-specific configuration.
+NOTE: This feature also applies to the {registry} Kafka client serializers/deserializers (SerDes), which use the SDK internally to communicate with {registry}. See {kafka-client-serdes} for SerDes-specific configuration.
 
 
 [role="_additional-resources"]
 .Additional resources
-* For details on how to configure authentication for {registry} Kafka client serializers/deserializers (SerDes), see
-{kafka-client-serdes}.
-
+* {kafka-client-serdes}
 

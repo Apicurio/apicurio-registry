@@ -36,6 +36,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
     @Override
     public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X {
         LocalState state = state();
+        Throwable callbackFailure = null;
         try {
             // Create a new handle if necessary. Increment the "level" if a handle already exists.
             if (state.handle == null) {
@@ -59,13 +60,16 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                 state.handle.setRollback(true);
             }
             // Wrap the SQL exception.
-            throw new RegistryStorageException(e);
+            RegistryStorageException wrapped = new RegistryStorageException(e);
+            callbackFailure = wrapped;
+            throw wrapped;
         } catch (Exception e) {
             // If any other exception is thrown, also set the handle to rollback.
             if (state.handle != null) {
                 log.debug("Transaction will rollback.", e);
                 state.handle.setRollback(true);
             }
+            callbackFailure = e;
             throw e;
         } finally {
             if (state.level > 0) {
@@ -74,6 +78,7 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                 state.level--;
             } else {
                 // Commit or rollback the transaction
+                RuntimeException transactionFailure = null;
                 try {
                     if (state.handle != null) {
                         if (state.handle.isRollback()) {
@@ -88,18 +93,29 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                     }
                 } catch (Exception e) {
                     log.error("Could not release database connection/transaction", e);
+                    transactionFailure = new RegistryStorageException(
+                            "Could not release database connection/transaction.", e);
                 }
 
                 // Close the connection
                 try {
                     if (state.handle != null) {
                         state.handle.close();
-                        state.handle = null;
-                        state.level = 0;
                     }
                 } catch (Exception ex) {
                     // Nothing we can do
                     log.error("Could not close a database connection.", ex);
+                } finally {
+                    state.handle = null;
+                    state.level = 0;
+                }
+
+                if (transactionFailure != null) {
+                    if (callbackFailure != null) {
+                        callbackFailure.addSuppressed(transactionFailure);
+                    } else {
+                        throw transactionFailure;
+                    }
                 }
             }
         }

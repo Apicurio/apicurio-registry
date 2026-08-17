@@ -294,7 +294,7 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.10.0</version.puppycrawl>
+    <version.puppycrawl>13.11.0</version.puppycrawl>
     <!-- Protocol Buffers -->
     <proto-plugin.version>5.1.8</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
@@ -311,7 +311,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.0.8</groovy.version>
+    <groovy.version>5.1.0</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>

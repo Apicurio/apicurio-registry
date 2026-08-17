@@ -1048,4 +1048,6 @@ spec:
 .Additional resources
 
 * xref:getting-started/assembly-operator-config-reference.adoc[]
+ifndef::service-registry-downstream[]
 * {registry-overview}
+endif::[]

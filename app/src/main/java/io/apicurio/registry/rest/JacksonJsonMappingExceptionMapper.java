@@ -7,6 +7,7 @@ import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -54,6 +55,14 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
             return coreMapper.mapException(new InvalidParameterValueException("status", "valid status enum value", actualValue));
         }
 
-        return coreMapper.mapException(new jakarta.ws.rs.BadRequestException("Not able to deserialize data provided."));
+        String message = exception.getOriginalMessage();
+
+        if (message != null && !message.contains("io.apicurio")) {
+            return coreMapper.mapException(new BadRequestException(message));
+        }
+
+        return coreMapper.mapException(
+            new BadRequestException("Not able to deserialize data provided.")
+        );
     }
 }

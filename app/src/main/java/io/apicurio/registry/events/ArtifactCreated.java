@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import org.json.JSONObject;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
@@ -11,8 +12,8 @@ import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
 public class ArtifactCreated extends OutboxEvent {
     private final JSONObject eventPayload;
 
-    private ArtifactCreated(String id, String aggregateId, JSONObject eventPayload) {
-        super(id, aggregateId);
+    private ArtifactCreated(String id, String aggregateId, JSONObject eventPayload, Instant timestamp) {
+        super(id, aggregateId, timestamp);
         this.eventPayload = eventPayload;
     }
 
@@ -25,8 +26,10 @@ public class ArtifactCreated extends OutboxEvent {
                 .put("description", artifactMetaDataDto.getDescription())
                 .put("eventType", ARTIFACT_CREATED.name());
 
+        Instant timestamp = Instant.ofEpochMilli(artifactMetaDataDto.getCreatedOn());
         return new ArtifactCreated(id,
-                artifactMetaDataDto.getGroupId() + "-" + artifactMetaDataDto.getArtifactId(), jsonObject);
+                artifactMetaDataDto.getGroupId() + "-" + artifactMetaDataDto.getArtifactId(), jsonObject,
+                timestamp);
     }
 
     @Override

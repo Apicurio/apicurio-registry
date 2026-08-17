@@ -12,7 +12,7 @@ import {
 import {
     Modal
 } from "@patternfly/react-core/deprecated";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { ArtifactLabel, LabelsFormGroup } from "@app/components";
 import { Labels } from "@sdk/lib/generated-client/models";
 import { labelsToList, listToLabels } from "@utils/labels.utils.ts";

@@ -13,7 +13,7 @@ import {
     toPageError
 } from "@app/pages";
 import { ConfirmDeleteModal, CreateGroupModal, InvalidContentModal, RootPageHeader } from "@app/components";
-import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apicurio/common-ui-components";
+import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apitomy/common-ui-components";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { Paging } from "@models/Paging.ts";
@@ -142,9 +142,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         search(criteria, newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         setPaging(newPaging);
@@ -225,7 +225,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                     setImporting(false);
                     setImportProgress(100);
                     setImportModalOpen(false);
-                    search(criteria, paging);
+                    const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+                    setPaging(resetPaging);
+                    search(criteria, resetPaging);
                 }, 1500);
             }).catch(error => {
                 setPageError(toPageError(error, "Error importing multiple artifacts"));
@@ -253,7 +255,9 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         pleaseWait(true, "Deleting group, please wait.");
         groups.deleteGroup(groupToDelete?.groupId as string).then( () => {
             pleaseWait(false);
-            search(criteria, paging);
+            const resetPaging: Paging = { page: 1, pageSize: paging.pageSize };
+            setPaging(resetPaging);
+            search(criteria, resetPaging);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting group."));
         });

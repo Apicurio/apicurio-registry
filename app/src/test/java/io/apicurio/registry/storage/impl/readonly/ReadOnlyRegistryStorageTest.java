@@ -2,9 +2,13 @@ package io.apicurio.registry.storage.impl.readonly;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.Functional.Runnable1Ex;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
@@ -14,16 +18,21 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.restassured.RestAssured.given;
 import static java.util.Map.entry;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @Tag(ApicurioTestTags.SLOW)
-public class ReadOnlyRegistryStorageTest {
+public class ReadOnlyRegistryStorageTest extends AbstractResourceTestBase {
 
     @Inject
     @Current
@@ -278,6 +287,42 @@ public class ReadOnlyRegistryStorageTest {
         dto.setValue("false");
         storage.setConfigProperty(dto);
         notEnabled();
+    }
+
+    /**
+     * Reproduces https://github.com/Apicurio/apicurio-registry/issues/9591 end-to-end via the
+     * REST API: a dereferenced GET must succeed while storage read-only mode is enabled, since
+     * it is a pure read and not a write.
+     */
+    @Test
+    void dereferencedGetAllowedInReadOnlyMode() throws Exception {
+        String referencedTypeContent = resourceToString("/io/apicurio/registry/noprofile/rest/avro-referenced-type.json");
+        String withReferenceContent = resourceToString("/io/apicurio/registry/noprofile/rest/avro-with-reference.json");
+
+        createArtifact("dereferencedGetAllowedInReadOnlyMode/Address", ArtifactType.AVRO,
+                referencedTypeContent, ContentTypes.APPLICATION_JSON);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("com.example.common.Address").groupId("default")
+                .artifactId("dereferencedGetAllowedInReadOnlyMode/Address").version("1").build());
+        createArtifactWithReferences("default", "dereferencedGetAllowedInReadOnlyMode/Person",
+                ArtifactType.AVRO, withReferenceContent, ContentTypes.APPLICATION_JSON, refs);
+
+        var dto = new DynamicConfigPropertyDto();
+        dto.setName("apicurio.storage.read-only.enabled");
+        dto.setValue("true");
+        storage.setConfigProperty(dto);
+        try {
+            given().when().pathParam("groupId", "default")
+                    .pathParam("artifactId", "dereferencedGetAllowedInReadOnlyMode/Person")
+                    .pathParam("version", "1").queryParam("references", "DEREFERENCE")
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content")
+                    .then().statusCode(200).body(containsString("zipCode"))
+                    .body(not(containsString("com.example.common.Address")));
+        } finally {
+            dto.setValue("false");
+            storage.setConfigProperty(dto);
+        }
     }
 
     private void notEnabled() {

@@ -14,6 +14,7 @@ import io.apicurio.registry.storage.impl.polling.model.v0.Registry;
 import io.apicurio.registry.storage.impl.polling.model.v0.Rule;
 import io.apicurio.registry.storage.impl.polling.model.v0.Version;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
@@ -191,6 +192,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                     var e = new GlobalRuleEntity();
                     e.ruleType = RuleType.fromValue(globalRule.getRuleType());
                     e.configuration = globalRule.getConfig();
+                    e.onFailure = RuleConfigurationDto.parseOnFailure(globalRule.getOnFailure()).name();
                     log.trace("Importing {}",e);
                     state.getStorage().importGlobalRule(e);
                 } catch (Exception ex) {
@@ -292,6 +294,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                     e.artifactId = artifact.getArtifactId();
                     e.type = RuleType.fromValue(rule.getRuleType());
                     e.configuration = rule.getConfig();
+                    e.onFailure = RuleConfigurationDto.parseOnFailure(rule.getOnFailure()).name();
                     log.trace("Importing {}",e);
                     state.getStorage().importArtifactRule(e);
                 } catch (Exception ex) {
@@ -311,6 +314,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                     e.groupId = group.getGroupId();
                     e.type = RuleType.fromValue(rule.getRuleType());
                     e.configuration = rule.getConfig();
+                    e.onFailure = RuleConfigurationDto.parseOnFailure(rule.getOnFailure()).name();
                     log.trace("Importing {}",e);
                     state.getStorage().importGroupRule(e);
                 } catch (Exception ex) {

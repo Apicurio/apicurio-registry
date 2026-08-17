@@ -58,6 +58,47 @@ export const buildInitialValues = (
     return values;
 };
 
+/**
+ * Initial textarea text for an object/array variable, derived from its declared default.
+ * The test panel keeps the raw text as the source of truth for these fields so keystrokes
+ * are never re-formatted mid-type once the input happens to parse as valid JSON.
+ *
+ * Rules:
+ *   undefined   -> ""      (no default declared)
+ *   null        -> "null"  (explicit null default; preserved verbatim)
+ *   string      -> as-is   (user-typed or default already stored as text)
+ *   object/etc  -> pretty JSON
+ */
+export const initialObjectText = (value: unknown): string => {
+    if (value === undefined) return "";
+    if (value === null) return "null";
+    if (typeof value === "string") return value;
+    return JSON.stringify(value, null, 2);
+};
+
+/**
+ * Build the initial rawTexts map for object/array fields.
+ * Non-object/array fields are omitted; the standard values map covers them.
+ */
+export const buildInitialRawTexts = (
+    template: string | undefined,
+    variables: Record<string, VariableSchema> | VariableSchema[] | undefined
+): Record<string, string> => {
+    const reconciled = reconcileTemplateVariables(
+        extractTemplateVariableNames(template || ""),
+        toDeclaredMap(variables)
+    );
+    const rawTexts: Record<string, string> = {};
+    reconciled.forEach((entry) => {
+        const schema = schemaForField(entry);
+        const type = (schema.type || "string").toLowerCase();
+        if (type === "object" || type === "array") {
+            rawTexts[entry.name] = initialObjectText(schema.default);
+        }
+    });
+    return rawTexts;
+};
+
 export const coerceEnumValue = (val: string, type: string): any => {
     if (val === "") return "";
     switch (type) {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
 import {
+    buildInitialRawTexts,
     buildInitialValues,
     buildVersionIdentity,
     shouldAcceptRenderResponse
@@ -22,11 +23,13 @@ export type UsePromptTemplateTestPanelStateArgs = PromptTemplateTestPanelIdentit
 
 export type PromptTemplateTestPanelState = {
     values: Record<string, any>;
+    rawTexts: Record<string, string>;
     renderedOutput: string;
     validationErrors: RenderPromptValidationError[];
     isLoading: boolean;
     error: string;
     setValue: (name: string, value: any) => void;
+    setRawText: (name: string, text: string) => void;
     doRender: () => void;
 };
 
@@ -53,26 +56,36 @@ export const usePromptTemplateTestPanelState = (
     const [values, setValues] = useState<Record<string, any>>(
         () => buildInitialValues(args.template, args.variables)
     );
+    const [rawTexts, setRawTexts] = useState<Record<string, string>>(
+        () => buildInitialRawTexts(args.template, args.variables)
+    );
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
-    // Reset form values and render results whenever the viewed version identity changes.
-    // Depend only on the version key — not template/variables by reference — so an unstable
-    // parent object cannot wipe in-progress user input on every re-render.
+    // Reset form values and render results whenever the viewed version identity changes,
+    // OR when the artifact content (template/variables) transitions from absent to present.
+    // The parent memoizes template/variables, so these refs only change when the version
+    // key changes or when the artifact content is loaded asynchronously — user input isn't
+    // wiped on incidental re-renders.
     useEffect(() => {
         versionIdentityRef.current = versionIdentity;
         renderRequestIdRef.current += 1;
         setValues(buildInitialValues(templateRef.current, variablesRef.current));
+        setRawTexts(buildInitialRawTexts(templateRef.current, variablesRef.current));
         setRenderedOutput("");
         setValidationErrors([]);
         setError("");
         setIsLoading(false);
-    }, [versionIdentity]);
+    }, [versionIdentity, args.template, args.variables]);
 
     const setValue = (name: string, value: any): void => {
         setValues(prev => ({ ...prev, [name]: value }));
+    };
+
+    const setRawText = (name: string, text: string): void => {
+        setRawTexts(prev => ({ ...prev, [name]: text }));
     };
 
     const doRender = (): void => {
@@ -129,11 +142,13 @@ export const usePromptTemplateTestPanelState = (
 
     return {
         values,
+        rawTexts,
         renderedOutput,
         validationErrors,
         isLoading,
         error,
         setValue,
+        setRawText,
         doRender
     };
 };

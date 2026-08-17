@@ -62,11 +62,13 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
 
     const {
         values,
+        rawTexts,
         renderedOutput,
         validationErrors,
         isLoading,
         error,
         setValue,
+        setRawText,
         doRender
     } = usePromptTemplateTestPanelState({
         groupId: props.groupId,
@@ -136,8 +138,9 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             case "object":
                 return (
                     <TextArea
-                        value={typeof values[name] === "string" ? values[name] : JSON.stringify(values[name] || "", null, 2)}
+                        value={rawTexts[name] ?? ""}
                         onChange={(_event, val) => {
+                            setRawText(name, val);
                             try {
                                 setValue(name, JSON.parse(val));
                             } catch {

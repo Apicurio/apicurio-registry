@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+    buildInitialRawTexts,
     buildInitialValues,
     buildVersionIdentity,
     coerceEnumValue,
+    initialObjectText,
     shouldAcceptRenderResponse
 } from "./PromptTemplateTestPanel.utils";
 
@@ -109,5 +111,60 @@ describe("shouldAcceptRenderResponse", () => {
 
     it("rejects a stale response after the version identity changes", () => {
         expect(shouldAcceptRenderResponse(3, 3, "g::a::1", "g::a::2")).toBe(false);
+    });
+});
+
+describe("initialObjectText", () => {
+    it("returns an empty string for undefined (no declared default)", () => {
+        expect(initialObjectText(undefined)).toBe("");
+    });
+
+    it("returns the literal string 'null' for an explicit null default", () => {
+        expect(initialObjectText(null)).toBe("null");
+    });
+
+    it("passes strings through unchanged (user-typed raw text)", () => {
+        expect(initialObjectText("{\"partial\":")).toBe("{\"partial\":");
+    });
+
+    it("pretty-prints an object default", () => {
+        expect(initialObjectText({ a: 1 })).toBe("{\n  \"a\": 1\n}");
+    });
+
+    it("pretty-prints an empty object", () => {
+        expect(initialObjectText({})).toBe("{}");
+    });
+
+    it("pretty-prints an array default", () => {
+        expect(initialObjectText([1, 2])).toBe("[\n  1,\n  2\n]");
+    });
+});
+
+describe("buildInitialRawTexts", () => {
+    it("returns an empty map when the template and variables are absent", () => {
+        expect(buildInitialRawTexts(undefined, undefined)).toEqual({});
+    });
+
+    it("only tracks object and array fields, not primitives", () => {
+        const variables = {
+            cfg: { type: "object", default: { a: 1 } },
+            note: { type: "string", default: "hi" },
+            count: { type: "integer", default: 3 }
+        };
+        const result = buildInitialRawTexts("{{cfg}} {{note}} {{count}}", variables);
+        expect(Object.keys(result).sort()).toEqual(["cfg"]);
+        expect(result.cfg).toBe("{\n  \"a\": 1\n}");
+    });
+
+    it("preserves an explicit null default as the string 'null'", () => {
+        const variables = { nul: { type: "object", default: null } };
+        const result = buildInitialRawTexts("{{nul}}", variables);
+        expect(result.nul).toBe("null");
+    });
+
+    it("returns an empty string when an object field has no default", () => {
+        const variables = { cfg: { type: "object" } };
+        const result = buildInitialRawTexts("{{cfg}}", variables);
+        expect(result.cfg).toBe("");
     });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tokenizeTemplate } from "./PromptTemplateViewer.utils";
+import { formatRange, tokenizeTemplate } from "./PromptTemplateViewer.utils";
 
 describe("tokenizeTemplate", () => {
     it("keeps plain text without variables as a single plain token", () => {
@@ -171,4 +171,44 @@ describe("tokenizeTemplate", () => {
             { text: input, kind: "plain" }
         ]);
     }, 1000);
+});
+
+describe("formatRange", () => {
+    it("renders 'min – max' when both bounds are present", () => {
+        expect(formatRange(1, 10)).toBe("1 – 10");
+    });
+
+    it("renders '≥ min' when only the minimum is present", () => {
+        expect(formatRange(0, undefined)).toBe("≥ 0");
+    });
+
+    it("renders '≤ max' when only the maximum is present", () => {
+        expect(formatRange(undefined, 100)).toBe("≤ 100");
+    });
+
+    it("returns null when neither bound is present", () => {
+        expect(formatRange(undefined, undefined)).toBeNull();
+    });
+
+    it("ignores non-finite values", () => {
+        expect(formatRange(NaN, Infinity)).toBeNull();
+    });
+
+    it("ignores null values", () => {
+        // TS-loose call site (JSON parsers hand back null, not undefined)
+        expect(formatRange(null as unknown as number, null as unknown as number)).toBeNull();
+    });
+
+    it("ignores stringified numbers", () => {
+        // Number.isFinite does not coerce, so "5" is not treated as a bound
+        expect(formatRange("5" as unknown as number, "10" as unknown as number)).toBeNull();
+    });
+
+    it("renders separated bounds when minimum > maximum (malformed schema)", () => {
+        expect(formatRange(10, 1)).toBe("≥ 10, ≤ 1");
+    });
+
+    it("renders a normal range when minimum equals maximum", () => {
+        expect(formatRange(5, 5)).toBe("5 – 5");
+    });
 });

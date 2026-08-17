@@ -1,31 +1,41 @@
 package io.apicurio.registry.operator.it;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.operator.it.CatalogInfo.ChannelEntry;
-import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.ExecWatch;
 import lombok.Getter;
-import org.semver4j.Semver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
-import static io.apicurio.registry.operator.it.CatalogInfo.coerceVersion;
 import static io.apicurio.registry.operator.it.CatalogInfo.extractVersionString;
+import static io.apicurio.registry.operator.it.CatalogInfo.parseVersion;
 import static io.apicurio.registry.operator.it.OLMTestUtils.*;
-import static org.awaitility.Awaitility.await;
 
 /**
- * Queries the live OLM catalog (via PackageManifest) to discover channels, CSV names, and upgrade paths.
- * Results are cached so the catalog is queried only once per test run.
+ * Queries the live OLM catalog by reading the File-Based Catalog (FBC) content directly from the
+ * catalog pod. Results are cached so the catalog is queried only once per test run.
  * <p>
- * This replaces hardcoded version strings and template file reads, making upgrade tests work with both
- * upstream catalogs (built from catalog.template.yaml) and downstream IIB images (where CSV names have
- * productized suffixes like -r1).
+ * This replaces the PackageManifest-based discovery, which was unreliable because it merges data
+ * from all catalog sources on the cluster and strips productized version suffixes.
+ * <p>
+ * The FBC content is read by exec'ing into the catalog pod and cat'ing the catalog file. Two
+ * path conventions are supported:
+ * <ul>
+ *   <li>IIB (downstream): {@code /configs/<package>/catalog.json}</li>
+ *   <li>Upstream: {@code /configs/index.yaml}</li>
+ * </ul>
  */
 public class CatalogDiscovery {
 
     private static final Logger log = LoggerFactory.getLogger(CatalogDiscovery.class);
+
+    private static final String CATALOG_POD_PREFIX = "apicurio-registry-operator-catalog";
 
     private static CatalogDiscovery instance;
 
@@ -38,8 +48,7 @@ public class CatalogDiscovery {
 
     /**
      * Returns the singleton instance, performing discovery on first call. Discovery creates a temporary
-     * namespace, deploys a CatalogSource, waits for the PackageManifest, extracts channel data, and
-     * cleans up.
+     * namespace, deploys a CatalogSource, reads the FBC content from the catalog pod, and cleans up.
      */
     public static synchronized CatalogDiscovery getInstance(KubernetesClient client) throws Exception {
         if (instance != null) {
@@ -56,7 +65,13 @@ public class CatalogDiscovery {
             createResource(client, namespace, "olmv0/catalog-source.yaml");
             waitForCatalogPodReady(client, namespace);
 
-            var info = queryPackageManifest(client, namespace);
+            var podName = findCatalogPodName(client, namespace);
+            log.info("Catalog pod found: {}", podName);
+
+            var fbcContent = readFBCFromPod(client, namespace, podName);
+            log.info("FBC content read from catalog pod ({} bytes)", fbcContent.length());
+
+            var info = parseFBC(fbcContent);
             instance = new CatalogDiscovery(info);
 
             log.info("Catalog discovery complete:");
@@ -79,58 +94,152 @@ public class CatalogDiscovery {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static CatalogInfo queryPackageManifest(KubernetesClient client, String namespace) {
-        var pm = new GenericKubernetesResource[1];
-        await().ignoreExceptions().untilAsserted(() -> {
-            pm[0] = getPackageManifest(client, namespace);
-            if (pm[0] == null) {
-                throw new IllegalStateException("PackageManifest not yet available");
+    private static String findCatalogPodName(KubernetesClient client, String namespace) {
+        var pods = client.pods().inNamespace(namespace).list().getItems();
+        for (var pod : pods) {
+            var name = pod.getMetadata().getName();
+            if (name.startsWith(CATALOG_POD_PREFIX)) {
+                return name;
             }
-        });
+        }
+        throw new IllegalStateException("No catalog pod found with prefix '" + CATALOG_POD_PREFIX
+                + "' in namespace " + namespace);
+    }
 
-        var channels = new LinkedHashMap<String, List<ChannelEntry>>();
-        var rawChannels = (Collection<Map<String, Object>>) pm[0].get("status", "channels");
-        for (var ch : rawChannels) {
-            var name = (String) ch.get("name");
-            var currentCSV = (String) ch.get("currentCSV");
+    private static String readFBCFromPod(KubernetesClient client, String namespace, String podName) {
+        var paths = List.of(
+                "/configs/" + PACKAGE_NAME + "/catalog.json", // IIB (downstream)
+                "/configs/index.yaml" // Upstream
+        );
 
-            var entries = new ArrayList<ChannelEntry>();
-            var rawEntries = (Collection<Map<String, Object>>) ch.get("entries");
-            if (rawEntries != null && !rawEntries.isEmpty()) {
-                for (var re : rawEntries) {
-                    var csvName = (String) re.get("name");
-                    var versionStr = (String) re.get("version");
-                    Semver version;
-                    if (versionStr != null) {
-                        version = coerceVersion(versionStr);
-                    } else {
-                        version = coerceVersion(extractVersionString(csvName));
-                    }
-                    entries.add(new ChannelEntry(csvName, version));
-                }
-
-                if (!entries.get(0).getCsvName().equals(currentCSV)) {
-                    log.warn("Channel {} entries are not head-first: first entry is {} but "
-                                    + "currentCSV is {}. Reordering.", name,
-                            entries.get(0).getCsvName(), currentCSV);
-                    entries.sort((a, b) -> {
-                        if (a.getCsvName().equals(currentCSV)) return -1;
-                        if (b.getCsvName().equals(currentCSV)) return 1;
-                        return b.getVersion().compareTo(a.getVersion());
-                    });
-                }
-            } else {
-                var version = coerceVersion(extractVersionString(currentCSV));
-                entries.add(new ChannelEntry(currentCSV, version));
-                log.warn("Channel {} has no entries in PackageManifest, using head only: {}",
-                        name, currentCSV);
+        for (var path : paths) {
+            log.info("Trying FBC path: {}", path);
+            var content = execCat(client, namespace, podName, path);
+            if (content != null && !content.isBlank()) {
+                log.info("Found FBC at path: {} ({} bytes)", path, content.length());
+                return content;
             }
-
-            channels.put(name, entries);
         }
 
-        var defaultChannel = (String) pm[0].get("status", "defaultChannel");
+        var listing = execCat(client, namespace, podName, null);
+        throw new IllegalStateException(
+                "Could not read FBC content from catalog pod " + podName
+                        + ". Tried paths: " + paths
+                        + ". This catalog image may not use the File-Based Catalog format."
+                        + (listing != null ? " /configs listing: " + listing : ""));
+    }
+
+    private static String execCat(KubernetesClient client, String namespace, String podName,
+            String path) {
+        try {
+            var out = new ByteArrayOutputStream();
+            var err = new ByteArrayOutputStream();
+            String[] cmd;
+            if (path != null) {
+                cmd = new String[] { "cat", path };
+            } else {
+                cmd = new String[] { "ls", "-la", "/configs/" };
+            }
+            log.debug("Exec in pod {}: {}", podName, String.join(" ", cmd));
+            try (ExecWatch exec = client.pods().inNamespace(namespace).withName(podName)
+                    .redirectingOutput()
+                    .redirectingError()
+                    .exec(cmd)) {
+                var output = exec.getOutput();
+                var error = exec.getError();
+                if (output != null) {
+                    output.transferTo(out);
+                }
+                if (error != null) {
+                    error.transferTo(err);
+                }
+                exec.exitCode().get(30, TimeUnit.SECONDS);
+            }
+            var errStr = err.toString().trim();
+            if (!errStr.isEmpty()) {
+                log.debug("Exec stderr: {}", errStr);
+            }
+            var result = out.toString().trim();
+            return result.isEmpty() ? null : result;
+        } catch (Exception e) {
+            log.debug("Exec failed for path {}: {}", path, e.getMessage());
+            return null;
+        }
+    }
+
+    static CatalogInfo parseFBC(String fbcContent) {
+        var mapper = new ObjectMapper();
+        var objects = new ArrayList<JsonNode>();
+
+        // FBC is multi-document JSON: multiple JSON objects concatenated (not a JSON array).
+        // Split on lines that start a new top-level object.
+        for (var part : fbcContent.split("(?m)^(?=\\{)")) {
+            var trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                objects.add(mapper.readTree(trimmed));
+            } catch (Exception e) {
+                log.warn("Failed to parse FBC fragment ({} chars): {}", trimmed.length(),
+                        e.getMessage());
+            }
+        }
+
+        log.info("Parsed {} FBC objects from catalog content", objects.size());
+        if (objects.isEmpty()) {
+            throw new IllegalStateException(
+                    "No FBC objects found in catalog content. The content may not be valid FBC JSON.");
+        }
+
+        String defaultChannel = null;
+        var channels = new LinkedHashMap<String, List<ChannelEntry>>();
+
+        for (var obj : objects) {
+            var schema = obj.path("schema").asText("");
+            switch (schema) {
+                case "olm.package" -> {
+                    defaultChannel = obj.path("defaultChannel").asText(null);
+                    var packageName = obj.path("name").asText("");
+                    log.info("FBC package: {} defaultChannel={}", packageName, defaultChannel);
+                    if (!PACKAGE_NAME.equals(packageName)) {
+                        log.warn("FBC package name '{}' does not match expected '{}'",
+                                packageName, PACKAGE_NAME);
+                    }
+                }
+                case "olm.channel" -> {
+                    var channelName = obj.path("name").asText("");
+                    var entries = new ArrayList<ChannelEntry>();
+                    var entriesNode = obj.get("entries");
+                    if (entriesNode != null && entriesNode.isArray()) {
+                        for (var entryNode : entriesNode) {
+                            var csvName = entryNode.path("name").asText("");
+                            var versionStr = extractVersionString(csvName);
+                            try {
+                                entries.add(new ChannelEntry(csvName, parseVersion(versionStr)));
+                            } catch (IllegalArgumentException e) {
+                                log.warn("Skipping entry with unparseable version: {} ({})",
+                                        csvName, e.getMessage());
+                            }
+                        }
+                    }
+                    // Sort entries by version descending so the head (latest) is first
+                    entries.sort((a, b) -> b.getVersion().compareTo(a.getVersion()));
+                    channels.put(channelName, entries);
+                    log.info("FBC channel {}: {} entries", channelName, entries.size());
+                }
+                case "olm.bundle" -> {
+                    // Bundle objects contain the CSV content — not needed for discovery
+                }
+                default -> log.debug("Ignoring FBC object with schema: {}", schema);
+            }
+        }
+
+        if (channels.isEmpty()) {
+            throw new IllegalStateException(
+                    "No channels found in FBC content. Parsed " + objects.size()
+                            + " objects but none had schema 'olm.channel'.");
+        }
 
         return new CatalogInfo(channels, defaultChannel);
     }

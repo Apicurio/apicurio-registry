@@ -10,6 +10,7 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.semver4j.Semver;
@@ -35,6 +36,8 @@ import static org.awaitility.Awaitility.await;
  */
 @QuarkusTest
 @Tag(OLM)
+@DisabledIfSystemProperty(named = OLMTestUtils.OLM_VERSION_PROP, matches = "1",
+        disabledReason = "Upgrade tests use OLM v0 Subscriptions which are not available on OLM v1")
 @ExtendWith(OperatorTestExtension.class)
 public class UpgradeOLMITTest implements OperatorTestContext {
 
@@ -501,7 +504,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     // ---- Infrastructure methods ----
 
     private static String deploymentName(Semver version) {
-        return "apicurio-registry-operator-v" + version.toString().toLowerCase();
+        return "apicurio-registry-operator-v" + version;
     }
 
     private void deployCatalogAndSubscribe(String channel, String startCSV) throws Exception {
@@ -625,6 +628,6 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
         assertThat(installedCSVs)
                 .as("Target version CSV should be present after upgrade")
-                .anyMatch(csv -> csv.contains(targetVersion.toString().toLowerCase()));
+                .anyMatch(csv -> csv.contains(targetVersion.toString()));
     }
 }

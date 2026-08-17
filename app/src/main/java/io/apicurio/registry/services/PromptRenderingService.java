@@ -2,12 +2,14 @@ package io.apicurio.registry.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
 import io.apicurio.registry.storage.error.InvalidContentException;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -18,12 +20,44 @@ import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
 import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 
 /**
- * Service for rendering prompt templates by substituting variables.
+ * Service for rendering prompt templates by substituting variables and evaluating
+ * Handlebars-style conditional blocks.
+ *
+ * <p>Supported syntax:</p>
+ * <ul>
+ *   <li>{@code {{variable}}} — substituted with the variable value, or kept verbatim when absent</li>
+ *   <li>{@code {{#if variable}} ... {{/if}}} — block rendered when variable is truthy</li>
+ *   <li>{@code {{#if variable}} ... {{else}} ... {{/if}}} — if/else branch</li>
+ *   <li>{@code {{#unless variable}} ... {{/unless}}} — block rendered when variable is falsy</li>
+ * </ul>
+ *
+ * <p>Truthy semantics (matching the MCP render path): a value is truthy when it is
+ * non-null, not {@code Boolean.FALSE}, and not an empty string.</p>
  */
 @ApplicationScoped
 public class PromptRenderingService {
 
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{([^}]+)\\}\\}");
+
+    /**
+     * Matches {{#if var}} ... {{/if}} blocks, including multi-line content.
+     * Group 1 = variable name, Group 2 = inner content.
+     */
+    private static final Pattern IF_BLOCK_PATTERN =
+            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
+
+    /**
+     * Matches if-else blocks: opening tag, truthy branch, else tag, falsy branch, closing tag.
+     * Group 1 = variable name, Group 2 = truthy branch, Group 3 = falsy branch.
+     */
+    private static final Pattern IF_ELSE_BLOCK_PATTERN =
+            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{else\\}\\})[\\s\\S])*?)\\{\\{else\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
+
+    /**
+     * Matches unless blocks: opening tag, inner content, closing tag.
+     * Group 1 = variable name, Group 2 = inner content.
+     */
+    private static final Pattern UNLESS_BLOCK_PATTERN =
+            Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}((?:(?!\\{\\{/unless\\}\\})[\\s\\S])*?)\\{\\{/unless\\}\\}");
 
     /**
      * Renders a prompt template by substituting variables.
@@ -47,11 +81,21 @@ public class PromptRenderingService {
         String templateText = extractTemplateText(templateNode);
         JsonNode variablesSchema = templateNode.path("variables");
 
-        // Validate variables against schema
+        // Validate variables against schema. Validation intentionally runs against the
+        // caller-supplied variables, so that a missing required variable is still reported
+        // even when the schema declares a default for it.
         List<RenderValidationError> validationErrors = validateVariables(variables, variablesSchema);
 
-        // Render the template by substituting variables
-        String rendered = substituteVariables(templateText, variables);
+        // Fill in declared defaults for any variable the caller did not provide
+        Map<String, Object> effectiveVariables = applyDefaults(variables, variablesSchema);
+
+        // Applied defaults are validated too, so a default that violates its own type, enum or
+        // range is reported instead of being rendered silently.
+        validateAppliedDefaults(variables, effectiveVariables, variablesSchema, validationErrors);
+
+        // Process conditional blocks first, then substitute plain variables
+        String withBlocksResolved = processConditionalBlocks(templateText, effectiveVariables);
+        String rendered = substituteVariables(withBlocksResolved, effectiveVariables);
 
         return RenderPromptResponse.builder()
                 .rendered(rendered)
@@ -103,6 +147,45 @@ public class PromptRenderingService {
     }
 
     /**
+     * Returns the variables to render with, filling in the <code>default</code> declared by the
+     * schema for any variable the caller did not provide. Caller-supplied values always win, and
+     * a variable that is explicitly present is never overwritten.
+     * <p>
+     * The caller's map is never modified; a copy is made only when there is a default to apply.
+     */
+    private Map<String, Object> applyDefaults(Map<String, Object> variables, JsonNode variablesSchema) {
+        if (variablesSchema.isMissingNode() || !variablesSchema.isObject()) {
+            return variables;
+        }
+
+        Map<String, Object> effective = null;
+
+        Iterator<Map.Entry<String, JsonNode>> fields = variablesSchema.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            String varName = field.getKey();
+
+            if (variables.containsKey(varName)) {
+                continue;
+            }
+
+            // A YAML "default:" with no value parses as a null node rather than a missing one.
+            // Treat it as no default at all. An empty-string default is a real value and applies.
+            JsonNode defaultNode = field.getValue().path("default");
+            if (defaultNode.isMissingNode() || defaultNode.isNull()) {
+                continue;
+            }
+
+            if (effective == null) {
+                effective = new HashMap<>(variables);
+            }
+            effective.put(varName, MAPPER.convertValue(defaultNode, Object.class));
+        }
+
+        return effective != null ? effective : variables;
+    }
+
+    /**
      * Validate variables against the schema defined in the template.
      */
     private List<RenderValidationError> validateVariables(Map<String, Object> variables,
@@ -123,7 +206,7 @@ public class PromptRenderingService {
 
             // Check if required variable is present
             boolean required = varSchema.path("required").asBoolean(false);
-            if (required && !variables.containsKey(varName)) {
+            if (required && (!variables.containsKey(varName) || variables.get(varName) == null)) {
                 errors.add(RenderValidationError.builder()
                         .variableName(varName)
                         .message("Required variable is missing")
@@ -133,33 +216,72 @@ public class PromptRenderingService {
 
             // Validate type if variable is present
             if (variables.containsKey(varName)) {
-                Object value = variables.get(varName);
-                String expectedType = varSchema.path("type").asText("string");
-                RenderValidationError typeError = validateType(varName, value, expectedType);
-                if (typeError != null) {
-                    errors.add(typeError);
-                }
-
-                // Validate enum if specified
-                JsonNode enumNode = varSchema.path("enum");
-                if (!enumNode.isMissingNode() && enumNode.isArray()) {
-                    RenderValidationError enumError = validateEnum(varName, value, enumNode);
-                    if (enumError != null) {
-                        errors.add(enumError);
-                    }
-                }
-
-                // Validate range for numeric types
-                if ("integer".equals(expectedType) || "number".equals(expectedType)) {
-                    RenderValidationError rangeError = validateRange(varName, value, varSchema);
-                    if (rangeError != null) {
-                        errors.add(rangeError);
-                    }
-                }
+                validateValue(varName, variables.get(varName), varSchema, errors);
             }
         }
 
         return errors;
+    }
+
+    /**
+     * Validate a single value against its variable schema: type, enum and numeric range.
+     * <p>
+     * Presence and <code>required</code> are handled by the caller, so this can be reused for
+     * values the caller supplied and for defaults filled in from the schema.
+     */
+    private void validateValue(String varName, Object value, JsonNode varSchema,
+            List<RenderValidationError> errors) {
+        String expectedType = varSchema.path("type").asText("string");
+        RenderValidationError typeError = validateType(varName, value, expectedType);
+        if (typeError != null) {
+            errors.add(typeError);
+        }
+
+        // Validate enum if specified
+        JsonNode enumNode = varSchema.path("enum");
+        if (!enumNode.isMissingNode() && enumNode.isArray()) {
+            RenderValidationError enumError = validateEnum(varName, value, enumNode);
+            if (enumError != null) {
+                errors.add(enumError);
+            }
+        }
+
+        // Validate range for numeric types
+        if ("integer".equals(expectedType) || "number".equals(expectedType)) {
+            RenderValidationError rangeError = validateRange(varName, value, varSchema);
+            if (rangeError != null) {
+                errors.add(rangeError);
+            }
+        }
+    }
+
+    /**
+     * Validate the defaults that were filled in from the schema, so a declared default that
+     * violates its own <code>type</code>, <code>enum</code> or range is reported rather than
+     * silently rendered.
+     * <p>
+     * Only variables the caller omitted are checked here; <code>required</code> is deliberately
+     * not re-checked, since a caller that omits a required variable is already reported by
+     * {@link #validateVariables}.
+     */
+    private void validateAppliedDefaults(Map<String, Object> variables,
+            Map<String, Object> effectiveVariables, JsonNode variablesSchema,
+            List<RenderValidationError> errors) {
+        if (effectiveVariables == variables) {
+            // No defaults were applied
+            return;
+        }
+
+        for (Map.Entry<String, Object> entry : effectiveVariables.entrySet()) {
+            String varName = entry.getKey();
+            if (variables.containsKey(varName)) {
+                continue;
+            }
+            JsonNode varSchema = variablesSchema.path(varName);
+            if (varSchema.isObject()) {
+                validateValue(varName, entry.getValue(), varSchema, errors);
+            }
+        }
     }
 
     /**
@@ -263,30 +385,77 @@ public class PromptRenderingService {
     }
 
     /**
+     * Determine whether a value is truthy for conditional evaluation.
+     *
+     * <p>A value is falsy when it is null, {@code Boolean.FALSE}, or an empty string.
+     * All other values are truthy. This matches the MCP render path semantics in
+     * {@code PromptTemplateConverter.processConditionalBlocks()}.</p>
+     */
+    private boolean isTruthy(Object value) {
+        return value != null
+                && !Boolean.FALSE.equals(value)
+                && !(value instanceof String s && s.isEmpty());
+    }
+
+    /**
+     * Process Handlebars-style conditional blocks before plain variable substitution.
+     *
+     * <p>Handles three forms in evaluation order:</p>
+     * <ol>
+     *   <li>{@code {{#if var}} ... {{else}} ... {{/if}}} — if/else (must be matched before plain if)</li>
+     *   <li>{@code {{#if var}} ... {{/if}}} — simple if</li>
+     *   <li>{@code {{#unless var}} ... {{/unless}}} — unless (logical complement of if)</li>
+     * </ol>
+     */
+    private String processConditionalBlocks(String template, Map<String, Object> variables) {
+        // Step 1: resolve if-else blocks first to prevent the plain-if pattern from partially matching them
+        Matcher ifElseMatcher = IF_ELSE_BLOCK_PATTERN.matcher(template);
+        StringBuffer ifElseResult = new StringBuffer();
+        while (ifElseMatcher.find()) {
+            String varName = ifElseMatcher.group(1);
+            String truthyBranch = ifElseMatcher.group(2);
+            String falsyBranch = ifElseMatcher.group(3);
+            String chosen = isTruthy(variables.get(varName)) ? truthyBranch : falsyBranch;
+            ifElseMatcher.appendReplacement(ifElseResult, Matcher.quoteReplacement(chosen));
+        }
+        ifElseMatcher.appendTail(ifElseResult);
+        template = ifElseResult.toString();
+
+        // Step 2: resolve plain if blocks
+        Matcher ifMatcher = IF_BLOCK_PATTERN.matcher(template);
+        StringBuffer ifResult = new StringBuffer();
+        while (ifMatcher.find()) {
+            String varName = ifMatcher.group(1);
+            String content = ifMatcher.group(2);
+            String chosen = isTruthy(variables.get(varName)) ? content : "";
+            ifMatcher.appendReplacement(ifResult, Matcher.quoteReplacement(chosen));
+        }
+        ifMatcher.appendTail(ifResult);
+        template = ifResult.toString();
+
+        // Step 3: resolve unless blocks (logical complement of if)
+        Matcher unlessMatcher = UNLESS_BLOCK_PATTERN.matcher(template);
+        StringBuffer unlessResult = new StringBuffer();
+        while (unlessMatcher.find()) {
+            String varName = unlessMatcher.group(1);
+            String content = unlessMatcher.group(2);
+            String chosen = isTruthy(variables.get(varName)) ? "" : content;
+            unlessMatcher.appendReplacement(unlessResult, Matcher.quoteReplacement(chosen));
+        }
+        unlessMatcher.appendTail(unlessResult);
+
+        return unlessResult.toString();
+    }
+
+    /**
      * Substitute variables in the template text using {{variable}} syntax.
      */
     private String substituteVariables(String template, Map<String, Object> variables) {
-        StringBuffer result = new StringBuffer();
-        Matcher matcher = VARIABLE_PATTERN.matcher(template);
-
-        while (matcher.find()) {
-            String varName = matcher.group(1).trim();
+        return PromptTemplateVariableUtil.substituteVariables(template, varName -> {
             Object value = variables.get(varName);
-
-            String replacement;
-            if (value == null) {
-                // Keep the original placeholder if variable is not provided
-                replacement = matcher.group(0);
-            } else {
-                replacement = formatValue(value);
-            }
-
-            // Escape special characters for replacement
-            matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(result);
-
-        return result.toString();
+            // Returning null keeps the original placeholder if the variable is not provided.
+            return value == null ? null : formatValue(value);
+        });
     }
 
     /**

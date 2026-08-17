@@ -39,6 +39,17 @@ public class ConsolePluginManagerTest {
                 .isNotEqualTo(ConsolePluginManager.getPluginName(second));
     }
 
+    @Test
+    void testLegacyPluginNameMatchesPreNamespaceScopedFormat() {
+        // The migration in ConsolePluginManager#deleteLegacyPluginCR relies on this staying equal to
+        // what getPluginName() used to return before it was scoped by namespace. If it drifts, upgraded
+        // clusters would stop finding (and cleaning up) the old cluster-scoped ConsolePlugin object.
+        var registry = registry("team-a", "example-apicurioregistry");
+
+        assertThat(ConsolePluginManager.getLegacyPluginName(registry))
+                .isEqualTo("example-apicurioregistry-console-plugin");
+    }
+
     private static ApicurioRegistry3 registry(String namespace, String name) {
         var registry = new ApicurioRegistry3();
         registry.setMetadata(new ObjectMetaBuilder().withNamespace(namespace).withName(name).build());

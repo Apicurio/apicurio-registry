@@ -77,6 +77,9 @@ public class ConsolePluginManager {
             return;
         }
 
+        var crdContext = newCrdContext();
+        deleteLegacyPluginCR(client, primary, crdContext);
+
         var pluginName = getPluginName(primary);
         var serviceName = primary.getMetadata().getName() + "-" + COMPONENT_CONSOLE_PLUGIN + "-" + RESOURCE_TYPE_SERVICE;
         var namespace = primary.getMetadata().getNamespace();
@@ -117,13 +120,6 @@ public class ConsolePluginManager {
         ));
 
         try {
-            var crdContext = new CustomResourceDefinitionContext.Builder()
-                    .withGroup(CONSOLE_PLUGIN_API_GROUP)
-                    .withVersion(CONSOLE_PLUGIN_API_VERSION)
-                    .withPlural(CONSOLE_PLUGIN_PLURAL)
-                    .withScope("Cluster")
-                    .build();
-
             var existing = client.genericKubernetesResources(crdContext)
                     .withName(pluginName)
                     .get();
@@ -149,15 +145,11 @@ public class ConsolePluginManager {
         if (!isOpenShift(client)) {
             return;
         }
+        var crdContext = newCrdContext();
+        deleteLegacyPluginCR(client, primary, crdContext);
+
         var pluginName = getPluginName(primary);
         try {
-            var crdContext = new CustomResourceDefinitionContext.Builder()
-                    .withGroup(CONSOLE_PLUGIN_API_GROUP)
-                    .withVersion(CONSOLE_PLUGIN_API_VERSION)
-                    .withPlural(CONSOLE_PLUGIN_PLURAL)
-                    .withScope("Cluster")
-                    .build();
-
             var existing = client.genericKubernetesResources(crdContext)
                     .withName(pluginName)
                     .get();
@@ -170,6 +162,48 @@ public class ConsolePluginManager {
             }
         } catch (Exception e) {
             log.warn("Failed to delete ConsolePlugin CR", e);
+        }
+    }
+
+    private static CustomResourceDefinitionContext newCrdContext() {
+        return new CustomResourceDefinitionContext.Builder()
+                .withGroup(CONSOLE_PLUGIN_API_GROUP)
+                .withVersion(CONSOLE_PLUGIN_API_VERSION)
+                .withPlural(CONSOLE_PLUGIN_PLURAL)
+                .withScope("Cluster")
+                .build();
+    }
+
+    /**
+     * The {@code ConsolePlugin} name used before it was scoped by namespace (see {@link #getPluginName}).
+     */
+    public static String getLegacyPluginName(ApicurioRegistry3 primary) {
+        return primary.getMetadata().getName() + "-console-plugin";
+    }
+
+    /**
+     * Before the plugin name was scoped by namespace, {@code ConsolePlugin} objects were named
+     * {@code <cr-name>-console-plugin}. Clean up any such object left over from before the upgrade so
+     * it doesn't stay orphaned on the cluster (it has no owner-reference GC, since the cluster-scoped
+     * {@code ConsolePlugin} can't be owned by the namespaced {@code ApicurioRegistry3} CR) pointing at a
+     * stale service alongside the new namespace-scoped one.
+     */
+    private static void deleteLegacyPluginCR(KubernetesClient client, ApicurioRegistry3 primary,
+            CustomResourceDefinitionContext crdContext) {
+        var legacyName = getLegacyPluginName(primary);
+        try {
+            var legacy = client.genericKubernetesResources(crdContext)
+                    .withName(legacyName)
+                    .get();
+
+            if (legacy != null) {
+                client.genericKubernetesResources(crdContext)
+                        .withName(legacyName)
+                        .delete();
+                log.info("Deleted legacy ConsolePlugin CR: {}", legacyName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete legacy ConsolePlugin CR", e);
         }
     }
 }

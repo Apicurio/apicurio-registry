@@ -371,8 +371,8 @@ public class RegistryService {
             r.queryParameters.labels = utils.toQueryLabels(jsonLabels);
 
             r.queryParameters.limit = config.paging().limit() + 1;
-            r.queryParameters.order = SortOrder.forValue(order);
-            r.queryParameters.orderby = ArtifactSortBy.forValue(artifactOrderBy);
+            r.queryParameters.order = parseSortOrder(order);
+            r.queryParameters.orderby = parseArtifactSortBy(artifactOrderBy);
         });
         checkPagingLimit(page.getCount());
         return page.getArtifacts();

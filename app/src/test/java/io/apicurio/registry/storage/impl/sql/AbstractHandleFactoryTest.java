@@ -32,6 +32,7 @@ class AbstractHandleFactoryTest {
                 () -> factory(dataSource).withHandle((HandleCallback<Void, RuntimeException>) handle -> null));
 
         assertSame(commitFailure, thrown.getCause());
+        verify(connection).commit();
         verify(connection).close();
     }
 
@@ -52,6 +53,24 @@ class AbstractHandleFactoryTest {
         assertSame(callbackFailure, thrown);
         assertEquals(1, thrown.getSuppressed().length);
         assertSame(rollbackFailure, thrown.getSuppressed()[0].getCause());
+        verify(connection).rollback();
+        verify(connection).close();
+    }
+
+    @Test
+    void shouldPropagateCheckedCallbackFailureAfterRollback() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        Exception callbackFailure = new Exception("callback failed");
+        when(dataSource.getConnection()).thenReturn(connection);
+
+        Exception thrown = assertThrows(Exception.class,
+                () -> factory(dataSource).withHandle((HandleCallback<Void, Exception>) handle -> {
+                    throw callbackFailure;
+                }));
+
+        assertSame(callbackFailure, thrown);
+        verify(connection).rollback();
         verify(connection).close();
     }
 

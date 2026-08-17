@@ -13,6 +13,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
@@ -144,6 +146,76 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
                 });
         assertEquals("RuleViolationException", exception.getName());
         assertEquals(400, exception.getStatus());
+    }
+
+    @Test
+    public void testAdvisoryValidityRuleAllowsInvalidContent() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "testAdvisoryValidityRuleAllowsInvalidContent";
+        String advisoryRule = """
+                {
+                    "ruleType": "VALIDITY",
+                    "config": "FULL",
+                    "onFailure": "NONE"
+                }""";
+
+        try {
+            given().contentType(CT_JSON).body(advisoryRule).post("/registry/v3/admin/rules").then()
+                    .statusCode(204);
+            given().get("/registry/v3/admin/rules/VALIDITY").then().statusCode(200)
+                    .body("onFailure", equalTo("NONE"));
+
+            given().contentType(CT_JSON).body("{\"config\": \"FULL\"}")
+                    .put("/registry/v3/admin/rules/VALIDITY").then().statusCode(200);
+            given().get("/registry/v3/admin/rules/VALIDITY").then().statusCode(200)
+                    .body("onFailure", equalTo("NONE"));
+
+            createArtifact(groupId, artifactId, ArtifactType.AVRO, INVALID_SCHEMA,
+                    ContentTypes.APPLICATION_JSON);
+        } finally {
+            given().delete("/registry/v3/admin/rules/VALIDITY");
+        }
+    }
+
+    @Test
+    public void testAdvisoryValidityRuleGroupConfig() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "testAdvisoryValidityRuleGroupConfig";
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
+
+        given().contentType(CT_JSON)
+                .body("{\"ruleType\": \"VALIDITY\", \"config\": \"FULL\", \"onFailure\": \"NONE\"}")
+                .post("/registry/v3/groups/{groupId}/rules", groupId).then().statusCode(204);
+        given().contentType(CT_JSON).body("{\"config\": \"FULL\"}")
+                .put("/registry/v3/groups/{groupId}/rules/VALIDITY", groupId).then().statusCode(200);
+        given().get("/registry/v3/groups/{groupId}/rules/VALIDITY", groupId).then().statusCode(200)
+                .body("onFailure", equalTo("NONE"));
+
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, INVALID_SCHEMA,
+                ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    public void testAdvisoryValidityRuleArtifactConfig() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "testAdvisoryValidityRuleArtifactConfig";
+
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE,
+                ContentTypes.APPLICATION_JSON);
+        given().contentType(CT_JSON)
+                .body("{\"ruleType\": \"VALIDITY\", \"config\": \"FULL\", \"onFailure\": \"NONE\"}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules", groupId, artifactId)
+                .then().statusCode(204);
+        given().contentType(CT_JSON).body("{\"config\": \"FULL\"}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/VALIDITY", groupId,
+                        artifactId).then().statusCode(200);
+        given().get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/rules/VALIDITY", groupId,
+                artifactId).then().statusCode(200).body("onFailure", equalTo("NONE"));
+
+        createArtifactVersion(groupId, artifactId, INVALID_SCHEMA, ContentTypes.APPLICATION_JSON);
     }
 
 }

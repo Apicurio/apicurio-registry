@@ -562,6 +562,8 @@ public class GroupsResourceImpl implements GroupsResource {
         ParameterValidationUtils.requireParameter("rule", rule);
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
+        dto.setOnFailure(storage.getArtifactRule(defaultGroupIdToNull(groupId), artifactId, rule)
+                .getOnFailure());
         storage.updateArtifactRule(defaultGroupIdToNull(groupId), artifactId, rule, dto);
         Rule rval = new Rule();
         rval.setType(rule);

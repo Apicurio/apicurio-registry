@@ -21,7 +21,8 @@ public class GroupRuleConfigured extends OutboxEvent {
         String id = UUID.randomUUID().toString();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("ruleType", ruleType.value())
-                .put("rule", rule.getConfiguration()).put("eventType", GROUP_RULE_CONFIGURED.name());
+                .put("rule", rule.getConfiguration()).put("onFailure", rule.getOnFailure().name())
+                .put("eventType", GROUP_RULE_CONFIGURED.name());
 
         return new GroupRuleConfigured(id, groupId, jsonObject);
     }

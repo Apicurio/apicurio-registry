@@ -755,18 +755,22 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(artifactId, dto.getArtifactId());
 
         RuleConfigurationDto configDto = new RuleConfigurationDto("FULL");
+        configDto.setOnFailure(RuleAction.NONE);
         storage().createArtifactRule(GROUP_ID, artifactId, RuleType.VALIDITY, configDto);
 
         RuleConfigurationDto rule = storage().getArtifactRule(GROUP_ID, artifactId, RuleType.VALIDITY);
         Assertions.assertNotNull(rule);
         Assertions.assertEquals("FULL", rule.getConfiguration());
+        Assertions.assertEquals(RuleAction.NONE, rule.getOnFailure());
 
         RuleConfigurationDto updatedConfig = new RuleConfigurationDto("NONE");
+        updatedConfig.setOnFailure(RuleAction.ERROR);
         storage().updateArtifactRule(GROUP_ID, artifactId, RuleType.VALIDITY, updatedConfig);
 
         rule = storage().getArtifactRule(GROUP_ID, artifactId, RuleType.VALIDITY);
         Assertions.assertNotNull(rule);
         Assertions.assertEquals("NONE", rule.getConfiguration());
+        Assertions.assertEquals(RuleAction.ERROR, rule.getOnFailure());
     }
 
     @Test

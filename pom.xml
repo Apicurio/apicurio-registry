@@ -185,7 +185,7 @@
     <jandex.version>3.6.0</jandex.version>
 
     <!-- Schema types -->
-    <avro.version>1.12.1</avro.version>
+    <avro.version>1.12.2</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>

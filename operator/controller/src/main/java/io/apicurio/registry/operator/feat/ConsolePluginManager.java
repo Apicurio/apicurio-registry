@@ -33,8 +33,15 @@ public class ConsolePluginManager {
     private ConsolePluginManager() {
     }
 
+    /**
+     * The {@code ConsolePlugin} custom resource is cluster-scoped, unlike the primary
+     * {@code ApicurioRegistry3} resource and the other (namespaced) resources the operator manages.
+     * The namespace must therefore be included in the name to keep it unique across CRs that share the
+     * same name in different namespaces.
+     */
     public static String getPluginName(ApicurioRegistry3 primary) {
-        return primary.getMetadata().getName() + "-console-plugin";
+        return primary.getMetadata().getNamespace() + "-" + primary.getMetadata().getName()
+                + "-console-plugin";
     }
 
     public static boolean isOpenShift(KubernetesClient client) {

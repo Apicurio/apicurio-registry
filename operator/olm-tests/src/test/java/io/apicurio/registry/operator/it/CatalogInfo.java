@@ -84,7 +84,7 @@ public class CatalogInfo {
         if (entries == null || entries.size() < 2) {
             return null;
         }
-        var headMinor = getChannelHeadVersion(channelName).getMinor();
+        var headMinor = getChannelHead(channelName).getVersion().getMinor();
         for (int i = 1; i < entries.size(); i++) {
             if (entries.get(i).getVersion().getMinor() != headMinor) {
                 return entries.get(i);
@@ -98,16 +98,17 @@ public class CatalogInfo {
      * minor, excluding the rolling channel. Returns null if no such channel exists.
      */
     public String getOlderMinorChannel(String currentVersion, String rollingChannel) {
-        var currentMinor = coerceVersion(currentVersion).getMinor();
+        var currentMinor = parseVersion(currentVersion).getMinor();
         String best = null;
         int bestMinor = -1;
         for (var ch : channels.keySet()) {
             if (ch.equals(rollingChannel)) {
                 continue;
             }
-            var head = getChannelHeadVersion(ch);
-            if (head != null && head.getMinor() < currentMinor && head.getMinor() > bestMinor) {
-                bestMinor = head.getMinor();
+            var head = getChannelHead(ch);
+            if (head != null && head.getVersion().getMinor() < currentMinor
+                    && head.getVersion().getMinor() > bestMinor) {
+                bestMinor = head.getVersion().getMinor();
                 best = ch;
             }
         }
@@ -116,17 +117,17 @@ public class CatalogInfo {
 
     /**
      * Checks if the given version is the head of the given channel. Uses semver comparison
-     * on major.minor.patch, tolerating downstream pre-release suffixes.
+     * on major.minor.patch, tolerating pre-release suffix differences.
      */
     public boolean isVersionChannelHead(String channelName, String version) {
-        var headVersion = getChannelHeadVersion(channelName);
-        if (headVersion == null) {
+        var head = getChannelHead(channelName);
+        if (head == null) {
             return false;
         }
-        var target = coerceVersion(version);
-        return headVersion.getMajor() == target.getMajor()
-                && headVersion.getMinor() == target.getMinor()
-                && headVersion.getPatch() == target.getPatch();
+        var target = parseVersion(version);
+        return head.getVersion().getMajor() == target.getMajor()
+                && head.getVersion().getMinor() == target.getMinor()
+                && head.getVersion().getPatch() == target.getPatch();
     }
 
     /**
@@ -142,12 +143,14 @@ public class CatalogInfo {
     }
 
     /**
-     * Coerces a version string into a Semver, tolerating downstream suffixes.
+     * Parses a version string as strict semver. Fails fast if the version is not valid semver,
+     * since OLM also requires semver-compliant CSV versions.
      */
-    static Semver coerceVersion(String version) {
-        var semver = Semver.coerce(version);
+    static Semver parseVersion(String version) {
+        var semver = Semver.parse(version);
         if (semver == null) {
-            throw new IllegalArgumentException("Cannot parse version: " + version);
+            throw new IllegalArgumentException(
+                    "'" + version + "' is not a valid semver. OLM requires semver-compliant versions.");
         }
         return semver;
     }

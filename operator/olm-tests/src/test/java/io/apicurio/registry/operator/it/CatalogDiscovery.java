@@ -4,14 +4,13 @@ import io.apicurio.registry.operator.it.CatalogInfo.ChannelEntry;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.Getter;
-import org.semver4j.Semver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-import static io.apicurio.registry.operator.it.CatalogInfo.coerceVersion;
 import static io.apicurio.registry.operator.it.CatalogInfo.extractVersionString;
+import static io.apicurio.registry.operator.it.CatalogInfo.parseVersion;
 import static io.apicurio.registry.operator.it.OLMTestUtils.*;
 import static org.awaitility.Awaitility.await;
 
@@ -101,13 +100,8 @@ public class CatalogDiscovery {
                 for (var re : rawEntries) {
                     var csvName = (String) re.get("name");
                     var versionStr = (String) re.get("version");
-                    Semver version;
-                    if (versionStr != null) {
-                        version = coerceVersion(versionStr);
-                    } else {
-                        version = coerceVersion(extractVersionString(csvName));
-                    }
-                    entries.add(new ChannelEntry(csvName, version));
+                    var versionRaw = versionStr != null ? versionStr : extractVersionString(csvName);
+                    entries.add(new ChannelEntry(csvName, parseVersion(versionRaw)));
                 }
 
                 if (!entries.get(0).getCsvName().equals(currentCSV)) {
@@ -121,8 +115,8 @@ public class CatalogDiscovery {
                     });
                 }
             } else {
-                var version = coerceVersion(extractVersionString(currentCSV));
-                entries.add(new ChannelEntry(currentCSV, version));
+                entries.add(new ChannelEntry(currentCSV,
+                        parseVersion(extractVersionString(currentCSV))));
                 log.warn("Channel {} has no entries in PackageManifest, using head only: {}",
                         name, currentCSV);
             }

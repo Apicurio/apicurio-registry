@@ -157,7 +157,7 @@ tags:
   - sentiment
   - nlp
 
-templateFormat: mustache  # only mustache is supported
+templateFormat: mustache  # only mustache is accepted
 
 # Model configuration (Prompty-aligned)
 model:

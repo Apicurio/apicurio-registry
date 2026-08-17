@@ -28,9 +28,10 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             "string", "integer", "number", "boolean", "array", "object");
 
     /**
-     * Template formats the registry is able to render. Rendering is implemented by substituting
-     * {@code {{variable}}} placeholders, which is mustache syntax. Any other format would be
-     * accepted at write time and then rendered with the wrong engine, so it is rejected here.
+     * Template formats the registry is able to render. Rendering substitutes
+     * {@code {{variable}}} placeholders and evaluates the Handlebars-style {@code {{#if}}},
+     * {@code {{#unless}}} and {@code {{else}}} blocks. Any other format would be accepted at
+     * write time and then rendered with the wrong engine, so it is rejected here.
      * <p>
      * This is the single source of truth for the supported formats. The {@code templateFormat}
      * enum in {@code prompt-template-v1.json} must list the same values, and

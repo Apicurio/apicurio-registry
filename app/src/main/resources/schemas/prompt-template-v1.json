@@ -37,7 +37,7 @@
       "type": "string",
       "enum": ["mustache"],
       "default": "mustache",
-      "description": "Templating syntax used by the 'template' field. Only mustache is supported, which is the {{variable}} placeholder syntax the registry renders."
+      "description": "Templating syntax used by the 'template' field. Only 'mustache' is accepted. The registry substitutes {{variable}} placeholders and evaluates the Handlebars-style {{#if}}, {{#unless}} and {{else}} blocks."
     },
     "authors": {
       "type": "array",

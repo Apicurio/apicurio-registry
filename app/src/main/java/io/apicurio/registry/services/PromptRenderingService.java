@@ -117,8 +117,8 @@ public class PromptRenderingService {
      * <p>
      * The VALIDITY rule rejects such templates at write time, but that rule is optional and can be
      * disabled, and artifacts stored before it was enabled are still rendered. Rendering continues
-     * with mustache substitution so those artifacts keep working, and the warning records that the
-     * output is unlikely to be what the template intended.
+     * with this service's own syntax so those artifacts keep working, and the warning records that
+     * the output is unlikely to be what the template intended.
      */
     private void warnOnUnsupportedTemplateFormat(JsonNode templateNode, String groupId,
             String artifactId, String version) {
@@ -130,7 +130,7 @@ public class PromptRenderingService {
         String format = templateFormat.asText();
         if (!PromptTemplateContentValidator.getSupportedTemplateFormats().contains(format)) {
             log.warn("Prompt template {}/{}/{} declares templateFormat '{}', which is not supported. "
-                    + "Rendering with mustache substitution instead. Supported formats: {}.",
+                    + "Rendering with the built-in placeholder syntax instead. Supported formats: {}.",
                     groupId, artifactId, version, format,
                     PromptTemplateContentValidator.getSupportedTemplateFormats());
         }

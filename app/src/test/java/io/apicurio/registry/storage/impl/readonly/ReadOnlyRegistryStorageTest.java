@@ -245,8 +245,13 @@ public class ReadOnlyRegistryStorageTest extends AbstractResourceTestBase {
                 entry("createSnapshot1", new State(true, s -> s.createSnapshot(null))),
                 entry("upgradeData3", new State(true, s -> s.upgradeData(null, false, false))),
                 entry("createEvent1", new State(true, s -> s.createEvent(null))),
-                entry("supportsDatabaseEvents0", new State(true, s -> s.createEvent(null))),
+                entry("supportsDatabaseEvents0", new State(false, RegistryStorage::supportsDatabaseEvents)),
                 entry("getContentByReference1", new State(false, s -> s.getContentByReference(null))),
+                // recordUsageEvent/deleteOldUsageEvents write but are deliberately State(false):
+                // recordUsageEvent is fired by UsageTelemetryFilter as a side effect of serving a
+                // schema fetch (see adr/0003-usage-telemetry.md), so guarding it would break reads
+                // in read-only mode; deleteOldUsageEvents is retention cleanup run by the internal
+                // scheduled UsageAggregationJob, not a client-initiated write.
                 entry("recordUsageEvent1", new State(false, s -> s.recordUsageEvent(null))),
                 entry("deleteOldUsageEvents1", new State(false, s -> s.deleteOldUsageEvents(0))),
                 entry("getArtifactUsageMetrics2",

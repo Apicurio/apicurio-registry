@@ -170,7 +170,6 @@ public interface WellKnownResource {
             @QueryParam("limit") @DefaultValue("20") String limit);
 
     /**
-    /**
      * Search for registered MCP tools compatible with a specific target tool by group and artifact ID.
      * Tool chaining compatibility is evaluated by matching the target tool's outputSchema guaranteed
      * (required) output properties against candidate tools' inputSchema required input parameters.

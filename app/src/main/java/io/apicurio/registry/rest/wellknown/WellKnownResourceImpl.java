@@ -61,6 +61,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -683,7 +684,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             // Exclude the target artifact itself if targetGa is specified
             if (targetGa != null
                     && isSameGroup(artifact.getGroupId(), targetGa.getRawGroupIdWithNull())
-                    && java.util.Objects.equals(artifact.getArtifactId(), targetGa.getRawArtifactId())) {
+                    && Objects.equals(artifact.getArtifactId(), targetGa.getRawArtifactId())) {
                 continue;
             }
 
@@ -797,7 +798,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private boolean isSameGroup(String g1, String g2) {
         String norm1 = new GroupId(g1).getRawGroupIdWithNull();
         String norm2 = new GroupId(g2).getRawGroupIdWithNull();
-        return java.util.Objects.equals(norm1, norm2);
+        return Objects.equals(norm1, norm2);
     }
 
     private int parsePaginationParam(String value, String name, int defaultValue) {

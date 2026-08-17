@@ -67,6 +67,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Implementation of the well-known endpoint resource for A2A agents and MCP tools.

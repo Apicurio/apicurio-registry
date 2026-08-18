@@ -13,6 +13,7 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 public class ApicurioDataModelsContentDereferencer implements ContentDereferencer {
@@ -85,10 +86,7 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
      * @return true if the content type is YAML, false otherwise
      */
     private boolean isYamlContentType(String contentType) {
-        if (contentType == null) {
-            return false;
-        }
-        String lowerContentType = contentType.toLowerCase();
-        return lowerContentType.contains("yaml") || lowerContentType.contains("yml");
+        String lc = contentType != null ? contentType.toLowerCase(Locale.ROOT) : null;
+        return lc != null && (lc.contains("yaml") || lc.contains("yml"));
     }
 }

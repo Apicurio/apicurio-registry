@@ -109,6 +109,18 @@
     <module>schema-util/wsdl</module>
     <module>schema-util/xml</module>
     <module>schema-util/xsd</module>
+    <module>serdes/generic/serde-common</module>
+    <module>serdes/generic/serde-common-avro</module>
+    <module>serdes/generic/serde-common-jsonschema</module>
+    <module>serdes/generic/serde-common-protobuf</module>
+    <module>serdes/kafka/avro-serde</module>
+    <module>serdes/kafka/jsonschema-serde</module>
+    <module>serdes/kafka/protobuf-serde</module>
+    <module>serdes/kafka/serde-kafka-common</module>
+    <module>serdes/nats/avro-serde</module>
+    <module>serdes/pulsar/avro-serde</module>
+    <module>utils/maven-plugin</module>
+    <module>utils/raml-test-micro-service</module>
   </modules>
 
   <scm>
@@ -173,7 +185,7 @@
     <jandex.version>3.6.0</jandex.version>
 
     <!-- Schema types -->
-    <avro.version>1.12.1</avro.version>
+    <avro.version>1.12.2</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
@@ -232,12 +244,12 @@
     <commons-codec.version>1.22.1</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
-    <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
+    <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
     <debezium.version>3.6.1.Final</debezium.version>
     <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.26.1</nats.version>
+    <nats.version>2.26.2</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
@@ -282,9 +294,9 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.9.0</version.puppycrawl>
+    <version.puppycrawl>13.11.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.7</proto-plugin.version>
+    <proto-plugin.version>5.1.8</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -299,7 +311,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.0.8</groovy.version>
+    <groovy.version>5.1.0</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -1374,18 +1386,6 @@
         <module>distro</module>
         <module>docs</module>
         <module>utils/converter</module>
-        <module>utils/maven-plugin</module>
-        <module>utils/raml-test-micro-service</module>
-        <module>serdes/generic/serde-common</module>
-        <module>serdes/generic/serde-common-avro</module>
-        <module>serdes/generic/serde-common-jsonschema</module>
-        <module>serdes/generic/serde-common-protobuf</module>
-        <module>serdes/kafka/avro-serde</module>
-        <module>serdes/kafka/jsonschema-serde</module>
-        <module>serdes/kafka/protobuf-serde</module>
-        <module>serdes/kafka/serde-kafka-common</module>
-        <module>serdes/nats/avro-serde</module>
-        <module>serdes/pulsar/avro-serde</module>
       </modules>
     </profile>
     <profile>
@@ -1415,18 +1415,6 @@
         <module>distro</module>
         <module>docs</module>
         <module>utils/converter</module>
-        <module>utils/maven-plugin</module>
-        <module>utils/raml-test-micro-service</module>
-        <module>serdes/generic/serde-common</module>
-        <module>serdes/generic/serde-common-avro</module>
-        <module>serdes/generic/serde-common-jsonschema</module>
-        <module>serdes/generic/serde-common-protobuf</module>
-        <module>serdes/kafka/avro-serde</module>
-        <module>serdes/kafka/jsonschema-serde</module>
-        <module>serdes/kafka/protobuf-serde</module>
-        <module>serdes/kafka/serde-kafka-common</module>
-        <module>serdes/nats/avro-serde</module>
-        <module>serdes/pulsar/avro-serde</module>
         <!-- Full-only modules -->
         <module>go-sdk</module>
         <module>mcp</module>

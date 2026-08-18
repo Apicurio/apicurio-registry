@@ -71,7 +71,7 @@ jobs:
           # shard at all. Every exclusion below must correspond to another shard's inclusion.
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
+            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.impl.sql.**,!io.apicurio.registry.storage.impl.search.**,!io.apicurio.registry.storage.impl.polling.**,!io.apicurio.registry.storage.impl.readonly.**,!io.apicurio.registry.storage.decorator.**,!io.apicurio.registry.storage.dto.**,!io.apicurio.registry.storage.impl.kafkasql.**,!io.apicurio.registry.storage.impl.gitops.**,!io.apicurio.registry.storage.impl.kubernetesops.**,!io.apicurio.registry.event.sql.**,!io.apicurio.registry.event.kafkasql.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"

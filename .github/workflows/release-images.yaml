@@ -155,7 +155,12 @@ jobs:
       - name: Build and push Apicurio Registry GitOps Sync image
         working-directory: registry
         run: |
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           docker buildx build --push -f ./distro/gitops/Dockerfile \
+              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+              --label org.opencontainers.image.revision="$(git -C "$GITHUB_WORKSPACE/registry" rev-parse HEAD)" \
+              --label org.opencontainers.image.version="$RELEASE_VERSION" \
+              --label org.opencontainers.image.created="$BUILD_DATE" \
               -t quay.io/apicurio/apicurio-registry-gitops-sync:$RELEASE_VERSION \
               -t quay.io/apicurio/apicurio-registry-gitops-sync:latest \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/gitops
@@ -168,7 +173,12 @@ jobs:
           if [ "$IS_LATEST_RELEASE" = "true" ]; then
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-mcp-server:latest"
           fi
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           docker buildx build --push -f ./target/docker/Dockerfile.jvm \
+              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+              --label org.opencontainers.image.revision="$(git -C "$GITHUB_WORKSPACE/registry" rev-parse HEAD)" \
+              --label org.opencontainers.image.version="$RELEASE_VERSION" \
+              --label org.opencontainers.image.created="$BUILD_DATE" \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./target/docker
 
@@ -185,7 +195,12 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest"
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest-release"
           fi
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm \
+              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+              --label org.opencontainers.image.revision="$(git -C "$GITHUB_WORKSPACE/registry" rev-parse HEAD)" \
+              --label org.opencontainers.image.version="$RELEASE_VERSION" \
+              --label org.opencontainers.image.created="$BUILD_DATE" \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 
@@ -197,7 +212,12 @@ jobs:
           if [ "$IS_LATEST_RELEASE" = "true" ]; then
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-console-plugin:latest"
           fi
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           docker buildx build --push -f ./Dockerfile.jvm \
+              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+              --label org.opencontainers.image.revision="$(git -C "$GITHUB_WORKSPACE/registry" rev-parse HEAD)" \
+              --label org.opencontainers.image.version="$RELEASE_VERSION" \
+              --label org.opencontainers.image.created="$BUILD_DATE" \
               $TAGS \
               --platform linux/amd64,linux/arm64 ./backend
 
@@ -214,7 +234,12 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-ui:latest"
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry-ui:latest-release"
           fi
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           docker buildx build --push -f ./Dockerfile \
+              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+              --label org.opencontainers.image.revision="$(git -C "$GITHUB_WORKSPACE/registry" rev-parse HEAD)" \
+              --label org.opencontainers.image.version="$RELEASE_VERSION" \
+              --label org.opencontainers.image.created="$BUILD_DATE" \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le .
 

@@ -207,9 +207,14 @@ jobs:
               TAG_ARGS="$TAG_ARGS --tag $tag"
             done
 
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
             docker buildx build \
               --push \
               --file ${{ inputs.dockerfile }} \
               --platform ${{ inputs.platforms }} \
+              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+              --label org.opencontainers.image.revision="${{ github.sha }}" \
+              --label org.opencontainers.image.version="${{ inputs.tag }}" \
+              --label org.opencontainers.image.created="$BUILD_DATE" \
               $TAG_ARGS \
               ${{ inputs.context }}

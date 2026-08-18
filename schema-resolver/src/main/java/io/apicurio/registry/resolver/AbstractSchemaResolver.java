@@ -328,7 +328,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 break;
             }
             double next = step * multiplier;
-            if (!Double.isFinite(next) || next >= (double) maxDelayMs) {
+            if (!Double.isFinite(next) || next >= maxDelayMs) {
                 step = maxDelayMs;
             } else {
                 step = Math.max(1L, (long) next);

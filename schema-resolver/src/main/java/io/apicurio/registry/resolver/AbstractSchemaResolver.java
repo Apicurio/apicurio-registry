@@ -311,7 +311,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         long maxDelayMs = config.getClientRetryMaxDelayMs();
         long sleepMs = 0L;
         for (long attempt = 1; attempt < maxAttempts; attempt++) {
-            long step = (long) (delayMs * Math.pow(multiplier, attempt - 1));
+            long step = (long) (delayMs * Math.pow(multiplier, (double) attempt - 1));
             sleepMs += Math.min(step, maxDelayMs);
         }
         return sleepMs;

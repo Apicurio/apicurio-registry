@@ -484,47 +484,72 @@ public class ERCache<V> {
         for (long i = 0; i <= retries; i++) {
             try {
                 T value = supplier.get();
-                if (value != null)
-                    return Result.ok(value);
-                else {
+                if (value == null) {
                     return Result.error(new NullPointerException(
                             "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
+                return Result.ok(value);
             } catch (RuntimeException e) {
-                // Schema-cache retries compose with the HTTP client retry layer
-                // (apicurio.registry.client.retry.*). Each cache attempt may run a full
-                // client retry ladder before returning here. Widened (non-429) retries are
-                // opt-in via apicurio.registry.retry.transient-errors; bound with
-                // apicurio.registry.retry.total-timeout-ms.
-                if (i == retries || !isRetriableCacheLoadFailure(e, retryTransientErrors)) {
-                    log.error("Schema cache load failed after {} retries", i, e);
-                    return Result.error(new RuntimeException(e));
+                Result<T, RuntimeException> failure = handleRetryableFailure(
+                        e, i, retries, retryTransientErrors, deadline, totalTimeout, backoff);
+                if (failure != null) {
+                    return failure;
                 }
-                if (deadline != null && !Instant.now().isBefore(deadline)) {
-                    log.error("Schema cache load exceeded total retry timeout of {}ms after {} attempts",
-                            totalTimeout.toMillis(), i + 1, e);
-                    return Result.error(new RuntimeException(
-                            "Schema cache load exceeded total retry timeout of " + totalTimeout.toMillis()
-                                    + "ms",
-                            e));
-                }
-                log.debug("Schema cache load attempt {}/{} failed with retriable error; backing off {}ms: {}",
-                        i + 1, retries + 1, backoff.toMillis(), rootMessage(e));
             }
-            try {
-                Thread.sleep(backoff.toMillis());
-            } catch (InterruptedException e) {
-                log.debug("Cache retry backoff interrupted", e);
-                Thread.currentThread().interrupt();
-            }
-            if (deadline != null && !Instant.now().isBefore(deadline)) {
-                log.error("Schema cache load exceeded total retry timeout of {}ms during backoff",
-                        totalTimeout.toMillis());
+            if (sleepBackoffOrTimeout(backoff, deadline, totalTimeout)) {
                 return Result.error(new RuntimeException(
                         "Schema cache load exceeded total retry timeout of " + totalTimeout.toMillis() + "ms"));
             }
         }
         return Result.error(new IllegalStateException("Unreachable."));
+    }
+
+    /**
+     * @return a failure result to return immediately, or {@code null} to continue retrying
+     */
+    private static <T> Result<T, RuntimeException> handleRetryableFailure(RuntimeException e, long attempt,
+            long retries, boolean retryTransientErrors, Instant deadline, Duration totalTimeout,
+            Duration backoff) {
+        // Schema-cache retries compose with the HTTP client retry layer
+        // (apicurio.registry.client.retry.*). Each cache attempt may run a full
+        // client retry ladder before returning here. Widened (non-429) retries are
+        // opt-in via apicurio.registry.retry.transient-errors; bound with
+        // apicurio.registry.retry.total-timeout-ms.
+        if (attempt == retries || !isRetriableCacheLoadFailure(e, retryTransientErrors)) {
+            log.error("Schema cache load failed after {} retries", attempt, e);
+            return Result.error(new RuntimeException(e));
+        }
+        if (isDeadlineExceeded(deadline)) {
+            log.error("Schema cache load exceeded total retry timeout of {}ms after {} attempts",
+                    totalTimeout.toMillis(), attempt + 1, e);
+            return Result.error(new RuntimeException(
+                    "Schema cache load exceeded total retry timeout of " + totalTimeout.toMillis() + "ms", e));
+        }
+        log.debug("Schema cache load attempt {}/{} failed with retriable error; backing off {}ms: {}",
+                attempt + 1, retries + 1, backoff.toMillis(), rootMessage(e));
+        return null;
+    }
+
+    /**
+     * @return {@code true} if the total timeout was exceeded during/after backoff
+     */
+    private static boolean sleepBackoffOrTimeout(Duration backoff, Instant deadline, Duration totalTimeout) {
+        try {
+            Thread.sleep(backoff.toMillis());
+        } catch (InterruptedException e) {
+            log.debug("Cache retry backoff interrupted", e);
+            Thread.currentThread().interrupt();
+        }
+        if (isDeadlineExceeded(deadline)) {
+            log.error("Schema cache load exceeded total retry timeout of {}ms during backoff",
+                    totalTimeout.toMillis());
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean isDeadlineExceeded(Instant deadline) {
+        return deadline != null && !Instant.now().isBefore(deadline);
     }
 
     /** Convenience overload used by tests that do not set a total timeout. */

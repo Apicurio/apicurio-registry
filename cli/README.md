@@ -207,11 +207,12 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property                             | Default | Description                                                                                  |
-|---------------------------------------|---------|-----------------------------------------------------------------------------------------------|
-| `update.check-enabled`               | `true`  | Enable automatic update checks                                                               |
-| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                          |
-| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)  |
+| Property                             | Default | Description                                                                                                             |
+|---------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------|
+| `update.check-enabled`               | `true`  | Enable automatic update checks                                                                                          |
+| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                                                     |
+| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)                             |
+| `context.auto-update`                | `false` | Automatically save the group/artifact ID to the current context after `group create`/`get` and `artifact create`/`get` |
 
 #### Logging
 
@@ -271,6 +272,15 @@ acr context delete --all
 ```
 
 Use `--no-switch-current` when creating a context to add it without switching to it.
+
+**Auto context update:**
+```bash
+acr config set context.auto-update=true
+```
+When enabled, `group create`/`get` and `artifact create`/`get` automatically save the resolved group and/or
+artifact ID to the current context, so subsequent commands don't need repeated `-g`/`-a` flags. Switching to a
+different group clears the artifact ID from the context, since the previous artifact no longer applies; re-getting
+the same group leaves it untouched. Disabled by default.
 
 ### Authentication
 

@@ -168,7 +168,7 @@ public class KafkaSqlCoordinatorTest {
             coordinator.waitForResponse(unregisteredUuid);
         });
         
-        assertTrue(ex.getMessage().contains("Operation not registered or duplicate response for UUID"));
+        assertTrue(ex.getMessage().contains("Operation not registered for UUID"));
     }
 
     @Test

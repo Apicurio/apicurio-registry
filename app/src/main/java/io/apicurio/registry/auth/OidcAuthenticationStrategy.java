@@ -41,11 +41,11 @@ import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.function.BiConsumer;
 
 /**
@@ -61,8 +61,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     private final Logger log;
     private final AppAuthenticationMechanism parent;
 
-    private final Map<String, WrappedValue<String>> cachedAccessTokens;
-    private final Map<String, WrappedValue<RuntimeException>> cachedAuthFailures;
+    private final ConcurrentMap<String, WrappedValue<String>> cachedAccessTokens;
+    private final ConcurrentMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
     private final String oidcTokenUrl;
 
     /**
@@ -85,20 +85,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         this.log = log;
         this.parent = parent;
 
-        this.cachedAccessTokens = Collections.synchronizedMap(
-                new LinkedHashMap<String, WrappedValue<String>>(100, 0.75f, true) {
-                    @Override
-                    protected boolean removeEldestEntry(Map.Entry<String, WrappedValue<String>> eldest) {
-                        return size() > 1000;
-                    }
-                });
-        this.cachedAuthFailures = Collections.synchronizedMap(
-                new LinkedHashMap<String, WrappedValue<RuntimeException>>(100, 0.75f, true) {
-                    @Override
-                    protected boolean removeEldestEntry(Map.Entry<String, WrappedValue<RuntimeException>> eldest) {
-                        return size() > 1000;
-                    }
-                });
+        this.cachedAccessTokens = Caffeine.newBuilder().maximumSize(1000).<String, WrappedValue<String>>build().asMap();
+        this.cachedAuthFailures = Caffeine.newBuilder().maximumSize(1000).<String, WrappedValue<RuntimeException>>build().asMap();
 
         String tokenUrl;
         if (authConfig.oidcTokenPath.startsWith("http")) {

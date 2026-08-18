@@ -62,7 +62,7 @@ public class KafkaSqlCoordinator {
             CompletableFuture<Object> future = operations.get(uuid);
             if (future == null) {
                 throw new RegistryException(
-                        "[KafkaSqlCoordinator] Operation not registered or duplicate response for UUID: " + uuid);
+                        "[KafkaSqlCoordinator] Operation not registered for UUID: " + uuid);
             }
             return future.get(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
         } catch (java.util.concurrent.TimeoutException e) {
@@ -97,7 +97,12 @@ public class KafkaSqlCoordinator {
 
         CompletableFuture<Object> future = operations.get(uuid);
         if (future == null) {
+            log.warn("[KafkaSqlCoordinator] Response arrived but no operation registered for UUID: {}", uuid);
             return;
+        }
+
+        if (future.isDone()) {
+            log.warn("[KafkaSqlCoordinator] Duplicate response arrived for already completed UUID: {}", uuid);
         }
 
         if (returnValue instanceof Throwable) {

@@ -48,7 +48,8 @@ export const TestVersionModal: FunctionComponent<TestVersionModalProps> = (props
         >
             <p className="modal-desc">
                 Paste content below to check whether it would pass this artifact&apos;s configured
-                content rules. Nothing is saved.
+                content rules. Nothing is saved. Note: this editor accepts text content only and
+                is not suitable for testing binary artifact types.
             </p>
             <Form>
                 <FormGroup label="Content" isRequired={true} fieldId="form-content">

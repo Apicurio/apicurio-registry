@@ -350,7 +350,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             setIsTestVersionSuccessModalOpen(true);
         }).catch(error => {
             pleaseWait(false);
-            if (error && (error.status === 400 || error.status === 409)) {
+            if (error && (error.status === 400 || error.status === 409) && Array.isArray(error.causes)) {
                 handleInvalidContentError(error);
             } else {
                 setPageError(toPageError(error, "Error testing content."));

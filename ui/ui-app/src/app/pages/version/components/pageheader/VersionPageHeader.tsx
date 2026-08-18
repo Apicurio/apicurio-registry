@@ -77,7 +77,11 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             label: "Test content",
             testId: "action-test-version",
             onSelect: () => props.onTest(),
-            isVisible: () => !config.featureReadOnly()
+            isVisible: () => {
+                return !config.featureReadOnly() &&
+                    props.artifact !== undefined &&
+                    user.isUserDeveloper(props.artifact?.owner);
+            }
         },
         {
             label: "Finalize draft",

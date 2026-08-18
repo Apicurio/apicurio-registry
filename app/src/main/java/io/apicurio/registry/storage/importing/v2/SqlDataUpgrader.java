@@ -62,6 +62,7 @@ public class SqlDataUpgrader extends AbstractDataImporter {
 
     protected final boolean preserveGlobalId;
     protected final boolean preserveContentId;
+    protected final int maxReferenceDepth;
 
     // ID remapping
     protected final Map<Long, Long> globalIdMapping = new HashMap<>();
@@ -72,12 +73,13 @@ public class SqlDataUpgrader extends AbstractDataImporter {
     private Set<Long> deferredCanonicalHashContentIds = new HashSet<>();
 
     public SqlDataUpgrader(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
-            boolean preserveGlobalId, boolean preserveContentId) {
+            boolean preserveGlobalId, boolean preserveContentId, int maxReferenceDepth) {
         super(logger);
         this.utils = utils;
         this.storage = storage;
         this.preserveGlobalId = preserveGlobalId;
         this.preserveContentId = preserveContentId;
+        this.maxReferenceDepth = maxReferenceDepth;
     }
 
     @Override
@@ -194,7 +196,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             // Try to recalculate the canonical hash - this may fail if the content has references
             try {
                 Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                        .recursivelyResolveReferences(references, storage::getContentByReference);
+                        .recursivelyResolveReferences(references, storage::getContentByReference,
+                                maxReferenceDepth);
                 entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
 
                 // First we have to recalculate both the canonical hash and the contentHash
@@ -325,7 +328,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             TypedContent content = TypedContent.create(wrapperDto.getContent(), wrapperDto.getContentType());
             String artifactType = versions.get(0).getArtifactType();
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(references, storage::getContentByReference);
+                    .recursivelyResolveReferences(references, storage::getContentByReference,
+                            maxReferenceDepth);
             TypedContent canonicalContent = utils.canonicalizeContent(artifactType, content,
                     resolvedReferences);
             String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());

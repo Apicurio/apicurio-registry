@@ -398,7 +398,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             @SuppressWarnings("unchecked")
             Class<IDbUpgrader> upgraderClass = (Class<IDbUpgrader>) Class.forName(cname);
             IDbUpgrader upgrader = upgraderClass.getConstructor().newInstance();
-            upgrader.upgrade(handle);
+            upgrader.upgrade(handle, referenceResolutionConfig.maxDepth);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -1389,7 +1389,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
 
         DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
-                preserveContentId);
+                preserveContentId, referenceResolutionConfig.maxDepth);
         dataImporter.importData(entities, () -> {
         });
     }
@@ -1398,7 +1398,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId) {
 
         DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
-                preserveContentId);
+                preserveContentId, referenceResolutionConfig.maxDepth);
         dataImporter.importData(entities, () -> {
         });
     }

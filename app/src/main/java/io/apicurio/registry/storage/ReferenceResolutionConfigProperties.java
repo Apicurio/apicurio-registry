@@ -11,7 +11,6 @@ public class ReferenceResolutionConfigProperties {
 
     public static final String MAX_DEPTH_PROPERTY = "apicurio.storage.references.max-depth";
     public static final String DEFAULT_MAX_DEPTH_VALUE = "100";
-    public static final int DEFAULT_MAX_DEPTH = 100;
 
     @ConfigProperty(name = MAX_DEPTH_PROPERTY, defaultValue = DEFAULT_MAX_DEPTH_VALUE)
     @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. "

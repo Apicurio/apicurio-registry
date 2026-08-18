@@ -165,15 +165,4 @@ public abstract class AbstractConfig {
         reportError(key, "a number-like value", value);
         throw new IllegalStateException("Unreachable");
     }
-
-    /**
-     * Ensure a non-negative long fits in a Java {@code int} (for APIs that take int).
-     */
-    protected int getIntNonNegative(String key) {
-        long value = getLongNonNegative(key);
-        if (value > Integer.MAX_VALUE) {
-            reportError(key, "an integer-compatible value (<= " + Integer.MAX_VALUE + ")", value);
-        }
-        return (int) value;
-    }
 }

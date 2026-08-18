@@ -313,9 +313,14 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`3`
 |`RETRY_TRANSIENT_ERRORS`
 |`apicurio.registry.retry.transient-errors`
-|Used by serializers and deserializers. When `false` (default), schema-cache retries stay limited to HTTP 429 (historical behavior). When `true`, also retries 502/503/504 and retriable network failures. Enabling this increases worst-case blocking because each cache attempt may run a full HTTP client retry ladder.
+|Used by serializers and deserializers. When `false` (default), schema-cache retries stay limited to HTTP 429 (historical behavior). When `true`, also retries 502/503/504 and retriable network failures (including `NoRouteToHostException`). Enabling this increases worst-case blocking because each cache attempt may run a full HTTP client retry ladder. Prefer setting `apicurio.registry.retry.total-timeout-ms` when enabling.
 |`boolean`
 |`false`
+|`RETRY_TOTAL_TIMEOUT_MS`
+|`apicurio.registry.retry.total-timeout-ms`
+|Used by serializers and deserializers. Optional wall-clock budget (milliseconds) for one schema-cache load retry loop. Checked before each re-attempt. `0` means unlimited. Recommended when `apicurio.registry.retry.transient-errors=true` to bound blocking on Kafka `Producer.send()` / Connect polls.
+|`java.time.Duration, non-negative Number, or integer String`
+|`0`
 |`CLIENT_RETRY_ENABLED`
 |`apicurio.registry.client.retry.enabled`
 |Used by serializers and deserializers. Enables the underlying registry HTTP client retry ladder (`RegistryClientOptions`). Distinct from `apicurio.registry.retry-count` (schema-cache retries).

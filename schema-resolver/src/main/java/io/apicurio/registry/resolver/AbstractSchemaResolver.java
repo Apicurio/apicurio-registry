@@ -60,6 +60,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
         schemaCache.configureRetryCount(config.getRetryCount());
         schemaCache.configureRetryTransientErrors(config.getRetryTransientErrors());
+        schemaCache.configureRetryTotalTimeout(config.getRetryTotalTimeout());
+        schemaCache.warnIfRetryBudgetUnbounded(estimateClientRetryLadderSleepMs(config));
         schemaCache.configureCacheLatest(config.getCacheLatest());
         schemaCache.configureFaultTolerantRefresh(config.getFaultTolerantRefresh());
         schemaCache.configureBackgroundRefresh(config.getBackgroundRefresh());
@@ -291,5 +293,27 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .parsedSchema(parsedSchema)
                 .references(references)
                 .build();
+    }
+
+    /**
+     * Lower-bound estimate of sleep time for one HTTP client retry ladder (excludes request latency).
+     */
+    private static long estimateClientRetryLadderSleepMs(SchemaResolverConfig config) {
+        if (!config.getClientRetryEnabled()) {
+            return 0L;
+        }
+        long maxAttempts = config.getClientRetryMaxAttempts();
+        if (maxAttempts <= 1) {
+            return 0L;
+        }
+        long delayMs = config.getClientRetryDelayMs();
+        double multiplier = config.getClientRetryBackoffMultiplier();
+        long maxDelayMs = config.getClientRetryMaxDelayMs();
+        long sleepMs = 0L;
+        for (long attempt = 1; attempt < maxAttempts; attempt++) {
+            long step = (long) (delayMs * Math.pow(multiplier, attempt - 1));
+            sleepMs += Math.min(step, maxDelayMs);
+        }
+        return sleepMs;
     }
 }

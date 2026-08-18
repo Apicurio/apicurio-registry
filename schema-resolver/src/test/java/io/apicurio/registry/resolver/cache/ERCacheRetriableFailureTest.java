@@ -87,12 +87,12 @@ class ERCacheRetriableFailureTest {
     }
 
     @Test
-    void doesNotRetryResourceExhaustionOrUnreachableRoute() {
+    void doesNotRetryResourceExhaustionButRetriesUnreachableHost() {
         assertFalse(ERCache.isRetriableCacheLoadFailure(
                 new SocketException("Too many open files"), true));
         assertFalse(ERCache.isRetriableCacheLoadFailure(
                 new SocketException("No buffer space available"), true));
-        assertFalse(ERCache.isRetriableCacheLoadFailure(
+        assertTrue(ERCache.isRetriableCacheLoadFailure(
                 new NoRouteToHostException("Network is unreachable"), true));
     }
 
@@ -164,6 +164,22 @@ class ERCacheRetriableFailureTest {
 
         assertTrue(result.isError());
         assertEquals(1, attempts.get());
+    }
+
+    @Test
+    void retryLoopHonorsTotalTimeoutBudget() {
+        AtomicInteger attempts = new AtomicInteger();
+        ERCache.Result<String, RuntimeException> result = ERCache.retry(
+                Duration.ofMillis(50), 10, true, Duration.ofMillis(80),
+                () -> {
+                    attempts.incrementAndGet();
+                    throw new RuntimeException(new ConnectException("Connection refused"));
+                });
+
+        assertTrue(result.isError());
+        assertTrue(attempts.get() >= 1);
+        assertTrue(attempts.get() < 11, "total timeout should stop before exhausting all retries");
+        assertTrue(result.error.getMessage().contains("total retry timeout"));
     }
 
     private static ApiException api(int status) {

@@ -203,9 +203,9 @@ public class SchemaResolverConfig extends AbstractConfig {
      * By default the cache layer only retries HTTP 429. Enable {@link #RETRY_TRANSIENT_ERRORS} to also retry
      * network/outage failures (502/503/504 and connection errors). When that opt-in is enabled, the layers
      * multiply: worst-case blocking is roughly
-     * {@code (retry-count + 1) × (full client retry ladder) + (retry-count × retry-backoff-ms)} with no
-     * overall deadline — size together with {@link #CLIENT_RETRY_MAX_ATTEMPTS}, especially for Kafka
-     * producers ({@code max.block.ms}) and Connect polls.
+     * {@code (retry-count + 1) × (full client retry ladder) + (retry-count × retry-backoff-ms)}.
+     * Bound it with {@link #RETRY_TOTAL_TIMEOUT_MS}, and size together with {@link #CLIENT_RETRY_MAX_ATTEMPTS},
+     * especially for Kafka producers ({@code max.block.ms}) and Connect polls.
      */
     public static final String RETRY_COUNT = "apicurio.registry.retry-count";
     public static final long RETRY_COUNT_DEFAULT = 3;
@@ -227,10 +227,20 @@ public class SchemaResolverConfig extends AbstractConfig {
      * When {@code false} (default), the schema-cache retry layer only retries HTTP 429, matching historical
      * behavior so existing deployments do not silently gain multiplicative blocking on connection failures.
      * When {@code true}, also retries typical registry outage signals (502/503/504) and retriable network
-     * failures. See {@link #RETRY_COUNT} for sizing guidance when enabling this.
+     * failures. See {@link #RETRY_COUNT} and {@link #RETRY_TOTAL_TIMEOUT_MS} for sizing / bounding guidance.
      */
     public static final String RETRY_TRANSIENT_ERRORS = "apicurio.registry.retry.transient-errors";
     public static final boolean RETRY_TRANSIENT_ERRORS_DEFAULT = false;
+
+    /**
+     * Optional wall-clock budget (milliseconds) for a single schema-cache load's retry loop in
+     * {@code ERCache}. Checked before each re-attempt after a retriable failure. {@code 0} (default) means
+     * unlimited. Strongly recommended when {@link #RETRY_TRANSIENT_ERRORS} is enabled so
+     * {@code Producer.send()} / Connect polls cannot block for
+     * {@code (retry-count + 1) × (client retry ladder)} unboundedly.
+     */
+    public static final String RETRY_TOTAL_TIMEOUT_MS = "apicurio.registry.retry.total-timeout-ms";
+    public static final long RETRY_TOTAL_TIMEOUT_MS_DEFAULT = 0;
 
     /**
      * Enable or disable retry for the underlying registry HTTP client
@@ -508,6 +518,10 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getBoolean(RETRY_TRANSIENT_ERRORS);
     }
 
+    public Duration getRetryTotalTimeout() {
+        return getDurationNonNegativeMillis(RETRY_TOTAL_TIMEOUT_MS);
+    }
+
     public boolean getClientRetryEnabled() {
         return getBoolean(CLIENT_RETRY_ENABLED);
     }
@@ -683,6 +697,7 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
             entry(RETRY_TRANSIENT_ERRORS, RETRY_TRANSIENT_ERRORS_DEFAULT),
+            entry(RETRY_TOTAL_TIMEOUT_MS, RETRY_TOTAL_TIMEOUT_MS_DEFAULT),
             entry(CLIENT_RETRY_ENABLED, CLIENT_RETRY_ENABLED_DEFAULT),
             entry(CLIENT_RETRY_MAX_ATTEMPTS, CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT),
             entry(CLIENT_RETRY_DELAY_MS, CLIENT_RETRY_DELAY_MS_DEFAULT),

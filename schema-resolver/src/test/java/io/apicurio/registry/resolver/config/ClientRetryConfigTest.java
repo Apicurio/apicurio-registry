@@ -18,6 +18,7 @@ package io.apicurio.registry.resolver.config;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,6 +35,7 @@ class ClientRetryConfigTest {
 
         assertTrue(config.getClientRetryEnabled());
         assertFalse(config.getRetryTransientErrors());
+        assertEquals(Duration.ZERO, config.getRetryTotalTimeout());
         // Must stay aligned with RegistryClientOptions#retry() defaults
         // (pinned by RegistryClientOptionsRetryDefaultsTest in java-sdk/common).
         assertEquals(3L, config.getClientRetryMaxAttempts());

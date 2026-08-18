@@ -226,7 +226,11 @@ public class RegistryClientRequestAdapterFactory {
                                     "Registry HTTP client exhausted {0} retry attempts due to {1}: {2}",
                                     new Object[]{maxRetryAttempts, cause.getClass().getName(), causeMessage});
                         }
-                        throw originalCause;
+                        // Prefer the latest failure for caller diagnostics; keep the first as suppressed.
+                        if (originalCause != null && originalCause != cause) {
+                            cause.addSuppressed(originalCause);
+                        }
+                        throw cause;
                     }
                 }
             }

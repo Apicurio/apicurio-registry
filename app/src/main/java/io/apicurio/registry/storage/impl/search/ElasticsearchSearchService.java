@@ -164,10 +164,12 @@ public class ElasticsearchSearchService {
             for (SortOptions sortOption : sortOptions) {
                 s.sort(sortOption);
             }
+            s.sort(SortOptions.of(so -> so.field(FieldSort.of(f -> f
+                    .field("ga_key").order(SortOrder.Asc)))));
 
             if (!skipCount) {
                 s.aggregations("artifact_count", a -> a
-                        .cardinality(ca -> ca.field("ga_key")));
+                        .cardinality(ca -> ca.field("ga_key").precisionThreshold(40000)));
             }
 
             return s;

@@ -63,7 +63,10 @@ public final class VertxAdapterFactory {
                 throw new IllegalArgumentException("Unsupported authentication type: " + options.getAuthType());
         }
 
-        // Added last, so that headers contributed by the auth clients above are logged too.
+        // Added last, so that headers contributed by the auth clients above are logged too. With
+        // CUSTOM_WEBCLIENT the client belongs to the caller and may be shared, and Vert.x has no
+        // way to remove an interceptor again, so this permanently changes that client. Enabling
+        // HTTP logging is opt-in and RegistryClientOptions.enableHttpLogging() documents it.
         if (options.isHttpLoggingEnabled()) {
             HttpLoggingInterceptor.install(webClient);
         }

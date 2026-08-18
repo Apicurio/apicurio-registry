@@ -27,6 +27,7 @@ import java.util.logging.Logger;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -151,6 +152,8 @@ public class VerboseHttpLoggingTest {
     public void verboseLogsRawRequestAndResponse() {
         assertThat(cmd.execute("--verbose", "group", "get", "test-group")).isZero();
 
+        wireMock.verify(1, getRequestedFor(urlEqualTo(GROUP_PATH)));
+
         var request = recordStartingWith("HTTP request:");
         assertThat(request).contains("> GET http://localhost:" + wireMock.port() + GROUP_PATH);
 
@@ -164,6 +167,9 @@ public class VerboseHttpLoggingTest {
     public void withoutVerboseNothingIsLogged() {
         assertThat(cmd.execute("group", "get", "test-group")).isZero();
 
+        // Proves the absence of records comes from the interceptor not being installed, and not
+        // from the command never reaching the server.
+        wireMock.verify(1, getRequestedFor(urlEqualTo(GROUP_PATH)));
         assertThat(logged).isEmpty();
     }
 

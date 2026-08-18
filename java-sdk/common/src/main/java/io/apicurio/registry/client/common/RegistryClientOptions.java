@@ -903,8 +903,19 @@ public class RegistryClientOptions {
      * {@code FINE} level, so the logger has to be enabled for anything to be printed.
      * Headers that carry credentials are redacted, and long bodies are truncated.</p>
      *
+     * <p>Credential-carrying headers and query parameters are redacted, but the rest of the URL,
+     * the remaining headers and the bodies are logged as they are sent, so the log can hold
+     * artifact content and any credential passed under a name the SDK does not recognise. Enable
+     * this on a channel you are willing to treat as sensitive.</p>
+     *
      * <p><strong>Note:</strong> this is currently implemented by the Vert.x adapter only.
      * With the JDK adapter the option has no effect.</p>
+     *
+     * <p><strong>Note:</strong> with {@link #customWebClient(WebClient)} the interceptor is
+     * installed on the {@link WebClient} you supplied. Vert.x cannot remove an interceptor again,
+     * so that client keeps logging its traffic for the rest of its life, including calls made
+     * through it by code outside this SDK. Pass a client dedicated to the Registry if that
+     * matters.</p>
      *
      * @return this builder
      */

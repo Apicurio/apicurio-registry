@@ -53,7 +53,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -261,8 +260,8 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     @Retry(retryOn = OidcAuthException.class, maxRetries = 4, delay = 1,
             delayUnit = ChronoUnit.SECONDS)
     public String getAccessToken(Pair<String, String> clientCredentials, String credentialsHash,
-            ConcurrentMap<String, WrappedValue<String>> cachedAccessTokens,
-            ConcurrentMap<String, WrappedValue<RuntimeException>> cachedAuthFailures,
+            Map<String, WrappedValue<String>> cachedAccessTokens,
+            Map<String, WrappedValue<RuntimeException>> cachedAuthFailures,
             String oidcTokenUrl) {
         String clientId = clientCredentials.getLeft();
         String clientSecret = clientCredentials.getRight();

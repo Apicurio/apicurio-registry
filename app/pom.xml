@@ -180,10 +180,6 @@
 
     <!-- Third Party Libraries -->
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-cache</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.strimzi</groupId>
       <artifactId>kafka-oauth-client</artifactId>
     </dependency>

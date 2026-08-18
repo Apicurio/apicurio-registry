@@ -36,10 +36,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KubernetesAuthenticationStrategy implements AuthenticationStrategy {
@@ -50,8 +50,13 @@ public class KubernetesAuthenticationStrategy implements AuthenticationStrategy 
     private final AuthConfig authConfig;
     private final Logger log;
     private final AtomicBoolean circuitOpenWarned = new AtomicBoolean(false);
-    private final ConcurrentMap<String, WrappedValue<TokenReviewResult>> cache =
-            Caffeine.newBuilder().maximumSize(10_000).<String, WrappedValue<TokenReviewResult>>build().asMap();
+    private final Map<String, WrappedValue<TokenReviewResult>> cache =
+            Collections.synchronizedMap(new LinkedHashMap<String, WrappedValue<TokenReviewResult>>(100, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, WrappedValue<TokenReviewResult>> eldest) {
+                    return size() > 10_000;
+                }
+            });
 
     public KubernetesAuthenticationStrategy(TokenReviewClient tokenReviewClient,
             AuthConfig authConfig, Logger log) {

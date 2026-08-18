@@ -20,7 +20,7 @@ import {
 } from "@app/pages";
 import { RolesPage, SettingsPage } from "./pages";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apicurio/common-ui-components";
+import { ApplicationAuth, AuthConfig, AuthConfigContext } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 
 export type MainPageWithAuthProps = object;

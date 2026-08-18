@@ -118,7 +118,9 @@ public class VersionsMCPServer {
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID) String artifactId,
             @ToolArg(description = VERSION_EXPRESSION) String versionExpression,
-            @ToolArg(description = VERSION_STATE) String versionState
+            @ToolArg(
+                    description = VERSION_STATE + " Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT."
+            ) String versionState
     ) {
         return handleError(() -> {
             service.updateVersionState(
@@ -193,6 +195,7 @@ public class VersionsMCPServer {
             @ToolArg(description = SEARCH_NAME, required = false) String name,
             @ToolArg(description = SEARCH_DESCRIPTION, required = false) String description,
             @ToolArg(description = SEARCH_JSON_LABELS, required = false) String jsonLabels,
+            @ToolArg(description = VERSION_STATE + " Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT.", required = false) String versionState,
             @ToolArg(description = ORDER) String order,
             @ToolArg(description = VERSION_ORDER_BY) String versionOrderBy
     ) {
@@ -204,7 +207,8 @@ public class VersionsMCPServer {
                 description,
                 jsonLabels,
                 order,
-                versionOrderBy
+                versionOrderBy,
+                versionState != null ? java.util.Arrays.stream(io.apicurio.registry.rest.client.models.VersionState.values()).filter(v -> v.name().equalsIgnoreCase(versionState)).findFirst().orElse(null) : null
         ));
     }
 }

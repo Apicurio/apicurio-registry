@@ -1,6 +1,6 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { createAuthOptions, createEndpoint, getRegistryClient } from "@utils/rest.utils.ts";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { RenderPromptResponse } from "@models/RenderPromptResponse.ts";
 import axios from "axios";
 import { Paging } from "@models/Paging.ts";

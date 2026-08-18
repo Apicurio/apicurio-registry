@@ -29,7 +29,7 @@ import {
     TestVersionSuccessModal
 } from "@app/components";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
@@ -53,6 +53,7 @@ import {
 } from "@app/pages/drafts/components/modals";
 import { EditAgentModal } from "@app/pages/agents/components";
 import { AgentCard } from "@app/components/agentCard";
+import { isErrorStatus } from "@utils/rest.utils.ts";
 
 
 /**
@@ -99,19 +100,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "documentation";
     }
 
-    const is404 = (e: any) => {
-        if (typeof e === "string") {
-            try {
-                const eo: any = JSON.parse(e);
-                if (eo && eo.status && eo.status === 404) {
-                    return true;
-                }
-            } catch {
-                // Do nothing
-            }
-        }
-        return false;
-    };
+    // Note: the SDK's generated client throws structured error objects (with a
+    // `responseStatusCode` or `status` field), not JSON strings, so status checks
+    // must go through the shared isErrorStatus() helper rather than JSON.parse().
+    const is404 = (e: any) => isErrorStatus(e, 404);
 
     const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;

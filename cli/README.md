@@ -238,8 +238,30 @@ HTTP response:
 ```
 
 Headers that carry credentials (`Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`)
-are redacted, and bodies longer than 8192 characters are truncated. HTTP traffic is logged under
-the `io.apicurio.registry.client.http` category, so it can be quieted on its own:
+are redacted, as are query parameters that carry them (`access_token`, `id_token`,
+`refresh_token`, `token`, `code`, `client_secret`, `assertion`, `api_key`, `apikey`). Everything
+else, including the rest of the URL and the request and response bodies, is logged as it is sent,
+so treat verbose output as sensitive. Bodies longer than 8192 characters are truncated.
+
+One command can produce more than one request record. A redirect is logged as a second request,
+tagged with its hop number, and the response that follows it says how many hops it took:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+
+HTTP request (redirect 1):
+> GET https://registry.example.com/apis/registry/v3/groups/my-group
+
+HTTP response (after 1 redirect):
+< 200 OK
+```
+
+A call that is retried, for example after an expired token is refreshed, is logged as another
+untagged request.
+
+HTTP traffic is logged under the `io.apicurio.registry.client.http` category, so it can be quieted
+on its own:
 
 ```bash
 acr config set 'quarkus.log.category."io.apicurio.registry.client.http".level=WARNING'

@@ -29,6 +29,10 @@ class HttpLoggingInterceptorTest {
 
     private static final String RESPONSE_BODY = "{\"ok\":true}";
 
+    private static final String GROUPS_PATH = "/apis/registry/v3/groups";
+
+    private static final String REDIRECT_PATH = "/moved";
+
     private static Vertx vertx;
     private static HttpServer server;
     private static int port;
@@ -44,11 +48,20 @@ class HttpLoggingInterceptorTest {
     static void startServer() throws Exception {
         vertx = Vertx.vertx();
         server = vertx.createHttpServer()
-                .requestHandler(request -> request.body().onSuccess(body -> request.response()
-                        .setStatusCode(201)
-                        .putHeader("Content-Type", "application/json")
-                        .putHeader("Set-Cookie", "session=super-secret")
-                        .end(RESPONSE_BODY)))
+                .requestHandler(request -> request.body().onSuccess(body -> {
+                    if (REDIRECT_PATH.equals(request.path())) {
+                        request.response()
+                                .setStatusCode(302)
+                                .putHeader("Location", "http://localhost:" + port + GROUPS_PATH)
+                                .end();
+                        return;
+                    }
+                    request.response()
+                            .setStatusCode(201)
+                            .putHeader("Content-Type", "application/json")
+                            .putHeader("Set-Cookie", "session=super-secret")
+                            .end(RESPONSE_BODY);
+                }))
                 .listen(0)
                 .toCompletionStage()
                 .toCompletableFuture()
@@ -101,17 +114,17 @@ class HttpLoggingInterceptorTest {
 
     @Test
     void logsRequestMethodUrlHeadersAndBody() throws Exception {
-        post("/apis/registry/v3/groups", "{\"groupId\":\"g\"}");
+        post(GROUPS_PATH, "{\"groupId\":\"g\"}");
 
         var request = recordStartingWith("HTTP request:");
-        assertTrue(request.contains("> POST http://localhost:" + port + "/apis/registry/v3/groups"), request);
+        assertTrue(request.contains("> POST http://localhost:" + port + GROUPS_PATH), request);
         assertTrue(request.contains("> Content-Type: application/json"), request);
         assertTrue(request.contains("> {\"groupId\":\"g\"}"), request);
     }
 
     @Test
     void logsResponseStatusHeadersAndBody() throws Exception {
-        post("/apis/registry/v3/groups", "{\"groupId\":\"g\"}");
+        post(GROUPS_PATH, "{\"groupId\":\"g\"}");
 
         var response = recordStartingWith("HTTP response:");
         assertTrue(response.contains("< 201 Created"), response);
@@ -121,7 +134,7 @@ class HttpLoggingInterceptorTest {
 
     @Test
     void redactsCredentialHeaders() throws Exception {
-        post("/apis/registry/v3/groups", "{\"groupId\":\"g\"}");
+        post(GROUPS_PATH, "{\"groupId\":\"g\"}");
 
         var request = recordStartingWith("HTTP request:");
         assertTrue(request.contains("> Authorization: <redacted>"), request);
@@ -135,7 +148,7 @@ class HttpLoggingInterceptorTest {
     @Test
     void truncatesLongBodies() throws Exception {
         var body = "x".repeat(10_000);
-        post("/apis/registry/v3/groups", body);
+        post(GROUPS_PATH, body);
 
         var request = recordStartingWith("HTTP request:");
         assertTrue(request.contains("... (truncated, 10000 characters total)"), request);
@@ -143,10 +156,36 @@ class HttpLoggingInterceptorTest {
     }
 
     @Test
+    void redactsCredentialQueryParameters() throws Exception {
+        post(GROUPS_PATH + "?access_token=super-secret-token&groupId=g&code=super-secret-code",
+                "{\"groupId\":\"g\"}");
+
+        var request = recordStartingWith("HTTP request:");
+        assertTrue(request.contains("> POST http://localhost:" + port + GROUPS_PATH
+                + "?access_token=<redacted>&groupId=g&code=<redacted>"), request);
+        assertFalse(request.contains("super-secret-token"), request);
+        assertFalse(request.contains("super-secret-code"), request);
+    }
+
+    @Test
+    void tagsRedirectHopsSoTheyAreNotReadAsSeparateCalls() throws Exception {
+        get(REDIRECT_PATH);
+
+        var first = recordStartingWith("HTTP request:");
+        assertTrue(first.contains("> GET http://localhost:" + port + REDIRECT_PATH), first);
+
+        var hop = recordStartingWith("HTTP request (redirect 1):");
+        assertTrue(hop.contains("> GET http://localhost:" + port + GROUPS_PATH), hop);
+
+        var response = recordStartingWith("HTTP response (after 1 redirect):");
+        assertTrue(response.contains("< 201 Created"), response);
+    }
+
+    @Test
     void logsNothingWhenNotInstalled() throws Exception {
         var webClient = WebClient.create(vertx);
         try {
-            webClient.post(port, "localhost", "/apis/registry/v3/groups")
+            webClient.post(port, "localhost", GROUPS_PATH)
                     .sendBuffer(Buffer.buffer("{}"))
                     .toCompletionStage()
                     .toCompletableFuture()
@@ -156,6 +195,20 @@ class HttpLoggingInterceptorTest {
         }
 
         assertEquals(List.of(), logged);
+    }
+
+    private void get(String path) throws Exception {
+        var webClient = WebClient.create(vertx);
+        HttpLoggingInterceptor.install(webClient);
+        try {
+            webClient.get(port, "localhost", path)
+                    .send()
+                    .toCompletionStage()
+                    .toCompletableFuture()
+                    .get(30, TimeUnit.SECONDS);
+        } finally {
+            webClient.close();
+        }
     }
 
     private void post(String path, String body) throws Exception {

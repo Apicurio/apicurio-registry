@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -26,6 +27,8 @@ import static java.lang.System.out;
 
 @ApplicationScoped
 public class Config {
+
+    private static final String CONTEXT_AUTO_UPDATE_PROPERTY = "context.auto-update";
 
     /**
      * Static reference for use by {@link AcrHomeConfigSource}, which is loaded via SPI
@@ -197,6 +200,31 @@ public class Config {
         } catch (RuntimeException ex) {
             return false;
         }
+    }
+
+    /**
+     * Whether the {@code context.auto-update} property is enabled.
+     */
+    public boolean isAutoUpdateEnabled() {
+        return Boolean.parseBoolean(read().getConfig().get(CONTEXT_AUTO_UPDATE_PROPERTY));
+    }
+
+    /**
+     * Applies {@code mutator} to the current context and persists the result. No-op if there is no
+     * current context set, or if the current context does not exist.
+     */
+    public void updateCurrentContext(final Consumer<ConfigModel.Context> mutator) {
+        final var model = read();
+        final var contextName = model.getCurrentContext();
+        if (isBlank(contextName)) {
+            return;
+        }
+        final var context = model.getContext().get(contextName);
+        if (context == null) {
+            return;
+        }
+        mutator.accept(context);
+        write(model);
     }
 
     /**

@@ -3,6 +3,7 @@ package io.apicurio.registry.config;
 import io.apicurio.common.apps.config.ExperimentalConfigPropertyDef;
 import io.apicurio.common.apps.config.ExperimentalConfigPropertyList;
 import io.apicurio.common.apps.config.Info;
+import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -25,6 +26,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
  * features (e.g., GitOps storage variant) require special checks below.</p>
  */
 @Singleton
+@Startup
 public class ExperimentalFeaturesConfig {
 
     @Inject

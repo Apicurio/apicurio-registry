@@ -9,7 +9,6 @@ import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.SchemaDiffV
 import io.apicurio.registry.json.rules.validity.JsonSchemaVersion;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
-import org.everit.json.schema.loader.SchemaClient;
 import org.everit.json.schema.loader.SpecificationVersion;
 import org.everit.json.schema.loader.internal.ReferenceResolver;
 import org.json.JSONObject;
@@ -24,9 +23,6 @@ import static io.apicurio.registry.json.rules.compatibility.jsonschema.wrapper.W
 public class JsonSchemaDiffLibrary {
 
     private static final String SCHEMA_KEYWORD = "$schema";
-    private static final SchemaClient DENY_ALL_SCHEMA_CLIENT = url -> {
-        throw new IllegalStateException("External JSON Schema resolution is disabled");
-    };
 
     /**
      * Find and analyze differences between two JSON schemas.
@@ -82,30 +78,33 @@ public class JsonSchemaDiffLibrary {
             }
         }
 
-        schemaLoaderBuilder.httpClient(DENY_ALL_SCHEMA_CLIENT);
+        schemaLoaderBuilder.httpClient(JsonUtil.DENY_ALL_SCHEMA_CLIENT);
 
         Set<URI> extractedReferences = JsonUtil.extractReferencesRecursive(JsonSchemaVersion.valueOf(spec.name()), idUri, jsonNode);
         for (URI extractedReference : extractedReferences) {
-            boolean registered = false;
-            for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {
-                URI resolvedReferenceUri = ReferenceResolver.resolve(idUri, entry.getKey());
-                if (extractedReference.equals(resolvedReferenceUri)) {
-                    schemaLoaderBuilder.registerSchemaByURI(extractedReference,
-                            new JSONObject(entry.getValue().getContent().content()));
-                    registered = true;
-                    break;
-                }
+            if (JsonUtil.isInternalFragment(extractedReference, idUri)) {
+                continue;
             }
+            registerOrReject(schemaLoaderBuilder, resolvedReferences, idUri, extractedReference);
+        }
+    }
 
-            if (!registered) {
-                /*
-                 * We do not have the referenced content, so compatibility checks must fail closed rather
-                 * than silently treating the reference as an accept-all schema. That keeps the result
-                 * explicit and prevents unresolved references from being interpreted as compatible.
-                 */
-                throw new IllegalStateException("Unresolved JSON Schema reference: " + extractedReference);
+    private static void registerOrReject(SchemaLoader.SchemaLoaderBuilder schemaLoaderBuilder,
+            Map<String, TypedContent> resolvedReferences, URI idUri, URI extractedReference) {
+        for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {
+            URI resolvedReferenceUri = ReferenceResolver.resolve(idUri, entry.getKey());
+            if (extractedReference.equals(resolvedReferenceUri)) {
+                schemaLoaderBuilder.registerSchemaByURI(extractedReference,
+                        new JSONObject(entry.getValue().getContent().content()));
+                return;
             }
         }
+        /*
+         * We do not have the referenced content, so compatibility checks must fail closed rather
+         * than silently treating the reference as an accept-all schema. That keeps the result
+         * explicit and prevents unresolved references from being interpreted as compatible.
+         */
+        throw new IllegalStateException("Unresolved JSON Schema reference: " + extractedReference);
     }
 
     public static DiffContext findDifferences(Schema originalSchema, Schema updatedSchema) {

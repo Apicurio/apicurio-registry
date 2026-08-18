@@ -17,6 +17,7 @@ import io.apicurio.registry.exception.UnreachableCodeException;
 import io.apicurio.registry.json.rules.json.ParsedJsonSchema;
 import io.apicurio.registry.json.rules.validity.JsonSchemaVersion;
 import io.apicurio.registry.types.RegistryException;
+import org.everit.json.schema.loader.SchemaClient;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.everit.json.schema.loader.internal.ReferenceResolver;
 import org.json.JSONObject;
@@ -37,6 +38,10 @@ import static io.apicurio.registry.json.rules.validity.JsonSchemaVersion.UNKNOWN
 import static io.apicurio.registry.json.rules.validity.JsonSchemaVersion.detect;
 
 public class JsonUtil {
+
+    static final SchemaClient DENY_ALL_SCHEMA_CLIENT = url -> {
+        throw new IllegalStateException("External JSON Schema resolution is disabled");
+    };
 
     public static final ObjectMapper MAPPER;
 
@@ -137,8 +142,32 @@ public class JsonUtil {
         return result;
     }
 
+    /**
+     * Determines whether an extracted reference URI is an internal fragment reference — i.e. it
+     * resolves within the same schema document rather than pointing to an external resource. Internal
+     * fragment references (e.g. {@code #/definitions/Foo}) are resolved by the schema loader from
+     * the document itself and must not be treated as unresolved external references.
+     */
+    static boolean isInternalFragment(URI extractedReference, URI idUri) {
+        String extractedStr = extractedReference.toString();
+        String baseOfExtracted = extractedStr.contains("#")
+                ? extractedStr.substring(0, extractedStr.indexOf('#'))
+                : extractedStr;
+
+        if (idUri == null) {
+            return baseOfExtracted.isEmpty();
+        }
+
+        String idStr = idUri.toString();
+        String baseOfId = idStr.contains("#")
+                ? idStr.substring(0, idStr.indexOf('#'))
+                : idStr;
+
+        return baseOfExtracted.equals(baseOfId);
+    }
+
     private static ParsedJsonSchema readSchemaEverit(JsonNode jsonNode, Map<String, TypedContent> resolvedReferences, Set<URI> extractedReferences) throws JsonProcessingException {
-        var builder = SchemaLoader.builder().useDefaults(true).draftV7Support();
+        var builder = SchemaLoader.builder().useDefaults(true).draftV7Support().httpClient(DENY_ALL_SCHEMA_CLIENT);
         for (URI extractedReference : extractedReferences) {
             var resolvedReferenceContent = resolvedReferences.get(extractedReference.toString());
             if (resolvedReferenceContent != null) {

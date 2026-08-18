@@ -179,7 +179,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
 
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 () -> clientV3.groups().byGroupId(groupId).get());
-        Assertions.assertEquals("GroupNotFoundException", exception.getName());
+        Assertions.assertEquals("GROUP_NOT_FOUND", exception.getName());
         Assertions.assertEquals(404, exception.getStatus());
     }
 
@@ -888,7 +888,7 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 () -> clientV3.groups().byGroupId(UUID.randomUUID().toString()).artifacts()
                         .byArtifactId(UUID.randomUUID().toString()).get());
         Assertions.assertEquals(404, exception.getStatus());
-        Assertions.assertEquals("ArtifactNotFoundException", exception.getName());
+        Assertions.assertEquals("ARTIFACT_NOT_FOUND", exception.getName());
     }
 
     @Test
@@ -1423,9 +1423,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(updated2);
                 });
 
-        // RoleMappingNotFoundException
+        // Stable public error code, independent of the server exception class
         Assertions.assertEquals(404, error.getStatus());
-        Assertions.assertEquals("RoleMappingNotFoundException", error.getName());
+        Assertions.assertEquals("ROLE_MAPPING_NOT_FOUND", error.getName());
 
         // Delete a role mapping
         clientV3.admin().roleMappings().byPrincipalId("TestUser2").delete();
@@ -1435,9 +1435,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                 () -> {
                     clientV3.admin().roleMappings().byPrincipalId("TestUser2").get();
                 });
-        // RoleMappingNotFoundException
+        // Stable public error code, independent of the server exception class
         Assertions.assertEquals(404, exception2.getStatus());
-        Assertions.assertEquals("RoleMappingNotFoundException", exception2.getName());
+        Assertions.assertEquals("ROLE_MAPPING_NOT_FOUND", exception2.getName());
 
         // Get the list of mappings (should be 1 of them)
         mappings = clientV3.admin().roleMappings().get().getRoleMappings();
@@ -1526,9 +1526,9 @@ public class RegistryClientTest extends AbstractResourceTestBase {
                     clientV3.admin().config().properties().byPropertyName("property-does-not-exist")
                             .put(updateProp);
                 });
-        // ConfigPropertyNotFoundException
+        // Stable public error code, independent of the server exception class
         Assertions.assertEquals(404, exception1.getStatus());
-        Assertions.assertEquals("ConfigPropertyNotFoundException", exception1.getName());
+        Assertions.assertEquals("CONFIG_PROPERTY_NOT_FOUND", exception1.getName());
 
         // Try to set a Long property to "foobar" (should be invalid type)
         var exception2 = Assertions.assertThrows(ApiException.class, () -> {

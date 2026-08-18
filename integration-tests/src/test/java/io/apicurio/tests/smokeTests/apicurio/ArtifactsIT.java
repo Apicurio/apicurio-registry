@@ -126,7 +126,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         String invalidArtifactId = "createAndUpdateArtifactId2";
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
-        assertClientError("RuleViolationException", 400,
+        assertClientError("RULE_VIOLATION", 400,
                 () -> registryClient.groups().byGroupId("ccc").artifacts()
                         .post(TestUtils.clientCreateArtifact(invalidArtifactId, ArtifactType.AVRO,
                                 invalidArtifactDefinition, ContentTypes.APPLICATION_JSON)),
@@ -186,7 +186,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(groupId).delete();
 
         for (VersionMetaData artifact : artifacts) {
-            retryAssertClientError("ArtifactNotFoundException", 404,
+            retryAssertClientError("ARTIFACT_NOT_FOUND", 404,
                     (rc) -> rc.groups().byGroupId(artifact.getGroupId()).artifacts()
                             .byArtifactId(artifact.getArtifactId()).get(),
                     errorCodeExtractor);
@@ -247,7 +247,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
 
         String invalidArtifactData = "{\"type\":\"record\",\"name\":\"alreadyExistArtifact\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
         assertClientError(
-                "ArtifactAlreadyExistsException", 409, () -> createArtifact(groupId, artifactId,
+                "ARTIFACT_ALREADY_EXISTS", 409, () -> createArtifact(groupId, artifactId,
                         ArtifactType.AVRO, invalidArtifactData, ContentTypes.APPLICATION_JSON, null, null),
                 true, errorCodeExtractor);
     }
@@ -267,7 +267,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
         LOGGER.info("Created artifact {} with metadata {}", artifactId, caResponse.getArtifact().toString());
 
         String sameArtifactData = "{\"type\":\"record\",\"name\":\"myrecord1\",\"fields\":[{\"name\":\"foo\",\"type\":\"string\"}]}";
-        assertClientError("VersionAlreadyExistsException", 409,
+        assertClientError("VERSION_ALREADY_EXISTS", 409,
                 () -> createArtifact(groupId, artifactId, ArtifactType.AVRO, sameArtifactData,
                         ContentTypes.APPLICATION_JSON, IfArtifactExists.CREATE_VERSION, (ca) -> {
                             ca.getFirstVersion().setVersion("1.1");
@@ -392,7 +392,7 @@ class ArtifactsIT extends ApicurioRegistryBaseIT {
     @Test
     void deleteNonexistingSchema() throws Exception {
         assertClientError(
-                "ArtifactNotFoundException", 404, () -> registryClient.groups()
+                "ARTIFACT_NOT_FOUND", 404, () -> registryClient.groups()
                         .byGroupId("nonn-existent-group").artifacts().byArtifactId("non-existing").get(),
                 errorCodeExtractor);
     }

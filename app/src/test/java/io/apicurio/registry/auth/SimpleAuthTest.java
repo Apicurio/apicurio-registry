@@ -72,7 +72,7 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
     protected void assertArtifactNotFound(Exception exception) {
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 exception.getClass());
-        Assertions.assertEquals("ArtifactNotFoundException",
+        Assertions.assertEquals("ARTIFACT_NOT_FOUND",
                 ((io.apicurio.registry.rest.client.models.ProblemDetails) exception).getName());
         Assertions.assertEquals(404,
                 ((io.apicurio.registry.rest.client.models.ProblemDetails) exception).getStatus());
@@ -124,15 +124,15 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Assertions.assertFalse(problemDetails.getTitle().isEmpty(),
                 "ProblemDetails title should not be empty");
 
-        // Verify detail is present (typically includes exception class and message)
+        // Verify detail is present and does not expose the server exception class
         Assertions.assertNotNull(problemDetails.getDetail(),
                 "ProblemDetails detail should not be null");
+        Assertions.assertFalse(problemDetails.getDetail().contains("Exception"),
+                "ProblemDetails detail should not expose an exception class");
 
-        // Verify name is present (typically the exception class name)
-        Assertions.assertNotNull(problemDetails.getName(),
-                "ProblemDetails name should not be null");
-        Assertions.assertTrue(problemDetails.getName().contains("Exception"),
-                "ProblemDetails name should contain 'Exception'");
+        // Verify name is a stable public error code
+        Assertions.assertEquals("UNAUTHORIZED", problemDetails.getName(),
+                "ProblemDetails name should be the public error code");
 
         // Attempt to create an artifact (also requires authentication)
         String artifactId = TestUtils.generateArtifactId();

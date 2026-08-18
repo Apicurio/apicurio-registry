@@ -173,6 +173,29 @@ RegistryClient client = RegistryClientFactory.create(options);
 
 The client retries transient network failures only, such as refused or reset connections, socket timeouts, and closed connections. HTTP error responses from the registry are not retried. The delay grows by the backoff multiplier after each attempt, up to the maximum delay. When all attempts fail, the client throws the original exception.
 
+**Error response codes**
+
+The `name` field in Registry v3 API error responses contains a stable, uppercase error code such as `ARTIFACT_NOT_FOUND` or `RULE_VIOLATION`. The `detail` field contains only the human-readable explanation and does not include a Java exception class prefix.
+
+Registry v3 does not return stack traces in error responses. The `apicurio.api.errors.include-stack-in-response` option applies only to the legacy v2 API.
+
+Earlier Registry versions exposed server exception class names such as `ArtifactNotFoundException` in both fields. If your application compares the `name` field, update it to use the corresponding stable code. Do not parse the human-readable `detail` field for program logic.
+
+.Registry v3 error code migration examples
+[%header,cols="1,1"]
+|===
+|Earlier `name` value
+|Stable `name` value
+|`ArtifactNotFoundException`
+|`ARTIFACT_NOT_FOUND`
+|`VersionNotFoundException`
+|`VERSION_NOT_FOUND`
+|`RuleViolationException`
+|`RULE_VIOLATION`
+|`ForbiddenException`
+|`FORBIDDEN`
+|===
+
 **HTTP proxy configuration**
 
 To route requests through an HTTP proxy, set the proxy host and port. For proxies that require authentication, also provide credentials:

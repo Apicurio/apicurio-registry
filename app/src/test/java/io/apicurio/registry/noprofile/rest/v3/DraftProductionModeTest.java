@@ -198,7 +198,7 @@ public class DraftProductionModeTest extends AbstractResourceTestBase {
         RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
         });
-        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals("RULE_VIOLATION", error.getName());
     }
 
     /**
@@ -234,7 +234,7 @@ public class DraftProductionModeTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .post(createVersion);
         });
-        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals("RULE_VIOLATION", error.getName());
     }
 
     /**

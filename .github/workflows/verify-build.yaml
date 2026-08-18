@@ -69,7 +69,7 @@ jobs:
             ./distro/docker/target/docker
 
       - name: Save Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           image-name: apicurio/apicurio-registry
           tag: '${{ github.sha }}'
@@ -150,7 +150,7 @@ jobs:
           docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
 
       - name: Save UI Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           image-name: apicurio/apicurio-registry-ui
           tag: '${{ github.sha }}'

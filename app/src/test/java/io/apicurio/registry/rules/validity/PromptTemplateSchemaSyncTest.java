@@ -2,6 +2,7 @@ package io.apicurio.registry.rules.validity;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.content.util.PromptTemplateFormats;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -11,8 +12,9 @@ import java.util.List;
 
 /**
  * Guards the agreement between the Prompt Template JSON Schema served at
- * {@code /.well-known/schemas/prompt-template/v1} and the rules enforced by
- * {@link PromptTemplateContentValidator}.
+ * {@code /.well-known/schemas/prompt-template/v1} and
+ * {@link io.apicurio.registry.content.util.PromptTemplateFormats}, which is what
+ * {@link PromptTemplateContentValidator} enforces.
  * <p>
  * The two are maintained by hand in different modules, so without this test they can drift apart
  * as soon as a format or field is added on one side only.
@@ -37,9 +39,9 @@ class PromptTemplateSchemaSyncTest {
         List<String> published = new ArrayList<>();
         enumNode.forEach(value -> published.add(value.asText()));
 
-        Assertions.assertEquals(PromptTemplateContentValidator.getSupportedTemplateFormats(), published,
+        Assertions.assertEquals(PromptTemplateFormats.supported(), published,
                 "The 'templateFormat' enum in " + SCHEMA_RESOURCE + " must list exactly the formats "
-                        + "accepted by PromptTemplateContentValidator, in the same order");
+                        + "declared by PromptTemplateFormats, in the same order");
     }
 
     @Test
@@ -48,7 +50,7 @@ class PromptTemplateSchemaSyncTest {
         Assertions.assertTrue(defaultNode.isTextual(),
                 "The published schema must declare a default for 'templateFormat'");
         Assertions.assertTrue(
-                PromptTemplateContentValidator.getSupportedTemplateFormats()
+                PromptTemplateFormats.supported()
                         .contains(defaultNode.asText()),
                 "The default 'templateFormat' must be a format the validator accepts");
     }

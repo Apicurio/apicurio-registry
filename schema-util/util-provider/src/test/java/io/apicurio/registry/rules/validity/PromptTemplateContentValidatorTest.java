@@ -5,6 +5,7 @@ import io.apicurio.registry.content.PromptTemplateContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.content.extract.PromptTemplateContentExtractor;
+import io.apicurio.registry.content.util.PromptTemplateFormats;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
@@ -515,10 +516,32 @@ class PromptTemplateContentValidatorTest {
 
     @Test
     void testSupportedTemplateFormatsIsExposedAndImmutable() {
-        Assertions.assertEquals(List.of("mustache"),
-                PromptTemplateContentValidator.getSupportedTemplateFormats());
+        Assertions.assertEquals(List.of("mustache"), PromptTemplateFormats.supported());
         Assertions.assertThrows(UnsupportedOperationException.class,
-                () -> PromptTemplateContentValidator.getSupportedTemplateFormats().add("jinja2"));
+                () -> PromptTemplateFormats.supported().add("jinja2"));
+    }
+
+    @Test
+    void testTemplateFormatMatchingIsCaseSensitive() {
+        // The published schema declares templateFormat as a case-sensitive enum, so normalizing
+        // case here would make the registry accept a value the schema rejects.
+        Assertions.assertTrue(PromptTemplateFormats.isSupported("mustache"));
+        Assertions.assertFalse(PromptTemplateFormats.isSupported("Mustache"));
+
+        String template = """
+                {
+                    "templateId": "test",
+                    "templateFormat": "MUSTACHE",
+                    "template": "Hello"
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/templateFormat")
+                        && v.getDescription().contains("case-sensitively")));
     }
 
     @Test

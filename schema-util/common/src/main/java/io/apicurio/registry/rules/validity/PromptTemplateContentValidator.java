@@ -3,6 +3,7 @@ package io.apicurio.registry.rules.validity;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.content.util.PromptTemplateFormats;
 import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolation;
@@ -28,30 +29,11 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             "string", "integer", "number", "boolean", "array", "object");
 
     /**
-     * Template formats the registry is able to render. Rendering substitutes
-     * {@code {{variable}}} placeholders and evaluates the Handlebars-style {@code {{#if}}},
-     * {@code {{#unless}}} and {@code {{else}}} blocks. Any other format would be accepted at
-     * write time and then rendered with the wrong engine, so it is rejected here.
-     * <p>
-     * This is the single source of truth for the supported formats. The {@code templateFormat}
-     * enum in {@code prompt-template-v1.json} must list the same values, and
-     * {@code PromptTemplateSchemaSyncTest} fails if the two drift apart.
-     */
-    private static final List<String> SUPPORTED_TEMPLATE_FORMATS = List.of("mustache");
-
-    /**
      * Maximum number of characters of a rejected field value echoed back in a violation message.
      * Values come from user supplied content, so they are truncated to keep error responses and
      * logs to a sensible size.
      */
     private static final int MAX_ECHOED_VALUE_LENGTH = 40;
-
-    /**
-     * @return the template formats the registry can render, in the order they are advertised
-     */
-    public static List<String> getSupportedTemplateFormats() {
-        return SUPPORTED_TEMPLATE_FORMATS;
-    }
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -238,11 +220,11 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
         }
 
         String format = templateFormat.asText();
-        if (!SUPPORTED_TEMPLATE_FORMATS.contains(format)) {
+        if (!PromptTemplateFormats.isSupported(format)) {
             violations.add(new RuleViolation(
                     "Field 'templateFormat' has unsupported value '" + truncate(format)
-                            + "'. Must be one of: "
-                            + String.join(", ", SUPPORTED_TEMPLATE_FORMATS) + ".",
+                            + "'. Must be one of, matched case-sensitively: "
+                            + String.join(", ", PromptTemplateFormats.supported()) + ".",
                     "/templateFormat"));
         }
     }

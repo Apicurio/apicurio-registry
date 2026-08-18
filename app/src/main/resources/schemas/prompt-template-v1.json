@@ -37,7 +37,7 @@
       "type": "string",
       "enum": ["mustache"],
       "default": "mustache",
-      "description": "Templating syntax used by the 'template' field. Only 'mustache' is accepted. The registry substitutes {{variable}} placeholders and evaluates the Handlebars-style {{#if}}, {{#unless}} and {{else}} blocks."
+      "description": "Templating syntax used by the 'template' field. Only 'mustache' is accepted, matched case-sensitively. The registry renders mustache-style {{variable}} placeholders with Handlebars-style {{#if}}, {{#unless}} and {{else}} conditional blocks, as implemented by the registry renderer. A template using those blocks is therefore not portable to a strict mustache engine."
     },
     "authors": {
       "type": "array",

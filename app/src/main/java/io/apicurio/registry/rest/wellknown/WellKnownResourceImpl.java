@@ -212,10 +212,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
 
-        // Query matches artifact metadata name and artifactId (not Agent Card JSON content).
-        // Full-text content search is tracked in #7230.
         if (!StringUtil.isEmpty(request.getQuery())) {
-            filters.add(SearchFilter.ofPartialName(request.getQuery()));
+            filters.add(SearchFilter.ofContent(request.getQuery().trim()));
         }
 
         AgentSearchFilters f = request.getFilters();

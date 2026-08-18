@@ -22,6 +22,11 @@ import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.federation.FederatedAgentSearchService;
+import io.apicurio.registry.federation.FederatedSearchResponse;
+import io.apicurio.registry.federation.FederationConfig;
+import io.apicurio.registry.federation.PeerClient;
+import io.apicurio.registry.federation.PeerSearchOutcome;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -113,6 +118,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Inject
     AuthConfig authConfig;
+
+    @Inject
+    FederationConfig federationConfig;
+
+    @Inject
+    FederatedAgentSearchService federatedSearch;
 
     @Context
     HttpServletRequest request;
@@ -416,6 +427,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
                     .build();
         }
 
+        // SPIKE: federated discovery. Skipped when this request is itself a federated call, which
+        // keeps federation non-transitive and stops mutually-peered registries from recursing.
+        if (federationConfig.isEnabled() && !isFederatedRequest()) {
+            return searchAgentsFederated(filters, name, skills, capabilities, safeOffset, safeLimit);
+        }
+
         ArtifactSearchResultsDto results = storage.searchArtifacts(
                 filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
 
@@ -427,6 +444,49 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return AgentSearchResults.builder()
                 .count((int) results.getCount())
                 .agents(agents)
+                .build();
+    }
+
+    /**
+     * True when the incoming request is already part of a federated search.
+     */
+    private boolean isFederatedRequest() {
+        return Boolean.parseBoolean(request.getHeader(PeerClient.FEDERATION_HEADER));
+    }
+
+    /**
+     * Runs the local query and merges it with every configured peer.
+     *
+     * <p>The local side is queried from offset zero for {@code offset + limit} rows rather than for
+     * its own slice, for the same reason peers are: a source orders only its own results, so local
+     * position N is not position N of the merged set. Paging is applied after the merge.
+     */
+    private AgentSearchResults searchAgentsFederated(Set<SearchFilter> filters, String name,
+            List<String> skills, List<String> capabilities, int offset, int limit) {
+
+        int fetchSize = Math.min(offset + limit, MAX_VISIBILITY_FILTER_RESULTS);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, 0, fetchSize, false);
+
+        List<AgentSearchResult> localAgents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            localAgents.add(convertToAgentSearchResult(artifact));
+        }
+
+        FederatedSearchResponse federated = federatedSearch.search(
+                localAgents, name, skills, capabilities, offset, limit);
+
+        // SPIKE: per-source status is logged rather than returned. Reporting it properly means
+        // adding a "sources" array to AgentSearchResults, which is an OpenAPI change and a
+        // regeneration of all four SDKs.
+        for (PeerSearchOutcome outcome : federated.sources()) {
+            log.info("Federated search source {}: {} ({} results)",
+                    outcome.source(), outcome.status(), outcome.results().size());
+        }
+
+        return AgentSearchResults.builder()
+                .count(federated.agents().size())
+                .agents(federated.agents())
                 .build();
     }
 

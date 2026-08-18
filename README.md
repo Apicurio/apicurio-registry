@@ -3,7 +3,7 @@
 [![Automated Release Notes by gren](https://img.shields.io/badge/%F0%9F%A4%96-release%20notes-00B2EE.svg)](https://github-tools.github.io/github-release-notes/)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry?ref=badge_shield)
 
-![Apicurio Registry](.assets/apicurio_registry_logo_default.svg)
+![Apicurio Registry](branding/logos/svg/apicurio_registry_logo_default.svg)
 
 An API/Schema registry - stores and retrieves APIs and Schemas.
 
@@ -16,8 +16,10 @@ Build the project and run the registry with the in-memory storage variant:
  ```
  ./mvnw clean install -Dlocal -DskipTests
  cd app/
- ../mvnw quarkus:dev
+ ../mvnw quarkus:dev -Dlocal
  ```
+
+(See [DEVELOPING.md](DEVELOPING.md#build-tiers) for build tier details and other options.)
 
 This should result in Quarkus and the in-memory registry starting up, with the REST APIs available on localhost port 8080:
 
@@ -96,10 +98,10 @@ so a single set of credentials works for both. Set the following environment var
 
 | Env. variable                | Description                       |
 |------------------------------|-----------------------------------|
-| `APICURIO_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
-| `APICURIO_AUTH_URL`          | OIDC auth URL                     |
-| `APICURIO_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
-| `APICURIO_AUTH_CLIENT_ID`    | The client for the UI             |
+| `REGISTRY_AUTH_TYPE`         | Set to `oidc` (default is `none`) |
+| `REGISTRY_AUTH_URL`          | OIDC auth URL                     |
+| `REGISTRY_AUTH_REDIRECT_URL` | OIDC redirect URL                 |
+| `REGISTRY_AUTH_CLIENT_ID`    | The client for the UI             |
 
 Everything must be configured in your OIDC provider before starting the application. Registry
 supports a much wider range of authentication and authorization options than shown here — treat

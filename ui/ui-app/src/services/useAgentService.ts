@@ -1,5 +1,5 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import { createAuthOptions } from "@utils/rest.utils.ts";
 

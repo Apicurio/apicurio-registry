@@ -560,6 +560,32 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
     // -- Status Transition Tests --
 
     @Test
+    public void testStatusTransition_MissingStatus_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_MissingStatus-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{}") // missing status
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400);
+    }
+
+    @Test
+    public void testStatusTransition_NullStatus_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_NullStatus-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": null}") // explicit null status
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400);
+    }
+
+    @Test
     public void testStatusTransition_DraftToStable() throws Exception {
         String artifactId = "testStatusTransition_DraftToStable-" + UUID.randomUUID();
         String content = resourceToString("openapi-empty.json");

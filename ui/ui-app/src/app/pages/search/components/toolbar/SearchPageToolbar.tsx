@@ -16,7 +16,7 @@ import {
     ChipFilterType,
     FilterChips,
     ObjectSelect
-} from "@apicurio/common-ui-components";
+} from "@apitomy/common-ui-components";
 import { FilterInput, EnhancedFilterType } from "./FilterInput";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { plural } from "pluralize";
@@ -187,9 +187,9 @@ export const SearchPageToolbar: FunctionComponent<SearchPageToolbarProps> = (pro
         props.onPageChange(newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: props.paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         props.onPageChange(newPaging);

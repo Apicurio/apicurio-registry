@@ -28,6 +28,7 @@ export type VersionPageHeaderProps = {
     onEditAgentCard: () => void;
     onDelete: () => void;
     onDownload: () => void;
+    onTest: () => void;
     onFinalizeDraft: () => void;
     onCreateDraftFrom: () => void;
     onGenerateClient: () => void;
@@ -71,6 +72,12 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                     props.version?.artifactType === "AGENT_CARD" &&
                     user.isUserDeveloper(props.artifact?.owner);
             }
+        },
+        {
+            label: "Test content",
+            testId: "action-test-version",
+            onSelect: () => props.onTest(),
+            isVisible: () => !config.featureReadOnly()
         },
         {
             label: "Finalize draft",

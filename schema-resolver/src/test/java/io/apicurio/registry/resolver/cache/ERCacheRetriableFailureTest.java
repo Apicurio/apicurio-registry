@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ERCacheRetriableFailureTest {
@@ -180,6 +181,10 @@ class ERCacheRetriableFailureTest {
         assertTrue(attempts.get() >= 1);
         assertTrue(attempts.get() < 11, "total timeout should stop before exhausting all retries");
         assertTrue(result.error.getMessage().contains("total retry timeout"));
+        assertNotNull(result.error.getCause(),
+                "timeout error must keep the last attempt's failure as cause");
+        assertTrue(result.error.getCause().getCause() instanceof ConnectException
+                || result.error.getCause() instanceof ConnectException);
     }
 
     private static ApiException api(int status) {

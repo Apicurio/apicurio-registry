@@ -165,6 +165,37 @@ class RetryInvocationHandlerTest {
     }
 
     /**
+     * Exhausted retries with a different exception type on the last attempt must throw that
+     * last type (not the first), with the first attached as suppressed. Callers matching on
+     * the original failure class will see the latest class — a public SDK behavior change.
+     */
+    @Test
+    void testExhaustedRetriesThrowsLatestTypeNotOriginal() throws NoSuchMethodException {
+        AtomicInteger callCount = new AtomicInteger(0);
+        RequestAdapter adapter = throwingAdapter(() -> {
+            int n = callCount.incrementAndGet();
+            if (n == 1) {
+                throw new HttpClosedException("closed on first attempt");
+            }
+            throw new ConnectException("refused on attempt " + n);
+        });
+
+        var handler = new RegistryClientRequestAdapterFactory.RetryInvocationHandler(
+                adapter, MAX_RETRIES, NO_DELAY, BACKOFF, NO_MAX_DELAY);
+
+        Method method = RequestAdapter.class.getMethod("getBaseUrl");
+        // ConnectException is checked; StubRequestAdapter wraps it in RuntimeException.
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> handler.invoke(null, method, null),
+                "Should throw the latest attempt's exception, not the first HttpClosedException");
+
+        assertEquals(MAX_RETRIES + 1, callCount.get());
+        assertEquals(ConnectException.class, thrown.getCause().getClass());
+        assertEquals(1, thrown.getSuppressed().length);
+        assertEquals(HttpClosedException.class, thrown.getSuppressed()[0].getClass());
+    }
+
+    /**
      * Wrapped SocketTimeoutException should be retried.
      */
     @Test

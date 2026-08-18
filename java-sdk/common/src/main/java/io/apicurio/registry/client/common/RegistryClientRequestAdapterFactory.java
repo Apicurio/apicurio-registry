@@ -226,7 +226,9 @@ public class RegistryClientRequestAdapterFactory {
                                     "Registry HTTP client exhausted {0} retry attempts due to {1}: {2}",
                                     new Object[]{maxRetryAttempts, cause.getClass().getName(), causeMessage});
                         }
-                        // Prefer the latest failure for caller diagnostics; keep the first as suppressed.
+                        // Public behavior: throw the latest failure, not the first. Callers that
+                        // catch a specific type (e.g. HttpClosedException) may now see a later
+                        // type (e.g. ConnectException) with the first on getSuppressed().
                         if (originalCause != null && originalCause != cause) {
                             cause.addSuppressed(originalCause);
                         }

@@ -495,10 +495,13 @@ public class ERCache<V> {
                 if (failure != null) {
                     return failure;
                 }
-            }
-            if (sleepBackoffOrTimeout(backoff, deadline, totalTimeout)) {
-                return Result.error(new RuntimeException(
-                        "Schema cache load exceeded total retry timeout of " + totalTimeout.toMillis() + "ms"));
+                if (sleepBackoffOrTimeout(backoff, deadline)) {
+                    log.error("Schema cache load exceeded total retry timeout of {}ms during backoff",
+                            totalTimeout.toMillis(), e);
+                    return Result.error(new RuntimeException(
+                            "Schema cache load exceeded total retry timeout of " + totalTimeout.toMillis() + "ms",
+                            e));
+                }
             }
         }
         return Result.error(new IllegalStateException("Unreachable."));
@@ -533,19 +536,14 @@ public class ERCache<V> {
     /**
      * @return {@code true} if the total timeout was exceeded during/after backoff
      */
-    private static boolean sleepBackoffOrTimeout(Duration backoff, Instant deadline, Duration totalTimeout) {
+    private static boolean sleepBackoffOrTimeout(Duration backoff, Instant deadline) {
         try {
             Thread.sleep(backoff.toMillis());
         } catch (InterruptedException e) {
             log.debug("Cache retry backoff interrupted", e);
             Thread.currentThread().interrupt();
         }
-        if (isDeadlineExceeded(deadline)) {
-            log.error("Schema cache load exceeded total retry timeout of {}ms during backoff",
-                    totalTimeout.toMillis());
-            return true;
-        }
-        return false;
+        return isDeadlineExceeded(deadline);
     }
 
     private static boolean isDeadlineExceeded(Instant deadline) {

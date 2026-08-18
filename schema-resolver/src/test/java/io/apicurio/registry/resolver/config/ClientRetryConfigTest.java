@@ -75,6 +75,27 @@ class ClientRetryConfigTest {
     }
 
     @Test
+    void maxAttemptsRejectsAboveSaneCeiling() {
+        // 2e9 fits in int (Integer.MAX_VALUE is ~2.1e9) but would hang configure() if
+        // estimateClientRetryLadderSleepMs looped maxAttempts times.
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, "2000000000");
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::getClientRetryMaxAttempts);
+        assertTrue(ex.getMessage().contains("1000"));
+    }
+
+    @Test
+    void maxAttemptsAcceptsCeiling() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS,
+                String.valueOf(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS_MAX));
+        assertEquals(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS_MAX,
+                new SchemaResolverConfig(originals).getClientRetryMaxAttempts());
+    }
+
+    @Test
     void maxAttemptsRejectsZero() {
         Map<String, Object> originals = new HashMap<>();
         originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, "0");

@@ -200,9 +200,10 @@ public class SchemaResolverConfig extends AbstractConfig {
      * {@link #CLIENT_RETRY_MAX_ATTEMPTS}, which configures the underlying HTTP client retry ladder that may
      * run inside each cache attempt.
      * <p>
-     * By default the cache layer only retries HTTP 429. Enable {@link #RETRY_TRANSIENT_ERRORS} to also retry
-     * network/outage failures (502/503/504 and connection errors). When that opt-in is enabled, the layers
-     * multiply: worst-case blocking is roughly
+     * <strong>Outage retries are opt-in.</strong> By default the cache layer only retries HTTP 429. Set
+     * {@link #RETRY_TRANSIENT_ERRORS}{@code =true} (and preferably {@link #RETRY_TOTAL_TIMEOUT_MS}) to also
+     * retry network/outage failures (502/503/504 and connection errors). Raising this count alone does not
+     * cover registry-down. When that opt-in is enabled, the layers multiply: worst-case blocking is roughly
      * {@code (retry-count + 1) × (full client retry ladder) + (retry-count × retry-backoff-ms)}.
      * Bound it with {@link #RETRY_TOTAL_TIMEOUT_MS}, and size together with {@link #CLIENT_RETRY_MAX_ATTEMPTS},
      * especially for Kafka producers ({@code max.block.ms}) and Connect polls.
@@ -234,8 +235,10 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     /**
      * Optional wall-clock budget (milliseconds) for a single schema-cache load's retry loop in
-     * {@code ERCache}. Checked before each re-attempt after a retriable failure. {@code 0} (default) means
-     * unlimited. Strongly recommended when {@link #RETRY_TRANSIENT_ERRORS} is enabled so
+     * {@code ERCache}. Checked before each re-attempt after a retriable failure; it does
+     * <strong>not</strong> interrupt an in-flight cache attempt (that attempt may still run a full
+     * HTTP client retry ladder plus request timeouts). {@code 0} (default) means unlimited.
+     * Strongly recommended when {@link #RETRY_TRANSIENT_ERRORS} is enabled so
      * {@code Producer.send()} / Connect polls cannot block for
      * {@code (retry-count + 1) × (client retry ladder)} unboundedly.
      */
@@ -256,7 +259,9 @@ public class SchemaResolverConfig extends AbstractConfig {
      * Maximum number of retry attempts for the underlying registry HTTP client.
      * Defaults match {@code RegistryClientOptions#retry()} (3 / 250ms / 2.0 / 10000ms); SDK parity is
      * pinned by {@code RegistryClientOptionsRetryDefaultsTest} in java-sdk/common.
-     * Must be an integer in {@code [1, Integer.MAX_VALUE]}.
+     * Must be an integer in {@code [1, 1000]}. The upper bound is a sanity ceiling so a
+     * fat-fingered value cannot hang {@code configure()} or sleep for weeks; it is not a
+     * recommended operating point.
      * <p>
      * Size together with {@link #RETRY_COUNT} when {@link #RETRY_TRANSIENT_ERRORS} is enabled: each of the
      * {@code (retry-count + 1)} cache attempts may run this many HTTP attempts plus client backoff sleeps.
@@ -264,6 +269,8 @@ public class SchemaResolverConfig extends AbstractConfig {
      */
     public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
     public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;
+    /** Inclusive upper bound for {@link #CLIENT_RETRY_MAX_ATTEMPTS}. */
+    public static final long CLIENT_RETRY_MAX_ATTEMPTS_MAX = 1000;
 
     /**
      * Initial retry delay in milliseconds for the underlying registry HTTP client.
@@ -529,10 +536,11 @@ public class SchemaResolverConfig extends AbstractConfig {
     public long getClientRetryMaxAttempts() {
         // Fail fast with the property name rather than ArithmeticException at Math.toIntExact later.
         long value = getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
-        if (value < 1 || value > Integer.MAX_VALUE) {
+        if (value < 1 || value > CLIENT_RETRY_MAX_ATTEMPTS_MAX) {
             throw new IllegalArgumentException("Invalid configuration property value for '"
                     + CLIENT_RETRY_MAX_ATTEMPTS
-                    + "'. Expected an integer in [1, " + Integer.MAX_VALUE + "], but got '" + value + "'.");
+                    + "'. Expected an integer in [1, " + CLIENT_RETRY_MAX_ATTEMPTS_MAX
+                    + "], but got '" + value + "'.");
         }
         return value;
     }

@@ -371,6 +371,23 @@ public class RegistryService {
         return client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v);
     }
 
+    public void testVersion(
+            String groupId,
+            String artifactId,
+            String versionContentType,
+            String versionContent
+    ) {
+        var c = new VersionContent();
+        c.setContentType(versionContentType);
+        c.setContent(versionContent);
+
+        var v = new CreateVersion();
+        v.setContent(c);
+
+        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(v, cfg -> cfg.queryParameters.dryRun = true);
+    }
+
     public void updateVersionState(
             String groupId,
             String artifactId,

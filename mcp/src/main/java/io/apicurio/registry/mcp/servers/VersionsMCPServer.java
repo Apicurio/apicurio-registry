@@ -94,6 +94,25 @@ public class VersionsMCPServer {
     }
 
     @Tool(description = """
+            Test whether a piece of content would pass this artifact's configured content rules, \
+            without actually creating a new version. Nothing is persisted by this call. Use this \
+            before "create_version" to validate content ahead of time. Returns "Success" if the \
+            content is valid, or an error describing which content rule failed.""")
+    String test_version(
+            @ToolArg(description = GROUP_ID) String groupId,
+            @ToolArg(description = ARTIFACT_ID) String artifactId,
+            @ToolArg(description = CONTENT_TYPE) String versionContentType,
+            @ToolArg(description = CONTENT) String versionContent
+    ) {
+        return handleError(() -> service.testVersion(
+                groupId,
+                artifactId,
+                versionContentType,
+                versionContent
+        ));
+    }
+
+    @Tool(description = """
             Update the state of an artifact version.""")
     String update_version_state(
             @ToolArg(description = GROUP_ID) String groupId,

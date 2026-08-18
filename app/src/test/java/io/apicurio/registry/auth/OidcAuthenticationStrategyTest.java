@@ -1,9 +1,12 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Tag(ApicurioTestTags.AUTH)
 class OidcAuthenticationStrategyTest {
 
     @Test

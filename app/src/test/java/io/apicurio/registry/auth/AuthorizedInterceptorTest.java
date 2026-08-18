@@ -1,8 +1,10 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.interceptor.InvocationContext;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
@@ -21,6 +23,7 @@ import static org.mockito.Mockito.when;
  * Verifies both the RBAC and OBAC denial paths throw the fixed message with no
  * trace of the caller's principal name.
  */
+@Tag(ApicurioTestTags.AUTH)
 public class AuthorizedInterceptorTest {
 
     /** Carries the {@code @Authorized} annotation looked up by the interceptor. */

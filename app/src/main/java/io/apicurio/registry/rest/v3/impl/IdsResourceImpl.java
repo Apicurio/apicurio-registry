@@ -99,7 +99,8 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
                         .entityId(globalId)
                         .references(references)
                         .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
+                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion()),
+                                referenceResolutionConfig.maxDepth
                         ))
                         .returnArtifactType(returnArtifactType)
                         .build()

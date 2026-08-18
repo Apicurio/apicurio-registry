@@ -1007,7 +1007,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .contentId(metaData.getContentId())
                         .references(references)
                         .referenceTreeContentIds(() -> recursivelyResolveReferenceContentIds(artifactCell.get(),
-                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion())
+                                ref -> storage.getArtifactVersionContent(ref.getGroupId(), ref.getArtifactId(), ref.getVersion()),
+                                referenceResolutionConfig.maxDepth
                         ))
                         .versionExpression(versionExpression)
                         .versionState(metaData.getState())
@@ -1028,7 +1029,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (Boolean.TRUE.equals(canonical)) {
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(artifactCell.get().getReferences(),
-                            storage::getContentByReference);
+                            storage::getContentByReference, referenceResolutionConfig.maxDepth);
             contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
                     contentToReturn, resolvedReferences);
         }
@@ -1216,7 +1217,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference);
+                    .recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference,
+                            referenceResolutionConfig.maxDepth);
             final List<ArtifactReference> references = V3ApiUtil
                     .referenceDtosToReferences(artifact.getReferences());
 
@@ -1510,7 +1512,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
                 // Try to resolve the references
                 final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                        .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                        .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference,
+                                referenceResolutionConfig.maxDepth);
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
@@ -1646,7 +1649,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference,
+                            referenceResolutionConfig.maxDepth);
 
             TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
@@ -1927,7 +1931,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference,
+                            referenceResolutionConfig.maxDepth);
             final TypedContent typedContent = TypedContent.create(content, contentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                     typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);

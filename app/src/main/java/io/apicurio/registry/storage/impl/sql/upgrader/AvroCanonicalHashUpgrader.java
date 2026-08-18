@@ -44,7 +44,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
     private final ArtifactTypeUtilProviderFactory factory = new DefaultArtifactTypeUtilProviderImpl(true);
 
     @Override
-    public void upgrade(Handle handle) throws Exception {
+    public void upgrade(Handle handle, int maxReferenceDepth) throws Exception {
         log.info("Recomputing Avro canonical content hashes...");
 
         String sql = "SELECT DISTINCT c.contentId, c.canonicalHash, c.contentHash, c.contentType, c.content, c.refs, a.type "
@@ -66,7 +66,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
             stream.forEach(entity -> {
                 processedCount.incrementAndGet();
                 try {
-                    int result = updateEntity(handle, entity);
+                    int result = updateEntity(handle, entity, maxReferenceDepth);
                     if (result > 0) {
                         updatedCount.incrementAndGet();
                     } else {
@@ -85,7 +85,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                 processedCount.get(), updatedCount.get(), skippedCount.get(), failedCount.get());
     }
 
-    private int updateEntity(Handle handle, ContentWithType entity) {
+    private int updateEntity(Handle handle, ContentWithType entity, int maxReferenceDepth) {
         List<ArtifactReferenceDto> references = RegistryContentUtils
                 .deserializeReferences(entity.contentEntity.serializedReferences);
 
@@ -97,7 +97,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                 .artifactType(entity.type).build();
 
         String newCanonicalHash = RegistryContentUtils.canonicalContentHash(factory, entity.type, data,
-                ref -> resolveReference(handle, ref));
+                ref -> resolveReference(handle, ref), maxReferenceDepth);
 
         if (!newCanonicalHash.equals(entity.contentEntity.canonicalHash)) {
             int rowCount = handle

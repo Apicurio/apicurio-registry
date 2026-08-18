@@ -27,6 +27,7 @@ import io.apicurio.registry.rest.v2.GroupsResource;
 import io.apicurio.registry.rest.v2.beans.*;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.*;
@@ -109,6 +110,9 @@ public class GroupsResourceImpl implements GroupsResource {
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
+
+    @Inject
     io.apicurio.registry.rest.v3.impl.GroupsResourceImpl v3;
 
     @Context
@@ -156,14 +160,15 @@ public class GroupsResourceImpl implements GroupsResource {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                             .recursivelyResolveReferencesWithContext(factory, contentToReturn,
                                     metaData.getArtifactType(), artifact.getReferences(),
-                                    storage::getContentByReference);
+                                    storage::getContentByReference, referenceResolutionConfig.maxDepth);
 
                     contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                             rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
                 } else {
                     contentToReturn = artifactTypeProvider.getContentDereferencer()
                             .dereference(contentToReturn, RegistryContentUtils.recursivelyResolveReferences(
-                                    artifact.getReferences(), storage::getContentByReference));
+                                    artifact.getReferences(), storage::getContentByReference,
+                                    referenceResolutionConfig.maxDepth));
                 }
             }
 
@@ -680,14 +685,15 @@ public class GroupsResourceImpl implements GroupsResource {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                         .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
-                                artifact.getReferences(), storage::getContentByReference);
+                                artifact.getReferences(), storage::getContentByReference,
+                                referenceResolutionConfig.maxDepth);
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                         rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
                         RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
-                                storage::getContentByReference));
+                                storage::getContentByReference, referenceResolutionConfig.maxDepth));
             }
         }
 
@@ -1084,7 +1090,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference,
+                            referenceResolutionConfig.maxDepth);
 
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
@@ -1231,7 +1238,8 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // Try to resolve the new artifact references and the nested ones (if any)
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference,
+                        referenceResolutionConfig.maxDepth);
 
         final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1343,7 +1351,8 @@ public class GroupsResourceImpl implements GroupsResource {
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference,
+                        referenceResolutionConfig.maxDepth);
 
         TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,

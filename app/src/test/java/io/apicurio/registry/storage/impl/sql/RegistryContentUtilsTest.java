@@ -19,7 +19,6 @@ package io.apicurio.registry.storage.impl.sql;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
-import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -38,6 +37,8 @@ import static org.mockito.Mockito.when;
  * @author eric.wittmann@gmail.com
  */
 public class RegistryContentUtilsTest {
+
+    private static final int MAX_REFERENCE_DEPTH = 3;
 
     @Test
     void testSerializeLabels() {
@@ -76,7 +77,8 @@ public class RegistryContentUtilsTest {
                     loadCount.incrementAndGet();
                     return nodes.get(reference.getName());
                 },
-                TestNode::value
+                TestNode::value,
+                MAX_REFERENCE_DEPTH
         );
 
         Assertions.assertEquals(2, loadCount.get());
@@ -87,7 +89,7 @@ public class RegistryContentUtilsTest {
 
     @Test
     void testRecursivelyResolveReferencesStopsAtMaximumDepth() {
-        int chainLength = ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH + 2;
+        int chainLength = MAX_REFERENCE_DEPTH + 2;
         Map<String, TestNode> nodes = new HashMap<>();
         for (int i = 0; i < chainLength; i++) {
             String name = "node-" + i;
@@ -104,16 +106,16 @@ public class RegistryContentUtilsTest {
                     loadCount.incrementAndGet();
                     return nodes.get(reference.getName());
                 },
-                TestNode::value
+                TestNode::value,
+                MAX_REFERENCE_DEPTH
         );
 
-        Assertions.assertEquals(ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH + 1, loadCount.get());
-        Assertions.assertEquals(ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH + 1, resolved.size());
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, loadCount.get());
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, resolved.size());
         Assertions.assertEquals("node-0", resolved.get("node-0"));
-        Assertions.assertEquals("node-" + ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH,
-                resolved.get("node-" + ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH));
-        Assertions.assertNull(resolved.get("node-"
-                + (ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH + 1)));
+        Assertions.assertEquals("node-" + (MAX_REFERENCE_DEPTH - 1),
+                resolved.get("node-" + (MAX_REFERENCE_DEPTH - 1)));
+        Assertions.assertNull(resolved.get("node-" + MAX_REFERENCE_DEPTH));
     }
 
     @Test
@@ -129,7 +131,7 @@ public class RegistryContentUtilsTest {
                         TypedContent.create("{}", "test"), "test", List.of(reference("A")), reference -> {
                             loadCount.incrementAndGet();
                             return nodes.get(reference.getArtifactId());
-                        }));
+                        }, MAX_REFERENCE_DEPTH));
 
         Assertions.assertEquals(2, loadCount.get());
         Assertions.assertEquals(2, result.getResolvedReferences().size());
@@ -137,7 +139,7 @@ public class RegistryContentUtilsTest {
 
     @Test
     void testRecursivelyResolveReferencesWithContextStopsAtMaximumDepth() {
-        int chainLength = ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH + 2;
+        int chainLength = MAX_REFERENCE_DEPTH + 2;
         Map<String, ContentWrapperDto> nodes = new HashMap<>();
         for (int i = 0; i < chainLength; i++) {
             String artifactId = "node-" + i;
@@ -152,11 +154,10 @@ public class RegistryContentUtilsTest {
                         List.of(reference("node-0")), reference -> {
                             loadCount.incrementAndGet();
                             return nodes.get(reference.getArtifactId());
-                        });
+                        }, MAX_REFERENCE_DEPTH);
 
-        Assertions.assertEquals(ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH + 1, loadCount.get());
-        Assertions.assertEquals(ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH + 1,
-                result.getResolvedReferences().size());
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, loadCount.get());
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, result.getResolvedReferences().size());
     }
 
     private static ArtifactTypeUtilProviderFactory contextAwareFactory() {

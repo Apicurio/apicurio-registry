@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
-import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -15,7 +14,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,13 +59,13 @@ public class RegistryContentUtils {
             HasReferences root,
             Function<ArtifactReferenceDto, KEY> keyExtractor,
             Function<ArtifactReferenceDto, NODE> nodeLoader,
-            Function<NODE, VALUE> valueExtractor
+            Function<NODE, VALUE> valueExtractor,
+            int maxReferenceDepth
     ) {
         if (root == null || isEmpty(root.getReferences())) {
             return Map.of();
         } else {
             Map<KEY, VALUE> result = new LinkedHashMap<>();
-            int maxReferenceDepth = getMaxReferenceDepth();
             recursivelyResolveReferencesGenericInternal(result, root.getReferences(), keyExtractor, nodeLoader,
                     valueExtractor, 0, new HashSet<>(), maxReferenceDepth);
             return result;
@@ -88,8 +86,8 @@ public class RegistryContentUtils {
             return;
         }
 
-        if (currentDepth > maxReferenceDepth) {
-            log.warn("Maximum generic reference resolution depth ({}) exceeded at depth {}. "
+        if (currentDepth >= maxReferenceDepth) {
+            log.warn("Maximum generic reference resolution depth ({}) reached at depth {}. "
                     + "Stopping resolution.", maxReferenceDepth, currentDepth);
             return;
         }
@@ -133,13 +131,15 @@ public class RegistryContentUtils {
      */
     public static Map<String, TypedContent> recursivelyResolveReferences(
             List<ArtifactReferenceDto> references,
-            Function<ArtifactReferenceDto, ContentWrapperDto> loader
+            Function<ArtifactReferenceDto, ContentWrapperDto> loader,
+            int maxReferenceDepth
     ) {
         return recursivelyResolveReferencesGeneric(
                 () -> references,
                 ArtifactReferenceDto::getName,
                 loader,
-                cw -> TypedContent.create(cw.getContent(), cw.getArtifactType())
+                cw -> TypedContent.create(cw.getContent(), cw.getArtifactType()),
+                maxReferenceDepth
         );
     }
 
@@ -149,13 +149,15 @@ public class RegistryContentUtils {
      */
     public static List<Long> recursivelyResolveReferenceContentIds(
             StoredArtifactVersionDto root,
-            Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader
+            Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader,
+            int maxReferenceDepth
     ) {
         return recursivelyResolveReferencesGeneric(
                 root,
                 ArtifactReferenceDto::getName,
                 loader,
-                StoredArtifactVersionDto::getContentId
+                StoredArtifactVersionDto::getContentId,
+                maxReferenceDepth
         ).values().stream().distinct().sorted().toList();
     }
 
@@ -170,12 +172,11 @@ public class RegistryContentUtils {
     public static RewrittenContentHolder recursivelyResolveReferencesWithContext(
             ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory, TypedContent mainContent,
             String mainContentType, List<ArtifactReferenceDto> references,
-            Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
+            Function<ArtifactReferenceDto, ContentWrapperDto> loader, int maxReferenceDepth) {
         if (references == null || references.isEmpty()) {
             return new RewrittenContentHolder(mainContent, Collections.emptyMap());
         } else {
             Map<String, TypedContent> resolvedReferences = new LinkedHashMap<>();
-            int maxReferenceDepth = getMaxReferenceDepth();
             // First we resolve all the references tree, re-writing the nested contents to use the artifact
             // version coordinates instead of the reference name.
             return resolveReferencesWithContext(artifactTypeUtilProviderFactory, mainContent, mainContentType,
@@ -201,8 +202,8 @@ public class RegistryContentUtils {
                     partialRecursivelyResolvedReferences);
         }
 
-        if (currentDepth > maxReferenceDepth) {
-            log.warn("Maximum context-aware reference resolution depth ({}) exceeded at depth {}. "
+        if (currentDepth >= maxReferenceDepth) {
+            log.warn("Maximum context-aware reference resolution depth ({}) reached at depth {}. "
                     + "Stopping resolution.", maxReferenceDepth, currentDepth);
             return rewriteReferences(artifactTypeUtilProviderFactory, schemaType, mainContent, referencesRewrites,
                     partialRecursivelyResolvedReferences);
@@ -268,17 +269,6 @@ public class RegistryContentUtils {
         return new RewrittenContentHolder(rewrittenContent, resolvedReferences);
     }
 
-    private static int getMaxReferenceDepth() {
-        try {
-            return ConfigProvider.getConfig()
-                    .getOptionalValue(ReferenceResolutionConfigProperties.MAX_DEPTH_PROPERTY, Integer.class)
-                    .orElse(ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH);
-        } catch (IllegalStateException ex) {
-            // Static utility methods are also used outside CDI and MicroProfile Config runtimes.
-            return ReferenceResolutionConfigProperties.DEFAULT_MAX_DEPTH;
-        }
-    }
-
     /**
      * Canonicalize the given content.
      * <p>
@@ -305,11 +295,12 @@ public class RegistryContentUtils {
      */
     public static TypedContent canonicalizeContent(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
                                                    String artifactType, ContentWrapperDto data,
-                                                   Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
+                                                   Function<ArtifactReferenceDto, ContentWrapperDto> loader,
+                                                   int maxReferenceDepth) {
         try {
             return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
                     TypedContent.create(data.getContent(), data.getArtifactType()),
-                    recursivelyResolveReferences(data.getReferences(), loader));
+                    recursivelyResolveReferences(data.getReferences(), loader, maxReferenceDepth));
         } catch (Exception ex) {
             throw new RegistryException("Failed to canonicalize content.", ex);
         }
@@ -320,11 +311,13 @@ public class RegistryContentUtils {
      */
     public static String canonicalContentHash(ArtifactTypeUtilProviderFactory artifactTypeUtilProviderFactory,
                                               String artifactType, ContentWrapperDto data,
-                                              Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
+                                              Function<ArtifactReferenceDto, ContentWrapperDto> loader,
+                                              int maxReferenceDepth) {
         try {
             if (notEmpty(data.getReferences())) {
                 String serializedReferences = serializeReferences(data.getReferences());
-                TypedContent canonicalContent = canonicalizeContent(artifactTypeUtilProviderFactory, artifactType, data, loader);
+                TypedContent canonicalContent = canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
+                        data, loader, maxReferenceDepth);
                 return DigestUtils.sha256Hex(concatContentAndReferences(canonicalContent.getContent().bytes(),
                         serializedReferences));
             } else {

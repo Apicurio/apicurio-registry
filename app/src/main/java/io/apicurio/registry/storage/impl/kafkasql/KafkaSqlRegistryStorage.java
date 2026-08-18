@@ -28,6 +28,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.decorator.ReadOnlyDelegatingStorage;
@@ -122,6 +123,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Inject
     RegistryStorageContentUtils utils;
+
+    @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
 
     @Inject
     @Named("KafkaSqlJournalConsumer")
@@ -925,7 +929,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     public void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)
             throws RegistryStorageException {
         DataImporter dataImporter = new SqlDataImporter(log, utils, this, preserveGlobalId,
-                preserveContentId);
+                preserveContentId, referenceResolutionConfig.maxDepth);
         // All messages use the same partition key (__GLOBAL_PARTITION__), so Kafka guarantees
         // ordering within the partition. Reset messages sent after import messages will be
         // consumed in the correct order without needing any sleep/wait mechanism.
@@ -939,7 +943,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     public void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)
             throws RegistryStorageException {
         DataImporter dataImporter = new SqlDataUpgrader(log, utils, this, preserveGlobalId,
-                preserveContentId);
+                preserveContentId, referenceResolutionConfig.maxDepth);
         // All messages use the same partition key (__GLOBAL_PARTITION__), so Kafka guarantees
         // ordering within the partition. Reset messages sent after import messages will be
         // consumed in the correct order without needing any sleep/wait mechanism.

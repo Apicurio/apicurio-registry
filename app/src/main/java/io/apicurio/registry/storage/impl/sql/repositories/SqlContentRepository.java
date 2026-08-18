@@ -313,8 +313,8 @@ public class SqlContentRepository {
         }
 
         // Check maximum depth limit to prevent stack overflow
-        if (currentDepth > maxReferenceDepth) {
-            log.warn("Maximum reference resolution depth ({}) exceeded at depth {}. "
+        if (currentDepth >= maxReferenceDepth) {
+            log.warn("Maximum reference resolution depth ({}) reached at depth {}. "
                     + "Stopping resolution. This may indicate deeply nested schemas or a configuration issue.",
                     maxReferenceDepth, currentDepth);
             return;

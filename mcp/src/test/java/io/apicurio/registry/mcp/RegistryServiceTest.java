@@ -2,6 +2,7 @@ package io.apicurio.registry.mcp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
+import io.quarkiverse.mcp.server.ToolCallException;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.util.TypeLiteral;
 import org.junit.jupiter.api.AfterEach;
@@ -111,6 +112,10 @@ public class RegistryServiceTest {
             if (path.matches(".*/well-known/(agents|mcp-tools)/err/404.*")) {
                 String response = "{\"error_code\":404,\"message\":\"Not Found\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
+                if (path.contains("/state") && exchange.getRequestMethod().equals("PUT")) {
+                    exchange.sendResponseHeaders(204, -1);
+                    return;
+                }
                 exchange.sendResponseHeaders(404, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(response.getBytes(StandardCharsets.UTF_8));
@@ -350,5 +355,29 @@ public class RegistryServiceTest {
         RegistryService service = createService("http://localhost:" + port, false);
         assertThrows(Exception.class, () -> service.getAgentCard("err", "404"));
         assertThrows(Exception.class, () -> service.getMcpTool("err", "404"));
+    }
+
+    @Test
+    public void testUpdateVersionStateValidation() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false);
+
+        // Valid lowercase and mixed-case inputs resolve cleanly to VersionState
+        service.updateVersionState("g1", "a1", "1", "enabled");
+        service.updateVersionState("g1", "a1", "1", "Enabled");
+        service.updateVersionState("g1", "a1", "1", "DEPRECATED");
+
+        // Invalid or null state strings throw ToolCallException (not raw IllegalArgumentException / NPE)
+        ToolCallException exInvalid = assertThrows(ToolCallException.class,
+                () -> service.updateVersionState("g1", "a1", "1", "invalid_state"));
+        assertTrue(exInvalid.getMessage().contains("Invalid version state: 'invalid_state'"));
+        assertTrue(exInvalid.getMessage().contains("Accepted values (case-insensitive):"));
+
+        ToolCallException exNull = assertThrows(ToolCallException.class,
+                () -> service.updateVersionState("g1", "a1", "1", null));
+        assertTrue(exNull.getMessage().contains("Invalid version state: 'null'"));
+
+        ToolCallException exEmpty = assertThrows(ToolCallException.class,
+                () -> service.updateVersionState("g1", "a1", "1", "  "));
+        assertTrue(exEmpty.getMessage().contains("Invalid version state: '  '"));
     }
 }

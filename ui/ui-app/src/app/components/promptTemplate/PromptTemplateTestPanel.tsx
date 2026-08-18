@@ -1,4 +1,4 @@
-import { FunctionComponent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FunctionComponent, ReactNode, useMemo } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -25,9 +25,13 @@ import {
     ReconciledVariable,
     VariableSchema
 } from "./promptTemplateVariables";
-import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
-import { coerceEnumValue } from "./PromptTemplateTestPanel.utils";
+import { useGroupsService } from "@services/useGroupsService.ts";
+import {
+    coerceEnumValue,
+    schemaForField,
+    toDeclaredMap
+} from "./PromptTemplateTestPanel.utils";
+import { usePromptTemplateTestPanelState } from "./usePromptTemplateTestPanelState";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
@@ -36,33 +40,6 @@ export type PromptTemplateTestPanelProps = {
     template?: string;
     variables: Record<string, VariableSchema> | VariableSchema[] | undefined;
     className?: string;
-};
-
-const toDeclaredMap = (
-    variables: Record<string, VariableSchema> | VariableSchema[] | undefined
-): Record<string, VariableSchema> | undefined => {
-    if (!variables) {
-        return undefined;
-    }
-    if (Array.isArray(variables)) {
-        const map: Record<string, VariableSchema> = {};
-        for (const variable of variables) {
-            if (variable.name) {
-                map[variable.name] = variable;
-            }
-        }
-        return map;
-    }
-    return variables;
-};
-
-const defaultSchemaForDetected = (): VariableSchema => ({
-    type: "string",
-    required: false
-});
-
-const schemaForField = (entry: ReconciledVariable): VariableSchema => {
-    return entry.schema ?? defaultSchemaForDetected();
 };
 
 const sourceLabel = (source: ReconciledVariable["source"]): { text: string; color: "grey" | "orange" } | undefined => {
@@ -76,75 +53,29 @@ const sourceLabel = (source: ReconciledVariable["source"]): { text: string; colo
 };
 
 export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {
-    const groups: GroupsService = useGroupsService();
+    const groups = useGroupsService();
 
     const reconciledVariables = useMemo(() => {
         const names = extractTemplateVariableNames(props.template || "");
         return reconcileTemplateVariables(names, toDeclaredMap(props.variables));
     }, [props.template, props.variables]);
 
-    const initialValues: Record<string, any> = {};
-    reconciledVariables.forEach((entry) => {
-        const schema = schemaForField(entry);
-        if (schema.default !== undefined) {
-            initialValues[entry.name] = schema.default;
-        } else if ((schema.type || "string").toLowerCase() === "boolean") {
-            initialValues[entry.name] = false;
-        } else {
-            initialValues[entry.name] = "";
-        }
+    const {
+        values,
+        renderedOutput,
+        validationErrors,
+        isLoading,
+        error,
+        setValue,
+        doRender
+    } = usePromptTemplateTestPanelState({
+        groupId: props.groupId,
+        artifactId: props.artifactId,
+        version: props.version,
+        template: props.template,
+        variables: props.variables,
+        groups
     });
-
-    const [values, setValues] = useState<Record<string, any>>(initialValues);
-
-    useEffect(() => {
-        setValues(prev => {
-            const next = { ...prev };
-            reconciledVariables.forEach((entry) => {
-                if (!(entry.name in next)) {
-                    const schema = schemaForField(entry);
-                    const type = (schema.type || "string").toLowerCase();
-                    next[entry.name] = schema.default ?? (type === "boolean" ? false : "");
-                }
-            });
-            return next;
-        });
-    }, [props.template, props.variables]);
-
-    const [renderedOutput, setRenderedOutput] = useState<string>("");
-    const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string>("");
-
-    const setValue = (name: string, value: any): void => {
-        setValues(prev => ({ ...prev, [name]: value }));
-    };
-
-    const doRender = (): void => {
-        setIsLoading(true);
-        setError("");
-        setValidationErrors([]);
-        setRenderedOutput("");
-
-        let gid: string | null = props.groupId;
-        if (gid === "default") {
-            gid = null;
-        }
-
-        groups.renderPromptTemplate(gid, props.artifactId, props.version, values)
-            .then((response: RenderPromptResponse) => {
-                setRenderedOutput(response.rendered || "");
-                if (response.validationErrors && response.validationErrors.length > 0) {
-                    setValidationErrors(response.validationErrors);
-                }
-            })
-            .catch((err: any) => {
-                setError(err?.message || "Error rendering prompt template");
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
-    };
 
     const renderField = (name: string, variable: VariableSchema): ReactNode => {
         const type = (variable.type || "string").toLowerCase();

@@ -110,7 +110,7 @@ public class PromptTemplateMCPServer {
             }
 
             Map<String, Object> args = parseArguments(argumentsJson);
-            return converter.renderTemplate(template.getTemplate(), args);
+            return converter.renderTemplate(template, args);
         });
     }
 

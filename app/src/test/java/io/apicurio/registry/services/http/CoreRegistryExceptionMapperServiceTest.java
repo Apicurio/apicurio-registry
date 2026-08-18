@@ -76,6 +76,23 @@ public class CoreRegistryExceptionMapperServiceTest {
         }
     }
 
+    @Test
+    void wrappedClientErrorDoesNotExposeRootCause() {
+        String internalMessage = "com.fasterxml.jackson.databind.exc.InvalidFormatException at db.internal:5432";
+        BadRequestException exception = new BadRequestException("The request payload is invalid.",
+                new IllegalStateException(internalMessage));
+
+        try (Response response = mapper.mapException(exception)) {
+            ProblemDetails details = (ProblemDetails) response.getEntity();
+
+            assertEquals(HTTP_BAD_REQUEST, response.getStatus());
+            assertEquals("BAD_REQUEST", details.getName());
+            assertEquals("The request payload is invalid.", details.getTitle());
+            assertEquals("The request payload is invalid.", details.getDetail());
+            assertFalse(details.getDetail().contains(internalMessage));
+        }
+    }
+
     private static final class SilentBadRequestException extends BadRequestException {
 
         @Override

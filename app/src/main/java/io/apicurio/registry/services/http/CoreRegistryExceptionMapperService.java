@@ -12,7 +12,6 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -86,9 +85,9 @@ public class CoreRegistryExceptionMapperService {
                 details.setTitle(INTERNAL_SERVER_ERROR_TITLE);
                 details.setDetail(INTERNAL_SERVER_ERROR_DETAIL);
             } else {
-                String detail = getRootMessage(t);
-                details.setTitle(t.getLocalizedMessage() != null ? t.getLocalizedMessage() : detail);
-                details.setDetail(detail);
+                String message = getPublicMessage(t);
+                details.setTitle(message);
+                details.setDetail(message);
             }
         }
 
@@ -114,11 +113,9 @@ public class CoreRegistryExceptionMapperService {
         }).collect(Collectors.toList());
     }
 
-    private static String getRootMessage(Throwable t) {
-        Throwable rootCause = ExceptionUtils.getRootCause(t);
-        Throwable source = rootCause != null ? rootCause : t;
-        String message = source.getLocalizedMessage();
-        return message != null ? message : UNKNOWN_ERROR_DETAIL;
+    private static String getPublicMessage(Throwable t) {
+        String message = t.getLocalizedMessage();
+        return message != null && !message.isBlank() ? message : UNKNOWN_ERROR_DETAIL;
     }
 
 }

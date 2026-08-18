@@ -124,11 +124,9 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
         Assertions.assertFalse(problemDetails.getTitle().isEmpty(),
                 "ProblemDetails title should not be empty");
 
-        // Verify detail is present and does not expose the server exception class
-        Assertions.assertNotNull(problemDetails.getDetail(),
-                "ProblemDetails detail should not be null");
-        Assertions.assertFalse(problemDetails.getDetail().contains("Exception"),
-                "ProblemDetails detail should not expose an exception class");
+        // Verify detail contains the expected public message
+        Assertions.assertEquals("User is not authenticated.", problemDetails.getDetail(),
+                "ProblemDetails detail should contain the public error message");
 
         // Verify name is a stable public error code
         Assertions.assertEquals("UNAUTHORIZED", problemDetails.getName(),

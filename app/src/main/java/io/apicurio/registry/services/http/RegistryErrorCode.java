@@ -61,6 +61,10 @@ public enum RegistryErrorCode {
     VERSION_ALREADY_EXISTS_ON_BRANCH,
     VERSION_NOT_FOUND;
 
+    /**
+     * Returns a coarse fallback code for an exception that has no registered mapping. This mapping is
+     * intentionally lossy; registered exception mappings are authoritative.
+     */
     public static RegistryErrorCode fromHttpStatus(int status) {
         return switch (status) {
             case 400 -> BAD_REQUEST;

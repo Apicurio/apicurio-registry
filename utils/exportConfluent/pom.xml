@@ -48,7 +48,7 @@
     <!-- Test dependencies -->
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
+      <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -67,6 +67,12 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -112,6 +118,12 @@
             <version>${version.puppycrawl}</version>
           </dependency>
         </dependencies>
+        <!--
+          Config location, suppressions and severity are inherited from the root
+          pom. This module defines <projectRoot> above, so the inherited
+          ${projectRoot}-relative paths resolve correctly; repeating them here
+          only creates a second copy to drift out of sync.
+        -->
         <executions>
           <execution>
             <id>validate</id>
@@ -120,12 +132,6 @@
             </goals>
             <phase>validate</phase>
             <configuration>
-              <configLocation>../../.checkstyle/simple.xml</configLocation>
-              <headerLocation>../../.checkstyle/java.header</headerLocation>
-              <suppressionsLocation>../../.checkstyle/suppressions.xml</suppressionsLocation>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <consoleOutput>true</consoleOutput>
-              <failsOnError>true</failsOnError>
               <inputEncoding>UTF-8</inputEncoding>
             </configuration>
           </execution>

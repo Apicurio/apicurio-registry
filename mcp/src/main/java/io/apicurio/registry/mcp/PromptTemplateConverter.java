@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -22,7 +23,6 @@ import java.util.regex.Pattern;
 @ApplicationScoped
 public class PromptTemplateConverter {
 
-    private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{(\\w+)\\}\\}");
     private static final Pattern IF_BLOCK_PATTERN = Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}");
 
     @Inject
@@ -289,7 +289,7 @@ public class PromptTemplateConverter {
         if (template == null || template.getTemplate() == null) {
             return null;
         }
-        return renderTemplate(template.getTemplate(), args);
+        return renderTemplate(template, args);
     }
 
     private PromptTemplate parseFromNode(JsonNode node) {
@@ -427,6 +427,52 @@ public class PromptTemplateConverter {
     }
 
     /**
+     * Returns the arguments to render with, filling in the <code>default</code> declared by the
+     * template's variable schema for any argument the caller did not supply.
+     * <p>
+     * Caller-supplied values always win, and an argument that is explicitly present is never
+     * overwritten. The caller's map is never modified; a copy is made only when there is a
+     * default to apply. A <code>default</code> declared with no value is treated as absent.
+     */
+    private Map<String, Object> applyVariableDefaults(PromptTemplate template, Map<String, Object> args) {
+        if (template == null || template.getVariables() == null) {
+            return args;
+        }
+
+        Map<String, Object> effective = null;
+
+        for (Map.Entry<String, VariableSchema> entry : template.getVariables().entrySet()) {
+            String name = entry.getKey();
+            if (args != null && args.containsKey(name)) {
+                continue;
+            }
+
+            VariableSchema varSchema = entry.getValue();
+            if (varSchema == null || varSchema.getDefaultValue() == null) {
+                continue;
+            }
+
+            if (effective == null) {
+                effective = args != null ? new HashMap<>(args) : new HashMap<>();
+            }
+            effective.put(name, varSchema.getDefaultValue());
+        }
+
+        return effective != null ? effective : args;
+    }
+
+    /**
+     * Render a parsed template, applying the defaults declared by its variable schema for any
+     * argument the caller omitted.
+     */
+    public String renderTemplate(PromptTemplate template, Map<String, Object> args) {
+        if (template == null) {
+            return null;
+        }
+        return renderTemplate(template.getTemplate(), applyVariableDefaults(template, args));
+    }
+
+    /**
      * Render a prompt template with the provided arguments
      */
     public String renderTemplate(String template, Map<String, Object> args) {
@@ -434,14 +480,16 @@ public class PromptTemplateConverter {
             return template;
         }
 
-        String rendered = template;
-
-        // Simple {{variable}} substitution
-        for (Map.Entry<String, Object> entry : args.entrySet()) {
-            String placeholder = "\\{\\{" + entry.getKey() + "\\}\\}";
-            String value = entry.getValue() != null ? String.valueOf(entry.getValue()) : "";
-            rendered = rendered.replaceAll(placeholder, Matcher.quoteReplacement(value));
-        }
+        // Simple {{variable}} substitution, using the canonical pattern shared with the validity
+        // rule and the REST render endpoint so that {{name}} and {{ name }} resolve the same way.
+        String rendered = PromptTemplateVariableUtil.substituteVariables(template, varName -> {
+            if (!args.containsKey(varName)) {
+                // Returning null leaves the placeholder in the output, as before.
+                return null;
+            }
+            Object value = args.get(varName);
+            return value != null ? String.valueOf(value) : "";
+        });
 
         // Handle {{#if variable}} ... {{/if}} blocks
         rendered = processConditionalBlocks(rendered, args);
@@ -481,6 +529,6 @@ public class PromptTemplateConverter {
         if (template == null || template.getTemplate() == null) {
             return null;
         }
-        return renderTemplate(template.getTemplate(), args);
+        return renderTemplate(template, args);
     }
 }

@@ -447,4 +447,78 @@ public class ProtobufCompatibilityCheckerTest {
         assertTrue(result.isCompatible(),
                 "Should be compatible when there are no existing schemas");
     }
+
+    @Test
+    public void testForwardCompatibility_AddField_IsCompatible() {
+        String existingSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                }
+                """;
+
+        String proposedSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                    string email = 3;
+                }
+                """;
+
+        TypedContent existing = toTypedContent(existingSchema);
+        TypedContent proposed = toTypedContent(proposedSchema);
+
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.FORWARD, CompatibilityLevel.FORWARD_TRANSITIVE,
+                CompatibilityLevel.FULL, CompatibilityLevel.FULL_TRANSITIVE)) {
+            CompatibilityExecutionResult result = checker.testCompatibility(level,
+                    List.of(existing), proposed, Collections.emptyMap());
+            assertTrue(result.isCompatible(),
+                    "Adding an optional field should be compatible under " + level + ". Found diffs: "
+                            + result.getIncompatibleDifferences());
+        }
+    }
+
+    @Test
+    public void testForwardCompatibility_RemovedFieldWithoutReserve_Fails() {
+        String existingSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                    string email = 3;
+                }
+                """;
+
+        String proposedSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                }
+                """;
+
+        TypedContent existing = toTypedContent(existingSchema);
+        TypedContent proposed = toTypedContent(proposedSchema);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(CompatibilityLevel.FORWARD,
+                List.of(existing), proposed, Collections.emptyMap());
+
+        assertFalse(result.isCompatible(), "Removing a field without reservation should fail under FORWARD");
+        Set<CompatibilityDifference> differences = result.getIncompatibleDifferences();
+        assertFalse(differences.isEmpty(), "Should have differences");
+        boolean hasRemovedFieldError = differences.stream()
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("removed without reservation"));
+        assertTrue(hasRemovedFieldError,
+                "Should contain error about field removed without reservation. Found: " + differences);
+    }
 }

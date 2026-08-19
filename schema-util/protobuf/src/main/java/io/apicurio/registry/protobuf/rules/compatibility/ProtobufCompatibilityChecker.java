@@ -73,7 +73,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
             allDifferences.addAll(collectDifferences(backwardChecker));
             // Collect forward differences
             ProtobufCompatibilityCheckerLibrary forwardChecker = new ProtobufCompatibilityCheckerLibrary(
-                    fileAfter, fileBefore);
+                    fileBefore, fileAfter);
             allDifferences.addAll(collectDifferences(forwardChecker));
         }
         return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
@@ -88,7 +88,7 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         allDifferences.addAll(collectDifferences(backwardChecker));
         // Collect forward differences
         ProtobufCompatibilityCheckerLibrary forwardChecker = new ProtobufCompatibilityCheckerLibrary(
-                fileAfter, fileBefore);
+                fileBefore, fileAfter);
         allDifferences.addAll(collectDifferences(forwardChecker));
         return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
@@ -99,8 +99,8 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         Set<CompatibilityDifference> allDifferences = new HashSet<>();
         for (TypedContent existing : existingSchemas) {
             ProtobufFile fileBefore = new ProtobufFile(existing.getContent().content());
-            ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
-                    fileBefore);
+            ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
+                    fileAfter);
             allDifferences.addAll(collectDifferences(checker));
         }
         return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
@@ -108,8 +108,8 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
 
     @NotNull
     private CompatibilityExecutionResult testForward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
-        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
-                fileBefore);
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
+                fileAfter);
         Set<CompatibilityDifference> differences = collectDifferences(checker);
         return CompatibilityExecutionResult.incompatibleOrEmpty(differences);
     }

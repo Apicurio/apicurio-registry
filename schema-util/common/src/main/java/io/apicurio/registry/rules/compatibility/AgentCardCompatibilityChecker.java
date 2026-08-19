@@ -2,6 +2,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
@@ -29,7 +30,7 @@ import java.util.Set;
 public class AgentCardCompatibilityChecker
         extends AbstractCompatibilityChecker<AgentCardCompatibilityDifference> {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
     protected Set<AgentCardCompatibilityDifference> isBackwardsCompatibleWith(String existing,
@@ -37,8 +38,8 @@ public class AgentCardCompatibilityChecker
         Set<AgentCardCompatibilityDifference> differences = new HashSet<>();
 
         try {
-            JsonNode existingNode = mapper.readTree(existing);
-            JsonNode proposedNode = mapper.readTree(proposed);
+            JsonNode existingNode = parseContent(existing);
+            JsonNode proposedNode = parseContent(proposed);
 
             checkInterfaceCompatibility(existingNode, proposedNode, differences);
             checkSkillRemovals(existingNode, proposedNode, differences);
@@ -56,6 +57,10 @@ public class AgentCardCompatibilityChecker
         }
 
         return differences;
+    }
+
+    private JsonNode parseContent(String content) throws Exception {
+        return yamlMapper.readTree(content);
     }
 
     private void checkInterfaceCompatibility(JsonNode existing, JsonNode proposed,

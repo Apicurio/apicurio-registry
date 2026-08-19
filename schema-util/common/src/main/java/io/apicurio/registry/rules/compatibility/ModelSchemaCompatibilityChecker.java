@@ -23,7 +23,6 @@ import java.util.Set;
 public class ModelSchemaCompatibilityChecker
         extends AbstractCompatibilityChecker<ModelSchemaCompatibilityDifference> {
 
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
@@ -48,10 +47,6 @@ public class ModelSchemaCompatibilityChecker
     }
 
     private JsonNode parseContent(String content) throws Exception {
-        String trimmed = content.trim();
-        if (trimmed.startsWith("{")) {
-            return jsonMapper.readTree(content);
-        }
         return yamlMapper.readTree(content);
     }
 

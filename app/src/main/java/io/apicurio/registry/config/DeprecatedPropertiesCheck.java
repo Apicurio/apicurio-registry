@@ -24,7 +24,6 @@ import org.eclipse.microprofile.config.Config;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 

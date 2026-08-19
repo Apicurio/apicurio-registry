@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -212,7 +213,7 @@ public class ElasticsearchSearchService {
 
         case state:
             return Query.of(q -> q.term(t -> t
-                    .field("state").value(filter.getStringValue().toUpperCase())));
+                    .field("state").value(filter.getStringValue().toUpperCase(Locale.ROOT))));
 
         case globalId:
             return Query.of(q -> q.term(t -> t
@@ -302,7 +303,7 @@ public class ElasticsearchSearchService {
             return Query.of(q -> q.matchAll(m -> m));
         }
 
-        String lowered = value.toLowerCase().trim();
+        String lowered = value.toLowerCase(Locale.ROOT).trim();
         String[] parts = lowered.split(":", -1);
 
         if (parts.length == 3) {

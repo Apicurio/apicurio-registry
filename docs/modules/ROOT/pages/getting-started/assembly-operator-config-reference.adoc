@@ -63,7 +63,7 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 
 |`ingress`
 |Ingress configuration for the component
-|<<IngressSpec>>
+|xref:ingress-spec_{context}[IngressSpec]
 |See Ingress configuration reference
 
 |`podTemplateSpec`
@@ -76,6 +76,11 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |PodDisruptionSpec
 |`{ enabled: true }`
 
+|`autoscaling`
+|Horizontal pod autoscaling configuration for the component
+|AutoscalingSpec
+|`{ enabled: false }`
+
 |`networkPolicy`
 |NetworkPolicy configuration
 |NetworkPolicySpec
@@ -86,6 +91,8 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |String
 |`""`
 |===
+
+The top-level `spec.consolePlugin.enabled` field (Boolean, default `false`) controls whether the {operator} deploys the OpenShift Console plugin component.
 
 The following fields are specific to `spec.app`:
 
@@ -100,30 +107,29 @@ The following fields are specific to `spec.app`:
 
 |`storage`
 |Storage configuration for the backend
-|<<StorageSpec>>
+|xref:storage-spec_{context}[StorageSpec]
 |See Storage configuration reference
 
 |`features`
 |Feature flags for the backend
-|<<AppFeaturesSpec>>
+|xref:app-features-spec_{context}[AppFeaturesSpec]
 |See below
 
 |`auth`
 |Authentication and authorization configuration
-|<<AuthSpec>>
+|xref:auth-spec_{context}[AuthSpec]
 |See Authentication and authorization configuration reference
 
 |`tls`
 |TLS configuration for the application
-|<<TLSSpec>>
+|xref:tls-spec_{context}[TLSSpec]
 |See below
 |===
 
 Configure optional features for {registry}:
 
 .AppFeaturesSpec
-
-[cols="1,2,1,2",options="header"]
+[id="app-features-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -155,8 +161,7 @@ spec:
 Configure TLS certificates for the application:
 
 .TLSSpec
-
-[cols="1,2,1,2",options="header"]
+[id="tls-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -165,12 +170,12 @@ Configure TLS certificates for the application:
 
 |`keystoreSecretRef`
 |Reference to a Secret containing the keystore (PKCS12 format). Default key: `keystore.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`keystorePasswordSecretRef`
 |Reference to a Secret containing the keystore password. Default key: `password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -246,8 +251,7 @@ spec:
 The `spec.app.storage` section configures the storage backend for {registry}.
 
 .StorageSpec
-
-[cols="1,2,1,2",options="header"]
+[id="storage-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -261,17 +265,17 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 
 |`sql`
 |SQL database configuration. Required when `type` is `postgresql` or `mysql`
-|<<SqlSpec>>
+|xref:sql-spec_{context}[SqlSpec]
 |None
 
 |`kafkasql`
 |KafkaSQL storage configuration. Required when `type` is `kafkasql`
-|<<KafkaSqlSpec>>
+|xref:kafka-sql-spec_{context}[KafkaSqlSpec]
 |None
 
 |`kubernetesops`
 |KubernetesOps storage configuration (read-only, experimental). Required when `type` is `kubernetesops`
-|<<KubernetesOpsSpec>>
+|xref:kubernetes-ops-spec_{context}[KubernetesOpsSpec]
 |None
 |===
 
@@ -280,8 +284,7 @@ IMPORTANT: The default embedded H2 configuration is not suitable for production 
 Configure SQL database storage (PostgreSQL or MySQL):
 
 .SqlSpec
-
-[cols="1,2,1",options="header"]
+[id="sql-spec_{context}",cols="1,2,1",options="header"]
 |===
 |Field
 |Description
@@ -289,12 +292,11 @@ Configure SQL database storage (PostgreSQL or MySQL):
 
 |`dataSource`
 |Data source configuration
-|<<DataSourceSpec>>
+|xref:data-source-spec_{context}[DataSourceSpec]
 |===
 
 .DataSourceSpec
-
-[cols="1,2,1,2",options="header"]
+[id="data-source-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -313,7 +315,7 @@ Configure SQL database storage (PostgreSQL or MySQL):
 
 |`password`
 |Reference to a Secret containing the database password. Default key: `password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -352,8 +354,7 @@ spec:
 Configure KafkaSQL storage:
 
 .KafkaSqlSpec
-
-[cols="1,2,1,2",options="header"]
+[id="kafka-sql-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -372,12 +373,12 @@ Configure KafkaSQL storage:
 
 |`tls`
 |TLS configuration for connecting to Kafka
-|<<KafkaSqlTLSSpec>>
+|xref:kafka-sql-tls-spec_{context}[KafkaSqlTLSSpec]
 |None
 
 |`auth`
 |Authentication configuration for connecting to Kafka
-|<<KafkaSqlAuthSpec>>
+|xref:kafka-sql-auth-spec_{context}[KafkaSqlAuthSpec]
 |None
 |===
 
@@ -406,8 +407,7 @@ spec:
 Configure TLS for KafkaSQL storage:
 
 .KafkaSqlTLSSpec
-
-[cols="1,2,1,2",options="header"]
+[id="kafka-sql-tls-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -416,22 +416,22 @@ Configure TLS for KafkaSQL storage:
 
 |`keystoreSecretRef`
 |Reference to a Secret containing the TLS keystore (PKCS12 format). Default key: `user.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`keystorePasswordSecretRef`
 |Reference to a Secret containing the TLS keystore password. Default key: `user.password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`truststorePasswordSecretRef`
 |Reference to a Secret containing the truststore password. Default key: `ca.password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -460,8 +460,7 @@ NOTE: Default keys match the secret structure produced by the {kafka-streams} Op
 Configure SASL OAuth authentication for KafkaSQL storage:
 
 .KafkaSqlAuthSpec
-
-[cols="1,2,1,2",options="header"]
+[id="kafka-sql-auth-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -480,12 +479,12 @@ Configure SASL OAuth authentication for KafkaSQL storage:
 
 |`clientIdRef`
 |Reference to a Secret containing the OAuth client ID. Default key: `clientId`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`clientSecretRef`
 |Reference to a Secret containing the OAuth client secret. Default key: `clientSecret`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`tokenEndpoint`
@@ -526,8 +525,7 @@ NOTE: The operator provides first-class support for OAuth (OAUTHBEARER) authenti
 Configure KubernetesOps storage (read-only, experimental). Loads registry data from Kubernetes ConfigMaps:
 
 .KubernetesOpsSpec
-
-[cols="1,2,1,2",options="header"]
+[id="kubernetes-ops-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -610,8 +608,7 @@ NOTE: KubernetesOps storage is read-only. All changes must be made by creating o
 The `spec.app.auth` section configures OIDC authentication and role-based authorization.
 
 .AuthSpec
-
-[cols="1,2,1,2",options="header"]
+[id="auth-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -655,17 +652,17 @@ The `spec.app.auth` section configures OIDC authentication and role-based author
 
 |`authz`
 |Authorization configuration
-|<<AuthzSpec>>
+|xref:authz-spec_{context}[AuthzSpec]
 |See below
 
 |`basicAuth`
 |Client credentials basic authentication configuration
-|<<BasicAuthSpec>>
+|xref:basic-auth-spec_{context}[BasicAuthSpec]
 |See below
 
 |`tls`
 |TLS configuration for OIDC connections
-|<<AuthTLSSpec>>
+|xref:auth-tls-spec_{context}[AuthTLSSpec]
 |See below
 |===
 
@@ -687,8 +684,7 @@ spec:
 Configure role-based authorization:
 
 .AuthzSpec
-
-[cols="1,2,1,2",options="header"]
+[id="authz-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -717,12 +713,12 @@ Configure role-based authorization:
 
 |`roles`
 |Role configuration
-|<<AuthzRolesSpec>>
+|xref:authz-roles-spec_{context}[AuthzRolesSpec]
 |See below
 
 |`adminOverride`
 |Admin override configuration
-|<<AdminOverrideSpec>>
+|xref:admin-override-spec_{context}[AdminOverrideSpec]
 |See below
 |===
 
@@ -747,8 +743,7 @@ spec:
 Configure authorization roles:
 
 .AuthzRolesSpec
-
-[cols="1,2,1,2",options="header"]
+[id="authz-roles-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -779,8 +774,7 @@ Configure authorization roles:
 Configure admin override functionality:
 
 .AdminOverrideSpec
-
-[cols="1,2,1,2",options="header"]
+[id="admin-override-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -852,8 +846,7 @@ spec:
 Configure basic authentication for client credentials:
 
 .BasicAuthSpec
-
-[cols="1,2,1,2",options="header"]
+[id="basic-auth-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -885,8 +878,7 @@ spec:
 Configure TLS for OIDC connections:
 
 .AuthTLSSpec
-
-[cols="1,2,1,2",options="header"]
+[id="auth-tls-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -900,12 +892,12 @@ Configure TLS for OIDC connections:
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`truststorePasswordSecretRef`
 |Reference to a Secret containing the truststore password. Default key: `ca.password`
-|<<SecretKeyRef>>
+|xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
 
@@ -934,8 +926,7 @@ spec:
 The `ingress` section is available for both `spec.app` and `spec.ui` components.
 
 .IngressSpec
-
-[cols="1,2,1,2",options="header"]
+[id="ingress-spec_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description
@@ -984,8 +975,7 @@ spec:
 Many configuration fields use `SecretKeyRef` to reference Kubernetes Secrets:
 
 .SecretKeyRef
-
-[cols="1,2,1,2",options="header"]
+[id="secret-key-ref_{context}",cols="1,2,1,2",options="header"]
 |===
 |Field
 |Description

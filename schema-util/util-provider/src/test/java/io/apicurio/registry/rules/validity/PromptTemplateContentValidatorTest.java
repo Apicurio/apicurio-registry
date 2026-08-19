@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Tests for PromptTemplateContentValidator, PromptTemplateContentAccepter, and PromptTemplateContentExtractor.
@@ -153,6 +154,74 @@ class PromptTemplateContentValidatorTest {
         });
         Assertions.assertTrue(
                 error.getCauses().stream().anyMatch(v -> v.getDescription().contains("quality")));
+    }
+
+    @Test
+    void testUndefinedVariableWithWhitespace() {
+        // Same as UNDEFINED_VARIABLE, but the undefined placeholder is written with spaces inside
+        // the braces. Before the shared pattern, the validator's \w+ regex could not see it, so
+        // the "used but not defined" rule silently never fired.
+        String undefinedVariableWithWhitespace = """
+                {
+                    "templateId": "test",
+                    "template": "Hello {{name}}, your code is {{ quality }}",
+                    "variables": {
+                        "name": { "type": "string" }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(undefinedVariableWithWhitespace),
+                    Collections.emptyMap());
+        });
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getDescription().contains("quality")));
+    }
+
+    @Test
+    void testDefinedVariableWithWhitespaceIsAccepted() {
+        // The flip side: a space-padded placeholder that *is* defined must not be reported.
+        String definedVariableWithWhitespace = """
+                {
+                    "templateId": "test",
+                    "template": "Hello {{ name }}, welcome to {{  place  }}.",
+                    "variables": {
+                        "name": { "type": "string" },
+                        "place": { "type": "string" }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, create(definedVariableWithWhitespace),
+                Collections.emptyMap());
+    }
+
+    @Test
+    void testConditionalBlockMarkersAreNotVariables() {
+        // {{#if ...}} and {{/if}} are control syntax, not variables, and must not be reported as
+        // undefined. Only the real {{ name }} placeholder inside the block counts.
+        String withConditionalBlock = """
+                {
+                    "templateId": "test",
+                    "template": "{{#if premium}}Hello {{ name }}{{/if}}",
+                    "variables": {
+                        "name": { "type": "string" },
+                        "premium": { "type": "boolean" }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, create(withConditionalBlock), Collections.emptyMap());
+    }
+
+    @Test
+    void testExtractTemplateVariablesNormalisesWhitespace() {
+        // The extraction helper is also used by PromptTemplateCompatibilityChecker, so pin the
+        // exact names it returns: whitespace stripped, first-seen order, no duplicates.
+        Assertions.assertEquals(List.of("language", "code"),
+                PromptTemplateContentValidator.extractTemplateVariables(
+                        "Review this {{language}} code: {{ code }} (in {{  language  }})"));
     }
 
     @Test
@@ -342,5 +411,44 @@ class PromptTemplateContentValidatorTest {
         });
         Assertions.assertTrue(
                 error.getCauses().stream().anyMatch(v -> v.getDescription().contains("unknown")));
+    }
+
+    @Test
+    void testElseKeywordIsNotAnUndefinedVariable() throws Exception {
+        // This is the shape of examples/a2a-real-world-integration translator-agent-prompt.yaml,
+        // which uses {{else}} inside an {{#if}} block and declares only responseText and
+        // targetLanguage. Because {{else}} is a bare word it matches the variable pattern, so
+        // before the control-keyword set the validator reported it as used-but-not-defined and this
+        // shipped example could not pass FULL validity.
+        String yaml = """
+                templateId: translation
+                template: |
+                  {{responseText}}
+                  {{#if targetLanguage}}
+                  Target language: {{targetLanguage}}
+                  {{else}}
+                  Target language: Spanish (es)
+                  {{/if}}
+                variables:
+                  responseText:
+                    type: string
+                  targetLanguage:
+                    type: string
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, createYaml(yaml), Collections.emptyMap());
+    }
+
+    @Test
+    void testThisKeywordIsNotAnUndefinedVariable() throws Exception {
+        String yaml = """
+                templateId: iteration
+                template: "{{#each items}}{{this}}{{/each}}"
+                variables:
+                  items:
+                    type: string
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, createYaml(yaml), Collections.emptyMap());
     }
 }

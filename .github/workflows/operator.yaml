@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -119,7 +119,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -131,7 +131,10 @@ jobs:
           name: operator-test-images
           path: /tmp/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        timeout-minutes: 10
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -220,7 +223,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -238,9 +241,12 @@ jobs:
           name: operator-test-images
           path: /tmp/
 
+
+
       # driver=none: Kubernetes runs directly on the host, sharing all runner
       # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        timeout-minutes: 10
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -285,6 +291,20 @@ jobs:
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
             test-remote-group
 
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-operator-${{ matrix.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-operator-${{ matrix.name }}
+          path: flaky-tests-operator-${{ matrix.name }}.json
+          retention-days: 1
+
+
   operator-check-install:
     name: Check Install File
     runs-on: ubuntu-latest
@@ -295,7 +315,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -318,12 +338,13 @@ jobs:
           unset BUNDLE_IMAGE
           unset CATALOG_IMAGE
           make IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
 
       - name: Check install file
         run: |
-          git add operator/install/install.yaml || true
+          git add operator/install/install.yaml operator/install/install-namespaced.yaml || true
           if ! git diff --staged --exit-code; then
-            echo 'Install file needs to be updated. Please run `pushd operator; make SKIP_TESTS=true build IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file; popd` and commit the result.';
+            echo 'Install file needs to be updated. Please run `pushd operator; make SKIP_TESTS=true build IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file dist-install-file-namespaced INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml; popd` and commit the result.';
             exit 1;
           else
             echo "No changes to the install file.";
@@ -347,7 +368,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin

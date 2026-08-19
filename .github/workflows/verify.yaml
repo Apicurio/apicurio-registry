@@ -72,6 +72,20 @@ jobs:
               - 'schema-resolver/**'
               - 'serdes/**'
               - 'distro/**'
+            extras:
+              - 'app/**'
+              - 'common/**'
+              - 'schema-util/**'
+              - 'schema-validation/**'
+              - 'schema-resolver/**'
+              - 'serdes/**'
+              - 'config-index/**'
+              - 'java-sdk/**'
+              - 'mcp/**'
+              - 'distro/**'
+              - 'integration-tests/src/**'
+              - 'integration-tests/pom.xml'
+              - 'ui/**'
               - 'pom.xml'
             sdk:
               - 'java-sdk/**'
@@ -182,6 +196,7 @@ jobs:
           JAVA='${{ steps.filter.outputs.java }}'
           UI='${{ steps.filter.outputs.ui }}'
           INTEGRATION='${{ steps.filter.outputs.integration }}'
+          EXTRAS='${{ steps.filter.outputs.extras }}'
           SDK='${{ steps.filter.outputs.sdk }}'
           CLI='${{ steps.filter.outputs.cli }}'
           OPERATOR='${{ steps.filter.outputs.operator }}'
@@ -215,7 +230,7 @@ jobs:
           # scalpel.disableTriggers and would produce an empty report.
           decide run-scalpel-report "$run_tests" "$JAVA"
           decide run-integration "$run_tests" "$IS_PUSH" "$INTEGRATION" "$CI"
-          decide run-extras      "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$CI"
+          decide run-extras      "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$EXTRAS" "$CI"
           decide run-sdk         "$run_tests" "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_tests" "$CLI"
           decide run-operator        "$run_tests" "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
@@ -253,6 +268,7 @@ jobs:
             "java": "${{ steps.filter.outputs.java }}",
             "ui": "${{ steps.filter.outputs.ui }}",
             "integration": "${{ steps.filter.outputs.integration }}",
+            "extras": "${{ steps.filter.outputs.extras }}",
             "sdk": "${{ steps.filter.outputs.sdk }}",
             "cli": "${{ steps.filter.outputs.cli }}",
             "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",

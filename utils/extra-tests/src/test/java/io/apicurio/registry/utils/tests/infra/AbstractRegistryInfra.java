@@ -20,7 +20,7 @@ public abstract class AbstractRegistryInfra {
     // KafkaSQL bootstrap involves sequential Kafka consumer polls at 5s intervals
     // plus SQL initialization. Configurable via -Dtest.extra.timeout.kafkasql-startup=<seconds>.
     private static final Duration KAFKASQL_STARTUP_TIMEOUT = Duration.ofSeconds(
-            Integer.getInteger("test.extra.timeout.kafkasql-startup", 120));
+            Integer.getInteger("test.extra.timeout.kafkasql-startup", 180));
 
     private final String name;
 
@@ -40,8 +40,7 @@ public abstract class AbstractRegistryInfra {
                 .withNetwork(Network.SHARED)
                 .withExposedPorts(8080)
                 .waitingFor(Wait.forLogMessage(".*KafkaSQL storage bootstrapped in .* ms.*", 1)
-                        .withStartupTimeout(KAFKASQL_STARTUP_TIMEOUT)
-                );
+                        .withStartupTimeout(KAFKASQL_STARTUP_TIMEOUT));
 
         try {
             long startTime = System.currentTimeMillis();

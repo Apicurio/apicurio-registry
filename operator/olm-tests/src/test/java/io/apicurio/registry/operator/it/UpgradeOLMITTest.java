@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.utils.OperatorTestContext;
 import io.apicurio.registry.operator.utils.OperatorTestExtension;
 import io.apicurio.registry.operator.utils.RetryTest;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
@@ -562,7 +563,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         assertThat(subscription).as("Subscription should exist").isNotNull();
 
         var props = subscription.getAdditionalProperties();
-        var spec = (java.util.Map<String, Object>) props.get("spec");
+        var spec = (Map<String, Object>) props.get("spec");
         spec.put("channel", newChannel);
         client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
                 .inNamespace(namespace)
@@ -589,14 +590,24 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
         for (var ip : installPlans) {
             var props = ip.getAdditionalProperties();
-            var spec = (java.util.Map<String, Object>) props.get("spec");
+            var spec = (Map<String, Object>) props.get("spec");
             if (spec != null && Boolean.FALSE.equals(spec.get("approved"))) {
-                spec.put("approved", true);
-                client.genericKubernetesResources("operators.coreos.com/v1alpha1", "InstallPlan")
-                        .inNamespace(namespace)
-                        .resource(ip)
-                        .update();
-                log.info("Approved install plan: {}", ip.getMetadata().getName());
+                String ipName = ip.getMetadata().getName();
+                await().atMost(Duration.ofSeconds(5))
+                        .pollInterval(Duration.ofSeconds(1))
+                        .ignoreExceptionsMatching(e ->
+                                e instanceof KubernetesClientException
+                                        && ((KubernetesClientException) e).getCode() == 409)
+                        .untilAsserted(() -> {
+                            var freshIp = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "InstallPlan")
+                                    .inNamespace(namespace)
+                                    .withName(ipName).get();
+                            var freshSpec = (Map<String, Object>) freshIp.getAdditionalProperties().get("spec");
+                            freshSpec.put("approved", true);
+                            client.genericKubernetesResources("operators.coreos.com/v1alpha1", "InstallPlan")
+                                    .inNamespace(namespace).resource(freshIp).update();
+                            log.info("Approved install plan: {}", ipName);
+                        });
             }
         }
     }
@@ -607,7 +618,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                         "operators.coreos.com/v1alpha1", "InstallPlan")
                 .inNamespace(namespace).list().getItems().stream()
                 .filter(ip -> {
-                    var spec = (java.util.Map<String, Object>) ip.getAdditionalProperties()
+                    var spec = (Map<String, Object>) ip.getAdditionalProperties()
                             .get("spec");
                     return spec != null && Boolean.FALSE.equals(spec.get("approved"));
                 })

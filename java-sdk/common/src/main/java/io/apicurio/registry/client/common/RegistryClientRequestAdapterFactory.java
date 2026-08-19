@@ -81,7 +81,7 @@ public class RegistryClientRequestAdapterFactory {
 
         adapter.setBaseUrl(registryUrl);
 
-        // Wrap with retry proxy if retry is enabled
+        // Wrap with retry proxy if retry is enabled (settings already logged at client creation).
         if (options.isRetryEnabled()) {
             adapter = createRetryProxy(adapter, options);
         }
@@ -204,6 +204,15 @@ public class RegistryClientRequestAdapterFactory {
                     if (isRetryable(cause) && attempt < maxRetryAttempts) {
                         attempt++;
                         long delayMs = calculateRetryDelay(attempt);
+                        log.log(Level.FINE,
+                                "Retryable registry HTTP failure on attempt {0}/{1} ({2}: {3}); sleeping {4}ms before retry",
+                                new Object[]{
+                                        attempt,
+                                        maxRetryAttempts,
+                                        cause.getClass().getName(),
+                                        cause.getMessage(),
+                                        delayMs
+                                });
                         try {
                             Thread.sleep(delayMs);
                         } catch (InterruptedException interruptedException) {
@@ -212,10 +221,18 @@ public class RegistryClientRequestAdapterFactory {
                         }
                     } else {
                         if (isRetryable(cause) && attempt >= maxRetryAttempts) {
-                            log.log(Level.WARNING, "Maximum retry attempts ({0}) exceeded for {1}: {2}",
-                                    new Object[]{maxRetryAttempts, cause.getClass().getName(), cause.getMessage()});
+                            String causeMessage = cause.getMessage() != null ? cause.getMessage() : "<no message>";
+                            log.log(Level.WARNING,
+                                    "Registry HTTP client exhausted {0} retry attempts due to {1}: {2}",
+                                    new Object[]{maxRetryAttempts, cause.getClass().getName(), causeMessage});
                         }
-                        throw originalCause;
+                        // Public behavior: throw the latest failure, not the first. Callers that
+                        // catch a specific type (e.g. HttpClosedException) may now see a later
+                        // type (e.g. ConnectException) with the first on getSuppressed().
+                        if (originalCause != null && originalCause != cause) {
+                            cause.addSuppressed(originalCause);
+                        }
+                        throw cause;
                     }
                 }
             }

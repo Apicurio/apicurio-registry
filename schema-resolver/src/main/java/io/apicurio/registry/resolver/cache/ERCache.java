@@ -3,6 +3,8 @@ package io.apicurio.registry.resolver.cache;
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
+import io.vertx.core.VertxException;
+import io.vertx.core.http.HttpClosedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +45,8 @@ public class ERCache<V> {
     private Duration lifetime = Duration.ZERO;
     private Duration backoff = Duration.ofMillis(200);
     private long retries;
+    private boolean retryTransientErrors;
+    private Duration retryTotalTimeout = Duration.ZERO;
     private boolean cacheLatest;
     private boolean faultTolerantRefresh;
     private boolean backgroundRefresh;
@@ -65,6 +69,50 @@ public class ERCache<V> {
 
     public void configureRetryCount(long retries) {
         this.retries = retries;
+    }
+
+    /**
+     * When {@code true}, schema-cache loads also retry network/outage failures (502/503/504 and
+     * retriable socket errors) in addition to HTTP 429. Default {@code false} preserves historical
+     * 429-only cache retries so existing deployments do not silently gain multiplicative blocking.
+     */
+    public void configureRetryTransientErrors(boolean retryTransientErrors) {
+        this.retryTransientErrors = retryTransientErrors;
+    }
+
+    /**
+     * Optional wall-clock budget for one cache-load retry loop. {@link Duration#ZERO} means unlimited.
+     */
+    public void configureRetryTotalTimeout(Duration retryTotalTimeout) {
+        if (retryTotalTimeout == null || retryTotalTimeout.isNegative()) {
+            throw new IllegalArgumentException("Retry total timeout must be non-negative");
+        }
+        this.retryTotalTimeout = retryTotalTimeout;
+    }
+
+    /**
+     * Emits a WARNING when transient retries are enabled without a total timeout and the estimated
+     * sleep-only worst case already exceeds a few seconds.
+     *
+     * @param estimatedClientLadderSleepMs lower-bound estimate of one HTTP client retry ladder's sleeps
+     */
+    public void warnIfRetryBudgetUnbounded(long estimatedClientLadderSleepMs) {
+        if (!retryTransientErrors) {
+            return;
+        }
+        if (!retryTotalTimeout.isZero()) {
+            return;
+        }
+        long estimateMs = (retries + 1) * Math.max(0L, estimatedClientLadderSleepMs)
+                + retries * backoff.toMillis();
+        if (estimateMs < 5_000L) {
+            return;
+        }
+        log.warn("apicurio.registry.retry.transient-errors is enabled without "
+                + "apicurio.registry.retry.total-timeout-ms; estimated sleep-only worst case for one "
+                + "schema-cache load is ~{}ms (retry-count={}, client-ladder-sleep~{}ms, "
+                + "retry-backoff-ms={}). Set total-timeout-ms to bound blocking on Producer.send()/Connect poll.",
+                estimateMs, retries, estimatedClientLadderSleepMs, backoff.toMillis());
     }
 
     /**
@@ -351,7 +399,8 @@ public class ERCache<V> {
      * @return Result containing either the refreshed value or an exception
      */
     private <T> Result<V, RuntimeException> performRefresh(T key, Function<T, V> loaderFunction) {
-        Result<V, RuntimeException> newValue = retry(backoff, retries, () -> {
+        Result<V, RuntimeException> newValue = retry(backoff, retries, retryTransientErrors, retryTotalTimeout,
+                () -> {
             return loaderFunction.apply(key);
         });
         if (newValue.isOk()) {
@@ -421,41 +470,201 @@ public class ERCache<V> {
         return refreshExecutor;
     }
 
-    private static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
-                                                         Supplier<T> supplier) {
+    static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
+                                                 boolean retryTransientErrors, Duration totalTimeout,
+                                                 Supplier<T> supplier) {
         if (retries < 0)
             throw new IllegalArgumentException();
         Objects.requireNonNull(supplier);
         Objects.requireNonNull(backoff);
+        Objects.requireNonNull(totalTimeout);
+
+        Instant deadline = totalTimeout.isZero() ? null : Instant.now().plus(totalTimeout);
 
         for (long i = 0; i <= retries; i++) {
             try {
                 T value = supplier.get();
-                if (value != null)
-                    return Result.ok(value);
-                else {
+                if (value == null) {
                     return Result.error(new NullPointerException(
                             "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
+                return Result.ok(value);
             } catch (RuntimeException e) {
-                // TODO: verify if this is really needed, retries are already baked into the adapter ...
-                // if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
-                // && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
-                // && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
-                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ApiException
-                        && (((ApiException) e.getCause()).getResponseStatusCode() == 429))) {
-                    log.error("Cache load failed after {} retries", i, e);
-                    return Result.error(new RuntimeException(e));
+                Result<T, RuntimeException> failure = handleRetryableFailure(
+                        e, i, retries, retryTransientErrors, deadline, totalTimeout, backoff);
+                if (failure != null) {
+                    return failure;
                 }
-            }
-            try {
-                Thread.sleep(backoff.toMillis());
-            } catch (InterruptedException e) {
-                log.debug("Cache retry backoff interrupted", e);
-                Thread.currentThread().interrupt();
+                if (sleepBackoffOrTimeout(backoff, deadline)) {
+                    log.error("Schema cache load exceeded total retry timeout of {}ms during backoff",
+                            totalTimeout.toMillis(), e);
+                    return Result.error(new RuntimeException(
+                            "Schema cache load exceeded total retry timeout of " + totalTimeout.toMillis() + "ms",
+                            e));
+                }
             }
         }
         return Result.error(new IllegalStateException("Unreachable."));
+    }
+
+    /**
+     * @return a failure result to return immediately, or {@code null} to continue retrying
+     */
+    private static <T> Result<T, RuntimeException> handleRetryableFailure(RuntimeException e, long attempt,
+            long retries, boolean retryTransientErrors, Instant deadline, Duration totalTimeout,
+            Duration backoff) {
+        // Schema-cache retries compose with the HTTP client retry layer
+        // (apicurio.registry.client.retry.*). Each cache attempt may run a full
+        // client retry ladder before returning here. Widened (non-429) retries are
+        // opt-in via apicurio.registry.retry.transient-errors; bound with
+        // apicurio.registry.retry.total-timeout-ms.
+        if (attempt == retries || !isRetriableCacheLoadFailure(e, retryTransientErrors)) {
+            log.error("Schema cache load failed after {} retries", attempt, e);
+            return Result.error(new RuntimeException(e));
+        }
+        if (isDeadlineExceeded(deadline)) {
+            log.error("Schema cache load exceeded total retry timeout of {}ms after {} attempts",
+                    totalTimeout.toMillis(), attempt + 1, e);
+            return Result.error(new RuntimeException(
+                    "Schema cache load exceeded total retry timeout of " + totalTimeout.toMillis() + "ms", e));
+        }
+        log.debug("Schema cache load attempt {}/{} failed with retriable error; backing off {}ms: {}",
+                attempt + 1, retries + 1, backoff.toMillis(), rootMessage(e));
+        return null;
+    }
+
+    /**
+     * @return {@code true} if the total timeout was exceeded during/after backoff
+     */
+    private static boolean sleepBackoffOrTimeout(Duration backoff, Instant deadline) {
+        try {
+            Thread.sleep(backoff.toMillis());
+        } catch (InterruptedException e) {
+            log.debug("Cache retry backoff interrupted", e);
+            Thread.currentThread().interrupt();
+        }
+        return isDeadlineExceeded(deadline);
+    }
+
+    private static boolean isDeadlineExceeded(Instant deadline) {
+        return deadline != null && !Instant.now().isBefore(deadline);
+    }
+
+    /** Convenience overload used by tests that do not set a total timeout. */
+    static <T> Result<T, RuntimeException> retry(Duration backoff, long retries,
+                                                 boolean retryTransientErrors, Supplier<T> supplier) {
+        return retry(backoff, retries, retryTransientErrors, Duration.ZERO, supplier);
+    }
+
+    /** Max cause-chain depth when classifying failures (guards against cyclic causes). */
+    static final int MAX_CAUSE_DEPTH = 32;
+
+    /**
+     * Whether a schema-cache load failure should be retried.
+     * <p>
+     * Always retriable: HTTP 429 (rate limit).
+     * <p>
+     * When {@code retryTransientErrors} is {@code true}, also retriable:
+     * <ul>
+     *   <li>HTTP 502/503/504 (typical registry outage / LB responses)</li>
+     *   <li>{@link java.net.ConnectException}, {@link java.net.NoRouteToHostException}, and other
+     *       {@link java.net.SocketException}s except resource-exhaustion cases
+     *       ("too many open files", "no buffer space")</li>
+     *   <li>{@link java.net.SocketTimeoutException} (JDK HTTP timeouts)</li>
+     *   <li>{@link HttpClosedException}</li>
+     *   <li>{@link VertxException} subclasses whose simple class name contains {@code timeout}
+     *       (for example {@code NoStackTraceTimeoutException}), with message matching only as a
+     *       fallback</li>
+     * </ul>
+     * If any {@link ApiException} with a non-null status code appears in the cause chain, that status
+     * decides and network matching is skipped (so a 404/500 above a {@code SocketException} is not
+     * retried). An {@link ApiException} with a null status code is ignored for the status decision.
+     */
+    static boolean isRetriableCacheLoadFailure(Throwable e, boolean retryTransientErrors) {
+        Integer apiStatus = findFirstApiResponseStatus(e);
+        if (apiStatus != null) {
+            return isRetriableHttpStatus(apiStatus, retryTransientErrors);
+        }
+        return retryTransientErrors && hasRetriableNetworkFailure(e);
+    }
+
+    /** Backward-compatible overload used by older call sites/tests; transient retries disabled. */
+    static boolean isRetriableCacheLoadFailure(Throwable e) {
+        return isRetriableCacheLoadFailure(e, false);
+    }
+
+    private static Integer findFirstApiResponseStatus(Throwable e) {
+        Throwable current = e;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof ApiException api) {
+                Integer code = api.getResponseStatusCode();
+                if (code != null) {
+                    return code;
+                }
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private static boolean hasRetriableNetworkFailure(Throwable e) {
+        Throwable current = e;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof java.net.SocketTimeoutException) {
+                return true;
+            }
+            if (current instanceof HttpClosedException) {
+                return true;
+            }
+            if (isVertxTimeout(current)) {
+                return true;
+            }
+            if (current instanceof java.net.SocketException socketException
+                    && !isResourceExhaustionSocketException(socketException)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private static boolean isResourceExhaustionSocketException(java.net.SocketException exception) {
+        String message = exception.getMessage();
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase(java.util.Locale.ROOT);
+        return lower.contains("too many open files") || lower.contains("no buffer space");
+    }
+
+    private static boolean isRetriableHttpStatus(int statusCode, boolean retryTransientErrors) {
+        if (statusCode == 429) {
+            return true;
+        }
+        return retryTransientErrors
+                && (statusCode == 502 || statusCode == 503 || statusCode == 504);
+    }
+
+    private static boolean isVertxTimeout(Throwable current) {
+        if (!(current instanceof VertxException)) {
+            return false;
+        }
+        // Prefer class-name checks (NoStackTraceTimeoutException, ConnectTimeoutException, …)
+        // over message text, which Vert.x may reword across versions.
+        String simpleName = current.getClass().getSimpleName().toLowerCase(java.util.Locale.ROOT);
+        if (simpleName.contains("timeout")) {
+            return true;
+        }
+        String message = current.getMessage();
+        return message != null && message.toLowerCase(java.util.Locale.ROOT).contains("timeout");
+    }
+
+    private static String rootMessage(Throwable e) {
+        Throwable current = e;
+        for (int depth = 0; current.getCause() != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            current = current.getCause();
+        }
+        return current.getClass().getSimpleName() + ": " + current.getMessage();
     }
 
     private static class WrappedValue<V> {

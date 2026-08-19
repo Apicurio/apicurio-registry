@@ -149,6 +149,19 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
                         "Variable '" + varName + "' has invalid 'maximum' value. Must be a number.",
                         "/variables/" + varName + "/maximum"));
             }
+            
+            if (varSchema.has("minimum") && varSchema.get("minimum").isNumber()
+                    && varSchema.has("maximum") && varSchema.get("maximum").isNumber()) {
+                double minimum = varSchema.get("minimum").asDouble();
+                double maximum = varSchema.get("maximum").asDouble();
+                if (minimum > maximum) {
+                    violations.add(new RuleViolation(
+                            "Variable '" + varName + "' has 'minimum' (" + varSchema.get("minimum").asText()
+                                    + ") greater than 'maximum' (" + varSchema.get("maximum").asText()
+                                    + "). No value could ever satisfy this constraint.",
+                            "/variables/" + varName + "/minimum"));
+                }
+            }
 
             if (varSchema.has("enum") && !varSchema.get("enum").isArray()) {
                 violations.add(new RuleViolation(

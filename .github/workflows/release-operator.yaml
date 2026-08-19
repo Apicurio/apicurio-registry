@@ -464,6 +464,7 @@ jobs:
         working-directory: registry/operator
         run: |
           make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
           git add install/*
 
       - name: Commit & push post-release changes
@@ -479,16 +480,19 @@ jobs:
         if: env.BRANCH != 'main'
         working-directory: registry
         run: |
-          # Save the versioned install file before switching branches
+          # Save the versioned install files before switching branches
           INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          INSTALL_NAMESPACED_FILE="operator/install/apicurio-registry-operator-namespaced-$RELEASE_VERSION.yaml"
           cp "$INSTALL_FILE" /tmp/install-file.yaml
+          cp "$INSTALL_NAMESPACED_FILE" /tmp/install-file-namespaced.yaml
 
           # Switch to main
           git checkout main
           git pull origin main
 
-          # Copy the versioned install file
+          # Copy the versioned install files
           cp /tmp/install-file.yaml "$INSTALL_FILE"
+          cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
 
           RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
           MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)

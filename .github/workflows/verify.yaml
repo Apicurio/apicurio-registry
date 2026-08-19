@@ -294,6 +294,11 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
+      # Orchestrator/triage scripts run with repo write permissions under
+      # pull_request_target — their logic must be tested before merge.
+      - name: Test PR lifecycle scripts
+        run: node --test .github/scripts/pr-triage.test.js
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then

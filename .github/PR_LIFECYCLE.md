@@ -14,7 +14,7 @@ Opened --> new --> ready-for-review --> ready-to-merge --> merged
 
 | State | Label | What happens |
 |-------|-------|--------------|
-| **New** | `lifecycle/new` | PR just opened. A welcome message is posted. No tests run. A maintainer must triage. PRs from maintainers and trusted accounts (e.g., Renovate) skip this state. |
+| **New** | `lifecycle/new` | PR just opened. A welcome message is posted and **automated triage** runs (see below). No tests run. A maintainer must triage. PRs from maintainers and trusted accounts (e.g., Renovate) skip this state. |
 | **Ready for review** | `lifecycle/ready-for-review` | Maintainer accepted the PR (or auto-accepted for trusted authors). The full test suite runs on each push. Reviewers can review. |
 | **Ready to merge** | `lifecycle/ready-to-merge` | PR is approved and all tests pass. A maintainer can merge. |
 | **Merged** | — | PR is merged. Branch may be deleted automatically. |
@@ -30,6 +30,36 @@ Converting a PR **back** to draft removes all of its `lifecycle/*` labels and st
 CI from running on subsequent pushes — useful if you need to iterate without burning
 CI capacity. Marking it ready for review again re-enters the lifecycle at
 `lifecycle/new`, so a maintainer has to `/accept` it a second time.
+
+### Automated triage
+
+Every external (non-trusted) PR is checked automatically when it is opened and on
+every push. The checks are deterministic and derive from the Contributor Checklist
+in `CLAUDE.md` — no AI involved. The result is a `triage/*` label plus a report
+comment that updates in place:
+
+| Verdict | Label | Effect |
+|---------|-------|--------|
+| **Green** | `triage/green` | No findings. Ready for a maintainer to `/accept`. |
+| **Yellow** | `triage/yellow` | Findings the author should fix (missing tests, style violations, oversized diff, overlapping PR...). Maintainers can still `/accept`. |
+| **Red** | `triage/red` | Blocking problems (missing DCO sign-off, no linked/approved issue, generated files in the diff). The PR is set to `lifecycle/waiting-on-author` and follows the accelerated stale/close cycle until fixed. |
+
+Red findings and what they mean:
+
+- **Missing DCO sign-off** — one or more commits lack `Signed-off-by`. Fix with
+  `git rebase --signoff main` and force-push.
+- **No linked issue / issue not approved** — the PR description must reference an
+  issue (`Fixes #NNN`) that has a comment from a project maintainer. Implementing
+  unapproved requests wastes review time and gets rejected.
+- **Generated or binary files** — build outputs (`target/`, jars) don't belong in a PR.
+
+Fixing the findings and pushing (or editing the PR description and running
+`/triage`) re-evaluates the PR: a red verdict that turns green/yellow automatically
+returns the PR to the maintainer triage queue. Triage runs from patch text and
+metadata via the GitHub API — PR code is never executed.
+
+Triage is configured under the `triage:` key in `.github/pr-lifecycle.yml`
+(enable/disable, linked-issue requirement, diff size threshold).
 
 ### Additional labels
 
@@ -77,6 +107,7 @@ after 7 total days of inactivity; other PRs go stale at 7 days and close at 14 t
 | Command | Description |
 |---------|-------------|
 | `/unstale` | Remove the stale label |
+| `/triage` | Re-run the automated triage checks (author or maintainer) |
 | `/assign-me` | Self-assign an open issue to volunteer for implementation |
 | `/unassign-me` | Release an issue you are currently assigned to |
 
@@ -94,8 +125,11 @@ Contributors can self-assign open issues by commenting `/assign-me` (or `/claim`
 ### Triaging new PRs
 
 When a new PR arrives (`lifecycle/new`):
-1. Review the PR description and scope
-2. Accept with `/accept` (transitions directly to `ready-for-review`, full test
+1. Check the `triage/*` label and report — green PRs can usually be accepted at a
+   glance, yellow PRs list exactly what reviewers would flag, red PRs are already
+   bounced back to the author and need no attention until fixed
+2. Review the PR description and scope
+3. Accept with `/accept` (transitions directly to `ready-for-review`, full test
    suite runs) or reject with `/reject [reason]`
 
 ### Managing the lifecycle
@@ -116,7 +150,7 @@ PRs are merged using **rebase** by default (linear history). This can be changed
 
 ### Label protection
 
-All `lifecycle/*` and `orchestrator/*` labels are managed exclusively by the orchestrator.
+All `lifecycle/*`, `orchestrator/*` and `triage/*` labels are managed exclusively by the orchestrator.
 Manual label changes will be reverted automatically. Use the appropriate slash command
 instead of adding or removing labels directly.
 

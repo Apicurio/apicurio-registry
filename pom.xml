@@ -284,7 +284,7 @@
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
-    <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
+
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
@@ -1321,18 +1321,24 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>${version.maven-antrun.plugin}</version>
+        <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
-            <goals>
-              <goal>run</goal>
-            </goals>
+            <id>create-meta-dir</id>
             <phase>initialize</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
             <configuration>
-              <target>
-                <mkdir dir="${project.build.directory}/meta"/>
-              </target>
+              <outputDirectory>${project.build.directory}/meta</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}</directory>
+                  <excludes>
+                    <exclude>**</exclude>
+                  </excludes>
+                </resource>
+              </resources>
             </configuration>
           </execution>
         </executions>

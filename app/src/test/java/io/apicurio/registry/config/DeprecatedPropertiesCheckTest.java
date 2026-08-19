@@ -137,21 +137,12 @@ public class DeprecatedPropertiesCheckTest {
     }
 
     @Test
-    void testGetValuePrecedenceResolution() {
-        when(config.getOptionalValue("apicurio.example.new", String.class)).thenReturn(Optional.of("newVal"));
-        when(config.getOptionalValue("apicurio.example.old", String.class)).thenReturn(Optional.of("oldVal"));
+    void testBlankPropertyValueIsIgnored() {
+        when(config.getOptionalValue("apicurio.example.old", String.class)).thenReturn(Optional.of("  "));
+        when(config.getOptionalValue("apicurio.example.new", String.class)).thenReturn(Optional.of(""));
+        when(config.getOptionalValue("apicurio.removed.old", String.class)).thenReturn(Optional.of("   "));
 
-        Optional<String> val = check.getValue("apicurio.example.old", String.class);
-
-        assertTrue(val.isPresent());
-        assertEquals("newVal", val.get());
-
-        // Test fallback when replacement is empty
-        when(config.getOptionalValue("apicurio.example.new", String.class)).thenReturn(Optional.empty());
-        Optional<String> fallbackVal = check.getValue("apicurio.example.old", String.class);
-
-        assertTrue(fallbackVal.isPresent());
-        assertEquals("oldVal", fallbackVal.get());
+        assertDoesNotThrow(() -> check.validate());
     }
 
     @Test

@@ -16,6 +16,7 @@
 
 package io.apicurio.registry.config;
 
+import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -38,6 +39,7 @@ import java.util.Optional;
  *       {@link IllegalStateException} if a removed property is still configured.</li>
  * </ul>
  */
+@Startup
 @Singleton
 public class DeprecatedPropertiesCheck {
 
@@ -87,49 +89,29 @@ public class DeprecatedPropertiesCheck {
 
     @Inject
     public DeprecatedPropertiesCheck() {
-        this.registry = new ArrayList<>();
-
-        // Register known deprecated configuration properties
-        registerDeprecatedProperty("apicurio.kafkasql.ssl.truststore.password", "apicurio.kafkasql.security.ssl.truststore.password", "3.1.0", "4.0.0", false);
-        registerDeprecatedProperty("apicurio.kafkasql.ssl.keystore.location", "apicurio.kafkasql.security.ssl.keystore.location", "3.1.0", "4.0.0", false);
-        registerDeprecatedProperty("apicurio.kafkasql.ssl.keystore.type", "apicurio.kafkasql.security.ssl.keystore.type", "3.1.0", "4.0.0", false);
-        registerDeprecatedProperty("apicurio.kafkasql.ssl.keystore.password", "apicurio.kafkasql.security.ssl.keystore.password", "3.1.0", "4.0.0", false);
-        registerDeprecatedProperty("apicurio.kafkasql.ssl.key.password", "apicurio.kafkasql.security.ssl.key.password", "3.1.0", "4.0.0", false);
+        this(List.of(
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.truststore.password", "apicurio.kafkasql.security.ssl.truststore.password", "3.1.0", "4.0.0", false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.location", "apicurio.kafkasql.security.ssl.keystore.location", "3.1.0", "4.0.0", false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.type", "apicurio.kafkasql.security.ssl.keystore.type", "3.1.0", "4.0.0", false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.password", "apicurio.kafkasql.security.ssl.keystore.password", "3.1.0", "4.0.0", false),
+                new DeprecatedPropertyDef("apicurio.kafkasql.ssl.key.password", "apicurio.kafkasql.security.ssl.key.password", "3.1.0", "4.0.0", false)
+        ));
     }
 
     public DeprecatedPropertiesCheck(List<DeprecatedPropertyDef> customRegistry) {
-        this.registry = new ArrayList<>(customRegistry);
-    }
-
-    public void registerDeprecatedProperty(String oldName, String replacementName, String deprecatedSince, String removeInVersion, boolean removed) {
-        registry.add(new DeprecatedPropertyDef(oldName, replacementName, deprecatedSince, removeInVersion, removed));
+        this.registry = List.copyOf(customRegistry);
     }
 
     public List<DeprecatedPropertyDef> getRegistry() {
-        return Collections.unmodifiableList(registry);
+        return registry;
     }
 
-    /**
-     * Resolves a configuration property value with deprecation awareness.
-     * Evaluates the replacement property first if set, falling back to the deprecated property.
-     * Intended as the standard migration helper for consumers reading deprecated configuration properties.
-     */
-    public <T> Optional<T> getValue(String oldName, Class<T> propertyType) {
-        Optional<DeprecatedPropertyDef> defOpt = registry.stream()
-                .filter(d -> d.getOldName().equals(oldName))
-                .findFirst();
-
-        if (defOpt.isPresent()) {
-            DeprecatedPropertyDef def = defOpt.get();
-            if (def.getReplacementName() != null) {
-                Optional<T> replacementValue = config.getOptionalValue(def.getReplacementName(), propertyType);
-                if (replacementValue.isPresent()) {
-                    return replacementValue;
-                }
-            }
+    private boolean isConfigured(String propertyName) {
+        if (propertyName == null) {
+            return false;
         }
-
-        return config.getOptionalValue(oldName, propertyType);
+        Optional<String> val = config.getOptionalValue(propertyName, String.class);
+        return val.isPresent() && !val.get().isBlank();
     }
 
     @PostConstruct
@@ -137,9 +119,8 @@ public class DeprecatedPropertiesCheck {
         List<String> violations = new ArrayList<>();
 
         for (DeprecatedPropertyDef def : registry) {
-            boolean isOldPresent = config.getOptionalValue(def.getOldName(), String.class).isPresent();
-            boolean isReplacementPresent = def.getReplacementName() != null
-                    && config.getOptionalValue(def.getReplacementName(), String.class).isPresent();
+            boolean isOldPresent = isConfigured(def.getOldName());
+            boolean isReplacementPresent = isConfigured(def.getReplacementName());
 
             if (isOldPresent) {
                 if (def.isRemoved()) {

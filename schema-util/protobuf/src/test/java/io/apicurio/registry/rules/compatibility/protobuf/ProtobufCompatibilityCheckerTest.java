@@ -449,7 +449,7 @@ public class ProtobufCompatibilityCheckerTest {
     }
 
     @Test
-    public void testForwardCompatibility_AddField_IsCompatible() {
+    public void testBackwardCompatibility_AddField_IsCompatible() {
         String existingSchema = """
                 syntax = "proto3";
                 package com.example;
@@ -474,8 +474,7 @@ public class ProtobufCompatibilityCheckerTest {
         TypedContent existing = toTypedContent(existingSchema);
         TypedContent proposed = toTypedContent(proposedSchema);
 
-        for (CompatibilityLevel level : List.of(CompatibilityLevel.FORWARD, CompatibilityLevel.FORWARD_TRANSITIVE,
-                CompatibilityLevel.FULL, CompatibilityLevel.FULL_TRANSITIVE)) {
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.BACKWARD, CompatibilityLevel.BACKWARD_TRANSITIVE)) {
             CompatibilityExecutionResult result = checker.testCompatibility(level,
                     List.of(existing), proposed, Collections.emptyMap());
             assertTrue(result.isCompatible(),
@@ -510,15 +509,76 @@ public class ProtobufCompatibilityCheckerTest {
         TypedContent existing = toTypedContent(existingSchema);
         TypedContent proposed = toTypedContent(proposedSchema);
 
-        CompatibilityExecutionResult result = checker.testCompatibility(CompatibilityLevel.FORWARD,
-                List.of(existing), proposed, Collections.emptyMap());
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.FULL, CompatibilityLevel.FULL_TRANSITIVE)) {
+            CompatibilityExecutionResult result = checker.testCompatibility(level,
+                    List.of(existing), proposed, Collections.emptyMap());
 
-        assertFalse(result.isCompatible(), "Removing a field without reservation should fail under FORWARD");
-        Set<CompatibilityDifference> differences = result.getIncompatibleDifferences();
-        assertFalse(differences.isEmpty(), "Should have differences");
-        boolean hasRemovedFieldError = differences.stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("removed without reservation"));
-        assertTrue(hasRemovedFieldError,
-                "Should contain error about field removed without reservation. Found: " + differences);
+            assertFalse(result.isCompatible(), "Removing a field without reservation should fail under " + level);
+            Set<CompatibilityDifference> differences = result.getIncompatibleDifferences();
+            assertFalse(differences.isEmpty(), "Should have differences under " + level);
+            boolean hasRemovedFieldError = differences.stream()
+                    .anyMatch(d -> d.asRuleViolation().getDescription().contains("removed without reservation"));
+            assertTrue(hasRemovedFieldError,
+                    "Should contain error about field removed without reservation under " + level + ". Found: " + differences);
+        }
+    }
+
+    @Test
+    public void testTransitiveCompatibility_RemovedFieldWithoutReserve_Fails() {
+        String v1 = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                }
+                """;
+
+        String v2 = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                }
+                """;
+
+        String v3 = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                    string email = 3;
+                }
+                """;
+
+        String proposedSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                }
+                """;
+
+        List<TypedContent> existingSchemas = List.of(toTypedContent(v1), toTypedContent(v2), toTypedContent(v3));
+        TypedContent proposed = toTypedContent(proposedSchema);
+
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.FORWARD_TRANSITIVE, CompatibilityLevel.FULL_TRANSITIVE)) {
+            CompatibilityExecutionResult result = checker.testCompatibility(level,
+                    existingSchemas, proposed, Collections.emptyMap());
+
+            assertFalse(result.isCompatible(), "Removing a field without reservation across history should fail under " + level);
+            Set<CompatibilityDifference> differences = result.getIncompatibleDifferences();
+            assertFalse(differences.isEmpty(), "Should have differences under " + level);
+            boolean hasRemovedFieldError = differences.stream()
+                    .anyMatch(d -> d.asRuleViolation().getDescription().contains("removed without reservation"));
+            assertTrue(hasRemovedFieldError,
+                    "Should contain error about field removed without reservation under " + level + ". Found: " + differences);
+        }
     }
 }

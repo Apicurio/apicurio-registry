@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -551,6 +552,82 @@ public class ProtobufCompatibilityCheckerTest {
         CompatibilityExecutionResult forwardResult = checker.testCompatibility(CompatibilityLevel.FORWARD,
                 List.of(existing), proposed, Collections.emptyMap());
         assertTrue(forwardResult.isCompatible(), "Adding a required field in proto2 should be FORWARD COMPATIBLE");
+    }
+
+    @Test
+    public void testDifferenceTypeClassification_AllTypesMappedExhaustively() {
+        for (io.apicurio.registry.protobuf.ProtobufDifference.DifferenceType type : io.apicurio.registry.protobuf.ProtobufDifference.DifferenceType.values()) {
+            io.apicurio.registry.protobuf.ProtobufDifference diff = io.apicurio.registry.protobuf.ProtobufDifference.from("Test message", type);
+            ProtobufCompatibilityChecker.ViolationClassification classification = ProtobufCompatibilityChecker.classifyDifference(diff);
+            assertNotNull(classification, "Classification should not be null for DifferenceType: " + type);
+        }
+    }
+
+    @Test
+    public void testBackwardCompatibility_RemovedFieldWithoutReserve_IsCompatible() {
+        String existingSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                    string email = 3;
+                }
+                """;
+
+        String proposedSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                }
+                """;
+
+        TypedContent existing = toTypedContent(existingSchema);
+        TypedContent proposed = toTypedContent(proposedSchema);
+
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.BACKWARD, CompatibilityLevel.BACKWARD_TRANSITIVE)) {
+            CompatibilityExecutionResult result = checker.testCompatibility(level,
+                    List.of(existing), proposed, Collections.emptyMap());
+            assertTrue(result.isCompatible(),
+                    "Removing a field without reservation should be BACKWARD compatible (new reader ignores missing fields). Found diffs: "
+                            + result.getIncompatibleDifferences());
+        }
+    }
+
+    @Test
+    public void testForwardCompatibility_FieldIdOrTypeChanged_Fails() {
+        String existingSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 1;
+                    string name = 2;
+                }
+                """;
+
+        String proposedSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Person {
+                    int32 id = 5;
+                    string name = 2;
+                }
+                """;
+
+        TypedContent existing = toTypedContent(existingSchema);
+        TypedContent proposed = toTypedContent(proposedSchema);
+
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.FORWARD, CompatibilityLevel.FORWARD_TRANSITIVE)) {
+            CompatibilityExecutionResult result = checker.testCompatibility(level,
+                    List.of(existing), proposed, Collections.emptyMap());
+            assertFalse(result.isCompatible(), "Field tag change must fail under " + level);
+        }
     }
 
     @Test

@@ -133,7 +133,8 @@ jobs:
 
 
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        timeout-minutes: 10
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -244,7 +245,8 @@ jobs:
 
       # driver=none: Kubernetes runs directly on the host, sharing all runner
       # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        timeout-minutes: 10
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -336,12 +338,13 @@ jobs:
           unset BUNDLE_IMAGE
           unset CATALOG_IMAGE
           make IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
 
       - name: Check install file
         run: |
-          git add operator/install/install.yaml || true
+          git add operator/install/install.yaml operator/install/install-namespaced.yaml || true
           if ! git diff --staged --exit-code; then
-            echo 'Install file needs to be updated. Please run `pushd operator; make SKIP_TESTS=true build IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file; popd` and commit the result.';
+            echo 'Install file needs to be updated. Please run `pushd operator; make SKIP_TESTS=true build IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file dist-install-file-namespaced INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml; popd` and commit the result.';
             exit 1;
           else
             echo "No changes to the install file.";

@@ -10,7 +10,9 @@ import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
 import io.apicurio.registry.events.ArtifactVersionStateChanged;
+import io.apicurio.registry.events.ContractMetadataUpdated;
 import io.apicurio.registry.events.ContractRulesetConfigured;
+import io.apicurio.registry.events.ContractStatusChanged;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
@@ -84,6 +86,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
@@ -762,6 +765,26 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         coordinator.waitForResponse(uuid);
         outboxEvent.fire(KafkaSqlOutboxEvent
                 .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        var message = new UpdateContractMetadata4Message(groupId, artifactId, prefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        var message = new TransitionContractStatus6Message(groupId, artifactId, fromStatus,
+                toStatus, prefix, effectiveDate);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
     }
 
     @Override

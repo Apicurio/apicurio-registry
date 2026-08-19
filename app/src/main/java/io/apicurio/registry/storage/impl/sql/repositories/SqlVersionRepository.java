@@ -263,10 +263,10 @@ public class SqlVersionRepository {
                 if (rowCount == 0) {
                     throw new VersionNotFoundException(groupId, artifactId, version);
                 }
-
-                outboxEvent.fire(SqlOutboxEvent
-                        .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
             }
+
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
 
             return null;
         });

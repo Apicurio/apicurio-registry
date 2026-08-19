@@ -484,6 +484,76 @@ public class ProtobufCompatibilityCheckerTest {
     }
 
     @Test
+    public void testForwardCompatibility_AddField_IsCompatible() {
+        String existingSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Customer {
+                    string id = 1;
+                    string name = 2;
+                }
+                """;
+
+        String proposedSchema = """
+                syntax = "proto3";
+                package com.example;
+
+                message Customer {
+                    string id = 1;
+                    string name = 2;
+                    string email = 3;
+                }
+                """;
+
+        TypedContent existing = toTypedContent(existingSchema);
+        TypedContent proposed = toTypedContent(proposedSchema);
+
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.FORWARD, CompatibilityLevel.FORWARD_TRANSITIVE)) {
+            CompatibilityExecutionResult result = checker.testCompatibility(level,
+                    List.of(existing), proposed, Collections.emptyMap());
+            assertTrue(result.isCompatible(),
+                    "Adding an optional field should be compatible under " + level + ". Found diffs: "
+                            + result.getIncompatibleDifferences());
+        }
+    }
+
+    @Test
+    public void testForwardVsBackward_AsymmetricChange() {
+        String existingSchema = """
+                syntax = "proto2";
+                package com.example;
+
+                message Customer {
+                    optional string id = 1;
+                    optional string name = 2;
+                }
+                """;
+
+        String proposedSchema = """
+                syntax = "proto2";
+                package com.example;
+
+                message Customer {
+                    optional string id = 1;
+                    optional string name = 2;
+                    required string email = 3;
+                }
+                """;
+
+        TypedContent existing = toTypedContent(existingSchema);
+        TypedContent proposed = toTypedContent(proposedSchema);
+
+        CompatibilityExecutionResult backwardResult = checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                List.of(existing), proposed, Collections.emptyMap());
+        assertFalse(backwardResult.isCompatible(), "Adding a required field in proto2 should be BACKWARD INCOMPATIBLE");
+
+        CompatibilityExecutionResult forwardResult = checker.testCompatibility(CompatibilityLevel.FORWARD,
+                List.of(existing), proposed, Collections.emptyMap());
+        assertTrue(forwardResult.isCompatible(), "Adding a required field in proto2 should be FORWARD COMPATIBLE");
+    }
+
+    @Test
     public void testForwardCompatibility_RemovedFieldWithoutReserve_Fails() {
         String existingSchema = """
                 syntax = "proto3";
@@ -509,7 +579,8 @@ public class ProtobufCompatibilityCheckerTest {
         TypedContent existing = toTypedContent(existingSchema);
         TypedContent proposed = toTypedContent(proposedSchema);
 
-        for (CompatibilityLevel level : List.of(CompatibilityLevel.FULL, CompatibilityLevel.FULL_TRANSITIVE)) {
+        for (CompatibilityLevel level : List.of(CompatibilityLevel.FORWARD, CompatibilityLevel.FORWARD_TRANSITIVE,
+                CompatibilityLevel.FULL, CompatibilityLevel.FULL_TRANSITIVE)) {
             CompatibilityExecutionResult result = checker.testCompatibility(level,
                     List.of(existing), proposed, Collections.emptyMap());
 

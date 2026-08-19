@@ -143,8 +143,8 @@ public class DeprecatedPropertiesCheck {
         }
 
         if (!violations.isEmpty()) {
-            throw new IllegalStateException("The following configuration properties were removed and are no longer supported: "
-                    + String.join(", ", violations));
+            String combinedViolations = String.join(", ", violations);
+            throw new IllegalStateException("The following configuration properties were removed and are no longer supported: " + combinedViolations);
         }
     }
 }

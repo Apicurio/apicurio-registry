@@ -2,10 +2,13 @@
 """Verify the app-module unit-test shards in verify-unit-tests.yaml partition the
 test set exactly once.
 
-Every surefire-eligible test class in app/ must be claimed by exactly one app-*
-shard. A class claimed by none never runs in CI and fails silently, because the
-workflow passes -Dsurefire.failIfNoSpecifiedTests=false. A class claimed by two
-wastes a shard's budget.
+Every non-abstract test class in app/ must be claimed by exactly one app-* shard.
+A class claimed by none never runs in CI and fails silently, because the workflow
+passes -Dsurefire.failIfNoSpecifiedTests=false. A class claimed by two wastes a
+shard's budget. Classes are enumerated regardless of surefire naming convention
+or @Tag -- a class that is neither convention-named nor tagged used to be
+invisible to this check entirely rather than reported as an orphan; see the
+review discussion on #9328.
 
 Shards select tests one of two ways:
   - pattern shards use -Dtest=<comma-separated patterns>. Implements surefire's
@@ -23,6 +26,7 @@ Exits non-zero when the partition is broken.
 """
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -33,6 +37,41 @@ TAGS_FILE = REPO / "utils/tests/src/main/java/io/apicurio/registry/utils/tests/A
 # The 'non-app' shard selects by Maven -pl, not by -Dtest, so it is not part of
 # the app-module partition.
 NON_APP_SHARD = "non-app"
+
+# Packages that predate the tag-shard migration and are still excluded by name
+# from app-other, but no longer have a pattern shard of their own -- coverage
+# for them now depends entirely on carrying the matching @Tag. Used only to
+# annotate orphans with a more actionable hint; does not affect claims().
+TAG_SHARD_PACKAGES = {
+    "app-auth": ("auth", "rbac", "limits"),
+    "app-transport": ("tls", "headers", "cors"),
+    "app-metrics": ("metrics", "search"),
+}
+
+TEST_METHOD_RE = re.compile(r"@(Test|ParameterizedTest|RepeatedTest|TestFactory|TestTemplate)\b")
+
+
+def tag_shard_hint(fqn):
+    """If fqn sits in a package that used to map 1:1 to a tag shard, name that
+    shard and the tag it expects -- this is the AuthTestNoRoles-style orphan a
+    missing @Tag produces, distinct from a genuinely unmapped new package."""
+    parts = fqn.split(".")
+    if len(parts) < 4 or parts[:3] != ["io", "apicurio", "registry"]:
+        return None
+    package = parts[3]
+    for shard, packages in TAG_SHARD_PACKAGES.items():
+        if package in packages:
+            return shard
+    return None
+
+
+def is_abstract(path, source):
+    return bool(re.search(r"\babstract\s+class\s+" + re.escape(path.stem) + r"\b", source))
+
+
+def class_tags(source):
+    """ApicurioTestTags constant names referenced via @Tag(ApicurioTestTags.X) in this source."""
+    return set(re.findall(r"@Tag\(ApicurioTestTags\.(\w+)\)", source))
 
 
 def is_surefire_name(stem):
@@ -45,25 +84,41 @@ def is_surefire_name(stem):
     )
 
 
-def is_abstract(path, source):
-    return bool(re.search(r"\babstract\s+class\s+" + re.escape(path.stem) + r"\b", source))
+def looks_like_a_test(path, source):
+    """Whether this class is plausibly something surefire would execute, by any
+    of three independent signals: its own @Test-style method, a surefire
+    naming-convention match, or an ApicurioTestTags @Tag. A class needs only
+    one -- this deliberately stays permissive because a false *inclusion* here
+    just adds a class to the partition check (worst case, it's a real gap that
+    now gets reported), while a false *exclusion* silently recreates the
+    invisible-orphan bug this script exists to catch.
+
+    A single signal on its own isn't enough: some real test classes (e.g.
+    MysqlStorageTest, KafkaSqlAuthTest) inherit every @Test method from an
+    abstract base and carry none of their own, so they rely on the naming
+    convention; a few real test classes (e.g. AuthTestNoRoles) don't match the
+    naming convention and rely on their own @Test methods or @Tag instead."""
+    return (
+        is_surefire_name(path.stem)
+        or bool(TEST_METHOD_RE.search(source))
+        or bool(class_tags(source))
+    )
 
 
-def class_tags(source):
-    """ApicurioTestTags constant names referenced via @Tag(ApicurioTestTags.X) in this source."""
-    return set(re.findall(r"@Tag\(ApicurioTestTags\.(\w+)\)", source))
-
-
-def enumerate_classes(group_consts):
-    """Fully-qualified name -> source text, for every app/ test class that must be
-    claimed by exactly one shard: surefire-eligible by naming convention, plus any
-    class carrying a shard group tag (which surefire selects regardless of name)."""
+def enumerate_classes():
+    """Fully-qualified name -> source text, for every non-abstract .java file in
+    app/'s test tree that looks like a test (see looks_like_a_test). This
+    still catches the AuthTestNoRoles-style class that fails the naming
+    convention but not the tag check -- and, unlike gating purely on naming
+    convention or tag, it no longer silently excludes such a class from this
+    check just because it happens to fail one particular signal. See the
+    review discussion on #9328."""
     found = {}
     for path in APP_TESTS.rglob("*.java"):
         source = path.read_text(encoding="utf-8", errors="replace")
         if is_abstract(path, source):
             continue
-        if not is_surefire_name(path.stem) and not (class_tags(source) & group_consts):
+        if not looks_like_a_test(path, source):
             continue
         fqn = str(path.relative_to(APP_TESTS)).replace("/", ".")[: -len(".java")]
         found[fqn] = source
@@ -104,25 +159,43 @@ def matches(fqn, test_filter):
 
 def parse_shards():
     """Read (name, kind, selector) triples straight from the workflow matrix.
-    kind is 'tag' for a -Dgroups= shard (selector is the group value) or
-    'pattern' for a -Dtest= shard (selector is the pattern list)."""
-    shards, name = [], None
+    kind is 'tag' for a shard carrying a non-empty group-filter (selector is the
+    -Dgroups= value) or 'pattern' for a plain -Dtest= shard (selector is the
+    pattern list). test-filter and group-filter are read from their own matrix
+    keys rather than parsed out of one combined string, matching how the
+    workflow's run step now passes them as two separate tokens."""
+    shards, name, test_filter, group_filter = [], None, None, None
+
+    def flush():
+        if name is None:
+            return
+        groups_match = re.search(r"-Dgroups=(\S+)", group_filter or "")
+        if groups_match:
+            shards.append((name, "tag", groups_match.group(1)))
+            return
+        value = test_filter or ""
+        if value.startswith("-Dtest="):
+            value = value[len("-Dtest="):]
+        shards.append((name, "pattern", value))
+
     for line in WORKFLOW.read_text(encoding="utf-8").splitlines():
+        if re.match(r"^\s{0,7}steps:\s*$", line):
+            # End of the matrix.shard list -- the job's own steps: follow, and
+            # its "- name: <step>" entries must not be parsed as shards.
+            break
         matched = re.match(r"\s*- name:\s*(\S+)", line)
         if matched:
-            name = matched.group(1)
+            flush()
+            name, test_filter, group_filter = matched.group(1), None, None
             continue
         matched = re.match(r'\s*test-filter:\s*"(.*)"\s*$', line)
-        if matched and name:
-            value = matched.group(1)
-            groups_match = re.search(r"-Dgroups=(\S+)", value)
-            if groups_match:
-                shards.append((name, "tag", groups_match.group(1)))
-            else:
-                if value.startswith("-Dtest="):
-                    value = value[len("-Dtest="):]
-                shards.append((name, "pattern", value))
-            name = None
+        if matched:
+            test_filter = matched.group(1)
+            continue
+        matched = re.match(r'\s*group-filter:\s*"(.*)"\s*$', line)
+        if matched:
+            group_filter = matched.group(1)
+    flush()
     return [s for s in shards if s[0] != NON_APP_SHARD]
 
 
@@ -158,29 +231,36 @@ def main():
             return 2
         group_consts.add(const)
 
-    classes = enumerate_classes(group_consts)
+    classes = enumerate_classes()
 
-    print(f"app test classes (surefire-eligible or tagged, non-abstract): {len(classes)}")
+    print(f"app test classes (non-abstract): {len(classes)}")
     print(f"app shards: {', '.join(n for n, _, _ in shards)}\n")
+
+    class_claims = {fqn: claims(fqn, source, shards, const_by_value) for fqn, source in classes.items()}
+    shard_counts = Counter(name for hits in class_claims.values() for name in hits)
+    orphans = sorted(fqn for fqn, hits in class_claims.items() if not hits)
+    duplicates = {fqn: hits for fqn, hits in sorted(class_claims.items()) if len(hits) > 1}
 
     print(f"{'SHARD':<20} {'KIND':<8} {'CLASSES':>8}")
     for name, kind, selector in shards:
-        count = sum(1 for fqn, source in classes.items()
-                     if name in claims(fqn, source, [(name, kind, selector)], const_by_value))
-        print(f"{name:<20} {kind:<8} {count:>8}")
-
-    class_claims = {fqn: claims(fqn, source, shards, const_by_value) for fqn, source in classes.items()}
-    orphans = sorted(fqn for fqn, hits in class_claims.items() if not hits)
-    duplicates = {fqn: hits for fqn, hits in sorted(class_claims.items()) if len(hits) > 1}
+        print(f"{name:<20} {kind:<8} {shard_counts[name]:>8}")
 
     print(f"\nrun exactly once  : {sum(1 for h in class_claims.values() if len(h) == 1)}")
     print(f"run ZERO times    : {len(orphans)}")
     print(f"run MORE than once: {len(duplicates)}")
 
+    group_by_shard = {name: selector for name, kind, selector in shards if kind == "tag"}
     if orphans:
         print("\n!! ORPHANS - these run in no shard and fail silently:")
         for fqn in orphans:
-            print("    ", fqn)
+            hint = tag_shard_hint(fqn)
+            expected_const = const_by_value.get(group_by_shard.get(hint)) if hint else None
+            if expected_const:
+                print("    ", fqn,
+                      f"(sits in {hint}'s package but carries no @Tag(ApicurioTestTags.{expected_const}) "
+                      f"-- add the tag or move the class)")
+            else:
+                print("    ", fqn)
     if duplicates:
         print("\n!! DUPLICATES - these run in several shards:")
         for fqn, hits in duplicates.items():

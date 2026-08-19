@@ -25,22 +25,27 @@ jobs:
           - name: app-rest
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**"
+            group-filter: ""
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-sql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.sql.**,io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.impl.polling.**,io.apicurio.registry.storage.impl.readonly.**,io.apicurio.registry.storage.decorator.**,io.apicurio.registry.storage.dto.**,io.apicurio.registry.event.sql.**"
+            group-filter: ""
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kafkasql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kafkasql.**,io.apicurio.registry.event.kafkasql.**"
+            group-filter: ""
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-gitops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**"
+            group-filter: ""
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kubernetesops
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
+            group-filter: ""
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           # app-auth / app-transport / app-metrics are carved out of app-other. Each @TestProfile in a
           # shard forces Quarkus to tear down and rebuild the application in the single forked JVM
@@ -52,30 +57,38 @@ jobs:
           # Unlike the other app-* shards, these three select by JUnit @Tag (ApicurioTestTags.AUTH /
           # TRANSPORT / METRICS) instead of a -Dtest= package pattern: the tag lives on the test class
           # itself, so a new test gets the right shard at creation time instead of silently landing in
-          # app-other. -Dtest=io.apicurio.registry.** makes surefire consider every class in the app test
-          # tree as a tag-filter candidate, since surefire's default file-name discovery (Test*/*Test/
-          # *Tests/*TestCase) would otherwise skip classes named like AuthTestNoRoles. See issue #9302.
+          # app-other. test-filter stays -Dtest=io.apicurio.registry.** so surefire considers every class
+          # in the app test tree a tag-filter candidate, since its default file-name discovery
+          # (Test*/*Test/*Tests/*TestCase) would otherwise skip classes named like AuthTestNoRoles before
+          # the tag filter ever runs. See issue #9302. The -Dgroups= value lives in its own group-filter
+          # key rather than appended to test-filter, so the run step never has to word-split a single
+          # matrix value into two -D properties.
           - name: app-auth
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.** -Dgroups=auth"
+            test-filter: "-Dtest=io.apicurio.registry.**"
+            group-filter: "-Dgroups=auth"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-transport
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.** -Dgroups=transport"
+            test-filter: "-Dtest=io.apicurio.registry.**"
+            group-filter: "-Dgroups=transport"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-metrics
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.** -Dgroups=metrics"
+            test-filter: "-Dtest=io.apicurio.registry.**"
+            group-filter: "-Dgroups=metrics"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           # Catch-all: stays an exclusion filter so a newly added package lands here rather than in no
           # shard at all. Every exclusion below must correspond to another shard's inclusion.
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.impl.sql.**,!io.apicurio.registry.storage.impl.search.**,!io.apicurio.registry.storage.impl.polling.**,!io.apicurio.registry.storage.impl.readonly.**,!io.apicurio.registry.storage.decorator.**,!io.apicurio.registry.storage.dto.**,!io.apicurio.registry.storage.impl.kafkasql.**,!io.apicurio.registry.storage.impl.gitops.**,!io.apicurio.registry.storage.impl.kubernetesops.**,!io.apicurio.registry.event.sql.**,!io.apicurio.registry.event.kafkasql.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
+            group-filter: ""
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
             test-filter: ""
+            group-filter: ""
             maven-opts: "-Xmx4g"
     steps:
       - name: Checkout Code
@@ -112,7 +125,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_OPTS: ${{ matrix.shard.maven-opts }}
         run: |
-          # Each shard compiles the same modules but runs a different subset of tests via -Dtest= filters.
+          # Each shard compiles the same modules but runs a different subset of tests via -Dtest=
+          # and/or -Dgroups= filters (test-filter and group-filter are separate matrix keys, kept
+          # apart rather than concatenated into one string, so this line never has to rely on the
+          # shell word-splitting a single value into two -D properties).
           # Pre-built artifacts from the Build job are downloaded but Maven still needs to resolve/compile.
           # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
           # -Dsurefire.rerunFailingTestsCount=1: automatically retry flaky tests once
@@ -121,6 +137,7 @@ jobs:
             --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
+            ${{ matrix.shard.group-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipCommitIdPlugin=true \
             -Dcheckstyle.skip=true \

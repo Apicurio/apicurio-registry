@@ -114,6 +114,10 @@ public abstract class ITBase implements OperatorTestContext {
         return namespace;
     }
 
+    static boolean isLocalDeployment() {
+        return getConfig().getValue(OPERATOR_DEPLOYMENT_PROP, OperatorDeployment.class) == OperatorDeployment.local;
+    }
+
     @BeforeAll
     public void before() throws Exception {
         operatorDeployment = getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
@@ -154,6 +158,10 @@ public abstract class ITBase implements OperatorTestContext {
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
                 deploymentTarget);
+        await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+            assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                    .list().getItems()).isEmpty();
+        });
     }
 
     protected void startOperatorPodLog() {

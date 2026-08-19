@@ -259,4 +259,6 @@ The MCP server provides tools for working with groups, artifacts, versions, and 
 .Additional resources
 * xref:getting-started/assembly-a2a-features.adoc[A2A agent features]
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM artifact types]
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+endif::[]

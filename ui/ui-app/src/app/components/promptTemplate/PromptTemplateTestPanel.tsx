@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, ReactNode, useMemo } from "react";
 import "./PromptTemplateTestPanel.css";
 import {
     ActionGroup,
@@ -13,107 +13,83 @@ import {
     FormGroup,
     FormSelect,
     FormSelectOption,
+    Label,
     Spinner,
     TextArea,
     TextInput,
     Title
 } from "@patternfly/react-core";
-import { PromptVariable } from "./PromptTemplateViewer";
-import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
+import {
+    extractTemplateVariableNames,
+    reconcileTemplateVariables,
+    ReconciledVariable,
+    VariableSchema
+} from "./promptTemplateVariables";
+import { useGroupsService } from "@services/useGroupsService.ts";
+import {
+    coerceEnumValue,
+    schemaForField,
+    toDeclaredMap
+} from "./PromptTemplateTestPanel.utils";
+import { usePromptTemplateTestPanelState } from "./usePromptTemplateTestPanelState";
 
 export type PromptTemplateTestPanelProps = {
     groupId: string;
     artifactId: string;
     version: string;
-    variables: Record<string, PromptVariable> | PromptVariable[] | undefined;
+    template?: string;
+    variables: Record<string, VariableSchema> | VariableSchema[] | undefined;
     className?: string;
 };
 
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
+const sourceLabel = (source: ReconciledVariable["source"]): { text: string; color: "grey" | "orange" } | undefined => {
+    if (source === "detected") {
+        return { text: "not in schema", color: "orange" };
     }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
+    if (source === "declared") {
+        return { text: "unused", color: "grey" };
+    }
+    return undefined;
 };
 
 export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelProps> = (props: PromptTemplateTestPanelProps) => {
-    const groups: GroupsService = useGroupsService();
-    const variablesList = getVariablesList(props.variables);
+    const groups = useGroupsService();
 
-    const initialValues: Record<string, any> = {};
-    variablesList.forEach(({ name, variable }) => {
-        if (variable.default !== undefined) {
-            initialValues[name] = variable.default;
-        } else {
-            initialValues[name] = "";
-        }
+    const reconciledVariables = useMemo(() => {
+        const names = extractTemplateVariableNames(props.template || "");
+        return reconcileTemplateVariables(names, toDeclaredMap(props.variables));
+    }, [props.template, props.variables]);
+
+    const {
+        values,
+        renderedOutput,
+        validationErrors,
+        isLoading,
+        error,
+        setValue,
+        doRender
+    } = usePromptTemplateTestPanelState({
+        groupId: props.groupId,
+        artifactId: props.artifactId,
+        version: props.version,
+        template: props.template,
+        variables: props.variables,
+        groups
     });
 
-    const [values, setValues] = useState<Record<string, any>>(initialValues);
-
-    useEffect(() => {
-        setValues(prev => {
-            const next = { ...prev };
-            variablesList.forEach(({ name, variable }) => {
-                if (!(name in next)) {
-                    const type = (variable.type || "string").toLowerCase();
-                    next[name] = type === "boolean" ? false : (variable.default ?? "");
-                }
-            });
-            return next;
-        });
-    }, [props.variables]);
-
-    const [renderedOutput, setRenderedOutput] = useState<string>("");
-    const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string>("");
-
-    const setValue = (name: string, value: any): void => {
-        setValues(prev => ({ ...prev, [name]: value }));
-    };
-
-    const doRender = (): void => {
-        setIsLoading(true);
-        setError("");
-        setValidationErrors([]);
-        setRenderedOutput("");
-
-        let gid: string | null = props.groupId;
-        if (gid === "default") {
-            gid = null;
-        }
-
-        groups.renderPromptTemplate(gid, props.artifactId, props.version, values)
-            .then((response: RenderPromptResponse) => {
-                setRenderedOutput(response.rendered || "");
-                if (response.validationErrors && response.validationErrors.length > 0) {
-                    setValidationErrors(response.validationErrors);
-                }
-            })
-            .catch((err: any) => {
-                setError(err?.message || "Error rendering prompt template");
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
-    };
-
-    const renderField = (name: string, variable: PromptVariable): React.ReactNode => {
+    const renderField = (name: string, variable: VariableSchema): ReactNode => {
         const type = (variable.type || "string").toLowerCase();
 
         if (variable.enum && variable.enum.length > 0) {
             return (
                 <FormSelect
-                    value={values[name] || ""}
-                    onChange={(_event, val) => setValue(name, val)}
+                    value={values[name] ?? ""}
+                    onChange={(_event, val) => setValue(name, coerceEnumValue(val, type))}
                     aria-label={name}
                 >
                     <FormSelectOption key="placeholder" value="" label="-- Select --" />
                     {variable.enum.map((opt, i) => (
-                        <FormSelectOption key={i} value={opt} label={opt} />
+                        <FormSelectOption key={i} value={String(opt)} label={String(opt)} />
                     ))}
                 </FormSelect>
             );
@@ -148,8 +124,11 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                 return (
                     <TextInput
                         type="number"
-                        value={values[name] || ""}
-                        onChange={(_event, val) => setValue(name, type === "integer" ? parseInt(val) || "" : parseFloat(val) || "")}
+                        value={values[name] ?? ""}
+                        onChange={(_event, val) => {
+                            const n = type === "integer" ? parseInt(val) : parseFloat(val);
+                            setValue(name, isNaN(n) ? "" : n);
+                        }}
                         aria-label={name}
                     />
                 );
@@ -181,6 +160,23 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         }
     };
 
+    const renderLabel = (entry: ReconciledVariable): ReactNode => {
+        const schema = schemaForField(entry);
+        const base = schema.description ? `${entry.name} - ${schema.description}` : entry.name;
+        const indicator = sourceLabel(entry.source);
+        if (!indicator) {
+            return base;
+        }
+        return (
+            <span className="label-inline">
+                <span>{base}</span>
+                <Label color={indicator.color} isCompact>
+                    {indicator.text}
+                </Label>
+            </span>
+        );
+    };
+
     return (
         <Card className={`prompt-template-test-panel ${props.className || ""}`}>
             <CardHeader>
@@ -190,16 +186,23 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
             </CardHeader>
             <CardBody>
                 <Form className="test-panel-form">
-                    {variablesList.map(({ name, variable }, index) => {
-                        const isBoolean = (variable.type || "string").toLowerCase() === "boolean";
+                    {reconciledVariables.map((entry) => {
+                        const schema = schemaForField(entry);
+                        const isBoolean = (schema.type || "string").toLowerCase() === "boolean";
+                        const indicator = sourceLabel(entry.source);
                         return (
                             <FormGroup
-                                key={index}
-                                label={isBoolean ? undefined : (variable.description ? `${name} - ${variable.description}` : name)}
-                                isRequired={variable.required}
-                                fieldId={`var-${name}`}
+                                key={`${entry.source}-${entry.name}`}
+                                label={isBoolean ? undefined : renderLabel(entry)}
+                                isRequired={!!schema.required}
+                                fieldId={`var-${entry.name}`}
                             >
-                                {renderField(name, variable)}
+                                {isBoolean && indicator && (
+                                    <Label color={indicator.color} isCompact style={{ marginBottom: "0.5rem" }}>
+                                        {indicator.text}
+                                    </Label>
+                                )}
+                                {renderField(entry.name, schema)}
                             </FormGroup>
                         );
                     })}
@@ -227,7 +230,15 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                     <Alert variant="warning" title="Validation Errors" className="validation-errors">
                         <ul>
                             {validationErrors.map((ve, i) => (
-                                <li key={i}>{ve.path ? `${ve.path}: ` : ""}{ve.message}</li>
+                                <li key={i}>
+                                    {ve.variableName ? `${ve.variableName}: ` : ""}
+                                    {ve.message}
+                                    {ve.expectedType && ve.actualType && (
+                                        <span style={{ color: "var(--pf-t--global--color--600)", marginLeft: "0.5rem" }}>
+                                            (Expected: {ve.expectedType}, Actual: {ve.actualType})
+                                        </span>
+                                    )}
+                                </li>
                             ))}
                         </ul>
                     </Alert>

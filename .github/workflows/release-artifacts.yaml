@@ -100,7 +100,7 @@ jobs:
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -117,7 +117,7 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Download macOS CLI ZIP from GitHub Release
+      - name: Download macOS and Windows CLI ZIPs from GitHub Release
         working-directory: registry
         env:
           GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
@@ -125,6 +125,9 @@ jobs:
           RELEASE_VERSION=${{ needs.prepare.outputs.release-version }}
           gh release download "${RELEASE_VERSION}" \
             --pattern "apicurio-registry-cli-${RELEASE_VERSION}-osx-aarch_64.zip" \
+            --dir cli/target/
+          gh release download "${RELEASE_VERSION}" \
+            --pattern "apicurio-registry-cli-${RELEASE_VERSION}-windows-x86_64.zip" \
             --dir cli/target/
 
       - name: Maven Deploy
@@ -165,7 +168,7 @@ jobs:
           echo "SBOM_OUTPUT_DIR=$(pwd)/apicurio-registry/${{ needs.prepare.outputs.release-version }}" >> $GITHUB_ENV
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -173,7 +176,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.18.0
+          node-version: 24.19.0
 
       - name: Maven Install
         run: |
@@ -238,7 +241,7 @@ jobs:
           fi
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: 'temurin'

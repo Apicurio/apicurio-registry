@@ -98,7 +98,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION config-show
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -224,7 +224,7 @@ jobs:
           cd registry && git checkout "${{ needs.release-build.outputs.release-version }}"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -236,7 +236,9 @@ jobs:
           name: operator-test-artifacts
           path: registry/operator/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -279,7 +281,7 @@ jobs:
           cd registry && git checkout "$RELEASE_VERSION"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: '21'
           distribution: temurin
@@ -462,6 +464,7 @@ jobs:
         working-directory: registry/operator
         run: |
           make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
           git add install/*
 
       - name: Commit & push post-release changes
@@ -477,16 +480,19 @@ jobs:
         if: env.BRANCH != 'main'
         working-directory: registry
         run: |
-          # Save the versioned install file before switching branches
+          # Save the versioned install files before switching branches
           INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          INSTALL_NAMESPACED_FILE="operator/install/apicurio-registry-operator-namespaced-$RELEASE_VERSION.yaml"
           cp "$INSTALL_FILE" /tmp/install-file.yaml
+          cp "$INSTALL_NAMESPACED_FILE" /tmp/install-file-namespaced.yaml
 
           # Switch to main
           git checkout main
           git pull origin main
 
-          # Copy the versioned install file
+          # Copy the versioned install files
           cp /tmp/install-file.yaml "$INSTALL_FILE"
+          cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
 
           RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
           MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)

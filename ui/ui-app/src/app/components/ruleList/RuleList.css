@@ -1,13 +1,13 @@
 .rule-list {
-    border-top: 1px solid #ccc;
+    border-top: 1px solid var(--pf-t--global--border--color--default, #ccc);
     width: 100%;
-    background-color: white;
+    background-color: var(--registry-card-bg, white);
 }
 
 .rule {
     padding: 25px;
     min-width: 0;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid var(--pf-t--global--border--color--default, #ccc);
 }
 
 .rule .rule-icon {
@@ -15,7 +15,7 @@
 }
 
 .rule.disabled-state-text .rule-name, .rule.disabled-state-text .rule-description, .rule.disabled-state-text .rule-icon, .rule.disabled-state-text .rule-value {
-    color: rgb(106, 110, 115);
+    color: var(--pf-t--global--text--color--disabled, rgb(106, 110, 115));
 }
 
 .rule .rule-description {

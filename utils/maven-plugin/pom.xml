@@ -96,6 +96,18 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
+    </dependency>
 
     <!-- Test dependencies -->
     <dependency>

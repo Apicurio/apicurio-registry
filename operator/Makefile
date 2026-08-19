@@ -93,6 +93,7 @@ OLM_DEPLOY_DIR ?= $(CATALOG_DIR)/../olmv$(OLM_VERSION)
 
 INSTALL_NAMESPACE ?= PLACEHOLDER_NAMESPACE
 INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
+INSTALL_NAMESPACED_FILE ?= install/apicurio-registry-operator-namespaced-$(VERSION).yaml
 
 DIST_TARGET_DIR ?= target/dist
 
@@ -352,8 +353,15 @@ else
 endif
 
 
+.PHONY: dist-install-file-namespaced
+dist-install-file-namespaced: ## Generate the single-namespace (least-privilege) install file
+	mkdir -p $(dir $(INSTALL_NAMESPACED_FILE))
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/namespaced | envsubst >$(INSTALL_NAMESPACED_FILE)
+
+
 .PHONY: dist
-dist: dist-install-file ## TODO
+dist: dist-install-file dist-install-file-namespaced ## TODO
 	$(call target_dir,$(DIST_TARGET_DIR))
 	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
 	# Licenses
@@ -369,6 +377,7 @@ dist: dist-install-file ## TODO
 	# Install
 	mkdir -p $(DIST_TARGET_DIR)/install
 	cp $(INSTALL_FILE) $(DIST_TARGET_DIR)/install/install.yaml
+	cp $(INSTALL_NAMESPACED_FILE) $(DIST_TARGET_DIR)/install/install-namespaced.yaml
 	# Archive
 	cd $(DIST_TARGET_DIR) && tar -zcf ../apicurio-registry-operator-$(VERSION).tar.gz *
 

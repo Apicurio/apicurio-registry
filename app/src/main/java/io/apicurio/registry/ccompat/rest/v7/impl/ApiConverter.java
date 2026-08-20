@@ -66,6 +66,15 @@ public class ApiConverter {
         return schema;
     }
 
+    public Schema convert(String subject, int versionOrder, long id, ContentHandle content,
+                          String artifactType, List<ArtifactReferenceDto> references) {
+        Schema schema = convert(content, artifactType, references);
+        schema.setSubject(subject);
+        schema.setVersion(convertUnsigned(versionOrder).intValue());
+        schema.setId(convertUnsigned(id).intValue());
+        return schema;
+    }
+
     private String compactIfAvro(String content, String artifactType) {
         if (content == null || !ArtifactType.AVRO.equals(artifactType)) {
             return content;

@@ -11,8 +11,12 @@ const { fetchMock } = vi.hoisted(() => {
     return { fetchMock: vi.fn() };
 });
 
-vi.mock("@apicurio/common-ui-components", () => ({
-    useAuth: () => ({})
+vi.mock("@apitomy/common-ui-components", () => ({
+    useAuth: () => ({
+        isOidcAuthEnabled: () => false,
+        isBasicAuthEnabled: () => false,
+        getToken: async () => undefined
+    })
 }));
 
 (globalThis as any).fetch = fetchMock;

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 
 /**
  * Implementation of the /content sub-resource.
@@ -55,6 +56,8 @@ public class ContentResourceImpl implements ContentResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> detectContentReferences(String artifactType, VersionContent body) {
+        ParameterValidationUtils.requireParameter("data", body);
+
         ContentHandle content = ContentHandle.create(body.getContent());
         String contentType = body.getContentType();
         TypedContent typedContent = TypedContent.create(content, contentType);

@@ -214,6 +214,8 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void createGlobalRule(CreateRule data) {
+        ParameterValidationUtils.requireParameter("data", data);
+
         RuleType ruleType = data.getRuleType();
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
 
@@ -267,6 +269,8 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Rule updateGlobalRuleConfig(RuleType ruleType, Rule data) {
+        ParameterValidationUtils.requireParameter("data", data);
+
         if (data.getConfig() == null || data.getConfig().trim().isEmpty()) {
             throw new MissingRequiredParameterException("config");
         }
@@ -427,6 +431,8 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void createRoleMapping(RoleMapping data) {
+        ParameterValidationUtils.requireParameter("data", data);
+
         storage.createRoleMapping(data.getPrincipalId(), data.getRole().name(), data.getPrincipalName());
     }
 
@@ -470,6 +476,7 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @RoleBasedAccessApiOperation
     public void updateRoleMapping(String principalId, UpdateRole data) {
+        ParameterValidationUtils.requireParameter("data", data);
         ParameterValidationUtils.requireParameter("principalId", principalId);
         ParameterValidationUtils.requireParameter("role", data.getRole());
         storage.updateRoleMapping(principalId, data.getRole().name());
@@ -537,6 +544,8 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void updateConfigProperty(String propertyName, UpdateConfigurationProperty data) {
+        ParameterValidationUtils.requireParameter("data", data);
+
         DynamicConfigPropertyDef propertyDef = resolveConfigProperty(propertyName);
         validateConfigPropertyValue(propertyDef, data.getValue());
 
@@ -651,6 +660,8 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public GitOpsValidateTask createGitOpsValidateTask(GitOpsValidateRequest data) {
+        ParameterValidationUtils.requireParameter("data", data);
+
         requireGitOpsStorage();
         return requireValidationTaskManager().createTask(data);
     }
@@ -899,6 +910,8 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public io.apicurio.registry.rest.v3.beans.ContractRuleSet setGlobalContractRuleset(
             io.apicurio.registry.rest.v3.beans.ContractRuleSet data) {
+        ParameterValidationUtils.requireParameter("data", data);
+
         io.apicurio.registry.storage.dto.ContractRuleSetDto dto = ContractRuleSetMapper.toDto(data);
         storage.setGlobalContractRuleset(dto);
         return data;

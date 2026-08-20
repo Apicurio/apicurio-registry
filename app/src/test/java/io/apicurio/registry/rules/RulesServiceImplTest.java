@@ -54,6 +54,7 @@ public class RulesServiceImplTest {
         when(storage.isArtifactExists(any(), any())).thenReturn(true);
         when(storage.getArtifactRules(any(), any())).thenReturn(Collections.singletonList(RuleType.VALIDITY));
         when(storage.getArtifactRule(any(), any(), any())).thenReturn(new RuleConfigurationDto("FULL"));
+        when(rulesService.rulesProperties.getDefaultGlobalRules()).thenReturn(Collections.emptySet());
         when(rulesService.factory.createExecutor(any())).thenReturn(context -> {});
     }
 
@@ -66,12 +67,87 @@ public class RulesServiceImplTest {
                 .artifactId("testArtifact")
                 .artifactType(ArtifactType.JSON)
                 .content(content)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
                 .build();
 
         rulesService.applyRules(context);
 
         verify(storage).getArtifactRules("testGroup", "testArtifact");
         verify(rulesService.factory).createExecutor(RuleType.VALIDITY);
+    }
+
+    @Test
+    public void testCreateModeDoesNotFetchArtifactRules() {
+        TypedContent content = TypedContent.create(ContentHandle.create("{\"type\":\"string\"}"), ContentTypes.APPLICATION_JSON);
+
+        // Even though artifact exists, CREATE-typed requests must NOT fetch artifact rules
+        when(storage.isArtifactExists("testGroup", "testArtifact")).thenReturn(true);
+
+        RuleApplicationContext context = RuleApplicationContext.builder()
+                .groupId("testGroup")
+                .artifactId("testArtifact")
+                .artifactType(ArtifactType.JSON)
+                .content(content)
+                .ruleApplicationType(RuleApplicationType.CREATE)
+                .build();
+
+        rulesService.applyRules(context);
+
+        verify(storage, never()).getArtifactRules("testGroup", "testArtifact");
+    }
+
+    @Test
+    public void testNullRuleConfigurationIsNotSkipped() {
+        TypedContent content = TypedContent.create(ContentHandle.create("{\"type\":\"string\"}"), ContentTypes.APPLICATION_JSON);
+
+        when(storage.getArtifactRule("testGroup", "testArtifact", RuleType.VALIDITY))
+                .thenReturn(new RuleConfigurationDto(null));
+
+        RuleApplicationContext context = RuleApplicationContext.builder()
+                .groupId("testGroup")
+                .artifactId("testArtifact")
+                .artifactType(ArtifactType.JSON)
+                .content(content)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
+                .build();
+
+        RuleExecutor executorMock = mock(RuleExecutor.class);
+        when(rulesService.factory.createExecutor(RuleType.VALIDITY)).thenReturn(executorMock);
+
+        rulesService.applyRules(context);
+
+        org.mockito.ArgumentCaptor<RuleContext> captor = org.mockito.ArgumentCaptor.forClass(RuleContext.class);
+        verify(executorMock).execute(captor.capture());
+        Assertions.assertNull(captor.getValue().getConfiguration());
+    }
+
+    @Test
+    public void testCustomStorageOverride() {
+        TypedContent content = TypedContent.create(ContentHandle.create("{\"type\":\"string\"}"), ContentTypes.APPLICATION_JSON);
+        RegistryStorage customStorage = mock(RegistryStorage.class);
+        when(customStorage.getArtifactRules("testGroup", "testArtifact")).thenReturn(Collections.singletonList(RuleType.VALIDITY));
+        when(customStorage.getArtifactRule("testGroup", "testArtifact", RuleType.VALIDITY)).thenReturn(new RuleConfigurationDto("FULL"));
+
+        RuleApplicationContext context = RuleApplicationContext.builder()
+                .groupId("testGroup")
+                .artifactId("testArtifact")
+                .artifactType(ArtifactType.JSON)
+                .content(content)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
+                .storage(customStorage)
+                .build();
+
+        RuleExecutor executorMock = mock(RuleExecutor.class);
+        when(rulesService.factory.createExecutor(RuleType.VALIDITY)).thenReturn(executorMock);
+
+        rulesService.applyRules(context);
+
+        verify(customStorage).getArtifactRules("testGroup", "testArtifact");
+        verify(storage, never()).getArtifactRules(any(), any());
+
+        org.mockito.ArgumentCaptor<RuleContext> captor = org.mockito.ArgumentCaptor.forClass(RuleContext.class);
+        verify(executorMock).execute(captor.capture());
+        Assertions.assertEquals(customStorage, captor.getValue().getStorage());
     }
 
     @Test
@@ -122,6 +198,10 @@ public class RulesServiceImplTest {
     public void testApplyRulesCreateMode() {
         TypedContent content = TypedContent.create(ContentHandle.create("{\"type\":\"string\"}"), ContentTypes.APPLICATION_JSON);
 
+        // Global rules DO apply in CREATE mode
+        when(storage.getGlobalRules()).thenReturn(Collections.singletonList(RuleType.VALIDITY));
+        when(storage.getGlobalRule(RuleType.VALIDITY)).thenReturn(new RuleConfigurationDto("FULL"));
+
         RuleApplicationContext context = RuleApplicationContext.builder()
                 .groupId("testGroup")
                 .artifactId("testArtifact")
@@ -132,6 +212,7 @@ public class RulesServiceImplTest {
 
         rulesService.applyRules(context);
 
+        verify(storage, never()).getArtifactRules(any(), any());
         verify(storage, never()).getEnabledArtifactContentIds(any(), any());
         verify(rulesService.factory).createExecutor(RuleType.VALIDITY);
     }
@@ -167,6 +248,7 @@ public class RulesServiceImplTest {
                 .groupId("testGroup")
                 .artifactType(ArtifactType.JSON)
                 .content(content)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
                 .build();
         Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules(contextMissingArtifactId));
 
@@ -175,6 +257,7 @@ public class RulesServiceImplTest {
                 .groupId("testGroup")
                 .artifactId("testArtifact")
                 .content(content)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
                 .build();
         Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules(contextMissingArtifactType));
 
@@ -183,8 +266,18 @@ public class RulesServiceImplTest {
                 .groupId("testGroup")
                 .artifactId("testArtifact")
                 .artifactType(ArtifactType.JSON)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
                 .build();
         Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules(contextMissingContent));
+
+        // Missing ruleApplicationType
+        RuleApplicationContext contextMissingType = RuleApplicationContext.builder()
+                .groupId("testGroup")
+                .artifactId("testArtifact")
+                .artifactType(ArtifactType.JSON)
+                .content(content)
+                .build();
+        Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRules(contextMissingType));
 
         // Missing ruleType for applyRule
         RuleApplicationContext contextWithoutRuleType = RuleApplicationContext.builder()
@@ -192,6 +285,7 @@ public class RulesServiceImplTest {
                 .artifactId("testArtifact")
                 .artifactType(ArtifactType.JSON)
                 .content(content)
+                .ruleApplicationType(RuleApplicationType.UPDATE)
                 .build();
 
         Assertions.assertThrows(NullPointerException.class, () -> rulesService.applyRule(contextWithoutRuleType));

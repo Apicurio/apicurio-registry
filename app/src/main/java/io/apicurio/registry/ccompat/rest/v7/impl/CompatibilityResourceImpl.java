@@ -15,6 +15,7 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.rules.RuleApplicationContext;
+import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesProperties;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -103,12 +104,11 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                     rulesService.applyRule(RuleApplicationContext.builder()
                             .groupId(ga.getRawGroupIdWithNull())
                             .artifactId(ga.getRawArtifactId())
-                            .artifactVersion(version)
                             .artifactType(artifactVersionMetaData.getArtifactType())
                             .content(typedContent)
                             .ruleType(RuleType.COMPATIBILITY)
                             .ruleConfiguration(CompatibilityLevel.BACKWARD.name())
-                            .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
+                            .ruleApplicationType(RuleApplicationType.UPDATE)
                             .build());
                 } else {
                     rulesService.applyRules(RuleApplicationContext.builder()
@@ -117,7 +117,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                             .artifactVersion(version)
                             .artifactType(artifactVersionMetaData.getArtifactType())
                             .content(typedContent)
-                            .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
+                            .ruleApplicationType(RuleApplicationType.UPDATE)
                             .build());
                 }
             }
@@ -161,12 +161,11 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                                 rulesService.applyRule(RuleApplicationContext.builder()
                                         .groupId(ga.getRawGroupIdWithNull())
                                         .artifactId(ga.getRawArtifactId())
-                                        .artifactVersion(version)
                                         .artifactType(artifact.getArtifactType())
                                         .content(typedContent)
                                         .ruleType(RuleType.COMPATIBILITY)
                                         .ruleConfiguration(CompatibilityLevel.BACKWARD.name())
-                                        .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
+                                        .ruleApplicationType(RuleApplicationType.UPDATE)
                                         .build());
                             } else {
                                 rulesService.applyRules(RuleApplicationContext.builder()
@@ -175,7 +174,7 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                                         .artifactVersion(version)
                                         .artifactType(artifact.getArtifactType())
                                         .content(typedContent)
-                                        .ruleApplicationType(io.apicurio.registry.rules.RuleApplicationType.UPDATE)
+                                        .ruleApplicationType(RuleApplicationType.UPDATE)
                                         .build());
                             }
                             CompatibilityCheckResponse response = new CompatibilityCheckResponse();

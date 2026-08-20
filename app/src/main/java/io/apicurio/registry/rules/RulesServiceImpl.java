@@ -66,10 +66,11 @@ public class RulesServiceImpl implements RulesService {
         Objects.requireNonNull(context.getArtifactId(), "artifactId must not be null");
         Objects.requireNonNull(context.getArtifactType(), "artifactType must not be null");
         Objects.requireNonNull(context.getContent(), "content must not be null");
+        Objects.requireNonNull(context.getRuleApplicationType(), "ruleApplicationType must not be null");
         RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
 
         List<TypedContent> currentContent = resolveCurrentContent(context, storageToUse);
-        Set<RuleType> artifactRules = storageToUse.isArtifactExists(context.getGroupId(), context.getArtifactId())
+        Set<RuleType> artifactRules = context.getRuleApplicationType() == RuleApplicationType.UPDATE
                 ? new HashSet<>(storageToUse.getArtifactRules(context.getGroupId(), context.getArtifactId()))
                 : Collections.emptySet();
 
@@ -84,6 +85,7 @@ public class RulesServiceImpl implements RulesService {
         Objects.requireNonNull(context.getArtifactId(), "artifactId must not be null");
         Objects.requireNonNull(context.getArtifactType(), "artifactType must not be null");
         Objects.requireNonNull(context.getContent(), "content must not be null");
+        Objects.requireNonNull(context.getRuleApplicationType(), "ruleApplicationType must not be null");
         Objects.requireNonNull(context.getRuleType(), "ruleType must not be null for applyRule");
         RegistryStorage storageToUse = context.getStorage() != null ? context.getStorage() : storage;
 
@@ -134,8 +136,7 @@ public class RulesServiceImpl implements RulesService {
         // Get the global rules
         Set<RuleType> globalRules = new HashSet<>(storageToUse.getGlobalRules());
         // Get the configured default global rules
-        Set<RuleType> defaultGlobalRules = (rulesProperties != null && rulesProperties.getDefaultGlobalRules() != null)
-                ? rulesProperties.getDefaultGlobalRules() : Set.of();
+        Set<RuleType> defaultGlobalRules = new HashSet<>(rulesProperties.getDefaultGlobalRules());
 
         // Build the map of rules to apply (may be empty)
         List.of(RuleType.values()).forEach(rt -> {
@@ -149,7 +150,7 @@ public class RulesServiceImpl implements RulesService {
             } else if (defaultGlobalRules.contains(rt)) {
                 dto = rulesProperties.getDefaultGlobalRuleConfiguration(rt);
             }
-            if (dto != null && dto.getConfiguration() != null) {
+            if (dto != null) {
                 allRules.put(rt, dto);
             }
         });

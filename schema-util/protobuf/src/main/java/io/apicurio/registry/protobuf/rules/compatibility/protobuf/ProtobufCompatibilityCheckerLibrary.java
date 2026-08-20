@@ -168,6 +168,13 @@ public class ProtobufCompatibilityCheckerLibrary {
             Map<String, FieldElement> updated = after.get(entry.getKey());
             if (updated != null) {
                 removedFieldNames.removeAll(updated.keySet());
+            } else if (isSyntheticMapEntryRemoved(entry.getKey())) {
+                // The message is a synthetic map entry (a nested message with
+                // "option map_entry = true") that only exists in the desugared descriptor
+                // representation of a map field. Its absence on the other side just means the
+                // other schema renders the same map field using map<K, V> syntax, so its
+                // key/value fields are not actually removed.
+                continue;
             }
 
             int issuesCount = 0;
@@ -271,14 +278,19 @@ public class ProtobufCompatibilityCheckerLibrary {
                                 entry.getKey());
                         String afterType = normalizeType(fileAfter, afterFE.getType(), entry.getKey());
 
-                        if (afterFE != null && !beforeType.equals(afterType)) {
+                        if (!Objects.equals(beforeType, afterType)) {
                             issues.add(ProtobufDifference.from(String.format(
                                     "Field type changed, message %s , before: %s , after %s", entry.getKey(),
                                     beforeKV.getValue().getType(), afterFE.getType())));
                         }
 
-                        if (afterFE != null
-                                && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
+                        if (!Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())
+                                && !(beforeType != null && beforeType.startsWith("map<")
+                                        && beforeType.equals(afterType))) {
+                            // A label difference is benign when both sides resolved to the same
+                            // map<K, V> type: one side renders the map field with map syntax (no
+                            // label) while the other uses the desugared descriptor representation
+                            // (REPEATED label on the synthetic map entry type).
                             issues.add(ProtobufDifference.from(String.format(
                                     "Field label changed, message %s , before: %s , after %s", entry.getKey(),
                                     beforeKV.getValue().getLabel(), afterFE.getLabel())));
@@ -305,9 +317,31 @@ public class ProtobufCompatibilityCheckerLibrary {
             return null;
         }
 
-        // Handle Protobuf map types
+        // Handle Protobuf map types: normalize the key and value types so that equivalent map
+        // fields compare equal even when one side uses qualified type names and the other does
+        // not (e.g. "map<string, Foo>" vs "map<string, .test.Foo>").
         if (type.startsWith("map<")) {
-            return type;
+            return normalizeMapType(file, type, messageContext);
+        }
+
+        // A repeated field whose type is a synthetic map entry message (a nested message with
+        // "option map_entry = true") is the desugared descriptor representation of a map field.
+        // Resolve it to the equivalent map<K, V> type so that it compares equal to the same
+        // field rendered with map syntax on the other side.
+        Map<String, String> entryTypes = file.getMapEntryTypes().get(messageContext);
+        if (entryTypes != null) {
+            // The field's type may be simple ("DataEntry"), qualified
+            // ("OrderChanged.DataEntry"), or fully qualified (".test.OrderChanged.DataEntry");
+            // the entry message's simple name is always its last component.
+            String simpleName = type.startsWith(".") ? type.substring(1) : type;
+            int lastDot = simpleName.lastIndexOf('.');
+            if (lastDot >= 0) {
+                simpleName = simpleName.substring(lastDot + 1);
+            }
+            String mapType = entryTypes.get(simpleName);
+            if (mapType != null) {
+                return normalizeMapType(file, mapType, messageContext);
+            }
         }
 
         // If already fully qualified (starts with .), return it as-is
@@ -368,6 +402,39 @@ public class ProtobufCompatibilityCheckerLibrary {
         // the same file) are already handled by the scope-iteration loop above, which walks the
         // messageContext chain outward before reaching this fallback.
         return buildFullyQualifiedName(file, type);
+    }
+
+    /**
+     * Normalizes a map<K, V> type by normalizing its key and value types, so that map fields
+     * compare equal regardless of the type reference style used on each side.
+     *
+     * @param file           the protobuf file containing the type
+     * @param type           the map type (e.g., "map<string, Foo>")
+     * @param messageContext the message in which the field is defined
+     * @return the normalized map type (e.g., "map<string, .test.Foo>")
+     */
+    private String normalizeMapType(ProtobufFile file, String type, String messageContext) {
+        int comma = type.indexOf(',');
+        if (!type.endsWith(">") || comma < 0) {
+            return type;
+        }
+        String keyType = type.substring("map<".length(), comma).trim();
+        String valueType = type.substring(comma + 1, type.length() - 1).trim();
+        return "map<" + normalizeType(file, keyType, messageContext) + ", "
+                + normalizeType(file, valueType, messageContext) + ">";
+    }
+
+    /**
+     * Checks whether the given message is a synthetic map entry message (the desugared
+     * descriptor representation of a map field) that does not exist on the other side of the
+     * comparison because that side renders the map field using map<K, V> syntax instead.
+     *
+     * @param messageName the scoped message name (e.g. "OrderChanged.DataEntry")
+     * @return true if the message is a synthetic map entry missing from the other file
+     */
+    private boolean isSyntheticMapEntryRemoved(String messageName) {
+        return fileBefore.getMapEntryMessages().contains(messageName)
+                || fileAfter.getMapEntryMessages().contains(messageName);
     }
 
     /**

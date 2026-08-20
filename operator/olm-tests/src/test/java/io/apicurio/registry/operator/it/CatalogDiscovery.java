@@ -229,10 +229,15 @@ public class CatalogDiscovery {
                 case "olm.channel" -> {
                     var channelName = obj.path("name").asText("");
                     var entries = new ArrayList<ChannelEntry>();
+                    var replacedNames = new HashSet<String>();
                     var entriesNode = obj.get("entries");
                     if (entriesNode != null && entriesNode.isArray()) {
                         for (var entryNode : entriesNode) {
                             var csvName = entryNode.path("name").asText("");
+                            var replaces = entryNode.path("replaces").asText(null);
+                            if (replaces != null) {
+                                replacedNames.add(replaces);
+                            }
                             var versionStr = extractVersionString(csvName);
                             try {
                                 entries.add(new ChannelEntry(csvName, parseVersion(versionStr)));
@@ -242,10 +247,21 @@ public class CatalogDiscovery {
                             }
                         }
                     }
-                    // Sort entries by version descending so the head (latest) is first
-                    entries.sort((a, b) -> b.getVersion().compareTo(a.getVersion()));
+                    // Order entries with the channel head first. The head is the entry that
+                    // no other entry replaces and is itself part of the replaces chain.
+                    entries.sort((a, b) -> {
+                        var aIsHead = !replacedNames.contains(a.getCsvName());
+                        var bIsHead = !replacedNames.contains(b.getCsvName());
+                        if (aIsHead != bIsHead) {
+                            return aIsHead ? -1 : 1;
+                        }
+                        return b.getVersion().compareTo(a.getVersion());
+                    });
                     channels.put(channelName, entries);
-                    log.info("FBC channel {}: {} entries", channelName, entries.size());
+                    if (!entries.isEmpty()) {
+                        log.info("FBC channel {}: {} entries, head={}",
+                                channelName, entries.size(), entries.get(0).getCsvName());
+                    }
                 }
                 case "olm.bundle" -> {
                     // Bundle objects contain the CSV content — not needed for discovery

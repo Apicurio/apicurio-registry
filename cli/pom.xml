@@ -21,7 +21,7 @@
         <quarkus.native.builder-image>
             quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-23
         </quarkus.native.builder-image>
-        <jna.version>5.19.1</jna.version>
+        <jline.native.args></jline.native.args>
         <!-- Suffix of the native executable. Empty on Linux/macOS, ".exe" on Windows
              (set by the windows profile below). -->
         <executable.suffix></executable.suffix>
@@ -39,6 +39,20 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-picocli</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jansi</artifactId>
+        </dependency>
+
 
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -294,6 +308,7 @@
             <properties>
                 <executable.suffix>.exe</executable.suffix>
                 <cli.common.scripts.excludes>acr</cli.common.scripts.excludes>
+                <jline.native.args>-J-Djline.terminal=jansi,</jline.native.args>
             </properties>
         </profile>
 

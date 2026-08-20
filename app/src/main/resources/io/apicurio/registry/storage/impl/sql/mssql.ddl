@@ -113,7 +113,7 @@ ALTER TABLE contract_rules ADD CONSTRAINT FK_contract_rules_1 FOREIGN KEY (globa
 CREATE INDEX IDX_contract_rules_1 ON contract_rules(groupId, artifactId);
 CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);
 
-CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload TEXT NOT NULL);
+CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid NVARCHAR(2048) NOT NULL, type VARCHAR(255) NOT NULL, payload TEXT NOT NULL);
 ALTER TABLE outbox ADD PRIMARY KEY (id);
 
 CREATE TABLE contract_audit_log (auditId BIGINT IDENTITY NOT NULL, groupId NVARCHAR(512), artifactId NVARCHAR(512) NOT NULL, version NVARCHAR(256), action NVARCHAR(64) NOT NULL, principal NVARCHAR(256), details NVARCHAR(MAX), createdOn DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME());

@@ -118,7 +118,7 @@ ALTER TABLE contract_audit_log ADD PRIMARY KEY (auditId);
 CREATE INDEX IDX_contract_audit_1 ON contract_audit_log(groupId, artifactId);
 CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 
-CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload JSONB NOT NULL);
+CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(2048) NOT NULL, type VARCHAR(255) NOT NULL, payload JSONB NOT NULL);
 ALTER TABLE outbox ADD PRIMARY KEY (id);
 
 CREATE TABLE schema_usage (globalId BIGINT NOT NULL, contentId BIGINT NOT NULL DEFAULT 0, clientId VARCHAR(256) NOT NULL, operation VARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP);

@@ -206,6 +206,86 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(1, dto.getLabels().size());
     }
 
+    /**
+     * Regression test for the outbox aggregate id length. Creating an artifact fires an outbox event whose
+     * aggregate id is "groupId-artifactId" (and "groupId-artifactId-version" for the version event). That
+     * INSERT happens in the same transaction as the artifact write, so if the aggregateid column is too
+     * narrow the whole creation is rolled back and the artifact never appears.
+     *
+     * <p>
+     * Uses 130-char identifiers rather than the schema maximum (512/512/256) because MSSQL's
+     * branch_versions table has a composite clustered PK on (groupId, artifactId, branchId, version),
+     * all NVARCHAR (2 bytes/char), and MSSQL limits clustered index keys to 900 bytes. The resulting
+     * aggregate id of 393 chars still well exceeds the old 255-char column limit that caused the bug.
+     * On Postgres and MSSQL this exercises the real outbox INSERT; on H2 there is no outbox table, so
+     * it just confirms that long identifiers round-trip.
+     */
+    @Test
+    public void testCreateArtifactWithMaxLengthIdentifiers() throws Exception {
+        // Use 130 chars for groupId/artifactId/version because MSSQL clustered indexes have a 900-byte
+        // key limit. The branch_versions table has a composite PK on (groupId, artifactId, branchId,
+        // version), all NVARCHAR (2 bytes/char). With branchId ~6 chars ("latest"), the sum must stay
+        // under 450 chars. An aggregate id of 130 + 1 + 130 + 1 + 130 = 393 still well exceeds the old
+        // 255-char column limit that caused the original bug.
+        String longGroupId = generateString(130);
+        String longArtifactId = generateString(130);
+        String longVersion = generateString(130);
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(longGroupId, longArtifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        EditableVersionMetaDataDto.builder().build(), Collections.emptyList(), false, false,
+                        null)
+                .getValue();
+
+        // The version event's aggregate id is the widest one the application generates.
+        Assertions.assertNotNull(dto);
+        Assertions.assertEquals(longGroupId, dto.getGroupId());
+        Assertions.assertEquals(longArtifactId, dto.getArtifactId());
+        Assertions.assertEquals(130, dto.getGroupId().length());
+        Assertions.assertEquals(130, dto.getArtifactId().length());
+
+        // The artifact must really be there a rolled back transaction would leave nothing behind.
+        ArtifactMetaDataDto amdDto = storage().getArtifactMetaData(longGroupId, longArtifactId);
+        Assertions.assertNotNull(amdDto);
+        Assertions.assertEquals(longGroupId, amdDto.getGroupId());
+        Assertions.assertEquals(longArtifactId, amdDto.getArtifactId());
+
+        // Now add a version with a max-length version string: aggregate id is 130 + 1 + 130 + 1 + 130 = 393.
+        ContentHandle contentV2 = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactVersionMetaDataDto v2 = storage().createArtifactVersion(longGroupId, longArtifactId,
+                longVersion, ArtifactType.OPENAPI, ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_JSON).content(contentV2).build(),
+                null, Collections.emptyList(), false, false, null);
+
+        Assertions.assertNotNull(v2);
+        Assertions.assertEquals(longGroupId, v2.getGroupId());
+        Assertions.assertEquals(longArtifactId, v2.getArtifactId());
+        Assertions.assertEquals(longVersion.length(), v2.getVersion().length());
+        int aggregateIdLength = v2.getGroupId().length() + 1 + v2.getArtifactId().length() + 1
+                + v2.getVersion().length();
+        Assertions.assertTrue(aggregateIdLength > 255,
+                "Aggregate id length " + aggregateIdLength + " must exceed the old 255-char column limit");
+
+        // Both versions survived, and the long version is readable by its identifiers.
+        ArtifactVersionMetaDataDto readBack = storage().getArtifactVersionMetaData(longGroupId,
+                longArtifactId, longVersion);
+        Assertions.assertNotNull(readBack);
+        Assertions.assertEquals(v2.getGlobalId(), readBack.getGlobalId());
+        Assertions.assertEquals(longVersion, readBack.getVersion());
+
+        StoredArtifactVersionDto storedVersion = storage().getArtifactVersionContent(longGroupId,
+                longArtifactId, longVersion);
+        Assertions.assertNotNull(storedVersion);
+        Assertions.assertEquals(OPENAPI_CONTENT_V2, storedVersion.getContent().content());
+
+        List<String> versions = storage().getArtifactVersions(longGroupId, longArtifactId);
+        Assertions.assertEquals(2, versions.size());
+        Assertions.assertTrue(versions.contains(longVersion));
+    }
+
     @Test
     public void testCreateDuplicateArtifact() throws Exception {
         String artifactId = "testCreateDuplicateArtifact-1";

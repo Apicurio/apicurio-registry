@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipOutputStream;
 
 /**
@@ -44,18 +43,15 @@ public class DataExporter {
             try {
                 ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
                 EntityWriter writer = new EntityWriter(zip);
-                AtomicInteger errorCounter = new AtomicInteger(0);
                 storage.exportData(groupId, entity -> {
                     try {
                         writer.writeEntity(entity);
                     } catch (Exception e) {
                         log.error("Error writing entity", e);
-                        errorCounter.incrementAndGet();
+                        throw new RuntimeException(e);
                     }
                     return null;
                 });
-
-                // TODO if the errorCounter > 0, then what?
 
                 zip.flush();
                 zip.close();

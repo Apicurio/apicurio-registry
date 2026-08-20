@@ -205,8 +205,6 @@ jobs:
           IS_PUSH=$( [ "$EVENT" = "push" ] && echo true || echo false )
 
           echo "lifecycle-ready=$run_tests" >> "$GITHUB_OUTPUT"
-          # Temporary debug for PR #9718: why is run_tests false at ready-to-merge?
-          echo "::notice::DECIDE DEBUG: run_tests=$run_tests labels=$LABELS"
           decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
           decide run-unit-tests  "$run_tests" "$IS_PUSH" "$JAVA" "$CI"
           # Report only when java sources changed: .github-only PRs trip

@@ -2,7 +2,6 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.utils.RetryTest;
 import io.quarkus.test.junit.QuarkusTest;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
@@ -32,11 +31,6 @@ public class ChannelValidationOLMITTest extends OLMITBase {
     @Override
     @AfterEach
     public void afterEach() {
-    }
-
-    private int getOlmVersion() {
-        return ConfigProvider.getConfig().getOptionalValue(OLM_VERSION_PROP, Integer.class)
-                .orElse(0);
     }
 
     @RetryTest

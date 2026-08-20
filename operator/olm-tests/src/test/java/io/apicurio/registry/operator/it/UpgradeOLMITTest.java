@@ -8,8 +8,12 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.semver4j.Semver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,21 +28,25 @@ import static org.awaitility.Awaitility.await;
 
 /**
  * Tests OLM upgrade paths using OLM v0 (Subscription model).
- *
- * Uses the second-to-last version in the catalog as the starting point, then verifies OLM upgrades to the
- * current version through both the minor-version channel and the rolling channel.
+ * <p>
+ * Discovers available versions from the live catalog's PackageManifest at runtime, so these tests
+ * work with both upstream catalogs (built from catalog.template.yaml) and downstream IIB images
+ * (where CSV names have productized suffixes). See the olm-tests README for which tests apply
+ * in each release scenario.
  */
 @QuarkusTest
 @Tag(OLM)
+@DisabledIfSystemProperty(named = OLMTestUtils.OLM_VERSION_PROP, matches = "1",
+        disabledReason = "Upgrade tests use OLM v0 Subscriptions which are not available on OLM v1")
 @ExtendWith(OperatorTestExtension.class)
 public class UpgradeOLMITTest implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMITTest.class);
 
-    private static final String UPGRADE_START_VERSION_PROP = "test.operator.upgrade-start-version";
-    // Must be present in both 3.x and 3.2.x channels in catalog.template.yaml
-    private static final String UPGRADE_START_VERSION_DEFAULT = "3.2.4";
-    private static final Duration UPGRADE_TIMEOUT = Duration.ofMinutes(10);
+    private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
+            Integer.getInteger("test.operator.timeout.olm-upgrade", 900));
+
+    private static CatalogInfo catalog;
 
     private KubernetesClient client;
     private String namespace;
@@ -59,46 +67,27 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         return true;
     }
 
-    private String getStartVersion() {
-        return ConfigProvider.getConfig()
-                .getOptionalValue(UPGRADE_START_VERSION_PROP, String.class)
-                .orElse(UPGRADE_START_VERSION_DEFAULT);
+    @BeforeAll
+    static void discoverCatalog() throws Exception {
+        setDefaultAwaitilityTimings();
+        var discoveryClient = ITBase.createK8sClient("default");
+        try {
+            catalog = CatalogDiscovery.getInstance(discoveryClient).getCatalogInfo();
+        } finally {
+            discoveryClient.close();
+        }
     }
 
-    private String getMinorChannelHead() {
-        // Auto-discover from the catalog template file — read the first entry in the
-        // minor channel to find the current head. This avoids hardcoded version constants
-        // that break whenever a new patch is released.
-        var startVersion = getStartVersion();
-        var minorChannel = deriveMinorChannel(startVersion);
-        try {
-            var catalogRaw = loadRawResource("catalog/catalog.template.yaml");
-            var mapper = new com.fasterxml.jackson.dataformat.yaml.YAMLMapper();
-            var tree = mapper.readTree(catalogRaw);
-            var entries = tree.get("entries");
-            if (entries != null) {
-                for (var entry : entries) {
-                    if ("olm.channel".equals(entry.path("schema").asText())
-                            && minorChannel.equals(entry.path("name").asText())) {
-                        var channelEntries = entry.get("entries");
-                        if (channelEntries != null && channelEntries.size() > 0) {
-                            var headName = channelEntries.get(0).path("name").asText();
-                            if (headName.startsWith(PACKAGE_NAME + ".v")) {
-                                var version = headName.substring((PACKAGE_NAME + ".v").length());
-                                log.info("Auto-discovered minor channel head from catalog template: {} -> {}",
-                                        minorChannel, version);
-                                return version;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Could not auto-discover minor channel head from catalog template: {}",
-                    e.getMessage());
-        }
-        log.info("Falling back to start version as minor channel head: {}", startVersion);
-        return startVersion;
+    private static String projectVersion() {
+        return OLMTestUtils.getProjectVersion();
+    }
+
+    private static String minorChannel() {
+        return deriveMinorChannel(projectVersion());
+    }
+
+    private static String rollingChannel() {
+        return deriveRollingChannel(projectVersion());
     }
 
     private void setUp() throws Exception {
@@ -125,88 +114,183 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         }
     }
 
+    // ---- Condition methods for @EnabledIf ----
+
+    static boolean minorChannelHasPreviousEntry() {
+        var has = catalog.getPreviousEntry(minorChannel()) != null;
+        if (!has) {
+            log.info("Condition not met: channel {} has fewer than 2 entries (first-in-minor release)",
+                    minorChannel());
+        }
+        return has;
+    }
+
+    static boolean isHeadOfRollingChannel() {
+        var is = catalog.isVersionChannelHead(rollingChannel(), projectVersion());
+        if (!is) {
+            log.info("Condition not met: version {} is not the head of {} (maintenance branch release?)",
+                    projectVersion(), rollingChannel());
+        }
+        return is;
+    }
+
+    static boolean hasCrossMinorEntryInRollingChannel() {
+        if (!isHeadOfRollingChannel()) {
+            return false;
+        }
+        var entry = catalog.getCrossMinorEntry(rollingChannel());
+        if (entry == null) {
+            log.info("Condition not met: no cross-minor entry found in {}", rollingChannel());
+            return false;
+        }
+        return true;
+    }
+
+    static boolean isInRollingAndMinorChannel() {
+        var inRolling = catalog.isVersionChannelHead(rollingChannel(), projectVersion());
+        var hasMinor = catalog.hasChannel(minorChannel());
+        if (!inRolling) {
+            log.info("Condition not met: version {} is not the head of {}",
+                    projectVersion(), rollingChannel());
+        }
+        if (!hasMinor) {
+            log.info("Condition not met: channel {} not found in catalog", minorChannel());
+        }
+        return inRolling && hasMinor;
+    }
+
+    static boolean rollingChannelHasPreviousEntry() {
+        if (!isInRollingAndMinorChannel()) {
+            return false;
+        }
+        var has = catalog.getPreviousEntry(rollingChannel()) != null;
+        if (!has) {
+            log.info("Condition not met: {} has fewer than 2 entries", rollingChannel());
+        }
+        return has;
+    }
+
+    static boolean hasOlderMinorChannel() {
+        if (!isHeadOfRollingChannel()) {
+            return false;
+        }
+        var ch = catalog.getOlderMinorChannel(projectVersion(), rollingChannel());
+        if (ch == null) {
+            log.info("Condition not met: no older minor channel found in catalog");
+            return false;
+        }
+        return true;
+    }
+
+    static boolean minorChannelExists() {
+        var exists = catalog.hasChannel(minorChannel());
+        if (!exists) {
+            log.info("Condition not met: channel {} not found in catalog", minorChannel());
+        }
+        return exists;
+    }
+
+    // ---- Test methods ----
+
+    /**
+     * Verifies patch upgrade within the current minor channel (e.g., 3.3.0 -> 3.3.1 on 3.3.x).
+     * Requires at least 2 entries in the minor channel.
+     */
     @RetryTest
+    @EnabledIf("minorChannelHasPreviousEntry")
     void testUpgradeWithinMinorChannel() throws Exception {
         setUp();
 
-        var startVersion = getStartVersion();
-        var minorHead = getMinorChannelHead();
-        var minorChannel = deriveMinorChannel(startVersion);
+        var prev = catalog.getPreviousEntry(minorChannel());
+        var headVersion = catalog.getChannelHeadVersion(minorChannel());
 
-        log.info("Testing upgrade within {} channel: {} -> {}", minorChannel, startVersion,
-                minorHead);
+        log.info("Testing upgrade within {} channel: {} -> {}",
+                minorChannel(), prev.getVersion(), headVersion);
 
-        deployCatalogAndSubscribe(minorChannel, startVersion);
-        waitForOperatorVersion(startVersion);
+        deployCatalogAndSubscribe(minorChannel(), prev.getCsvName());
+        waitForOperatorVersion(prev.getVersion());
 
-        log.info("Operator {} deployed, waiting for upgrade to {}", startVersion, minorHead);
-        verifyUpgradeTo(minorHead);
+        log.info("Operator {} deployed, waiting for upgrade to {}", prev.getVersion(), headVersion);
+        verifyUpgradeTo(headVersion);
 
-        log.info("Upgrade within minor channel succeeded: {} -> {}", startVersion, minorHead);
+        log.info("Upgrade within minor channel succeeded: {} -> {}", prev.getVersion(), headVersion);
     }
 
+    /**
+     * Verifies cross-minor upgrade via the rolling channel (e.g., 3.2.5 -> 3.3.1 on 3.x).
+     * Requires the current version to be in the 3.x channel and an entry from a different minor.
+     */
     @RetryTest
+    @EnabledIf("hasCrossMinorEntryInRollingChannel")
     void testUpgradeAcrossMinors() throws Exception {
         setUp();
 
-        var startVersion = getStartVersion();
-        var projectVersion = getProjectVersion();
-        var rollingChannel = deriveRollingChannel(startVersion);
+        var crossMinorEntry = catalog.getCrossMinorEntry(rollingChannel());
+        var headVersion = catalog.getChannelHeadVersion(rollingChannel());
 
-        log.info("Testing upgrade via {} channel: {} -> {}", rollingChannel, startVersion,
-                projectVersion);
+        log.info("Testing upgrade via {} channel: {} -> {}",
+                rollingChannel(), crossMinorEntry.getVersion(), headVersion);
 
-        deployCatalogAndSubscribe(rollingChannel, startVersion);
-        waitForOperatorVersion(startVersion);
+        deployCatalogAndSubscribe(rollingChannel(), crossMinorEntry.getCsvName());
+        waitForOperatorVersion(crossMinorEntry.getVersion());
 
-        log.info("Operator {} deployed, waiting for upgrade to {}", startVersion, projectVersion);
-        verifyUpgradeTo(projectVersion);
+        log.info("Operator {} deployed, waiting for upgrade to {}",
+                crossMinorEntry.getVersion(), headVersion);
+        verifyUpgradeTo(headVersion);
 
-        verifyUpgradeCompleted(startVersion, projectVersion);
+        verifyUpgradeCompleted(crossMinorEntry.getVersion(), headVersion);
 
-        log.info("Cross-minor upgrade succeeded: {} -> {}", startVersion, projectVersion);
+        log.info("Cross-minor upgrade succeeded: {} -> {}",
+                crossMinorEntry.getVersion(), headVersion);
     }
 
+    /**
+     * Verifies channel switch from rolling to minor channel. Installs on 3.x, then switches
+     * subscription to 3.3.x and verifies the operator reaches the minor channel head.
+     * Requires the current version to be in both channels and a previous entry in the rolling channel.
+     */
     @RetryTest
+    @EnabledIf("rollingChannelHasPreviousEntry")
     void testChannelSwitchFromRollingToMinor() throws Exception {
         setUp();
 
-        var startVersion = getStartVersion();
-        var minorHead = getMinorChannelHead();
-        var minorChannel = deriveMinorChannel(startVersion);
-        var rollingChannel = deriveRollingChannel(startVersion);
+        var prev = catalog.getPreviousEntry(rollingChannel());
+        var minorHeadVersion = catalog.getChannelHeadVersion(minorChannel());
 
-        log.info("Testing channel switch: install {} on {}, then switch to {}", startVersion,
-                rollingChannel, minorChannel);
+        log.info("Testing channel switch: install {} on {}, then switch to {}",
+                prev.getVersion(), rollingChannel(), minorChannel());
 
-        deployCatalogAndSubscribe(rollingChannel, startVersion);
-        waitForOperatorVersion(startVersion);
-        log.info("Operator {} deployed on {} channel", startVersion, rollingChannel);
+        deployCatalogAndSubscribe(rollingChannel(), prev.getCsvName());
+        waitForOperatorVersion(prev.getVersion());
+        log.info("Operator {} deployed on {} channel", prev.getVersion(), rollingChannel());
 
-        // Switch subscription to the minor channel
-        patchSubscriptionChannel(minorChannel);
-        log.info("Switched subscription to {} channel, waiting for upgrade to {}", minorChannel,
-                minorHead);
+        patchSubscriptionChannel(minorChannel());
+        log.info("Switched subscription to {} channel, waiting for upgrade to {}",
+                minorChannel(), minorHeadVersion);
 
-        verifyUpgradeTo(minorHead);
-        log.info("Channel switch succeeded: operator is now at {} on {} channel", minorHead,
-                minorChannel);
+        verifyUpgradeTo(minorHeadVersion);
+        log.info("Channel switch succeeded: operator is now at {} on {} channel",
+                minorHeadVersion, minorChannel());
     }
 
+    /**
+     * Verifies that switching channels at the channel head is a no-op (operator stays at same version).
+     * Requires the current version to be in both 3.x and its minor channel.
+     */
     @RetryTest
+    @EnabledIf("isInRollingAndMinorChannel")
     void testChannelSwitchAtChannelHeadIsNoop() throws Exception {
         setUp();
 
-        var projectVersion = getProjectVersion();
-        var rollingChannel = deriveRollingChannel(projectVersion);
-        var currentMinorChannel = deriveMinorChannel(projectVersion);
+        var headCSV = catalog.getChannelHeadCSV(rollingChannel());
+        var headVersion = catalog.getChannelHeadVersion(rollingChannel());
 
-        log.info("Testing noop channel switch: install {} on {}, then switch to {} where it's also the head",
-                projectVersion, rollingChannel, currentMinorChannel);
+        log.info("Testing noop channel switch: install {} on {}, then switch to {}",
+                headVersion, rollingChannel(), minorChannel());
 
-        deployCatalogAndSubscribe(rollingChannel, projectVersion);
-        waitForOperatorVersion(projectVersion);
-        log.info("Operator {} deployed on {} channel", projectVersion, rollingChannel);
+        deployCatalogAndSubscribe(rollingChannel(), headCSV);
+        waitForOperatorVersion(headVersion);
+        log.info("Operator {} deployed on {} channel", headVersion, rollingChannel());
 
         var podBefore = client.pods().inNamespace(namespace).list().getItems().stream()
                 .filter(p -> p.getMetadata().getName().contains("apicurio-registry-operator"))
@@ -215,21 +299,18 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 .findFirst().orElseThrow(() -> new IllegalStateException("No operator pod found"));
         log.info("Operator pod UID before switch: {}", podBefore);
 
-        patchSubscriptionChannel(currentMinorChannel);
+        patchSubscriptionChannel(minorChannel());
         log.info("Switched subscription to {} channel, verifying operator stays at same version...",
-                currentMinorChannel);
+                minorChannel());
 
-        // OLM may re-evaluate and restart the pod on a channel switch, even if the
-        // version is the same. Wait for any restarts to settle, then verify the
-        // version hasn't changed and the operator is healthy.
         Thread.sleep(30_000);
 
-        // Verify the deployment still exists at the same version and is healthy
         await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
-                    .withName("apicurio-registry-operator-v" + projectVersion.toLowerCase()).get();
+                    .withName(deploymentName(headVersion)).get();
             assertThat(deployment)
-                    .as("Operator deployment at " + projectVersion + " should still exist after channel switch")
+                    .as("Operator deployment at " + headVersion
+                            + " should still exist after channel switch")
                     .isNotNull();
             assertThat(deployment.getStatus().getReadyReplicas())
                     .as("Operator should have 1 ready replica after channel switch")
@@ -240,189 +321,193 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 .filter(p -> p.getMetadata().getName().contains("apicurio-registry-operator"))
                 .filter(p -> "Running".equals(p.getStatus().getPhase()))
                 .map(p -> p.getMetadata().getUid())
-                .findFirst().orElseThrow(() -> new IllegalStateException("No operator pod found after switch"));
+                .findFirst().orElseThrow(
+                        () -> new IllegalStateException("No operator pod found after switch"));
 
         if (podAfter.equals(podBefore)) {
             log.info("Channel switch was a true noop: same pod UID {}", podAfter);
         } else {
-            log.info("OLM restarted the pod on channel switch (old: {}, new: {}), but version is unchanged",
-                    podBefore, podAfter);
+            log.info("OLM restarted the pod on channel switch (old: {}, new: {}), "
+                    + "but version is unchanged", podBefore, podAfter);
         }
 
-        log.info("Channel switch at channel head verified: operator at {} is healthy", projectVersion);
+        log.info("Channel switch at channel head verified: operator at {} is healthy", headVersion);
     }
 
+    /**
+     * Verifies minor channel isolation — upgrade within the minor channel should not cross minor
+     * boundaries. Requires at least 2 entries in the minor channel.
+     */
     @RetryTest
+    @EnabledIf("minorChannelHasPreviousEntry")
     void testMinorChannelIsolation() throws Exception {
         setUp();
 
-        var startVersion = getStartVersion();
-        var minorHead = getMinorChannelHead();
-        var minorChannel = deriveMinorChannel(startVersion);
+        var prev = catalog.getPreviousEntry(minorChannel());
+        var minorHeadVersion = catalog.getChannelHeadVersion(minorChannel());
 
         log.info("Testing minor channel isolation: {} -> {} on {}, then verify no further upgrade",
-                startVersion, minorHead, minorChannel);
+                prev.getVersion(), minorHeadVersion, minorChannel());
 
-        deployCatalogAndSubscribe(minorChannel, startVersion);
-        waitForOperatorVersion(startVersion);
-        verifyUpgradeTo(minorHead);
-        log.info("Upgraded to {}. Waiting 60s to verify no further upgrade happens...", minorHead);
+        deployCatalogAndSubscribe(minorChannel(), prev.getCsvName());
+        waitForOperatorVersion(prev.getVersion());
+        verifyUpgradeTo(minorHeadVersion);
+        log.info("Upgraded to {}. Waiting 60s to verify no further upgrade happens...",
+                minorHeadVersion);
 
-        // Wait and verify the operator stays at the minor channel head
-        var projectVersion = getProjectVersion();
-        var crossMinorDeployment = "apicurio-registry-operator-v" + projectVersion.toLowerCase();
-        Thread.sleep(60_000);
+        var rollingHeadVersion = catalog.getChannelHeadVersion(rollingChannel());
+        if (rollingHeadVersion != null && !rollingHeadVersion.equals(minorHeadVersion)) {
+            Thread.sleep(60_000);
 
-        var deployment = client.apps().deployments().inNamespace(namespace)
-                .withName(crossMinorDeployment).get();
-        assertThat(deployment)
-                .as("Operator should NOT be upgraded to " + projectVersion
-                        + " on the " + minorChannel + " channel")
-                .isNull();
+            var deployment = client.apps().deployments().inNamespace(namespace)
+                    .withName(deploymentName(rollingHeadVersion)).get();
+            assertThat(deployment)
+                    .as("Operator should NOT be upgraded to " + rollingHeadVersion
+                            + " on the " + minorChannel() + " channel")
+                    .isNull();
+        }
 
         var currentDeployment = client.apps().deployments().inNamespace(namespace)
-                .withName("apicurio-registry-operator-v" + minorHead.toLowerCase()).get();
-        assertThat(currentDeployment).as("Operator should still be at " + minorHead).isNotNull();
+                .withName(deploymentName(minorHeadVersion)).get();
+        assertThat(currentDeployment)
+                .as("Operator should still be at " + minorHeadVersion).isNotNull();
         assertThat(currentDeployment.getStatus().getReadyReplicas())
-                .as("Operator at " + minorHead + " should still have 1 ready replica")
+                .as("Operator at " + minorHeadVersion + " should still have 1 ready replica")
                 .isEqualTo(1);
 
-        log.info("Minor channel isolation confirmed: operator stayed at {}", minorHead);
+        log.info("Minor channel isolation confirmed: operator stayed at {}", minorHeadVersion);
     }
 
+    /**
+     * Verifies fresh install on the minor channel (no startingCSV) gets the channel head.
+     * Requires the minor channel to exist.
+     */
     @RetryTest
+    @EnabledIf("minorChannelExists")
     void testFreshInstallOnEachChannel() throws Exception {
         setUp();
 
-        var minorHead = getMinorChannelHead();
-        var minorChannel = deriveMinorChannel(minorHead);
-        var projectVersion = getProjectVersion();
-        var rollingChannel = deriveRollingChannel(projectVersion);
+        var minorHeadVersion = catalog.getChannelHeadVersion(minorChannel());
 
-        log.info("Testing fresh install on {} channel (no startingCSV)", minorChannel);
+        log.info("Testing fresh install on {} channel (no startingCSV)", minorChannel());
 
-        // Fresh install on minor channel — should get the channel head
         createResource(client, namespace, "olmv0/catalog-source.yaml");
         waitForCatalogPodReady(client, namespace);
         createResource(client, namespace, "olmv0/operator-group.yaml");
 
         var extraVars = Map.of(
-                "${PLACEHOLDER_UPGRADE_CHANNEL}", minorChannel,
+                "${PLACEHOLDER_UPGRADE_CHANNEL}", minorChannel(),
                 "${PLACEHOLDER_UPGRADE_START_CSV}", "");
         var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
-        // Remove the startingCSV field entirely for fresh install
         var subscriptionYaml = replaceVars(raw, namespace, extraVars)
                 .replaceAll("\\s*startingCSV:.*", "");
         client.resource(subscriptionYaml).create();
 
-        verifyUpgradeTo(minorHead);
-        log.info("Fresh install on {} channel got version {} as expected", minorChannel, minorHead);
+        verifyUpgradeTo(minorHeadVersion);
+        log.info("Fresh install on {} channel got version {} as expected",
+                minorChannel(), minorHeadVersion);
     }
 
+    /**
+     * Verifies that switching to an older minor channel does not downgrade the operator.
+     * Requires the current version to be in the rolling channel and an older minor channel to exist.
+     * The older channel is selected by parsed minor version (highest minor < current).
+     */
     @RetryTest
+    @EnabledIf("hasOlderMinorChannel")
     void testDowngradeChannelSwitchIsRejected() throws Exception {
         setUp();
 
-        var projectVersion = getProjectVersion();
-        var rollingChannel = deriveRollingChannel(projectVersion);
-        var minorHead = getMinorChannelHead();
-        var olderMinorChannel = deriveMinorChannel(minorHead);
+        var headCSV = catalog.getChannelHeadCSV(rollingChannel());
+        var headVersion = catalog.getChannelHeadVersion(rollingChannel());
+        var olderMinorChannel = catalog.getOlderMinorChannel(projectVersion(), rollingChannel());
+        var olderHeadVersion = catalog.getChannelHeadVersion(olderMinorChannel);
 
         log.info("Testing downgrade: install current version on {}, then switch to {}",
-                rollingChannel, olderMinorChannel);
+                rollingChannel(), olderMinorChannel);
 
-        // Install the current version on the rolling channel
-        deployCatalogAndSubscribe(rollingChannel, projectVersion);
-        waitForOperatorVersion(projectVersion);
-        log.info("Operator {} deployed on {} channel", projectVersion, rollingChannel);
+        deployCatalogAndSubscribe(rollingChannel(), headCSV);
+        waitForOperatorVersion(headVersion);
+        log.info("Operator {} deployed on {} channel", headVersion, rollingChannel());
 
-        // Switch to the older minor channel — OLM should not downgrade
         patchSubscriptionChannel(olderMinorChannel);
         log.info("Switched subscription to {} channel, waiting 60s to verify no downgrade...",
                 olderMinorChannel);
 
         Thread.sleep(60_000);
 
-        // Verify the operator is still running the current version
         var currentDeployment = client.apps().deployments().inNamespace(namespace)
-                .withName("apicurio-registry-operator-v" + projectVersion.toLowerCase()).get();
+                .withName(deploymentName(headVersion)).get();
         assertThat(currentDeployment)
-                .as("Operator should still be at " + projectVersion + " after channel switch")
+                .as("Operator should still be at " + headVersion + " after channel switch")
                 .isNotNull();
         assertThat(currentDeployment.getStatus().getReadyReplicas())
                 .as("Operator should still have 1 ready replica")
                 .isEqualTo(1);
 
-        // Verify the older version was NOT deployed
         var olderDeployment = client.apps().deployments().inNamespace(namespace)
-                .withName("apicurio-registry-operator-v" + minorHead.toLowerCase()).get();
+                .withName(deploymentName(olderHeadVersion)).get();
         assertThat(olderDeployment)
-                .as("Operator should NOT be downgraded to " + minorHead)
+                .as("Operator should NOT be downgraded to " + olderHeadVersion)
                 .isNull();
 
-        // Log subscription state for diagnostics
-        try {
-            var subscription = client.genericKubernetesResources(
-                            "operators.coreos.com/v1alpha1", "Subscription")
-                    .inNamespace(namespace)
-                    .withName("apicurio-registry-operator-subscription")
-                    .get();
-            log.info("Subscription after downgrade attempt: {}", subscription.getAdditionalProperties());
-        } catch (Exception e) {
-            log.info("Could not read subscription state: {}", e.getMessage());
-        }
-
-        log.info("Downgrade rejection confirmed: operator stayed at {}", projectVersion);
+        log.info("Downgrade rejection confirmed: operator stayed at {}", headVersion);
     }
 
+    /**
+     * Verifies upgrade with manual install plan approval. Requires at least 2 entries in the
+     * minor channel.
+     */
     @RetryTest
+    @EnabledIf("minorChannelHasPreviousEntry")
     void testManualApprovalUpgrade() throws Exception {
         setUp();
 
-        var startVersion = getStartVersion();
-        var minorHead = getMinorChannelHead();
-        var minorChannel = deriveMinorChannel(startVersion);
+        var prev = catalog.getPreviousEntry(minorChannel());
+        var minorHeadVersion = catalog.getChannelHeadVersion(minorChannel());
 
-        log.info("Testing manual approval upgrade on {} channel: {} -> {}", minorChannel,
-                startVersion, minorHead);
+        log.info("Testing manual approval upgrade on {} channel: {} -> {}",
+                minorChannel(), prev.getVersion(), minorHeadVersion);
 
-        // Deploy with Manual install plan approval
         createResource(client, namespace, "olmv0/catalog-source.yaml");
         waitForCatalogPodReady(client, namespace);
         createResource(client, namespace, "olmv0/operator-group.yaml");
 
         var extraVars = Map.of(
-                "${PLACEHOLDER_UPGRADE_CHANNEL}", minorChannel,
-                "${PLACEHOLDER_UPGRADE_START_CSV}", csvName(startVersion));
+                "${PLACEHOLDER_UPGRADE_CHANNEL}", minorChannel(),
+                "${PLACEHOLDER_UPGRADE_START_CSV}", prev.getCsvName());
         var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
         var subscriptionYaml = replaceVars(raw, namespace, extraVars)
                 .replace("installPlanApproval: Automatic", "installPlanApproval: Manual");
         client.resource(subscriptionYaml).create();
 
-        // With Manual approval, wait for the initial install plan then approve it
         waitForAndApproveInstallPlans();
-        waitForOperatorVersion(startVersion);
-        log.info("Operator {} deployed with Manual approval", startVersion);
+        waitForOperatorVersion(prev.getVersion());
+        log.info("Operator {} deployed with Manual approval", prev.getVersion());
 
-        // Approve install plans in a loop until the target version is reached.
-        // Multi-step upgrades (e.g. 3.2.4 → 3.2.5 → 3.2.6) require approving
-        // each intermediate install plan.
         await().atMost(UPGRADE_TIMEOUT).pollInterval(java.time.Duration.ofSeconds(10))
                 .ignoreExceptions().untilAsserted(() -> {
-            approveAllPendingInstallPlans();
-            var deployment = client.apps().deployments().inNamespace(namespace)
-                    .withName("apicurio-registry-operator-v" + minorHead.toLowerCase()).get();
-            assertThat(deployment)
-                    .as("Operator should reach " + minorHead + " after approving all install plans")
-                    .isNotNull();
-            assertThat(deployment.getStatus().getReadyReplicas())
-                    .as("Operator at " + minorHead + " should have 1 ready replica")
-                    .isEqualTo(1);
-        });
-        log.info("Manual approval upgrade succeeded: {} -> {}", startVersion, minorHead);
+                    approveAllPendingInstallPlans();
+                    var deployment = client.apps().deployments().inNamespace(namespace)
+                            .withName(deploymentName(minorHeadVersion)).get();
+                    assertThat(deployment)
+                            .as("Operator should reach " + minorHeadVersion
+                                    + " after approving all install plans")
+                            .isNotNull();
+                    assertThat(deployment.getStatus().getReadyReplicas())
+                            .as("Operator at " + minorHeadVersion + " should have 1 ready replica")
+                            .isEqualTo(1);
+                });
+        log.info("Manual approval upgrade succeeded: {} -> {}", prev.getVersion(), minorHeadVersion);
     }
 
-    private void deployCatalogAndSubscribe(String channel, String startVersion) throws Exception {
+    // ---- Infrastructure methods ----
+
+    private static String deploymentName(Semver version) {
+        return "apicurio-registry-operator-v" + version;
+    }
+
+    private void deployCatalogAndSubscribe(String channel, String startCSV) throws Exception {
         try {
             createResource(client, namespace, "olmv0/catalog-source.yaml");
             waitForCatalogPodReady(client, namespace);
@@ -430,7 +515,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
             var extraVars = Map.of(
                     "${PLACEHOLDER_UPGRADE_CHANNEL}", channel,
-                    "${PLACEHOLDER_UPGRADE_START_CSV}", csvName(startVersion));
+                    "${PLACEHOLDER_UPGRADE_START_CSV}", startCSV);
             var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
             client.resource(replaceVars(raw, namespace, extraVars)).create();
         } catch (Exception e) {
@@ -440,29 +525,29 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         }
     }
 
-    private void waitForOperatorVersion(String version) {
-        var deploymentName = "apicurio-registry-operator-v" + version.toLowerCase();
+    private void waitForOperatorVersion(Semver version) {
+        var name = deploymentName(version);
         await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
-                    .withName(deploymentName).get();
-            assertThat(deployment).as("Deployment " + deploymentName + " should exist").isNotNull();
+                    .withName(name).get();
+            assertThat(deployment).as("Deployment " + name + " should exist").isNotNull();
             assertThat(deployment.getStatus().getReadyReplicas())
-                    .as("Deployment " + deploymentName + " should have 1 ready replica")
+                    .as("Deployment " + name + " should have 1 ready replica")
                     .isEqualTo(1);
         });
         log.info("Operator version {} is ready", version);
     }
 
-    private void verifyUpgradeTo(String targetVersion) {
-        var deploymentName = "apicurio-registry-operator-v" + targetVersion.toLowerCase();
+    private void verifyUpgradeTo(Semver targetVersion) {
+        var name = deploymentName(targetVersion);
         await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
-                    .withName(deploymentName).get();
+                    .withName(name).get();
             assertThat(deployment)
-                    .as("Target deployment " + deploymentName + " should exist after upgrade")
+                    .as("Target deployment " + name + " should exist after upgrade")
                     .isNotNull();
             assertThat(deployment.getStatus().getReadyReplicas())
-                    .as("Target deployment " + deploymentName + " should have 1 ready replica")
+                    .as("Target deployment " + name + " should have 1 ready replica")
                     .isEqualTo(1);
         });
     }
@@ -529,10 +614,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 .count();
     }
 
-    private void verifyUpgradeCompleted(String startVersion, String targetVersion) {
-        // OLM cleans up old CSVs after upgrade, so we can only verify the final state.
-        // The fact that we started at startVersion and arrived at targetVersion confirms
-        // intermediate versions were traversed (OLM follows the replaces chain).
+    private void verifyUpgradeCompleted(Semver startVersion, Semver targetVersion) {
         var csvList = client.genericKubernetesResources(
                         "operators.coreos.com/v1alpha1", "ClusterServiceVersion")
                 .inNamespace(namespace).list().getItems();
@@ -541,11 +623,11 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 .filter(name -> name.startsWith(PACKAGE_NAME))
                 .toList();
 
-        log.info("CSVs present after upgrade from {} to {}: {}", startVersion, targetVersion,
-                installedCSVs);
+        log.info("CSVs present after upgrade from {} to {}: {}",
+                startVersion, targetVersion, installedCSVs);
 
         assertThat(installedCSVs)
                 .as("Target version CSV should be present after upgrade")
-                .anyMatch(csv -> csv.contains(targetVersion.toLowerCase()));
+                .anyMatch(csv -> csv.contains(targetVersion.toString()));
     }
 }

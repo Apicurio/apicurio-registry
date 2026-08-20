@@ -40,8 +40,7 @@ public class DataExporter {
      */
     public Response exportData(String groupId) {
         StreamingOutput stream = os -> {
-            try {
-                ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8);
+            try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
                 EntityWriter writer = new EntityWriter(zip);
                 storage.exportData(groupId, entity -> {
                     try {
@@ -54,11 +53,10 @@ public class DataExporter {
                 });
 
                 zip.flush();
-                zip.close();
             } catch (IOException e) {
                 throw e;
             } catch (Exception e) {
-                throw new IOException(e);
+                throw new IOException("Export failed due to error writing entities", e);
             }
         };
 

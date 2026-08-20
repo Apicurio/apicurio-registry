@@ -10,6 +10,7 @@ import io.apicurio.registry.types.RuleType;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +23,8 @@ import java.util.Set;
  * Validation levels:
  * - NONE: No validation
  * - SYNTAX_ONLY: Validates that the content is valid JSON and is an object
- * - FULL: Full schema validation including required fields, type checking, and structure validation
+ * - FULL: Full schema validation including required fields, type checking, and structure
+ *   validation. The 'annotations' object is validated as a closed ToolAnnotations shape.
  *
  * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools</a>
  */
@@ -168,6 +170,17 @@ public class McpToolContentValidator implements ContentValidator {
             if (annotations.has(hint) && !annotations.get(hint).isBoolean()) {
                 violations.add(new RuleViolation("'annotations." + hint + "' must be a boolean",
                         "/annotations/" + hint));
+            }
+        }
+
+        // ToolAnnotations is a closed shape at FULL, so a typo or a stray field is a violation
+        // rather than a silently ignored no-op.
+        Iterator<String> fieldNames = annotations.fieldNames();
+        while (fieldNames.hasNext()) {
+            String field = fieldNames.next();
+            if (!"title".equals(field) && !TOOL_ANNOTATION_HINTS.contains(field)) {
+                violations.add(new RuleViolation("'annotations." + field
+                        + "' is not a ToolAnnotations property", "/annotations/" + field));
             }
         }
     }

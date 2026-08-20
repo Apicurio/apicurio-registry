@@ -94,13 +94,22 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
-    public void testMcpToolAnnotationsIgnoreContentAnnotationFields() throws Exception {
+    public void testMcpToolAnnotationsRejectUnsupportedFields() throws Exception {
         // audience and priority belong to the MCP content annotation schema, not to
-        // ToolAnnotations, so they must not be validated on a tool definition.
+        // ToolAnnotations, so at FULL they are rejected as unsupported rather than range-checked.
         TypedContent content = resourceToTypedContentHandle(
                 "mcptool-annotations-content-fields.json");
         McpToolContentValidator validator = new McpToolContentValidator();
-        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(2, error.getCauses().size());
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'annotations.audience' is not a ToolAnnotations property"
+                        .equals(v.getDescription())));
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'annotations.priority' is not a ToolAnnotations property"
+                        .equals(v.getDescription())));
     }
 
     @Test

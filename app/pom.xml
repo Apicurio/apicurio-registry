@@ -582,6 +582,8 @@
             <project.build.directory>${project.build.directory}</project.build.directory>
             <!-- Prevent OTel SPI conflict between Quarkus ContextStorageProvider and SDK testing -->
             <io.opentelemetry.context.contextStorageProvider>default</io.opentelemetry.context.contextStorageProvider>
+            <!-- Avro 1.12.2 rejects classes not on the trusted list during reflection-based serde -->
+            <org.apache.avro.SERIALIZABLE_PACKAGES>ch.mobi.lead.leadfall,com.kubetrade.schema.trade,io.apicurio.registry.support</org.apache.avro.SERIALIZABLE_PACKAGES>
           </systemPropertyVariables>
         </configuration>
       </plugin>

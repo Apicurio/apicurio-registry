@@ -473,11 +473,39 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
-    public Schema getSubjectMetadata(String subject, String key, String value, String format, Boolean deleted, String xRegistryGroupId) {
-        //TODO not implemented
-        return null;
-    }
+    public Schema getSubjectMetadata(String subject, String key, String value, String format, Boolean deleted,
+                                     String xRegistryGroupId) {
+        final GA ga = getGA(xRegistryGroupId, subject);
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
 
+        if (!doesArtifactExist(ga.getRawArtifactId(), ga.getRawGroupIdWithNull())) {
+            throw new ArtifactNotFoundException(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+        }
+
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofGroupId(ga.getRawGroupIdWithNull()));
+        filters.add(SearchFilter.ofArtifactId(ga.getRawArtifactId()));
+
+        if (key != null && value != null) {
+            filters.add(SearchFilter.ofLabel(key, value));
+        }
+
+        if (!fdeleted) {
+            filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
+        }
+
+        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+                OrderDirection.desc, 0, 1, false);
+
+        if (searchResults.getVersions().isEmpty()) {
+            throw new SchemaNotFoundException(
+                    String.format("The given metadata does not match any schema under the subject %s",
+                            ga.getRawArtifactId()));
+        }
+
+        SearchedVersionDto version = searchResults.getVersions().get(0);
+        return getSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), version.getVersion(), fdeleted, format);
+    }
     protected Schema getSchema(String groupId, String artifactId, String versionString, boolean deleted) {
         return getSchema(groupId, artifactId, versionString, deleted, null);
     }

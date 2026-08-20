@@ -157,9 +157,30 @@ public class ChannelValidationOLMITTest extends OLMITBase {
         return getChannelHeadsFromCatalogPod();
     }
 
+    @SuppressWarnings("unchecked")
     private String readCatalogContent() throws Exception {
-        var catalogdUrl = "https://catalogd-service.olmv1-system.svc/catalogs/"
-                + "apicurio-registry-operator-catalog/api/v1/all";
+        var catalogName = "apicurio-registry-operator-catalog";
+
+        // Read the base URL from the ClusterCatalog's status.urls.base instead of hardcoding
+        // the catalogd namespace, which varies across OCP versions (olmv1-system vs openshift-catalogd).
+        var cc = client.genericKubernetesResources("olm.operatorframework.io/v1", "ClusterCatalog")
+                .withName(catalogName)
+                .get();
+        if (cc == null) {
+            throw new IllegalStateException("ClusterCatalog '" + catalogName + "' not found");
+        }
+
+        var urls = (Map<String, Object>) cc.get("status", "urls");
+        String baseUrl;
+        if (urls != null && urls.get("base") != null) {
+            baseUrl = (String) urls.get("base");
+            log.info("Discovered catalogd base URL from ClusterCatalog status: {}", baseUrl);
+        } else {
+            // Fallback for older OLM v1 versions that may not populate status.urls
+            baseUrl = "https://catalogd-service.openshift-catalogd.svc/catalogs/" + catalogName;
+            log.warn("ClusterCatalog status.urls.base not available, using fallback: {}", baseUrl);
+        }
+
         var podName = "catalog-query-" + namespace.substring(namespace.length() - 7);
 
         try {
@@ -169,6 +190,11 @@ public class ChannelValidationOLMITTest extends OLMITBase {
             // ignore
         }
 
+        // Try the /api/v1/all endpoint first, then /all for older catalogd versions
+        var curlCmd = "curl -sk '" + baseUrl + "/api/v1/all' 2>/dev/null || "
+                + "curl -sk '" + baseUrl + "/all' 2>/dev/null";
+        log.info("Querying catalogd API via curl pod: {}", curlCmd);
+
         var pod = new io.fabric8.kubernetes.api.model.PodBuilder()
                 .withNewMetadata().withName(podName).withNamespace(namespace).endMetadata()
                 .withNewSpec()
@@ -176,10 +202,7 @@ public class ChannelValidationOLMITTest extends OLMITBase {
                 .addNewContainer()
                 .withName("curl")
                 .withImage("registry.access.redhat.com/ubi9/ubi-minimal:latest")
-                .withCommand("sh", "-c",
-                        "curl -sk '" + catalogdUrl + "' 2>/dev/null || "
-                                + "curl -sk 'https://catalogd-service.olmv1-system.svc/catalogs/"
-                                + "apicurio-registry-operator-catalog/all' 2>/dev/null")
+                .withCommand("sh", "-c", curlCmd)
                 .endContainer()
                 .endSpec()
                 .build();
@@ -195,8 +218,9 @@ public class ChannelValidationOLMITTest extends OLMITBase {
         client.pods().inNamespace(namespace).withName(podName).delete();
 
         if (content == null || content.isEmpty()) {
-            throw new IllegalStateException("Empty catalog content from catalogd API");
+            throw new IllegalStateException("Empty catalog content from catalogd API at " + baseUrl);
         }
+        log.info("Received {} bytes from catalogd API", content.length());
         return content;
     }
 
@@ -205,7 +229,8 @@ public class ChannelValidationOLMITTest extends OLMITBase {
         var catalog = readCatalogContent();
         var channels = new ArrayList<String>();
         for (var obj : parseCatalogObjects(catalog)) {
-            if ("olm.channel".equals(obj.get("schema"))) {
+            if ("olm.channel".equals(obj.get("schema"))
+                    && PACKAGE_NAME.equals(obj.get("package"))) {
                 channels.add((String) obj.get("name"));
             }
         }
@@ -216,7 +241,8 @@ public class ChannelValidationOLMITTest extends OLMITBase {
     private String getDefaultChannelFromCatalogPod() throws Exception {
         var catalog = readCatalogContent();
         for (var obj : parseCatalogObjects(catalog)) {
-            if ("olm.package".equals(obj.get("schema"))) {
+            if ("olm.package".equals(obj.get("schema"))
+                    && PACKAGE_NAME.equals(obj.get("name"))) {
                 return (String) obj.get("defaultChannel");
             }
         }
@@ -228,7 +254,8 @@ public class ChannelValidationOLMITTest extends OLMITBase {
         var catalog = readCatalogContent();
         var heads = new java.util.HashMap<String, String>();
         for (var obj : parseCatalogObjects(catalog)) {
-            if ("olm.channel".equals(obj.get("schema"))) {
+            if ("olm.channel".equals(obj.get("schema"))
+                    && PACKAGE_NAME.equals(obj.get("package"))) {
                 var name = (String) obj.get("name");
                 var entries = (List<Map<String, Object>>) obj.get("entries");
                 if (entries != null && !entries.isEmpty()) {

@@ -514,6 +514,15 @@ jobs:
             exit 1
           fi
 
+          # If every upstream job except 'decide' was skipped, there is nothing to verify.
+          # We check the count of 'success' results. If it is 1 or less (only 'decide' succeeded,
+          # or decide was skipped on a fork), we treat this run as successful.
+          SUCCESS_COUNT=$(echo "$RESULTS" | jq '[.[] | select(. == "success")] | length')
+          if [ "$SUCCESS_COUNT" -le 1 ]; then
+            echo "All upstream test jobs were skipped; nothing to verify. Passing verification gate."
+            exit 0
+          fi
+
           # On PRs, fail if lifecycle state does not allow merging.
           # "skip" means this run was triggered by a non-lifecycle label and
           # is not authoritative — let it pass without blocking.

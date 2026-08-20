@@ -56,6 +56,8 @@ import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -72,14 +74,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
+import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_STRUCTURED_CONTENT_IMPORT_SKIPPED;
+import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_STRUCTURED_CONTENT_IMPORT_SKIPPED_DESCRIPTION;
+import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES;
+import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES_DESCRIPTION;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementType;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.isIndexable;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.rowKey;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
+import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
 
 /**
  * A SQL implementation of the {@link RegistryStorage} interface. This impl does not use any ORM technology -
@@ -97,9 +108,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
     }
 
-    // Logged at most once when data is imported (rather than written via create/update) for an
-    // artifact type that produces structured content - see warnOnStructuredContentImportGap().
-    private static final AtomicBoolean STRUCTURED_IMPORT_WARNING_LOGGED = new AtomicBoolean(false);
+    // Number of artifacts imported (rather than written via create/update) for an artifact type that
+    // produces structured content, and therefore left out of the structured content index - see
+    // warnOnStructuredContentImportGap().
+    private static final AtomicLong STRUCTURED_IMPORT_SKIPPED_COUNT = new AtomicLong();
+
+    // The import gap is warned about on the first skipped artifact and then once per this many. Logging
+    // it only once per process would hide the gap from a long-running instance that keeps importing:
+    // the single warning scrolls away during startup and nothing reports the growing backlog after it.
+    private static final long STRUCTURED_IMPORT_WARNING_INTERVAL = 1000L;
 
     @Inject
     Logger log;
@@ -129,6 +146,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     ArtifactTypeUtilProviderFactory typeProviderFactory;
+
+    @Inject
+    MeterRegistry metrics;
 
     @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
     @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", availableSince = "3.0.6")
@@ -611,24 +631,44 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             List<StructuredElement> elements = extractor.extract(content.getContent());
             Set<String> seen = new HashSet<>();
             for (StructuredElement element : elements) {
-                if (element == null || element.kind() == null || element.name() == null) {
-                    // Skip malformed elements. elementType/elementValue are NOT NULL, and on some
-                    // databases (e.g. PostgreSQL) a failed statement aborts the surrounding
-                    // transaction - which here is the artifact-write transaction. Silently dropping
-                    // bad elements keeps this best-effort update from failing the whole operation.
+                if (!isIndexable(element)) {
+                    // Malformed elements are dropped rather than attempted - see isIndexable().
                     continue;
                 }
-                String elementType = limitStr(asLowerCase(artifactType + ":" + element.kind()), 64);
-                String elementValue = limitStr(asLowerCase(element.name()), 512);
-                if (seen.add(elementType + ":" + elementValue)) {
+                String elementType = elementType(artifactType, element.kind());
+                String elementValue = elementValue(element.name());
+                // The four columns are the table's primary key, so duplicates are rejected by the
+                // database. De-duplicate here (on the normalized values) so a card that repeats an
+                // element cannot abort the artifact-write transaction.
+                if (seen.add(rowKey(elementType, elementValue))) {
                     handle.createUpdate(sqlStatements.insertArtifactStructuredContent())
                             .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, elementType)
                             .bind(3, elementValue).execute();
                 }
             }
         } catch (Exception e) {
-            log.warn("Failed to update structured content for {}/{}: {}", groupId, artifactId,
-                    e.getMessage(), e);
+            recordStructuredContentIndexFailure(groupId, artifactId, e);
+        }
+    }
+
+    /**
+     * Reports a failed structured-content index update. Indexing is best-effort - the artifact write
+     * succeeds either way - which means the artifact silently stops matching structure-based search
+     * filters. Emitting a metric alongside the log line gives operators a way to see how often that
+     * happens without grepping logs. groupId and artifactId are user-controlled, so they are sanitized
+     * before being logged; the exception is passed through so its stack trace is preserved.
+     */
+    private void recordStructuredContentIndexFailure(String groupId, String artifactId, Exception e) {
+        log.warn("Failed to update structured content for {}/{}. The artifact was written, but it will "
+                + "not match structure-based search filters until it is written again.",
+                sanitizeForLog(groupId), sanitizeForLog(artifactId), e);
+        incrementCounter(STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES,
+                STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES_DESCRIPTION);
+    }
+
+    private void incrementCounter(String name, String description) {
+        if (metrics != null) {
+            Counter.builder(name).description(description).register(metrics).increment();
         }
     }
 
@@ -643,6 +683,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         StructuredContentExtractor extractor = typeProviderFactory.getArtifactTypeProvider(artifactType)
                 .getStructuredContentExtractor();
         return extractor instanceof NoopStructuredContentExtractor ? null : extractor;
+    }
+
+    /**
+     * Returns true when the given artifact type produces structured content. Used to decide whether
+     * structured-content work is needed at all, so an unknown artifact type - for which the provider
+     * factory throws rather than returning null - answers "no" instead of failing the caller.
+     */
+    private boolean hasStructuredContentExtractor(String artifactType) {
+        if (artifactType == null) {
+            return false;
+        }
+        try {
+            return structuredContentExtractorFor(artifactType) != null;
+        } catch (Exception e) {
+            log.debug("Could not check structured-content extractor for artifact type {}.",
+                    sanitizeForLog(artifactType), e);
+            return false;
+        }
     }
 
     private ArtifactVersionMetaDataDto createArtifactVersionRaw(Handle handle, boolean firstVersion,
@@ -1121,7 +1179,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             // This method can target any DRAFT version, which is not necessarily the latest one (e.g. a
             // DRAFT v1 sitting behind an ENABLED v2), so re-indexing unconditionally would replace the
             // latest version's elements with an older version's and make the latest content unsearchable.
-            if (isLatestArtifactVersionRaw(handle, groupId, artifactId, version)) {
+            // The extractor check is first on purpose: it is an in-memory lookup, so the artifact types
+            // that never produce structured content (AVRO, PROTOBUF, JSON, ...) - the overwhelming
+            // majority of writes - skip the latest-version query entirely, and only agent card, MCP tool
+            // and OpenAPI/AsyncAPI writes pay for it.
+            if (hasStructuredContentExtractor(artifactType)
+                    && isLatestArtifactVersionRaw(handle, groupId, artifactId, version)) {
                 updateStructuredContentRaw(handle, groupId, artifactId, artifactType, content);
             }
             return null;
@@ -1663,24 +1726,25 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      * Data loaded via import/export - and therefore the gitops and kubernetesops variants, which
      * populate their store exclusively through import - does not populate artifact_structured_content,
      * so structure-based discovery filters (agent card / MCP tool) will not match those artifacts
-     * until they are re-uploaded or the database-upgrade backfill runs. Log this once so the gap is
-     * visible rather than silent.
+     * until they are re-uploaded or the database-upgrade backfill runs.
+     * <p>
+     * Every skipped artifact increments a metric, so the size of the gap is visible at any point in
+     * time, and the warning is repeated every {@link #STRUCTURED_IMPORT_WARNING_INTERVAL} artifacts
+     * rather than logged once per process - an instance that keeps importing keeps reporting the gap
+     * instead of mentioning it once during startup and then going quiet.
      */
     private void warnOnStructuredContentImportGap(String artifactType) {
-        if (artifactType == null) {
+        if (!hasStructuredContentExtractor(artifactType)) {
             return;
         }
-        try {
-            boolean hasExtractor = structuredContentExtractorFor(artifactType) != null;
-            if (hasExtractor && STRUCTURED_IMPORT_WARNING_LOGGED.compareAndSet(false, true)) {
-                log.warn("Imported artifacts are not indexed into artifact_structured_content; "
-                        + "structure-based discovery filters will not match imported artifacts until "
-                        + "they are re-uploaded. This also affects the gitops and kubernetesops storage "
-                        + "variants, which load data exclusively via import.");
-            }
-        } catch (Exception e) {
-            log.debug("Could not check structured-content extractor for artifact type {}.",
-                    artifactType, e);
+        incrementCounter(STORAGE_STRUCTURED_CONTENT_IMPORT_SKIPPED,
+                STORAGE_STRUCTURED_CONTENT_IMPORT_SKIPPED_DESCRIPTION);
+        long skipped = STRUCTURED_IMPORT_SKIPPED_COUNT.incrementAndGet();
+        if (skipped == 1 || skipped % STRUCTURED_IMPORT_WARNING_INTERVAL == 0) {
+            log.warn("{} imported artifact(s) have not been indexed into artifact_structured_content; "
+                    + "structure-based discovery filters will not match them until they are re-uploaded "
+                    + "through the API. This also affects the gitops and kubernetesops storage variants, "
+                    + "which load data exclusively via import.", skipped);
         }
     }
 

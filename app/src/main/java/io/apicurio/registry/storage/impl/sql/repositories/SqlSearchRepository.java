@@ -38,7 +38,17 @@ public class SqlSearchRepository {
             "Content search requires the search index, which is not enabled. "
             + "Enable the search index to use content search.";
 
+    /**
+     * Escape character for LIKE patterns built from request-derived values. '!' is not a LIKE
+     * metacharacter, and every supported database (H2, PostgreSQL, MySQL, SQL Server) accepts it in an
+     * ESCAPE clause. It needs no special handling in the data either: {@link #escapeLikePattern(String)}
+     * escapes the escape character itself, so a value that genuinely contains '!' still matches
+     * literally - the character is only ever consumed as an escape when this code puts it there.
+     */
     private static final char LIKE_ESCAPE_CHAR = '!';
+
+    private static final String STRUCTURE_FILTER_FORMAT_HELP = "Expected '<artifactType>:<kind>:<name>', "
+            + "'<kind>:<name>' or '<name>', for example 'agent_card:skill:translation'.";
 
     private final Logger log;
 
@@ -174,18 +184,28 @@ public class SqlSearchRepository {
                         // Structured content filter, e.g. "agent_card:skill:translation". Elements are
                         // stored lowercased in artifact_structured_content as elementType
                         // ("<artifactType>:<kind>") + elementValue ("<name>").
-                        // Negation (NOT EXISTS) is only produced by the agent discovery endpoints, which
-                        // always pair it with an artifactType filter. Without that pairing a negated
-                        // filter would also match artifacts that have no structured rows at all.
-                        String structureValue = asLowerCase(filter.getStringValue());
-                        if (structureValue == null || structureValue.isBlank()) {
+                        // Negation (NOT EXISTS) is true for artifacts that have no structured rows at
+                        // all, so a negated filter is only meaningful when the result set is already
+                        // constrained. The only caller that negates this filter is the agent discovery
+                        // endpoint (WellKnownResourceImpl, "capability: false"), which always pairs it
+                        // with an artifactType filter; the general search endpoint
+                        // (SearchResourceImpl) passes the "structure" query parameter through
+                        // un-negated. SearchFilter.ofStructure() documents that precondition for any
+                        // future caller.
+                        // Validate the raw value before normalizing it, so a value that is only
+                        // whitespace is reported as blank rather than being lower-cased and trimmed into
+                        // an empty filter.
+                        String rawStructureValue = filter.getStringValue();
+                        if (rawStructureValue == null || rawStructureValue.isBlank()) {
                             // Not reachable from the REST layer: the version search endpoint skips an
                             // empty "structure" parameter, and the discovery endpoints always prefix the
                             // value with "<artifactType>:<kind>:". Fail loudly rather than degrading to a
                             // clause that silently matches every artifact.
-                            throw new RegistryStorageException("Structure filter value must not be blank.");
+                            throw new RegistryStorageException(
+                                    "Structure filter value must not be blank. "
+                                            + STRUCTURE_FILTER_FORMAT_HELP);
                         }
-                        String[] structureParts = structureValue.trim().split(":", 3);
+                        String[] structureParts = asLowerCase(rawStructureValue.trim()).split(":", 3);
                         op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
                         where.append(op);
                         where.append(

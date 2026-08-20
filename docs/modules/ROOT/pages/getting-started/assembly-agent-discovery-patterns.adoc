@@ -346,6 +346,11 @@ Structured content search filters (skills, capabilities, input and output modes,
 Artifacts loaded through import/export, and the `gitops` and `kubernetesops` storage variants (which load data exclusively through import), do not populate the structured content index. Structure-based filters return no matches for those artifacts until they are re-uploaded through the API or the database-upgrade backfill runs.
 ====
 
+[NOTE]
+====
+When you upgrade an existing SQL deployment, the database upgrade backfills the structured content index for artifacts that are already stored. The backfill reads and re-parses the latest version of every agent card, MCP tool, OpenAPI, and AsyncAPI artifact, so on a registry that holds a large number of those artifacts, it adds a one-time cost to the upgrade. Other artifact types are not read. Progress is logged every 500 artifacts, and the final log line reports how many artifacts were backfilled and how many failed. Plan for a longer startup on the first instance that applies the upgrade.
+====
+
 Design your agent cards with consistent skill IDs and capability names across your organization. With consistent naming, discovery queries return accurate results. For example, use `translation` rather than `translate` or `translator` as the skill ID across all translation agents.
 
 [role="_additional-resources"]

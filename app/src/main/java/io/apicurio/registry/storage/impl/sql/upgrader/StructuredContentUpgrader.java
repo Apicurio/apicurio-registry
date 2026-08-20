@@ -22,8 +22,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static io.apicurio.registry.utils.StringUtil.asLowerCase;
-import static io.apicurio.registry.utils.StringUtil.limitStr;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementType;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.isIndexable;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.rowKey;
+import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
 
 /**
  * Database upgrader that backfills the artifact_structured_content table for existing artifacts. Structured
@@ -31,11 +34,29 @@ import static io.apicurio.registry.utils.StringUtil.limitStr;
  * Elasticsearch, so structure-based search filters were ignored on SQL storage. This upgrader extracts the
  * elements from the latest version of every artifact whose type has a structured content extractor and
  * populates the new table so those filters work on SQL.
+ * <p>
+ * The backfill reads and re-parses the latest version's content of every artifact of an extractable type
+ * (agent card, MCP tool, OpenAPI, AsyncAPI), so on a large registry it adds a one-time cost to the
+ * database upgrade proportional to the number of such artifacts - other artifact types are not touched.
+ * Progress is logged every {@link #PROGRESS_LOG_INTERVAL} artifacts so a long-running upgrade is
+ * observable rather than looking hung.
  */
 @RegisterForReflection
 public class StructuredContentUpgrader implements IDbUpgrader {
 
     private static final Logger log = LoggerFactory.getLogger(StructuredContentUpgrader.class);
+
+    /**
+     * JDBC fetch size for the backfill query. This is a bulk read of whole content blobs, so it is sized
+     * to keep the number of database round trips low without holding an unbounded number of blobs in
+     * memory at once.
+     */
+    private static final int BACKFILL_FETCH_SIZE = 500;
+
+    /**
+     * Number of artifacts between progress log lines.
+     */
+    private static final int PROGRESS_LOG_INTERVAL = 500;
 
     private final ArtifactTypeUtilProviderFactory factory = new DefaultArtifactTypeUtilProviderImpl(true);
 
@@ -53,6 +74,7 @@ public class StructuredContentUpgrader implements IDbUpgrader {
 
         int totalCount = 0;
         AtomicInteger examined = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
         for (ArtifactTypeUtilProvider provider : factory.getAllArtifactTypeProviders()) {
             StructuredContentExtractor extractor = provider.getStructuredContentExtractor();
             if (extractor == null || extractor instanceof NoopStructuredContentExtractor) {
@@ -62,24 +84,36 @@ public class StructuredContentUpgrader implements IDbUpgrader {
                 // to discard an always-empty element list, adding avoidable time to the backfill.
                 continue;
             }
-            totalCount += handle.createQuery(sql).bind(0, provider.getArtifactType()).setFetchSize(50)
-                    .map(new ArtifactContentRowMapper()).stream().mapToInt(artifact -> {
-                        if (examined.incrementAndGet() % 500 == 0) {
+            totalCount += handle.createQuery(sql).bind(0, provider.getArtifactType())
+                    .setFetchSize(BACKFILL_FETCH_SIZE).map(new ArtifactContentRowMapper()).stream()
+                    .mapToInt(artifact -> {
+                        if (examined.incrementAndGet() % PROGRESS_LOG_INTERVAL == 0) {
                             log.info("Backfilling structured content: {} artifacts examined so far...",
                                     examined.get());
                         }
                         try {
                             return backfillArtifact(handle, artifact, extractor);
                         } catch (Exception ex) {
+                            failed.incrementAndGet();
                             log.warn("Failed to backfill structured content for {}/{}.",
-                                    artifact.groupId, artifact.artifactId, ex);
+                                    sanitizeForLog(artifact.groupId), sanitizeForLog(artifact.artifactId),
+                                    ex);
                             return 0;
                         }
                     }).sum();
         }
 
-        log.info("Successfully backfilled structured content for {} artifacts ({} examined).",
-                totalCount, examined.get());
+        // Report the failure count explicitly: individual failures are only warnings, so without a
+        // summary a partially successful backfill is indistinguishable from a clean one.
+        if (failed.get() > 0) {
+            log.warn("Backfilled structured content for {} artifacts ({} examined), but {} artifact(s) "
+                    + "failed and will not match structure-based search filters until they are written "
+                    + "again. See the warnings above for the affected artifacts.", totalCount,
+                    examined.get(), failed.get());
+        } else {
+            log.info("Successfully backfilled structured content for {} artifacts ({} examined).",
+                    totalCount, examined.get());
+        }
     }
 
     private int backfillArtifact(Handle handle, ArtifactContent artifact,
@@ -96,14 +130,16 @@ public class StructuredContentUpgrader implements IDbUpgrader {
 
         Set<String> seen = new HashSet<>();
         for (StructuredElement element : elements) {
-            if (element == null || element.kind() == null || element.name() == null) {
+            if (!isIndexable(element)) {
                 // Skip malformed elements: a null value would violate the NOT NULL constraints and,
                 // on databases like PostgreSQL, abort the backfill transaction.
                 continue;
             }
-            String elementType = limitStr(asLowerCase(artifact.type + ":" + element.kind()), 64);
-            String elementValue = limitStr(asLowerCase(element.name()), 512);
-            if (seen.add(elementType + ":" + elementValue)) {
+            String elementType = elementType(artifact.type, element.kind());
+            String elementValue = elementValue(element.name());
+            // The four columns are the table's primary key, so a repeated element would abort the
+            // backfill transaction; de-duplicate on the normalized values before inserting.
+            if (seen.add(rowKey(elementType, elementValue))) {
                 handle.createUpdate("INSERT INTO artifact_structured_content "
                                 + "(groupId, artifactId, elementType, elementValue) VALUES (?, ?, ?, ?)")
                         .bind(0, artifact.groupId).bind(1, artifact.artifactId).bind(2, elementType)

@@ -1011,6 +1011,50 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(404);
     }
 
+    @Test
+    public void testSearchAgentsBySkillTreatsLikeWildcardsLiterally() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // '_' and '%' are LIKE wildcards. Structure filters compare the element value with '=', so both
+        // characters must match literally: searching for the first skill id must not also return the
+        // decoy agent, which is what that id would match if it were ever treated as a LIKE pattern.
+        createAgentCard(groupId, "wildcard-agent-literal",
+                agentCardWithSkill("WildcardLiteralAgent", "report_2024%draft"));
+        createAgentCard(groupId, "wildcard-agent-decoy",
+                agentCardWithSkill("WildcardDecoyAgent", "reportx2024-quarterly-draft"));
+
+        searchAgentsBySkill("report_2024%draft")
+                .body("agents.artifactId", hasItem("wildcard-agent-literal"))
+                .body("agents.artifactId", not(hasItem("wildcard-agent-decoy")));
+    }
+
+    private static String agentCardWithSkill(String agentName, String skillId) {
+        return """
+                {
+                    "name": "%s",
+                    "description": "An agent whose skill id contains SQL wildcard characters",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/wildcard-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {
+                        "streaming": false,
+                        "pushNotifications": false
+                    },
+                    "skills": [
+                        {
+                            "id": "%s",
+                            "name": "Wildcard Skill",
+                            "description": "A skill whose id contains wildcard characters",
+                            "tags": ["wildcard"]
+                        }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
+                }
+                """.formatted(agentName, skillId);
+    }
+
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

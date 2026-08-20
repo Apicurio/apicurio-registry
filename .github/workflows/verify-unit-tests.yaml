@@ -63,21 +63,33 @@ jobs:
           # the tag filter ever runs. See issue #9302. The -Dgroups= value lives in its own group-filter
           # key rather than appended to test-filter, so the run step never has to word-split a single
           # matrix value into two -D properties.
+          #
+          # That same io.apicurio.registry.** wildcard makes surefire discover/classload every class in
+          # the app test tree for tag filtering, not just the tagged subset that actually runs -- unlike
+          # the other app-* shards, whose test-filter already scopes discovery to one small package. The
+          # wider discovery footprint pushed these three shards' forked JVM past the 4g default
+          # (app/pom.xml surefire.maxHeap) into OutOfMemoryError: Java heap space. extra-opts raises it
+          # to 6g via the -Dsurefire.maxHeap override the pom documents for this; ubuntu-latest runners
+          # have 16g RAM, so 4g (MAVEN_OPTS, sizes the Maven process, not the test fork) + 6g (surefire
+          # fork) still leaves headroom. See issue #9328.
           - name: app-auth
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.**"
             group-filter: "-Dgroups=auth"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            extra-opts: "-Dsurefire.maxHeap=6g"
           - name: app-transport
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.**"
             group-filter: "-Dgroups=transport"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            extra-opts: "-Dsurefire.maxHeap=6g"
           - name: app-metrics
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.**"
             group-filter: "-Dgroups=metrics"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            extra-opts: "-Dsurefire.maxHeap=6g"
           # Catch-all: stays an exclusion filter so a newly added package lands here rather than in no
           # shard at all. Every exclusion below must correspond to another shard's inclusion.
           - name: app-other
@@ -138,6 +150,7 @@ jobs:
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             ${{ matrix.shard.group-filter }} \
+            ${{ matrix.shard.extra-opts }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipCommitIdPlugin=true \
             -Dcheckstyle.skip=true \

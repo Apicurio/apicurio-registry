@@ -1,5 +1,7 @@
 package io.apicurio.registry.limits;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,5 +82,74 @@ public class RegistryLimitsServiceUnitTest {
         Assertions.assertNotEquals(-1, firstIndex, "Expected error message to be present");
         Assertions.assertEquals(firstIndex, lastIndex, "Expected error message to appear only once");
     }
-}
 
+    @Test
+    public void testLabelCountExactErrorMessage() {
+        Map<String, String> labels = Map.of(
+                "k1", "v1",
+                "k2", "v2"
+        );
+        EditableArtifactMetaDataDto meta = new EditableArtifactMetaDataDto();
+        meta.setLabels(labels);
+
+        LimitsCheckResult result = limitsService.checkMetaData(meta);
+        Assertions.assertFalse(result.isAllowed());
+        Assertions.assertEquals(
+                "Maximum number of labels exceeded for this artifact (limit: 1, actual: 2)",
+                result.getMessage()
+        );
+    }
+
+    @Test
+    public void testLabelKeyAndValueByteSizeExactErrorMessage() {
+        config.setMaxArtifactPropertiesCount(10L);
+        config.setMaxPropertyKeySizeBytes(4L);
+        config.setMaxPropertyValueSizeBytes(4L);
+
+        Map<String, String> labels = Map.of("keytoolong", "valtoolong");
+        EditableArtifactMetaDataDto meta = new EditableArtifactMetaDataDto();
+        meta.setLabels(labels);
+
+        LimitsCheckResult result = limitsService.checkMetaData(meta);
+        Assertions.assertFalse(result.isAllowed());
+        Assertions.assertEquals(
+                "Maximum label key size exceeded (limit: 4 bytes), " +
+                "Maximum label value size exceeded (limit: 4 bytes)",
+                result.getMessage()
+        );
+    }
+
+    @Test
+    public void testSchemaSizeExactErrorMessage() {
+        config.setMaxSchemaSizeBytes(10L);
+
+        ContentWrapperDto contentWrapper = ContentWrapperDto.builder()
+                .content(ContentHandle.create("123456789012"))
+                .build();
+
+        LimitsCheckResult result = limitsService.canCreateArtifact(null, contentWrapper, null);
+        Assertions.assertFalse(result.isAllowed());
+        Assertions.assertEquals(
+                "Maximum size of artifact version exceeded (limit: 10 bytes, actual: 12 bytes)",
+                result.getMessage()
+        );
+    }
+
+    @Test
+    public void testNameAndDescriptionLengthExactErrorMessage() {
+        config.setMaxArtifactNameLengthChars(5L);
+        config.setMaxArtifactDescriptionLengthChars(10L);
+
+        EditableArtifactMetaDataDto meta = new EditableArtifactMetaDataDto();
+        meta.setName("toolong");
+        meta.setDescription("descriptiontoolong");
+
+        LimitsCheckResult result = limitsService.checkMetaData(meta);
+        Assertions.assertFalse(result.isAllowed());
+        Assertions.assertEquals(
+                "Maximum artifact name length exceeded (limit: 5 characters, actual: 7 characters), " +
+                "Maximum artifact description length exceeded (limit: 10 characters, actual: 18 characters)",
+                result.getMessage()
+        );
+    }
+}

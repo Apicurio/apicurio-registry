@@ -208,7 +208,11 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "nonexistent-agent")
                 .get("/.well-known/agents/{groupId}/{artifactId}")
                 .then()
-                .statusCode(404);
+                .statusCode(404)
+                .contentType(ContentType.JSON)
+                .body("name", notNullValue())
+                .body("title", notNullValue())
+                .body("detail", notNullValue());
     }
 
     @Test

@@ -46,6 +46,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             res = coreV2Mapper.mapException(t);
         } else if (isIcebergEndpoint()) {
             res = icebergMapper.mapException(t);
+        } else if (isA2AEndpoint()) {
+            res = coreMapper.mapException(t);
         } else {
             res = coreMapper.mapException(t);
         }
@@ -59,6 +61,16 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
         //
         // return builder.type(res.getContentType()).build();
         return res;
+    }
+
+    /**
+     * Returns true if the endpoint that caused the error is an A2A endpoint.
+     */
+    private boolean isA2AEndpoint() {
+        if (this.request != null) {
+            return this.request.getRequestURI().contains("/.well-known");
+        }
+        return false;
     }
 
     /**

@@ -100,7 +100,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Download Build Artifact
         if: inputs.download-artifact != ''
@@ -111,7 +111,7 @@ jobs:
 
       - name: Set up JDK ${{ inputs.java-version }}
         if: inputs.maven-build
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -119,11 +119,11 @@ jobs:
 
       - name: Maven Build
         if: inputs.maven-build
-        run: ./mvnw ${{ inputs.maven-args }}
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml ${{ inputs.maven-args }}
 
       - name: Set up Node.js ${{ inputs.node-version }}
         if: inputs.npm-build
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
@@ -148,7 +148,7 @@ jobs:
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Login to DockerHub Registry
         if: inputs.push-to-dockerhub
@@ -192,7 +192,7 @@ jobs:
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and Push Multi-arch Image
-        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
         env:
           DOCKER_TAGS: ${{ steps.tags.outputs.tags }}
         with:

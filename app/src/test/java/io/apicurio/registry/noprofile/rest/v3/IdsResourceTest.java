@@ -112,13 +112,15 @@ public class IdsResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).pathParam("globalId", globalId)
                 .get("/registry/v3/ids/globalIds/{globalId}").then().statusCode(200)
                 .header("X-Registry-ArtifactType", Matchers.nullValue()).body("openapi", equalTo("3.0.2"))
-                .body("info.title", equalTo(title));
+                .body("info.title", equalTo(title))
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + globalId + ".json\""));
 
         // Get by globalId with artifactType
         given().when().contentType(CT_JSON).pathParam("globalId", globalId)
                 .queryParam("returnArtifactType", true).get("/registry/v3/ids/globalIds/{globalId}").then()
                 .statusCode(200).header("X-Registry-ArtifactType", "OPENAPI")
-                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title));
+                .body("openapi", equalTo("3.0.2")).body("info.title", equalTo(title))
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + globalId + ".json\""));
     }
 
     @Test
@@ -162,8 +164,9 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Get by contentId
         String content = given().when().contentType(CT_JSON).pathParam("contentId", contentId)
-                .get("/registry/v3/ids/contentIds/{contentId}").then().statusCode(200).extract().body()
-                .asString();
+                .get("/registry/v3/ids/contentIds/{contentId}").then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + contentId + ".json\""))
+                .extract().body().asString();
         Assertions.assertTrue(content.contains("\"openapi\": \"3.0.2\""));
         Assertions.assertTrue(content.contains(title));
 
@@ -189,8 +192,9 @@ public class IdsResourceTest extends AbstractResourceTestBase {
 
         // Get by contentHash
         String content = given().when().contentType(CT_JSON).pathParam("contentHash", contentHash)
-                .get("/registry/v3/ids/contentHashes/{contentHash}").then().statusCode(200).extract().body()
-                .asString();
+                .get("/registry/v3/ids/contentHashes/{contentHash}").then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + contentHash + ".json\""))
+                .extract().body().asString();
         Assertions.assertTrue(content.contains("\"openapi\": \"3.0.2\""));
         Assertions.assertTrue(content.contains(title));
 

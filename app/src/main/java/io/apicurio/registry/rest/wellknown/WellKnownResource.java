@@ -1,9 +1,10 @@
 package io.apicurio.registry.rest.wellknown;
 
-import io.apicurio.registry.a2a.rest.beans.AgentCard;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
+import io.apicurio.registry.rest.v3.beans.AgentCard;
+import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -24,7 +25,7 @@ import java.util.List;
  * /.well-known/agent.json for discovery purposes.
  *
  * This resource also serves JSON Schemas for LLM artifact types at
- * /.well-known/schemas/{type}/{version} for IDE autocompletion and validation.
+ * /.well-known/schemas/{schemaType}/{version} for IDE autocompletion and validation.
  *
  * @see <a href="https://a2a-protocol.org/">A2A Protocol</a>
  * @see <a href="https://json-schema.org/">JSON Schema</a>
@@ -51,6 +52,16 @@ public interface WellKnownResource {
     @Path("/a2a")
     @Produces(MediaType.APPLICATION_JSON)
     AgentCard getAgentCardV1();
+
+    /**
+     * Returns the Agent Card for this Apicurio Registry instance.
+     * Alias for compatibility with watsonx Orchestrate, which discovers agents
+     * at /.well-known/agent-card.json by default.
+     */
+    @GET
+    @Path("/agent-card.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AgentCard getAgentCardForOrchestrate();
 
     /**
      * Returns a specific registered Agent Card by group and artifact ID.
@@ -156,6 +167,36 @@ public interface WellKnownResource {
     McpToolSearchResults searchMcpTools(
             @QueryParam("name") String name,
             @QueryParam("parameter") List<String> parameters,
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
+
+    /**
+     * Returns all registered MCP tools whose {@code inputSchema} can accept the output
+     * produced by the given source tool's {@code outputSchema}.
+     *
+     * <p>Two tools are considered compatible when every property declared in the source
+     * tool's {@code outputSchema.properties} is also present in the candidate tool's
+     * {@code inputSchema.properties} with the same JSON Schema type. This models the
+     * pipeline chaining contract: the candidate tool can consume what the source tool
+     * produces.</p>
+     *
+     * <p>If the source tool has no {@code outputSchema}, an empty result is returned.
+     * The source tool itself is never included in the results.</p>
+     *
+     * @param groupId    the group ID of the source MCP tool artifact
+     * @param artifactId the artifact ID of the source MCP tool
+     * @param version    optional version expression (defaults to latest)
+     * @param offset     pagination offset
+     * @param limit      pagination limit
+     * @return the compatible MCP tools
+     */
+    @GET
+    @Path("/mcp-tools/{groupId}/{artifactId}/compatible")
+    @Produces(MediaType.APPLICATION_JSON)
+    McpCompatibleToolsResults findCompatibleTools(
+            @PathParam("groupId") String groupId,
+            @PathParam("artifactId") String artifactId,
+            @QueryParam("version") String version,
             @QueryParam("offset") @DefaultValue("0") Integer offset,
             @QueryParam("limit") @DefaultValue("20") Integer limit);
 
@@ -169,14 +210,14 @@ public interface WellKnownResource {
      * - model-schema (versions: v1)
      * - mcp-tool (versions: v1)
      *
-     * @param type the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
+     * @param schemaType the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
      * @param version the schema version (e.g., "v1")
      * @return the JSON Schema
      */
     @GET
-    @Path("/schemas/{type}/{version}")
+    @Path("/schemas/{schemaType}/{version}")
     @Produces(MediaType.APPLICATION_JSON)
     Response getSchema(
-            @PathParam("type") String type,
+            @PathParam("schemaType") String schemaType,
             @PathParam("version") String version);
 }

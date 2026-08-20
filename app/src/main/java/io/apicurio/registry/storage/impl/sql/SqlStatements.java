@@ -8,6 +8,8 @@ import java.util.List;
  */
 public interface SqlStatements {
 
+    String COMPRESSED_SNAPSHOT_EXTENSION = ".sql.gz";
+
     /**
      * Gets the database type associated with these statements.
      */
@@ -279,6 +281,8 @@ public interface SqlStatements {
     public String updateArtifactVersionOwnerByGAV();
 
     public String updateArtifactVersionStateByGAV();
+
+    public String updateVersionSortKey();
 
     /**
      * A statement to delete all rows in the group_labels table for a given group.
@@ -724,7 +728,23 @@ public interface SqlStatements {
 
     public String createDataSnapshot();
 
+    /**
+     * Returns the SQL statement to create a data snapshot at the given location, optionally
+     * applying compression based on the file extension.
+     */
+    default String createDataSnapshot(String location) {
+        return createDataSnapshot();
+    }
+
     public String restoreFromSnapshot();
+
+    /**
+     * Returns the SQL statement to restore from a snapshot at the given location, optionally
+     * applying decompression based on the file extension.
+     */
+    default String restoreFromSnapshot(String location) {
+        return restoreFromSnapshot();
+    }
 
     // ========== Events ==========
 

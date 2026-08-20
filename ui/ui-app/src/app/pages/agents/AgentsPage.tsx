@@ -38,7 +38,10 @@ import {
 } from "@services/useAgentService";
 import { Paging } from "@models/Paging.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
-import { FromNow } from "@apicurio/common-ui-components";
+import { FromNow, PleaseWaitModal } from "@apitomy/common-ui-components";
+import { CreateAgentModal, ImportAgentModal } from "@app/pages/agents/components";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { CreateArtifact } from "@sdk/lib/generated-client/models";
 
 const EMPTY_RESULTS: AgentSearchResults = {
     agents: [],
@@ -65,13 +68,20 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const [isSearching, setSearching] = useState<boolean>(false);
     const [results, setResults] = useState<AgentSearchResults>(EMPTY_RESULTS);
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
+    const [appliedFilters, setAppliedFilters] = useState<AgentSearchFilters>({});
     const [nameFilter, setNameFilter] = useState<string>("");
     const [capabilityFilter, setCapabilityFilter] = useState<string>("");
     const [skillFilter, setSkillFilter] = useState<string>("");
     const [capabilitySelectOpen, setCapabilitySelectOpen] = useState(false);
 
+    const [isCreateAgentModalOpen, setIsCreateAgentModalOpen] = useState(false);
+    const [isImportAgentModalOpen, setIsImportAgentModalOpen] = useState(false);
+    const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
+    const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+
     const agentSvc = useAgentService();
     const appNav = useAppNavigation();
+    const groups: GroupsService = useGroupsService();
 
     const createFilters = (): AgentSearchFilters => {
         return {
@@ -82,6 +92,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     };
 
     const search = async (filters: AgentSearchFilters, paging: Paging): Promise<void> => {
+        setAppliedFilters(filters);
         setSearching(true);
         try {
             const results = await agentSvc.searchAgents(filters, paging);
@@ -93,14 +104,18 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
         }
     };
 
+    const applyFilters = (newFilters: AgentSearchFilters): void => {
+        const newPaging = { ...DEFAULT_PAGING };
+        setPaging(newPaging);
+        search(newFilters, newPaging);
+    };
+
     const createLoaders = (): Promise<any> => {
         return search(createFilters(), paging);
     };
 
     const handleSearch = (): void => {
-        const newPaging = { ...DEFAULT_PAGING };
-        setPaging(newPaging);
-        search(createFilters(), newPaging);
+        applyFilters(createFilters());
     };
 
     const handleKeyPress = (event: React.KeyboardEvent): void => {
@@ -112,32 +127,43 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const handlePageChange = (_event: any, page: number): void => {
         const newPaging = { ...paging, page };
         setPaging(newPaging);
-        search(createFilters(), newPaging);
+        search(appliedFilters, newPaging);
     };
 
     const handlePerPageChange = (_event: any, perPage: number): void => {
         const newPaging = { page: 1, pageSize: perPage };
         setPaging(newPaging);
-        search(createFilters(), newPaging);
+        search(appliedFilters, newPaging);
     };
 
     const handleCapabilitySelect = (_event: React.MouseEvent | undefined, value: string | number | undefined): void => {
         const selectedValue = value as string || "";
         setCapabilityFilter(selectedValue);
         setCapabilitySelectOpen(false);
-        const filters: AgentSearchFilters = {
-            name: nameFilter || undefined,
-            capability: selectedValue || undefined,
-            skill: skillFilter || undefined
-        };
-        search(filters, { ...DEFAULT_PAGING });
-        setPaging({ ...DEFAULT_PAGING });
+        applyFilters({
+            ...appliedFilters,
+            capability: selectedValue || undefined
+        });
     };
 
     const navigateToAgent = (agent: AgentSearchResult): void => {
         const gid = encodeURIComponent(agent.groupId || "default");
         const aid = encodeURIComponent(agent.artifactId);
         appNav.navigateTo(`/explore/${gid}/${aid}`);
+    };
+
+    const doSaveAgent = (groupId: string, data: CreateArtifact, waitMessage: string, errorMessage: string): void => {
+        setPleaseWaitMessage(waitMessage);
+        setIsPleaseWaitModalOpen(true);
+        groups.createArtifact(groupId || null, data).then(response => {
+            const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
+            const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
+            setIsPleaseWaitModalOpen(false);
+            appNav.navigateTo(`/explore/${gid}/${aid}`);
+        }).catch(error => {
+            setIsPleaseWaitModalOpen(false);
+            setPageError(toPageError(error, errorMessage));
+        });
     };
 
     useEffect(() => {
@@ -226,7 +252,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     };
 
     const renderEmptyState = (): React.ReactElement => {
-        const isFiltered = !!(nameFilter || capabilityFilter || skillFilter);
+        const isFiltered = !!(appliedFilters.name || appliedFilters.capability || appliedFilters.skill);
         return (
             <EmptyState
                 headingLevel="h4"
@@ -253,12 +279,10 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             onSearch={handleSearch}
                             onClear={() => {
                                 setNameFilter("");
-                                const filters: AgentSearchFilters = {
-                                    capability: capabilityFilter || undefined,
-                                    skill: skillFilter || undefined
-                                };
-                                search(filters, { ...DEFAULT_PAGING });
-                                setPaging({ ...DEFAULT_PAGING });
+                                applyFilters({
+                                    ...appliedFilters,
+                                    name: undefined
+                                });
                             }}
                             onKeyDown={handleKeyPress}
                         />
@@ -271,12 +295,10 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             onSearch={handleSearch}
                             onClear={() => {
                                 setSkillFilter("");
-                                const filters: AgentSearchFilters = {
-                                    name: nameFilter || undefined,
-                                    capability: capabilityFilter || undefined
-                                };
-                                search(filters, { ...DEFAULT_PAGING });
-                                setPaging({ ...DEFAULT_PAGING });
+                                applyFilters({
+                                    ...appliedFilters,
+                                    skill: undefined
+                                });
                             }}
                             onKeyDown={handleKeyPress}
                         />
@@ -307,6 +329,16 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                     <ToolbarItem>
                         <Button variant="primary" onClick={handleSearch}>
                             Search
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
+                            Create Agent
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
+                            Import Agent
                         </Button>
                     </ToolbarItem>
                     <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
@@ -365,6 +397,26 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                     )}
                 </PageSection>
             </PageDataLoader>
+            <CreateAgentModal
+                isOpen={isCreateAgentModalOpen}
+                onClose={() => setIsCreateAgentModalOpen(false)}
+                onCreate={(groupId, data) => {
+                    setIsCreateAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Creating agent card, please wait...", "Error creating agent.");
+                }}
+            />
+            <ImportAgentModal
+                isOpen={isImportAgentModalOpen}
+                onClose={() => setIsImportAgentModalOpen(false)}
+                onImport={(groupId, data) => {
+                    setIsImportAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Importing agent card, please wait...", "Error importing agent.");
+                }}
+            />
+            <PleaseWaitModal
+                message={pleaseWaitMessage}
+                isOpen={isPleaseWaitModalOpen}
+            />
         </PageErrorHandler>
     );
 };

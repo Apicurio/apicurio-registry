@@ -12,12 +12,12 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.RestConfig;
-import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.rest.v3.beans.SystemInfo;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigAuth;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigFeatures;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigUi;
+import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.ui.UserInterfaceConfigProperties;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -109,6 +109,8 @@ public class SystemResourceImpl implements SystemResource {
             }
             // Only include loadUserInfo if explicitly configured
             uiConfig.loadUserInfo.ifPresent(loadUserInfo -> options.put("loadUserInfo", String.valueOf(loadUserInfo)));
+            // Only include useNonce if explicitly configured
+            uiConfig.useNonce.ifPresent(useNonce -> options.put("useNonce", String.valueOf(useNonce)));
             rval.setOptions(options);
         }
         return rval;

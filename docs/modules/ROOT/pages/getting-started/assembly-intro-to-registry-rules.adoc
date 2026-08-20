@@ -4,14 +4,10 @@ include::{mod-loc}shared/all-attributes.adoc[]
 = {registry} content rules
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
-[role="_abstract"]
-This chapter introduces the optional rules used to govern {registry} content and provides details on the available rule configuration:
+:_mod-docs-content-type: ASSEMBLY
 
-* xref:registry-rules_{context}[]
-* xref:registry-rules-apply_{context}[]
-* xref:registry-rules-precedence_{context}[]
-* xref:registry-rules-work_{context}[]
-* xref:registry-rules-config_{context}[]
+[role="_abstract"]
+{registry} supports optional rules that govern the evolution of artifact content, with configuration options at the global, group, and artifact level.
 
 //INCLUDES
 
@@ -19,8 +15,9 @@ This chapter introduces the optional rules used to govern {registry} content and
 // Metadata created by nebel
 
 [id="registry-rules_{context}"]
-
 == Govern {registry} content using rules
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules, group-specific rules, or artifact-specific rules must pass before a new artifact version can be added to {registry}. Configured artifact-specific rules override any configured group-specific rules, which in turn override any configured global rules.
@@ -35,7 +32,11 @@ The goal of these rules is to prevent invalid content from being added to {regis
 You can enable optional content rules using the {registry} web console, REST API commands, or by using one of the SDKs.
 
 [id="registry-rules-apply_{context}"]
-=== When rules are applied
+== When rules are applied
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 Rules are applied only when content is added to {registry}. This includes the following REST operations:
 
 * Adding an artifact
@@ -44,7 +45,11 @@ Rules are applied only when content is added to {registry}. This includes the fo
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
 
 [id="registry-rules-precedence_{context}"]
-=== Order of precedence of rules
+== Order of precedence of rules
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 The order of precedence for artifact-specific and global rules is as follows:
 
 * Artifact-specific rules have the highest priority
@@ -54,38 +59,50 @@ The order of precedence for artifact-specific and global rules is as follows:
 NOTE: If a rule is configured at a higher level (e.g. at the global level), but you want that rule to be disabled at a lower level, you must configure the same rule (so that it overrides it) at the lower level and set its rules value to `NONE`.
 
 [id="registry-rules-work_{context}"]
-=== How rules work
+== How rules work
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
 Each rule has a name and configuration information. {registry} maintains the list of rules for each artifact, each group, and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
 
 When a rule is executed, it is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns either passes or fails depending on whether the artifact passes the rule. If not, {registry} reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 [role="_additional-resources"]
 .Additional resources
-For more details, see {registry-rule-reference}.
+* {registry-rule-reference}
 
 [id="registry-rules-config_{context}"]
-=== Content rule configuration
+== Content rule configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 Administrators can configure {registry} global rules, group-specific rules, and artifact-specific rules. Developers can configure group-specific and artifact-specific rules only.
 
-{registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the group-specific rules.  If no rules are configured at the group level, then {registry} applies the globally configured rules. If no global rules are configured, then no rules are applied.
+{registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the group-specific rules. If no rules are configured at the group level, then {registry} applies the globally configured rules. If no global rules are configured, then no rules are applied.
 
-[discrete]
-==== Configure group and artifact specific rules
-You can configure group-specific and artifact-specific rules using the {registry} web console or REST API. For details, see the following:
+You can configure group-specific and artifact-specific rules using the {registry} web console or REST API.
 
+[role="_additional-resources"]
+.Additional resources
 * {managing-registry-artifacts-ui}
 * link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
 
-[discrete]
-==== Configure global rules
-Administrators can configure global rules in several ways:
+[id="registry-rules-config-global_{context}"]
+== Default global rule configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Administrators can configure global rules in several ways.
 
 * Use the `admin/rules` operations in the REST API
 * Use the {registry} web console
 * Set default global rules using {registry} application properties
 
-.Configure default global rules
 Administrators can configure {registry} at the application level to enable or disable global rules. You can configure default global rules at installation time without post-install configuration using the following application property format:
+
 ----
 apicurio.rules.global.<ruleName>
 ----
@@ -101,6 +118,3 @@ configured.
 
 NOTE: You can configure these application properties as Java system properties or include them in the Quarkus
 `application.properties` file. For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
-
-
-

@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { AuthService } from "@apicurio/common-ui-components";
+import { AuthService } from "@apitomy/common-ui-components";
 import { Buffer } from "buffer";
 import { AuthenticationProvider, Headers, RequestInformation, type RequestOption } from "@microsoft/kiota-abstractions";
 import { ConfigService } from "@services/useConfigService";
@@ -215,12 +215,15 @@ function createAxiosConfig(method: string, url: string, options: any, data?: any
 }
 
 
-function unwrapErrorData(error: any): any {
+export function unwrapErrorData(error: any): any {
     console.debug("Error detected, unwrapping...");
     if (error && error.response && error.response.data) {
+        const errorData = (typeof error.response.data === "object" && error.response.data !== null && !Array.isArray(error.response.data))
+            ? error.response.data
+            : { message: String(error.response.data) };
         return {
             message: error.message,
-            ...error.response.data,
+            ...errorData,
             status: error.response.status
         };
     } else if (error && error.response) {
@@ -261,16 +264,15 @@ export function createEndpoint(baseHref: string, path: string, params?: any, que
     if (queryParams) {
         let first: boolean = true;
         for (const key in queryParams) {
-            if (queryParams[key]) {
-                const value: string = encodeURIComponent(queryParams[key]);
+            const rawValue: any = queryParams[key];
+            if (rawValue !== null && rawValue !== undefined && rawValue !== "") {
+                const value: string = encodeURIComponent(rawValue);
                 if (first) {
                     rval = rval + "?" + key;
                 } else {
                     rval = rval + "&" + key;
                 }
-                if (value !== null && value !== undefined) {
-                    rval = rval + "=" + value;
-                }
+                rval = rval + "=" + value;
                 first = false;
             }
         }

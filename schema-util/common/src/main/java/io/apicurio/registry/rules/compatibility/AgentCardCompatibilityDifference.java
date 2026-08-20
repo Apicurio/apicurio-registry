@@ -14,6 +14,7 @@ public class AgentCardCompatibilityDifference implements CompatibilityDifference
         PROTOCOL_VERSION_CHANGED("supportedInterfaces"),
         SKILL_REMOVED("skills"),
         CAPABILITY_REMOVED("capabilities"),
+        CAPABILITY_EXTENSION_REMOVED("capabilities/extensions"),
         SECURITY_SCHEME_REMOVED("securitySchemes"),
         MODE_REMOVED("modes"),
         PARSE_ERROR("document");

@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1025,6 +1026,106 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         });
     }
 
+    @Test
+    public void testSearchVersionsByNegatedGlobalIdAndContentId() throws Exception {
+        String artifactId = "testSearchVersionsByNegatedGlobalIdAndContentId-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        ArtifactVersionMetaDataDto dto = storage()
+                .createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                        ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                                .content(content).build(),
+                        null, Collections.emptyList(), false, false, null)
+                .getValue();
+        Assertions.assertNotNull(dto);
+
+        content = ContentHandle.create(OPENAPI_CONTENT_V2);
+        ArtifactVersionMetaDataDto dtov2 = storage().createArtifactVersion(
+                GROUP_ID, artifactId, null, ArtifactType.OPENAPI, ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                null, Collections.emptyList(), false, false, null);
+        Assertions.assertNotNull(dtov2);
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofGlobalId(dto.getGlobalId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(dtov2.getGlobalId(), results.getVersions().get(0).getGlobalId());
+
+            results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofContentId(dto.getContentId()).negated()),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(dtov2.getContentId(), results.getVersions().get(0).getContentId());
+
+            results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId),
+                            SearchFilter.ofGlobalId(dtov2.getGlobalId()),
+                            SearchFilter.ofContentId(dtov2.getContentId())),
+                    OrderBy.globalId, OrderDirection.asc, 0, 10, false);
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(1, results.getCount());
+            Assertions.assertEquals(1, results.getVersions().size());
+            Assertions.assertEquals(dtov2.getGlobalId(), results.getVersions().get(0).getGlobalId());
+            Assertions.assertEquals(dtov2.getContentId(), results.getVersions().get(0).getContentId());
+        });
+
+        Assertions.assertThrows(IllegalArgumentException.class, () -> storage().searchVersions(
+                Set.of(SearchFilter.ofGlobalId(null)), OrderBy.globalId, OrderDirection.asc, 0, 10,
+                false));
+
+        SearchFilter invalidGlobalId = new SearchFilter();
+        invalidGlobalId.setType(SearchFilterType.globalId);
+        invalidGlobalId.setStringValue("not-a-number");
+        Assertions.assertThrows(IllegalStateException.class, () -> storage().searchVersions(
+                Set.of(invalidGlobalId), OrderBy.globalId, OrderDirection.asc, 0, 10, false));
+    }
+
+    @Test
+    public void testVersionSortingAndSemver() throws Exception {
+        String artifactId = "testSemverSorting-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                null, Collections.emptyList(), false, false, null);
+
+        String[] versionsToInsert = { "2", "10", "1.0.0-10", "1.0.0-9", "1.0.0-alpha", "1.0.1", "latest", "zzz-custom" };
+        
+        for (String ver : versionsToInsert) {
+            storage().createArtifactVersion(GROUP_ID, artifactId, ver, ArtifactType.OPENAPI,
+                    ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                    null, Collections.emptyList(), false, false, null);
+        }
+
+        TestUtils.retry(() -> {
+            VersionSearchResultsDto results = storage().searchVersions(
+                    Set.of(SearchFilter.ofGroupId(GROUP_ID), SearchFilter.ofArtifactId(artifactId)),
+                    OrderBy.version, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            Assertions.assertEquals(9, results.getCount());
+            
+            List<SearchedVersionDto> sortedVersions = results.getVersions();
+            
+            // Validate the mathematically correct SemVer sorting order:
+            Assertions.assertEquals("1.0.0-9", sortedVersions.get(0).getVersion());
+            Assertions.assertEquals("1.0.0-10", sortedVersions.get(1).getVersion());
+            Assertions.assertEquals("1.0.0-alpha", sortedVersions.get(2).getVersion());
+            Assertions.assertEquals("1", sortedVersions.get(3).getVersion());
+            Assertions.assertEquals("1.0.1", sortedVersions.get(4).getVersion());
+            Assertions.assertEquals("2", sortedVersions.get(5).getVersion());
+            Assertions.assertEquals("10", sortedVersions.get(6).getVersion());
+            Assertions.assertEquals("latest", sortedVersions.get(7).getVersion());
+            Assertions.assertEquals("zzz-custom", sortedVersions.get(8).getVersion());
+        });
+    }
+
     private void createSomeUserData() {
         final String group1 = "testGroup-1";
         final String group2 = "testGroup-2";
@@ -1294,6 +1395,73 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
         Assertions.assertEquals(size, builder.toString().length());
         return builder.toString();
+    }
+
+    /**
+     * Verifies that label-based artifact search is locale-safe. Under the Turkish locale,
+     * plain .toLowerCase() maps 'I' to dotless-i (U+0131) instead of 'i', causing a
+     * mismatch between the stored label key and the search filter value. All normalization
+     * must use Locale.ROOT so this round-trip is consistent regardless of the JVM locale.
+     *
+     * <p>The label key is intentionally unique (UUID-based) so the test is isolated from
+     * any pre-existing artifacts in the shared database, making it safe to run inside
+     * {@code @QuarkusTest} classes ({@code DefaultRegistryStorageTest},
+     * {@code KafkaSqlRegistryStorageTest}) where the database is not reset between methods.
+     */
+    @Test
+    public void testSearchArtifactsByLabelWithTurkishLocale() throws Exception {
+        Locale savedLocale = Locale.getDefault();
+        // Unique suffix prevents collision with any other test's artifacts in the shared DB.
+        String uniqueSuffix = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String artifactId = "testTurkishLocale-" + uniqueSuffix;
+        // Uppercase I in the key — this is the character that Turkish locale maps to
+        // dotless-i (U+0131) instead of plain 'i', the canonical bug trigger.
+        String labelKey = "INSTABILITY-" + uniqueSuffix.toUpperCase();
+        try {
+            // Switch the JVM default locale to Turkish. After this point any bare
+            // .toLowerCase() call will produce the wrong result for keys containing 'I'.
+            Locale.setDefault(new Locale("tr", "TR"));
+
+            Map<String, String> labels = Collections.singletonMap(labelKey, "HIGH");
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                    "Locale Test Artifact", "locale sensitivity check", null, labels);
+            storage().createArtifact(
+                    GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_JSON)
+                            .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                    null, Collections.emptyList(), false, false, null).getValue();
+
+            // Search using the same label key. Locale.ROOT normalization on both the
+            // write path (storage) and read path (query) must agree, otherwise the
+            // stored key ("instability-XXXXX" via ROOT) and the query key
+            // ("ınstability-XXXXX" via Turkish) diverge and the result list is empty.
+            Set<SearchFilter> filters = Collections.singleton(
+                    SearchFilter.ofLabel(labelKey, "HIGH"));
+            ArtifactSearchResultsDto results = storage().searchArtifacts(
+                    filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            // Because the label key contains our unique suffix it cannot match any
+            // pre-existing artifact; we assert getCount() >= 1 to allow for any
+            // concurrent test activity without making the assertion brittle.
+            boolean found = results.getArtifacts().stream()
+                    .anyMatch(a -> artifactId.equals(a.getArtifactId()));
+            Assertions.assertTrue(found,
+                    "Label search must find the artifact even under a Turkish JVM locale. "
+                    + "Returned " + results.getCount() + " result(s), none matching "
+                    + artifactId + ". This indicates Locale.ROOT was not used consistently "
+                    + "in the storage write or search path.");
+        } finally {
+            // Always restore the JVM locale first so subsequent tests are not affected.
+            Locale.setDefault(savedLocale);
+            // Then clean up the artifact (locale is already restored at this point).
+            try {
+                storage().deleteArtifact(GROUP_ID, artifactId);
+            } catch (Exception ignored) {
+                // Artifact may not exist if createArtifact threw; safe to ignore.
+            }
+        }
     }
 
 }

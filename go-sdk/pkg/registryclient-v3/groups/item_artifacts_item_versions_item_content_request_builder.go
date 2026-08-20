@@ -13,6 +13,8 @@ type ItemArtifactsItemVersionsItemContentRequestBuilder struct {
 
 // ItemArtifactsItemVersionsItemContentRequestBuilderGetQueryParameters retrieves a single version of the artifact content.  Both the `artifactId` and theunique `version` number must be provided.  The `Content-Type` of the response depends on the artifact type.  In most cases, this is `application/json`, but for some types it may be different (for example, `PROTOBUF`).This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 type ItemArtifactsItemVersionsItemContentRequestBuilderGetQueryParameters struct {
+	// Parameter that can be set to `true` to indicate that the server should return the canonicalized form of the artifact content.  Canonicalization is unique to each artifact type, but typically involves removing any extra whitespace and formatting the content in a consistent manner.  When `canonical=true`, the server resolves artifact references internally for canonicalization regardless of the `references` query parameter value.  The `references` parameter still controls how references appear in the returned content (e.g. preserved, dereferenced, or rewritten).
+	Canonical *bool `uriparametername:"canonical"`
 	// Allows the user to specify how references in the content should be treated.
 	// Deprecated: This property is deprecated, use ReferencesAsHandleReferencesType instead
 	References *string `uriparametername:"references"`
@@ -41,7 +43,7 @@ type ItemArtifactsItemVersionsItemContentRequestBuilderPutRequestConfiguration s
 // NewItemArtifactsItemVersionsItemContentRequestBuilderInternal instantiates a new ItemArtifactsItemVersionsItemContentRequestBuilder and sets the default values.
 func NewItemArtifactsItemVersionsItemContentRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ItemArtifactsItemVersionsItemContentRequestBuilder {
 	m := &ItemArtifactsItemVersionsItemContentRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/content{?references*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/content{?canonical*,references*}", pathParameters),
 	}
 	return m
 }

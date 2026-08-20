@@ -46,18 +46,20 @@ jobs:
           - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
           cache: 'maven'
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -70,9 +72,9 @@ jobs:
           # -Pintegration-tests + -P<remote-profile>: select storage backend (remote-mem, remote-sql, remote-kafka, etc.)
           # -Dgroups: JUnit 5 test tags filtering (e.g., auth, migration, debezium)
           # -Dregistry-image: Docker image built by the Build job, loaded into Minikube
-          # -Dfailsafe.rerunFailingTestsCount=2: automatically retry flaky integration tests up to 2 times
+          # -Dfailsafe.rerunFailingTestsCount=1: automatically retry flaky integration tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-          ./mvnw verify -am --no-transfer-progress \
+          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify -am --no-transfer-progress \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
@@ -80,7 +82,20 @@ jobs:
             -pl integration-tests \
             -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
-            -Dfailsafe.rerunFailingTestsCount=2
+            -Dfailsafe.rerunFailingTestsCount=1
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}
+          path: flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}.json
+          retention-days: 1
 
       - name: Collect logs
         if: failure()

@@ -42,9 +42,30 @@ jobs:
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          # app-auth / app-transport / app-metrics are carved out of app-other. Each @TestProfile in a
+          # shard forces Quarkus to tear down and rebuild the application in the single forked JVM
+          # (forkCount=1 with the default reuseForks=true), and app-other had accumulated 42 distinct
+          # profiles across 147 classes -- four times the next-densest shard. That is what exhausted the
+          # heap and pushed the shard past an hour. These three groups are the profile-dense clusters.
+          # Counts come from .github/scripts/verify-test-shards.py, which is also what enforces that
+          # every class below is claimed by exactly one shard. See issue #9265.
+          - name: app-auth
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.limits.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          - name: app-transport
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.tls.**,io.apicurio.registry.headers.**,io.apicurio.registry.cors.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          - name: app-metrics
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.metrics.**,io.apicurio.registry.search.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          # Catch-all: stays an exclusion filter so a newly added package lands here rather than in no
+          # shard at all. Every exclusion below must correspond to another shard's inclusion.
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.**,!io.apicurio.registry.event.**"
+            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.impl.sql.**,!io.apicurio.registry.storage.impl.search.**,!io.apicurio.registry.storage.impl.polling.**,!io.apicurio.registry.storage.impl.readonly.**,!io.apicurio.registry.storage.decorator.**,!io.apicurio.registry.storage.dto.**,!io.apicurio.registry.storage.impl.kafkasql.**,!io.apicurio.registry.storage.impl.gitops.**,!io.apicurio.registry.storage.impl.kubernetesops.**,!io.apicurio.registry.event.sql.**,!io.apicurio.registry.event.kafkasql.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
@@ -52,14 +73,18 @@ jobs:
             maven-opts: "-Xmx4g"
     steps:
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -72,6 +97,10 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
+      - name: Record start time
+        id: timer
+        run: echo "start=$(date +%s)" >> "$GITHUB_OUTPUT"
+
       - name: Run Unit Tests (${{ matrix.shard.name }})
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -80,10 +109,10 @@ jobs:
           # Each shard compiles the same modules but runs a different subset of tests via -Dtest= filters.
           # Pre-built artifacts from the Build job are downloaded but Maven still needs to resolve/compile.
           # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
-          # -Dsurefire.rerunFailingTestsCount=2: automatically retry flaky tests up to 2 times
+          # -Dsurefire.rerunFailingTestsCount=1: automatically retry flaky tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           ./mvnw verify \
-            --no-transfer-progress \
+            --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
@@ -93,4 +122,31 @@ jobs:
             -Daether.syncContext.named.factory=noop \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5 \
-            -Dsurefire.rerunFailingTestsCount=2
+            -Dsurefire.rerunFailingTestsCount=1
+
+      - name: Check shard timing
+        if: always()
+        env:
+          SHARD_NAME: ${{ matrix.shard.name }}
+          START_TIME: ${{ steps.timer.outputs.start }}
+        run: |
+          elapsed=$(( $(date +%s) - START_TIME ))
+          threshold=600
+          if [ "$elapsed" -gt "$threshold" ]; then
+            echo "::warning title=CI timing regression ($SHARD_NAME)::Shard $SHARD_NAME took ${elapsed}s (threshold: ${threshold}s). Investigate: cache miss, runner degradation, or new test overhead. See Discussion #8364."
+          else
+            echo "Shard $SHARD_NAME completed in ${elapsed}s (threshold: ${threshold}s)"
+          fi
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-${{ matrix.shard.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-${{ matrix.shard.name }}
+          path: flaky-tests-${{ matrix.shard.name }}.json
+          retention-days: 1

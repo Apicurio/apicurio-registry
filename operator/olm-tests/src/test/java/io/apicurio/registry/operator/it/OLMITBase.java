@@ -2,8 +2,11 @@ package io.apicurio.registry.operator.it;
 
 import io.apicurio.registry.operator.OperatorException;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
+import io.apicurio.registry.operator.utils.ClusterDiagnostics;
 import io.apicurio.registry.operator.utils.OperatorTestContext;
 import io.apicurio.registry.operator.utils.OperatorTestExtension;
+import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReview;
+import io.fabric8.kubernetes.api.model.authorization.v1.SubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -11,6 +14,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @ExtendWith(OperatorTestExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class OLMITBase implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(OLMITBase.class);
@@ -35,12 +40,14 @@ public abstract class OLMITBase implements OperatorTestContext {
     public static final String PROJECT_VERSION_PROP = OLMTestUtils.PROJECT_VERSION_PROP;
     public static final String PROJECT_ROOT_PROP = OLMTestUtils.PROJECT_ROOT_PROP;
     public static final String CATALOG_IMAGE_PROP = OLMTestUtils.CATALOG_IMAGE_PROP;
-    public static final String OML_VERSION = OLMTestUtils.OLM_VERSION_PROP;
+    public static final String OLM_VERSION = OLMTestUtils.OLM_VERSION_PROP;
 
-    protected static KubernetesClient client;
-    protected static String namespace;
-    protected static IngressManager ingressManager;
-    protected static boolean cleanup;
+    private static final String OPERATOR_SERVICE_ACCOUNT = "apicurio-registry-operator";
+
+    protected KubernetesClient client;
+    protected String namespace;
+    protected IngressManager ingressManager;
+    protected boolean cleanup;
 
     @Override
     public KubernetesClient getClient() {
@@ -58,7 +65,7 @@ public abstract class OLMITBase implements OperatorTestContext {
     }
 
     @BeforeAll
-    public static void beforeAll() throws Exception {
+    public void beforeAll() throws Exception {
         setDefaultAwaitilityTimings();
         namespace = ITBase.calculateNamespace();
         client = ITBase.createK8sClient(namespace);
@@ -66,7 +73,62 @@ public abstract class OLMITBase implements OperatorTestContext {
         ingressManager = new IngressManager(client, namespace);
         cleanup = ConfigProvider.getConfig().getValue(ITBase.CLEANUP, Boolean.class);
 
-        int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
+        try {
+            setupOLMResources();
+        } catch (Exception e) {
+            log.error("OLM setup failed, dumping cluster diagnostics before propagating failure", e);
+            ClusterDiagnostics.dump(client, namespace, true);
+            throw e;
+        }
+    }
+
+    /**
+     * The OLM v0 OperatorGroup resource to install. Defaults to a SingleNamespace/OwnNamespace
+     * group targeting the install namespace. Override to install in a different mode, e.g.
+     * AllNamespaces via {@code olmv0/operator-group-all-namespaces.yaml}.
+     */
+    protected String getOperatorGroupResourcePath() {
+        return "olmv0/operator-group.yaml";
+    }
+
+    /**
+     * The configured OLM version this test run targets (0 for OLM v0, 1 for OLM v1). CI runs the
+     * OLM-tagged tests in both modes. Tests with mode-specific assumptions can use this to skip.
+     */
+    protected int getOlmVersion() {
+        return ConfigProvider.getConfig().getOptionalValue(OLM_VERSION, Integer.class).orElse(0);
+    }
+
+    /**
+     * The Kubernetes user name of the operator ServiceAccount in this test's install namespace.
+     */
+    protected String operatorServiceAccountUser() {
+        return "system:serviceaccount:" + namespace + ":" + OPERATOR_SERVICE_ACCOUNT;
+    }
+
+    /**
+     * Whether {@code user} may create a Deployment in {@code reviewNamespace}, evaluated with a
+     * SubjectAccessReview. Lets tests assert an RBAC boundary deterministically, without depending
+     * on operand image readiness.
+     */
+    protected boolean canCreateDeployment(String user, String reviewNamespace) {
+        SubjectAccessReview review = new SubjectAccessReviewBuilder()
+                .withNewSpec()
+                .withUser(user)
+                .withNewResourceAttributes()
+                .withNamespace(reviewNamespace)
+                .withVerb("create")
+                .withGroup("apps")
+                .withResource("deployments")
+                .endResourceAttributes()
+                .endSpec()
+                .build();
+        var result = client.authorization().v1().subjectAccessReview().create(review);
+        return Boolean.TRUE.equals(result.getStatus().getAllowed());
+    }
+
+    private void setupOLMResources() throws Exception {
+        int olmVersion = ConfigProvider.getConfig().getOptionalValue(OLM_VERSION, Integer.class).orElse(0);
         if (olmVersion == 0) {
 
             if (client.apiextensions().v1().customResourceDefinitions().withName("catalogsources.operators.coreos.com").get() == null) {
@@ -82,7 +144,7 @@ public abstract class OLMITBase implements OperatorTestContext {
                                 .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus())));
             });
 
-            createResource("olmv0/operator-group.yaml");
+            createResource(getOperatorGroupResourcePath());
             createResource("olmv0/subscription.yaml");
         } else if (olmVersion == 1) {
 
@@ -160,24 +222,24 @@ public abstract class OLMITBase implements OperatorTestContext {
         }
     }
 
-    private static void createResource(String path) throws IOException {
+    private void createResource(String path) throws IOException {
         OLMTestUtils.createResource(client, namespace, path);
     }
 
-    private static void deleteResource(String path) throws IOException {
+    private void deleteResource(String path) throws IOException {
         var raw = OLMTestUtils.loadRawResource(path);
         client.resource(OLMTestUtils.replaceVars(raw, namespace)).delete();
     }
 
-    protected static String deriveChannel(String version) {
+    protected String deriveChannel(String version) {
         return OLMTestUtils.deriveMinorChannel(version);
     }
 
-    protected static String deriveMajorChannel(String version) {
+    protected String deriveMajorChannel(String version) {
         return OLMTestUtils.deriveRollingChannel(version);
     }
 
-    protected static String getProjectVersion() {
+    protected String getProjectVersion() {
         return OLMTestUtils.getProjectVersion();
     }
 
@@ -196,12 +258,12 @@ public abstract class OLMITBase implements OperatorTestContext {
     }
 
     @AfterAll
-    public static void afterAll() throws IOException {
+    public void afterAll() throws IOException {
         if (cleanup) {
-            int olmVersion = ConfigProvider.getConfig().getOptionalValue(OML_VERSION, Integer.class).orElse(0);
+            int olmVersion = ConfigProvider.getConfig().getOptionalValue(OLM_VERSION, Integer.class).orElse(0);
             if (olmVersion == 0) {
                 deleteResource("olmv0/subscription.yaml");
-                deleteResource("olmv0/operator-group.yaml");
+                deleteResource(getOperatorGroupResourcePath());
                 deleteResource("olmv0/catalog-source.yaml");
             } else if (olmVersion == 1) {
                 deleteResource("olmv1/cluster-extension.yaml");

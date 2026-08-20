@@ -218,34 +218,46 @@ public class CatalogDiscovery {
             var schema = obj.path("schema").asText("");
             switch (schema) {
                 case "olm.package" -> {
-                    defaultChannel = obj.path("defaultChannel").asText(null);
                     var packageName = obj.path("name").asText("");
-                    log.info("FBC package: {} defaultChannel={}", packageName, defaultChannel);
                     if (!PACKAGE_NAME.equals(packageName)) {
-                        log.warn("FBC package name '{}' does not match expected '{}'",
-                                packageName, PACKAGE_NAME);
+                        continue;
                     }
+                    defaultChannel = obj.path("defaultChannel").asText(null);
+                    log.info("FBC package: {} defaultChannel={}", packageName, defaultChannel);
                 }
                 case "olm.channel" -> {
+                    var channelPackage = obj.path("package").asText("");
+                    if (!PACKAGE_NAME.equals(channelPackage)) {
+                        continue;
+                    }
                     var channelName = obj.path("name").asText("");
                     var entries = new ArrayList<ChannelEntry>();
+                    var replacedNames = new HashSet<String>();
                     var entriesNode = obj.get("entries");
                     if (entriesNode != null && entriesNode.isArray()) {
                         for (var entryNode : entriesNode) {
                             var csvName = entryNode.path("name").asText("");
+                            var replaces = entryNode.path("replaces").asText(null);
+                            if (replaces != null) {
+                                replacedNames.add(replaces);
+                            }
                             var versionStr = extractVersionString(csvName);
                             try {
-                                entries.add(new ChannelEntry(csvName, parseVersion(versionStr)));
+                                entries.add(new ChannelEntry(csvName, parseVersion(versionStr),
+                                        replaces));
                             } catch (IllegalArgumentException e) {
                                 log.warn("Skipping entry with unparseable version: {} ({})",
                                         csvName, e.getMessage());
                             }
                         }
                     }
-                    // Sort entries by version descending so the head (latest) is first
-                    entries.sort((a, b) -> b.getVersion().compareTo(a.getVersion()));
-                    channels.put(channelName, entries);
-                    log.info("FBC channel {}: {} entries", channelName, entries.size());
+                    // Walk the replaces chain to produce the correct order (head first).
+                    var ordered = orderByReplacesChain(entries, replacedNames);
+                    channels.put(channelName, ordered);
+                    if (!ordered.isEmpty()) {
+                        log.info("FBC channel {}: {} entries, head={}",
+                                channelName, ordered.size(), ordered.get(0).getCsvName());
+                    }
                 }
                 case "olm.bundle" -> {
                     // Bundle objects contain the CSV content — not needed for discovery
@@ -261,5 +273,53 @@ public class CatalogDiscovery {
         }
 
         return new CatalogInfo(channels, defaultChannel);
+    }
+
+    /**
+     * Orders channel entries by walking the replaces chain from head to tail. The head is the
+     * entry that no other entry replaces (and is itself part of the chain). Entries not reachable
+     * from the head (dangling roots, orphans) are appended at the end.
+     */
+    private static List<ChannelEntry> orderByReplacesChain(List<ChannelEntry> entries,
+            Set<String> replacedNames) {
+        var byName = new LinkedHashMap<String, ChannelEntry>();
+        for (var e : entries) {
+            byName.put(e.getCsvName(), e);
+        }
+
+        // Find the head: unreplaced AND has a replaces field (part of the chain).
+        // Fall back to any unreplaced entry if none has a replaces field.
+        ChannelEntry head = null;
+        for (var e : entries) {
+            if (!replacedNames.contains(e.getCsvName())) {
+                if (head == null || (e.getReplaces() != null && head.getReplaces() == null)) {
+                    head = e;
+                }
+            }
+        }
+
+        if (head == null && !entries.isEmpty()) {
+            head = entries.get(0);
+            log.warn("Could not determine channel head from replaces chain, using first entry: {}",
+                    head.getCsvName());
+        }
+
+        var ordered = new ArrayList<ChannelEntry>();
+        var visited = new HashSet<String>();
+        var current = head;
+        while (current != null && !visited.contains(current.getCsvName())) {
+            ordered.add(current);
+            visited.add(current.getCsvName());
+            current = current.getReplaces() != null ? byName.get(current.getReplaces()) : null;
+        }
+
+        // Append any entries not reached by the chain (dangling roots, orphans)
+        for (var e : entries) {
+            if (!visited.contains(e.getCsvName())) {
+                ordered.add(e);
+            }
+        }
+
+        return ordered;
     }
 }

@@ -31,6 +31,11 @@ import java.util.Set;
 public class McpToolContentValidator implements ContentValidator {
 
     /**
+     * Declared by both Tool (via BaseMetadata) and ToolAnnotations, so it is validated in both places.
+     */
+    private static final String TITLE_FIELD = "title";
+
+    /**
      * The optional behavioral hints of the MCP ToolAnnotations schema. All of them are booleans.
      */
     private static final List<String> TOOL_ANNOTATION_HINTS = List.of("readOnlyHint",
@@ -94,7 +99,7 @@ public class McpToolContentValidator implements ContentValidator {
     }
 
     private void validateOptionalStringFields(JsonNode tree, Set<RuleViolation> violations) {
-        JsonValidationUtils.validateOptionalString(tree, "title", violations);
+        JsonValidationUtils.validateOptionalString(tree, TITLE_FIELD, violations);
         JsonValidationUtils.validateOptionalString(tree, "description", violations);
     }
 
@@ -163,7 +168,7 @@ public class McpToolContentValidator implements ContentValidator {
         }
 
         // title: optional string (fallback display name per MCP spec)
-        JsonValidationUtils.validateOptionalString(annotations, "title", violations);
+        JsonValidationUtils.validateOptionalString(annotations, TITLE_FIELD, violations);
 
         // readOnlyHint, destructiveHint, idempotentHint, openWorldHint: optional booleans
         for (String hint : TOOL_ANNOTATION_HINTS) {
@@ -178,7 +183,7 @@ public class McpToolContentValidator implements ContentValidator {
         Iterator<String> fieldNames = annotations.fieldNames();
         while (fieldNames.hasNext()) {
             String field = fieldNames.next();
-            if (!"title".equals(field) && !TOOL_ANNOTATION_HINTS.contains(field)) {
+            if (!TITLE_FIELD.equals(field) && !TOOL_ANNOTATION_HINTS.contains(field)) {
                 violations.add(new RuleViolation("'annotations." + field
                         + "' is not a ToolAnnotations property", "/annotations/" + field));
             }

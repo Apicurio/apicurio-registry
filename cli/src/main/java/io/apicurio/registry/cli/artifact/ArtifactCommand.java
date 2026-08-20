@@ -5,12 +5,16 @@ import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
 import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.IdUtil;
+import io.apicurio.registry.cli.common.InteractiveMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
+import io.apicurio.registry.cli.utils.InteractiveUtil;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
 import io.apicurio.registry.cli.version.VersionCommand;
+import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import java.util.Optional;
 import lombok.Getter;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
@@ -64,9 +68,12 @@ public class ArtifactCommand extends AbstractCommand {
 
     @Mixin
     private OutputTypeMixin outputType;
-
+    
     @Mixin
     private ColumnsMixin columns;
+
+    @Mixin
+    private InteractiveMixin interactive;
 
     @ParentCommand
     @Getter
@@ -77,15 +84,7 @@ public class ArtifactCommand extends AbstractCommand {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
         final var registryClient = client.getRegistryClient();
         IdUtil.validateGroup(registryClient, resolvedGroupId);
-        //noinspection ConstantConditions
-        final var artifacts = convert(registryClient
-                .groups().byGroupId(resolvedGroupId).artifacts().get(r -> {
-                    //noinspection ConstantConditions
-                    r.queryParameters.offset = (pagination.getPage() - 1) * pagination.getSize();
-                    r.queryParameters.limit = pagination.getSize();
-                    r.queryParameters.orderby = ordering.getOrderBy();
-                    r.queryParameters.order = ordering.getOrder();
-                }));
+        final var artifacts = fetchPage(pagination.getPage(), resolvedGroupId);
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {
@@ -126,5 +125,43 @@ public class ArtifactCommand extends AbstractCommand {
                 }
             }
         });
+    }
+
+    @Override
+    public boolean supportsInteractive() {
+        return true;
+    }
+
+    @Override
+    public void runInteractive(OutputBuffer output) {
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+
+        InteractiveUtil.runInteractive(
+                page -> fetchPage(page, resolvedGroupId),
+                a -> {
+                    var deleteGroupId = Optional.ofNullable(a.getGroupId()).orElse(resolvedGroupId);
+                    registryClient.groups().byGroupId(deleteGroupId)
+                            .artifacts().byArtifactId(a.getArtifactId()).delete();
+                },
+                a -> displayGroupId(a.getGroupId()),
+                pagination.getSize(),
+                outputType.getOutputType(),
+                output
+        );
+    }
+
+    private ArtifactSearchResults fetchPage(int page, String resolvedGroupId) {
+        final var registryClient = client.getRegistryClient();
+        //noinspection ConstantConditions
+        return convert(registryClient
+                .groups().byGroupId(resolvedGroupId).artifacts().get(r -> {
+                    //noinspection ConstantConditions
+                    r.queryParameters.offset = (page - 1) * pagination.getSize();
+                    r.queryParameters.limit = pagination.getSize();
+                    r.queryParameters.orderby = ordering.getOrderBy();
+                    r.queryParameters.order = ordering.getOrder();
+                }));
     }
 }

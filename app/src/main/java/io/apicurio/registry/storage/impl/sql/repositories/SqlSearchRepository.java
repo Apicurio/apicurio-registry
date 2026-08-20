@@ -38,6 +38,11 @@ public class SqlSearchRepository {
             "Content search requires the search index, which is not enabled. "
             + "Enable the search index to use content search.";
 
+    private static final String STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE =
+            "Structured-content search (e.g. A2A agent skill, capability, or mode filters) "
+            + "requires the search index, which is not enabled. "
+            + "Enable the search index to use structured search.";
+
     private final Logger log;
 
     private final SqlStatements sqlStatements;
@@ -168,6 +173,8 @@ public class SqlSearchRepository {
                         break;
                     case content:
                         throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+                    case structure:
+                        throw new ContentSearchNotSupportedException(STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -347,6 +354,8 @@ public class SqlSearchRepository {
                         break;
                     case content:
                         throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+                    case structure:
+                        throw new ContentSearchNotSupportedException(STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }

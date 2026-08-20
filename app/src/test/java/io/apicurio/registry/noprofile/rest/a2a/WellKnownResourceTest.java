@@ -261,6 +261,55 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchAgentsBySkillWithoutSearchIndexReturns400() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createAgentCard(groupId, "skill-filter-agent", AGENT_CARD_CONTENT);
+
+        // Skill/capability/mode filters require the search index, which is not enabled in this
+        // profile. The request must fail with a clear 400, not a 500.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("skill", "test-skill")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(400);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("capability", "streaming:true")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(400);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("inputMode", "text")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    public void testAdvancedSearchAgentsBySkillWithoutSearchIndexReturns400() {
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                            "filters": {
+                                "skills": ["test-skill"]
+                            }
+                        }
+                        """)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
     public void testSearchAgentsPartialNameMatch() throws Exception {
         String groupId = TestUtils.generateGroupId();
 

@@ -20,16 +20,15 @@ import java.util.function.Function;
 @ApplicationScoped
 public class RegistryLimitsService {
 
-    // FIXME improve error messages
-    private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of artifact versions exceeded";
-    private static final String MAX_SCHEMA_SIZE_EXCEEDED_MSG = "Maximum size of artifact version exceeded";
-    private static final String MAX_ARTIFACTS_EXCEEDED_MSG = "Maximum number of artifacts exceeded";
-    private static final String MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG = "Maximum number of versions exceeded for this artifact";
-    private static final String MAX_NAME_LENGTH_EXCEEDED_MSG = "Maximum artifact name length exceeded";
-    private static final String MAX_DESC_LENGTH_EXCEEDED_MSG = "Maximum artifact description length exceeded";
-    private static final String MAX_LABELS_EXCEEDED_MSG = "Maximum number of labels exceeded for this artifact";
-    private static final String MAX_LABEL_KEY_SIZE_EXCEEDED_MSG = "Maximum label key size exceeded";
-    private static final String MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG = "Maximum label value size exceeded";
+    private static final String MAX_TOTAL_SCHEMAS_EXCEEDED_MSG = "Maximum number of artifact versions exceeded. Limit: %d, Actual: %d";
+    private static final String MAX_SCHEMA_SIZE_EXCEEDED_MSG = "Maximum size of artifact version exceeded. Limit: %d bytes, Actual: %d bytes";
+    private static final String MAX_ARTIFACTS_EXCEEDED_MSG = "Maximum number of artifacts exceeded. Limit: %d, Actual: %d";
+    private static final String MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG = "Maximum number of versions exceeded for this artifact. Limit: %d, Actual: %d";
+    private static final String MAX_NAME_LENGTH_EXCEEDED_MSG = "Maximum artifact name length exceeded. Limit: %d characters, Actual: %d characters";
+    private static final String MAX_DESC_LENGTH_EXCEEDED_MSG = "Maximum artifact description length exceeded. Limit: %d characters, Actual: %d characters";
+    private static final String MAX_LABELS_EXCEEDED_MSG = "Maximum number of labels exceeded for this artifact. Limit: %d, Actual: %d";
+    private static final String MAX_LABEL_KEY_SIZE_EXCEEDED_MSG = "Maximum label key size exceeded. Limit: %d characters, Actual: %d characters";
+    private static final String MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG = "Maximum label value size exceeded. Limit: %d characters, Actual: %d characters";
 
     @Inject
     Logger log;
@@ -54,7 +53,7 @@ public class RegistryLimitsService {
         } else {
             log.debug("Limit reached, current total schemas {} , max total schemas {}", currentTotalSchemas,
                     registryLimitsConfiguration.getMaxTotalSchemasCount());
-            return LimitsCheckResult.disallowed(MAX_TOTAL_SCHEMAS_EXCEEDED_MSG);
+            return LimitsCheckResult.disallowed(String.format(MAX_TOTAL_SCHEMAS_EXCEEDED_MSG, registryLimitsConfiguration.getMaxTotalSchemasCount(), currentTotalSchemas));
         }
     }
 
@@ -97,7 +96,7 @@ public class RegistryLimitsService {
         } else {
             log.debug("Limit reached, current artifacts {} , max artifacts allowed {}", currentArtifacts,
                     registryLimitsConfiguration.getMaxArtifactsCount());
-            return LimitsCheckResult.disallowed(MAX_ARTIFACTS_EXCEEDED_MSG);
+            return LimitsCheckResult.disallowed(String.format(MAX_ARTIFACTS_EXCEEDED_MSG, registryLimitsConfiguration.getMaxArtifactsCount(), currentArtifacts));
         }
     }
 
@@ -112,7 +111,7 @@ public class RegistryLimitsService {
         } else {
             log.debug("Limit reached, schema size is {} , max schema size is {}", size,
                     registryLimitsConfiguration.getMaxSchemaSizeBytes());
-            return LimitsCheckResult.disallowed(MAX_SCHEMA_SIZE_EXCEEDED_MSG);
+            return LimitsCheckResult.disallowed(String.format(MAX_SCHEMA_SIZE_EXCEEDED_MSG, registryLimitsConfiguration.getMaxSchemaSizeBytes(), size));
         }
     }
 
@@ -149,7 +148,7 @@ public class RegistryLimitsService {
                     "Limit reached, current versions per artifact for artifact {}/{} {} , max versions per artifacts allowed {}",
                     groupId, artifactId, currentArtifactVersions,
                     registryLimitsConfiguration.getMaxVersionsPerArtifactCount());
-            return LimitsCheckResult.disallowed(MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG);
+            return LimitsCheckResult.disallowed(String.format(MAX_VERSIONS_PER_ARTIFACT_EXCEEDED_MSG, registryLimitsConfiguration.getMaxVersionsPerArtifactCount(), currentArtifactVersions));
         }
     }
 
@@ -211,7 +210,7 @@ public class RegistryLimitsService {
         // name is limited at db level to 512 chars
         if (name != null && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactNameLengthChars)) {
             if (name.length() > registryLimitsConfiguration.getMaxArtifactNameLengthChars()) {
-                errorMessages.add(MAX_NAME_LENGTH_EXCEEDED_MSG);
+                errorMessages.add(String.format(MAX_NAME_LENGTH_EXCEEDED_MSG, registryLimitsConfiguration.getMaxArtifactNameLengthChars(), name.length()));
             }
         }
     }
@@ -222,7 +221,7 @@ public class RegistryLimitsService {
                 && isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactDescriptionLengthChars)) {
 
             if (description.length() > registryLimitsConfiguration.getMaxArtifactDescriptionLengthChars()) {
-                errorMessages.add(MAX_DESC_LENGTH_EXCEEDED_MSG);
+                errorMessages.add(String.format(MAX_DESC_LENGTH_EXCEEDED_MSG, registryLimitsConfiguration.getMaxArtifactDescriptionLengthChars(), description.length()));
             }
         }
     }
@@ -236,7 +235,7 @@ public class RegistryLimitsService {
             if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount)
                     && labels.size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
-                errorMessages.add(MAX_LABELS_EXCEEDED_MSG);
+                errorMessages.add(String.format(MAX_LABELS_EXCEEDED_MSG, registryLimitsConfiguration.getMaxArtifactPropertiesCount(), labels.size()));
 
             } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes)
                     || isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)) {
@@ -245,13 +244,13 @@ public class RegistryLimitsService {
 
                     if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) && e.getKey()
                             .length() > registryLimitsConfiguration.getMaxPropertyKeySizeBytes()) {
-                        errorMessages.add(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG);
+                        errorMessages.add(String.format(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG, registryLimitsConfiguration.getMaxPropertyKeySizeBytes(), e.getKey().length()));
                     }
 
                     if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)
                             && e.getValue().length() > registryLimitsConfiguration
                                     .getMaxPropertyValueSizeBytes()) {
-                        errorMessages.add(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG);
+                        errorMessages.add(String.format(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG, registryLimitsConfiguration.getMaxPropertyValueSizeBytes(), e.getValue().length()));
                     }
                 });
             }

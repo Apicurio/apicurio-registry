@@ -22,7 +22,7 @@ import {
     Alert,
     AlertActionCloseButton
 } from "@patternfly/react-core";
-import { FromNow, ListWithToolbar, ObjectDropdown, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { FromNow, ListWithToolbar, ObjectDropdown, PleaseWaitModal } from "@apitomy/common-ui-components";
 import { ConfirmDeleteModal, CreateCommentModal, EditCommentModal, IfAuth, IfFeature } from "@app/components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 

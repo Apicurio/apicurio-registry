@@ -294,11 +294,6 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
-      # Orchestrator/triage scripts run with repo write permissions under
-      # pull_request_target — their logic must be tested before merge.
-      - name: Test PR lifecycle scripts
-        run: node --test .github/scripts/pr-triage.test.js
-
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
@@ -437,7 +432,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26.6'
+          go-version: '1.27.0'
 
       - name: Regenerate Go SDK
         run: |

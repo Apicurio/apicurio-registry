@@ -42,6 +42,10 @@ jobs:
           - { storage: kafkasql, groups: auth, remote-profile: remote-kafka }
           - { storage: kafkasql, groups: migration, remote-profile: remote-kafka }
           - { storage: kafkasql, groups: kafkasql-snapshotting, remote-profile: remote-kafka }
+          # Startup verification (topic config checks, v2/v3 journal reuse) deploys
+          # its own Kafka + registry containers; it does not use the deployed one.
+          # Moved here from utils/extra-tests.
+          - { storage: kafkasql, groups: kafkasql-startup, remote-profile: remote-kafka }
           # kubernetesops storage
           - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
     steps:
@@ -79,6 +83,7 @@ jobs:
             -P${{ matrix.remote-profile }} \
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
             -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
+            -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -pl integration-tests \
             -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \

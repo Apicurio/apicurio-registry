@@ -1427,7 +1427,6 @@
         <module>operator</module>
         <module>console-plugin/backend</module>
         <module>utils/exportConfluent</module>
-        <module>utils/extra-tests</module>
         <module>utils/flink</module>
       </modules>
     </profile>

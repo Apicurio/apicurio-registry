@@ -1,4 +1,4 @@
-package io.apicurio.registry.utils.tests.infra;
+package io.apicurio.tests.kafkasql.startup.infra;
 
 import io.apicurio.registry.utils.tests.TestUtils;
 import org.slf4j.Logger;
@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.apicurio.registry.utils.tests.infra.Configs.REGISTRY_V3_IMAGE;
-import static io.apicurio.registry.utils.tests.infra.Configs.REGISTRY_V3_IMAGE_DEFAULT;
+import static io.apicurio.tests.kafkasql.startup.infra.Configs.REGISTRY_V3_IMAGE;
+import static io.apicurio.tests.kafkasql.startup.infra.Configs.REGISTRY_V3_IMAGE_DEFAULT;
 
 public final class RegistryV3KafkaSQLInfra extends AbstractRegistryInfra {
 

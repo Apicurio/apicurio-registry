@@ -1,4 +1,4 @@
-package io.apicurio.registry.utils.tests.infra;
+package io.apicurio.tests.kafkasql.startup.infra;
 
 import io.apicurio.registry.utils.tests.TestUtils;
 import org.slf4j.Logger;

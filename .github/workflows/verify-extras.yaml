@@ -41,16 +41,9 @@ jobs:
           image-name: apicurio/apicurio-registry
           tag: ${{ inputs.image-tag }}
 
-      - name: Run Extra Tests
-        run: |
-          # -Pextra-tests: activates the extra-tests profile (additional validation beyond unit/integration)
-          # -Dregistry3-image: Docker image to test against (built by the Build job)
-          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
-            -Pextra-tests \
-            -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
-            -Dmaven.javadoc.skip=true \
-            -Daether.syncContext.named.factory=noop
+      # The former "Run Extra Tests" step (utils/extra-tests, KafkaSQL startup
+      # verification) moved to the integration-tests matrix as the
+      # kafkasql-startup group. What remains here is the http-caching example.
 
       - name: Collect logs
         if: failure()

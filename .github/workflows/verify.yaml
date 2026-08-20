@@ -104,9 +104,9 @@ jobs:
           ACTION="${{ github.event.action }}"
 
           # ── Phase 1: Lifecycle scope ──────────────────────────────────
-          # The lifecycle only has one active "run tests" scope now
-          # (lifecycle/ready-for-review / lifecycle/ready-to-merge run the
-          # full suite; everything else runs nothing).
+          # Two-tier CI: ci.yaml's fast gate covers PR iteration; this
+          # workflow's full suite only runs for lifecycle/ready-to-merge
+          # (pre-merge gate) and pushes to main.
           run_tests=false
 
           if [ "$EVENT" = "push" ]; then
@@ -149,18 +149,9 @@ jobs:
               exit 0
             fi
 
-            # Orchestrator-initiated branch update for merge — skip all tests.
-            # Only honour for bot-triggered syncs to prevent skipping tests
-            # if a human pushes while the label is still set.
-            SENDER='${{ github.event.sender.login }}'
-            if has_label "orchestrator/merge-rebase" && [ "$SENDER" = "github-actions[bot]" ]; then
-              echo "lifecycle-ready=true" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
-                echo "$out=false" >> "$GITHUB_OUTPUT"
-              done
-              echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+            # Orchestrator-initiated branch update for merge: the full suite
+            # MUST run on the rebased SHA. The pre-rebase HEAD only passed the
+            # fast gate (two-tier CI), so there is no "already tested" shortcut.
 
             if has_label "orchestrator/disabled"; then
               if has_label "DO NOT MERGE"; then
@@ -169,10 +160,15 @@ jobs:
                 run_tests=true
               fi
             else
-              if has_label "lifecycle/ready-for-review" || has_label "lifecycle/ready-to-merge"; then
+              # Two-tier CI: PR iteration is covered by the fast gate in ci.yaml
+              # (<= 5 min, compile + smoke). The full suite here is the
+              # pre-merge gate and only runs once a maintainer marks the PR
+              # lifecycle/ready-to-merge. lifecycle/ready-for-review no longer
+              # triggers full CI.
+              if has_label "lifecycle/ready-to-merge"; then
                 run_tests=true
               else
-                # lifecycle/new or no lifecycle label
+                # lifecycle/new, lifecycle/ready-for-review or no lifecycle label
                 run_tests=false
               fi
             fi
@@ -294,10 +290,10 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
-      # Orchestrator/triage scripts run with repo write permissions under
+      # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
       - name: Test PR lifecycle scripts
-        run: node --test .github/scripts/pr-triage.test.js
+        run: node --test .github/scripts/pr-lifecycle.test.js
 
       - name: Verify docs generation
         run: |
@@ -437,7 +433,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26.6'
+          go-version: '1.27.0'
 
       - name: Regenerate Go SDK
         run: |
@@ -514,13 +510,11 @@ jobs:
             exit 1
           fi
 
-          # On PRs, fail if lifecycle state does not allow merging.
-          # "skip" means this run was triggered by a non-lifecycle label and
-          # is not authoritative — let it pass without blocking.
-          if [ "$EVENT" != "push" ] && [ "$LIFECYCLE_READY" != "true" ] && [ "$LIFECYCLE_READY" != "skip" ]; then
-            echo "::error::PR is not in a testable lifecycle state"
-            exit 1
-          fi
+          # Two-tier CI: the fast gate (ci.yaml) owns PR iteration feedback.
+          # This workflow is the pre-merge gate and only runs real content at
+          # lifecycle/ready-to-merge; during review every job is skipped by
+          # Decide and the gate result is not meaningful — do not fail on it.
+          # The orchestrator (pr-lifecycle) routes the authoritative result.
 
           echo "All checks passed"
 

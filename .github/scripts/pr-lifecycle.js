@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const triage = require('./pr-triage.js');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -31,9 +32,12 @@ const PRIMARY_STATES = [
   LABELS.READY_TO_MERGE,
 ];
 
-const CONTROL_LABELS = Object.values(LABELS).filter(
-  l => l.startsWith('lifecycle/') || l.startsWith('orchestrator/')
-);
+const CONTROL_LABELS = [
+  ...Object.values(LABELS).filter(
+    l => l.startsWith('lifecycle/') || l.startsWith('orchestrator/')
+  ),
+  ...Object.values(triage.TRIAGE_LABELS),
+];
 
 const COLORS = {
   INFO: 'A8D8F0',
@@ -683,13 +687,28 @@ async function initNewPr(github, owner, repo, api, config, pr, core) {
   }
 
   await api.addLabel(pr.number, LABELS.NEW);
-  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   let message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
   if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
     message += `\n**Note (fork PR):** Review label updates may not apply automatically. ` +
       `A maintainer can use \`/retry\` after reviewing to update the labels.`;
   }
   await api.postComment(pr.number, message);
+
+  // Automated triage splits the queue: red PRs go straight to
+  // waiting-on-author (feeding the accelerated stale/close cycle), everything
+  // else waits on maintainer acceptance. Triage failure is non-fatal — the PR
+  // just follows the default path.
+  let triageResult = null;
+  try {
+    triageResult = await triage.runTriage({ github, owner, repo, pr, config, core });
+  } catch (e) {
+    core.warning(`PR #${pr.number} triage failed (non-fatal): ${e.message}`);
+  }
+  if (triageResult?.verdict === 'red') {
+    await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+  } else {
+    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+  }
   core.info(`PR #${pr.number} opened, set to lifecycle/new`);
 }
 
@@ -768,6 +787,27 @@ async function handlePrSynchronize({ github, context, core }) {
 
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
+
+  // Re-run triage so the report and triage/* label track the latest push.
+  // Only in lifecycle/new does the verdict drive the waiting-on-* labels —
+  // in later states those are owned by review/test results.
+  const config = loadConfig();
+  if (!isAutoAccepted(config, freshPr.user.login)) {
+    try {
+      const result = await triage.runTriage({ github, owner, repo, pr: freshPr, config, core });
+      if (result && getLifecycleState(freshPr) === LABELS.NEW) {
+        if (result.verdict === 'red') {
+          await api.removeLabel(freshPr.number, LABELS.WAITING_ON_MAINTAINER);
+          await api.addLabel(freshPr.number, LABELS.WAITING_ON_AUTHOR);
+        } else {
+          await api.removeLabel(freshPr.number, LABELS.WAITING_ON_AUTHOR);
+          await api.addLabel(freshPr.number, LABELS.WAITING_ON_MAINTAINER);
+        }
+      }
+    } catch (e) {
+      core.warning(`PR #${pr.number} triage failed (non-fatal): ${e.message}`);
+    }
+  }
 
   // For fork PRs in a testable state, the synchronize event creates a new
   // Verify run that needs approval. Wait for it to appear, then approve.
@@ -851,6 +891,7 @@ async function handleComment({ github, context, core }) {
     'skip-review': () => cmdSkipReview(api, config, core, pr, actor, maintainer, comment.id),
     'unstale': () => cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
     'retry': () => cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comment.id),
+    'triage': () => cmdTriage(github, owner, repo, api, config, core, pr, actor, isAuthor, maintainer, comment.id),
   };
 
   const handler = handlers[parsed.command];
@@ -880,6 +921,9 @@ async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
   }
 
   await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
+  // A red triage verdict may have left waiting-on-author set — acceptance
+  // overrides triage, so reset to waiting-on-maintainer.
+  await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.addReaction(commentId, '+1');
   await api.postComment(pr.number,
@@ -893,6 +937,34 @@ async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
   // approval (fork PRs). Wait for GitHub to create it, then approve.
   await new Promise(r => setTimeout(r, 5000));
   await approvePendingVerifyRuns(api, pr, core);
+}
+
+async function cmdTriage(github, owner, repo, api, config, core, pr, actor, isAuthor, maintainer, commentId) {
+  if (!isAuthor && !maintainer) {
+    await api.addReaction(commentId, '-1');
+    await api.postComment(pr.number, `@${actor} Only the PR author or a maintainer can re-run triage.`);
+    return;
+  }
+
+  const result = await triage.runTriage({ github, owner, repo, pr, config, core });
+  if (!result) {
+    await api.addReaction(commentId, 'confused');
+    core.info(`PR #${pr.number} /triage requested but triage is disabled`);
+    return;
+  }
+
+  // Verdict drives waiting-on-* only while the PR awaits maintainer triage.
+  if (getLifecycleState(pr) === LABELS.NEW) {
+    if (result.verdict === 'red') {
+      await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+      await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+    } else {
+      await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+      await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+    }
+  }
+  await api.addReaction(commentId, '+1');
+  core.info(`PR #${pr.number} /triage by ${actor}: verdict=${result.verdict}`);
 }
 
 async function cmdReject(api, config, core, pr, actor, maintainer, reason, commentId) {

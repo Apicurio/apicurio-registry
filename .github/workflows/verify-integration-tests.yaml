@@ -92,6 +92,8 @@ jobs:
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Djunit.jupiter.execution.timeout.default=10m: fail hung tests fast; environmental stalls
           #   previously kept a single test running for 30+ minutes (x2 with the flaky rerun)
+          # -Djunit.jupiter.execution.parallel.enabled=true: run test classes concurrently against the
+          #   deployed registry (see integration-tests/src/test/resources/junit-platform.properties)
           ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify -am --no-transfer-progress \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \
@@ -102,7 +104,8 @@ jobs:
             -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
             -Dfailsafe.rerunFailingTestsCount=1 \
-            -Djunit.jupiter.execution.timeout.default=10m
+            -Djunit.jupiter.execution.timeout.default=10m \
+            -Djunit.jupiter.execution.parallel.enabled=true
 
       - name: Parse Flaky Tests
         if: always()

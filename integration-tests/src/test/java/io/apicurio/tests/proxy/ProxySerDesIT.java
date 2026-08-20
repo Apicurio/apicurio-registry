@@ -23,12 +23,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Integration tests for proxy configuration with Apicurio Registry SerDes (Serializers/Deserializers).
  * Tests verify that serializers and deserializers can successfully connect through an HTTP proxy.
  */
 @QuarkusIntegrationTest
+@Isolated
 public class ProxySerDesIT extends ApicurioRegistryBaseIT {
 
     private static final int PROXY_PORT = 30003;

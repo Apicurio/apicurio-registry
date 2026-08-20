@@ -474,8 +474,17 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
 
     @Override
     public Schema getSubjectMetadata(String subject, String key, String value, String format, Boolean deleted, String xRegistryGroupId) {
-        //TODO not implemented
-        return null;
+        final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+        final GA ga = getGA(xRegistryGroupId, subject);
+
+        if (key != null || value != null) {
+            // Apicurio Registry does not store per-schema metadata key/value pairs, so no
+            // version under the subject can ever match a metadata filter.
+            throw new SchemaNotFoundException(
+                    "No schema version under subject " + subject + " matches the given metadata filter");
+        }
+
+        return getSchema(ga.getRawGroupIdWithNull(), ga.getRawArtifactId(), "latest", fdeleted, format);
     }
 
     protected Schema getSchema(String groupId, String artifactId, String versionString, boolean deleted) {

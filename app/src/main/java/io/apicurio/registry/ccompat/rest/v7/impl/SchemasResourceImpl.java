@@ -182,8 +182,10 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
             try {
                 ContentWrapperDto contentWrapper = storage.getContentById(contentId);
-                Schema schema = converter.convert(contentWrapper.getContent(),
-                        version.getArtifactType(), contentWrapper.getReferences());
+                Schema schema = converter.convert(version.getArtifactId(), version.getVersionOrder(),
+                        cconfig.legacyIdModeEnabled.get() ? version.getGlobalId() : contentId,
+                        contentWrapper.getContent(), version.getArtifactType(),
+                        contentWrapper.getReferences());
                 schemas.add(schema);
             } catch (Exception e) {
                 // Skip schemas that can't be loaded

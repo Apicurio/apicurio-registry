@@ -22,11 +22,16 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Coordinates "write" responses across threads in the Kafka-SQL artifactStore implementation. Basically this
@@ -39,6 +44,8 @@ public class KafkaSqlCoordinator {
 
     @Inject
     Instance<KafkaSqlConfiguration> configuration;
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaSqlCoordinator.class);
 
     private Map<UUID, CompletableFuture<Object>> operations = new ConcurrentHashMap<>();
 
@@ -65,13 +72,13 @@ public class KafkaSqlCoordinator {
                         "[KafkaSqlCoordinator] Operation not registered for UUID: " + uuid);
             }
             return future.get(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
-        } catch (java.util.concurrent.TimeoutException e) {
+        } catch (TimeoutException e) {
             throw new RegistryException(
                     "[KafkaSqlCoordinator] Timeout waiting for a Kafka Sql response from consumer thread.", e);
         } catch (InterruptedException e) {
             throw new RegistryException(
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
-        } catch (java.util.concurrent.ExecutionException e) {
+        } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             // KafkaSqlSink.processMessage explicitly catches all Throwables and wraps non-RuntimeExceptions 
             // into RegistryException. Therefore, `cause` will always be a RuntimeException (or a subclass).

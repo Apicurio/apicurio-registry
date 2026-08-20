@@ -164,7 +164,7 @@ jobs:
       github.event_name == 'pull_request_target' &&
       (github.event.action == 'labeled' || github.event.action == 'unlabeled') &&
       github.event.sender.login != 'github-actions[bot]' &&
-      (startsWith(github.event.label.name, 'lifecycle/') || startsWith(github.event.label.name, 'orchestrator/') || startsWith(github.event.label.name, 'triage/'))
+      (startsWith(github.event.label.name, 'lifecycle/') || startsWith(github.event.label.name, 'orchestrator/'))
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

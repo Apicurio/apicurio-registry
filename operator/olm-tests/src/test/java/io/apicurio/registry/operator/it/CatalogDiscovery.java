@@ -2,6 +2,7 @@ package io.apicurio.registry.operator.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.operator.it.CatalogInfo.ChannelEntry;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.ExecWatch;
@@ -168,28 +169,46 @@ public class CatalogDiscovery {
     }
 
     static CatalogInfo parseFBC(String fbcContent) {
-        var mapper = new ObjectMapper();
         var objects = new ArrayList<JsonNode>();
 
-        // FBC is multi-document JSON: multiple JSON objects concatenated (not a JSON array).
-        // Split on lines that start a new top-level object.
-        for (var part : fbcContent.split("(?m)^(?=\\{)")) {
-            var trimmed = part.trim();
-            if (trimmed.isEmpty()) {
-                continue;
+        var isYaml = fbcContent.stripLeading().startsWith("---") || !fbcContent.stripLeading().startsWith("{");
+        if (isYaml) {
+            log.info("FBC content detected as YAML, parsing with YAML parser");
+            var yamlMapper = new ObjectMapper(new YAMLFactory());
+            for (var part : fbcContent.split("(?m)^---$")) {
+                var trimmed = part.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                try {
+                    objects.add(yamlMapper.readTree(trimmed));
+                } catch (Exception e) {
+                    log.warn("Failed to parse YAML FBC fragment ({} chars): {}",
+                            trimmed.length(), e.getMessage());
+                }
             }
-            try {
-                objects.add(mapper.readTree(trimmed));
-            } catch (Exception e) {
-                log.warn("Failed to parse FBC fragment ({} chars): {}", trimmed.length(),
-                        e.getMessage());
+        } else {
+            log.info("FBC content detected as JSON, parsing with JSON parser");
+            var jsonMapper = new ObjectMapper();
+            // FBC JSON is multi-document: multiple JSON objects concatenated (not a JSON array).
+            for (var part : fbcContent.split("(?m)^(?=\\{)")) {
+                var trimmed = part.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                try {
+                    objects.add(jsonMapper.readTree(trimmed));
+                } catch (Exception e) {
+                    log.warn("Failed to parse JSON FBC fragment ({} chars): {}",
+                            trimmed.length(), e.getMessage());
+                }
             }
         }
 
         log.info("Parsed {} FBC objects from catalog content", objects.size());
         if (objects.isEmpty()) {
             throw new IllegalStateException(
-                    "No FBC objects found in catalog content. The content may not be valid FBC JSON.");
+                    "No FBC objects found in catalog content. The content may not be valid FBC format.");
         }
 
         String defaultChannel = null;

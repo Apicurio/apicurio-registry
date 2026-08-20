@@ -405,13 +405,13 @@ public class ProtobufCompatibilityCheckerLibrary {
     }
 
     /**
-     * Normalizes a map<K, V> type by normalizing its key and value types, so that map fields
+     * Normalizes a map type by normalizing its key and value types, so that map fields
      * compare equal regardless of the type reference style used on each side.
      *
      * @param file           the protobuf file containing the type
-     * @param type           the map type (e.g., "map<string, Foo>")
+     * @param type           the map type (e.g., "map&lt;string, Foo&gt;")
      * @param messageContext the message in which the field is defined
-     * @return the normalized map type (e.g., "map<string, .test.Foo>")
+     * @return the normalized map type (e.g., "map&lt;string, .test.Foo&gt;")
      */
     private String normalizeMapType(ProtobufFile file, String type, String messageContext) {
         int comma = type.indexOf(',');
@@ -427,7 +427,7 @@ public class ProtobufCompatibilityCheckerLibrary {
     /**
      * Checks whether the given message is a synthetic map entry message (the desugared
      * descriptor representation of a map field) that does not exist on the other side of the
-     * comparison because that side renders the map field using map<K, V> syntax instead.
+     * comparison because that side renders the map field using map syntax instead.
      *
      * @param messageName the scoped message name (e.g. "OrderChanged.DataEntry")
      * @return true if the message is a synthetic map entry missing from the other file

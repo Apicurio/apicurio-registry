@@ -352,7 +352,7 @@ public class ProtobufFile {
     /**
      * Checks whether a message is a synthetic map entry message, i.e. it declares
      * "option map_entry = true". Such messages are the desugared descriptor representation of
-     * a map field and never appear in .proto source files that use map<K, V> syntax.
+     * a map field and never appear in .proto source files that use map syntax.
      */
     private static boolean isMapEntry(MessageElement messageElement) {
         for (OptionElement option : messageElement.getOptions()) {
@@ -365,9 +365,9 @@ public class ProtobufFile {
     }
 
     /**
-     * Returns the equivalent map<KeyType, ValueType> type string for a synthetic map entry
-     * message, built from the types of its "key" and "value" fields. Returns null if the entry
-     * message is malformed (missing key or value field).
+     * Returns the equivalent map type string (e.g. "map&lt;KeyType, ValueType&gt;") for a
+     * synthetic map entry message, built from the types of its "key" and "value" fields.
+     * Returns null if the entry message is malformed (missing key or value field).
      */
     private static String toMapType(MessageElement entry) {
         String keyType = null;

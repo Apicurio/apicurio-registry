@@ -425,16 +425,16 @@ public class ProtobufCompatibilityCheckerLibrary {
     }
 
     /**
-     * Checks whether the given message is a synthetic map entry message (the desugared
-     * descriptor representation of a map field) that does not exist on the other side of the
-     * comparison because that side renders the map field using map syntax instead.
+     * Checks whether the given message, which exists in the "before" file but not in the
+     * "after" file, is a synthetic map entry message (the desugared descriptor representation
+     * of a map field). Its absence on the other side just means that side renders the same map
+     * field using map syntax instead, so its key/value fields are not actually removed.
      *
      * @param messageName the scoped message name (e.g. "OrderChanged.DataEntry")
-     * @return true if the message is a synthetic map entry missing from the other file
+     * @return true if the message is a synthetic map entry in the "before" file
      */
     private boolean isSyntheticMapEntryRemoved(String messageName) {
-        return fileBefore.getMapEntryMessages().contains(messageName)
-                || fileAfter.getMapEntryMessages().contains(messageName);
+        return fileBefore.getMapEntryMessages().contains(messageName);
     }
 
     /**

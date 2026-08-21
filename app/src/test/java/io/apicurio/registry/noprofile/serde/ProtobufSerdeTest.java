@@ -71,10 +71,11 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
     public void testProto(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
 
-        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(clientFacade);
-                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>();
+                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -109,16 +110,62 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    @SuppressWarnings({"removal"})
+    @ParameterizedTest(name = "testProtoDeprecatedFacadeConstructor [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testProtoDeprecatedFacadeConstructor(ClientFacadeSupplier clientFacadeSupplier)
+            throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+                Deserializer<DynamicMessage> deserializer = new ProtobufKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.FALLBACK_ARTIFACT_GROUP_ID, groupId);
+            serializer.configure(config, false);
+            deserializer.configure(config, false);
+
+            TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
+
+            String topic = generateArtifactId();
+
+            byte[] bytes = serializer.serialize(topic, record);
+
+            waitForSchema(contentId -> {
+                try {
+                    if (isolatedClientV3.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0) {
+                        VersionMetaData artifactMetadata = isolatedClientV3.groups().byGroupId(groupId)
+                                .artifacts().byArtifactId(topic).versions()
+                                .byVersionExpression("branch=latest").get();
+                        assertEquals(contentId.longValue(), artifactMetadata.getContentId());
+                        return true;
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return false;
+            }, bytes);
+
+            DynamicMessage dm = deserializer.deserialize(topic, bytes);
+            assertProtobufEquals(record, dm);
+        }
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @ParameterizedTest(name = "testProtobufSchemaWithReferences [{0}]")
     @MethodSource("isolatedClientFacadeProvider")
     public void testProtobufSchemaWithReferences(ClientFacadeSupplier clientFacadeSupplier) {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
 
-        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(clientFacade);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>();
+                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -138,10 +185,11 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
     public void testProtobufSchemaWithReferencesDereferenced(ClientFacadeSupplier clientFacadeSupplier) {
         RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
 
-        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>(clientFacade);
-                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+        try (Serializer<TableNotification> serializer = new ProtobufKafkaSerializer<>();
+                Deserializer<TableNotification> deserializer = new ProtobufKafkaDeserializer()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -173,7 +221,7 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
 
         // Confluent serializer -> Apicurio deserializer
         try (Serializer<TestCmmn.UUID> serializer = new KafkaProtobufSerializer<>(schemaRegistryClient);
-             Deserializer<TestCmmn.UUID> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+             Deserializer<TestCmmn.UUID> deserializer = new ProtobufKafkaDeserializer()) {
 
             serializer.configure(Map.of(
                     AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,  getSchemaRegistryUrl(),
@@ -184,7 +232,8 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
             ), false);
 
             deserializer.configure(Map.of(
-                    SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, TestCmmn.UUID.class.getName()
+                    SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, TestCmmn.UUID.class.getName(),
+                    SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade
             ), false);
 
             TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
@@ -215,7 +264,7 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         }
 
         // Apicurio serializer -> Confluent deserializer
-        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(clientFacade);
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>();
              Deserializer<TestCmmn.UUID> deserializer = new KafkaProtobufDeserializer(schemaRegistryClient)) {
 
             serializer.configure(Map.of(
@@ -223,7 +272,8 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
                     SerdeConfig.AUTO_REGISTER_ARTIFACT, "true",
                     SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, "default",
                     SerdeConfig.SEND_TYPE_REF, "false",
-                    SerdeConfig.SEND_INDEXES, "true"
+                    SerdeConfig.SEND_INDEXES, "true",
+                    SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade
             ), false);
 
             deserializer.configure(Map.of(
@@ -259,21 +309,23 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         }
 
         // Apicurio serializer -> Apicurio deserializer (confluent interop enabled)
-        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>(clientFacade);
-             Deserializer<TestCmmn.UUID> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+        try (Serializer<TestCmmn.UUID> serializer = new ProtobufKafkaSerializer<>();
+             Deserializer<TestCmmn.UUID> deserializer = new ProtobufKafkaDeserializer()) {
 
             serializer.configure(Map.of(
                     SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class,
                     SerdeConfig.AUTO_REGISTER_ARTIFACT, "true",
                     SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, "default",
                     SerdeConfig.SEND_TYPE_REF, "false",
-                    SerdeConfig.SEND_INDEXES, "true"
+                    SerdeConfig.SEND_INDEXES, "true",
+                    SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade
             ), false);
 
             deserializer.configure(Map.of(
                     SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, TestCmmn.UUID.class.getName(),
                     SerdeConfig.READ_TYPE_REF, "false",
-                    SerdeConfig.READ_INDEXES, "true"
+                    SerdeConfig.READ_INDEXES, "true",
+                    SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade
             ), false);
 
             TestCmmn.UUID record = TestCmmn.UUID.newBuilder().setLsb(2).setMsb(1).build();
@@ -345,10 +397,11 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
         int numVersions = isolatedClientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().get().getCount();
 
         // Step 2: Test production with auto-registration disabled - should use pre-registered schema
-        try (Serializer<UserEventProtos.UserEvent> serializer = new ProtobufKafkaSerializer<>(clientFacade);
-             Deserializer<UserEventProtos.UserEvent> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+        try (Serializer<UserEventProtos.UserEvent> serializer = new ProtobufKafkaSerializer<>();
+             Deserializer<UserEventProtos.UserEvent> deserializer = new ProtobufKafkaDeserializer()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicIdStrategy.class);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "false"); // Disable auto-registration
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
@@ -455,10 +508,11 @@ public class ProtobufSerdeTest extends AbstractClientFacadeTestBase {
 
         // Step 2: Serialize with validation enabled using compiled Java class
         // The compiled class does NOT have reserved field information (stripped by protoc)
-        try (Serializer<PersonProtos.Person> serializer = new ProtobufKafkaSerializer<>(clientFacade);
-             Deserializer<PersonProtos.Person> deserializer = new ProtobufKafkaDeserializer(clientFacade)) {
+        try (Serializer<PersonProtos.Person> serializer = new ProtobufKafkaSerializer<>();
+             Deserializer<PersonProtos.Person> deserializer = new ProtobufKafkaDeserializer()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class);
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "false"); // Use pre-registered schema
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);

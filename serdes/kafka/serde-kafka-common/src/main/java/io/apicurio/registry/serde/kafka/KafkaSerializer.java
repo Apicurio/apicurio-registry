@@ -6,6 +6,7 @@ import io.apicurio.registry.resolver.SchemaResolver;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractSerializer;
 import io.apicurio.registry.serde.Default4ByteIdHandler;
+import io.apicurio.registry.serde.SerializerFactory;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.data.SerdeRecord;
 import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
@@ -27,6 +28,14 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
 
     protected HeadersHandler headersHandler;
 
+    protected KafkaSerializer(SerializerFactory<T, U> factory) {
+        this.delegatedSerializer = factory.create();
+    }
+
+    /**
+     * @deprecated pass a {@link SerializerFactory} instead. Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     protected KafkaSerializer(AbstractSerializer<T, U> delegatedSerializer) {
         this.delegatedSerializer = delegatedSerializer;
     }
@@ -35,7 +44,10 @@ public class KafkaSerializer<T, U> implements Serializer<U> {
     public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedSerializer.configure(new SerdeConfig(configs), isKey);
         this.configure(new BaseKafkaSerDeConfig(configs), isKey);
+        initializeHeaders(configs, isKey);
     }
+
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {}
 
     protected void configure(BaseKafkaSerDeConfig config, boolean isKey) {
         boolean headersEnabled = config.enableHeaders();

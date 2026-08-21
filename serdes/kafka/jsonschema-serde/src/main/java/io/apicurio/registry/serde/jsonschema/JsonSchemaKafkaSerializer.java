@@ -2,18 +2,20 @@ package io.apicurio.registry.serde.jsonschema;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
-import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.kafka.KafkaSerializer;
-import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
+
 import org.apache.kafka.common.header.Headers;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.serde.kafka.KafkaSerializer;
+import io.apicurio.registry.serde.kafka.headers.MessageTypeSerdeHeaders;
 
 /**
  * An implementation of the Kafka Serializer for JSON Schema use-cases. This serializer assumes that the
@@ -25,33 +27,58 @@ public class JsonSchemaKafkaSerializer<T> extends KafkaSerializer<JsonSchema, T>
     private MessageTypeSerdeHeaders serdeHeaders;
 
     public JsonSchemaKafkaSerializer() {
-        super(new JsonSchemaSerializer<>());
+        super(JsonSchemaSerializer::new);
     }
 
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade) {
-        super(new JsonSchemaSerializer<>(clientFacade));
+        super(() -> new JsonSchemaSerializer<>(clientFacade));
     }
 
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public JsonSchemaKafkaSerializer(SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(schemaResolver));
+        super(() -> new JsonSchemaSerializer<>(schemaResolver));
     }
 
-    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(clientFacade, schemaResolver));
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
+    public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
+                                     SchemaResolver<JsonSchema, T> schemaResolver) {
+        super(() -> new JsonSchemaSerializer<>(clientFacade, schemaResolver));
     }
 
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
+     * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public JsonSchemaKafkaSerializer(RegistryClientFacade clientFacade,
                                      ArtifactReferenceResolverStrategy<JsonSchema, T> strategy,
                                      SchemaResolver<JsonSchema, T> schemaResolver) {
-        super(new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
+        super(() -> new JsonSchemaSerializer<>(clientFacade, strategy, schemaResolver));
     }
 
     /**
      * @see KafkaSerializer#configure(java.util.Map, boolean)
      */
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
         serdeHeaders = new MessageTypeSerdeHeaders(new HashMap<>(configs), isKey);
     }
 

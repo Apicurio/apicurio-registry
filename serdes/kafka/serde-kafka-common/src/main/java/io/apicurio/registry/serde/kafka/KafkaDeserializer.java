@@ -6,6 +6,7 @@ import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.serde.AbstractDeserializer;
 import io.apicurio.registry.serde.BaseSerde;
 import io.apicurio.registry.serde.Default4ByteIdHandler;
+import io.apicurio.registry.serde.DeserializerFactory;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.kafka.config.BaseKafkaSerDeConfig;
 import io.apicurio.registry.serde.kafka.headers.HeadersHandler;
@@ -19,6 +20,14 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
     protected final AbstractDeserializer<T, U> delegatedDeserializer;
     protected HeadersHandler headersHandler;
 
+    protected KafkaDeserializer(DeserializerFactory<T, U> factory) {
+        this.delegatedDeserializer = factory.create();
+    }
+
+    /**
+     * @deprecated pass a {@link DeserializerFactory} instead. Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     protected KafkaDeserializer(AbstractDeserializer<T, U> delegatedDeserializer) {
         this.delegatedDeserializer = delegatedDeserializer;
     }
@@ -27,7 +36,10 @@ public class KafkaDeserializer<T, U> implements Deserializer<U> {
     public void configure(Map<String, ?> configs, boolean isKey) {
         delegatedDeserializer.configure(new SerdeConfig(configs), isKey);
         this.configure(new BaseKafkaSerDeConfig(configs), isKey);
+        initializeHeaders(configs, isKey);
     }
+
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {}
 
     @Override
     public U deserialize(String topic, byte[] data) {

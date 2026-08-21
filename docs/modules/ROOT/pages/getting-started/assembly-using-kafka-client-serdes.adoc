@@ -405,3 +405,52 @@ KStream<String, LogInput> input = builder.stream(
     Consumed.with(Serdes.String(), logSerde)
 );
 ----
+
+[id="registry-serdes-advanced-config_{context}"]
+== Advanced Serde configuration: Injecting dependencies
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+In advanced use cases, you might want to use customized implementations for the `RegistryClientFacade` (for example, for custom authentication logic), `SchemaResolver`, or `ArtifactReferenceResolverStrategy` rather than having the serializer or deserializer instantiate them automatically using string properties. You can inject these pre-instantiated dependencies directly via the configuration map.
+
+[NOTE]
+====
+Convenience constructors such as `new AvroKafkaSerializer<>(clientFacade)` or `new AvroKafkaSerializer<>(clientFacade, schemaResolver)` are deprecated as of {registry} 3.3.2 and will be removed in a future release; pass pre-instantiated dependencies via the configuration map instead (for example, `SerdeConfig.REGISTRY_CLIENT_FACADE`, `SerdeConfig.SCHEMA_RESOLVER`).
+
+`REGISTRY_CLIENT_FACADE` accepts a pre-instantiated `RegistryClientFacade` instance only. Passing a class name fails because typical implementations (including `RegistryClientFacadeImpl`) have no no-arg constructor.
+
+For `ARTIFACT_RESOLVER_STRATEGY` and `SCHEMA_RESOLVER`, you can pass a fully qualified class name (or `Class` object) or a pre-instantiated object. Use a pre-instantiated object when your implementation carries configuration or state (for example, a custom strategy built with constructor arguments). Passing only a class name causes {registry} to instantiate the type via its no-arg constructor, which does not preserve pre-built state from the deprecated `AvroKafkaSerializer(clientFacade, strategy, schemaResolver)` constructor overloads.
+====
+
+.Prerequisites
+* You have instantiated a custom `RegistryClientFacade`, `SchemaResolver`, or `ArtifactReferenceResolverStrategy`.
+
+.Procedure
+. Instantiate your custom dependencies in your Java application code.
++
+[source,java,subs="+quotes,attributes"]
+----
+RegistryClientFacade myCustomFacade = new MyCustomAuthFacade();
+SchemaResolver<Schema, Object> myCustomResolver = new MyCustomFallbackResolver();
+ArtifactReferenceResolverStrategy<Schema, Object> myCustomStrategy = new MyCustomResolverStrategy();
+----
+. Inject the instances directly into the Kafka properties map before passing it to the producer or consumer:
++
+[source,java,subs="+quotes,attributes"]
+----
+Map<String, Object> props = new HashMap<>();
+// Pass standard Kafka properties
+props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class);
+
+// Pre-instantiated objects (required for stateful or custom-configured strategies and resolvers)
+props.put(SerdeConfig.REGISTRY_CLIENT_FACADE, myCustomFacade);
+props.put(SerdeConfig.SCHEMA_RESOLVER, myCustomResolver);
+props.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, myCustomStrategy);
+
+// Create the Kafka Producer
+KafkaProducer<String, Object> producer = new KafkaProducer<>(props);
+----
+When Kafka passes this configuration map to the serializer during initialization, {registry} extracts and uses your custom instances directly.

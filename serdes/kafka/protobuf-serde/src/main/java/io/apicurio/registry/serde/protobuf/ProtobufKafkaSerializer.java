@@ -1,12 +1,7 @@
 package io.apicurio.registry.serde.protobuf;
 
 import com.google.protobuf.Message;
-import io.apicurio.registry.resolver.ParsedSchema;
-import io.apicurio.registry.resolver.SchemaResolver;
-import io.apicurio.registry.resolver.client.RegistryClientFacade;
-import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
-import io.apicurio.registry.serde.kafka.KafkaSerializer;
-import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+
 import org.apache.kafka.common.header.Headers;
 
 import java.io.IOException;
@@ -14,35 +9,67 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.SchemaResolver;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.serde.kafka.KafkaSerializer;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+
 public class ProtobufKafkaSerializer<U extends Message> extends KafkaSerializer<ProtobufSchema, U> {
 
     private ProtobufSerdeHeaders serdeHeaders;
 
     public ProtobufKafkaSerializer() {
-        super(new ProtobufSerializer<>());
+        super(ProtobufSerializer::new);
     }
 
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaSerializer(RegistryClientFacade clientFacade) {
-        super(new ProtobufSerializer<>(clientFacade));
+        super(() -> new ProtobufSerializer<>(clientFacade));
     }
 
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaSerializer(SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufSerializer<>(schemaResolver));
+        super(() -> new ProtobufSerializer<>(schemaResolver));
     }
 
-    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade, SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufSerializer<>(clientFacade, schemaResolver));
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
+    public ProtobufKafkaSerializer(RegistryClientFacade clientFacade,
+                                   SchemaResolver<ProtobufSchema, U> schemaResolver) {
+        super(() -> new ProtobufSerializer<>(clientFacade, schemaResolver));
     }
 
+    /**
+     * @deprecated inject dependencies via the configuration map instead
+     * ({@code SerdeConfig.REGISTRY_CLIENT_FACADE}, {@code SerdeConfig.ARTIFACT_RESOLVER_STRATEGY},
+     * {@code SerdeConfig.SCHEMA_RESOLVER}).
+     * Will be removed in a future release.
+     */
+    @Deprecated(since = "3.3.2", forRemoval = true)
     public ProtobufKafkaSerializer(RegistryClientFacade clientFacade,
                                    ArtifactReferenceResolverStrategy<ProtobufSchema, U> strategy,
                                    SchemaResolver<ProtobufSchema, U> schemaResolver) {
-        super(new ProtobufSerializer<>(clientFacade, schemaResolver, strategy));
+        super(() -> new ProtobufSerializer<>(clientFacade, schemaResolver, strategy));
     }
 
     @Override
-    public void configure(Map<String, ?> configs, boolean isKey) {
-        super.configure(configs, isKey);
+    protected void initializeHeaders(Map<String, ?> configs, boolean isKey) {
         serdeHeaders = new ProtobufSerdeHeaders(new HashMap<>(configs), isKey);
     }
 

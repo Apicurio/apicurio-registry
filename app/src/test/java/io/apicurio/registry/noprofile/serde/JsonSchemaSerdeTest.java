@@ -90,17 +90,18 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
             config.put(SerdeConfig.VALIDATION_ENABLED, "true");
             serializer.configure(config, false);
 
-            deserializer.configure(Collections.singletonMap(KafkaSerdeConfig.ENABLE_HEADERS, "true"), false);
+            deserializer.configure(Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);
@@ -144,18 +145,19 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         Person person = new Person("Carles", "Arnal", 30);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(SerdeConfig.SCHEMA_LOCATION, "/io/apicurio/registry/util/json-schema.json");
             config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(config, false);
 
-            deserializer.configure(Collections.singletonMap(KafkaSerdeConfig.ENABLE_HEADERS, "true"), false);
+            deserializer.configure(Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);
@@ -186,6 +188,41 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         }
     }
 
+    @SuppressWarnings({"removal"})
+    @ParameterizedTest(name = "testJsonSchemaDeprecatedFacadeConstructor [{0}]")
+    @MethodSource("isolatedClientFacadeProvider")
+    public void testJsonSchemaDeprecatedFacadeConstructor(ClientFacadeSupplier clientFacadeSupplier)
+            throws Exception {
+        RegistryClientFacade clientFacade = clientFacadeSupplier.getFacade(this);
+
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = generateArtifactId();
+        Person person = new Person("Carles", "Arnal", 30);
+
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
+                Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
+            config.put(SerdeConfig.SCHEMA_LOCATION, "/io/apicurio/registry/util/json-schema.json");
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, true);
+            config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
+            serializer.configure(config, false);
+
+            deserializer.configure(Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true"), false);
+
+            Headers headers = new RecordHeaders();
+            byte[] bytes = serializer.serialize(artifactId, headers, person);
+
+            person = deserializer.deserialize(artifactId, headers, bytes);
+
+            Assertions.assertEquals("Carles", person.getFirstName());
+            Assertions.assertEquals("Arnal", person.getLastName());
+            Assertions.assertEquals(30, person.getAge());
+        }
+    }
+
     @ParameterizedTest(name = "testJsonSchemaSerdeHeaders [{0}]")
     @MethodSource("isolatedClientFacadeProvider")
     public void testJsonSchemaSerdeHeaders(ClientFacadeSupplier clientFacadeSupplier) throws Exception {
@@ -203,10 +240,11 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
@@ -216,7 +254,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
             serializer.configure(config, false);
 
             deserializer.configure(Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.USE_ID,
-                    IdOption.globalId.name()), false);
+                    IdOption.globalId.name(), SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade), false);
 
             Headers headers = new RecordHeaders();
             byte[] bytes = serializer.serialize(artifactId, headers, person);
@@ -256,18 +294,19 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         Person person = new Person("Ales", "Justin", 23);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
             config.put(SerdeConfig.VALIDATION_ENABLED, "true");
             serializer.configure(config, false);
 
             deserializer.configure(
-                    Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true"),
+                    Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true", SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade),
                     false);
 
             byte[] bytes = serializer.serialize(artifactId, person);
@@ -359,18 +398,19 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(SerdeConfig.VALIDATION_ENABLED, "true");
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
             serializer.configure(config, false);
 
             deserializer.configure(
-                    Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true"),
+                    Map.of(KafkaSerdeConfig.ENABLE_HEADERS, "true", SerdeConfig.VALIDATION_ENABLED, "true", SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade),
                     false);
 
             Headers headers = new RecordHeaders();
@@ -510,11 +550,12 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(SerdeConfig.VALIDATION_ENABLED, "true");
             config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
@@ -691,11 +732,12 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         CitizenIdentifier identifier = new CitizenIdentifier(123456789);
         Citizen citizen = new Citizen("Carles", "Arnal", 23, city, identifier, Collections.emptyList());
 
-        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Citizen> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Citizen> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(SerdeConfig.DEREFERENCE_SCHEMA, "true");
             config.put(SerdeConfig.USE_ID, IdOption.globalId.name());
@@ -911,12 +953,13 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
         Person person = new Person("Clark", "Kent", 31);
 
         // Create the Apicurio serializer and the Confluent deserializer
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<Person>(clientFacade);
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<Person>();
              Deserializer<Person> deserializer = new KafkaJsonSchemaDeserializer<Person>(confluentClient)) {
 
             // Configure the serializer
             Map<String, Object> serializerConfig = new HashMap<>();
             serializerConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializerConfig.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             serializerConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             serializer.configure(serializerConfig, false);
 
@@ -962,16 +1005,18 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
         Person person = new Person("Diana", "Prince", 28);
 
-        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Person> serializer = new JsonSchemaKafkaSerializer<>();
+            Deserializer<Person> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             serializer.configure(config, false);
 
             // Configure deserializer with specificReturnClass
             Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializerConfig.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, Person.class.getName());
             deserializer.configure(deserializerConfig, false);
 
@@ -1017,8 +1062,8 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
                 Instant.parse("2026-01-26T15:30:45Z")
         );
 
-        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>(clientFacade);
-             JsonSchemaKafkaDeserializer<Event> deserializer = new JsonSchemaKafkaDeserializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>();
+             JsonSchemaKafkaDeserializer<Event> deserializer = new JsonSchemaKafkaDeserializer<>()) {
 
             // Create custom ObjectMapper with JavaTimeModule
             // This is the key functionality being tested - the ability to customize the ObjectMapper
@@ -1035,12 +1080,14 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
             // Configure serializer and deserializer
             Map<String, Object> serializerConfig = new HashMap<>();
             serializerConfig.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+            serializerConfig.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             serializerConfig.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             serializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
             serializerConfig.put(SerdeConfig.VALIDATION_ENABLED, "true");
             serializer.configure(serializerConfig, false);
 
             Map<String, Object> deserializerConfig = new HashMap<>();
+            deserializerConfig.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             deserializerConfig.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");
             deserializerConfig.put(SerdeConfig.DESERIALIZER_SPECIFIC_VALUE_RETURN_CLASS, Event.class.getName());
             deserializer.configure(deserializerConfig, false);
@@ -1093,9 +1140,10 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
                 Instant.parse("2026-01-26T15:30:45Z")
         );
 
-        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>(clientFacade)) {
+        try (JsonSchemaKafkaSerializer<Event> serializer = new JsonSchemaKafkaSerializer<>()) {
 
             Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_CLIENT_FACADE, clientFacade);
             config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
             config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
             config.put(KafkaSerdeConfig.ENABLE_HEADERS, "true");

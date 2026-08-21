@@ -75,6 +75,7 @@ public class BaseSerde<T, U> implements AutoCloseable {
             SchemaParser<T, U> schemaParser) {
         Objects.requireNonNull(configs);
         Objects.requireNonNull(schemaParser);
+
         if (this.schemaResolver == null) {
             Object sr = configs.get(SerdeConfig.SCHEMA_RESOLVER);
             if (null == sr) {
@@ -83,6 +84,32 @@ public class BaseSerde<T, U> implements AutoCloseable {
                 Utils.instantiate(SchemaResolver.class, sr, this::setSchemaResolver);
             }
         }
+
+        if (this.schemaResolver == null) {
+            throw new IllegalStateException("Internal error: SchemaResolver was not initialized after configuration.");
+        }
+
+        boolean explicitFacade = configs.containsKey(SerdeConfig.REGISTRY_CLIENT_FACADE);
+
+        if (this.clientFacade == null && explicitFacade) {
+            Object cf = configs.get(SerdeConfig.REGISTRY_CLIENT_FACADE);
+            if (cf != null) {
+                Utils.instantiate(RegistryClientFacade.class, cf, this::setClientFacade);
+            }
+        }
+
+        if (this.clientFacade != null) {
+            RegistryClientFacade resolverFacade = this.schemaResolver.getClientFacade();
+            if (explicitFacade) {
+                if (resolverFacade != null && resolverFacade != this.clientFacade) {
+                    log.warn(SerdeConfig.REGISTRY_CLIENT_FACADE + " overrides facade already set " + SerdeConfig.SCHEMA_RESOLVER);
+                }
+                this.schemaResolver.setClientFacade(this.clientFacade);
+            } else if (resolverFacade == null) {
+                this.schemaResolver.setClientFacade(this.clientFacade);
+            }
+        }
+
         // enforce default artifactResolverStrategy for kafka apps
         if (!configs.containsKey(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY)) {
             configs.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY,
@@ -95,6 +122,10 @@ public class BaseSerde<T, U> implements AutoCloseable {
 
     public RegistryClientFacade getClientFacade() {
         return clientFacade;
+    }
+
+    public void setClientFacade(RegistryClientFacade clientFacade) {
+        this.clientFacade = Objects.requireNonNull(clientFacade);
     }
 
     public SchemaResolver<T, U> getSchemaResolver() {

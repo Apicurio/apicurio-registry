@@ -1,19 +1,23 @@
-#!/bin/bash
-set -e
-echo "Collecting tests logs"
-mkdir -p artifacts/logs
-mkdir -p artifacts/failsafe-reports
+#!/bin/sh
+set -eu
 
-DIR="integration-tests/testsuite/target"
-if [ -d "$DIR" ]; then
-    echo "Collecting testsuite logs"
-    cp -r ${DIR}/logs artifacts
-    cp -r ${DIR}/failsafe-reports artifacts
-fi
+ARTIFACTS_DIR="${ARTIFACTS_DIR:-artifacts}"
 
-mkdir -p artifacts/legacy
-DIR="integration-tests/legacy-tests/target"
-if [ -d "$DIR" ]; then
-  echo "Collecting testsuite logs"
-  cp -r ${DIR}/logs artifacts/legacy | true
-fi
+copy_artifacts() {
+    source_dir="$1"
+    destination_dir="$ARTIFACTS_DIR/$source_dir"
+
+    if [ -d "$source_dir" ]; then
+        mkdir -p "$destination_dir"
+        cp -R "$source_dir"/. "$destination_dir"/
+        echo "Collected $source_dir"
+    fi
+}
+
+echo "Collecting test logs and reports"
+
+for module in integration-tests utils/extra-tests; do
+    for artifact in target/failsafe-reports target/surefire-reports target/logs; do
+        copy_artifacts "$module/$artifact"
+    done
+done

@@ -31,6 +31,7 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 @ApplicationScoped
@@ -272,8 +273,15 @@ public class RegistryService {
             String versionExpression,
             String versionState
     ) {
+        VersionState state = Arrays.stream(VersionState.values())
+                .filter(v -> versionState != null && v.name().equalsIgnoreCase(versionState.trim()))
+                .findFirst()
+                .orElseThrow(() -> new ToolCallException(
+                        "Invalid version state: '" + versionState + "'. Accepted values (case-insensitive): "
+                                + Arrays.toString(VersionState.values())));
+
         var vs = new WrappedVersionState();
-        vs.setState(VersionState.valueOf(versionState));
+        vs.setState(state);
 
         client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
@@ -379,18 +387,19 @@ public class RegistryService {
     }
 
     public String searchAgentCards(String name, String skill, String capability) throws Exception {
-        var results = client().wellKnown().agents().get(config -> {
-            config.queryParameters.limit = 50;
+        var results = client().wellKnown().agents().get(r -> {
+            r.queryParameters.limit = config.paging().limit() + 1;
             if (name != null && !name.isBlank()) {
-                config.queryParameters.name = name;
+                r.queryParameters.name = name;
             }
             if (skill != null && !skill.isBlank()) {
-                config.queryParameters.skill = new String[]{ skill };
+                r.queryParameters.skill = new String[]{ skill };
             }
             if (capability != null && !capability.isBlank()) {
-                config.queryParameters.capability = new String[]{ capability };
+                r.queryParameters.capability = new String[]{ capability };
             }
         });
+        checkPagingLimit(results.getCount());
         return utils.toPrettyJson(results);
     }
 
@@ -404,15 +413,16 @@ public class RegistryService {
     }
 
     public String searchMcpTools(String name, String parameter) throws Exception {
-        var results = client().wellKnown().mcpTools().get(config -> {
-            config.queryParameters.limit = 50;
+        var results = client().wellKnown().mcpTools().get(r -> {
+            r.queryParameters.limit = config.paging().limit() + 1;
             if (name != null && !name.isBlank()) {
-                config.queryParameters.name = name;
+                r.queryParameters.name = name;
             }
             if (parameter != null && !parameter.isBlank()) {
-                config.queryParameters.parameter = new String[]{ parameter };
+                r.queryParameters.parameter = new String[]{ parameter };
             }
         });
+        checkPagingLimit(results.getCount());
         return utils.toPrettyJson(results);
     }
 

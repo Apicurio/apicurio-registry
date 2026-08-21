@@ -200,4 +200,61 @@ public class AgentCardContentValidatorTest extends ArtifactUtilProviderTestBase 
         Assertions.assertTrue(
                 error.getCauses().stream().anyMatch(v -> v.getDescription().contains("description")));
     }
+
+    @Test
+    public void testAgentCardInvalidInterfaceUrl() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("agentcard-invalid-interface-url.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getContext().equals("/supportedInterfaces/0/url")));
+    }
+
+    @Test
+    public void testAgentCardInvalidProviderUrl() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("agentcard-invalid-provider-url.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getContext().equals("/provider/url")));
+    }
+
+    @Test
+    public void testAgentCardNonStringOptionalUrlFields() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("agentcard-invalid-optional-urls.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        // iconUrl and documentationUrl must be strings; non-string values are rejected.
+        // Non-http(s) string values (e.g. data: URIs) are permitted per the agent card spec.
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getContext().equals("/iconUrl")));
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getContext().equals("/documentationUrl")));
+    }
+
+    @Test
+    public void testAgentCardUppercaseSchemeUrl() throws Exception {
+        // RFC 3986 §3.1: schemes are case-insensitive; HTTP:// must be accepted
+        TypedContent content = resourceToTypedContentHandle("agentcard-uppercase-scheme-url.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testAgentCardIpv6Url() throws Exception {
+        // URI.getHost() returns a non-null value (e.g. "[::1]") for IPv6 literals on all standard
+        // JDKs, so valid IPv6 URLs must not be rejected by the host-presence check.
+        TypedContent content = resourceToTypedContentHandle("agentcard-ipv6-url.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
 }

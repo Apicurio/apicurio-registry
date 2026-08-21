@@ -576,9 +576,10 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         log.info("Patched subscription channel to {}", newChannel);
     }
 
-    // Awaitility factory for upgrade waits. Fails fast when the Subscription reports a
-    // terminal ResolutionFailed condition (unsatisfiable constraints never produce an
-    // install plan, so without this every such failure burns the whole UPGRADE_TIMEOUT).
+    // Awaitility factory for upgrade waits. Fails fast only on terminal resolution
+    // failures (unsatisfiable constraints never produce an install plan, so without
+    // this every such failure burns the whole UPGRADE_TIMEOUT). Transient states like
+    // ErrorPreventedResolution (catalog service not routable yet) recover on their own.
     private ConditionFactory upgradeAwait() {
         return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
                 .failFast("Subscription resolution failed", this::subscriptionResolutionFailed);
@@ -598,8 +599,9 @@ public class UpgradeOLMITTest implements OperatorTestContext {
             }
             for (var condition : conditions) {
                 if ("ResolutionFailed".equals(condition.get("type"))
-                        && "True".equals(condition.get("status"))) {
-                    log.error("Subscription {} ResolutionFailed: {}", SUBSCRIPTION_NAME,
+                        && "True".equals(condition.get("status"))
+                        && "ConstraintsNotSatisfiable".equals(condition.get("reason"))) {
+                    log.error("Subscription {} ConstraintsNotSatisfiable: {}", SUBSCRIPTION_NAME,
                             condition.get("message"));
                     return true;
                 }

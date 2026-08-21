@@ -185,14 +185,14 @@
     <jandex.version>3.6.0</jandex.version>
 
     <!-- Schema types -->
-    <avro.version>1.12.1</avro.version>
+    <avro.version>1.12.2</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.18.1</okio.version>
     <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.35.1</protobuf.version>
+    <protobuf.version>4.36.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.74.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -237,19 +237,19 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.46</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.47</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.22.1</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
-    <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
+    <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
     <debezium.version>3.6.1.Final</debezium.version>
     <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.26.1</nats.version>
+    <nats.version>2.26.2</nats.version>
     <snakeyaml.version>2.6</snakeyaml.version>
     <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
@@ -284,7 +284,7 @@
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
-    <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
+
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
@@ -294,9 +294,9 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.9.0</version.puppycrawl>
+    <version.puppycrawl>13.11.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.7</proto-plugin.version>
+    <proto-plugin.version>5.1.8</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -311,7 +311,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.0.8</groovy.version>
+    <groovy.version>5.1.0</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -1321,18 +1321,24 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>${version.maven-antrun.plugin}</version>
+        <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
-            <goals>
-              <goal>run</goal>
-            </goals>
+            <id>create-meta-dir</id>
             <phase>initialize</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
             <configuration>
-              <target>
-                <mkdir dir="${project.build.directory}/meta"/>
-              </target>
+              <outputDirectory>${project.build.directory}/meta</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}</directory>
+                  <excludes>
+                    <exclude>**</exclude>
+                  </excludes>
+                </resource>
+              </resources>
             </configuration>
           </execution>
         </executions>

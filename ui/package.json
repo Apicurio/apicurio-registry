@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "postinstall": "npm run install-sdk && npm run install-app && npm run install-docs && npm run install-editors",
-        "install-sdk": "cd ../typescript-sdk && npm install",
+        "install-sdk": "cd ../typescript-sdk && npm install && if [ ! -f lib/generated-client/models/index.ts ] || [ ! -f lib/generated-client/apicurioRegistryClient.ts ] || [ ! -f dist/main.js ] || [ ! -f dist/generated-client/models/index.d.ts ] || [ ! -f dist/generated-client/search/versions/index.d.ts ]; then npm run generate-sources && npm run build; fi",
         "install-app": "cd ui-app && npm install",
         "install-docs": "cd ui-docs && npm install",
         "install-editors": "cd ui-editors && npm install",
@@ -30,7 +30,7 @@
         "dev": "concurrently \"cd ui-app && npm run dev\" \"cd ui-docs && npm run dev\" \"cd ui-editors && npm run dev\""
     },
     "devDependencies": {
-        "concurrently": "10.0.4",
+        "concurrently": "10.0.5",
         "rimraf": "6.1.3",
         "shelljs": "0.10.0"
     }

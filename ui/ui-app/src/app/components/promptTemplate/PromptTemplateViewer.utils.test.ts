@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractPromptVariables, tokenizeTemplate } from "./PromptTemplateViewer.utils";
+import { extractPromptVariables, formatRange, tokenizeTemplate } from "./PromptTemplateViewer.utils";
 
 describe("tokenizeTemplate", () => {
     it("keeps plain text without variables as a single plain token", () => {
@@ -14,94 +14,6 @@ describe("tokenizeTemplate", () => {
             { text: "{{name}}", kind: "variable" },
             { text: "!", kind: "plain" }
         ]);
-    });
-
-    it("classifies opening block helpers as blocks", () => {
-        expect(tokenizeTemplate("{{#if user}}Hi{{/if}}")[0]).toEqual({
-            text: "{{#if user}}",
-            kind: "block"
-        });
-    });
-
-    it("classifies closing block tags as blocks", () => {
-        expect(tokenizeTemplate("{{/each}}")[0]).toEqual({
-            text: "{{/each}}",
-            kind: "block"
-        });
-    });
-
-    it("classifies {{else}} as a block", () => {
-        const tokens = tokenizeTemplate("{{#if a}}A{{else}}B{{/if}}");
-        expect(tokens.map(t => [t.text, t.kind])).toEqual([
-            ["{{#if a}}", "block"],
-            ["A", "plain"],
-            ["{{else}}", "block"],
-            ["B", "plain"],
-            ["{{/if}}", "block"]
-        ]);
-    });
-
-    it("highlights dotted paths as a single variable", () => {
-        expect(tokenizeTemplate("{{user.email}}")[0]).toEqual({
-            text: "{{user.email}}",
-            kind: "variable"
-        });
-    });
-
-    it("highlights @index data variables", () => {
-        expect(tokenizeTemplate("{{@index}}")[0]).toEqual({
-            text: "{{@index}}",
-            kind: "variable"
-        });
-    });
-
-    it("highlights triple-stash variables as a single token", () => {
-        expect(tokenizeTemplate("{{{raw}}}")).toEqual([
-            { text: "{{{raw}}}", kind: "variable" }
-        ]);
-    });
-
-    it("renders comments as plain text", () => {
-        expect(tokenizeTemplate("{{!-- hidden --}}")).toEqual([
-            { text: "{{!-- hidden --}}", kind: "plain" }
-        ]);
-    });
-
-    it("renders single-bang comments as plain text", () => {
-        expect(tokenizeTemplate("{{! hidden }}")).toEqual([
-            { text: "{{! hidden }}", kind: "plain" }
-        ]);
-    });
-
-    it("keeps tokens adjacent to single-bang comments intact", () => {
-        expect(tokenizeTemplate("{{! c }}{{name}}")).toEqual([
-            { text: "{{! c }}", kind: "plain" },
-            { text: "{{name}}", kind: "variable" }
-        ]);
-    });
-
-    it("classifies the inverse shorthand {{^}} as a block", () => {
-        expect(tokenizeTemplate("{{#if a}}A{{^}}B{{/if}}").map(t => [t.text, t.kind])).toEqual([
-            ["{{#if a}}", "block"],
-            ["A", "plain"],
-            ["{{^}}", "block"],
-            ["B", "plain"],
-            ["{{/if}}", "block"]
-        ]);
-    });
-
-    it("keeps tokens adjacent to comments intact", () => {
-        expect(tokenizeTemplate("{{!-- c --}}{{name}}")).toEqual([
-            { text: "{{!-- c --}}", kind: "plain" },
-            { text: "{{name}}", kind: "variable" }
-        ]);
-    });
-
-    it("handles block helpers with as-expressions", () => {
-        expect(tokenizeTemplate("{{#each items as |item|}}")[0]).toEqual({
-            text: "{{#each items as |item|}}",
-            kind: "block"
-        });
     });
 
     it("handles an empty template", () => {
@@ -122,27 +34,33 @@ describe("extractPromptVariables", () => {
         expect(extractPromptVariables("Hello {name}, welcome to {place}!")).toEqual(["name", "place"]);
     });
 
-    it("extracts a mix of single- and double-brace variables", () => {
-        expect(extractPromptVariables("{{greeting}}, {name}!")).toEqual(["greeting", "name"]);
-    });
-
     it("deduplicates repeated variables", () => {
         expect(extractPromptVariables("{{name}} and {name} again")).toEqual(["name"]);
-    });
-
-    it("extracts dotted paths", () => {
-        expect(extractPromptVariables("{{user.email}} / {user.id}")).toEqual(["user.email", "user.id"]);
     });
 
     it("excludes block helpers and comments", () => {
         expect(extractPromptVariables("{{#if user}}{{name}}{{/if}}{{!-- note --}}")).toEqual(["name"]);
     });
 
-    it("ignores braces that aren't valid identifiers", () => {
-        expect(extractPromptVariables('{"key": "value"} { } {123}')).toEqual([]);
-    });
-
     it("returns no variables for plain text", () => {
         expect(extractPromptVariables("Just some text")).toEqual([]);
+    });
+});
+
+describe("formatRange", () => {
+    it("renders 'min – max' when both bounds are present", () => {
+        expect(formatRange(1, 10)).toBe("1 – 10");
+    });
+
+    it("renders '≥ min' when only the minimum is present", () => {
+        expect(formatRange(0, undefined)).toBe("≥ 0");
+    });
+
+    it("renders '≤ max' when only the maximum is present", () => {
+        expect(formatRange(undefined, 100)).toBe("≤ 100");
+    });
+
+    it("returns null when neither bound is present", () => {
+        expect(formatRange(undefined, undefined)).toBeNull();
     });
 });

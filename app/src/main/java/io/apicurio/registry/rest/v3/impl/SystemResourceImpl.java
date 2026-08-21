@@ -12,6 +12,8 @@ import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.RestConfig;
+import io.apicurio.registry.promotion.CrossRegistryPromotionService;
+import io.apicurio.registry.rest.v3.beans.PromotionSource;
 import io.apicurio.registry.rest.v3.beans.SystemInfo;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigAuth;
@@ -24,6 +26,7 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @ApplicationScoped
@@ -48,6 +51,9 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     ElasticsearchSearchConfig esSearchConfig;
+
+    @Inject
+    CrossRegistryPromotionService crossRegistryPromotionService;
 
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
@@ -114,5 +120,14 @@ public class SystemResourceImpl implements SystemResource {
             rval.setOptions(options);
         }
         return rval;
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.SystemResource#listPromotionSources()
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public List<PromotionSource> listPromotionSources() {
+        return crossRegistryPromotionService.listSources();
     }
 }

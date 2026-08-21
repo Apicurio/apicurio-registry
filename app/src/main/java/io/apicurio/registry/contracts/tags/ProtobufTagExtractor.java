@@ -57,34 +57,86 @@ public class ProtobufTagExtractor implements TagExtractor {
     private void extractTagsFromMessage(MessageElement message, String pathPrefix,
             Map<String, Set<String>> result) {
         for (FieldElement field : message.getFields()) {
-            String fieldPath = pathPrefix.isEmpty() ? field.getName()
-                    : pathPrefix + "." + field.getName();
-
-            Set<String> tags = extractFieldTags(field);
-            if (!tags.isEmpty()) {
-                result.put(fieldPath, tags);
-            }
+            processField(message, field, pathPrefix, result);
         }
 
         for (OneOfElement oneOf : message.getOneOfs()) {
             for (FieldElement field : oneOf.getFields()) {
-                String fieldPath = pathPrefix.isEmpty() ? field.getName()
-                        : pathPrefix + "." + field.getName();
-
-                Set<String> tags = extractFieldTags(field);
-                if (!tags.isEmpty()) {
-                    result.put(fieldPath, tags);
-                }
+                processField(message, field, pathPrefix, result);
             }
         }
+    }
 
-        for (TypeElement nestedType : message.getNestedTypes()) {
-            if (nestedType instanceof MessageElement nested) {
-                String nestedPrefix = pathPrefix.isEmpty() ? nested.getName()
-                        : pathPrefix + "." + nested.getName();
-                extractTagsFromMessage(nested, nestedPrefix, result);
+    private void processField(MessageElement parentMessage, FieldElement field, String pathPrefix,
+            Map<String, Set<String>> result) {
+        String fieldPath = pathPrefix.isEmpty() ? field.getName()
+                : pathPrefix + "." + field.getName();
+
+        Set<String> tags = extractFieldTags(field);
+        if (!tags.isEmpty()) {
+            result.put(fieldPath, tags);
+        }
+
+        String fieldType = field.getType();
+        if (isMapType(fieldType)) {
+            processMapField(parentMessage, fieldType, fieldPath, result);
+        } else {
+            processStandardField(parentMessage, field, fieldPath, result);
+        }
+    }
+
+    private void processMapField(MessageElement parentMessage, String fieldType, String fieldPath,
+            Map<String, Set<String>> result) {
+        String valueType = getMapValueType(fieldType);
+        if (valueType == null) {
+            return;
+        }
+        MessageElement nestedMsg = findNestedMessage(parentMessage, valueType);
+        if (nestedMsg != null) {
+            String mapPrefix = fieldPath + ".values";
+            extractTagsFromMessage(nestedMsg, mapPrefix, result);
+        }
+    }
+
+    private void processStandardField(MessageElement parentMessage, FieldElement field, String fieldPath,
+            Map<String, Set<String>> result) {
+        MessageElement nestedMsg = findNestedMessage(parentMessage, field.getType());
+        if (nestedMsg == null) {
+            return;
+        }
+        String nextPrefix = isRepeatedField(field) ? fieldPath + "[]" : fieldPath;
+        extractTagsFromMessage(nestedMsg, nextPrefix, result);
+    }
+
+    private boolean isRepeatedField(FieldElement field) {
+        return field.getLabel() != null && "REPEATED".equalsIgnoreCase(field.getLabel().name());
+    }
+
+    private boolean isMapType(String typeName) {
+        return typeName != null && typeName.startsWith("map<") && typeName.endsWith(">");
+    }
+
+    private String getMapValueType(String typeName) {
+        if (!isMapType(typeName)) {
+            return null;
+        }
+        int comma = typeName.indexOf(',');
+        if (comma > 0 && comma < typeName.length() - 1) {
+            return typeName.substring(comma + 1, typeName.length() - 1).trim();
+        }
+        return null;
+    }
+
+    private MessageElement findNestedMessage(MessageElement parent, String typeName) {
+        if (typeName == null || parent.getNestedTypes() == null) {
+            return null;
+        }
+        for (TypeElement nested : parent.getNestedTypes()) {
+            if (nested instanceof MessageElement msg && msg.getName().equals(typeName)) {
+                return msg;
             }
         }
+        return null;
     }
 
     private Set<String> extractFieldTags(FieldElement field) {

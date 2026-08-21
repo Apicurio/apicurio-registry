@@ -18,7 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
+
+import org.awaitility.core.ConditionFactory;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static io.apicurio.registry.operator.it.ITBase.setDefaultAwaitilityTimings;
@@ -45,6 +48,8 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
             Integer.getInteger("test.operator.timeout.olm-upgrade", 900));
+
+    private static final String SUBSCRIPTION_NAME = "apicurio-registry-operator-subscription";
 
     private static CatalogInfo catalog;
 
@@ -305,7 +310,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
         Thread.sleep(30_000);
 
-        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(deploymentName(headVersion)).get();
             assertThat(deployment)
@@ -485,8 +490,8 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         waitForOperatorVersion(prev.getVersion());
         log.info("Operator {} deployed with Manual approval", prev.getVersion());
 
-        await().atMost(UPGRADE_TIMEOUT).pollInterval(java.time.Duration.ofSeconds(10))
-                .ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().pollInterval(java.time.Duration.ofSeconds(10))
+                .untilAsserted(() -> {
                     approveAllPendingInstallPlans();
                     var deployment = client.apps().deployments().inNamespace(namespace)
                             .withName(deploymentName(minorHeadVersion)).get();
@@ -527,7 +532,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     private void waitForOperatorVersion(Semver version) {
         var name = deploymentName(version);
-        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(name).get();
             assertThat(deployment).as("Deployment " + name + " should exist").isNotNull();
@@ -540,7 +545,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     private void verifyUpgradeTo(Semver targetVersion) {
         var name = deploymentName(targetVersion);
-        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(name).get();
             assertThat(deployment)
@@ -571,8 +576,43 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         log.info("Patched subscription channel to {}", newChannel);
     }
 
+    // Awaitility factory for upgrade waits. Fails fast when the Subscription reports a
+    // terminal ResolutionFailed condition (unsatisfiable constraints never produce an
+    // install plan, so without this every such failure burns the whole UPGRADE_TIMEOUT).
+    private ConditionFactory upgradeAwait() {
+        return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
+                .failFast("Subscription resolution failed", this::subscriptionResolutionFailed);
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean subscriptionResolutionFailed() {
+        try {
+            var sub = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
+                    .inNamespace(namespace).withName(SUBSCRIPTION_NAME).get();
+            if (sub == null) {
+                return false;
+            }
+            var conditions = (List<Map<String, Object>>) sub.get("status", "conditions");
+            if (conditions == null) {
+                return false;
+            }
+            for (var condition : conditions) {
+                if ("ResolutionFailed".equals(condition.get("type"))
+                        && "True".equals(condition.get("status"))) {
+                    log.error("Subscription {} ResolutionFailed: {}", SUBSCRIPTION_NAME,
+                            condition.get("message"));
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            // Transient API errors must not trip the fail-fast check
+            return false;
+        }
+    }
+
     private void waitForAndApproveInstallPlans() {
-        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var pending = countPendingInstallPlans();
             log.info("Waiting for pending install plans... found: {}", pending);
             assertThat(pending).as("Should have at least one pending install plan")

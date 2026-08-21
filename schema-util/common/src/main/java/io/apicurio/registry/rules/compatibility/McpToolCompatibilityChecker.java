@@ -2,6 +2,7 @@ package io.apicurio.registry.rules.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
@@ -23,7 +24,7 @@ import java.util.Set;
 public class McpToolCompatibilityChecker
         extends AbstractCompatibilityChecker<McpToolCompatibilityDifference> {
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
     protected Set<McpToolCompatibilityDifference> isBackwardsCompatibleWith(String existing,
@@ -31,8 +32,8 @@ public class McpToolCompatibilityChecker
         Set<McpToolCompatibilityDifference> differences = new HashSet<>();
 
         try {
-            JsonNode existingNode = mapper.readTree(existing);
-            JsonNode proposedNode = mapper.readTree(proposed);
+            JsonNode existingNode = parseContent(existing);
+            JsonNode proposedNode = parseContent(proposed);
 
             // Check inputSchema type changes
             checkInputSchemaTypeChange(existingNode, proposedNode, differences);
@@ -53,6 +54,10 @@ public class McpToolCompatibilityChecker
         }
 
         return differences;
+    }
+
+    private JsonNode parseContent(String content) throws Exception {
+        return yamlMapper.readTree(content);
     }
 
     private void checkInputSchemaTypeChange(JsonNode existing, JsonNode proposed,

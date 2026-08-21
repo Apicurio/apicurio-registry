@@ -67,6 +67,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 
 /**
  * Implementation of the well-known endpoint resource for A2A agents and MCP tools.
@@ -205,6 +206,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public AgentSearchResults searchAgentsAdvanced(AgentSearchRequest request) {
+        ParameterValidationUtils.requireParameter("data", request);
+
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
         }

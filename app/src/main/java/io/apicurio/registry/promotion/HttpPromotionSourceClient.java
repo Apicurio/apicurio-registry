@@ -24,6 +24,7 @@ public class HttpPromotionSourceClient implements PromotionSourceClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    private static final String AUTHORIZATION = "Authorization";
 
     private final PromotionSourceDefinition source;
     private final HttpClient httpClient;
@@ -79,13 +80,14 @@ public class HttpPromotionSourceClient implements PromotionSourceClient {
         String mode = source.auth() == null ? "none" : source.auth().toLowerCase();
         switch (mode) {
             case "none", "" -> {
+                // Anonymous source registry: do not attach an Authorization header.
             }
             case "bearer" -> {
                 if (source.token() == null) {
                     throw new PromotionRemoteException(
                             "Promotion source '" + source.name() + "' auth=bearer requires a token");
                 }
-                builder.header("Authorization", "Bearer " + source.token());
+                builder.header(AUTHORIZATION, "Bearer " + source.token());
             }
             case "basic" -> {
                 if (source.username() == null) {
@@ -93,10 +95,10 @@ public class HttpPromotionSourceClient implements PromotionSourceClient {
                             "Promotion source '" + source.name() + "' auth=basic requires a username");
                 }
                 String raw = source.username() + ":" + (source.password() == null ? "" : source.password());
-                builder.header("Authorization",
+                builder.header(AUTHORIZATION,
                         "Basic " + Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8)));
             }
-            case "oauth2" -> builder.header("Authorization", "Bearer " + fetchOAuth2Token());
+            case "oauth2" -> builder.header(AUTHORIZATION, "Bearer " + fetchOAuth2Token());
             default -> throw new PromotionRemoteException(
                     "Unsupported promotion auth mode '" + source.auth() + "' for source '" + source.name() + "'");
         }

@@ -18,6 +18,10 @@ jobs:
   integration-tests:
     name: Integration Tests (${{ matrix.storage }}-${{ matrix.name || matrix.groups }})
     runs-on: ubuntu-latest
+    # Fail fast: the longest healthy job (serdes) finishes well under 30 minutes.
+    # Environmental stalls (dead registry pod, network hangs) previously kept jobs
+    # alive for hours; kill them instead of waiting.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -78,6 +82,8 @@ jobs:
           # -Dregistry-image: Docker image built by the Build job, loaded into Minikube
           # -Dfailsafe.rerunFailingTestsCount=1: automatically retry flaky integration tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Djunit.jupiter.execution.timeout.default=10m: fail hung tests fast; environmental stalls
+          #   previously kept a single test running for 30+ minutes (x2 with the flaky rerun)
           ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify -am --no-transfer-progress \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \
@@ -87,7 +93,8 @@ jobs:
             -pl integration-tests \
             -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
-            -Dfailsafe.rerunFailingTestsCount=1
+            -Dfailsafe.rerunFailingTestsCount=1 \
+            -Djunit.jupiter.execution.timeout.default=10m
 
       - name: Parse Flaky Tests
         if: always()

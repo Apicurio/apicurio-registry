@@ -22,10 +22,26 @@ jobs:
       fail-fast: false
       matrix:
         shard:
-          - name: app-rest
+          # app-rest used to be a single shard and was the PR critical path at ~35 min
+          # (61 classes, 3x the next shard). It is now split three ways: v3 (the bulk),
+          # ccompat, and a misc shard for the remaining rest subpackages (v2, mcptools,
+          # a2a, root-level classes). app-rest-misc must exclude everything app-rest-v3
+          # includes; .github/scripts/verify-test-shards.py enforces the partition.
+          - name: app-rest-v3
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            surefire-opts: "-Dsurefire.forkCount=2"
+          - name: app-ccompat
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.ccompat.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            surefire-opts: ""
+          - name: app-rest-misc
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            surefire-opts: ""
           - name: app-sql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.sql.**,io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.impl.polling.**,io.apicurio.registry.storage.impl.readonly.**,io.apicurio.registry.storage.decorator.**,io.apicurio.registry.storage.dto.**,io.apicurio.registry.event.sql.**"
@@ -115,6 +131,7 @@ jobs:
             --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
+            ${{ matrix.shard.surefire-opts }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipCommitIdPlugin=true \
             -Dcheckstyle.skip=true \

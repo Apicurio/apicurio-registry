@@ -210,8 +210,14 @@ jobs:
             olm-enable: "false"
             olm-v1-enable: "false"
             extra-build-opts: ""
-          - name: feature
-            groups: "feature"
+          - name: feature-a
+            groups: "feature-a"
+            excluded-groups: "feature-setup"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: feature-b
+            groups: "feature-b"
             excluded-groups: "feature-setup"
             olm-enable: "false"
             olm-v1-enable: "false"

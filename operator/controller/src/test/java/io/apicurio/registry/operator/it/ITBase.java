@@ -523,11 +523,11 @@ public abstract class ITBase implements OperatorTestContext {
     void createResources(List<HasMetadata> resources, String resourceType) {
         resources.forEach(r -> {
             log.info("Creating {} resource kind {} in namespace {}", resourceType, r.getKind(), namespace);
+            // createOrReplace is synchronous: it throws on failure and the resource exists when
+            // it returns. A read-back poll here used to cost ~3 s per resource on a loaded CI
+            // runner (per class, per test group). CRD establishment is awaited explicitly at
+            // the call sites that create CRs right after.
             client.resource(r).inNamespace(namespace).createOrReplace();
-            await().ignoreExceptions().until(() -> {
-                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                return true;
-            });
         });
     }
 

@@ -134,6 +134,20 @@ jobs:
 
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        id: minikube-setup
+        continue-on-error: true
+        timeout-minutes: 10
+        with:
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: 'false'
+          olm-v1-enable: 'false'
+
+      # medyagh/setup-minikube (invoked by the composite action) intermittently
+      # fails with transient HTTP 504s while downloading; one retry absorbs it
+      # instead of failing the whole job.
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        if: steps.minikube-setup.outcome == 'failure'
         timeout-minutes: 10
         with:
           driver: 'none'
@@ -246,6 +260,21 @@ jobs:
       # driver=none: Kubernetes runs directly on the host, sharing all runner
       # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).
       - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        id: minikube-setup
+        continue-on-error: true
+        timeout-minutes: 10
+        with:
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: ${{ matrix.olm-enable }}
+          olm-v1-enable: ${{ matrix.olm-v1-enable }}
+          start-args: '--alsologtostderr --v=2'
+
+      # medyagh/setup-minikube (invoked by the composite action) intermittently
+      # fails with transient HTTP 504s while downloading; one retry absorbs it
+      # instead of failing the whole job.
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        if: steps.minikube-setup.outcome == 'failure'
         timeout-minutes: 10
         with:
           driver: 'none'

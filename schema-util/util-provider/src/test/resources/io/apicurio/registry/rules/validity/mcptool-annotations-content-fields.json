@@ -4,8 +4,8 @@
     "type": "object"
   },
   "annotations": {
-    "title": 123,
-    "readOnlyHint": "not-a-boolean",
-    "destructiveHint": 123
+    "title": "Annotated Tool",
+    "audience": ["user"],
+    "priority": 5
   }
 }

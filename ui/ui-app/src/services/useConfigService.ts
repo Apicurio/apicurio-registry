@@ -92,6 +92,7 @@ export interface OidcJsAuthOptions {
     scope: string;
     logoutUrl?: string;
     loadUserInfo?: boolean;
+    useNonce?: boolean;
 }
 
 // Used when `type=oidc`

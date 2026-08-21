@@ -66,7 +66,7 @@ All submissions, including submissions by project members, need to be reviewed b
 
 ### Coding Guidelines
 
- * We primarily use the Git history to track authorship. GitHub also has [this nice page with your contributions](https://github.com/quarkusio/quarkus/graphs/contributors).
+ * We primarily use the Git history to track authorship. GitHub also has [this nice page with your contributions](https://github.com/Apicurio/apicurio-registry/graphs/contributors).
  * Please take care to write code that fits with existing code styles.  For your convenience we have Formatters and/or Code Templates for both [Eclipse](https://github.com/Apicurio/apicurio-configs/tree/main/eclipse) and [IntelliJ](https://github.com/Apicurio/apicurio-configs/tree/main/intellij).
  * Commits should be atomic and semantic. Please properly squash your pull requests before submitting them. Fixup commits can be used temporarily during the review process but things should be squashed at the end to have meaningful commits.
  * We typically squash and merge pull requests when they are approved.  This tends to keep the commit history a little bit more tidy without placing undue burden on the developers.
@@ -74,6 +74,17 @@ All submissions, including submissions by project members, need to be reviewed b
 ### Continuous Integration
 
 Because we are all humans, and to ensure Apicurio Registry is stable for everyone, all changes must pass continuous integration before being merged. Apicurio CI is based on GitHub Actions, which means that pull requests will receive automatic feedback.  Please watch out for the results of these workflows to see if your PR passes all tests.
+
+CI runs in two tiers:
+
+1. **Fast gate** (`CI` workflow, ~5 min): runs on every non-draft push. Compiles the
+   project (including test sources) and runs the pure unit tests plus a curated app
+   smoke set. This is what gives you rapid feedback while iterating.
+2. **Full verification** (`Verify` workflow): the complete suite — all unit-test
+   shards, the integration-test storage matrix, operator, SDKs, and docker images.
+   It runs when a maintainer marks the PR `lifecycle/ready-to-merge` (and on every
+   push to `main`), and must pass before the merge completes. If it fails, the PR
+   returns to `lifecycle/ready-for-review` automatically.
 
 ### Tests and documentation are not optional
 
@@ -110,7 +121,7 @@ Integration tests are opt-in and are documented in the
 ./mvnw verify -Pintegration-tests -pl integration-tests -am
 ```
 
-CI runs the full storage matrix on every pull request, so running every variant
+CI runs the full storage matrix as the pre-merge gate, so running every variant
 locally is not required.
 
 ### Customizing Registry supported ArtifactTypes

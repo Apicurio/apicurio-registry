@@ -1,9 +1,31 @@
 import { describe, expect, it } from "vitest";
 import {
     extractTemplateVariableNames,
+    isSubstitutableVariableTag,
     reconcileTemplateVariables,
     VariableSchema
 } from "./promptTemplateVariables";
+
+describe("isSubstitutableVariableTag", () => {
+    it("accepts plain and triple-stash variables in supported scope", () => {
+        expect(isSubstitutableVariableTag("{{name}}")).toBe(true);
+        expect(isSubstitutableVariableTag("{{ name }}")).toBe(true);
+        expect(isSubstitutableVariableTag("{{{raw}}}")).toBe(true);
+    });
+
+    it("rejects block helpers, dotted paths, and @-prefixed tokens", () => {
+        expect(isSubstitutableVariableTag("{{#if user}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{/if}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{else}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{user.email}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{@index}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{{user.email}}}")).toBe(false);
+    });
+
+    it("rejects handlebars keywords that are not substitutable variables", () => {
+        expect(isSubstitutableVariableTag("{{this}}")).toBe(false);
+    });
+});
 
 describe("extractTemplateVariableNames", () => {
     it("returns an empty array when the template has no variables", () => {

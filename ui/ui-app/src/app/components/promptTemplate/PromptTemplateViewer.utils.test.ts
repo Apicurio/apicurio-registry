@@ -41,18 +41,32 @@ describe("tokenizeTemplate", () => {
         ]);
     });
 
-    it("highlights dotted paths as a single variable", () => {
+    it("renders dotted paths as plain text (outside supported variable scope)", () => {
         expect(tokenizeTemplate("{{user.email}}")[0]).toEqual({
             text: "{{user.email}}",
-            kind: "variable"
+            kind: "plain"
         });
     });
 
-    it("highlights @index data variables", () => {
+    it("renders @index data variables as plain text (outside supported variable scope)", () => {
         expect(tokenizeTemplate("{{@index}}")[0]).toEqual({
             text: "{{@index}}",
-            kind: "variable"
+            kind: "plain"
         });
+    });
+
+    it("renders unsupported tokens as plain while supported variables stay highlighted", () => {
+        expect(tokenizeTemplate("Hello {{user.email}}\n{{#each items}}{{@index}}: {{item}}{{/each}}").map(t => [t.text, t.kind]))
+            .toEqual([
+                ["Hello ", "plain"],
+                ["{{user.email}}", "plain"],
+                ["\n", "plain"],
+                ["{{#each items}}", "block"],
+                ["{{@index}}", "plain"],
+                [": ", "plain"],
+                ["{{item}}", "variable"],
+                ["{{/each}}", "block"]
+            ]);
     });
 
     it("highlights triple-stash variables as a single token", () => {

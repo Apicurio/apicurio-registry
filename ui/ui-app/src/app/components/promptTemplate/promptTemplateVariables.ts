@@ -27,7 +27,7 @@ export type ReconciledVariable = {
 
 /**
  * Shared placeholder matcher used by extractTemplateVariableNames and
- * PromptTemplateViewer.highlightVariables.
+ * PromptTemplateViewer token classification.
  *
  * Captures optional block prefix (group 1) and variable name (group 2).
  * Optional whitespace inside the braces matches the backend canonical plain-
@@ -51,6 +51,31 @@ export const TEMPLATE_VARIABLE_REGEX = /\{\{\s*(#?\/?(?:if|unless|each|with)\s+)
  * (e.g. `{{else}}`, `{{this}}`) are excluded the same way prefix keywords are.
  */
 const BLOCK_KEYWORDS = new Set(["if", "unless", "each", "with", "else", "this", "lookup", "log"]);
+
+const isBlockHelperTag = (tag: string): boolean => {
+    const inner = tag.replace(/^\{+|\}+$/g, "").trim();
+    const head = inner.split(/\s+/, 1)[0];
+    return head.startsWith("#") || head.startsWith("/") || head.startsWith("^") || head === "else";
+};
+
+/**
+ * Whether a single handlebars tag is a substitutable variable per
+ * extractTemplateVariableNames() / backend `\w+` scope.
+ */
+export function isSubstitutableVariableTag(tag: string): boolean {
+    if (isBlockHelperTag(tag)) {
+        return false;
+    }
+    if (tag.startsWith("{{{") && tag.endsWith("}}}")) {
+        const name = tag.slice(3, -3).trim();
+        return /^\w+$/.test(name) && !BLOCK_KEYWORDS.has(name);
+    }
+    const match = /^\{\{\s*(\w+)\s*\}\}$/.exec(tag);
+    if (!match) {
+        return false;
+    }
+    return !BLOCK_KEYWORDS.has(match[1]);
+}
 
 /**
  * Extract de-duplicated variable names from template text in first-seen order.

@@ -8271,6 +8271,10 @@
           "searchIndex": {
             "description": "",
             "type": "boolean"
+          },
+          "urlImportMaxContentLength": {
+            "description": "Maximum content length in bytes for URL imports.",
+            "type": "integer"
           }
         },
         "example": {

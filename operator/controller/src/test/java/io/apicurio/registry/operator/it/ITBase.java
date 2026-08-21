@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.api.model.NamespaceBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
@@ -47,6 +48,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
@@ -379,34 +381,54 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    // Must run for every test class: the Strimzi operator Deployment lives in the per-class namespace
-    // (deleted in afterAll), so a JVM-wide "already installed" guard would leave later classes without
-    // an operator to reconcile their Kafka CRs. Re-applying the cluster-scoped resources (CRDs,
-    // ClusterRoles, ClusterRoleBindings) rebinds their subjects to the current class's namespace, which
-    // is safe only because test classes run strictly sequentially (see -T1 in operator/Makefile).
-    // A single cluster-wide install in a dedicated namespace is tracked as follow-up (backlog REG-111).
+    private static final String STRIMZI_NAMESPACE = "strimzi-system";
+    private static final AtomicBoolean STRIMZI_INSTALLED = new AtomicBoolean(false);
+
+    // Installs the Strimzi operator once per JVM, cluster-wide: the operator Deployment lives
+    // in a shared namespace and watches all namespaces, so each test class only needs the Kafka
+    // CRs in its own namespace. Previously every test class downloaded and applied the full
+    // Strimzi manifest — with a readiness wait per resource — into its own namespace, and the
+    // operator pod had to boot per class. Test classes run strictly sequentially (see -T1 in
+    // operator/Makefile), so a single shared install is safe.
     void applyStrimziResources() throws IOException {
+        if (!STRIMZI_INSTALLED.compareAndSet(false, true)) {
+            return;
+        }
         // Use Strimzi 0.47.0 which supports both KRaft mode and Kafka 3.9.x
         // Note: Strimzi 0.48+ removed support for Kafka 3.9.x, so we pin to 0.47.0
         var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.47.0/strimzi-cluster-operator-0.47.0.yaml");
         try (BufferedInputStream in = new BufferedInputStream(strimziClusterOperatorURL.openStream())) {
             List<HasMetadata> resources = Serialization.unmarshal(in);
+            createNamespace(client, STRIMZI_NAMESPACE);
             resources.forEach(r -> {
                 if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
                     var crb = (ClusterRoleBinding) r;
-                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                    crb.getSubjects().forEach(s -> s.setNamespace(STRIMZI_NAMESPACE));
                 } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding) {
                     var crb = (RoleBinding) r;
-                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                    crb.getSubjects().forEach(s -> s.setNamespace(STRIMZI_NAMESPACE));
+                } else if (r.getKind().equals("Deployment") && r instanceof Deployment) {
+                    // Watch all namespaces, not just the one the operator is installed in
+                    var deployment = (Deployment) r;
+                    deployment.getSpec().getTemplate().getSpec().getContainers()
+                            .forEach(c -> c.getEnv().stream()
+                                    .filter(e -> "STRIMZI_NAMESPACE".equals(e.getName()))
+                                    .forEach(e -> {
+                                        e.setValue("*");
+                                        e.setValueFrom(null);
+                                    }));
                 }
-                log.info("Creating Strimzi resource kind {} in namespace {}", r.getKind(), namespace);
-                client.resource(r).inNamespace(namespace).createOrReplace();
-                await().atMost(Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
-                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                    return true;
-                });
+                log.info("Creating Strimzi resource kind {} in namespace {}", r.getKind(), STRIMZI_NAMESPACE);
+                client.resource(r).inNamespace(STRIMZI_NAMESPACE).createOrReplace();
             });
         }
+        // Wait once for the shared operator to be running
+        await().atMost(Duration.ofMinutes(2)).ignoreExceptions().untilAsserted(() -> {
+            var deployment = client.apps().deployments().inNamespace(STRIMZI_NAMESPACE)
+                    .withName("strimzi-cluster-operator").get();
+            assertThat(deployment).isNotNull();
+            assertThat(deployment.getStatus().getReadyReplicas()).isNotNull().isGreaterThanOrEqualTo(1);
+        });
     }
 
     /**
@@ -446,7 +468,7 @@ public abstract class ITBase implements OperatorTestContext {
         client.resource(
                         new NamespaceBuilder().withNewMetadata().addToLabels("app", "apicurio-registry-operator-test")
                                 .withName(namespace).endMetadata().build())
-                .create();
+                .createOrReplace();
     }
 
     static String calculateNamespace() {

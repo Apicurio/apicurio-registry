@@ -19,18 +19,21 @@ import static io.apicurio.registry.operator.it.CatalogInfo.parseVersion;
 import static io.apicurio.registry.operator.it.OLMTestUtils.*;
 
 /**
- * Queries the live OLM catalog by reading the File-Based Catalog (FBC) content directly from the
- * catalog pod. Results are cached so the catalog is queried only once per test run.
+ * Queries the live OLM catalog to discover channels, CSV names, and upgrade paths, by reading the
+ * File-Based Catalog (FBC) content rather than the PackageManifest API (unreliable because it merges
+ * data from all catalog sources on the cluster and strips productized version suffixes). Results are
+ * cached so the catalog is queried only once per test run.
  * <p>
- * This replaces the PackageManifest-based discovery, which was unreliable because it merges data
- * from all catalog sources on the cluster and strips productized version suffixes.
- * <p>
- * The FBC content is read by exec'ing into the catalog pod and cat'ing the catalog file. Two
- * path conventions are supported:
+ * Under OLM v0 the FBC content is read by exec'ing into the catalog pod and cat'ing the catalog file.
+ * Two path conventions are supported:
  * <ul>
  *   <li>IIB (downstream): {@code /configs/<package>/catalog.json}</li>
  *   <li>Upstream: {@code /configs/index.yaml}</li>
  * </ul>
+ * Under OLM v1 there is no catalog pod to exec into directly (catalogd serves the content over HTTP
+ * instead), so the same FBC content is fetched via {@link CatalogdClient} and fed through the same
+ * {@link #parseFBC} parser. Both paths populate the same {@link CatalogInfo} model, so callers do not
+ * need to know which OLM version is in play.
  */
 public class CatalogDiscovery {
 
@@ -49,7 +52,8 @@ public class CatalogDiscovery {
 
     /**
      * Returns the singleton instance, performing discovery on first call. Discovery creates a temporary
-     * namespace, deploys a CatalogSource, reads the FBC content from the catalog pod, and cleans up.
+     * namespace, deploys the OLM-version-appropriate catalog resource, reads the FBC content, and cleans
+     * up.
      */
     public static synchronized CatalogDiscovery getInstance(KubernetesClient client) throws Exception {
         if (instance != null) {
@@ -60,19 +64,12 @@ public class CatalogDiscovery {
         var namespace = "catalog-discovery-" + UUID.randomUUID().toString().substring(0, 8);
         log.info("Starting catalog discovery in temporary namespace {}", namespace);
 
+        var olmVersion = getOlmVersion();
         try {
             ITBase.createNamespace(client, namespace);
 
-            createResource(client, namespace, "olmv0/catalog-source.yaml");
-            waitForCatalogPodReady(client, namespace);
-
-            var podName = findCatalogPodName(client, namespace);
-            log.info("Catalog pod found: {}", podName);
-
-            var fbcContent = readFBCFromPod(client, namespace, podName);
-            log.info("FBC content read from catalog pod ({} bytes)", fbcContent.length());
-
-            var info = parseFBC(fbcContent);
+            var info = olmVersion == 1 ? discoverViaCatalogd(client, namespace)
+                    : discoverViaCatalogPod(client, namespace);
             instance = new CatalogDiscovery(info);
 
             log.info("Catalog discovery complete:");
@@ -87,12 +84,39 @@ public class CatalogDiscovery {
             return instance;
         } finally {
             try {
-                deleteResourceQuietly(client, namespace, "olmv0/catalog-source.yaml");
+                if (olmVersion == 1) {
+                    deleteResourceQuietly(client, namespace, "olmv1/cluster-catalog.yaml");
+                } else {
+                    deleteResourceQuietly(client, namespace, "olmv0/catalog-source.yaml");
+                }
                 client.namespaces().withName(namespace).delete();
             } catch (Exception e) {
                 log.warn("Cleanup of discovery namespace {} failed: {}", namespace, e.getMessage());
             }
         }
+    }
+
+    private static CatalogInfo discoverViaCatalogPod(KubernetesClient client, String namespace)
+            throws Exception {
+        createResource(client, namespace, "olmv0/catalog-source.yaml");
+        waitForCatalogPodReady(client, namespace);
+
+        var podName = findCatalogPodName(client, namespace);
+        log.info("Catalog pod found: {}", podName);
+
+        var fbcContent = readFBCFromPod(client, namespace, podName);
+        log.info("FBC content read from catalog pod ({} bytes)", fbcContent.length());
+        return parseFBC(fbcContent);
+    }
+
+    private static CatalogInfo discoverViaCatalogd(KubernetesClient client, String namespace)
+            throws Exception {
+        createResource(client, namespace, "olmv1/cluster-catalog.yaml");
+        waitForClusterCatalogServing(client, namespace, CATALOG_NAME);
+
+        var fbcContent = CatalogdClient.readCatalogContent(client, namespace, CATALOG_NAME);
+        log.info("FBC content read from catalogd ({} bytes)", fbcContent.length());
+        return parseFBC(fbcContent);
     }
 
     private static String findCatalogPodName(KubernetesClient client, String namespace) {

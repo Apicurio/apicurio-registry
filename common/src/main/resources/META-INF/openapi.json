@@ -2601,6 +2601,42 @@
         "description": "Returns the UI configuration properties for this server.  The registry UI can be\nconnected to a backend using just a URL.  The rest of the UI configuration can then\nbe fetched from the backend using this operation.  This allows UI and backend to\nboth be configured in the same place.\n\nThis operation may fail for one of the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/system/promotion/sources": {
+      "summary": "List configured cross-registry promotion sources",
+      "get": {
+        "tags": [
+          "System",
+          "Promotion"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PromotionSource"
+                  }
+                }
+              }
+            },
+            "description": "Configured promotion source registries (secrets are never returned)."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "listPromotionSources",
+        "summary": "List promotion sources",
+        "description": "Lists named source registries configured for cross-environment schema promotion.\nEach source is defined with `apicurio.promotion.source.{name}.url` (and optional auth properties).\nUse the source `name` when calling compare or promote.  Credentials and tokens are never returned."
+      }
+    },
     "/ids/contentHashes/{contentHash}/references": {
       "get": {
         "tags": [
@@ -5497,6 +5533,163 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/promotion/compare": {
+      "summary": "Compare a remote source version with the local target artifact.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteArtifact"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Promotion",
+          "Artifacts"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionCompareResult"
+                }
+              }
+            },
+            "description": "Comparison of the source version against the current target version (if any)."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "502": {
+            "description": "The source registry could not be reached or returned an error."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "compareArtifactPromotion",
+        "summary": "Compare promotion source",
+        "description": "Fetches an artifact version from a configured source registry and compares it with the\ncurrent version of this (target) artifact.  Returns a content diff and a compatibility check.\nThis does not modify any content.\n\nThis operation can fail for the following reasons:\n\n* The promotion source name is unknown or not configured (HTTP error `400`)\n* The source artifact/version was not found (HTTP error `404`)\n* The source registry could not be reached (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The target group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The target artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/promotion": {
+      "summary": "Promote an artifact version from a source registry into this registry.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromoteArtifact"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Promotion",
+          "Artifacts"
+        ],
+        "parameters": [
+          {
+            "name": "dryRun",
+            "description": "When set to `true`, the operation will not result in any changes. Instead, it\nwill return a result based on whether the operation **would have succeeded**.",
+            "schema": {
+              "type": "boolean"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromotionResult"
+                }
+              }
+            },
+            "description": "The version was promoted (or already matched the source content)."
+          },
+          "400": {
+            "$ref": "#/components/responses/RuleViolationBadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "502": {
+            "description": "The source registry could not be reached or returned an error."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "promoteArtifact",
+        "summary": "Promote artifact from source registry",
+        "description": "Copies a specific artifact version from a configured source registry into this registry.\nUnlike replication, each call is an explicit, audited action.  Existing target compatibility\nrules are applied.  If the latest target content already matches the source, no new version\nis created.\n\nThis operation can fail for the following reasons:\n\n* The promotion source name is unknown or not configured (HTTP error `400`)\n* A configured rule (e.g. compatibility) was violated (HTTP error `400`)\n* The source artifact/version was not found (HTTP error `404`)\n* The source registry could not be reached (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The target group ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The target artifact ID.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/groups/{groupId}/artifacts/{artifactId}/contract/promote": {
       "summary": "Promote a contract to the next deployment stage.",
       "post": {
@@ -7224,6 +7417,177 @@
           "taskId",
           "state"
         ]
+      },
+      "PromoteArtifact": {
+        "description": "Request to fetch, compare, or promote an artifact version from a configured source registry.",
+        "required": [
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "Name of a configured promotion source (from `apicurio.promotion.source.{name}.url`).",
+            "type": "string",
+            "example": "staging"
+          },
+          "sourceGroupId": {
+            "description": "Group ID in the source registry. Defaults to the target group ID.",
+            "type": "string"
+          },
+          "sourceArtifactId": {
+            "description": "Artifact ID in the source registry. Defaults to the target artifact ID.",
+            "type": "string"
+          },
+          "sourceVersion": {
+            "description": "Source version expression (a version id or `branch=latest`). Defaults to `branch=latest`.",
+            "type": "string",
+            "example": "5"
+          },
+          "compatibilityLevel": {
+            "description": "Compatibility level used for the compare report. Defaults to BACKWARD.",
+            "type": "string",
+            "enum": [
+              "BACKWARD",
+              "BACKWARD_TRANSITIVE",
+              "FORWARD",
+              "FORWARD_TRANSITIVE",
+              "FULL",
+              "FULL_TRANSITIVE",
+              "NONE"
+            ]
+          },
+          "preserveVersion": {
+            "description": "When true, the source version identifier is reused on the target. Defaults to false (auto-assigned).",
+            "type": "boolean"
+          }
+        }
+      },
+      "PromotionSource": {
+        "description": "A configured source registry used for promotion. Secrets are never included.",
+        "required": [
+          "name",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "auth": {
+            "description": "Authentication mode configured for this source: none, bearer, basic, or oauth2.",
+            "type": "string"
+          }
+        }
+      },
+      "PromotionCoordinate": {
+        "description": "Identifies an artifact version involved in a promotion.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "artifactType": {
+            "type": "string"
+          }
+        }
+      },
+      "PromotionDiffLine": {
+        "description": "A single line in a unified-style content diff.",
+        "required": [
+          "op",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "added",
+              "removed"
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "PromotionCompatibility": {
+        "description": "Result of checking whether source content is compatible with the current target version.",
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "compatible": {
+            "type": "boolean"
+          },
+          "differences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromotionCompatibilityDifference"
+            }
+          }
+        }
+      },
+      "PromotionCompatibilityDifference": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          }
+        }
+      },
+      "PromotionCompareResult": {
+        "description": "Diff and compatibility report between a source version and the current target version.",
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/PromotionCoordinate"
+          },
+          "target": {
+            "$ref": "#/components/schemas/PromotionCoordinate"
+          },
+          "identical": {
+            "type": "boolean"
+          },
+          "contentDiff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromotionDiffLine"
+            }
+          },
+          "compatibility": {
+            "$ref": "#/components/schemas/PromotionCompatibility"
+          }
+        }
+      },
+      "PromotionResult": {
+        "description": "Outcome of promoting a source version into this registry.",
+        "type": "object",
+        "properties": {
+          "alreadyPromoted": {
+            "description": "True when the latest target content already matched the source, so no new version was created.",
+            "type": "boolean"
+          },
+          "version": {
+            "$ref": "#/components/schemas/VersionMetaData"
+          },
+          "compare": {
+            "$ref": "#/components/schemas/PromotionCompareResult"
+          }
+        }
       },
       "SystemInfo": {
         "title": "Root Type for SystemInfo",
@@ -10608,6 +10972,10 @@
     {
       "name": "System",
       "description": "System level functionality, including versioning and status information."
+    },
+    {
+      "name": "Promotion",
+      "description": "Cross-registry schema promotion: fetch a version from a configured source registry, compare it with the local target, and copy it as an explicit promote action."
     },
     {
       "name": "Users",

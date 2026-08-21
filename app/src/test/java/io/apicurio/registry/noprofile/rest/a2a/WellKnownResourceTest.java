@@ -21,6 +21,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -777,5 +780,30 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         createArtifact.setFirstVersion(createVersion);
 
         clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+    }
+
+    @Test
+    public void testSearchAgentsAdvancedWithSkillsFilterWithoutIndexIsBadRequest() {
+        String requestBody = """
+            {
+                "filters": {
+                    "skills": ["schema-validation"]
+                },
+                "limit": 10,
+                "offset": 0
+            }
+            """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(400)
+                .body("detail", allOf(
+                        containsString("search index"),
+                        // Guard: error body must not leak SQL/stacktrace
+                        not(containsStringIgnoringCase("select"))));
     }
 }

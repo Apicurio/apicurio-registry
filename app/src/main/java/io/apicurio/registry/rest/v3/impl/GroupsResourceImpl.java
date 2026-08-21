@@ -1244,6 +1244,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
+        ParameterValidationUtils.requireParameter("value", data.getValue());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
                 (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));

@@ -367,7 +367,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -3662,7 +3662,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -3768,7 +3768,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -3978,6 +3978,14 @@
             "description": "Filter by artifact Id.",
             "schema": {
               "$ref": "#/components/schemas/ArtifactId"
+            },
+            "in": "query"
+          },
+          {
+            "name": "state",
+            "description": "Filter by version state.",
+            "schema": {
+              "$ref": "#/components/schemas/VersionState"
             },
             "in": "query"
           },

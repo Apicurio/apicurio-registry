@@ -5,6 +5,8 @@ import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.rest.client.models.VersionState;
 import io.apicurio.registry.rest.client.models.WrappedVersionState;
+import io.apicurio.registry.rest.client.models.RenderPromptRequest;
+import io.apicurio.registry.rest.client.models.RenderPromptRequestVariables;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
@@ -125,4 +127,56 @@ public class VersionStateTest extends AbstractResourceTestBase {
         });
     }
 
+
+    @Test
+    public void testRenderRejectsDisabledVersion() throws Exception {
+        String groupId = "VersionStateTest_testRenderRejectsDisabledVersion";
+        String artifactId = generateArtifactId();
+        String promptContent = "{\"templateId\":\"t\",\"template\":\"Hello {{name}}\","
+                + "\"variables\":[{\"name\":\"name\",\"type\":\"string\"}]}";
+        createArtifact(groupId, artifactId, ArtifactType.PROMPT_TEMPLATE, promptContent,
+                ContentTypes.APPLICATION_JSON);
+
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("branch=latest").get();
+
+        WrappedVersionState vs = new WrappedVersionState();
+        vs.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(amd.getVersion()).state().put(vs);
+
+        RenderPromptRequest body = new RenderPromptRequest();
+        body.setVariables(new RenderPromptRequestVariables());
+
+        var exception = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(amd.getVersion()).render().post(body);
+        });
+        Assertions.assertEquals(404, exception.getStatus());
+        Assertions.assertEquals("VersionNotFoundException", exception.getName());
+    }
+
+    @Test
+    public void testExportRejectsDisabledVersion() throws Exception {
+        String groupId = "VersionStateTest_testExportRejectsDisabledVersion";
+        String artifactId = generateArtifactId();
+        String protobufContent = "syntax = \"proto3\"; message TestMessage { int32 id = 1; }";
+        createArtifact(groupId, artifactId, ArtifactType.PROTOBUF, protobufContent,
+                ContentTypes.APPLICATION_JSON);
+
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("branch=latest").get();
+
+        WrappedVersionState vs = new WrappedVersionState();
+        vs.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(amd.getVersion()).state().put(vs);
+
+        var exception = assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(amd.getVersion()).export().get();
+        });
+        Assertions.assertEquals(404, exception.getStatus());
+        Assertions.assertEquals("VersionNotFoundException", exception.getName());
+    }
 }

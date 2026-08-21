@@ -100,12 +100,12 @@ public class Export implements QuarkusApplication {
         SchemaRegistryClient client = new CachedSchemaRegistryClient(restService, 64, conf);
 
         File output = new File(outputFileName);
-        try (FileOutputStream fos = new FileOutputStream(output)) {
+        try (FileOutputStream fos = new FileOutputStream(output);
+                ZipOutputStream zip = new ZipOutputStream(fos, StandardCharsets.UTF_8)) {
 
             log.info("Exporting confluent schema registry data to " + output.getName() + " (v3 format)");
             System.out.println("Exporting confluent schema registry data to " + output.getName() + " (v3 format)");
 
-            ZipOutputStream zip = new ZipOutputStream(fos, StandardCharsets.UTF_8);
             EntityWriter writer = new EntityWriter(zip);
 
             // Data structures for export
@@ -220,8 +220,6 @@ public class Export implements QuarkusApplication {
             exportGlobalRule(RuleType.VALIDITY, "SYNTAX_ONLY", writer);
             log.info("Exported 2 global rules");
 
-            zip.flush();
-            zip.close();
         } catch (Exception ex) {
             log.error("Export was not successful", ex);
             return 1;

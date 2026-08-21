@@ -1801,6 +1801,92 @@ async function handleStale({ github, context, core }) {
 }
 
 // ---------------------------------------------------------------------------
+// PR Merged (Closed)
+// ---------------------------------------------------------------------------
+
+async function handlePrClosed({ github, context, core }) {
+  const pr = context.payload.pull_request;
+  if (!pr || !pr.merged) return;
+
+  const { owner, repo } = context.repo;
+  // NOTE: api object uses github.rest, we can use it for generic calls.
+  // We need createApi to get addLabel/etc, but we can also just use github directly.
+  
+  // 1. Read pom.xml version
+  const fs = require('fs');
+  let pom;
+  try {
+    pom = fs.readFileSync('pom.xml', 'utf8');
+  } catch (e) {
+    core.warning('Could not read pom.xml: ' + e.message);
+    return;
+  }
+  
+  const match = pom.match(/<version>(.*?)<\/version>/);
+  if (!match) {
+    core.warning('Could not find version in pom.xml');
+    return;
+  }
+  
+  const version = match[1];
+  const milestoneTitle = version.replace('-SNAPSHOT', '');
+  
+  // 2. Find or create milestone
+  const milestones = await github.paginate(github.rest.issues.listMilestones, {
+    owner, repo, state: 'open'
+  });
+  
+  let milestone = milestones.find(m => m.title === milestoneTitle);
+  if (!milestone) {
+    const res = await github.rest.issues.createMilestone({
+      owner, repo, title: milestoneTitle
+    });
+    milestone = res.data;
+    core.info(`Created milestone ${milestoneTitle}`);
+  } else {
+    core.info(`Found existing milestone ${milestoneTitle}`);
+  }
+  
+  // 3. Find linked issues
+  const query = `
+    query($owner: String!, $repo: String!, $prNumber: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $prNumber) {
+          closingIssuesReferences(first: 50) {
+            nodes {
+              number
+            }
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const result = await github.graphql(query, { owner, repo, prNumber: pr.number });
+    const linkedIssues = result.repository?.pullRequest?.closingIssuesReferences?.nodes || [];
+    
+    for (const issue of linkedIssues) {
+      await github.rest.issues.update({
+        owner, repo, issue_number: issue.number, milestone: milestone.number
+      });
+      core.info(`Assigned milestone ${milestoneTitle} to linked issue #${issue.number}`);
+    }
+  } catch (e) {
+    core.warning('Failed to fetch linked issues: ' + e.message);
+  }
+  
+  // 4. Assign milestone to PR itself
+  try {
+    await github.rest.issues.update({
+      owner, repo, issue_number: pr.number, milestone: milestone.number
+    });
+    core.info(`Assigned milestone ${milestoneTitle} to PR #${pr.number}`);
+  } catch (e) {
+    core.warning('Failed to assign milestone to PR: ' + e.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -1822,6 +1908,7 @@ module.exports = {
   handleTestResult,
   handleStale,
   handleReconcile,
+  handlePrClosed,
   reconcile,
   LABELS,
 };

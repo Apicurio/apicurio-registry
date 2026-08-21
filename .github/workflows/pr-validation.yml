@@ -1,0 +1,65 @@
+name: PR Validation
+on:
+  pull_request:
+    types: [opened, synchronize, edited, labeled, unlabeled]
+
+permissions:
+  pull-requests: read
+  issues: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Labels and Milestones
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            
+            const query = `
+              query($owner: String!, $repo: String!, $prNumber: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $prNumber) {
+                    milestone { title }
+                    closingIssuesReferences(first: 50) {
+                      nodes {
+                        number
+                        milestone { title }
+                        labels(first: 20) {
+                          nodes { name }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+            
+            let result;
+            try {
+              result = await github.graphql(query, { owner, repo, prNumber });
+            } catch (e) {
+              core.warning(`Failed to fetch PR linked issues: ${e.message}`);
+              return;
+            }
+            
+            const pr = result.repository.pullRequest;
+            const linkedIssues = pr.closingIssuesReferences.nodes;
+            
+            if (linkedIssues.length === 0) {
+              core.notice(`No linked issues found for PR #${prNumber}. Consider linking an issue using "Closes #123".`);
+              return;
+            }
+            
+            for (const issue of linkedIssues) {
+              if (!issue.milestone) {
+                core.warning(`Issue #${issue.number} is missing a milestone.`);
+              }
+              
+              const hasTypeLabel = issue.labels.nodes.some(label => label.name.startsWith('type/'));
+              if (!hasTypeLabel) {
+                core.warning(`Issue #${issue.number} has no 'type/*' label. It won't appear in categorized release notes.`);
+              }
+            }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tokenizeTemplate } from "./PromptTemplateViewer.utils";
+import { extractPromptVariables, tokenizeTemplate } from "./PromptTemplateViewer.utils";
 
 describe("tokenizeTemplate", () => {
     it("keeps plain text without variables as a single plain token", () => {
@@ -106,5 +106,43 @@ describe("tokenizeTemplate", () => {
 
     it("handles an empty template", () => {
         expect(tokenizeTemplate("")).toEqual([]);
+    });
+});
+
+describe("extractPromptVariables", () => {
+    it("returns an empty array for empty content", () => {
+        expect(extractPromptVariables("")).toEqual([]);
+    });
+
+    it("extracts double-brace variables", () => {
+        expect(extractPromptVariables("Hello {{name}}, welcome to {{place}}!")).toEqual(["name", "place"]);
+    });
+
+    it("extracts single-brace variables", () => {
+        expect(extractPromptVariables("Hello {name}, welcome to {place}!")).toEqual(["name", "place"]);
+    });
+
+    it("extracts a mix of single- and double-brace variables", () => {
+        expect(extractPromptVariables("{{greeting}}, {name}!")).toEqual(["greeting", "name"]);
+    });
+
+    it("deduplicates repeated variables", () => {
+        expect(extractPromptVariables("{{name}} and {name} again")).toEqual(["name"]);
+    });
+
+    it("extracts dotted paths", () => {
+        expect(extractPromptVariables("{{user.email}} / {user.id}")).toEqual(["user.email", "user.id"]);
+    });
+
+    it("excludes block helpers and comments", () => {
+        expect(extractPromptVariables("{{#if user}}{{name}}{{/if}}{{!-- note --}}")).toEqual(["name"]);
+    });
+
+    it("ignores braces that aren't valid identifiers", () => {
+        expect(extractPromptVariables('{"key": "value"} { } {123}')).toEqual([]);
+    });
+
+    it("returns no variables for plain text", () => {
+        expect(extractPromptVariables("Just some text")).toEqual([]);
     });
 });

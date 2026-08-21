@@ -174,6 +174,20 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.deleteArtifactContractRuleset(groupId, artifactId);
     }
 
+    public void updateContractMetadata(String groupId, String artifactId, String contractId,
+            EditableContractMetadataDto metadata) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.updateContractMetadata(groupId, artifactId, contractId, metadata);
+    }
+
+    public void transitionContractStatus(String groupId, String artifactId, String contractId,
+            ContractStatus fromStatus, ContractStatus toStatus, String transitionDate)
+            throws RegistryStorageException {
+        checkReadOnly();
+        delegate.transitionContractStatus(groupId, artifactId, contractId,
+                fromStatus, toStatus, transitionDate);
+    }
+
     public void setVersionContractRuleset(String groupId, String artifactId, String version,
             ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
         checkReadOnly();

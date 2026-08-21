@@ -877,6 +877,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Test
     public void testSearchGroups() throws Exception {
         String groupIdPrefix = "testSearchGroups-";
+        Set<SearchFilter> filters = Collections.emptySet();
+        GroupSearchResultsDto results = storage().searchGroups(filters, OrderBy.groupId,
+                OrderDirection.asc, 0, 10);
+        Assertions.assertNotNull(results);
+        long existingGroupCount = results.getCount();
+
         for (int idx = 1; idx <= 50; idx++) {
             String idxs = (idx < 10 ? "0" : "") + idx;
             String groupId = groupIdPrefix + idxs;
@@ -890,11 +896,10 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long start = System.currentTimeMillis();
 
-        Set<SearchFilter> filters = Collections.emptySet();
-        GroupSearchResultsDto results = storage().searchGroups(filters, OrderBy.groupId, OrderDirection.asc,
+        results = storage().searchGroups(filters, OrderBy.groupId, OrderDirection.asc,
                 0, 10);
         Assertions.assertNotNull(results);
-        Assertions.assertEquals(51, results.getCount());
+        Assertions.assertEquals(existingGroupCount + 50, results.getCount().longValue());
         Assertions.assertNotNull(results.getGroups());
         Assertions.assertEquals(10, results.getGroups().size());
 

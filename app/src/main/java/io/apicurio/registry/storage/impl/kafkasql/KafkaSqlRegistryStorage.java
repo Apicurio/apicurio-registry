@@ -10,7 +10,9 @@ import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
 import io.apicurio.registry.events.ArtifactVersionStateChanged;
+import io.apicurio.registry.events.ContractMetadataUpdated;
 import io.apicurio.registry.events.ContractRulesetConfigured;
+import io.apicurio.registry.events.ContractStatusChanged;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
@@ -101,6 +103,10 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implements RegistryStorage {
+
+    private static final String DELETE_ACTION = "DELETE";
+
+    static final String GLOBAL_CONTRACT_RULESET_COORDINATE = "__GLOBAL__";
 
     @Inject
     Logger log;
@@ -679,6 +685,27 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeleteGroupRules1Message(groupId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String contractId,
+            EditableContractMetadataDto metadata) throws RegistryStorageException {
+        var message = new UpdateContractMetadata4Message(groupId, artifactId, contractId, metadata);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String contractId,
+            ContractStatus fromStatus, ContractStatus toStatus, String transitionDate)
+            throws RegistryStorageException {
+        var message = new TransitionContractStatus6Message(groupId, artifactId, contractId,
+                fromStatus, toStatus, transitionDate);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractStatusChanged.of(groupId, artifactId,
+                fromStatus != null ? fromStatus.name() : null, toStatus.name())));
     }
 
     @Override
@@ -1308,7 +1335,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public String createEvent(OutboxEvent event) {
-        outboxEvent.fire(KafkaSqlOutboxEvent.of(event));
+        // No op, the event is created by the event processor.
         return event.getId();
     }
 

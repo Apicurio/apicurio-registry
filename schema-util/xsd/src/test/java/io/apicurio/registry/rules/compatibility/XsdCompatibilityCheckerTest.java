@@ -87,6 +87,34 @@ public class XsdCompatibilityCheckerTest {
 </xs:schema>
 """;
 
+    private static final String SCHEMA_WITH_OPTIONAL_ATTRIBUTE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="person" type="PersonType"/>
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="email" type="xs:string" use="optional"/>
+    </xs:complexType>
+</xs:schema>
+""";
+
+    private static final String SCHEMA_WITH_ATTRIBUTE_MADE_REQUIRED = """
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="person" type="PersonType"/>
+    <xs:complexType name="PersonType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="email" type="xs:string" use="required"/>
+    </xs:complexType>
+</xs:schema>
+""";
+
     private static final String SCHEMA_WITH_RESTRICTION = """
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
@@ -257,6 +285,60 @@ public class XsdCompatibilityCheckerTest {
 
         Assertions.assertFalse(result.isCompatible(),
             "Increasing minOccurs should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardIncompatible_AttributeOptionalToRequired() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(SCHEMA_WITH_OPTIONAL_ATTRIBUTE);
+        TypedContent proposed = toTypedContent(SCHEMA_WITH_ATTRIBUTE_MADE_REQUIRED);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.BACKWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Changing an attribute from optional to required should be backward incompatible");
+        Assertions.assertFalse(result.getIncompatibleDifferences().isEmpty());
+    }
+
+    @Test
+    void testForwardCompatible_AttributeOptionalToRequired() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(SCHEMA_WITH_OPTIONAL_ATTRIBUTE);
+        TypedContent proposed = toTypedContent(SCHEMA_WITH_ATTRIBUTE_MADE_REQUIRED);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertTrue(result.isCompatible(),
+            "Changing an attribute from optional to required should be forward compatible "
+            + "(old schema still permits the attribute)");
+    }
+
+    @Test
+    void testForwardIncompatible_AttributeRequiredToOptional() {
+        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
+        TypedContent existing = toTypedContent(SCHEMA_WITH_ATTRIBUTE_MADE_REQUIRED);
+        TypedContent proposed = toTypedContent(SCHEMA_WITH_OPTIONAL_ATTRIBUTE);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+            CompatibilityLevel.FORWARD,
+            Collections.singletonList(existing),
+            proposed,
+            Collections.emptyMap()
+        );
+
+        Assertions.assertFalse(result.isCompatible(),
+            "Changing an attribute from required to optional should be forward incompatible "
+            + "(new data may omit the attribute, which the old schema still requires)");
     }
 
     @Test

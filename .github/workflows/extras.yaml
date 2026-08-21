@@ -1,0 +1,65 @@
+name: Extra Tests
+
+# Top-level workflow for additional checks that do not fit the unit or integration
+# tiers (currently: the examples HTTP-caching test). Split out of verify.yaml so
+# each phase is independently visible and retryable. The Decide job gates real work
+# on lifecycle/ready-to-merge (and pushes to main); PR-iteration feedback is owned
+# by the Quick Verify fast gate in ci.yaml.
+#
+# Merge gating: the Verification Gate in verify.yaml waits for this workflow's run
+# on the same SHA; the orchestrator (pr-lifecycle) aggregates all full-suite
+# workflows before applying lifecycle/full-verified.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  decide:
+    name: Decide
+    uses: ./.github/workflows/verify-decide.yaml
+
+  build:
+    name: Build
+    needs: [decide]
+    if: needs.decide.outputs.run-extras == 'true'
+    uses: ./.github/workflows/verify-build.yaml
+
+  extras:
+    name: Extra Tests
+    needs: [decide, build]
+    if: needs.decide.outputs.run-extras == 'true'
+    uses: ./.github/workflows/verify-extras.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  # Terminal gate so this workflow has a single check summarizing its jobs.
+  # Passes when every job succeeded or was appropriately skipped by Decide
+  # (e.g. during PR review, when the full suite does not run).
+  gate:
+    name: Extra Tests Gate
+    if: always()
+    needs: [decide, build, extras]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate gate
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "Job results: $RESULTS"
+          FAILED=$(echo "$RESULTS" | jq '[.[] | select(. != "success" and . != "skipped")] | length')
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::One or more extra test jobs failed or were cancelled"
+            exit 1
+          fi
+          echo "All checks passed"

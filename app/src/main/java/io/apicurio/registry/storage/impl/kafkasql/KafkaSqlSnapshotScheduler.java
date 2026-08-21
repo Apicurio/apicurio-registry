@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -72,7 +71,7 @@ public class KafkaSqlSnapshotScheduler {
 
     volatile boolean initialDelayApplied = false;
 
-    @Scheduled(delay = MIN_INITIAL_DELAY_SECONDS, delayUnit = TimeUnit.SECONDS, concurrentExecution = SKIP, every = "{apicurio.kafkasql.snapshot.every.seconds}")
+    @Scheduled(delay = MIN_INITIAL_DELAY_SECONDS, delayUnit = TimeUnit.SECONDS, concurrentExecution = SKIP, every = "{apicurio.kafkasql.snapshot.every.seconds}s")
     void run() {
         if (!KAFKASQL_STORAGE_KIND.equals(registryStorageType) || !scheduledSnapshotsEnabled.get()) {
             return;
@@ -128,7 +127,7 @@ public class KafkaSqlSnapshotScheduler {
      */
     boolean recentSnapshotExists() {
         try {
-            long intervalMs = parseDurationMs(configuration.getSnapshotEvery());
+            long intervalMs = TimeUnit.SECONDS.toMillis(configuration.getSnapshotEvery());
             long cutoff = System.currentTimeMillis() - intervalMs;
 
             TopicPartition partition = new TopicPartition(configuration.getSnapshotsTopic(), 0);
@@ -163,41 +162,5 @@ public class KafkaSqlSnapshotScheduler {
     private KafkaConsumer<byte[], byte[]> createSnapshotsConsumer() {
         return new KafkaConsumer<>(toProperties(configuration.getConsumerProperties()),
                 new ByteArrayDeserializer(), new ByteArrayDeserializer());
-    }
-
-    /**
-     * Parses a Quarkus-style duration string to milliseconds. Supports:
-     * <ul>
-     *   <li>ISO-8601 format: {@code PT24H}, {@code PT86400S}</li>
-     *   <li>Simplified format with suffix: {@code 86400s}, {@code 1440m}, {@code 24h}, {@code 1d}</li>
-     *   <li>Bare number (interpreted as seconds): {@code 86400}</li>
-     * </ul>
-     */
-    static long parseDurationMs(String value) {
-        String trimmed = value.trim();
-        if (trimmed.startsWith("PT") || trimmed.startsWith("pt") || trimmed.startsWith("-PT")) {
-            return Duration.parse(trimmed).toMillis();
-        }
-        if (trimmed.isEmpty()) {
-            throw new IllegalArgumentException("Empty duration value");
-        }
-        char lastChar = Character.toLowerCase(trimmed.charAt(trimmed.length() - 1));
-        if (Character.isDigit(lastChar)) {
-            return Long.parseLong(trimmed) * 1000L;
-        }
-        long number = Long.parseLong(trimmed.substring(0, trimmed.length() - 1).trim());
-        switch (lastChar) {
-            case 's':
-                return number * 1000L;
-            case 'm':
-                return number * 60_000L;
-            case 'h':
-                return number * 3_600_000L;
-            case 'd':
-                return number * 86_400_000L;
-            default:
-                throw new IllegalArgumentException(
-                        String.format(Locale.ROOT, "Unknown duration suffix '%c' in '%s'", lastChar, trimmed));
-        }
     }
 }

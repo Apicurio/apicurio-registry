@@ -1174,10 +1174,10 @@ The following {registry} configuration options are available for each component 
 |
 |Kafka sql storage ssl truststore type
 |`apicurio.kafkasql.snapshot.every.seconds`
-|`string`
-|`86400s`
+|`integer`
+|`86400`
 |`3.0.0`
-|Kafka sql journal topic snapshot every
+|Interval between automatic snapshots of the KafkaSQL journal topic.
 |`apicurio.kafkasql.snapshots.topic`
 |`string`
 |`kafkasql-snapshots`

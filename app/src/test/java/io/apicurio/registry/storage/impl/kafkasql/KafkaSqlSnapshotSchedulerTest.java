@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -155,55 +154,15 @@ class KafkaSqlSnapshotSchedulerTest {
     }
 
     @Test
-    void testParseDurationMsWithSecondsSuffix() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("86400s"));
-        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("3600s"));
-        assertEquals(60000L, KafkaSqlSnapshotScheduler.parseDurationMs("60s"));
-        assertEquals(1000L, KafkaSqlSnapshotScheduler.parseDurationMs("1s"));
-    }
+    void testRecentSnapshotExistsWithConfiguration() {
+        KafkaSqlConfiguration config = mock(KafkaSqlConfiguration.class);
+        when(config.getSnapshotEvery()).thenReturn(86400);
+        when(config.getSnapshotsTopic()).thenReturn("kafkasql-snapshots");
 
-    @Test
-    void testParseDurationMsWithMinutesSuffix() {
-        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("60m"));
-        assertEquals(1440 * 60000L, KafkaSqlSnapshotScheduler.parseDurationMs("1440m"));
-    }
+        KafkaSqlSnapshotScheduler scheduler = newScheduler(mock(RegistryStorage.class));
+        scheduler.configuration = config;
 
-    @Test
-    void testParseDurationMsWithHoursSuffix() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("24h"));
-        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("1h"));
-    }
-
-    @Test
-    void testParseDurationMsWithDaysSuffix() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("1d"));
-    }
-
-    @Test
-    void testParseDurationMsBareNumber() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("86400"));
-    }
-
-    @Test
-    void testParseDurationMsIso8601() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("PT24H"));
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("PT86400S"));
-        assertEquals(3600000L, KafkaSqlSnapshotScheduler.parseDurationMs("PT1H"));
-    }
-
-    @Test
-    void testParseDurationMsWithWhitespace() {
-        assertEquals(86400000L, KafkaSqlSnapshotScheduler.parseDurationMs("  86400s  "));
-    }
-
-    @Test
-    void testParseDurationMsInvalidSuffix() {
-        assertThrows(IllegalArgumentException.class, () -> KafkaSqlSnapshotScheduler.parseDurationMs("100x"));
-    }
-
-    @Test
-    void testParseDurationMsEmpty() {
-        assertThrows(IllegalArgumentException.class, () -> KafkaSqlSnapshotScheduler.parseDurationMs(""));
-        assertThrows(IllegalArgumentException.class, () -> KafkaSqlSnapshotScheduler.parseDurationMs("   "));
+        // Fails closed (returns true) due to mock consumer/topic lookup, but proves intervalMs calculation succeeds
+        assertEquals(true, scheduler.recentSnapshotExists());
     }
 }

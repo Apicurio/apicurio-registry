@@ -4,14 +4,17 @@ import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.util.JsonObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
@@ -24,6 +27,9 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
 public class GitOpsValidateTest {
+
+    @Inject
+    GitOpsValidationTaskManager validationTaskManager;
 
     @BeforeEach
     void cleanup() {
@@ -96,6 +102,52 @@ public class GitOpsValidateTest {
                 .then()
                 .statusCode(200)
                 .body("taskId", equalTo(taskId))
+                .body("state", notNullValue());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void getTaskLoadsFromDiskWhenMissingFromLocalCache() throws Exception {
+        var taskId = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "default", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+
+        // Wait until the validation request has been written to the shared volume.
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+        Path validateDir = Path.of(testRepository.getGitRepoUrl())
+                .getParent()
+                .resolve("validate");
+        Path requestFile = validateDir.resolve(taskId + ".json");
+
+        await().atMost(Duration.ofSeconds(10))
+                .until(() -> Files.exists(requestFile));
+
+        // Simulate another Registry replica: the task exists on the shared volume,
+        // but it is not present in this replica's local in-memory cache.
+        Field tasksField = GitOpsValidationTaskManager.class.getDeclaredField("tasks");
+        tasksField.setAccessible(true);
+
+        var tasks = (ConcurrentHashMap<ValidationTaskId, ValidationTaskState>)
+                tasksField.get(validationTaskManager);
+
+        tasks.remove(new ValidationTaskId(taskId));
+
+        // The task should be recovered from the shared volume instead of returning 404.
+        given()
+                .when()
+                .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                .then()
+                .statusCode(200)
+                .body("taskId", equalTo(taskId))
+                .body("repoId", equalTo("default"))
+                .body("ref", equalTo("main"))
                 .body("state", notNullValue());
     }
 

@@ -20,6 +20,10 @@ export class ArtifactTypes {
     public static THRIFT = "THRIFT";
     public static AGENT_CARD = "AGENT_CARD";
     public static MCP_TOOL = "MCP_TOOL";
+    public static ICEBERG_TABLE = "ICEBERG_TABLE";
+    public static ICEBERG_VIEW = "ICEBERG_VIEW";
+    public static OPENRPC = "OPENRPC";
+    public static ODCS_CONTRACT = "ODCS_CONTRACT";
     public static MODEL_SCHEMA = "MODEL_SCHEMA";
     public static PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
 
@@ -64,6 +68,18 @@ export class ArtifactTypes {
                 break;
             case "MCP_TOOL":
                 title = "MCP Tool Definition";
+                break;
+            case "ICEBERG_TABLE":
+                title = "Iceberg Table";
+                break;
+            case "ICEBERG_VIEW":
+                title = "Iceberg View";
+                break;
+            case "OPENRPC":
+                title = "OpenRPC Definition";
+                break;
+            case "ODCS_CONTRACT":
+                title = "ODCS Contract";
                 break;
             case "MODEL_SCHEMA":
                 title = "AI Model Schema";
@@ -116,6 +132,18 @@ export class ArtifactTypes {
                 break;
             case "MCP_TOOL":
                 title = "MCP Tool";
+                break;
+            case "ICEBERG_TABLE":
+                title = "Iceberg Table";
+                break;
+            case "ICEBERG_VIEW":
+                title = "Iceberg View";
+                break;
+            case "OPENRPC":
+                title = "OpenRPC";
+                break;
+            case "ODCS_CONTRACT":
+                title = "ODCS Contract";
                 break;
             case "MODEL_SCHEMA":
                 title = "Model Schema";
@@ -180,7 +208,19 @@ export class ArtifactTypes {
                 classes += " agentcard-icon24";
                 break;
             case "MCP_TOOL":
-                classes += " mcptool-icon24";
+                classes += " mcp-tool-icon24";
+                break;
+            case "ICEBERG_TABLE":
+                classes += " iceberg-table-icon24";
+                break;
+            case "ICEBERG_VIEW":
+                classes += " iceberg-view-icon24";
+                break;
+            case "OPENRPC":
+                classes += " openrpc-icon24";
+                break;
+            case "ODCS_CONTRACT":
+                classes += " odcs-contract-icon24";
                 break;
             case "MODEL_SCHEMA":
                 classes += " modelschema-icon24";

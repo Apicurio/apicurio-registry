@@ -3,10 +3,12 @@ package io.apicurio.registry.config;
 import io.apicurio.common.apps.config.ExperimentalConfigPropertyDef;
 import io.apicurio.common.apps.config.ExperimentalConfigPropertyList;
 import io.apicurio.common.apps.config.Info;
-import io.quarkus.runtime.Startup;
-import jakarta.annotation.PostConstruct;
+import io.quarkus.runtime.StartupEvent;
+import jakarta.annotation.Priority;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.interceptor.Interceptor;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -26,7 +28,6 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
  * features (e.g., GitOps storage variant) require special checks below.</p>
  */
 @Singleton
-@Startup
 public class ExperimentalFeaturesConfig {
 
     @Inject
@@ -42,7 +43,10 @@ public class ExperimentalFeaturesConfig {
     @Info(category = CATEGORY_SYSTEM, description = "Enable experimental features. When disabled, any experimental feature that is individually enabled will prevent the application from starting.", availableSince = "3.2.0")
     boolean experimentalFeaturesEnabled;
 
-    @PostConstruct
+    void validateOnStartup(@Observes @Priority(Interceptor.Priority.PLATFORM_BEFORE) StartupEvent event) {
+        validate();
+    }
+
     void validate() {
         if (experimentalFeaturesEnabled) {
             log.info("Experimental features gate is enabled.");

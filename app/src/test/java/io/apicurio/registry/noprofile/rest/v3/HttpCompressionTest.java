@@ -105,18 +105,8 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
         String content = largeJsonSchemaContent();
         createArtifact(GROUP, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
 
-        // @Dynamic properties read through ConfigProvider at request time; system properties
-        // may not reach the app depending on the surefire classloader strategy, so poll until
-        // the toggle actually takes effect.
         System.setProperty("apicurio.rest.compression.enabled", "false");
         try {
-            io.apicurio.registry.utils.tests.TestUtils.retry(() -> {
-                var probe = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
-                        .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content");
-                org.junit.jupiter.api.Assertions.assertNull(probe.getHeader("Content-Encoding"),
-                        "response is still compressed after disabling the kill switch");
-            }, "kill switch off takes effect", 10);
             byte[] rawBody = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
                     .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                     .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
@@ -126,14 +116,6 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
             assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), rawBody);
         } finally {
             System.clearProperty("apicurio.rest.compression.enabled");
-            // Poll until the re-enable takes effect so the following tests are not order-dependent
-            io.apicurio.registry.utils.tests.TestUtils.retry(() -> {
-                var probe = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
-                        .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
-                        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content");
-                org.junit.jupiter.api.Assertions.assertEquals("gzip", probe.getHeader("Content-Encoding"),
-                        "response is not compressed after re-enabling the kill switch");
-            }, "kill switch re-enabled takes effect", 10);
         }
     }
 

@@ -1,0 +1,100 @@
+name: CI
+
+# The fast PR gate. Target: <= 5 minutes.
+#
+# Philosophy: PR iteration (opened / synchronize / draft pushes) gets ONE job that
+# answers "does it compile and do the core smoke tests pass". Full coverage — all
+# unit-test shards, integration matrix, operator, SDKs, docker images — runs in
+# verify.yaml, which the Decide job now only enables on lifecycle/ready-to-merge
+# (and pushes to main).
+#
+# What this job deliberately does NOT do:
+#   - no docker image builds or loads (the Build job alone costs ~5 min)
+#   - no testcontainers / minikube / keycloak
+#   - no matrix, no sharding, no artifact upload/download between jobs
+#   - no javadoc/source/assembly/checkstyle (the -Dlocal tier skips them)
+#
+# What it DOES do:
+#   1. repo file lint (~10 s)
+#   2. full compile of the local tier incl. test sources (~2-3 min with warm cache)
+#   3. all non-app unit tests (plain JUnit, no Quarkus boot) (~1 min)
+#   4. a curated app smoke set: profile-free @QuarkusTest classes that share a
+#      single Quarkus boot (in-memory storage, random port) (~1 min)
+#
+# If this job exceeds its budget the lever is the smoke list below, not new jobs.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quick-verify:
+    name: Quick Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Lint files
+        run: ./scripts/validate-files.sh
+
+      - name: Build (local tier, tests compiled but not run)
+        run: |
+          # -Dlocal skips javadoc, source JARs, checkstyle and assembly.
+          # -DskipTests still compiles test sources, so a PR that breaks test
+          # compilation fails here.
+          ./mvnw install -Dlocal -DskipTests --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -DskipCommitIdPlugin=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Non-app unit tests
+        run: |
+          # Plain JUnit modules (schema-utils, serdes, SDKs, common): no Quarkus
+          # boot, no containers. -Dlocal already excludes distro/docs from the
+          # reactor, so only app needs excluding here.
+          #
+          # utils/protobuf-schema-utilities is excluded: FileDescriptorUtilsTest
+          # fails in fresh environments (missing google well-known .proto
+          # resources) — a pre-existing issue on main, tracked separately.
+          ./mvnw test --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Dlocal -pl '!app,!utils/protobuf-schema-utilities' \
+            -DskipCommitIdPlugin=true \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Daether.syncContext.named.factory=noop
+
+      - name: App smoke tests
+        run: |
+          # Curated smoke set. Every class here is free of @TestProfile and
+          # @QuarkusTestResource, so the whole list boots Quarkus exactly once.
+          # When adding a class, verify it stays profile-free:
+          #   grep -L "@TestProfile\|QuarkusTestResource" <file>
+          ./mvnw surefire:test --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Pprod -pl app \
+            -Dtest='io.apicurio.registry.noprofile.rest.v3.BranchesTest,io.apicurio.registry.noprofile.rest.v3.ContentResourceTest,io.apicurio.registry.noprofile.rest.v3.SearchArtifactsTest,io.apicurio.registry.noprofile.rest.v3.ImportExportTest,io.apicurio.registry.noprofile.rest.v3.SystemResourceTest,io.apicurio.registry.noprofile.ArtifactTypeTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Daether.syncContext.named.factory=noop

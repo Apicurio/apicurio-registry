@@ -16,6 +16,7 @@ import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
+import io.apicurio.registry.rules.compatibility.CompatibilityCheckNotSupportedException;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.storage.error.AlreadyExistsException;
@@ -91,6 +92,7 @@ public class HttpStatusCodeMap {
         map.put(BranchAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(BranchNotFoundException.class, HTTP_NOT_FOUND);
         map.put(CommentNotFoundException.class, HTTP_NOT_FOUND);
+        map.put(CompatibilityCheckNotSupportedException.class, HTTP_BAD_REQUEST);
         map.put(ConfigPropertyNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(ContentAlreadyExistsException.class, HTTP_CONFLICT);

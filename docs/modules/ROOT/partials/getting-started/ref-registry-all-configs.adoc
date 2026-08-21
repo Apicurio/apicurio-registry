@@ -283,7 +283,7 @@ The following {registry} configuration options are available for each component 
 |`string`
 |`basic,proxy-header,oidc`
 |`3.2.3`
-|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, proxy-header, oidc, kubernetes.
+|Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, form, proxy-header, oidc, kubernetes.
 |`apicurio.authn.proxy-header.email`
 |`string`
 |`X-Forwarded-Email`
@@ -314,6 +314,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.X.X.Final`
 |Enable basic auth
+|`quarkus.http.auth.form.enabled`
+|`boolean`
+|`false`
+|`3.3.1`
+|Enable form auth. Requires adding 'form' to apicurio.authn.mechanism.priority and configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm). WARNING: Form auth with session cookies reintroduces CSRF exposure for state-changing requests. Production deployments must configure CSRF protection and Secure/HttpOnly cookies.
 |`quarkus.oidc.client-id`
 |`string`
 |
@@ -1551,6 +1556,11 @@ The following {registry} configuration options are available for each component 
 |`openid profile email`
 |`3.0.8`
 |UI auth OIDC scope value
+|`apicurio.ui.auth.oidc.use-nonce`
+|`optional<boolean>`
+|
+|`3.3.2`
+|Whether to include a nonce parameter in OIDC authorization requests. Required for providers that enforce nonce (e.g. Keycloak with FAPI policies). Defaults to false if not specified.
 |`apicurio.ui.contextPath`
 |`string`
 |`/`

@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.jboss.logging.Logger;
 import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -72,12 +73,41 @@ public class InstallCommand extends AbstractCommand {
     @Inject
     UserEnvironment userEnvironment;
 
+    // Global (system-wide) installation
+    public static final String DEFAULT_GLOBAL_CLI_HOME = "/usr/local/lib/apicurio-registry-cli";
+    public static final String DEFAULT_GLOBAL_BIN_DIR = "/usr/local/bin";
+    // Optional overrides for the global install locations (primarily to keep the paths testable).
+    public static final String ENV_ACR_GLOBAL_HOME = "ACR_GLOBAL_HOME";
+    public static final String ENV_ACR_GLOBAL_BIN = "ACR_GLOBAL_BIN";
+    // Config marker recording that the current installation is global, read back by 'acr update'.
+    public static final String CONFIG_KEY_GLOBAL_INSTALL = "internal.install.global";
+
+    @Option(
+            names = {"--global"},
+            description = "Install system-wide (into " + DEFAULT_GLOBAL_BIN_DIR
+                    + ") for all users instead of only the current user. Requires elevated privileges (root/sudo).",
+            defaultValue = "false"
+    )
+    boolean global;
+
     @Override
     public void run(final OutputBuffer output) throws IOException {
         // Location of the directory where the current CLI binary is running from
         final Path currentPath = config.getAcrCurrentHomePath();
         log.debugf("Current home path: %s", currentPath);
 
+        if (global) {
+            runGlobalInstall(currentPath, output);
+        } else {
+            runUserInstall(currentPath, output);
+        }
+    }
+
+    /**
+     * Per-user installation (the default): copies the CLI into the user's home, symlinks it into
+     * {@code ~/bin}, and wires up shell integration for the current user.
+     */
+    private void runUserInstall(final Path currentPath, final OutputBuffer output) throws IOException {
         final Path cliHomePath = determineCliHomePath();
 
         copyFiles(currentPath, cliHomePath);
@@ -98,6 +128,85 @@ public class InstallCommand extends AbstractCommand {
         final Path shellConfigPath = updateShellConfiguration(userHomePath, binPath);
 
         output.writeStdOutLine("Installation complete. Please restart your terminal or run `source " + shellConfigPath + "`.");
+    }
+
+    /**
+     * System-wide installation: copies the CLI into a shared home ({@value #DEFAULT_GLOBAL_CLI_HOME}
+     * by default) and symlinks the {@code acr} launcher into a directory already on the system PATH
+     * ({@value #DEFAULT_GLOBAL_BIN_DIR} by default), so every user can run it. Because that PATH
+     * directory is shared, no per-user shell configuration is modified. Requires privileges to write
+     * to those locations.
+     */
+    private void runGlobalInstall(final Path currentPath, final OutputBuffer output) throws IOException {
+        final Path cliHomePath = getGlobalCliHomePath();
+        final Path binPath = getGlobalBinPath();
+
+        ensureGlobalInstallPrivileges(cliHomePath, binPath);
+
+        Files.createDirectories(cliHomePath);
+        copyFiles(currentPath, cliHomePath);
+        markInstallationAsGlobal(cliHomePath);
+
+        if (!Files.exists(binPath)) {
+            Files.createDirectories(binPath);
+        }
+        createSymlinks(binPath, cliHomePath);
+
+        output.writeStdOutLine("Global installation complete. 'acr' is now available system-wide from '" + binPath + "'.");
+        output.writeStdOutLine("For shell completions, add `source " + binPath.resolve(ACR_ENV) + "` to your shell profile.");
+    }
+
+    private Path getGlobalCliHomePath() {
+        final String override = config.getEnv(ENV_ACR_GLOBAL_HOME);
+        final String home = isBlank(override) ? DEFAULT_GLOBAL_CLI_HOME : override;
+        return Path.of(home).normalize().toAbsolutePath();
+    }
+
+    private Path getGlobalBinPath() {
+        final String override = config.getEnv(ENV_ACR_GLOBAL_BIN);
+        final String bin = isBlank(override) ? DEFAULT_GLOBAL_BIN_DIR : override;
+        return Path.of(bin).normalize().toAbsolutePath();
+    }
+
+    /**
+     * Verifies the current user can write to both global install locations, failing with a clear,
+     * actionable message rather than a low-level permission error when elevated privileges are needed.
+     */
+    private void ensureGlobalInstallPrivileges(final Path cliHomePath, final Path binPath) {
+        if (!isWritableLocation(cliHomePath) || !isWritableLocation(binPath)) {
+            throw new CliException(
+                    "Global installation requires elevated privileges to write to '" + binPath + "' and '"
+                            + cliHomePath + "'. Please re-run with sudo: `sudo acr install --global`.",
+                    VALIDATION_ERROR_RETURN_CODE);
+        }
+    }
+
+    /**
+     * Returns true when the directory (or, when it does not exist yet, the nearest existing ancestor
+     * that would have to be created) is writable by the current process.
+     *
+     * This is a best-effort heuristic, not a guarantee: {@link Files#isWritable} can diverge from the
+     * real outcome (for example a broadly world-writable ancestor, or ownership/ACL quirks). It exists
+     * only to turn the common "not root" case into a clear, actionable message up front; the actual
+     * file operations still fail loudly if the heuristic is wrong.
+     */
+    private static boolean isWritableLocation(final Path dir) {
+        Path probe = dir;
+        while (probe != null && !Files.exists(probe)) {
+            probe = probe.getParent();
+        }
+        return probe != null && Files.isWritable(probe);
+    }
+
+    /**
+     * Records in the installed config.json that this is a global installation, so a later
+     * {@code acr update} re-installs with the same system-wide scope.
+     */
+    private void markInstallationAsGlobal(final Path cliHomePath) throws IOException {
+        final Path configPath = cliHomePath.resolve(CONFIG_JSON);
+        final ConfigModel model = Mapper.MAPPER.readValue(configPath.toFile(), ConfigModel.class);
+        model.getConfig().put(CONFIG_KEY_GLOBAL_INSTALL, Boolean.TRUE.toString());
+        Mapper.MAPPER.writeValue(configPath.toFile(), model);
     }
 
     /**

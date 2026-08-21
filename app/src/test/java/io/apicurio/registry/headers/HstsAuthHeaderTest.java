@@ -16,8 +16,8 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
-// #2411: 401/403 flow through the normal filter chain (unlike the disabled-API 404), so HSTSFilter
-// already covers them - this locks that in.
+// #2411: 401/403 flow through the normal filter chain (unlike the disabled-API 404). Quarkus
+// HTTP headers apply natively to all responses, including errors - this locks that in.
 @QuarkusTest
 @TestProfile(ProxyHeaderAuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)

@@ -1723,6 +1723,20 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
         assertNotNull(comment1.getCreatedOn());
         assertEquals("COMMENT_1", comment1.getValue());
 
+        // Create a comment with missing value (should return 400)
+        NewComment emptyComment = NewComment.builder().build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId).body(emptyComment)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments")
+                .then().statusCode(400);
+
+        // Create a comment with null value (should return 400)
+        NewComment nullValueComment = NewComment.builder().value(null).build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId).body(nullValueComment)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments")
+                .then().statusCode(400);
+
         // Create another new comment
         nc = NewComment.builder().value("COMMENT_2").build();
         Comment comment2 = given().when().contentType(CT_JSON).pathParam("groupId", GROUP)

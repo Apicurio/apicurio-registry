@@ -28,14 +28,20 @@ public class RuleExecutionEngine {
     public static RuleExecutionEngine createStandalone() {
         var celEvaluator = new io.apicurio.registry.contracts.rules.cel.CelExpressionEvaluator();
         var celExecutor = new io.apicurio.registry.contracts.rules.cel.CelRuleExecutor(celEvaluator);
+        var celFieldExecutor = new io.apicurio.registry.contracts.rules.cel.CelFieldRuleExecutor(celEvaluator);
         var jsonataEvaluator = new io.apicurio.registry.contracts.rules.jsonata.JsonataExpressionEvaluator();
         var jsonataExecutor = new io.apicurio.registry.contracts.rules.jsonata.JsonataRuleExecutor(jsonataEvaluator);
-        var factory = ContractRuleExecutorFactory.createStandalone(java.util.List.of(celExecutor, jsonataExecutor));
+        var factory = ContractRuleExecutorFactory.createStandalone(java.util.List.of(celExecutor, celFieldExecutor, jsonataExecutor));
         return new RuleExecutionEngine(factory);
     }
 
     public RuleExecutionResult execute(List<RuleDefinition> rules, String mode,
-            Map<String, Object> record) {
+            Map<String, Object> dataRecord) {
+        return execute(rules, mode, dataRecord, null);
+    }
+
+    public RuleExecutionResult execute(List<RuleDefinition> rules, String mode,
+            Map<String, Object> dataRecord, Map<String, java.util.Set<String>> fieldTags) {
         List<RuleDefinition> applicable = rules.stream()
                 .filter(r -> !r.isDisabled())
                 .filter(r -> matchesMode(r.getMode(), mode))
@@ -43,7 +49,7 @@ public class RuleExecutionEngine {
                 .toList();
 
         List<RuleViolation> violations = new ArrayList<>();
-        Map<String, Object> current = record;
+        Map<String, Object> current = dataRecord;
         int executed = 0;
         int failed = 0;
 
@@ -54,7 +60,7 @@ public class RuleExecutionEngine {
                 continue;
             }
 
-            var context = new ContractRuleContext(rule, current, null);
+            var context = new ContractRuleContext(rule, current, fieldTags);
             ContractRuleResult result = executor.get().execute(context);
             executed++;
 
@@ -74,7 +80,7 @@ public class RuleExecutionEngine {
         }
 
         return new RuleExecutionResult(failed == 0,
-                current != record ? current : null, violations, executed, failed);
+                current != dataRecord ? current : null, violations, executed, failed);
     }
 
     private boolean matchesMode(String ruleMode, String requestedMode) {

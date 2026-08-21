@@ -255,7 +255,8 @@ public abstract class AbstractDeserializer<T, U> implements AutoCloseable {
             List<RuleDefinition> rules = loadRules(ref.getGroupId(), ref.getArtifactId());
             if (!rules.isEmpty()) {
                 Map<String, Object> recordMap = dataToMap(data);
-                RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap);
+                // fieldTags=null: CEL_FIELD rules require server-side tag extraction (RegistryStorage + TagExtractorFactory) unavailable in SerDe. CEL_FIELD rules will vacuously pass. Use the /execute REST endpoint for field-level rule enforcement.
+                RuleExecutionResult result = ruleEngine.execute(rules, "READ", recordMap, null);
                 if (!result.isPassed()) {
                     String msg = "Contract rule validation failed (READ): " + result.getViolations();
                     if (contractRulesFailOnError) {

@@ -104,6 +104,15 @@ public class CatalogDiscovery {
                     entries.add(new ChannelEntry(csvName, parseVersion(versionRaw)));
                 }
 
+                var hasCurrentCsv = entries.stream()
+                        .anyMatch(e -> e.getCsvName().equals(currentCSV));
+                if (!hasCurrentCsv) {
+                    log.warn("Channel {} entries do not include currentCSV {}. Adding it as head.",
+                            name, currentCSV);
+                    entries.add(new ChannelEntry(currentCSV,
+                            parseVersion(extractVersionString(currentCSV))));
+                }
+
                 if (!entries.get(0).getCsvName().equals(currentCSV)) {
                     log.warn("Channel {} entries are not head-first: first entry is {} but "
                                     + "currentCSV is {}. Reordering.", name,

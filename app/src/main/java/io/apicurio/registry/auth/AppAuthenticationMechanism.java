@@ -87,6 +87,13 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     public static final String MECH_OIDC = "oidc";
     public static final String MECH_KUBERNETES = "kubernetes";
 
+    /**
+     * Maximum number of entries retained in the OIDC access-token and auth-failure caches.
+     * Mirrors the bound used by {@link KubernetesAuthenticationStrategy} to prevent unbounded
+     * memory growth from distinct credential pairs, including failed/attacker-supplied ones.
+     */
+    private static final int MAX_CACHE_SIZE = 10_000;
+
     @Inject
     Logger log;
 
@@ -248,6 +255,21 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     }
 
     /**
+     * Puts a value into an auth cache map, first evicting expired entries and then refusing
+     * to grow past {@link #MAX_CACHE_SIZE}. Mirrors the bounding strategy used by
+     * {@link KubernetesAuthenticationStrategy} to prevent unbounded growth from distinct
+     * credential pairs (including failed/attacker-supplied ones).
+     */
+    private static <V> void boundedCachePut(ConcurrentHashMap<String, WrappedValue<V>> cache,
+            String key, WrappedValue<V> value) {
+        cache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        if (cache.size() >= MAX_CACHE_SIZE) {
+            return;
+        }
+        cache.put(key, value);
+    }
+
+    /**
      * Obtains an access token using client credentials grant. This method is hosted on this CDI
      * bean (rather than on {@link OidcAuthenticationStrategy}) so that the MicroProfile
      * {@link Retry} interceptor is applied.
@@ -288,7 +310,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             if (statusCode == 401) {
                 var ex = new io.quarkus.security.UnauthorizedException(
                         "OIDC token request returned 401");
-                cachedAuthFailures.put(credentialsHash,
+                boundedCachePut(cachedAuthFailures, credentialsHash,
                         new WrappedValue<>(
                                 OidcAuthenticationStrategy.getAccessTokenExpiration(null,
                                         authConfig, jwtParser, log),
@@ -297,7 +319,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
             } else if (statusCode == 403) {
                 var ex = new io.quarkus.security.ForbiddenException(
                         "OIDC token request returned 403");
-                cachedAuthFailures.put(credentialsHash,
+                boundedCachePut(cachedAuthFailures, credentialsHash,
                         new WrappedValue<>(
                                 OidcAuthenticationStrategy.getAccessTokenExpiration(null,
                                         authConfig, jwtParser, log),
@@ -310,7 +332,7 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
             JsonObject json = response.bodyAsJsonObject();
             String jwtToken = json.getString("access_token");
-            cachedAccessTokens.put(credentialsHash,
+            boundedCachePut(cachedAccessTokens, credentialsHash,
                     new WrappedValue<>(
                             OidcAuthenticationStrategy.getAccessTokenExpiration(jwtToken,
                                     authConfig, jwtParser, log),

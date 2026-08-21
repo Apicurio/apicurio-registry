@@ -16,7 +16,15 @@ public class McpToolsConfig {
     @Info(category = CATEGORY_MCP, description = "Enable MCP tool definition discovery endpoints", availableSince = "3.0.0", experimental = true)
     boolean enabled;
 
+    @ConfigProperty(name = "apicurio.mcp-tools.entitlements.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_MCP, description = "Enable entitlement-based MCP tool filtering", availableSince = "3.0.0")
+    boolean entitlementsEnabled;
+
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public boolean isEntitlementsEnabled() {
+        return entitlementsEnabled;
     }
 }

@@ -87,8 +87,9 @@ rules:
   # The operator's generated CSV requests cluster-wide `namespaces` get/list/watch because the
   # reconciler watches all namespaces. Under OLM v1 the installer SA can only grant permissions it
   # holds (escalation prevention), so the installer role must carry this rule or the ClusterExtension
-  # never reaches Installed: True. Note: this rule is not in rbac/namespaced (it is SDK-generated at
-  # build time), so RbacInstallerSyncTest does not guard it.
+  # never reaches Installed: True. This rule is not declared in rbac/namespaced (OLM v1 injects it via
+  # AllNamespaces promotion), but RbacInstallerSyncTest asserts it explicitly as a promotion-injected
+  # tuple, so it is guarded.
   - apiGroups:
       - ''
     resources:

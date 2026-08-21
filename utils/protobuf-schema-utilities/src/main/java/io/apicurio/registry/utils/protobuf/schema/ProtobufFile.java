@@ -14,6 +14,7 @@ import com.squareup.wire.schema.internal.parser.EnumElement;
 import com.squareup.wire.schema.internal.parser.FieldElement;
 import com.squareup.wire.schema.internal.parser.MessageElement;
 import com.squareup.wire.schema.internal.parser.OneOfElement;
+import com.squareup.wire.schema.internal.parser.OptionElement;
 import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import com.squareup.wire.schema.internal.parser.ProtoParser;
 import com.squareup.wire.schema.internal.parser.ReservedElement;
@@ -44,6 +45,9 @@ public class ProtobufFile {
     private final Map<String, Map<String, EnumConstantElement>> enumFieldMap = new HashMap<>();
 
     private final Map<String, Map<String, FieldElement>> mapMap = new HashMap<>();
+
+    private final Map<String, Map<String, String>> mapEntryTypes = new HashMap<>();
+    private final Set<String> mapEntryMessages = new HashSet<>();
 
     private final Map<String, Set<Object>> nonReservedFields = new HashMap<>();
     private final Map<String, Set<Object>> nonReservedEnumFields = new HashMap<>();
@@ -118,6 +122,29 @@ public class ProtobufFile {
      */
     public Map<String, Map<String, FieldElement>> getMapMap() {
         return mapMap;
+    }
+
+    /*
+     * message name -> Map { entry message simple name -> "map<KeyType, ValueType>" }
+     *
+     * For each message, the synthetic map entry messages nested in it (i.e. nested messages
+     * with "option map_entry = true"), mapped to the equivalent map<KeyType, ValueType> type.
+     * A repeated field whose type resolves to one of these entry messages is the desugared
+     * descriptor representation of a map field ("repeated FooEntry foo = N;" plus a synthetic
+     * "FooEntry" message), which is how pre-3.3.1 versions of the registry rendered map fields
+     * from compiled descriptors.
+     */
+    public Map<String, Map<String, String>> getMapEntryTypes() {
+        return mapEntryTypes;
+    }
+
+    /*
+     * Set of scoped message names (e.g. "OrderChanged.DataEntry") that are synthetic map entry
+     * messages, i.e. nested messages with "option map_entry = true". These only appear in the
+     * desugared descriptor representation of a map field.
+     */
+    public Set<String> getMapEntryMessages() {
+        return mapEntryMessages;
     }
 
     /*
@@ -221,6 +248,17 @@ public class ProtobufFile {
     @SuppressWarnings({ "rawtypes", "unchecked" })
     private void processMessageElement(String scope, MessageElement messageElement) {
 
+        // Identify synthetic map entry messages nested in this message (map fields in their
+        // desugared descriptor form) so that repeated fields referencing them can be recognized
+        // as map fields during compatibility checks.
+        Map<String, MessageElement> mapEntries = new HashMap<>();
+        for (TypeElement nestedType : messageElement.getNestedTypes()) {
+            if (nestedType instanceof MessageElement && isMapEntry((MessageElement) nestedType)) {
+                mapEntries.put(nestedType.getName(), (MessageElement) nestedType);
+                mapEntryMessages.add(scope + messageElement.getName() + "." + nestedType.getName());
+            }
+        }
+
         // reservedFields
         Set<Object> reservedFieldSet = new HashSet<>();
         for (ReservedElement reservedElement : messageElement.getReserveds()) {
@@ -263,6 +301,20 @@ public class ProtobufFile {
             }
         }
 
+        // mapEntryTypes: entry message simple name -> equivalent map<KeyType, ValueType> type
+        if (!mapEntries.isEmpty()) {
+            Map<String, String> entryTypes = new HashMap<>();
+            for (Map.Entry<String, MessageElement> mapEntry : mapEntries.entrySet()) {
+                String mapType = toMapType(mapEntry.getValue());
+                if (mapType != null) {
+                    entryTypes.put(mapEntry.getKey(), mapType);
+                }
+            }
+            if (!entryTypes.isEmpty()) {
+                this.mapEntryTypes.put(scope + messageElement.getName(), entryTypes);
+            }
+        }
+
         // Always add to fieldMap, even if empty, so that empty messages can be found during type resolution
         fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
         if (!mapMap.isEmpty()) {
@@ -295,6 +347,42 @@ public class ProtobufFile {
                 processEnumElement(scope + messageElement.getName() + ".", (EnumElement) typeElement);
             }
         }
+    }
+
+    /**
+     * Checks whether a message is a synthetic map entry message, i.e. it declares
+     * "option map_entry = true". Such messages are the desugared descriptor representation of
+     * a map field and never appear in .proto source files that use map syntax.
+     */
+    private static boolean isMapEntry(MessageElement messageElement) {
+        for (OptionElement option : messageElement.getOptions()) {
+            if ("map_entry".equals(option.getName())
+                    && Boolean.parseBoolean(String.valueOf(option.getValue()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the equivalent map type string (e.g. "map&lt;KeyType, ValueType&gt;") for a
+     * synthetic map entry message, built from the types of its "key" and "value" fields.
+     * Returns null if the entry message is malformed (missing key or value field).
+     */
+    private static String toMapType(MessageElement entry) {
+        String keyType = null;
+        String valueType = null;
+        for (FieldElement entryField : entry.getFields()) {
+            if ("key".equals(entryField.getName())) {
+                keyType = entryField.getType();
+            } else if ("value".equals(entryField.getName())) {
+                valueType = entryField.getType();
+            }
+        }
+        if (keyType == null || valueType == null) {
+            return null;
+        }
+        return "map<" + keyType + ", " + valueType + ">";
     }
 
     private void processEnumElement(String scope, EnumElement enumElement) {

@@ -159,6 +159,53 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .body("classification", equalTo("CONFIDENTIAL"));
     }
 
+    @Test
+    public void testUpdateContractMetadata_NullBody_Returns400() throws Exception {
+        String artifactId = "testUpdateContractMetadata_NullBody-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body("null")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("MissingRequiredParameterException"));
+    }
+
+    @Test
+    public void testUpdateContractMetadata_InvalidSupportContact_Returns409() throws Exception {
+        String artifactId = "testUpdateContractMetadata_InvalidContact-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        // Invalid supportContact (not an email address) must be rejected before persistence
+        given().when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body("{\"status\":\"DRAFT\",\"supportContact\":\"plaintext\"}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(409)
+                .body("status", equalTo(409))
+                .body("name", equalTo("InvalidContractMetadataException"))
+                .body("title", equalTo("Invalid email format for supportContact: plaintext"));
+
+        // Verify the invalid value was NOT persisted
+        given().when()
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200)
+                .body("supportContact", nullValue());
+    }
+
     // -- Contract Ruleset Tests (Artifact-level) --
 
     @Test

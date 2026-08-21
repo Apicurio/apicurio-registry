@@ -2066,6 +2066,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("data", data);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
@@ -2082,6 +2083,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         ? PromotionStage.valueOf(data.getStage().value()) : null)
                 .compatibilityGroup(data.getCompatibilityGroup())
                 .build();
+
+        contractMetadataValidator.validate(editableDto);
 
         // Detect existing contractId from labels
         ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);

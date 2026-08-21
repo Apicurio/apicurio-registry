@@ -95,6 +95,22 @@ catalog.close();
 mvn clean install -pl utils/flink -am
 ```
 
+The build produces a single self-contained (shaded) JAR. Flink's own libraries
+(`flink-table-api-java`, `flink-table-common`) and `slf4j-api` are intentionally
+excluded from the shaded JAR since Flink provides them on its runtime classpath.
+
+## Deployment
+
+Copy the shaded JAR into Flink's `lib` directory:
+
+```bash
+cp utils/flink/target/apicurio-registry-utils-flink-<version>.jar $FLINK_HOME/lib/
+```
+
+Manually collecting dependencies via `mvn dependency:copy-dependencies` is no
+longer necessary — the JAR already bundles everything it needs except what
+Flink provides.
+
 ## Testing
 
 Unit tests:

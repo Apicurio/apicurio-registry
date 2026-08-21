@@ -18,11 +18,12 @@ import { Modal } from "@patternfly/react-core/deprecated";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { AgentCard, AgentCardEditor } from "@app/components/agentCard";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
-import { checkIdValid, validateField, ValidType } from "@utils/validation.utils.ts";
+import { checkIdValid, checkVersionValid, validateField, validateVersionField, ValidType } from "@utils/validation.utils.ts";
 
 type Validities = {
     groupId?: ValidType;
     artifactId?: ValidType;
+    version?: ValidType;
 };
 
 const EMPTY_AGENT_CARD: AgentCard = {
@@ -49,8 +50,15 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
     const [name, setName] = useState<string>("");
     const [description, setDescription] = useState<string>("");
 
+    useEffect(() => {
+        setValidities({
+            groupId: validateField(groupId),
+            artifactId: validateField(artifactId),
+            version: validateVersionField(version)
+        });
+    }, [groupId, artifactId, version]);
+
     const resetForm = (): void => {
-        setValidities({});
         setGroupId("");
         setArtifactId("");
         setVersion("");
@@ -92,7 +100,7 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
     };
 
     const isCoordinatesStepValid = (): boolean => {
-        return checkIdValid(groupId) && checkIdValid(artifactId);
+        return checkIdValid(groupId) && checkIdValid(artifactId) && checkVersionValid(version);
     };
 
     const isContentStepValid = (): boolean => {
@@ -205,11 +213,21 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
                                         name="version"
                                         placeholder="1.0.0"
                                         value={version}
-                                        onChange={(_event, value) => setVersion(value)}
+                                        validated={validities.version}
+                                        onChange={(_event, value) => {
+                                            setVersion(value);
+                                        }}
                                     />
                                     <FormHelperText>
                                         <HelperText>
-                                            <HelperTextItem>The initial version number.</HelperTextItem>
+                                            <HelperTextItem
+                                                variant={validities.version}
+                                                icon={validities.version === "error" ? <ExclamationCircleIcon /> : undefined}
+                                            >
+                                                {validities.version === "error"
+                                                    ? "Only alphanumeric characters, dots, underscores, hyphens, and plus signs are allowed (max 256 characters)"
+                                                    : "The initial version number."}
+                                            </HelperTextItem>
                                         </HelperText>
                                     </FormHelperText>
                                 </FormGroup>

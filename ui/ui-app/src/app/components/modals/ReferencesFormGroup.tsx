@@ -3,32 +3,16 @@ import "./ReferencesFormGroup.css";
 import { Button, FormGroup, Grid, GridItem, Spinner, TextInput } from "@patternfly/react-core";
 import { MinusCircleIcon, PlusCircleIcon, SearchIcon } from "@patternfly/react-icons";
 import { ArtifactReference } from "@sdk/lib/generated-client/models";
+import {
+    ArtifactReferenceFormItem,
+    isReferencesValid,
+    validateRefIdField,
+    validateRefVersionField
+} from "@utils/validation.utils.ts";
 
-export type ArtifactReferenceFormItem = {
-    groupId: string;
-    artifactId: string;
-    version: string;
-    name: string;
-};
+export type { ArtifactReferenceFormItem };
+export { isReferencesValid };
 
-type ValidType = "default" | "success" | "error";
-
-const validateRefField = (value: string): ValidType => {
-    if (value === "") {
-        return "error";
-    }
-    return "success";
-};
-
-/**
- * Returns true if all reference rows have all four fields populated.
- * Returns true if there are no references (empty list is valid).
- */
-export const isReferencesValid = (items: ArtifactReferenceFormItem[]): boolean => {
-    return items.every(item =>
-        item.name !== "" && item.groupId !== "" && item.artifactId !== "" && item.version !== ""
-    );
-};
 
 /**
  * Converts form items to SDK ArtifactReference objects.
@@ -101,7 +85,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                         data-testid={`references-form-name-${idx}`}
                                         name={`form-ref-name-${idx}`}
                                         value={ref.name}
-                                        validated={validateRefField(ref.name)}
+                                        validated={validateRefIdField(ref.name)}
                                         onChange={(_event, newVal) => {
                                             ref.name = newVal;
                                             onChange([...references]);
@@ -120,7 +104,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                         data-testid={`references-form-group-id-${idx}`}
                                         name={`form-ref-group-${idx}`}
                                         value={ref.groupId}
-                                        validated={validateRefField(ref.groupId)}
+                                        validated={validateRefIdField(ref.groupId)}
                                         onChange={(_event, newVal) => {
                                             ref.groupId = newVal;
                                             onChange([...references]);
@@ -139,7 +123,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                         data-testid={`references-form-artifact-id-${idx}`}
                                         name={`form-ref-artifact-${idx}`}
                                         value={ref.artifactId}
-                                        validated={validateRefField(ref.artifactId)}
+                                        validated={validateRefIdField(ref.artifactId)}
                                         onChange={(_event, newVal) => {
                                             ref.artifactId = newVal;
                                             onChange([...references]);
@@ -159,7 +143,7 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                             data-testid={`references-form-version-${idx}`}
                                             name={`form-ref-version-${idx}`}
                                             value={ref.version}
-                                            validated={validateRefField(ref.version)}
+                                            validated={validateRefVersionField(ref.version)}
                                             onChange={(_event, newVal) => {
                                                 ref.version = newVal;
                                                 onChange([...references]);

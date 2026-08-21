@@ -1,5 +1,9 @@
 .prompt-template-visualizer {
-    height: 100%;
-    padding: 16px;
-    overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
 }

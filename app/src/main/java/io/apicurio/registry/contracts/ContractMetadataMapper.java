@@ -103,9 +103,13 @@ public class ContractMetadataMapper {
         for (var entry : labels.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
-                String middle = key.substring(ContractLabels.PREFIX.length(),
-                        key.length() - suffix.length());
-                if (!middle.isEmpty() && !middle.contains(".")) {
+                int start = ContractLabels.PREFIX.length();
+                int end = key.length() - suffix.length();
+                if (end <= start) {
+                    continue;
+                }
+                String middle = key.substring(start, end);
+                if (!middle.contains(".")) {
                     return entry.getValue();
                 }
             }

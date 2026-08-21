@@ -70,6 +70,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with JKS trust store - should successfully connect
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithJksTrustStore() throws Exception {
         URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.jks");
         Assertions.assertNotNull(truststoreUrl, "Truststore file not found");
@@ -108,6 +109,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with PEM certificate - should successfully connect
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemCertificate() throws Exception {
         URL certUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
         Assertions.assertNotNull(certUrl, "PEM certificate file not found");
@@ -148,6 +150,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with PEM certificate content (as string) - should successfully connect
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemContent() throws Exception {
         // Read the PEM certificate file and pass it as content string
         URL certUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
@@ -211,6 +214,7 @@ public class TlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with trustAll enabled - should successfully connect
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithTrustAll() throws Exception {
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
                 RegistryClientOptions.create(registryV2ApiUrl, vertx)

@@ -438,14 +438,18 @@ public class ERCache<V> {
                             "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
-                // TODO: verify if this is really needed, retries are already baked into the adapter ...
-                // if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
-                // && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
-                // && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
-                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ApiException
-                        && (((ApiException) e.getCause()).getResponseStatusCode() == 429))) {
-                    log.error("Cache load failed after {} retries", i, e);
-                    return Result.error(new RuntimeException(e));
+                ApiException apiException = findApiException(e);
+                boolean isRateLimit = apiException != null && Integer.valueOf(429).equals(apiException.getResponseStatusCode());
+
+                // Only retry on HTTP 429 (rate limit). All other Registry/client errors fail fast
+                // and are rethrown as-is so callers see the original Registry error response.
+                if (i == retries || !isRateLimit) {
+                    log.error("Failed to load schema from Registry after {} retries: {}", i,
+                            describeRegistryError(apiException, e), e);
+                    if (apiException != null) {
+                        return Result.error(apiException);
+                    }
+                    return Result.error(e);
                 }
             }
             try {
@@ -456,6 +460,46 @@ public class ERCache<V> {
             }
         }
         return Result.error(new IllegalStateException("Unreachable."));
+    }
+
+
+
+    private static ApiException findApiException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof ApiException) {
+                return (ApiException) current;
+            }
+            Throwable cause = current.getCause();
+            if (cause == current) {
+                break;
+            }
+            current = cause;
+        }
+        return null;
+    }
+
+    /**
+     * Builds a concise description of the Registry/client failure for logs, preferring HTTP status
+     * and message from {@link ApiException} when present.
+     */
+    static String describeRegistryError(Throwable throwable) {
+        return describeRegistryError(findApiException(throwable), throwable);
+    }
+
+    private static String describeRegistryError(ApiException apiException, Throwable fallback) {
+        if (apiException != null) {
+            String message = apiException.getMessage();
+            if (message == null || message.isBlank()) {
+                message = apiException.getClass().getSimpleName();
+            }
+            Integer status = apiException.getResponseStatusCode();
+            return "HTTP " + (status != null ? status : "Unknown") + " - " + message;
+        }
+        if (fallback.getMessage() != null && !fallback.getMessage().isBlank()) {
+            return fallback.getMessage();
+        }
+        return fallback.getClass().getName();
     }
 
     private static class WrappedValue<V> {

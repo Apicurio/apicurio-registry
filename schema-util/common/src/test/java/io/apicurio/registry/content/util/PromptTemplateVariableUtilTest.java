@@ -160,4 +160,78 @@ class PromptTemplateVariableUtilTest {
         Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword("Else"));
         Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword(null));
     }
+
+    /*
+     * Triple-brace handling. The pattern matches two braces, so given {{{foo}}} it can still lock
+     * onto the inner {{foo}} and rewrite only that, leaving the outer brace on each side behind as
+     * stray text. Triple-brace is not supported syntax here, so the placeholder is left exactly as
+     * written rather than half-rendered.
+     */
+
+    @Test
+    void testTripleBraceIsNotSubstituted() {
+        Assertions.assertEquals("Value is {{{foo}}}.",
+                PromptTemplateVariableUtil.substituteVariables("Value is {{{foo}}}.",
+                        varName -> "bar"));
+    }
+
+    @Test
+    void testTripleBraceIsNotExtractedAsAVariable() {
+        Assertions.assertEquals(List.of(),
+                PromptTemplateVariableUtil.extractVariableNames("Value is {{{foo}}}."));
+    }
+
+    @Test
+    void testUnbalancedLeadingBracesAreNotSubstituted() {
+        Assertions.assertEquals("Value is {{{foo}}.",
+                PromptTemplateVariableUtil.substituteVariables("Value is {{{foo}}.",
+                        varName -> "bar"));
+    }
+
+    /**
+     * Regression guard, not a fix. In Handlebars {{foo}}} is a placeholder followed by a literal
+     * closing brace, so "bar}" is already the right answer and must stay that way. This test passes
+     * both before and after the change; it is here so a future tightening of the pattern cannot
+     * break the case silently.
+     */
+    @Test
+    void testTrailingBraceAfterPlaceholderIsPreserved() {
+        Assertions.assertEquals("Value is bar}.",
+                PromptTemplateVariableUtil.substituteVariables("Value is {{foo}}}.",
+                        varName -> "bar"));
+    }
+
+    /**
+     * A lookbehind that was written too broadly could swallow the placeholder that follows a
+     * triple-brace run. It must not: only the triple-brace itself is left alone.
+     */
+    @Test
+    void testPlaceholderAdjacentToTripleBraceIsStillSubstituted() {
+        Assertions.assertEquals("{{{foo}}} value",
+                PromptTemplateVariableUtil.substituteVariables("{{{foo}}} {{bar}}",
+                        varName -> "value"));
+        Assertions.assertEquals(List.of("bar"),
+                PromptTemplateVariableUtil.extractVariableNames("{{{foo}}} {{bar}}"));
+    }
+
+    @Test
+    void testFourOrMoreLeadingBracesAreNotSubstituted() {
+        Assertions.assertEquals("{{{{foo}}}}",
+                PromptTemplateVariableUtil.substituteVariables("{{{{foo}}}}", varName -> "value"));
+        Assertions.assertEquals(List.of(),
+                PromptTemplateVariableUtil.extractVariableNames("{{{{foo}}}}"));
+    }
+
+    /**
+     * Guard, not a fix: two placeholders written back to back share no brace between them, so the
+     * lookbehind must never see the first one's closing brace as part of the second's opening.
+     * Passes before and after the change.
+     */
+    @Test
+    void testAdjacentPlaceholdersAreBothSubstituted() {
+        Assertions.assertEquals("valuevalue",
+                PromptTemplateVariableUtil.substituteVariables("{{a}}{{b}}", varName -> "value"));
+        Assertions.assertEquals(List.of("a", "b"),
+                PromptTemplateVariableUtil.extractVariableNames("{{a}}{{b}}"));
+    }
 }

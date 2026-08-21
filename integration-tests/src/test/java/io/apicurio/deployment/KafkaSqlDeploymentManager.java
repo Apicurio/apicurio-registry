@@ -100,22 +100,30 @@ public class KafkaSqlDeploymentManager {
 
     private static void seedGroup(RegistryClient client, String groupId, int count, String content,
             ExecutorService executor) throws InterruptedException, ExecutionException {
+        // Prime the write path synchronously: on a freshly deployed KafkaSQL registry the
+        // first write bootstraps the journal (topic creation etc.), and a parallel burst
+        // of first-writes races that bootstrap and fails. One serial create first, then
+        // fan out.
+        createArtifactWithRule(client, groupId, content);
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (int idx = 0; idx < count; idx++) {
-            futures.add(CompletableFuture.runAsync(() -> {
-                String artifactId = UUID.randomUUID().toString();
-                CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId,
-                        ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
-                client.groups().byGroupId(groupId).artifacts().post(createArtifact,
-                        config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-                CreateRule createRule = new CreateRule();
-                createRule.setRuleType(RuleType.VALIDITY);
-                createRule.setConfig("SYNTAX_ONLY");
-                client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
-                        .post(createRule);
-            }, executor));
+        for (int idx = 1; idx < count; idx++) {
+            futures.add(CompletableFuture.runAsync(() -> createArtifactWithRule(client, groupId, content),
+                    executor));
         }
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+    }
+
+    private static void createArtifactWithRule(RegistryClient client, String groupId, String content) {
+        String artifactId = UUID.randomUUID().toString();
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId,
+                ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
+        client.groups().byGroupId(groupId).artifacts().post(createArtifact,
+                config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("SYNTAX_ONLY");
+        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .post(createRule);
     }
 
     private static void deleteRegistryDeployment() {

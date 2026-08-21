@@ -576,14 +576,20 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         log.info("Patched subscription channel to {}", newChannel);
     }
 
-    // Awaitility factory for upgrade waits. Fails fast only on terminal resolution
-    // failures (unsatisfiable constraints never produce an install plan, so without
-    // this every such failure burns the whole UPGRADE_TIMEOUT). Transient states like
-    // ErrorPreventedResolution (catalog service not routable yet) recover on their own.
+    // Awaitility factory for upgrade waits. Fails fast when the Subscription reports a
+    // terminal resolution failure. Two ResolutionFailed flavors exist:
+    //   - "no operators found with name ..." — the catalog will never satisfy the
+    //     constraint (wrong channel/CSV): terminal, but only treated as such after it
+    //     persists for a while, to outlast package-server sync races.
+    //   - "CSV ... exists and is not referenced by a subscription" — a transient state
+    //     of the startCSV -> install -> upgrade sequence: the resolver re-runs while the
+    //     just-created CSV is not linked yet, and self-heals when the CSV succeeds.
     private ConditionFactory upgradeAwait() {
         return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
                 .failFast("Subscription resolution failed", this::subscriptionResolutionFailed);
     }
+
+    private volatile java.time.Instant constraintFailureSince;
 
     @SuppressWarnings("unchecked")
     private boolean subscriptionResolutionFailed() {
@@ -591,21 +597,41 @@ public class UpgradeOLMITTest implements OperatorTestContext {
             var sub = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
                     .inNamespace(namespace).withName(SUBSCRIPTION_NAME).get();
             if (sub == null) {
+                constraintFailureSince = null;
                 return false;
             }
             var conditions = (List<Map<String, Object>>) sub.get("status", "conditions");
             if (conditions == null) {
+                constraintFailureSince = null;
                 return false;
             }
             for (var condition : conditions) {
-                if ("ResolutionFailed".equals(condition.get("type"))
-                        && "True".equals(condition.get("status"))
-                        && "ConstraintsNotSatisfiable".equals(condition.get("reason"))) {
-                    log.error("Subscription {} ConstraintsNotSatisfiable: {}", SUBSCRIPTION_NAME,
-                            condition.get("message"));
+                if (!"ResolutionFailed".equals(condition.get("type"))
+                        || !"True".equals(condition.get("status"))
+                        || !"ConstraintsNotSatisfiable".equals(condition.get("reason"))) {
+                    continue;
+                }
+                var message = String.valueOf(condition.get("message"));
+                if (message.contains("is not referenced by a subscription")) {
+                    // Transient: resolver raced its own just-created CSV
+                    constraintFailureSince = null;
+                    return false;
+                }
+                if (constraintFailureSince == null) {
+                    constraintFailureSince = java.time.Instant.now();
+                    log.warn("Subscription {} constraint failure (watching): {}", SUBSCRIPTION_NAME,
+                            message);
+                    return false;
+                }
+                if (Duration.between(constraintFailureSince, java.time.Instant.now())
+                        .compareTo(Duration.ofSeconds(90)) > 0) {
+                    log.error("Subscription {} ConstraintsNotSatisfiable for >90s, terminal: {}",
+                            SUBSCRIPTION_NAME, message);
                     return true;
                 }
+                return false;
             }
+            constraintFailureSince = null;
             return false;
         } catch (Exception e) {
             // Transient API errors must not trip the fail-fast check

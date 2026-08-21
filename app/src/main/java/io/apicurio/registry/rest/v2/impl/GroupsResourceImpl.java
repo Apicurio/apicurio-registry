@@ -217,6 +217,7 @@ public class GroupsResourceImpl implements GroupsResource {
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
             String version, ReferenceType refType) {
 

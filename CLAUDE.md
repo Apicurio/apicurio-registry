@@ -140,6 +140,18 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
   { "hooks": { "Notification": [{ "matcher": "", "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify.sh" }] }] } }
   ```
 
+## OpenCode Configuration
+
+OpenCode is supported via symlinks into `.claude/`, so there is a single source of truth:
+
+- **Commands**: `.opencode/commands/*.md` symlink to `.claude/commands/*.md`
+- **Skills**: `.opencode/skills/<name>` symlinks to `.claude/skills/<name>`
+
+Edit the files under `.claude/`; OpenCode follows the symlinks and picks up changes on its
+next startup (OpenCode loads config once at startup — restart it after editing).
+When adding a new command or skill, create the real file in `.claude/` first, then add the
+matching symlink under `.opencode/`.
+
 ## MCP Integration
 
 The `mcp/` module provides an MCP server. Connect Claude Code to a running registry

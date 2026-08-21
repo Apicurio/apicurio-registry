@@ -91,6 +91,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public String getSchemaContentById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;

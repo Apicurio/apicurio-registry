@@ -2,7 +2,10 @@ package io.apicurio.registry.noprofile.storage;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.jdb.Handle;
@@ -17,6 +20,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -142,6 +147,145 @@ public class AvroCanonicalHashUpgraderTest extends AbstractResourceTestBase {
         assertEquals(ContentTypes.APPLICATION_JSON, getContentType(contentId));
     }
 
+    @Test
+    void testUpgraderRecomputesHashForSchemaWithArtifactReferences() throws Exception {
+        String addressArtifactId = "testUpgraderAddressRef";
+        String orderArtifactId = "testUpgraderOrderWithRef";
+
+        String addressSchema = "{\"type\":\"record\",\"name\":\"Address\","
+                + "\"namespace\":\"com.example.upgrader\","
+                + "\"fields\":[{\"name\":\"street\",\"type\":\"string\"},"
+                + "{\"name\":\"zip\",\"type\":\"string\"}]}";
+
+        CreateArtifactResponse addressResponse = createArtifact(GROUP_ID, addressArtifactId,
+                ArtifactType.AVRO, addressSchema, ContentTypes.APPLICATION_JSON);
+        String addressVersion = addressResponse.getVersion().getVersion();
+
+        ArtifactReference addressRef = new ArtifactReference();
+        addressRef.setGroupId(GROUP_ID);
+        addressRef.setArtifactId(addressArtifactId);
+        addressRef.setVersion(addressVersion);
+        addressRef.setName("com.example.upgrader.Address");
+
+        String orderSchema = "{\"type\":\"record\",\"name\":\"Order\","
+                + "\"namespace\":\"com.example.upgrader\","
+                + "\"fields\":[{\"name\":\"id\",\"type\":\"string\"},"
+                + "{\"name\":\"shippingAddress\",\"type\":\"com.example.upgrader.Address\"}]}";
+
+        createArtifactWithReferences(GROUP_ID, orderArtifactId, ArtifactType.AVRO, orderSchema,
+                ContentTypes.APPLICATION_JSON, Collections.singletonList(addressRef));
+
+        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(GROUP_ID, orderArtifactId,
+                "1");
+        long contentId = storedVersion.getContentId();
+
+        List<ArtifactReferenceDto> refs = storedVersion.getReferences();
+        assertNotNull(refs);
+        assertEquals(1, refs.size());
+
+        String correctCanonicalHash = getCanonicalHash(contentId);
+        assertNotNull(correctCanonicalHash);
+
+        String fakeHash = "1111111111111111111111111111111111111111111111111111111111111111";
+        setCanonicalHash(contentId, fakeHash);
+        assertEquals(fakeHash, getCanonicalHash(contentId));
+
+        // Exercises resolveReference() when recomputing the hash
+        runUpgrader();
+
+        assertEquals(correctCanonicalHash, getCanonicalHash(contentId));
+    }
+
+    @Test
+    void testUpgraderLeavesHashUnchangedWhenReferenceResolutionFails() throws Exception {
+        String addressArtifactId = "testUpgraderMissingRefAddress";
+        String orderArtifactId = "testUpgraderMissingRefOrder";
+
+        String addressSchema = "{\"type\":\"record\",\"name\":\"MissingRefAddress\","
+                + "\"namespace\":\"com.example.upgrader\","
+                + "\"fields\":[{\"name\":\"city\",\"type\":\"string\"}]}";
+
+        CreateArtifactResponse addressResponse = createArtifact(GROUP_ID, addressArtifactId,
+                ArtifactType.AVRO, addressSchema, ContentTypes.APPLICATION_JSON);
+
+        ArtifactReference addressRef = new ArtifactReference();
+        addressRef.setGroupId(GROUP_ID);
+        addressRef.setArtifactId(addressArtifactId);
+        addressRef.setVersion(addressResponse.getVersion().getVersion());
+        addressRef.setName("com.example.upgrader.MissingRefAddress");
+
+        String orderSchema = "{\"type\":\"record\",\"name\":\"MissingRefOrder\","
+                + "\"namespace\":\"com.example.upgrader\","
+                + "\"fields\":[{\"name\":\"id\",\"type\":\"string\"},"
+                + "{\"name\":\"addr\",\"type\":\"com.example.upgrader.MissingRefAddress\"}]}";
+
+        createArtifactWithReferences(GROUP_ID, orderArtifactId, ArtifactType.AVRO, orderSchema,
+                ContentTypes.APPLICATION_JSON, Collections.singletonList(addressRef));
+
+        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(GROUP_ID, orderArtifactId,
+                "1");
+        long contentId = storedVersion.getContentId();
+
+        // Point refs at a version that does not exist so resolveReference() fails
+        String brokenRefs = "[{\"groupId\":\"" + GROUP_ID + "\",\"artifactId\":\"" + addressArtifactId
+                + "\",\"version\":\"999\",\"name\":\"com.example.upgrader.MissingRefAddress\"}]";
+        setRefs(contentId, brokenRefs);
+
+        String fakeHash = "2222222222222222222222222222222222222222222222222222222222222222";
+        setCanonicalHash(contentId, fakeHash);
+
+        // Upgrade should not throw; failed rows keep their (stale) hash
+        runUpgrader();
+
+        assertEquals(fakeHash, getCanonicalHash(contentId));
+    }
+
+    @Test
+    void testUpgraderRecomputesHashWithNullRefsColumn() throws Exception {
+        String artifactId = "testUpgraderNullRefs";
+        String avroSchema = "{\"type\":\"record\",\"name\":\"NullRefsRecord\","
+                + "\"namespace\":\"com.example.upgrader\","
+                + "\"fields\":[{\"name\":\"value\",\"type\":\"string\"}]}";
+
+        createArtifact(GROUP_ID, artifactId, ArtifactType.AVRO, avroSchema, ContentTypes.APPLICATION_JSON);
+
+        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(GROUP_ID, artifactId, "1");
+        long contentId = storedVersion.getContentId();
+
+        setRefsNull(contentId);
+
+        String correctCanonicalHash = getCanonicalHash(contentId);
+        String fakeHash = "3333333333333333333333333333333333333333333333333333333333333333";
+        setCanonicalHash(contentId, fakeHash);
+
+        runUpgrader();
+
+        assertEquals(correctCanonicalHash, getCanonicalHash(contentId));
+    }
+
+    @Test
+    void testUpgraderRecomputesHashWithEmptyRefsArray() throws Exception {
+        String artifactId = "testUpgraderEmptyRefs";
+        String avroSchema = "{\"type\":\"record\",\"name\":\"EmptyRefsRecord\","
+                + "\"namespace\":\"com.example.upgrader\","
+                + "\"fields\":[{\"name\":\"value\",\"type\":\"string\"}]}";
+
+        createArtifact(GROUP_ID, artifactId, ArtifactType.AVRO, avroSchema, ContentTypes.APPLICATION_JSON);
+
+        StoredArtifactVersionDto storedVersion = storage.getArtifactVersionContent(GROUP_ID, artifactId, "1");
+        long contentId = storedVersion.getContentId();
+
+        setRefs(contentId, "[]");
+
+        String correctCanonicalHash = getCanonicalHash(contentId);
+        String fakeHash = "4444444444444444444444444444444444444444444444444444444444444444";
+        setCanonicalHash(contentId, fakeHash);
+
+        runUpgrader();
+
+        assertEquals(correctCanonicalHash, getCanonicalHash(contentId));
+    }
+
     private String getCanonicalHash(long contentId) {
         return handles.withHandleNoException(
                 (Handle handle) -> handle
@@ -153,6 +297,22 @@ public class AvroCanonicalHashUpgraderTest extends AbstractResourceTestBase {
         handles.<Void, RuntimeException>withHandleNoException((Handle handle) -> {
             handle.createUpdate("UPDATE content SET canonicalHash = ? WHERE contentId = ?").bind(0, hash)
                     .bind(1, contentId).execute();
+            return null;
+        });
+    }
+
+    private void setRefs(long contentId, String refs) {
+        handles.<Void, RuntimeException>withHandleNoException((Handle handle) -> {
+            handle.createUpdate("UPDATE content SET refs = ? WHERE contentId = ?").bind(0, refs)
+                    .bind(1, contentId).execute();
+            return null;
+        });
+    }
+
+    private void setRefsNull(long contentId) {
+        handles.<Void, RuntimeException>withHandleNoException((Handle handle) -> {
+            handle.createUpdate("UPDATE content SET refs = NULL WHERE contentId = ?").bind(0, contentId)
+                    .execute();
             return null;
         });
     }

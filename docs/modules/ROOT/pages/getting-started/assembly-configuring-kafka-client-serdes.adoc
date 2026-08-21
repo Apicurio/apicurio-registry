@@ -164,7 +164,96 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry by using HTTP basic authentication.
 |`String`
 |None
+
+|`TLS_KEYSTORE_LOCATION`
+|`apicurio.registry.tls.keystore.location`
+|Used by serializers and deserializers. The location of the key store file for mutual TLS (mTLS). Can be a file path or classpath resource.
+|`String`
+|None
+
+|`TLS_KEYSTORE_PASSWORD`
+|`apicurio.registry.tls.keystore.password`
+|Used by serializers and deserializers. The password for the key store file. Required when using JKS or PKCS12 key stores.
+|`String`
+|None
+
+|`TLS_KEYSTORE_TYPE`
+|`apicurio.registry.tls.keystore.type`
+|Used by serializers and deserializers. The type of key store. Valid values are JKS, PKCS12, or PEM.
+|`String`
+|`JKS`
+
+|`TLS_CLIENT_CERTIFICATE`
+|`apicurio.registry.tls.client-certificate`
+|Used by serializers and deserializers. The PEM client certificate content or file path for mutual TLS (mTLS).
+|`String`
+|None
+
+|`TLS_CLIENT_KEY`
+|`apicurio.registry.tls.client-key`
+|Used by serializers and deserializers. The PEM client private key content or file path for mutual TLS (mTLS).
+|`String`
+|None
 |===
+
+**TLS security for the registry connection**
+
+When {registry} is served over HTTPS with certificates that the default Java trust store does not trust, you can configure a trust store for the SerDes HTTP client. You set the following properties directly as Kafka producer or consumer properties:
+
+.Configuration properties for TLS security
+[.table-expandable,width="100%",cols="5,6,2",options="header"]
+|===
+|Configuration property
+|Description
+|Default
+
+|`apicurio.registry.tls.truststore.location`
+|Path to the trust store file. With the `PEM` type, this is the path to a PEM certificate file.
+|None
+
+|`apicurio.registry.tls.truststore.password`
+|Password for the trust store. Required for the `JKS` and `PKCS12` types. Not used for the `PEM` type.
+|None
+
+|`apicurio.registry.tls.truststore.type`
+|Type of the trust store: `JKS`, `PKCS12`, or `PEM`.
+|`JKS`
+
+|`apicurio.registry.tls.certificates`
+|Comma-separated list of PEM certificate file paths, or inline PEM certificate content. When the value contains `-----BEGIN CERTIFICATE-----`, {registry} treats it as inline content; otherwise, as file paths.
+|None
+
+|`apicurio.registry.tls.trust-all`
+|Disables all certificate verification. Do not use this option in production.
+|`false`
+
+|`apicurio.registry.tls.verify-host`
+|Verifies the server host name against the certificate. Disable this option only when necessary, for example, when connecting by IP address.
+|`true`
+|===
+
+The following example configures a producer with a PKCS12 trust store:
+
+[source,properties]
+----
+apicurio.registry.url=https://registry.example.com/apis/registry/v3
+apicurio.registry.tls.truststore.location=/etc/certs/truststore.p12
+apicurio.registry.tls.truststore.password=changeit
+apicurio.registry.tls.truststore.type=PKCS12
+----
+
+Alternatively, provide one or more PEM certificate files without a password or type:
+
+[source,properties]
+----
+apicurio.registry.tls.certificates=/etc/certs/ca1.pem,/etc/certs/ca2.pem
+----
+
+NOTE: These properties configure server trust only. Client certificate (mutual TLS) configuration is not available through the SerDes properties.
+
+**HTTP proxy for the registry connection**
+
+To reach {registry} through an HTTP proxy, set the `apicurio.registry.proxy.host` and `apicurio.registry.proxy.port` properties. For proxies that require authentication, also set `apicurio.registry.proxy.username` and `apicurio.registry.proxy.password`.
 
 **OpenTelemetry distributed tracing**
 
@@ -583,6 +672,18 @@ The nested `Exchange` schema is defined as follows:
 
 When you use these schemas with Avro SerDes, {registry} creates two artifacts, one for the `TradeKey` schema and one for the `Exchange` schema. Whenever a message that uses the `TradeKey` schema is serialized or deserialized, both schemas are retrieved, allowing you to split your definitions into different files.
 
+**Custom logical type conversions for the Avro Kafka Connect converter**
+
+The `io.apicurio.registry.utils.converter.AvroConverter` Kafka Connect converter, provided by the `apicurio-registry-utils-converter` artifact, converts Kafka Connect logical types such as `Decimal`, `Date`, `Time`, and `Timestamp` to Avro logical types. You can register custom conversions for additional logical types, for example, Debezium micro-precision and nano-precision timestamp types, which have no built-in Avro mapping.
+
+To add a custom conversion, implement the `io.apicurio.registry.utils.converter.avro.ToAvroLogicalTypeConverter` interface with the following methods:
+
+* `kafkaConnectLogicalTypeName` returns the Kafka Connect schema name to match, for example, `io.debezium.time.MicroTimestamp`.
+* `avroLogicalType` returns the Avro logical type to apply.
+* `convert` converts the field value.
+
+Register the implementation through the Java `ServiceLoader` mechanism: package it in a JAR file with a `META-INF/services/io.apicurio.registry.utils.converter.avro.ToAvroLogicalTypeConverter` provider file that contains the implementation class name, and place the JAR file on the Kafka Connect worker classpath together with the converter. A custom conversion that declares the same Kafka Connect type name as a built-in conversion replaces the built-in conversion. Conversions apply in the Kafka Connect to Avro direction only.
+
 [role="_additional-resources"]
 .Additional resources
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/avro-serde/src/main/java/io/apicurio/registry/serde/avro/AvroSerdeConfig.java[AvroSerdeConfig Java class]
@@ -633,6 +734,24 @@ You can configure the JSON Schema deserializer class as follows:
 You must provide the location of {registry} so that the schema can be loaded. The other configuration is optional.
 
 NOTE: Deserializer validation only works if the serializer passes the global ID in the Kafka message, which only happens when you enable validation in the serializer.
+
+**Custom ObjectMapper**
+
+The JSON Schema serializer and deserializer classes provide a `setObjectMapper` method that you can use to supply a custom Jackson `ObjectMapper`, for example, to register additional Jackson modules or custom serializers. You must call `setObjectMapper` before you call `configure`, and instantiate the SerDes class yourself instead of naming it in the producer or consumer properties:
+
+[source,java]
+----
+ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+JsonSchemaKafkaSerializer<MessageBean> serializer = new JsonSchemaKafkaSerializer<>();
+serializer.setObjectMapper(mapper);
+serializer.configure(configProps, false);
+
+KafkaProducer<String, MessageBean> producer =
+        new KafkaProducer<>(configProps, new StringSerializer(), serializer);
+----
+
+When you do not set a custom mapper, the SerDes create a default `ObjectMapper` that ignores unknown properties during deserialization and omits null values during serialization.
 
 **JSON Schema SerDes and artifact references**
 
@@ -697,7 +816,7 @@ In this example, a given citizen has a city. {registry} creates a citizen artifa
 
 [role="_additional-resources"]
 .Additional resources
-* link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/jsonschema-serde/src/main/java/io/apicurio/registry/serde/jsonschema/JsonSchemaKafkaDeserializerConfig.java[JsonSchemaKafkaDeserializerConfig Java class]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/serdes/kafka/jsonschema-serde[JSON Schema SerDes module]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Simple JSON Schema example]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]
 
@@ -749,7 +868,66 @@ The deserializer class can determine the values for these options from the messa
 
 The deserializer determines the ID location by checking for the magic byte at the start of the message payload. If that byte is found, the deserializer reads the ID from the message payload by using the configured handler. If the magic byte is not found, the deserializer reads the ID from the message headers.
 
-NOTE: The Protobuf deserializer does not deserialize to your exact Protobuf Message implementation, but rather to a `DynamicMessage` instance. No appropriate API exists to do otherwise.
+NOTE: By default, the Protobuf deserializer deserializes to a `DynamicMessage` instance. To deserialize to your generated Protobuf message class instead, set the `apicurio.registry.deserializer.value.return-class` property to the generated class.
+
+**Deserializer fallback parsing**
+
+By default, a schema resolution failure causes deserialization to fail. When you configure a specific return class, you can enable an opt-in fallback that parses the message payload directly with the generated class when schema lookup or parsing fails, for example, during a registry outage or when a transitive import is missing:
+
+[source,properties]
+----
+apicurio.protobuf.fallback.on-schema-error=true
+apicurio.registry.deserializer.value.return-class=com.example.MyProtobufMessage
+----
+
+The fallback never applies when the deserializer returns `DynamicMessage` instances. When the fallback activates, the deserializer logs a warning that includes the original error.
+
+**Confluent interoperability**
+
+By default, the Protobuf SerDes use the {registry} wire format, which writes a type reference into the message payload. You can configure the following options to exchange Protobuf messages with clients that use the Confluent wire format, which writes a message-index list instead:
+
+.Configuration properties for Confluent interoperability
+[.table-expandable,width="100%",cols="5,6,2",options="header"]
+|===
+|Configuration property
+|Description
+|Default
+
+|`apicurio.registry.serde.send-type-ref`
+|Serializer. Writes the {registry} type reference into the payload.
+|`true`
+
+|`apicurio.registry.serde.send-indexes`
+|Serializer. Writes the Confluent-style message-index list into the payload.
+|`false`
+
+|`apicurio.registry.serde.read-type-ref`
+|Deserializer. Reads the {registry} type reference from the payload.
+|`true`
+
+|`apicurio.registry.serde.read-indexes`
+|Deserializer. Reads the Confluent-style message-index list from the payload.
+|`false`
+|===
+
+To produce messages that Confluent consumers can read, disable the type reference and enable message indexes on the serializer:
+
+[source,properties]
+----
+apicurio.registry.serde.send-type-ref=false
+apicurio.registry.serde.send-indexes=true
+----
+
+To consume messages in the Confluent format, mirror the settings on the deserializer, and set the return class so that the deserializer produces your generated message type:
+
+[source,properties]
+----
+apicurio.registry.serde.read-type-ref=false
+apicurio.registry.serde.read-indexes=true
+apicurio.registry.deserializer.value.return-class=com.example.MyProtobufMessage
+----
+
+NOTE: Enable the message indexes and disable the type reference together. The two payload prefixes are not compatible with each other. The default values preserve the {registry} wire format, so existing producer and consumer pairs require no changes.
 
 **Protobuf SerDes and artifact references**
 

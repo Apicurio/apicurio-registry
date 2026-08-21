@@ -37,6 +37,41 @@ export const tokenizeTemplate = (template: string): TemplateToken[] => {
     return tokens;
 };
 
+const SINGLE_BRACE_VARIABLE = /\{\s*([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\s*\}/g;
+
+/**
+ * Extracts the unique variable placeholder names referenced by a prompt template.
+ * Supports both {{variable}} (Mustache/Handlebars-style, via tokenizeTemplate) and
+ * bare {variable} syntax. Block helpers (e.g. {{#if}}) and comments are excluded.
+ * Single-brace matches are scanned only within the plain-text spans left over after
+ * double-brace tags are extracted, so they can't overlap a {{...}} tag.
+ */
+export const extractPromptVariables = (content: string): string[] => {
+    if (!content) {
+        return [];
+    }
+
+    const names = new Set<string>();
+
+    tokenizeTemplate(content).forEach((token) => {
+        if (token.kind === "variable") {
+            const inner = token.text.replace(/^\{+|\}+$/g, "").trim();
+            const head = inner.split(/\s+/, 1)[0];
+            if (head) {
+                names.add(head);
+            }
+        } else if (token.kind === "plain") {
+            let match;
+            SINGLE_BRACE_VARIABLE.lastIndex = 0;
+            while ((match = SINGLE_BRACE_VARIABLE.exec(token.text)) !== null) {
+                names.add(match[1]);
+            }
+        }
+    });
+
+    return Array.from(names);
+};
+
 export const highlightVariables = (template: string): React.ReactNode[] => {
     return tokenizeTemplate(template).map((token, index) => {
         if (token.kind === "plain") {

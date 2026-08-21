@@ -38,7 +38,7 @@ import {
 } from "@services/useAgentService";
 import { Paging } from "@models/Paging.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
-import { FromNow, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { FromNow, PleaseWaitModal } from "@apitomy/common-ui-components";
 import { CreateAgentModal, ImportAgentModal } from "@app/pages/agents/components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";

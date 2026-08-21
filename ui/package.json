@@ -30,7 +30,7 @@
         "dev": "concurrently \"cd ui-app && npm run dev\" \"cd ui-docs && npm run dev\" \"cd ui-editors && npm run dev\""
     },
     "devDependencies": {
-        "concurrently": "10.0.4",
+        "concurrently": "10.0.5",
         "rimraf": "6.1.3",
         "shelljs": "0.10.0"
     }

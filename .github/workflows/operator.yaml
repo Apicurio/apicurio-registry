@@ -312,6 +312,22 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
+      - name: Pre-pull OLM bundle and catalog images
+        run: |
+          # ttl.sh pulls occasionally stall for 10+ minutes mid-test (catalog pod stuck
+          # Pending until the setup timeout). Pull once up front with retries; with
+          # driver=none the kubelet shares the host docker image store, so pods using
+          # these (non-:latest) images get IfNotPresent semantics and never pull during
+          # tests.
+          for img in "$BUNDLE_IMAGE" "$CATALOG_IMAGE"; do
+            for i in 1 2 3; do
+              docker pull "$img" && break
+              echo "Pull failed for $img (attempt $i/3), retrying..."
+              sleep 5
+            done
+            docker image inspect "$img" > /dev/null || { echo "Could not pull $img"; exit 1; }
+          done
+
       # -Dtest.operator.timeout.long=600: extend default Awaitility timeout from 420s (7 min)
       #   to 600s (10 min) for slow Kafka/OLM startups on shared runners. This is read by
       #   ITBase.LONG_DURATION via Integer.getInteger().

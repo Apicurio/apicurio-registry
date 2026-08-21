@@ -5,6 +5,7 @@ import io.apicurio.registry.content.PromptTemplateContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.content.extract.PromptTemplateContentExtractor;
+import io.apicurio.registry.content.util.PromptTemplateFormats;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
@@ -343,6 +344,240 @@ class PromptTemplateContentValidatorTest {
         });
         Assertions.assertTrue(
                 error.getCauses().stream().anyMatch(v -> v.getDescription().contains("templateId")));
+    }
+
+    @Test
+    void testPromptyAlignedFieldsAreAccepted() {
+        String yaml = """
+                templateId: sentiment-analysis
+                templateFormat: mustache
+                authors:
+                  - Apicurio Team
+                tags:
+                  - sentiment
+                  - nlp
+                model:
+                  api: chat
+                  parameters:
+                    temperature: 0.3
+                    max_tokens: 500
+                template: "Analyze the sentiment of: {{customerMessage}}"
+                variables:
+                  customerMessage:
+                    type: string
+                    required: true
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, createYaml(yaml), Collections.emptyMap());
+    }
+
+    @Test
+    void testUnsupportedTemplateFormatIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "templateFormat": "jinja2",
+                    "template": "Hello {{name}}",
+                    "variables": {
+                        "name": { "type": "string" }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/templateFormat")
+                        && v.getDescription().contains("jinja2")
+                        && v.getDescription().contains("mustache")));
+    }
+
+    @Test
+    void testNonStringTemplateFormatIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "templateFormat": 42,
+                    "template": "Hello"
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/templateFormat")
+                        && v.getDescription().contains("must be a string")));
+    }
+
+    @Test
+    void testTemplateFormatIsNotCheckedForSyntaxOnly() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "templateFormat": "jinja2",
+                    "template": "Hello"
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, create(template), Collections.emptyMap());
+    }
+
+    @Test
+    void testInvalidModelIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "model": "chat"
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/model")));
+    }
+
+    @Test
+    void testInvalidModelApiIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "model": { "api": 42 }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/model/api")
+                        && v.getDescription().contains("must be a string")));
+    }
+
+    @Test
+    void testInvalidModelParametersIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "model": { "api": "chat", "parameters": "nope" }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/model/parameters")
+                        && v.getDescription().contains("must be an object")));
+    }
+
+    @Test
+    void testModelWithUnknownMembersIsAccepted() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "model": { "api": "chat", "configuration": { "azure_deployment": "gpt-4" } }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+    }
+
+    @Test
+    void testUnsupportedTemplateFormatValueIsTruncated() {
+        String longFormat = "x".repeat(200);
+        String template = """
+                {
+                    "templateId": "test",
+                    "templateFormat": "%s",
+                    "template": "Hello"
+                }
+                """.formatted(longFormat);
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        String description = error.getCauses().stream()
+                .filter(v -> v.getContext().equals("/templateFormat"))
+                .map(v -> v.getDescription())
+                .findFirst()
+                .orElseThrow();
+        Assertions.assertFalse(description.contains(longFormat),
+                "The full unsupported value must not be echoed back");
+        Assertions.assertTrue(description.contains("..."), "The echoed value should be truncated");
+    }
+
+    @Test
+    void testSupportedTemplateFormatsIsExposedAndImmutable() {
+        Assertions.assertEquals(List.of("mustache"), PromptTemplateFormats.supported());
+        Assertions.assertThrows(UnsupportedOperationException.class,
+                () -> PromptTemplateFormats.supported().add("jinja2"));
+    }
+
+    @Test
+    void testTemplateFormatMatchingIsCaseSensitive() {
+        // The published schema declares templateFormat as a case-sensitive enum, so normalizing
+        // case here would make the registry accept a value the schema rejects.
+        Assertions.assertTrue(PromptTemplateFormats.isSupported("mustache"));
+        Assertions.assertFalse(PromptTemplateFormats.isSupported("Mustache"));
+
+        String template = """
+                {
+                    "templateId": "test",
+                    "templateFormat": "MUSTACHE",
+                    "template": "Hello"
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/templateFormat")
+                        && v.getDescription().contains("case-sensitively")));
+    }
+
+    @Test
+    void testInvalidAuthorsIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "authors": "Apicurio Team"
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/authors")
+                        && v.getDescription().contains("must be an array")));
+    }
+
+    @Test
+    void testNonStringTagIsRejected() {
+        String template = """
+                {
+                    "templateId": "test",
+                    "template": "Hello",
+                    "tags": ["nlp", 7]
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(template), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getContext().equals("/tags")
+                        && v.getDescription().contains("only strings")));
     }
 
     @Test

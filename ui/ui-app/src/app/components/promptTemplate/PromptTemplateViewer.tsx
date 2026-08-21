@@ -18,7 +18,8 @@ import {
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
 import { VariableSchema } from "./promptTemplateVariables";
-import { highlightVariables } from "./PromptTemplateViewer.utils";
+import { formatRange, highlightVariables } from "./PromptTemplateViewer.utils";
+
 
 export interface PromptTemplateMetadata {
     author?: string;
@@ -154,6 +155,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                         <th>Required</th>
                                         <th>Default</th>
                                         <th>Allowed Values</th>
+                                        <th>Range</th>
                                         <th>Description</th>
                                     </tr>
                                 </thead>
@@ -183,6 +185,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                                     </LabelGroup>
                                                 ) : "-"}
                                             </td>
+                                            <td>{formatRange(variable.minimum, variable.maximum) ?? "-"}</td>
                                             <td>{variable.description || "-"}</td>
                                         </tr>
                                     ))}

@@ -44,7 +44,7 @@ jobs:
         working-directory: python-sdk
         run: make lint-check
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -75,9 +75,9 @@ jobs:
       - name: Go - Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26.6'
+          go-version: '1.27.0'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'

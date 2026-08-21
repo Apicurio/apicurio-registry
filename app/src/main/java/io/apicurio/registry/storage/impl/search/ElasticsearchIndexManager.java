@@ -26,7 +26,7 @@ public class ElasticsearchIndexManager {
 
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchIndexManager.class);
 
-    private static final int CURRENT_MAPPING_VERSION = 1;
+    private static final int CURRENT_MAPPING_VERSION = 2;
     public static final String MAPPING_VERSION_DOC_ID = "_mapping_version";
     public static final String REINDEX_LOCK_DOC_ID = "_reindex_lock";
 
@@ -264,6 +264,7 @@ public class ElasticsearchIndexManager {
                 .properties("contentId", Property.of(p -> p.long_(l -> l)))
                 .properties("groupId", Property.of(p -> p.keyword(k -> k)))
                 .properties("artifactId", Property.of(p -> p.keyword(k -> k)))
+                .properties("ga_key", Property.of(p -> p.keyword(k -> k)))
                 .properties("version", Property.of(p -> p.keyword(k -> k)))
                 .properties("artifactType", Property.of(p -> p.keyword(k -> k)))
                 .properties("state", Property.of(p -> p.keyword(k -> k)))

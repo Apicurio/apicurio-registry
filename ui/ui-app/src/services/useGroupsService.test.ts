@@ -1,29 +1,66 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Paging } from "@models/Paging.ts";
 
-const { getRegistryClientMock } = vi.hoisted(() => {
+const { axiosGetMock, createAuthOptionsMock, getRegistryClientMock } = vi.hoisted(() => {
     // useConfigService.ts reads this global at module load time (normally injected
     // by the app's config.js in a real browser); provide a minimal stand-in so the
     // service modules under test can be imported in a Vitest (node) environment.
     const registryConfig = { artifacts: { url: "http://localhost:8080/apis/registry/v3/" } };
     (globalThis as any).ApicurioRegistryConfig = registryConfig;
     (globalThis as any).window = { ApicurioRegistryConfig: registryConfig };
-    return { getRegistryClientMock: vi.fn() };
+    return {
+        axiosGetMock: vi.fn(),
+        createAuthOptionsMock: vi.fn(),
+        getRegistryClientMock: vi.fn()
+    };
 });
 
 vi.mock("@apitomy/common-ui-components", () => ({
     useAuth: () => ({})
 }));
 
-vi.mock("@utils/rest.utils.ts", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("@utils/rest.utils.ts")>();
+vi.mock("@utils/rest.utils.ts", () => {
     return {
-        ...actual,
+        createAuthOptions: createAuthOptionsMock,
+        createEndpoint: (baseHref: string, path: string, params?: any, queryParams?: any) => {
+            if (params) {
+                Object.keys(params).forEach(key => {
+                    path = path.replace(":" + key, encodeURIComponent(params[key]));
+                });
+            }
+            let href = `${baseHref.replace(/\/$/, "")}${path}`;
+            if (queryParams) {
+                const search = new URLSearchParams();
+                Object.keys(queryParams).forEach(key => {
+                    if (queryParams[key] !== undefined && queryParams[key] !== null && queryParams[key] !== "") {
+                        search.set(key, queryParams[key]);
+                    }
+                });
+                const query = search.toString();
+                if (query) {
+                    href = `${href}?${query}`;
+                }
+            }
+            return href;
+        },
         getRegistryClient: getRegistryClientMock
     };
 });
 
+vi.mock("axios", () => ({
+    default: {
+        get: axiosGetMock,
+        post: vi.fn()
+    }
+}));
+
 import { useGroupsService } from "./useGroupsService";
+
+beforeEach(() => {
+    axiosGetMock.mockReset();
+    createAuthOptionsMock.mockReset();
+    getRegistryClientMock.mockReset();
+});
 
 const PAGES_TO_CHECK: { page: number; expectedOffset: number }[] = [
     { page: 1, expectedOffset: 0 },
@@ -110,5 +147,78 @@ describe("useGroupsService pagination", () => {
         }
 
         assertConstantLimit(get);
+    });
+});
+
+describe("useGroupsService content loading", () => {
+    it("returns artifact version content with the response content type", async () => {
+        createAuthOptionsMock.mockResolvedValue({
+            headers: {
+                Authorization: "Bearer test-token"
+            }
+        });
+        axiosGetMock.mockResolvedValue({
+            data: "templateId: prompt\ntemplate: Hello {{name}}\n",
+            headers: {
+                "content-type": "application/x-yaml; charset=utf-8"
+            }
+        });
+
+        const service = useGroupsService();
+        const result = await service.getArtifactVersionContentWithType("default", "my-prompt", "1");
+
+        expect(axiosGetMock).toHaveBeenCalledWith(
+            "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-prompt/versions/1/content",
+            expect.objectContaining({
+                headers: {
+                    Authorization: "Bearer test-token",
+                    Accept: "*"
+                },
+                responseType: "text"
+            })
+        );
+        expect(result).toEqual({
+            content: "templateId: prompt\ntemplate: Hello {{name}}\n",
+            contentType: "application/x-yaml; charset=utf-8"
+        });
+    });
+
+    it("normalizes latest to the latest branch when loading content with type", async () => {
+        createAuthOptionsMock.mockResolvedValue({});
+        axiosGetMock.mockResolvedValue({
+            data: "{}",
+            headers: {}
+        });
+
+        const service = useGroupsService();
+        await service.getArtifactVersionContentWithType(null, "my-prompt", "latest");
+
+        expect(axiosGetMock.mock.calls[0][0]).toBe(
+            "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-prompt/versions/branch%3Dlatest/content"
+        );
+    });
+
+    it("returns non-prompt content without transforming the response body", async () => {
+        const xmlContent = "<?xml version=\"1.0\"?>\n<schema>\n    <element name=\"example\" />\n</schema>\n";
+        createAuthOptionsMock.mockResolvedValue({});
+        axiosGetMock.mockResolvedValue({
+            data: xmlContent,
+            headers: {
+                "content-type": "application/xml"
+            }
+        });
+
+        const service = useGroupsService();
+        const result = await service.getArtifactVersionContentWithType("default", "my-xsd", "2");
+
+        expect(axiosGetMock).toHaveBeenCalledWith(
+            "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-xsd/versions/2/content",
+            expect.objectContaining({
+                responseType: "text",
+                transformResponse: [expect.any(Function)]
+            })
+        );
+        expect(result.content).toBe(xmlContent);
+        expect(result.contentType).toBe("application/xml");
     });
 });

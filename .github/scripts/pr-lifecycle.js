@@ -1308,9 +1308,11 @@ async function handleLabelChange({ github, context, core }) {
 // ---------------------------------------------------------------------------
 
 // True when the PR should run the full suite immediately (not waiting for a maintainer
-// to apply ready-to-merge): auto-accepted authors get orchestrator/review-skipped at open.
-function isFullSuiteState(state) {
-  return state === LABELS.READY_TO_MERGE;
+// to apply ready-to-merge): auto-accepted authors get orchestrator/review-skipped at open,
+// so their PRs are full-suite eligible from ready-for-review.
+function isFullSuiteState(pr, state) {
+  return state === LABELS.READY_TO_MERGE
+      || (state === LABELS.READY_FOR_REVIEW && hasLabel(pr, LABELS.REVIEW_SKIPPED));
 }
 
 // Dispatches the downstream workflows that consume the shared Build artifact from the
@@ -1534,7 +1536,7 @@ async function handleTestResult({ github, context, core }) {
     // its artifact instead of letting them build again. Runs under
     // pull_request_target with the orchestrator's token (ci.yaml's own GITHUB_TOKEN
     // cannot dispatch workflows from a pull_request trigger).
-    if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(state)) {
+    if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(pr, state)) {
       await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
     }
   }

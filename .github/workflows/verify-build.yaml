@@ -99,6 +99,9 @@ jobs:
   build-ui:
     name: Build UI Application
     runs-on: ubuntu-latest
+    # npm/vite occasionally hangs on a shared runner with no output; fail fast instead
+    # of burning the workflow timeout. The whole job normally finishes in ~4 min.
+    timeout-minutes: 15
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

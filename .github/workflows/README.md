@@ -2,30 +2,29 @@
 
 ## PR Verification Pipeline
 
-The main PR pipeline is `verify.yaml`, which orchestrates all verification steps.
-It runs on pull requests to `main` and on pushes to `main`.
+The full suite is split into per-phase top-level workflows, all driven by the
+shared Decide logic (`verify-decide.yaml`). They run on pull requests to `main`
+and on pushes to `main`, and only run real work once a PR is marked
+`lifecycle/ready-to-merge` (pushes to `main` always run everything):
 
-### Pipeline Phases
-
-```
-decide ── lint-and-validate ── build ──┬── unit-tests (7 shards)
-                                       ├── integration-tests (13 jobs)
-                                       ├── extras (5 jobs)
-                                       ├── sdk
-                                       ├── cli-verify (conditional)
-                                       ├── publish (main only) ── notify-slack
-                                       └── verification-gate (aggregates all results)
-```
+| Workflow | Contents |
+|----------|----------|
+| `ci.yaml` (**CI**) | **Quick Verify** fast gate (~5 min, every PR push) + the full unit tier: lint, unit-test shards, Scalpel report, CLI, Go SDK freshness, SDK verification, console plugin |
+| `integration-tests.yaml` (**Integration Tests**) | Build + integration-test storage matrix |
+| `extras.yaml` (**Extra Tests**) | Build + additional checks (examples) |
+| `verify.yaml` (**Verify**) | Operator tests, image publishing (main only), Slack notification, and the Verification Gate |
 
 ### Centralized Decision (`decide` job)
 
-A single `decide` job combines **lifecycle scope** (PR labels) and **change
-detection** (path-based filtering) into one boolean output per test phase.
-Every downstream job uses a single `if:` condition.
+A single reusable `decide` job (`verify-decide.yaml`) combines **lifecycle
+scope** (PR labels) and **change detection** (path-based filtering) into one
+boolean output per test phase. Every top-level workflow calls it, and every
+downstream job uses a single `if:` condition.
 
 **Lifecycle scope** is driven by PR labels from the PR lifecycle orchestrator:
-- `lifecycle/new` or no label → no tests
-- `lifecycle/ready-for-review` / `lifecycle/ready-to-merge` → full suite
+- `lifecycle/new`, `lifecycle/ready-for-review` or no label → full tier skipped
+  (the Quick Verify fast gate in `ci.yaml` covers PR iteration)
+- `lifecycle/ready-to-merge` → full suite in all four workflows
 - Push to main → always full suite
 
 **Change detection** uses `dorny/paths-filter` to determine which areas changed:
@@ -44,12 +43,16 @@ Push to main always runs everything regardless of change detection.
 
 ### Verification Gate
 
-The `verification-gate` job is the **single required check** for branch protection.
-It runs with `if: always()` and aggregates all upstream results:
+The `verification-gate` job in `verify.yaml` is the **single required check** for
+branch protection. It runs with `if: always()` and aggregates results across all
+four full-suite workflows: it evaluates its own jobs, then polls the GitHub API
+until the latest `CI`, `Integration Tests` and `Extra Tests` runs for the same
+commit have completed, failing if any of them failed. During PR review the full
+tier is skipped by Decide in every workflow, so the gate passes without blocking
+iteration.
 
-- Any job **failed** → gate fails
-- PR in non-testable lifecycle state (`lifecycle/new`, etc.) → gate fails
-- All jobs passed or appropriately skipped → gate passes
+The PR lifecycle orchestrator (`pr-lifecycle.js`) independently aggregates the
+same four workflows by head SHA before applying `lifecycle/full-verified`.
 
 This replaces the previous approach of configuring 24 individual jobs as required
 checks, which caused skipped jobs to show as permanently pending.

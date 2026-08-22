@@ -5,7 +5,7 @@
   },
   "annotations": {
     "title": 123,
-    "audience": "not-an-array",
-    "priority": "not-a-number"
+    "readOnlyHint": "not-a-boolean",
+    "destructiveHint": 123
   }
 }

@@ -36,6 +36,10 @@ The following table lists all available well-known endpoints.
 |GET
 |Returns the agent card for this {registry} instance. As the canonical A2A v1.0 discovery endpoint, it returns the same response as `/.well-known/agent.json`.
 
+|`/.well-known/agent-card.json`
+|GET
+|Returns the agent card for this {registry} instance. This alias exists for compatibility with IBM watsonx Orchestrate, which discovers agents at this path by default. It returns the same response as `/.well-known/agent.json`.
+
 |`/.well-known/agents`
 |GET
 |Searches for registered agent cards by name, skill, capability, input mode, or output mode. Supports pagination with `offset` and `limit` parameters.

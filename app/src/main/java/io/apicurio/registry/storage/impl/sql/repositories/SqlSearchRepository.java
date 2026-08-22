@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -137,11 +138,11 @@ public class SqlSearchRepository {
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase();
+                        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
                         where.append("EXISTS(SELECT l.* FROM artifact_labels l WHERE ");
                         buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
+                            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
                             where.append(" AND ");
                             buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
                                     binders);
@@ -388,11 +389,11 @@ public class SqlSearchRepository {
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase();
+                        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
                         where.append("EXISTS(SELECT l.* FROM version_labels l WHERE ");
                         buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
+                            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
                             where.append(" AND ");
                             buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
                                     binders);

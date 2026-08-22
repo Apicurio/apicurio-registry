@@ -18,7 +18,7 @@ import java.util.Set;
 /**
  * Content validator for A2A Agent Card artifacts, aligned with A2A Protocol v1.0.
  */
-public class AgentCardContentValidator implements ContentValidator {
+public class AgentCardContentValidator extends AbstractContentValidator {
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -428,11 +428,34 @@ public class AgentCardContentValidator implements ContentValidator {
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
-        if (references != null && !references.isEmpty()) {
-            throw new RuleViolationException("Agent Cards do not support references",
-                    RuleType.INTEGRITY, "NONE",
-                    Collections.singleton(
-                            new RuleViolation("References are not supported for Agent Cards", "")));
+        Set<String> allRefs = getAllRefs(content);
+        if (!allRefs.isEmpty()) {
+            validateMappedReferences(references, allRefs, "Unmapped reference detected.");
+        }
+    }
+
+    private Set<String> getAllRefs(TypedContent content) {
+        try {
+            JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
+            Set<String> refs = new HashSet<>();
+            findRefs(tree, refs);
+            return refs;
+        } catch (Exception e) {
+            return Collections.emptySet();
+        }
+    }
+
+    private void findRefs(JsonNode node, Set<String> refs) {
+        if (node == null) {
+            return;
+        }
+        if (node.isObject()) {
+            if (node.has("$ref") && node.get("$ref").isTextual()) {
+                refs.add(node.get("$ref").asText());
+            }
+            node.elements().forEachRemaining(child -> findRefs(child, refs));
+        } else if (node.isArray()) {
+            node.elements().forEachRemaining(child -> findRefs(child, refs));
         }
     }
 }

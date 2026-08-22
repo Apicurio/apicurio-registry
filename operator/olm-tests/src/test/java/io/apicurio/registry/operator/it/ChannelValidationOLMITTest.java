@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,9 +18,10 @@ import static org.awaitility.Awaitility.await;
 
 /**
  * Validates OLM catalog channel configuration.
- *
- * Under OLM v0, uses the PackageManifest API. Under OLM v1, reads the catalog content directly from the
- * catalog pod since PackageManifest may return data from other catalog sources.
+ * <p>
+ * Under OLM v0, uses the PackageManifest API. Under OLM v1, reads File-Based Catalog (FBC) content
+ * directly from catalogd (via {@link CatalogdClient}) since PackageManifest may return data from other
+ * catalog sources on the cluster.
  */
 @QuarkusTest
 @Tag(OLM)
@@ -157,123 +158,33 @@ public class ChannelValidationOLMITTest extends OLMITBase {
         return getChannelHeadsFromCatalogPod();
     }
 
-    private String readCatalogContent() throws Exception {
-        var catalogdUrl = "https://catalogd-service.olmv1-system.svc/catalogs/"
-                + "apicurio-registry-operator-catalog/api/v1/all";
-        var podName = "catalog-query-" + namespace.substring(namespace.length() - 7);
-
-        try {
-            client.pods().inNamespace(namespace).withName(podName).delete();
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            // ignore
-        }
-
-        var pod = new io.fabric8.kubernetes.api.model.PodBuilder()
-                .withNewMetadata().withName(podName).withNamespace(namespace).endMetadata()
-                .withNewSpec()
-                .withRestartPolicy("Never")
-                .addNewContainer()
-                .withName("curl")
-                .withImage("registry.access.redhat.com/ubi9/ubi-minimal:latest")
-                .withCommand("sh", "-c",
-                        "curl -sk '" + catalogdUrl + "' 2>/dev/null || "
-                                + "curl -sk 'https://catalogd-service.olmv1-system.svc/catalogs/"
-                                + "apicurio-registry-operator-catalog/all' 2>/dev/null")
-                .endContainer()
-                .endSpec()
-                .build();
-        client.pods().inNamespace(namespace).resource(pod).create();
-
-        await().atMost(java.time.Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
-            var p = client.pods().inNamespace(namespace).withName(podName).get();
-            return p != null && ("Succeeded".equals(p.getStatus().getPhase())
-                    || "Failed".equals(p.getStatus().getPhase()));
-        });
-
-        var content = client.pods().inNamespace(namespace).withName(podName).getLog();
-        client.pods().inNamespace(namespace).withName(podName).delete();
-
-        if (content == null || content.isEmpty()) {
-            throw new IllegalStateException("Empty catalog content from catalogd API");
-        }
-        return content;
+    /**
+     * Reads FBC content from catalogd (via {@link CatalogdClient}) and parses it with
+     * {@link CatalogDiscovery#parseFBC}, the same parser {@code CatalogDiscovery} uses for OLM v0's
+     * exec-from-pod FBC content, so channel/version parsing logic lives in exactly one place.
+     */
+    private CatalogInfo queryCatalogd() throws Exception {
+        var content = CatalogdClient.readCatalogContent(client, namespace, CATALOG_NAME);
+        return CatalogDiscovery.parseFBC(content);
     }
 
-    @SuppressWarnings("unchecked")
     private List<String> getChannelsFromCatalogPod() throws Exception {
-        var catalog = readCatalogContent();
-        var channels = new ArrayList<String>();
-        for (var obj : parseCatalogObjects(catalog)) {
-            if ("olm.channel".equals(obj.get("schema"))) {
-                channels.add((String) obj.get("name"));
-            }
-        }
-        return channels;
+        return List.copyOf(queryCatalogd().getChannels().keySet());
     }
 
-    @SuppressWarnings("unchecked")
     private String getDefaultChannelFromCatalogPod() throws Exception {
-        var catalog = readCatalogContent();
-        for (var obj : parseCatalogObjects(catalog)) {
-            if ("olm.package".equals(obj.get("schema"))) {
-                return (String) obj.get("defaultChannel");
-            }
-        }
-        return null;
+        return queryCatalogd().getDefaultChannel();
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, String> getChannelHeadsFromCatalogPod() throws Exception {
-        var catalog = readCatalogContent();
-        var heads = new java.util.HashMap<String, String>();
-        for (var obj : parseCatalogObjects(catalog)) {
-            if ("olm.channel".equals(obj.get("schema"))) {
-                var name = (String) obj.get("name");
-                var entries = (List<Map<String, Object>>) obj.get("entries");
-                if (entries != null && !entries.isEmpty()) {
-                    heads.put(name, (String) entries.get(0).get("name"));
-                }
+        var info = queryCatalogd();
+        var heads = new HashMap<String, String>();
+        for (var channelName : info.getChannels().keySet()) {
+            var headCsv = info.getChannelHeadCSV(channelName);
+            if (headCsv != null) {
+                heads.put(channelName, headCsv);
             }
         }
         return heads;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> parseCatalogObjects(String catalog) throws Exception {
-        var objects = new ArrayList<Map<String, Object>>();
-        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-
-        // Try multi-document JSON (one JSON object per line/section)
-        var parts = catalog.split("\\n(?=\\{)");
-        for (var part : parts) {
-            part = part.trim();
-            if (part.isEmpty()) {
-                continue;
-            }
-            try {
-                objects.add(mapper.readValue(part, Map.class));
-            } catch (Exception e) {
-                // skip unparseable sections
-            }
-        }
-
-        // If nothing parsed as JSON, try YAML
-        if (objects.isEmpty()) {
-            var yamlParts = catalog.split("(?m)^---$");
-            for (var part : yamlParts) {
-                part = part.trim();
-                if (part.isEmpty()) {
-                    continue;
-                }
-                try {
-                    objects.add(mapper.readValue(part, Map.class));
-                } catch (Exception e) {
-                    // skip
-                }
-            }
-        }
-
-        return objects;
     }
 }

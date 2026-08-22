@@ -24,6 +24,7 @@ import static io.apicurio.deployment.Constants.*;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -52,8 +53,8 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
 
     @Override
     protected RegistryClient createRegistryClient(Vertx vertx) {
-        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured,
-                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
+        var auth = buildOIDCWebClient(vertx, oidcClientOptions(), authServerUrlConfigured,
+                KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1", null);
         return createClient(auth);
     }
 
@@ -62,10 +63,18 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
                 RegistryClientOptions.create(getRegistryV3ApiUrl()).customWebClient(auth).retry());
     }
 
+    // A connection that stalls mid-request (no bytes, no error) otherwise hangs the test
+    // until the JUnit timeout kills it — fail fast instead and let retries recover.
+    private static WebClientOptions oidcClientOptions() {
+        return new WebClientOptions()
+                .setConnectTimeout(10_000)
+                .setReadIdleTimeout(60);
+    }
+
     @Test
     public void testWrongCreds() throws Exception {
-        var auth = buildOIDCWebClient(vertx, authServerUrlConfigured,
-                KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, "test55");
+        var auth = buildOIDCWebClient(vertx, oidcClientOptions(), authServerUrlConfigured,
+                KeycloakTestContainerManager.WRONG_CREDS_CLIENT_ID, "test55", null);
         RegistryClient client = createClient(auth);
         var exception = Assertions.assertThrows(Exception.class, () -> {
             client.groups().byGroupId("foo").artifacts().get();

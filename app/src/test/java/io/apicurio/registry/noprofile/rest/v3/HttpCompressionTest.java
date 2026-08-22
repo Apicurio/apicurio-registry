@@ -93,6 +93,32 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
                 + uncompressedBody.length + " bytes)");
     }
 
+    /**
+     * The kill switch is a @Dynamic property: toggling it at runtime must take effect without a
+     * restart. This used to be a separate test class with its own QuarkusTestProfile boot, which
+     * was order-dependent: when it ran after this class in the same surefire fork, the response
+     * was still compressed (the first boot's interceptor state leaked into the second boot).
+     */
+    @Test
+    public void testKillSwitchDisablesCompressionAtRuntime() throws Exception {
+        String artifactId = "testKillSwitchDisablesCompressionAtRuntime";
+        String content = largeJsonSchemaContent();
+        createArtifact(GROUP, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+
+        System.setProperty("apicurio.rest.compression.enabled", "false");
+        try {
+            byte[] rawBody = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
+                    .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                    .then().statusCode(200).header("Content-Encoding", nullValue()).extract()
+                    .asByteArray();
+
+            assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), rawBody);
+        } finally {
+            System.clearProperty("apicurio.rest.compression.enabled");
+        }
+    }
+
     @Test
     public void testGzippedRequestBodyIsDecompressedByServer() throws Exception {
         String artifactId = "testGzippedRequestBodyIsDecompressedByServer";

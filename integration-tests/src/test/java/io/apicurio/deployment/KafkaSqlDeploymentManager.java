@@ -2,6 +2,7 @@ package io.apicurio.deployment;
 
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -15,11 +16,14 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -68,40 +72,58 @@ public class KafkaSqlDeploymentManager {
         String simpleAvro = resourceToString("artifactTypes/avro/multi-field_v1.json");
 
         Vertx vertx = Vertx.vertx();
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx).retry());
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx)
+                .requestTimeout(10_000, 60_000).retry());
 
-        LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
-        for (int idx = 0; idx < 1000; idx++) {
-            String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                    simpleAvro, ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact,
-                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            CreateRule createRule = new CreateRule();
-            createRule.setRuleType(RuleType.VALIDITY);
-            createRule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
-                    .byArtifactId(artifactId).rules().post(createRule);
+        // Thousands of sequential blocking calls take 20+ minutes on a loaded CI
+        // runner (this read as "the job hangs" more than once); fan out instead.
+        ExecutorService executor = Executors.newFixedThreadPool(16);
+        try {
+            LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
+            seedGroup(client, NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID, 1000, simpleAvro, executor);
+
+            LOGGER.info("Creating kafkasql snapshot..");
+            client.admin().snapshots().post();
+
+            LOGGER.info("Adding new artifacts on top of the snapshot..");
+            seedGroup(client, "default", 1000, simpleAvro, executor);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while preparing snapshot data", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Error preparing snapshot data", e.getCause());
+        } finally {
+            executor.shutdown();
+            vertx.close();
         }
+    }
 
-        LOGGER.info("Creating kafkasql snapshot..");
-        client.admin().snapshots().post();
-
-        LOGGER.info("Adding new artifacts on top of the snapshot..");
-        for (int idx = 0; idx < 1000; idx++) {
-            String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                    simpleAvro, ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId("default").artifacts().post(createArtifact,
-                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            CreateRule createRule = new CreateRule();
-            createRule.setRuleType(RuleType.VALIDITY);
-            createRule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules()
-                    .post(createRule);
+    private static void seedGroup(RegistryClient client, String groupId, int count, String content,
+            ExecutorService executor) throws InterruptedException, ExecutionException {
+        // Prime the write path synchronously: on a freshly deployed KafkaSQL registry the
+        // first write bootstraps the journal (topic creation etc.), and a parallel burst
+        // of first-writes races that bootstrap and fails. One serial create first, then
+        // fan out.
+        createArtifactWithRule(client, groupId, content);
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (int idx = 1; idx < count; idx++) {
+            futures.add(CompletableFuture.runAsync(() -> createArtifactWithRule(client, groupId, content),
+                    executor));
         }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+    }
 
-        vertx.close();
+    private static void createArtifactWithRule(RegistryClient client, String groupId, String content) {
+        String artifactId = UUID.randomUUID().toString();
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId,
+                ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
+        client.groups().byGroupId(groupId).artifacts().post(createArtifact,
+                config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig("SYNTAX_ONLY");
+        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .post(createRule);
     }
 
     private static void deleteRegistryDeployment() {

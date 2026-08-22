@@ -59,7 +59,7 @@ jobs:
   verification-gate:
     name: Verification Gate
     if: always() && github.repository_owner == 'Apicurio'
-    needs: [decide, operator]
+    needs: [decide, operator, build]
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:

@@ -265,8 +265,13 @@ function createApi(github, owner, repo) {
       });
     },
 
-    // GitHub represents runs awaiting fork PR approval as
-    // status=completed, conclusion=action_required. The API's status
+    dispatchWorkflow: async (workflow, ref, inputs = {}) => {
+      await github.rest.actions.createWorkflowDispatch({
+        owner, repo, workflow_id: workflow, ref, inputs,
+      });
+    },
+
+    // GitHub represents runs awaiting fork PR approval as    // status=completed, conclusion=action_required. The API's status
     // query parameter accepts 'action_required' as a filter value even
     // though the run object itself stores it in the conclusion field.
     findPendingApprovalVerifyRuns: async (headSha, workflow = 'verify.yaml') => {
@@ -1302,6 +1307,29 @@ async function handleLabelChange({ github, context, core }) {
 // Test Result Handler
 // ---------------------------------------------------------------------------
 
+// True when the PR should run the full suite immediately (not waiting for a maintainer
+// to apply ready-to-merge): auto-accepted authors get orchestrator/review-skipped at open,
+// so their PRs are full-suite eligible from ready-for-review.
+function isFullSuiteState(pr, state) {
+  return state === LABELS.READY_TO_MERGE
+      || (state === LABELS.READY_FOR_REVIEW && hasLabel(pr, LABELS.REVIEW_SKIPPED));
+}
+
+// Dispatches the downstream workflows that consume the shared Build artifact from the
+// CI workflow, so they do not build again. Runs under pull_request_target with the
+// orchestrator's token.
+async function dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core) {
+  const ref = pr.head.ref;
+  for (const workflow of ['integration-tests.yaml', 'extras.yaml']) {
+    try {
+      await api.dispatchWorkflow(workflow, ref, { 'pr-number': String(pr.number) });
+      core.info(`PR #${pr.number} dispatched ${workflow} for ${workflowRun.head_sha.substring(0, 7)}`);
+    } catch (e) {
+      core.warning(`PR #${pr.number} failed to dispatch ${workflow}: ${e.message}`);
+    }
+  }
+}
+
 async function handleTestResult({ github, context, core }) {
   const workflowRun = context.payload.workflow_run;
   if (workflowRun.event !== 'pull_request') {
@@ -1502,6 +1530,15 @@ async function handleTestResult({ github, context, core }) {
 
     const reconPr = await api.getPr(pr.number);
     await reconcile(github, api, reconPr, core);
+
+    // The shared Build job lives in the CI workflow; when it completes for a PR
+    // whose full suite should run, dispatch the downstream workflows that consume
+    // its artifact instead of letting them build again. Runs under
+    // pull_request_target with the orchestrator's token (ci.yaml's own GITHUB_TOKEN
+    // cannot dispatch workflows from a pull_request trigger).
+    if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(pr, state)) {
+      await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
+    }
   }
 }
 

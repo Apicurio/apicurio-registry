@@ -191,6 +191,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # workflow_run handlers must run the PR's orchestrator code, not main's —
+          # otherwise fixes to pr-lifecycle.js only take effect after merge.
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json

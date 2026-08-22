@@ -75,6 +75,19 @@ All submissions, including submissions by project members, need to be reviewed b
 
 Because we are all humans, and to ensure Apicurio Registry is stable for everyone, all changes must pass continuous integration before being merged. Apicurio CI is based on GitHub Actions, which means that pull requests will receive automatic feedback.  Please watch out for the results of these workflows to see if your PR passes all tests.
 
+CI runs in two tiers:
+
+1. **Fast gate** (`CI` workflow, ~5 min): runs on every non-draft push. Compiles the
+   project (including test sources) and runs the pure unit tests plus a curated app
+   smoke set. This is what gives you rapid feedback while iterating.
+2. **Full verification**: the complete suite, split across per-phase workflows —
+   `CI` (unit-test shards, SDKs, CLI, console plugin), `Integration Tests`
+   (storage matrix), `Extra Tests` (additional checks), and `Verify` (operator
+   tests, image publishing, and the cross-workflow Verification Gate). It runs when
+   a maintainer marks the PR `lifecycle/ready-to-merge` (and on every push to
+   `main`), and all four workflows must pass before the merge completes. If any
+   fails, the PR returns to `lifecycle/ready-for-review` automatically.
+
 ### Tests and documentation are not optional
 
 Don't forget to include tests in your pull requests.
@@ -110,7 +123,7 @@ Integration tests are opt-in and are documented in the
 ./mvnw verify -Pintegration-tests -pl integration-tests -am
 ```
 
-CI runs the full storage matrix on every pull request, so running every variant
+CI runs the full storage matrix as the pre-merge gate, so running every variant
 locally is not required.
 
 ### Customizing Registry supported ArtifactTypes

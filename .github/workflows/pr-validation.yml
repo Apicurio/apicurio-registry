@@ -1,0 +1,51 @@
+name: PR Validation
+
+# Validates submission quality (issue link, DCO sign-off) and flags duplicate
+# PRs. Independent of the lifecycle state machine: this runs on every PR
+# regardless of lifecycle state, and a red check here never blocks /accept.
+#
+# pull_request_target rather than pull_request: the job has to add a label and
+# post a comment, and a pull_request run from a fork gets a read-only token, so
+# both would fail for exactly the contributors this is meant to help. The usual
+# pull_request_target hazard is executing PR code with a write token; the
+# checkout step below avoids that by never fetching the PR head.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      # No ref: is given, so this checks out the base branch, never the PR head.
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.19.0
+
+      - name: Run unit tests
+        run: node --test .github/scripts/pr-validation.test.js
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Run validation checks
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-validation.js');
+            await handler.validate({ github, context, core });

@@ -112,3 +112,21 @@ describe("useGroupsService pagination", () => {
         assertConstantLimit(get);
     });
 });
+
+describe("useGroupsService testArtifactVersion", () => {
+    it("posts the content with dryRun: true in the query parameters", async () => {
+        const post = vi.fn().mockResolvedValue(undefined);
+        getRegistryClientMock.mockReturnValue({
+            groups: { byGroupId: () => ({ artifacts: { byArtifactId: () => ({ versions: { post } }) } }) }
+        });
+
+        const service = useGroupsService();
+        const data = { content: { content: "{}", contentType: "application/json" } } as any;
+        await service.testArtifactVersion("default", "my-artifact", data);
+
+        expect(post).toHaveBeenCalledTimes(1);
+        const [postedData, options] = post.mock.calls[0];
+        expect(postedData).toBe(data);
+        expect(options.queryParameters).toEqual({ dryRun: true });
+    });
+});

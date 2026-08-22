@@ -24,7 +24,9 @@ import {
     IfFeature,
     InvalidContentModal,
     MetaData,
-    RootPageHeader
+    RootPageHeader,
+    TestVersionModal,
+    TestVersionSuccessModal
 } from "@app/components";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { PleaseWaitModal } from "@apitomy/common-ui-components";
@@ -35,6 +37,7 @@ import { DownloadService, useDownloadService } from "@services/useDownloadServic
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import {
     ArtifactMetaData,
+    CreateVersion,
     Labels,
     RuleViolationProblemDetails,
     SearchedVersion,
@@ -73,6 +76,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
+    const [isTestVersionModalOpen, setIsTestVersionModalOpen] = useState(false);
+    const [isTestVersionSuccessModalOpen, setIsTestVersionSuccessModalOpen] = useState(false);
     const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
     const [isEditAgentCardModalOpen, setIsEditAgentCardModalOpen] = useState(false);
 
@@ -328,6 +333,23 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         setIsInvalidContentModalOpen(true);
     };
 
+    const doTestVersion = (data: CreateVersion): void => {
+        setIsTestVersionModalOpen(false);
+        pleaseWait(true, "Testing content, please wait...");
+        const gid: string | null = (groupId === "default") ? null : (groupId as string);
+        groups.testArtifactVersion(gid, artifactId as string, data).then(() => {
+            pleaseWait(false);
+            setIsTestVersionSuccessModalOpen(true);
+        }).catch(error => {
+            pleaseWait(false);
+            if (error && (error.status === 400 || error.status === 409)) {
+                handleInvalidContentError(error);
+            } else {
+                setPageError(toPageError(error, "Error testing content."));
+            }
+        });
+    };
+
     const doFinalizeDraft = (draft: Draft, dryRun?: boolean): void => {
         setIsConfirmFinalizeModalOpen(false);
         pleaseWait(true, "Finalizing draft, please wait...");
@@ -487,6 +509,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         onCreateDraftFrom={() => {
                             setIsCreateDraftFromModalOpen(true);
                         }}
+                        onTest={() => setIsTestVersionModalOpen(true)}
                         artifact={artifact}
                         version={artifactVersion}
                         codegenEnabled={true}
@@ -536,6 +559,16 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                     setInvalidContentError(undefined);
                     setIsInvalidContentModalOpen(false);
                 }} />
+            <TestVersionModal
+                artifactType={artifact?.artifactType as string}
+                isOpen={isTestVersionModalOpen}
+                onClose={() => setIsTestVersionModalOpen(false)}
+                onTest={doTestVersion}
+            />
+            <TestVersionSuccessModal
+                isOpen={isTestVersionSuccessModalOpen}
+                onClose={() => setIsTestVersionSuccessModalOpen(false)}
+            />
             <NewDraftFromModal
                 isOpen={isCreateDraftFromModalOpen}
                 onClose={() => setIsCreateDraftFromModalOpen(false)}

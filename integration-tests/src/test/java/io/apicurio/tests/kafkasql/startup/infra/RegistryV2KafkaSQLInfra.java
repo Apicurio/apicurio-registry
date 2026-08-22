@@ -1,9 +1,9 @@
-package io.apicurio.registry.utils.tests.infra;
+package io.apicurio.tests.kafkasql.startup.infra;
 
 import java.util.Map;
 
-import static io.apicurio.registry.utils.tests.infra.Configs.REGISTRY_V2_KAFKASQL_IMAGE;
-import static io.apicurio.registry.utils.tests.infra.Configs.REGISTRY_V2_KAFKASQL_IMAGE_DEFAULT;
+import static io.apicurio.tests.kafkasql.startup.infra.Configs.REGISTRY_V2_KAFKASQL_IMAGE;
+import static io.apicurio.tests.kafkasql.startup.infra.Configs.REGISTRY_V2_KAFKASQL_IMAGE_DEFAULT;
 
 public final class RegistryV2KafkaSQLInfra extends AbstractRegistryInfra {
 

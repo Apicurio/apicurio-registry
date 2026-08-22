@@ -18,6 +18,45 @@ permissions:
   contents: read
 
 jobs:
+  # Fast UI check for PR iteration: install, lint, test, build — no docker image.
+  # Runs on every PR push alongside Quick Verify so UI breakage is caught early.
+  build-ui-fast:
+    name: Build UI (fast)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Lint
+        working-directory: ui
+        run: npm run lint
+
+      - name: Generate TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
+      - name: Test
+        working-directory: ui
+        run: npm run test
+
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
   build-java:
     name: Build Java Application (no tests)
     runs-on: ubuntu-latest

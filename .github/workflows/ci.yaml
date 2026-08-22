@@ -128,6 +128,18 @@ jobs:
     name: Decide
     uses: ./.github/workflows/verify-decide.yaml
 
+  # Fast UI build for PR iteration: install, lint, test, build — no docker image.
+  # Runs on every PR push alongside Quick Verify so UI breakage is caught early.
+  # The full UI build (with the docker image) runs in the Build job at
+  # ready-to-merge via verify-build.yaml's build-ui.
+  build-ui-fast:
+    name: Build UI (fast)
+    # PR iteration only: not on push (the full Build covers main), not on label
+    # events (the synchronize/opened run on the same SHA already ran it).
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
+    # verify-build.yaml's inputs all have defaults; the fast job needs no overrides.
+    uses: ./.github/workflows/verify-build.yaml
+
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-latest

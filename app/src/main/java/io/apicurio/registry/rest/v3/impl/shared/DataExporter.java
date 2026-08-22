@@ -46,8 +46,8 @@ public class DataExporter {
                     try {
                         writer.writeEntity(entity);
                     } catch (Exception e) {
-                        log.error("Error writing entity during export", e);
-                        throw new RuntimeException("Error writing entity during export", e);
+                        log.error("Error writing entity", e);
+                        throw new RuntimeException(e);
                     }
                     return null;
                 });

@@ -82,13 +82,13 @@ jobs:
           EVENT: ${{ github.event_name }}
           REPO: ${{ github.repository }}
         run: |
-          # The sibling workflows trigger on the same events as this one, so a
-          # run for this SHA must appear for each of them. Poll until all are
-          # completed; fail fast on the first failure.
+          # The sibling workflows trigger on the same PR events as this one, plus
+          # workflow_dispatch for the orchestrator-driven single-build chain — match
+          # by head SHA and name regardless of event.
           REQUIRED="CI|Integration Tests|Extra Tests"
 
           for i in $(seq 1 130); do
-            LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&event=$EVENT&per_page=100" \
+            LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
               --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")
 
             echo "Sibling runs (attempt $i):"

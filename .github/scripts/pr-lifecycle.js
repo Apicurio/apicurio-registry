@@ -303,9 +303,11 @@ const FULL_SUITE_WORKFLOW_FILES = ['ci.yaml', 'integration-tests.yaml', 'extras.
 //   { status: 'pending' }  — some workflow has no run yet or is still running
 //   { status: 'success' }  — every workflow's latest run succeeded
 //   { status: 'failure' }  — at least one failed/was cancelled (fail fast)
-async function getFullSuiteResult(github, owner, repo, headSha, eventName, core) {
+async function getFullSuiteResult(github, owner, repo, headSha, core) {
+  // No event filter: the downstream workflows run as workflow_dispatch (orchestrator
+  // single-build chain) while CI/Verify run as pull_request — aggregate all by SHA+name.
   const { data } = await github.rest.actions.listWorkflowRunsForRepo({
-    owner, repo, head_sha: headSha, event: eventName, per_page: 100,
+    owner, repo, head_sha: headSha, per_page: 100,
   });
   const latest = new Map();
   for (const run of data.workflow_runs) {
@@ -330,21 +332,24 @@ async function getFullSuiteResult(github, owner, repo, headSha, eventName, core)
   return { status: 'success' };
 }
 
-async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
+async function retriggerVerify(api, pr, core, { waitForRun = false, force = false } = {}) {
   // The workflow that matters depends on lifecycle state: the fast gate
   // (ci.yaml) during iteration, all four full-suite workflows at
   // ready-to-merge (verify.yaml was split into per-phase workflows).
+  // force=true re-runs even green workflows: promotion to ready-to-merge is a
+  // bot-applied label (no labeled event fires), so CI/Verify must re-run for
+  // Decide to see the new state and start the full tier.
   if (getLifecycleState(pr) === LABELS.READY_TO_MERGE) {
     let found = false;
     for (const workflow of FULL_SUITE_WORKFLOW_FILES) {
-      found = (await retriggerWorkflowRun(api, pr, core, workflow, { waitForRun })) || found;
+      found = (await retriggerWorkflowRun(api, pr, core, workflow, { waitForRun, force })) || found;
     }
     if (!found) {
       await triggerViaBranchUpdate(api, pr, core, 'the full suite');
     }
     return;
   }
-  const found = await retriggerWorkflowRun(api, pr, core, 'ci.yaml', { waitForRun });
+  const found = await retriggerWorkflowRun(api, pr, core, 'ci.yaml', { waitForRun, force });
   if (!found) {
     await triggerViaBranchUpdate(api, pr, core, 'ci.yaml');
   }
@@ -373,7 +378,7 @@ async function triggerViaBranchUpdate(api, pr, core, workflow) {
 
 // Retriggers the latest run of a single workflow file for the PR's head SHA.
 // Returns true when a run existed (regardless of what was done with it).
-async function retriggerWorkflowRun(api, pr, core, workflow, { waitForRun = false } = {}) {
+async function retriggerWorkflowRun(api, pr, core, workflow, { waitForRun = false, force = false } = {}) {
   let run = null;
 
   if (waitForRun) {
@@ -404,8 +409,9 @@ async function retriggerWorkflowRun(api, pr, core, workflow, { waitForRun = fals
     return true;
   }
 
-  // Only re-run workflows that actually need it; a green sibling is left alone.
-  if (run.conclusion === 'success') {
+  // Only re-run workflows that actually need it; a green sibling is left alone
+  // unless forced (promotion re-evaluation — Decide must see the new labels).
+  if (run.conclusion === 'success' && !force) {
     core.info(`PR #${pr.number} ${workflow} run ${run.id} already green, not re-triggering`);
     return true;
   }
@@ -592,7 +598,7 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
     // labeled-event workflow run — kick the suite off explicitly. The PR
     // object held by callers is stale, so refetch for correct routing.
     const transitionedPr = await api.getPr(pr.number);
-    await retriggerVerify(api, transitionedPr, core);
+    await retriggerVerify(api, transitionedPr, core, { force: true });
 
     if (hasLabel(pr, LABELS.AUTO_MERGE)) {
       core.info(`PR #${pr.number} auto-merge enabled, will merge`);
@@ -1307,19 +1313,18 @@ async function handleLabelChange({ github, context, core }) {
 // Test Result Handler
 // ---------------------------------------------------------------------------
 
-// True when the PR should run the full suite immediately (not waiting for a maintainer
-// to apply ready-to-merge): auto-accepted authors get orchestrator/review-skipped at open,
-// so their PRs are full-suite eligible from ready-for-review.
-function isFullSuiteState(pr, state) {
-  return state === LABELS.READY_TO_MERGE
-      || (state === LABELS.READY_FOR_REVIEW && hasLabel(pr, LABELS.REVIEW_SKIPPED));
+// True when the PR's full suite should run: at ready-to-merge (produced by a maintainer
+// review or a maintainer /skip-review). review-skipped alone does not run the full suite.
+function isFullSuiteState(state) {
+  return state === LABELS.READY_TO_MERGE;
 }
 
 // Dispatches the downstream workflows that consume the shared Build artifact from the
 // CI workflow, so they do not build again. Runs under pull_request_target with the
-// orchestrator's token.
+// orchestrator's token. The ref is refs/pull/<n>/head, which exists on the base repo
+// for every PR (fork or not) — a fork's head branch name does not resolve there.
 async function dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core) {
-  const ref = pr.head.ref;
+  const ref = `refs/pull/${pr.number}/head`;
   for (const workflow of ['integration-tests.yaml', 'extras.yaml']) {
     try {
       await api.dispatchWorkflow(workflow, ref, { 'pr-number': String(pr.number) });
@@ -1332,8 +1337,11 @@ async function dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun
 
 async function handleTestResult({ github, context, core }) {
   const workflowRun = context.payload.workflow_run;
-  if (workflowRun.event !== 'pull_request') {
-    core.info('Workflow run is not from a PR event, skipping');
+  // The full-suite downstream workflows (Integration Tests, Extra Tests) are
+  // dispatched by this orchestrator via workflow_dispatch (single build per SHA);
+  // those runs carry event=workflow_dispatch and must not be filtered out.
+  if (workflowRun.event !== 'pull_request' && workflowRun.event !== 'workflow_dispatch') {
+    core.info('Workflow run is not from a PR or dispatch event, skipping');
     return;
   }
 
@@ -1369,6 +1377,15 @@ async function handleTestResult({ github, context, core }) {
     });
     prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
     if (!prRefs.length) {
+      // Dispatched runs (single-build chain) run on refs/pull/<n>/head, which the
+      // head-branch filter cannot resolve — fall back to scanning recent open PRs
+      // by head SHA.
+      const { data: openPrs } = await github.rest.pulls.list({
+        owner, repo, state: 'open', per_page: 50,
+      });
+      prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
+    }
+    if (!prRefs.length) {
       core.info(`No open PR found for branch ${workflowRun.head_branch} / SHA ${workflowRun.head_sha}, skipping`);
       return;
     }
@@ -1393,7 +1410,7 @@ async function handleTestResult({ github, context, core }) {
         core.info(`PR #${pr.number} merge-rebase SHA mismatch, skipping`);
         continue;
       }
-      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, workflowRun.event, core);
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
       if (suite.status === 'pending') {
         core.info(`PR #${pr.number} merge-rebase: waiting for other full-suite workflows`);
         continue;
@@ -1431,7 +1448,7 @@ async function handleTestResult({ github, context, core }) {
       // A late CI completion can belong to a full-tier run that raced a
       // failure revert. If any full-suite workflow already failed for this
       // SHA, the suite owns the result — do not promote the PR.
-      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, workflowRun.event, core);
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
       if (suite.status === 'failure') {
         core.info(`PR #${pr.number} full-suite failure recorded for this SHA, skipping fast-gate result`);
         continue;
@@ -1485,7 +1502,7 @@ async function handleTestResult({ github, context, core }) {
       // Full suite at ready-to-merge: the pre-merge gate. All full-suite
       // workflows (CI, Integration Tests, Extra Tests, Verify) must be green
       // for this SHA; a failure or cancellation in any of them fails the suite.
-      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, workflowRun.event, core);
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
       if (suite.status === 'pending') {
         core.info(`PR #${pr.number} waiting for other full-suite workflows`);
         continue;
@@ -1536,7 +1553,7 @@ async function handleTestResult({ github, context, core }) {
     // its artifact instead of letting them build again. Runs under
     // pull_request_target with the orchestrator's token (ci.yaml's own GITHUB_TOKEN
     // cannot dispatch workflows from a pull_request trigger).
-    if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(pr, state)) {
+    if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(state)) {
       await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
     }
   }

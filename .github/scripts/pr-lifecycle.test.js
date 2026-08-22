@@ -208,6 +208,28 @@ test('Verify failure at ready-to-merge reverts to ready-for-review', async () =>
   assert.equal(w.calls.merges.length, 0);
 });
 
+test('dispatched (workflow_dispatch) IT run at ready-to-merge counts towards the suite', async () => {
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite() });
+  const ctx = runPayload('Integration Tests', 'success');
+  ctx.payload.workflow_run.event = 'workflow_dispatch';
+  ctx.payload.workflow_run.head_branch = 'refs/pull/42/head';
+  await lifecycle.handleTestResult({ github: w.github, context: ctx, core: w.core });
+  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
+test('dispatched run resolves its PR via open-PR head-SHA scan (refs/pull/<n>/head)', async () => {
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite() });
+  // head-branch filter misses (refs/pull/...), SHA scan finds it
+  w.github.rest.pulls.list = async (args) => args.head
+    ? { data: [] }
+    : { data: [{ number: 42, head: { sha: SHA } }] };
+  const ctx = runPayload('Extra Tests', 'success');
+  ctx.payload.workflow_run.event = 'workflow_dispatch';
+  ctx.payload.workflow_run.head_branch = 'refs/pull/42/head';
+  await lifecycle.handleTestResult({ github: w.github, context: ctx, core: w.core });
+  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
 test('Verify result with stale SHA is ignored', async () => {
   const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true });
   const ctx = runPayload('Verify', 'success');

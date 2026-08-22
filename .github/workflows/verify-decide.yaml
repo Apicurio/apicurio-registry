@@ -125,7 +125,12 @@ jobs:
           # and pushes to main.
           run_tests=false
 
-          if [ "$EVENT" = "push" ]; then
+          # workflow_dispatch: the orchestrator only dispatches the downstream
+          # workflows (single-build chain) for PRs whose full suite should run —
+          # the dispatch itself is the scope signal; no label evaluation here.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            run_tests=true
+          elif [ "$EVENT" = "push" ]; then
             run_tests=true
           else
             # Non-lifecycle label events: skip the workflow run entirely.

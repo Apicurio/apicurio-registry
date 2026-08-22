@@ -178,10 +178,10 @@ jobs:
             else
               # Two-tier CI: PR iteration is covered by the fast gate in ci.yaml
               # (<= 5 min, compile + smoke). The full suite here is the
-              # pre-merge gate. Trusted authors (orchestrator/review-skipped,
-              # applied at PR open for auto-accepted authors) run it
-              # immediately; everyone else needs lifecycle/ready-to-merge.
-              if has_label "lifecycle/ready-to-merge" || has_label "orchestrator/review-skipped"; then
+              # pre-merge gate and only runs once a maintainer marks the PR
+              # lifecycle/ready-to-merge. lifecycle/ready-for-review no longer
+              # triggers full CI.
+              if has_label "lifecycle/ready-to-merge"; then
                 run_tests=true
               else
                 # lifecycle/new, lifecycle/ready-for-review or no lifecycle label

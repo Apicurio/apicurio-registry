@@ -61,7 +61,7 @@ public class Acr {
 
     @Option(
             names = {"--verbose"},
-            description = "Enable verbose output.",
+            description = "Enable verbose output, including the raw request and response of every Registry call.",
             scope = INHERIT
     )
     @Getter

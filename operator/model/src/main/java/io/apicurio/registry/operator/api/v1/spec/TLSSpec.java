@@ -11,7 +11,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "insecureRequests", "truststoreSecretRef", "truststorePasswordSecretRef", "keystoreSecretRef", "keystorePasswordSecretRef" })
+@JsonPropertyOrder({ "insecureRequests", "expirationWarningDays", "truststoreSecretRef", "truststorePasswordSecretRef", "keystoreSecretRef", "keystorePasswordSecretRef" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -80,4 +80,15 @@ public class TLSSpec {
             Key `ca.password` is assumed by default.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private SecretKeyRef keystorePasswordSecretRef;
+
+    /**
+     * Number of days before a TLS certificate expires to start emitting warning events and updating the
+     * CertificateExpiring status condition.
+     */
+    @JsonProperty("expirationWarningDays")
+    @JsonPropertyDescription("""
+            Number of days before a TLS certificate expires to start emitting warning events \
+            and updating the CertificateExpiring status condition. Defaults to 30 days.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Integer expirationWarningDays;
 }

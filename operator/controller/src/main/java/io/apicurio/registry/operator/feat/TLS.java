@@ -2,9 +2,12 @@ package io.apicurio.registry.operator.feat;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
+import io.apicurio.registry.operator.api.v1.spec.ClientAuth;
 import io.apicurio.registry.operator.api.v1.spec.InsecureRequests;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
+import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.apicurio.registry.operator.utils.SecretKeyRefTool;
 import io.fabric8.kubernetes.api.model.EnvVar;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
@@ -13,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_HTTP_INSECURE_REQUESTS;
+import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_HTTP_SSL_CLIENT_AUTH;
 import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_KEY_STORE_P12_PASSWORD;
 import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_KEY_STORE_P12_PATH;
 import static io.apicurio.registry.operator.EnvironmentVariables.QUARKUS_TLS_TRUST_STORE_P12_PASSWORD;
@@ -64,6 +68,19 @@ public class TLS {
             addEnvVar(env, QUARKUS_TLS_KEY_STORE_P12_PATH, keystore.getSecretVolumeKeyPath());
             keystorePassword.applySecretEnvVar(env, QUARKUS_TLS_KEY_STORE_P12_PASSWORD);
         }
+
+        getTlsSpec(primary).map(TLSSpec::getClientAuth).ifPresent(clientAuth -> {
+            addEnvVar(env, QUARKUS_HTTP_SSL_CLIENT_AUTH, clientAuth.getValue());
+            if ((clientAuth == ClientAuth.REQUEST || clientAuth == ClientAuth.REQUIRED)
+                    && !(truststore.isValid() && truststorePassword.isValid())) {
+                StatusManager.get(primary).getConditionManager(ValidationErrorConditionManager.class)
+                        .recordError("""
+                                Field spec.app.tls.clientAuth is '%s', which requires \
+                                spec.app.tls.truststoreSecretRef and spec.app.tls.truststorePasswordSecretRef \
+                                so the server can verify client certificates.""",
+                                clientAuth.getValue());
+            }
+        });
     }
 
     private static Optional<TLSSpec> getTlsSpec(ApicurioRegistry3 primary) {

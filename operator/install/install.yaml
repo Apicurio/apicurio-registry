@@ -3906,9 +3906,17 @@ spec:
                         - enabled
                         - redirect
                         type: string
+                      clientAuth:
+                        description: |
+                          Whether TLS client certificates are requested or required (mTLS). `none` does not request a client certificate. `request` asks for a client certificate but still accepts connections without one. `required` rejects connections that do not present a valid client certificate. Requires truststoreSecretRef (and password) so the server can verify client certificates.
+                        enum:
+                        - none
+                        - request
+                        - required
+                        type: string
                       keystorePasswordSecretRef:
                         description: Name of a Secret that contains the TLS keystore
-                          password. Key `ca.password` is assumed by default.
+                          password. Key `user.password` is assumed by default.
                         properties:
                           key:
                             description: Name of the key in the referenced Secret
@@ -3921,7 +3929,7 @@ spec:
                         type: object
                       keystoreSecretRef:
                         description: Name of a Secret that contains the TLS keystore
-                          (in PKCS12 format). Key `ca.p12` is assumed by default.
+                          (in PKCS12 format). Key `user.p12` is assumed by default.
                         properties:
                           key:
                             description: Name of the key in the referenced Secret

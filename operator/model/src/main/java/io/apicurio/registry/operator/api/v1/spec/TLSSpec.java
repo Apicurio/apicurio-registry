@@ -11,7 +11,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @JsonDeserialize(using = None.class)
 @JsonInclude(Include.NON_NULL)
-@JsonPropertyOrder({ "insecureRequests", "truststoreSecretRef", "truststorePasswordSecretRef", "keystoreSecretRef", "keystorePasswordSecretRef" })
+@JsonPropertyOrder({ "insecureRequests", "clientAuth", "truststoreSecretRef", "truststorePasswordSecretRef", "keystoreSecretRef", "keystorePasswordSecretRef" })
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
 @SuperBuilder(toBuilder = true)
@@ -38,6 +38,24 @@ public class TLSSpec {
     private InsecureRequests insecureRequests;
 
     /**
+     * Whether TLS client certificates are requested or required (mTLS).
+     * {@code none} does not request a client certificate.
+     * {@code request} asks for a client certificate but still accepts connections without one.
+     * {@code required} rejects connections that do not present a valid client certificate.
+     * Requires {@code truststoreSecretRef} (and password) so the server can verify client certificates.
+     */
+    @JsonProperty("clientAuth")
+    @JsonPropertyDescription("""
+            Whether TLS client certificates are requested or required (mTLS). \
+            `none` does not request a client certificate. \
+            `request` asks for a client certificate but still accepts connections without one. \
+            `required` rejects connections that do not present a valid client certificate. \
+            Requires truststoreSecretRef (and password) so the server can verify client certificates.
+            """)
+    @JsonSetter(nulls = Nulls.SKIP)
+    private ClientAuth clientAuth;
+
+    /**
      * Name of a Secret that contains the TLS truststore (in PKCS12 format). Key <code>ca.p12</code> is
      * assumed by default.
      */
@@ -60,24 +78,24 @@ public class TLSSpec {
     private SecretKeyRef truststorePasswordSecretRef;
 
     /**
-     * Name of a Secret that contains the TLS keystore (in PKCS12 format). Key <code>ca.p12</code> is
+     * Name of a Secret that contains the TLS keystore (in PKCS12 format). Key <code>user.p12</code> is
      * assumed by default.
      */
     @JsonProperty("keystoreSecretRef")
     @JsonPropertyDescription("""
             Name of a Secret that contains the TLS keystore (in PKCS12 format). \
-            Key `ca.p12` is assumed by default.""")
+            Key `user.p12` is assumed by default.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private SecretKeyRef keystoreSecretRef;
 
     /**
-     * Name of a Secret that contains the TLS keystore password. Key <code>ca.password</code> is assumed by
+     * Name of a Secret that contains the TLS keystore password. Key <code>user.password</code> is assumed by
      * default.
      */
     @JsonProperty("keystorePasswordSecretRef")
     @JsonPropertyDescription("""
             Name of a Secret that contains the TLS keystore password. \
-            Key `ca.password` is assumed by default.""")
+            Key `user.password` is assumed by default.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private SecretKeyRef keystorePasswordSecretRef;
 }

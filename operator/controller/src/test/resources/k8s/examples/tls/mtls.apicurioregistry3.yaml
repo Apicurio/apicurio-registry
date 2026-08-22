@@ -1,0 +1,29 @@
+# IMPORTANT: This example CR uses the in-memory storage for simplicity.
+# This storage type is not supported because it is not suitable for production deployments.
+# Please refer to the PostgreSQL and KafkaSQL examples
+# for information on how to configure a production-ready storage.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: mtls
+spec:
+  app:
+    ingress:
+      host: simple-app.apps.cluster.example
+    tls:
+      insecureRequests: disabled
+      clientAuth: required
+      truststoreSecretRef:
+        name: truststore
+        key: truststore
+      truststorePasswordSecretRef:
+        name: truststore
+        key: password
+      keystoreSecretRef:
+        name: keystore
+        key: keystore
+      keystorePasswordSecretRef:
+        name: keystore
+        key: password
+  ui:
+    enabled: false

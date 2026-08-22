@@ -33,14 +33,23 @@ minikube start
 
 ### 2. Install Apicurio Registry Operator
 
+Install the **3.x** operator from this repository (the standalone `apicurio-registry-operator` repo is Registry 2.x and does not serve `ApicurioRegistry3`).
+
 ```bash
-kubectl apply -f https://github.com/Apicurio/apicurio-registry-operator/releases/latest/download/install.yaml
+export NAMESPACE=apicurio-registry
+kubectl create namespace "$NAMESPACE"
+export VERSION=main   # or a released tag such as 3.3.1
+curl -sSL "https://raw.githubusercontent.com/Apicurio/apicurio-registry/$VERSION/operator/install/install.yaml" \
+  | sed "s/PLACEHOLDER_NAMESPACE/$NAMESPACE/g" \
+  | kubectl -n "$NAMESPACE" apply -f -
 ```
 
 Wait for the operator to be ready:
 
 ```bash
-kubectl wait --for=condition=ready pod -l name=apicurio-registry-operator -n apicurio-registry-operator-namespace --timeout=300s
+kubectl wait --for=condition=ready pod \
+  -l app.kubernetes.io/name=apicurio-registry-operator \
+  -n "$NAMESPACE" --timeout=300s
 ```
 
 ### 3. Deploy the Registry with mTLS
@@ -64,7 +73,7 @@ This script will:
 In a separate terminal, forward the registry port to localhost:
 
 ```bash
-kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:8443
+kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:443
 ```
 
 ### 5. Run the Client Demo
@@ -120,20 +129,35 @@ kubectl apply -f k8s/apicurio-registry-mtls.yaml
 kubectl get pods -n apicurio-mtls
 
 # View logs
-kubectl logs -n apicurio-mtls -l app.kubernetes.io/name=apicurio-registry-mtls -f
+kubectl logs -n apicurio-mtls -l app=apicurio-registry-mtls,app.kubernetes.io/component=app -f
 ```
 
 ## How It Works
 
 ### Server Configuration
 
-The registry is configured with the following Quarkus properties (via environment variables):
+The registry is configured through `spec.app.tls` on the `ApicurioRegistry3` CR. The operator then sets Quarkus TLS env vars, exposes HTTPS on the Service (`443 → 8443`), allows 8443 on the NetworkPolicy, and uses HTTPS health probes on the management port:
 
 ```yaml
-QUARKUS_HTTP_SSL_CLIENT_AUTH: "required"  # Require client certificates
-QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_FILE: "/deployments/certs/server-keystore.p12"
-QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_FILE: "/deployments/certs/server-truststore.p12"
-QUARKUS_HTTP_INSECURE_REQUESTS: "disabled"  # Force HTTPS only
+spec:
+  app:
+    tls:
+      insecureRequests: disabled
+      clientAuth: required
+      keystoreSecretRef:
+        name: registry-mtls-certs
+        key: server-keystore.p12
+      keystorePasswordSecretRef:
+        name: registry-mtls-certs
+        key: keystore-password
+      truststoreSecretRef:
+        name: registry-mtls-certs
+        key: server-truststore.p12
+      truststorePasswordSecretRef:
+        name: registry-mtls-certs
+        key: truststore-password
+  ui:
+    enabled: false
 ```
 
 ### Client Configuration
@@ -179,7 +203,7 @@ curl -v --cert client-cert-and-key.pem \
 
 **Solution**: Ensure port forwarding is active:
 ```bash
-kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:8443
+kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:443
 ```
 
 ### Certificate Errors
@@ -211,7 +235,7 @@ kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 844
 **Solutions**:
 1. Check logs:
    ```bash
-   kubectl logs -n apicurio-mtls -l app.kubernetes.io/name=apicurio-registry-mtls
+   kubectl logs -n apicurio-mtls -l app=apicurio-registry-mtls,app.kubernetes.io/component=app
    ```
 
 2. Verify secrets exist:
@@ -221,7 +245,7 @@ kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 844
 
 3. Check operator status:
    ```bash
-   kubectl get pods -n apicurio-registry-operator-namespace
+   kubectl get pods -l app.kubernetes.io/name=apicurio-registry-operator
    ```
 
 ### Client Connection Fails
@@ -297,7 +321,7 @@ This example is intended for **development and testing only**. For production us
 
 - [Quarkus Mutual TLS Guide](https://quarkus.io/blog/quarkus-mutual-tls/)
 - [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/)
-- [Apicurio Registry Operator](https://github.com/Apicurio/apicurio-registry-operator)
+- [Apicurio Registry Operator](https://github.com/Apicurio/apicurio-registry/tree/main/operator)
 
 ## Issue Reference
 

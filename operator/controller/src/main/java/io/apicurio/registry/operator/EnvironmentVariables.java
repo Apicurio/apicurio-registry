@@ -8,6 +8,7 @@ public class EnvironmentVariables {
     public static final String QUARKUS_HTTP_CORS_ORIGINS = "QUARKUS_HTTP_CORS_ORIGINS";
 
     public static final String  QUARKUS_HTTP_INSECURE_REQUESTS = "QUARKUS_HTTP_INSECURE_REQUESTS";
+    public static final String QUARKUS_HTTP_SSL_CLIENT_AUTH = "QUARKUS_HTTP_SSL_CLIENT_AUTH";
     public static final String QUARKUS_TLS_KEY_STORE_P12_PATH = "QUARKUS_TLS_KEY_STORE_P12_PATH";
     public static final String QUARKUS_TLS_KEY_STORE_P12_PASSWORD = "QUARKUS_TLS_KEY_STORE_P12_PASSWORD";
     public static final String QUARKUS_TLS_TRUST_STORE_P12_PATH = "QUARKUS_TLS_TRUST_STORE_P12_PATH";

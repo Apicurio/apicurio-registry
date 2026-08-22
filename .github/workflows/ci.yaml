@@ -28,6 +28,9 @@ concurrency:
 
 permissions:
   contents: read
+  # actions:write lets the dispatch-integration-and-extras job trigger the
+  # downstream workflows that consume this workflow's Build artifact.
+  actions: write
 
 jobs:
   # ==========================================================================
@@ -165,6 +168,34 @@ jobs:
     needs: [decide, lint-and-validate]
     if: needs.decide.outputs.run-build == 'true'
     uses: ./.github/workflows/verify-build.yaml
+
+  # After the shared Build job completes, trigger the downstream workflows that
+  # consume its artifact instead of building again (single build per SHA).
+  # Verify.yaml keeps its own Decide+operator; Integration Tests and Extra Tests
+  # are dispatched on this workflow's head SHA.
+  dispatch-integration-and-extras:
+    name: Dispatch Integration and Extra Tests
+    runs-on: ubuntu-latest
+    needs: [decide, build]
+    if: needs.build.result == 'success' && (needs.decide.outputs.run-integration == 'true' || needs.decide.outputs.run-extras == 'true')
+    steps:
+      - name: Dispatch Integration Tests
+        if: needs.decide.outputs.run-integration == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/workflows/integration-tests.yaml/dispatches \
+            -f ref=${{ github.event.pull_request.head.ref || github.ref_name }} \
+            -f "inputs[pr-number]=${{ github.event.pull_request.number || '' }}" || echo "::warning::Integration Tests dispatch failed"
+
+      - name: Dispatch Extra Tests
+        if: needs.decide.outputs.run-extras == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/actions/workflows/extras.yaml/dispatches \
+            -f ref=${{ github.event.pull_request.head.ref || github.ref_name }} \
+            -f "inputs[pr-number]=${{ github.event.pull_request.number || '' }}" || echo "::warning::Extra Tests dispatch failed"
 
   unit-tests:
     name: Unit Tests

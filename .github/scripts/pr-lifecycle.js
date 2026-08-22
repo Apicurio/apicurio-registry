@@ -265,8 +265,13 @@ function createApi(github, owner, repo) {
       });
     },
 
-    // GitHub represents runs awaiting fork PR approval as
-    // status=completed, conclusion=action_required. The API's status
+    dispatchWorkflow: async (workflow, ref, inputs = {}) => {
+      await github.rest.actions.createWorkflowDispatch({
+        owner, repo, workflow_id: workflow, ref, inputs,
+      });
+    },
+
+    // GitHub represents runs awaiting fork PR approval as    // status=completed, conclusion=action_required. The API's status
     // query parameter accepts 'action_required' as a filter value even
     // though the run object itself stores it in the conclusion field.
     findPendingApprovalVerifyRuns: async (headSha, workflow = 'verify.yaml') => {

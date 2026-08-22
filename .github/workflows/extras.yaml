@@ -1,10 +1,9 @@
 name: Extra Tests
 
 # Top-level workflow for additional checks that do not fit the unit or integration
-# tiers (currently: the examples HTTP-caching test). Split out of verify.yaml so
-# each phase is independently visible and retryable. The Decide job gates real work
-# on lifecycle/ready-to-merge (and pushes to main); PR-iteration feedback is owned
-# by the Quick Verify fast gate in ci.yaml.
+# tiers (currently: the examples HTTP-caching test). Triggered by workflow_dispatch
+# from the PR lifecycle orchestrator when the shared Build job in ci.yaml completes
+# (single build per SHA), and by push to main.
 #
 # Merge gating: the Verification Gate in verify.yaml waits for this workflow's run
 # on the same SHA; the orchestrator (pr-lifecycle) aggregates all full-suite
@@ -13,9 +12,12 @@ name: Extra Tests
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, reopened, synchronize, labeled]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: PR number this run belongs to (informational)
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,7 +34,8 @@ jobs:
   build:
     name: Build
     needs: [decide]
-    if: needs.decide.outputs.run-extras == 'true'
+    # Only push events build here; PR runs reuse ci.yaml's build (single producer).
+    if: github.event_name == 'push'
     uses: ./.github/workflows/verify-build.yaml
 
   extras:

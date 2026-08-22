@@ -1,9 +1,8 @@
 name: Integration Tests
 
-# Top-level workflow for the integration-test matrix. Split out of verify.yaml so
-# each phase is independently visible and retryable. The Decide job gates real work
-# on lifecycle/ready-to-merge (and pushes to main); PR-iteration feedback is owned
-# by the Quick Verify fast gate in ci.yaml.
+# Top-level workflow for the integration-test matrix. Triggered by workflow_dispatch
+# from the PR lifecycle orchestrator when the shared Build job in ci.yaml completes
+# (single build per SHA — no duplicate builds across workflows), and by push to main.
 #
 # Merge gating: the Verification Gate in verify.yaml waits for this workflow's run
 # on the same SHA; the orchestrator (pr-lifecycle) aggregates all full-suite
@@ -12,9 +11,12 @@ name: Integration Tests
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, reopened, synchronize, labeled]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: PR number this run belongs to (informational)
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,7 +33,8 @@ jobs:
   build:
     name: Build
     needs: [decide]
-    if: needs.decide.outputs.run-integration == 'true'
+    # Only push events build here; PR runs reuse ci.yaml's build (single producer).
+    if: github.event_name == 'push'
     uses: ./.github/workflows/verify-build.yaml
 
   integration-tests:

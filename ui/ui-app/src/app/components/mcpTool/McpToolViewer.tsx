@@ -139,8 +139,8 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                                                     )}
                                                 </Td>
                                                 <Td dataLabel="Default">{param.default !== undefined ? (
-                                                        <code>{String(param.default)}</code>
-                                                    ) : "-"}</Td>
+                                                    <code>{String(param.default)}</code>
+                                                ) : "-"}</Td>
                                                 <Td dataLabel="Allowed Values">
                                                     {param.enum && Array.isArray(param.enum) && param.enum.length > 0 ? (
                                                         <LabelGroup>
@@ -199,8 +199,8 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                                                     )}
                                                 </Td>
                                                 <Td dataLabel="Default">{field.default !== undefined ? (
-                                                        <code>{String(field.default)}</code>
-                                                    ) : "-"}</Td>
+                                                    <code>{String(field.default)}</code>
+                                                ) : "-"}</Td>
                                                 <Td dataLabel="Allowed Values">
                                                     {field.enum && Array.isArray(field.enum) && field.enum.length > 0 ? (
                                                         <LabelGroup>

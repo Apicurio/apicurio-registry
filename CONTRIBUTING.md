@@ -7,6 +7,7 @@ But first, read this page (including the small print at the end).
 
 * [Legal](#legal)
 * [Reporting an issue](#reporting-an-issue)
+* [Getting started and where to ask](#getting-started-and-where-to-ask)
 * [Before you contribute](#before-you-contribute)
   + [Code reviews](#code-reviews)
   + [Coding Guidelines](#coding-guidelines)
@@ -31,6 +32,18 @@ This project uses GitHub issues to manage the issues. Open an issue directly in 
 
 If you believe you found a bug, and it's likely possible, please indicate a way to reproduce it, what you are seeing and what you would expect to see.
 Don't forget to indicate your Apicurio Registry, Java, and Maven versions.
+
+## Getting started and where to ask
+
+New here? This section points you to the right place for whatever you need.
+
+**Not sure where a question belongs?** [SUPPORT.md](SUPPORT.md) maps each kind of question or report to the channel that will answer it fastest. In short: usage and "how do I" questions go to the [#apicurio channel on CNCF Slack](https://cloud-native.slack.com/archives/C0BDWTC1DTM) or [GitHub Discussions](https://github.com/Apicurio/apicurio-registry/discussions/categories/q-a), bugs and concrete feature requests go to [GitHub issues](https://github.com/Apicurio/apicurio-registry/issues/new/choose), and security reports follow [SECURITY.md](SECURITY.md).
+
+**Looking for a first issue?** Browse issues labelled [`good first issue`](https://github.com/Apicurio/apicurio-registry/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [`help wanted`](https://github.com/Apicurio/apicurio-registry/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22). When you find one, follow [Claiming an issue](#claiming-an-issue) to self-assign before you start, and ask in the issue if anything is unclear.
+
+**Building and running the project** is covered in [DEVELOPING.md](DEVELOPING.md): prerequisites, build options, running the server, running tests, and IDE setup.
+
+**New to open source, or joining through a mentorship program?** You are very welcome. Apicurio Registry is a CNCF Sandbox project and takes part in programs such as [LFX Mentorship](https://mentorship.lfx.linuxfoundation.org/) and [CNCF Mentoring](https://github.com/cncf/mentoring); general guidance for new CNCF contributors is collected at [contribute.cncf.io](https://contribute.cncf.io/). The guidelines on this page apply equally to mentees and first-time contributors. When in doubt, just ask in the issue or on Slack.
 
 ## Before you contribute
 

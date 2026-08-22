@@ -1,0 +1,40 @@
+name: Issue Monitoring
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Log actions instead of calling the GitHub API
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    # Offset chosen to avoid clashing with pr-lifecycle.yml's '17 */6 * * *' schedule.
+    - cron: '23 4 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: issue-monitoring
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Scan Issues
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/issue-monitoring.yml > .github/issue-monitoring.json
+
+      - name: Scan assigned and unassigned issues
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/issue-monitoring.js');
+            await handler.handleScan({ github, context, core });

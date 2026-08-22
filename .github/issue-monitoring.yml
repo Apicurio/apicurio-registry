@@ -1,0 +1,51 @@
+# NOTE: duplicated in pr-lifecycle.yml — keep in sync manually until
+# these are extracted to a shared .github/maintainers.yml (see PR #9085
+# review discussion)
+maintainers:
+  - EricWittmann
+  - NikishaPatil
+  - andreaTP
+  - carlesarnal
+  - jsenko
+  - paoloantinori
+  - vandanayadav7
+  - eameh
+
+# Assigned issues with no linked/referenced PR are considered stale after
+# days_until_ping, and unassigned entirely after days_until_unassign (total
+# days since assignment, not additional days past the ping). The clock
+# resets whenever the assignee comments on the issue.
+assigned_stale:
+  days_until_ping: 14
+  days_until_unassign: 21
+  stale_label: lifecycle/stale-assigned
+  ping_message: |
+    {assignee} This issue has been assigned to you for {days} days with no
+    linked or referenced pull request. Please push an update — link a PR,
+    or leave a comment describing your progress — to keep it assigned.
+
+    If you're no longer working on this, let us know and we'll free it up
+    for someone else. Otherwise, it will be automatically unassigned in
+    {days_until_unassign_remaining} days if there's no activity.
+  unassign_message: |
+    This issue has been unassigned from {assignee} due to {days} days of
+    inactivity with no linked or referenced pull request.
+
+    The issue is available again. Comment below if you'd like to pick it
+    back up.
+
+# Unassigned issues with no maintainer activity (comment or label change)
+# are flagged for triage after a period that varies by priority label.
+# The first matching entry in `windows` wins; `default_days` applies when
+# no listed label matches.
+triage:
+  label: lifecycle/needs-triage
+  default_days: 7
+  # List (not a map) so the script can walk it in order and take the first
+  # match — first-match-wins avoids ambiguity if an issue somehow carries
+  # both priority/high and priority/low labels.
+  windows:
+    - labels: [priority/high, '!important']
+      days: 3
+    - labels: [priority/low]
+      days: 21

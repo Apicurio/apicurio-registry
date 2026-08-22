@@ -257,4 +257,71 @@ public class AgentCardContentValidatorTest extends ArtifactUtilProviderTestBase 
         AgentCardContentValidator validator = new AgentCardContentValidator();
         validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
     }
+
+    @Test
+    public void testAgentCardValidateReferencesNoRefs() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("agentcard-valid.json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+        validator.validateReferences(content, Collections.emptyList());
+    }
+
+    @Test
+    public void testAgentCardValidateReferencesMapped() throws Exception {
+        String json = "{\n" +
+                "  \"name\": \"RefAgent\",\n" +
+                "  \"version\": \"1.0.0\",\n" +
+                "  \"description\": \"Agent with references\",\n" +
+                "  \"url\": \"https://example.com/agent\",\n" +
+                "  \"capabilities\": {\"streaming\": false},\n" +
+                "  \"skills\": [{\n" +
+                "    \"id\": \"skill-1\",\n" +
+                "    \"name\": \"Skill One\",\n" +
+                "    \"description\": \"First skill\",\n" +
+                "    \"tags\": [\"test\"],\n" +
+                "    \"inputSchema\": {\"$ref\": \"common-schema.json\"}\n" +
+                "  }],\n" +
+                "  \"defaultInputModes\": [\"text\"],\n" +
+                "  \"defaultOutputModes\": [\"text\"]\n" +
+                "}";
+        TypedContent content = TypedContent.create(io.apicurio.registry.content.ContentHandle.create(json), "application/json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+
+        io.apicurio.registry.rest.v3.beans.ArtifactReference ref = io.apicurio.registry.rest.v3.beans.ArtifactReference.builder()
+                .groupId("default")
+                .artifactId("common-schema")
+                .version("1.0")
+                .name("common-schema.json")
+                .build();
+
+        validator.validateReferences(content, Collections.singletonList(ref));
+    }
+
+    @Test
+    public void testAgentCardValidateReferencesUnmapped() throws Exception {
+        String json = "{\n" +
+                "  \"name\": \"RefAgent\",\n" +
+                "  \"version\": \"1.0.0\",\n" +
+                "  \"description\": \"Agent with references\",\n" +
+                "  \"url\": \"https://example.com/agent\",\n" +
+                "  \"capabilities\": {\"streaming\": false},\n" +
+                "  \"skills\": [{\n" +
+                "    \"id\": \"skill-1\",\n" +
+                "    \"name\": \"Skill One\",\n" +
+                "    \"description\": \"First skill\",\n" +
+                "    \"tags\": [\"test\"],\n" +
+                "    \"inputSchema\": {\"$ref\": \"missing-schema.json\"}\n" +
+                "  }],\n" +
+                "  \"defaultInputModes\": [\"text\"],\n" +
+                "  \"defaultOutputModes\": [\"text\"]\n" +
+                "}";
+        TypedContent content = TypedContent.create(io.apicurio.registry.content.ContentHandle.create(json), "application/json");
+        AgentCardContentValidator validator = new AgentCardContentValidator();
+
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validateReferences(content, Collections.emptyList());
+        });
+        Assertions.assertEquals(io.apicurio.registry.types.RuleType.INTEGRITY, error.getRuleType());
+        Assertions.assertEquals(io.apicurio.registry.rules.integrity.IntegrityLevel.ALL_REFS_MAPPED.name(), error.getRuleConfiguration().orElse(null));
+        Assertions.assertFalse(error.getCauses().isEmpty());
+    }
 }

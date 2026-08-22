@@ -1,4 +1,5 @@
 import React from "react";
+import { isSubstitutableVariableTag } from "./promptTemplateVariables";
 
 export type TemplateTokenKind = "plain" | "variable" | "block";
 
@@ -9,13 +10,13 @@ export interface TemplateToken {
 
 const HANDLEBARS_TAG = /\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}|\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g;
 
-const classifyTag = (tag: string): "variable" | "block" => {
+const classifyTag = (tag: string): TemplateTokenKind => {
     const inner = tag.replace(/^\{+|\}+$/g, "").trim();
     const head = inner.split(/\s+/, 1)[0];
     if (head.startsWith("#") || head.startsWith("/") || head.startsWith("^") || head === "else") {
         return "block";
     }
-    return "variable";
+    return isSubstitutableVariableTag(tag) ? "variable" : "plain";
 };
 
 export const tokenizeTemplate = (template: string): TemplateToken[] => {

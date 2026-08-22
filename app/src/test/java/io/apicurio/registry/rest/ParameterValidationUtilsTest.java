@@ -46,6 +46,21 @@ class ParameterValidationUtilsTest {
     }
 
     @Test
+    void normalizeLimitWithMaxCapsAtCallerSuppliedBound() {
+        assertEquals(500, ParameterValidationUtils.normalizeLimit(BigInteger.valueOf(5000), 500));
+    }
+
+    @Test
+    void normalizeLimitWithMaxNormalizesNegativeToOne() {
+        assertEquals(1, ParameterValidationUtils.normalizeLimit(BigInteger.valueOf(-1), 500));
+    }
+
+    @Test
+    void normalizeLimitWithMaxPassesThroughValueBelowBound() {
+        assertEquals(42, ParameterValidationUtils.normalizeLimit(BigInteger.valueOf(42), 500));
+    }
+
+    @Test
     void normalizeLimitUnboundedNormalizesNegativeToOne() {
         assertEquals(1, ParameterValidationUtils.normalizeLimitUnbounded(BigInteger.valueOf(-1)));
     }

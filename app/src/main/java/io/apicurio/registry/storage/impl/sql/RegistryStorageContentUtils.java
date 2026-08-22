@@ -9,7 +9,6 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -27,9 +26,6 @@ public class RegistryStorageContentUtils {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
-    @Inject
-    Logger log;
-
     /**
      * Canonicalize the given content.
      *
@@ -41,10 +37,7 @@ public class RegistryStorageContentUtils {
             return factory.getArtifactTypeProvider(artifactType).getContentCanonicalizer()
                     .canonicalize(content, resolvedReferences);
         } catch (Exception ex) {
-            // TODO: We should consider explicitly failing when a content could not be canonicalized.
-            // throw new RegistryException("Failed to canonicalize content.", ex);
-            log.debug("Failed to canonicalize content: {}", artifactType);
-            return content;
+            throw new RegistryException("Failed to canonicalize content of type: " + artifactType, ex);
         }
     }
 
@@ -58,8 +51,12 @@ public class RegistryStorageContentUtils {
             Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver) {
         try {
             return canonicalizeContent(artifactType, content, referenceResolver.apply(references));
+        } catch (RegistryException ex) {
+            // Already wrapped (e.g. by the canonicalizer invocation above) - propagate as-is
+            // instead of wrapping it a second time.
+            throw ex;
         } catch (Exception ex) {
-            throw new RegistryException("Failed to canonicalize content.", ex);
+            throw new RegistryException("Failed to canonicalize content of type: " + artifactType, ex);
         }
     }
 

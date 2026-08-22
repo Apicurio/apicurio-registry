@@ -19,10 +19,10 @@ class MacOSCredentialProvider implements CredentialProvider {
     @Override
     public void store(final String account, final String secret) {
         delete(account);
-        ProcessUtils.exec(CMD, "add-generic-password",
+        ProcessUtils.execWithStdin(secret, CMD, "add-generic-password",
                 FLAG_SERVICE, serviceName,
                 FLAG_ACCOUNT, account,
-                "-w", secret);
+                "-w");
     }
 
     @Override

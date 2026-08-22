@@ -16,15 +16,29 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public class RegistryContentUtilsTest {
+
+    private static final int MAX_REFERENCE_DEPTH = 3;
 
     @Test
     void testSerializeLabels() {
@@ -47,5 +61,139 @@ public class RegistryContentUtilsTest {
         expected.put("two", "2");
         expected.put("three", "3");
         Assertions.assertEquals(expected, actual);
+    }
+
+    @Test
+    void testRecursivelyResolveReferencesHandlesCircularReferences() {
+        Map<String, TestNode> nodes = new HashMap<>();
+        nodes.put("A", new TestNode("A", List.of(reference("B"))));
+        nodes.put("B", new TestNode("B", List.of(reference("A"))));
+        AtomicInteger loadCount = new AtomicInteger();
+
+        Map<String, String> resolved = RegistryContentUtils.recursivelyResolveReferencesGeneric(
+                () -> List.of(reference("A")),
+                ArtifactReferenceDto::getName,
+                reference -> {
+                    loadCount.incrementAndGet();
+                    return nodes.get(reference.getName());
+                },
+                TestNode::value,
+                MAX_REFERENCE_DEPTH
+        );
+
+        Assertions.assertEquals(2, loadCount.get());
+        Assertions.assertEquals(2, resolved.size());
+        Assertions.assertEquals("A", resolved.get("A"));
+        Assertions.assertEquals("B", resolved.get("B"));
+    }
+
+    @Test
+    void testRecursivelyResolveReferencesStopsAtMaximumDepth() {
+        int chainLength = MAX_REFERENCE_DEPTH + 2;
+        Map<String, TestNode> nodes = new HashMap<>();
+        for (int i = 0; i < chainLength; i++) {
+            String name = "node-" + i;
+            List<ArtifactReferenceDto> references = i + 1 < chainLength
+                    ? List.of(reference("node-" + (i + 1))) : List.of();
+            nodes.put(name, new TestNode(name, references));
+        }
+        AtomicInteger loadCount = new AtomicInteger();
+
+        Map<String, String> resolved = RegistryContentUtils.recursivelyResolveReferencesGeneric(
+                () -> List.of(reference("node-0")),
+                ArtifactReferenceDto::getName,
+                reference -> {
+                    loadCount.incrementAndGet();
+                    return nodes.get(reference.getName());
+                },
+                TestNode::value,
+                MAX_REFERENCE_DEPTH
+        );
+
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, loadCount.get());
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, resolved.size());
+        Assertions.assertEquals("node-0", resolved.get("node-0"));
+        Assertions.assertEquals("node-" + (MAX_REFERENCE_DEPTH - 1),
+                resolved.get("node-" + (MAX_REFERENCE_DEPTH - 1)));
+        Assertions.assertNull(resolved.get("node-" + MAX_REFERENCE_DEPTH));
+    }
+
+    @Test
+    void testRecursivelyResolveReferencesWithContextHandlesCircularDereference() {
+        Map<String, ContentWrapperDto> nodes = new HashMap<>();
+        nodes.put("A", contentWrapper("A", "B"));
+        nodes.put("B", contentWrapper("B", "A"));
+        ArtifactTypeUtilProviderFactory factory = contextAwareFactory();
+        AtomicInteger loadCount = new AtomicInteger();
+
+        RegistryContentUtils.RewrittenContentHolder result = Assertions.assertDoesNotThrow(() ->
+                RegistryContentUtils.recursivelyResolveReferencesWithContext(factory,
+                        TypedContent.create("{}", "test"), "test", List.of(reference("A")), reference -> {
+                            loadCount.incrementAndGet();
+                            return nodes.get(reference.getArtifactId());
+                        }, MAX_REFERENCE_DEPTH));
+
+        Assertions.assertEquals(2, loadCount.get());
+        Assertions.assertEquals(2, result.getResolvedReferences().size());
+    }
+
+    @Test
+    void testRecursivelyResolveReferencesWithContextStopsAtMaximumDepth() {
+        int chainLength = MAX_REFERENCE_DEPTH + 2;
+        Map<String, ContentWrapperDto> nodes = new HashMap<>();
+        for (int i = 0; i < chainLength; i++) {
+            String artifactId = "node-" + i;
+            String referencedArtifactId = i + 1 < chainLength ? "node-" + (i + 1) : null;
+            nodes.put(artifactId, contentWrapper(artifactId, referencedArtifactId));
+        }
+        ArtifactTypeUtilProviderFactory factory = contextAwareFactory();
+        AtomicInteger loadCount = new AtomicInteger();
+
+        RegistryContentUtils.RewrittenContentHolder result = RegistryContentUtils
+                .recursivelyResolveReferencesWithContext(factory, TypedContent.create("{}", "test"), "test",
+                        List.of(reference("node-0")), reference -> {
+                            loadCount.incrementAndGet();
+                            return nodes.get(reference.getArtifactId());
+                        }, MAX_REFERENCE_DEPTH);
+
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, loadCount.get());
+        Assertions.assertEquals(MAX_REFERENCE_DEPTH, result.getResolvedReferences().size());
+    }
+
+    private static ArtifactTypeUtilProviderFactory contextAwareFactory() {
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class);
+        ArtifactTypeUtilProvider provider = mock(ArtifactTypeUtilProvider.class);
+        ContentDereferencer dereferencer = mock(ContentDereferencer.class);
+        when(factory.getArtifactTypeProvider("test")).thenReturn(provider);
+        when(provider.getContentDereferencer()).thenReturn(dereferencer);
+        when(dereferencer.rewriteReferences(any(TypedContent.class), any())).thenAnswer(invocation ->
+                invocation.getArgument(0));
+        return factory;
+    }
+
+    private static ContentWrapperDto contentWrapper(String artifactId, String referencedArtifactId) {
+        List<ArtifactReferenceDto> references = referencedArtifactId == null ? List.of()
+                : List.of(reference(referencedArtifactId));
+        return ContentWrapperDto.builder()
+                .artifactType("test")
+                .content(ContentHandle.create(artifactId))
+                .references(references)
+                .build();
+    }
+
+    private static ArtifactReferenceDto reference(String name) {
+        return ArtifactReferenceDto.builder()
+                .artifactId(name)
+                .version("1")
+                .name(name)
+                .build();
+    }
+
+    private record TestNode(String value, List<ArtifactReferenceDto> references)
+            implements RegistryContentUtils.HasReferences {
+        @Override
+        public List<ArtifactReferenceDto> getReferences() {
+            return references;
+        }
     }
 }

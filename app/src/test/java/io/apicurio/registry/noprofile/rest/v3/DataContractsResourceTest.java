@@ -1291,4 +1291,115 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .then().statusCode(200)
                 .body("passed", equalTo(true));
     }
+
+    // ========== #7361 CEL_FIELD Rule Execution Tests ==========
+
+    @Test
+    public void testCelFieldRuleExecution_ConditionPassAndFail() throws Exception {
+        String artifactId = "testCelFieldCondition-" + UUID.randomUUID();
+        String avroSchema = "{\"type\":\"record\",\"name\":\"User\",\"fields\":[{\"name\":\"ssn\",\"type\":\"string\",\"tags\":[\"PII\"]}]}";
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO, avroSchema, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("validate-ssn")
+                                        .kind(CONDITION)
+                                        .type("CEL_FIELD")
+                                        .mode(WRITE)
+                                        .expr("size(value) > 0")
+                                        .tags(List.of("PII"))
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .build()
+                        ))
+                        .build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then().statusCode(200);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "1")
+                .body(Map.of("mode", "WRITE", "record", Map.of("ssn", "123-45-6789")))
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
+                .then().statusCode(200)
+                .body("passed", equalTo(true))
+                .body("executedRules", equalTo(1));
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "1")
+                .body(Map.of("mode", "WRITE", "record", Map.of("ssn", "")))
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
+                .then().statusCode(200)
+                .body("passed", equalTo(false))
+                .body("violations[0].ruleName", equalTo("validate-ssn"));
+    }
+
+    @Test
+    public void testCelFieldRuleExecution_Transform() throws Exception {
+        String artifactId = "testCelFieldTransform-" + UUID.randomUUID();
+        String avroSchema = "{\"type\":\"record\",\"name\":\"User\",\"fields\":[{\"name\":\"ssn\",\"type\":\"string\",\"tags\":[\"SSN\"]}]}";
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO, avroSchema, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("mask-ssn")
+                                        .kind(TRANSFORM)
+                                        .type("CEL_FIELD")
+                                        .mode(WRITE)
+                                        .expr("'MASKED-' + value")
+                                        .tags(List.of("SSN"))
+                                        .onFailure(ContractRule.OnFailure.ERROR)
+                                        .build()
+                        ))
+                        .build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then().statusCode(200);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "1")
+                .body(Map.of("mode", "WRITE", "record", Map.of("ssn", "12345")))
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
+                .then().statusCode(200)
+                .body("passed", equalTo(true))
+                .body("transformedRecord.ssn", equalTo("MASKED-12345"));
+    }
+
+    @Test
+    public void testCelFieldRuleExecution_NoExtractorForArtifactType() throws Exception {
+        String artifactId = "testCelFieldNoExtractor-" + UUID.randomUUID();
+        String openapiContent = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, openapiContent, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(ContractRuleSet.builder()
+                        .domainRules(List.of(
+                                ContractRule.builder()
+                                        .name("unsupported-type-rule")
+                                        .kind(CONDITION)
+                                        .type("CEL_FIELD")
+                                        .mode(WRITE)
+                                        .expr("value != null")
+                                        .tags(List.of("TAG"))
+                                        .build()
+                        ))
+                        .build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then().statusCode(200);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", "1")
+                .body(Map.of("mode", "WRITE", "record", Map.of("foo", "bar")))
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/execute")
+                .then().statusCode(200)
+                .body("passed", equalTo(true));
+    }
 }

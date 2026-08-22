@@ -1,18 +1,28 @@
 package io.apicurio.registry.contracts.rules;
 
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.contracts.tags.TagExtractor;
+import io.apicurio.registry.contracts.tags.TagExtractorFactory;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContractRuleDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @ApplicationScoped
 public class RuleExecutionService {
+
+    private static final Logger log = LoggerFactory.getLogger(RuleExecutionService.class);
 
     @Inject
     @Current
@@ -20,6 +30,9 @@ public class RuleExecutionService {
 
     @Inject
     RuleExecutionEngine engine;
+
+    @Inject
+    TagExtractorFactory tagExtractorFactory;
 
     public RuleExecutionResult execute(String groupId, String artifactId,
             String version, String mode, Map<String, Object> record) {
@@ -32,7 +45,36 @@ public class RuleExecutionService {
                 .map(RuleExecutionService::toRuleDefinition)
                 .toList();
 
-        return engine.execute(rules, mode, record);
+        Map<String, Set<String>> fieldTags = null;
+        boolean hasFieldRules = rules.stream().anyMatch(r -> "CEL_FIELD".equals(r.getType()));
+
+        if (hasFieldRules && version != null) {
+            fieldTags = resolveFieldTags(groupId, artifactId, version);
+        }
+
+        return engine.execute(rules, mode, record, fieldTags);
+    }
+
+    private Map<String, Set<String>> resolveFieldTags(String groupId, String artifactId, String version) {
+        try {
+            ArtifactVersionMetaDataDto metadata = storage.getArtifactVersionMetaData(groupId, artifactId, version);
+            if (metadata == null || metadata.getArtifactType() == null) {
+                return null;
+            }
+            String artifactType = metadata.getArtifactType();
+            Optional<TagExtractor> extractorOpt = tagExtractorFactory.getExtractor(artifactType);
+            if (extractorOpt.isEmpty()) {
+                log.warn("CEL_FIELD rule configured but no tag extractor available for artifact type '{}' — rule will not be evaluated", artifactType);
+                return null;
+            }
+            StoredArtifactVersionDto versionContent = storage.getArtifactVersionContent(groupId, artifactId, version);
+            if (versionContent != null && versionContent.getContent() != null) {
+                return extractorOpt.get().extractTags(versionContent.getContent());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve field tags for artifact {}/{}/v{}: {}", groupId, artifactId, version, e.getMessage());
+        }
+        return null;
     }
 
     private ContractRuleSetDto loadMergedRuleset(String groupId, String artifactId,

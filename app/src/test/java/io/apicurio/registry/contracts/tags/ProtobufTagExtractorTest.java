@@ -115,4 +115,39 @@ class ProtobufTagExtractorTest {
         assertEquals(1, tags.size());
         assertEquals(Set.of("PII", "SENSITIVE"), tags.get("ssn"));
     }
+
+    @Test
+    void testRepeatedNestedMessageTags() {
+        String proto = """
+                syntax = "proto3";
+                message UserList {
+                  repeated User items = 1;
+                  message User {
+                    // @tag:PII
+                    string ssn = 1;
+                  }
+                }
+                """;
+
+        Map<String, Set<String>> tags = extractor.extractTags(ContentHandle.create(proto));
+
+        assertEquals(1, tags.size());
+        assertEquals(Set.of("PII"), tags.get("items[].ssn"));
+    }
+
+    @Test
+    void testMapFieldTags() {
+        String proto = """
+                syntax = "proto3";
+                message Account {
+                  // @tag:SENSITIVE
+                  map<string, string> metadata = 1;
+                }
+                """;
+
+        Map<String, Set<String>> tags = extractor.extractTags(ContentHandle.create(proto));
+
+        assertEquals(1, tags.size());
+        assertEquals(Set.of("SENSITIVE"), tags.get("metadata"));
+    }
 }

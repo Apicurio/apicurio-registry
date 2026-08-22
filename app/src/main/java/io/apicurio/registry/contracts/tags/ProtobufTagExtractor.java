@@ -64,6 +64,19 @@ public class ProtobufTagExtractor implements TagExtractor {
             if (!tags.isEmpty()) {
                 result.put(fieldPath, tags);
             }
+
+            MessageElement nestedMsg = findNestedMessage(message, field.getType());
+            if (nestedMsg != null) {
+                if (isMapEntry(nestedMsg)) {
+                    String mapPrefix = fieldPath + ".values";
+                    extractTagsFromMessage(nestedMsg, mapPrefix, result);
+                } else if (field.getLabel() != null && "REPEATED".equalsIgnoreCase(field.getLabel().name())) {
+                    String arrayPrefix = fieldPath + "[]";
+                    extractTagsFromMessage(nestedMsg, arrayPrefix, result);
+                } else {
+                    extractTagsFromMessage(nestedMsg, fieldPath, result);
+                }
+            }
         }
 
         for (OneOfElement oneOf : message.getOneOfs()) {
@@ -75,16 +88,46 @@ public class ProtobufTagExtractor implements TagExtractor {
                 if (!tags.isEmpty()) {
                     result.put(fieldPath, tags);
                 }
-            }
-        }
 
-        for (TypeElement nestedType : message.getNestedTypes()) {
-            if (nestedType instanceof MessageElement nested) {
-                String nestedPrefix = pathPrefix.isEmpty() ? nested.getName()
-                        : pathPrefix + "." + nested.getName();
-                extractTagsFromMessage(nested, nestedPrefix, result);
+                MessageElement nestedMsg = findNestedMessage(message, field.getType());
+                if (nestedMsg != null) {
+                    if (isMapEntry(nestedMsg)) {
+                        String mapPrefix = fieldPath + ".values";
+                        extractTagsFromMessage(nestedMsg, mapPrefix, result);
+                    } else if (field.getLabel() != null && "REPEATED".equalsIgnoreCase(field.getLabel().name())) {
+                        String arrayPrefix = fieldPath + "[]";
+                        extractTagsFromMessage(nestedMsg, arrayPrefix, result);
+                    } else {
+                        extractTagsFromMessage(nestedMsg, fieldPath, result);
+                    }
+                }
             }
         }
+    }
+
+    private MessageElement findNestedMessage(MessageElement parent, String typeName) {
+        if (typeName == null || parent.getNestedTypes() == null) {
+            return null;
+        }
+        for (TypeElement nested : parent.getNestedTypes()) {
+            if (nested instanceof MessageElement msg && msg.getName().equals(typeName)) {
+                return msg;
+            }
+        }
+        return null;
+    }
+
+    private boolean isMapEntry(MessageElement message) {
+        if (message.getOptions() == null) {
+            return false;
+        }
+        for (com.squareup.wire.schema.internal.parser.OptionElement option : message.getOptions()) {
+            if ("map_entry".equals(option.getName())) {
+                Object val = option.getValue();
+                return Boolean.TRUE.equals(val) || "true".equalsIgnoreCase(String.valueOf(val));
+            }
+        }
+        return false;
     }
 
     private Set<String> extractFieldTags(FieldElement field) {

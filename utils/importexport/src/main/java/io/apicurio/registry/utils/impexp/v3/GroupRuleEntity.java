@@ -21,6 +21,7 @@ public class GroupRuleEntity extends Entity {
     public String groupId;
     public RuleType type;
     public String configuration;
+    public String onFailure;
 
     /**
      * @see Entity#getEntityType()

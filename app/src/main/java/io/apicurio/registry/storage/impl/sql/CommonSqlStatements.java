@@ -78,7 +78,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertGlobalRule() {
-        return "INSERT INTO global_rules (type, configuration) VALUES (?, ?)";
+        return "INSERT INTO global_rules (type, configuration, onFailure) VALUES (?, ?, ?)";
     }
 
     /**
@@ -118,7 +118,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGlobalRule() {
-        return "UPDATE global_rules SET configuration = ? WHERE type = ?";
+        return "UPDATE global_rules SET configuration = ?, onFailure = ? WHERE type = ?";
     }
 
     /**
@@ -296,7 +296,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String insertArtifactRule() {
-        return "INSERT INTO artifact_rules (groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO artifact_rules (groupId, artifactId, type, configuration, onFailure) VALUES (?, ?, ?, ?, ?)";
     }
 
     /**
@@ -312,7 +312,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateArtifactRule() {
-        return "UPDATE artifact_rules SET configuration = ? WHERE groupId = ? AND artifactId = ? AND type = ?";
+        return "UPDATE artifact_rules SET configuration = ?, onFailure = ? WHERE groupId = ? AND artifactId = ? AND type = ?";
     }
 
     /**
@@ -933,12 +933,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactRule() {
-        return "INSERT INTO artifact_rules (groupId, artifactId, type, configuration) VALUES (?, ?, ?, ?)";
+        return "INSERT INTO artifact_rules (groupId, artifactId, type, configuration, onFailure) VALUES (?, ?, ?, ?, ?)";
     }
 
     @Override
     public String importGroupRule() {
-        return "INSERT INTO group_rules (groupId, type, configuration) VALUES (?, ?, ?)";
+        return "INSERT INTO group_rules (groupId, type, configuration, onFailure) VALUES (?, ?, ?, ?)";
     }
 
     /**
@@ -963,7 +963,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importGlobalRule() {
-        return "INSERT INTO global_rules (type, configuration) VALUES (?, ?)";
+        return "INSERT INTO global_rules (type, configuration, onFailure) VALUES (?, ?, ?)";
     }
 
     /**
@@ -1332,7 +1332,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String insertGroupRule() {
-        return "INSERT INTO group_rules (groupId, type, configuration) VALUES (?, ?, ?)";
+        return "INSERT INTO group_rules (groupId, type, configuration, onFailure) VALUES (?, ?, ?, ?)";
     }
 
     @Override
@@ -1342,7 +1342,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String updateGroupRule() {
-        return "UPDATE group_rules SET configuration = ? WHERE groupId = ? AND type = ?";
+        return "UPDATE group_rules SET configuration = ?, onFailure = ? WHERE groupId = ? AND type = ?";
     }
 
     @Override

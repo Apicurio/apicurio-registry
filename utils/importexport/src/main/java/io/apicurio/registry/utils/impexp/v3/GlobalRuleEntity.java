@@ -20,6 +20,7 @@ public class GlobalRuleEntity extends Entity {
 
     public RuleType ruleType;
     public String configuration;
+    public String onFailure;
 
     /**
      * @see Entity#getEntityType()

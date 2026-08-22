@@ -178,11 +178,14 @@ public class AdminResourceImpl implements AdminResource {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         try {
+            configDto.setOnFailure(storage.getGlobalRule(rule).getOnFailure());
             storage.updateGlobalRule(rule, configDto);
         } catch (RuleNotFoundException ruleNotFoundException) {
             // This global rule doesn't exist in artifactStore - if the rule exists in the default
             // global rules, override the default by creating a new global rule
             if (rulesProperties.isDefaultGlobalRuleConfigured(rule)) {
+                configDto.setOnFailure(rulesProperties.getDefaultGlobalRuleConfiguration(rule)
+                        .getOnFailure());
                 storage.createGlobalRule(rule, configDto);
             } else {
                 throw ruleNotFoundException;

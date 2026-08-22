@@ -21,6 +21,7 @@ public class GlobalRuleConfigured extends OutboxEvent {
         String id = UUID.randomUUID().toString();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("ruleType", ruleType.value()).put("rule", rule.getConfiguration())
+                .put("onFailure", rule.getOnFailure().name())
                 .put("eventType", GLOBAL_RULE_CONFIGURED.name());
 
         return new GlobalRuleConfigured(id, ruleType.value(), jsonObject);

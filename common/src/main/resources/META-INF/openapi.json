@@ -6836,13 +6836,23 @@
           "config": {
             "type": "string"
           },
+          "onFailure": {
+            "description": "Action to take when the rule fails. ERROR rejects the operation; NONE records the failure without rejecting it.",
+            "type": "string",
+            "default": "ERROR",
+            "enum": [
+              "NONE",
+              "ERROR"
+            ]
+          },
           "ruleType": {
             "$ref": "#/components/schemas/RuleType"
           }
         },
         "example": {
           "ruleType": "VALIDITY",
-          "config": "FULL"
+          "config": "FULL",
+          "onFailure": "ERROR"
         }
       },
       "ProblemDetails": {
@@ -8706,13 +8716,23 @@
           "config": {
             "type": "string"
           },
+          "onFailure": {
+            "description": "Action to take when the rule fails. ERROR rejects the operation; NONE records the failure without rejecting it.",
+            "type": "string",
+            "default": "ERROR",
+            "enum": [
+              "NONE",
+              "ERROR"
+            ]
+          },
           "ruleType": {
             "$ref": "#/components/schemas/RuleType"
           }
         },
         "example": {
           "ruleType": "VALIDITY",
-          "config": "FULL"
+          "config": "FULL",
+          "onFailure": "ERROR"
         }
       },
       "BranchSearchResults": {

@@ -634,11 +634,14 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         waitForConsumerReady(Duration.ofSeconds(30));
 
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('before')");
-        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        // Under parallel execution the shared connector's snapshot of this table (or a prior
+        // insert from another test) can still be in flight; count by the inserted value, not by
+        // bare record count.
+        List<GenericRecord> events1 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30), "before");
         assertEquals(1, events1.size());
 
         executeUpdate("INSERT INTO " + tableName + " (data) VALUES ('after')");
-        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30));
+        List<GenericRecord> events2 = consumeAvroEvents(topicName, 1, Duration.ofSeconds(30), "after");
         assertEquals(1, events2.size());
 
         GenericRecord afterEvent = events2.get(0);

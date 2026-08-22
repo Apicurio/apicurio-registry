@@ -1,10 +1,20 @@
 package io.apicurio.registry.utils;
 
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
 
 public class StringUtil {
+
+    /**
+     * Characters that must never reach a log line verbatim. CR and LF are the dangerous ones - they let
+     * a user-supplied value forge additional log entries - but every ISO control character is replaced
+     * so terminal escape sequences cannot be smuggled through either.
+     */
+    private static final Pattern LOG_UNSAFE_CHARACTERS = Pattern.compile("\\p{Cntrl}");
+
+    private static final int LOG_VALUE_LIMIT = 256;
 
     public static boolean isEmpty(String string) {
         return string == null || string.isEmpty();
@@ -58,6 +68,21 @@ public class StringUtil {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    /**
+     * Makes a user-supplied value safe to write to a log line: control characters (CR/LF above all)
+     * are replaced so the value cannot forge extra log entries, and the result is truncated so an
+     * oversized value cannot flood the log.
+     *
+     * @param value the value to sanitize, may be null
+     * @return the sanitized value, or null if the input was null
+     */
+    public static String sanitizeForLog(String value) {
+        if (value == null) {
+            return null;
+        }
+        return limitStr(LOG_UNSAFE_CHARACTERS.matcher(value).replaceAll("_"), LOG_VALUE_LIMIT, true);
     }
 
     public static boolean contains(String value, String chars) {

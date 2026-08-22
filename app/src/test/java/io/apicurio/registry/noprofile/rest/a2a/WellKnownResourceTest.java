@@ -14,6 +14,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,6 +117,49 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 }
             }
             """;
+
+    private static final String STALE_DRAFT_AGENT_CARD = """
+            {
+                "name": "StaleDraftAgent",
+                "description": "A draft revision that must not reach the structured content index",
+                "version": "1.0.1",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/stale-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {
+                    "streaming": false,
+                    "pushNotifications": false
+                },
+                "skills": [
+                    {
+                        "id": "stale-draft-only-skill",
+                        "name": "Stale Draft Only Skill",
+                        "description": "Present only in a non-latest DRAFT version",
+                        "tags": ["stale"]
+                    }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+            """;
+
+    private ValidatableResponse searchAgentsBySkill(String skill) {
+        String requestBody = """
+                {
+                    "filters": { "skills": ["%s"] },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """.formatted(skill);
+
+        return givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200);
+    }
 
     @Test
     public void testGetAgentCard() {
@@ -498,6 +542,224 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchAgentsBySkillFilter() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "skill-agent-basic", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "skill-agent-streaming", STREAMING_AGENT_CARD);
+
+        String requestBody = """
+                {
+                    "filters": {
+                        "skills": ["data-processing"]
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("skill-agent-streaming"))
+                .body("agents.artifactId", not(hasItem("skill-agent-basic")));
+    }
+
+    @Test
+    public void testSearchAgentsByCapabilityFilter() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "cap-agent-basic", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "cap-agent-streaming", STREAMING_AGENT_CARD);
+
+        // Positive filter: only the streaming agent has pushNotifications enabled
+        String requestBody = """
+                {
+                    "filters": {
+                        "capabilities": { "pushNotifications": true }
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("cap-agent-streaming"))
+                .body("agents.artifactId", not(hasItem("cap-agent-basic")));
+
+        // Negated filter: pushNotifications=false must exclude the streaming agent
+        String negatedRequestBody = """
+                {
+                    "filters": {
+                        "capabilities": { "pushNotifications": false }
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(negatedRequestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("cap-agent-basic"))
+                .body("agents.artifactId", not(hasItem("cap-agent-streaming")));
+    }
+
+    @Test
+    public void testSearchAgentsByInputModeFilter() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "mode-agent-basic", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "mode-agent-streaming", STREAMING_AGENT_CARD);
+
+        String requestBody = """
+                {
+                    "filters": {
+                        "inputModes": ["image"]
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("mode-agent-streaming"))
+                .body("agents.artifactId", not(hasItem("mode-agent-basic")));
+    }
+
+    @Test
+    public void testSearchAgentsByNonMatchingStructureFilter() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "nomatch-agent-basic", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "nomatch-agent-streaming", STREAMING_AGENT_CARD);
+
+        // A skill that no agent card declares must yield no matches (empty-result path).
+        String requestBody = """
+                {
+                    "filters": {
+                        "skills": ["no-such-skill-zzz-99999"]
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0))
+                .body("agents.artifactId", not(hasItem("nomatch-agent-basic")))
+                .body("agents.artifactId", not(hasItem("nomatch-agent-streaming")));
+    }
+
+    @Test
+    public void testSearchAgentsByMultipleStructureFilters() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "multi-agent-basic", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "multi-agent-streaming", STREAMING_AGENT_CARD);
+
+        // Both structure filters must match the same agent (they are ANDed). Only the streaming
+        // agent has the "data-processing" skill AND pushNotifications enabled; the basic agent
+        // has neither, so it must be excluded.
+        String requestBody = """
+                {
+                    "filters": {
+                        "skills": ["data-processing"],
+                        "capabilities": { "pushNotifications": true }
+                    },
+                    "limit": 50,
+                    "offset": 0
+                }
+                """;
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .post("/.well-known/agents/search")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("multi-agent-streaming"))
+                .body("agents.artifactId", not(hasItem("multi-agent-basic")));
+    }
+
+    @Test
+    public void testUpdatingNonLatestDraftVersionKeepsLatestVersionIndexed() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "stale-index-agent";
+
+        // v1 is created as a DRAFT and then left behind by v2, which becomes the latest version.
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+        CreateVersion firstVersion = new CreateVersion();
+        firstVersion.setVersion("1.0");
+        firstVersion.setIsDraft(true);
+        VersionContent firstContent = new VersionContent();
+        firstContent.setContent(AGENT_CARD_CONTENT);
+        firstContent.setContentType(ContentTypes.APPLICATION_JSON);
+        firstVersion.setContent(firstContent);
+        createArtifact.setFirstVersion(firstVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        CreateVersion latestVersion = new CreateVersion();
+        latestVersion.setVersion("2.0");
+        VersionContent latestContent = new VersionContent();
+        latestContent.setContent(STREAMING_AGENT_CARD);
+        latestContent.setContentType(ContentTypes.APPLICATION_JSON);
+        latestVersion.setContent(latestContent);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(latestVersion);
+
+        // Rewriting the older DRAFT version must not move the artifact-level structured index off v2.
+        VersionContent updatedDraftContent = new VersionContent();
+        updatedDraftContent.setContentType(ContentTypes.APPLICATION_JSON);
+        updatedDraftContent.setContent(STALE_DRAFT_AGENT_CARD);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1.0").content().put(updatedDraftContent);
+
+        // The latest version's skill is still searchable.
+        searchAgentsBySkill("data-processing")
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem(artifactId));
+
+        // The skill that only exists in the older DRAFT version never enters the index.
+        searchAgentsBySkill("stale-draft-only-skill")
+                .body("agents.artifactId", not(hasItem(artifactId)));
+    }
+
+    @Test
     public void testSearchAgentsAdvancedWithQueryByArtifactId() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
@@ -747,6 +1009,50 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .get("/.well-known/schemas/nonexistent/v1")
                 .then()
                 .statusCode(404);
+    }
+
+    @Test
+    public void testSearchAgentsBySkillTreatsLikeWildcardsLiterally() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // '_' and '%' are LIKE wildcards. Structure filters compare the element value with '=', so both
+        // characters must match literally: searching for the first skill id must not also return the
+        // decoy agent, which is what that id would match if it were ever treated as a LIKE pattern.
+        createAgentCard(groupId, "wildcard-agent-literal",
+                agentCardWithSkill("WildcardLiteralAgent", "report_2024%draft"));
+        createAgentCard(groupId, "wildcard-agent-decoy",
+                agentCardWithSkill("WildcardDecoyAgent", "reportx2024-quarterly-draft"));
+
+        searchAgentsBySkill("report_2024%draft")
+                .body("agents.artifactId", hasItem("wildcard-agent-literal"))
+                .body("agents.artifactId", not(hasItem("wildcard-agent-decoy")));
+    }
+
+    private static String agentCardWithSkill(String agentName, String skillId) {
+        return """
+                {
+                    "name": "%s",
+                    "description": "An agent whose skill id contains SQL wildcard characters",
+                    "version": "1.0.0",
+                    "supportedInterfaces": [
+                        { "url": "https://example.com/wildcard-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                    ],
+                    "capabilities": {
+                        "streaming": false,
+                        "pushNotifications": false
+                    },
+                    "skills": [
+                        {
+                            "id": "%s",
+                            "name": "Wildcard Skill",
+                            "description": "A skill whose id contains wildcard characters",
+                            "tags": ["wildcard"]
+                        }
+                    ],
+                    "defaultInputModes": ["text"],
+                    "defaultOutputModes": ["text"]
+                }
+                """.formatted(agentName, skillId);
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {

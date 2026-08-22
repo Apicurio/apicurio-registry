@@ -54,6 +54,11 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     protected static String tablePrefix;
     protected static final AtomicInteger connectorCounter = new AtomicInteger(0);
 
+    // Kafka Connect connector registration/deletion is not safe to run concurrently across
+    // test classes (POST /connectors returns 409 while a previous register is still settling),
+    // and test classes run in parallel in CI. Serialize the register/delete window.
+    private static final Object CONNECTOR_LOCK = new Object();
+
     /**
      * Returns the registry URL to use for connector configuration.
      */
@@ -122,10 +127,11 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
 
         // Register connector to watch all tables in the schema
         String tablePattern = getTableIncludePattern();
-        registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
-
-        // Wait for connector to be ready with a longer timeout for initial startup
-        waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+        synchronized (CONNECTOR_LOCK) {
+            registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
+            // Wait for connector to be ready with a longer timeout for initial startup
+            waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+        }
 
         log.info("Shared connector {} is ready and watching pattern: {}", sharedConnectorName, tablePattern);
     }
@@ -159,7 +165,9 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         if (sharedConnectorName != null) {
             try {
                 log.info("Deleting shared connector: {}", sharedConnectorName);
-                getDebeziumContainer().deleteConnector(sharedConnectorName);
+                synchronized (CONNECTOR_LOCK) {
+                    getDebeziumContainer().deleteConnector(sharedConnectorName);
+                }
                 log.info("Successfully deleted shared connector: {}", sharedConnectorName);
             }
             catch (Exception e) {

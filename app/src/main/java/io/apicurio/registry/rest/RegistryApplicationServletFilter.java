@@ -44,9 +44,9 @@ public class RegistryApplicationServletFilter implements Filter {
             if (disabled) {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
                 // reset() would clear the security headers the upstream filters set; preserve them.
-                // Note: Strict-Transport-Security is managed by Quarkus (quarkus.http.header) at the
-                // Vert.x layer and survives servlet reset() without needing preservation here.
-                resetKeepingHeaders(httpResponse, "X-Content-Type-Options");
+                // This includes Strict-Transport-Security: although it is managed by Quarkus
+                // (quarkus.http.header), it does not survive a servlet reset() on this path.
+                resetKeepingHeaders(httpResponse, "X-Content-Type-Options", "Strict-Transport-Security");
                 httpResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
                 // important to return, to stop the filters chain
                 return;

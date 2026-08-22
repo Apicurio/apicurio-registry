@@ -438,6 +438,21 @@
     },
 
     {
+      "description": "Periodically refresh npm lockfiles so transitive dependencies that already satisfy their parent's semver range (and so are otherwise invisible to Renovate) don't drift behind patched/CVE-fixed versions",
+      "groupName": "Dependencies: NPM Lockfile Maintenance",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "ui/**",
+        "typescript-sdk/**"
+      ],
+      "lockFileMaintenance": {
+        "enabled": true
+      }
+    },
+
+    {
       "description": "On 3.2.x branch, only allow patch updates",
       "matchBaseBranches": [
         "3.2.x"

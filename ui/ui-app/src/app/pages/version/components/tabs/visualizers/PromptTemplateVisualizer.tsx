@@ -1,7 +1,6 @@
 import { FunctionComponent } from "react";
 import "./PromptTemplateVisualizer.css";
-import { PromptTemplateViewer, PromptTemplate } from "@app/components/promptTemplate";
-import { PromptTemplateTestPanel } from "@app/components/promptTemplate";
+import { PromptTemplateViewer, PromptTemplate, PromptTemplateTestPanel, PromptTemplatePreviewPanel } from "@app/components/promptTemplate";
 
 export type PromptTemplateVisualizerProps = {
     spec: any;
@@ -33,6 +32,9 @@ export const PromptTemplateVisualizer: FunctionComponent<PromptTemplateVisualize
                 version={props.version}
                 variables={promptTemplate.variables}
             />
+            {promptTemplate.template && (
+                <PromptTemplatePreviewPanel template={promptTemplate.template} />
+            )}
         </div>
     );
 };

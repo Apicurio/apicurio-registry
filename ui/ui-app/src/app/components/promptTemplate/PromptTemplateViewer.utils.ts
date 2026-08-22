@@ -72,6 +72,33 @@ export const extractPromptVariables = (content: string): string[] => {
     return Array.from(names);
 };
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Renders a template preview by substituting {{variable}} / {{{variable}}} / {variable}
+ * placeholders with the supplied values via plain string replacement. A variable with no
+ * value (undefined or "") is left unsubstituted so its placeholder stays visible in the
+ * preview. Not Handlebars-aware beyond the brace matching already done by
+ * extractPromptVariables — block helpers, conditionals, etc. are not evaluated.
+ */
+export const renderTemplatePreview = (template: string, values: Record<string, string>): string => {
+    if (!template) {
+        return "";
+    }
+
+    let output = template;
+    Object.entries(values).forEach(([name, value]) => {
+        if (!value) {
+            return;
+        }
+        const escapedName = escapeRegExp(name);
+        const doubleBrace = new RegExp(`\\{{2,3}\\s*${escapedName}\\s*\\}{2,3}`, "g");
+        const singleBrace = new RegExp(`\\{\\s*${escapedName}\\s*\\}`, "g");
+        output = output.replace(doubleBrace, value).replace(singleBrace, value);
+    });
+    return output;
+};
+
 export const highlightVariables = (template: string): React.ReactNode[] => {
     return tokenizeTemplate(template).map((token, index) => {
         if (token.kind === "plain") {

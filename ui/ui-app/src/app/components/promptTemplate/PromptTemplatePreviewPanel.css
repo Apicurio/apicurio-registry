@@ -1,0 +1,28 @@
+.prompt-template-preview-panel {
+    margin-top: 16px;
+}
+
+.prompt-template-preview-panel .preview-panel-form {
+    margin-bottom: 16px;
+}
+
+.prompt-template-preview-panel .no-variables {
+    color: var(--pf-t--global--text--color--subtle);
+    margin-bottom: 16px;
+}
+
+.prompt-template-preview-panel .section-divider {
+    margin: 16px 0;
+}
+
+.prompt-template-preview-panel .preview-output {
+    background-color: var(--pf-t--global--background--color--secondary--default);
+    padding: 16px;
+    border-radius: 4px;
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 60px;
+    margin-top: 8px;
+}

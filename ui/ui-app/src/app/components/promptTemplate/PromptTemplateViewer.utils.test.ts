@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractPromptVariables, tokenizeTemplate } from "./PromptTemplateViewer.utils";
+import { extractPromptVariables, renderTemplatePreview, tokenizeTemplate } from "./PromptTemplateViewer.utils";
 
 describe("tokenizeTemplate", () => {
     it("keeps plain text without variables as a single plain token", () => {
@@ -144,5 +144,39 @@ describe("extractPromptVariables", () => {
 
     it("returns no variables for plain text", () => {
         expect(extractPromptVariables("Just some text")).toEqual([]);
+    });
+});
+
+describe("renderTemplatePreview", () => {
+    it("returns an empty string for empty content", () => {
+        expect(renderTemplatePreview("", { name: "Alice" })).toEqual("");
+    });
+
+    it("substitutes double-brace variables", () => {
+        expect(renderTemplatePreview("Hello {{name}}!", { name: "Alice" })).toEqual("Hello Alice!");
+    });
+
+    it("substitutes single-brace variables", () => {
+        expect(renderTemplatePreview("Hello {name}!", { name: "Alice" })).toEqual("Hello Alice!");
+    });
+
+    it("substitutes triple-stash variables", () => {
+        expect(renderTemplatePreview("Raw: {{{name}}}", { name: "Alice" })).toEqual("Raw: Alice");
+    });
+
+    it("leaves placeholders with no value unsubstituted", () => {
+        expect(renderTemplatePreview("Hello {{name}}!", {})).toEqual("Hello {{name}}!");
+    });
+
+    it("leaves placeholders with an empty-string value unsubstituted", () => {
+        expect(renderTemplatePreview("Hello {{name}}!", { name: "" })).toEqual("Hello {{name}}!");
+    });
+
+    it("substitutes multiple different variables", () => {
+        expect(renderTemplatePreview("{{greeting}}, {name}!", { greeting: "Hi", name: "Bob" })).toEqual("Hi, Bob!");
+    });
+
+    it("substitutes all occurrences of a repeated variable", () => {
+        expect(renderTemplatePreview("{{name}} and {name} again", { name: "Alice" })).toEqual("Alice and Alice again");
     });
 });

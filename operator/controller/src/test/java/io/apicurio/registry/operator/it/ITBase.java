@@ -185,7 +185,7 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     protected void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()

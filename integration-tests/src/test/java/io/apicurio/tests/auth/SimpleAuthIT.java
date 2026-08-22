@@ -400,7 +400,7 @@ public class SimpleAuthIT extends ApicurioRegistryBaseIT {
     protected void assertArtifactNotFound(Exception exception) {
         Assertions.assertEquals(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 exception.getClass());
-        Assertions.assertEquals("ArtifactNotFoundException",
+        Assertions.assertEquals("ARTIFACT_NOT_FOUND",
                 ((io.apicurio.registry.rest.client.models.ProblemDetails) exception).getName());
         Assertions.assertEquals(404,
                 ((io.apicurio.registry.rest.client.models.ProblemDetails) exception).getStatus());

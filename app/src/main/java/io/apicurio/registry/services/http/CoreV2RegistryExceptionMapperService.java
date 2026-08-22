@@ -46,7 +46,8 @@ public class CoreV2RegistryExceptionMapperService {
     HttpStatusCodeMap codeMap;
 
     @ConfigProperty(name = "apicurio.api.errors.include-stack-in-response", defaultValue = "false")
-    @Info(category = CATEGORY_API, description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
+    @Info(category = CATEGORY_API, description = "Include stack traces in legacy Registry v2 API error responses",
+            availableSince = "2.1.4.Final")
     boolean includeStackTrace;
 
     public Response mapException(Throwable t) {

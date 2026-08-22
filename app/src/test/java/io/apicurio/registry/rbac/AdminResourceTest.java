@@ -411,8 +411,8 @@ public class AdminResourceTest extends AbstractResourceTestBase {
 
         var exception = Assertions.assertThrows(io.apicurio.registry.rest.client.models.ProblemDetails.class,
                 () -> clientV3.ids().globalIds().byGlobalId(1006L).get());
-        // ArtifactNotFoundException
-        Assertions.assertEquals("ArtifactNotFoundException", exception.getName());
+        // Stable public error code, independent of the server exception class
+        Assertions.assertEquals("ARTIFACT_NOT_FOUND", exception.getName());
         Assertions.assertEquals(404, exception.getStatus());
     }
 

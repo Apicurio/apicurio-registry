@@ -184,7 +184,7 @@ public class AdminClientTest extends AbstractResourceTestBase {
                     ur2.setRole(mapping.getRole());
                     clientV3.admin().roleMappings().byPrincipalId("UnknownPrincipal").put(ur2);
                 });
-        assertEquals("RoleMappingNotFoundException", exception1.getName());
+        assertEquals("ROLE_MAPPING_NOT_FOUND", exception1.getName());
 
         // Delete a role mapping
         clientV3.admin().roleMappings().byPrincipalId("TestUser2").delete();

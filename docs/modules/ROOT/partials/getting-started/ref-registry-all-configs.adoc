@@ -107,7 +107,7 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`2.1.4.Final`
-|Include stack trace in errors responses
+|Include stack traces in legacy Registry v2 API error responses
 |`apicurio.apis.date-format`
 |`string`
 |`yyyy-MM-dd'T'HH:mm:ss'Z'`

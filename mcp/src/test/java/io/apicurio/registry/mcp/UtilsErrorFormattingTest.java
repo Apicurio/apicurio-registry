@@ -17,8 +17,8 @@ class UtilsErrorFormattingTest {
         var error = new ProblemDetails();
         error.setStatus(403);
         error.setTitle("User is not authorized to perform the requested operation.");
-        error.setDetail("ForbiddenException: User is not authorized to perform the requested operation.");
-        error.setName("ForbiddenException");
+        error.setDetail("User is not authorized to perform the requested operation.");
+        error.setName("FORBIDDEN");
 
         String message = Utils.formatRegistryApiError(error);
 
@@ -34,8 +34,8 @@ class UtilsErrorFormattingTest {
         var error = new ProblemDetails();
         error.setStatus(403);
         error.setTitle("User is not authorized to perform the requested operation.");
-        error.setDetail("ForbiddenException: User is not authorized to perform the requested operation.");
-        error.setName("ForbiddenException");
+        error.setDetail("User is not authorized to perform the requested operation.");
+        error.setName("FORBIDDEN");
 
         String message = Utils.formatRegistryApiError(error, true);
 

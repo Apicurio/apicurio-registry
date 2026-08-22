@@ -1,6 +1,5 @@
 package io.apicurio.registry.services.http;
 
-import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.v3.beans.ProblemDetails;
@@ -13,21 +12,20 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 @ApplicationScoped
 public class CoreRegistryExceptionMapperService {
+
+    private static final String INTERNAL_SERVER_ERROR_TITLE = "Internal server error";
+    private static final String INTERNAL_SERVER_ERROR_DETAIL = "An unexpected server error occurred.";
+    private static final String UNKNOWN_ERROR_DETAIL = "The request could not be completed.";
 
     @Inject
     Logger log;
@@ -40,10 +38,6 @@ public class CoreRegistryExceptionMapperService {
 
     @Inject
     HttpStatusCodeMap codeMap;
-
-    @ConfigProperty(name = "apicurio.api.errors.include-stack-in-response", defaultValue = "false")
-    @Info(category = CATEGORY_API, description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
-    boolean includeStackTrace;
 
     public Response mapException(Throwable t) {
         int code;
@@ -87,16 +81,18 @@ public class CoreRegistryExceptionMapperService {
             ((RuleViolationProblemDetails) details).setCauses(toRestCauses(rve.getCauses()));
         } else {
             details = new ProblemDetails();
-            details.setTitle(t.getLocalizedMessage());
-            if (includeStackTrace) {
-                details.setDetail(getStackTrace(t));
+            if (code == HTTP_INTERNAL_ERROR) {
+                details.setTitle(INTERNAL_SERVER_ERROR_TITLE);
+                details.setDetail(INTERNAL_SERVER_ERROR_DETAIL);
             } else {
-                details.setDetail(getRootMessage(t));
+                String message = getPublicMessage(t);
+                details.setTitle(message);
+                details.setDetail(message);
             }
         }
 
         details.setStatus(code);
-        details.setName(t.getClass().getSimpleName());
+        details.setName(codeMap.getErrorCode(t.getClass(), code).name());
         return details;
     }
 
@@ -117,22 +113,9 @@ public class CoreRegistryExceptionMapperService {
         }).collect(Collectors.toList());
     }
 
-    /**
-     * Gets the full stack trace for the given exception and returns it as a string.
-     *
-     * @param t
-     */
-    private static String getStackTrace(Throwable t) {
-        try (StringWriter writer = new StringWriter()) {
-            t.printStackTrace(new PrintWriter(writer));
-            return writer.toString();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static String getRootMessage(Throwable t) {
-        return ExceptionUtils.getRootCauseMessage(t);
+    private static String getPublicMessage(Throwable t) {
+        String message = t.getLocalizedMessage();
+        return message != null && !message.isBlank() ? message : UNKNOWN_ERROR_DETAIL;
     }
 
 }

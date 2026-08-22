@@ -107,7 +107,7 @@ public class SchemaResolverTest extends AbstractClientFacadeTestBase {
             name = e.getName();
             status = e.getErrorCode();
         }
-        assertEquals("VersionNotFoundException", name);
+        assertEquals("VERSION_NOT_FOUND", name);
         assertEquals(404, status);
 
         resolver.close();

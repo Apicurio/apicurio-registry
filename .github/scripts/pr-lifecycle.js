@@ -15,9 +15,10 @@ const LABELS = {
   READY_FOR_REVIEW: 'lifecycle/ready-for-review',
   TESTED: 'lifecycle/tested',
   READY_TO_MERGE: 'lifecycle/ready-to-merge',
-  // Set when the FULL verification suite (verify.yaml) passes for the current
-  // HEAD. Two-tier CI: lifecycle/tested comes from the fast gate (ci.yaml)
-  // during iteration; lifecycle/full-verified is the pre-merge gate.
+  // Set when the FULL verification suite passes for the current
+  // HEAD. Two-tier CI: lifecycle/tested comes from the fast gate (ci.yaml's
+  // Quick Verify job) during iteration; lifecycle/full-verified is the
+  // pre-merge gate, applied once all full-suite workflows are green.
   FULL_VERIFIED: 'lifecycle/full-verified',
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
@@ -279,16 +280,95 @@ function createApi(github, owner, repo) {
   };
 }
 
-// Two-tier CI routing: the fast gate (ci.yaml, workflow name "CI") covers PR
-// iteration; the full suite (verify.yaml, "Verify") is the pre-merge gate and
-// only meaningful once the PR is lifecycle/ready-to-merge. Retrigger/approval
-// operations target the workflow that matters for the PR's current state.
-function ciWorkflowFor(pr) {
-  return getLifecycleState(pr) === LABELS.READY_TO_MERGE ? 'verify.yaml' : 'ci.yaml';
+// Two-tier CI routing: the fast gate (ci.yaml's Quick Verify job, workflow
+// name "CI") covers PR iteration; the full suite (ci.yaml's full tier plus the
+// "Integration Tests", "Extra Tests" and "Verify" workflows) is the pre-merge
+// gate and only meaningful once the PR is lifecycle/ready-to-merge. Retrigger
+// and approval operations target the workflow files that matter for the PR's
+// current state.
+// The full suite is split across these top-level workflows; all of them must
+// be green for a PR's head SHA before lifecycle/full-verified is applied.
+// "CI" is dual-mode: it is also the fast gate during review.
+const FAST_GATE_WORKFLOW = 'CI';
+const FULL_SUITE_WORKFLOWS = ['CI', 'Integration Tests', 'Extra Tests', 'Verify'];
+const FULL_SUITE_WORKFLOW_FILES = ['ci.yaml', 'integration-tests.yaml', 'extras.yaml', 'verify.yaml'];
+
+// Aggregates the latest run of each full-suite workflow for a commit.
+// Returns:
+//   { status: 'pending' }  — some workflow has no run yet or is still running
+//   { status: 'success' }  — every workflow's latest run succeeded
+//   { status: 'failure' }  — at least one failed/was cancelled (fail fast)
+async function getFullSuiteResult(github, owner, repo, headSha, eventName, core) {
+  const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+    owner, repo, head_sha: headSha, event: eventName, per_page: 100,
+  });
+  const latest = new Map();
+  for (const run of data.workflow_runs) {
+    if (!FULL_SUITE_WORKFLOWS.includes(run.name)) continue;
+    const prev = latest.get(run.name);
+    if (!prev || new Date(run.created_at) > new Date(prev.created_at)) {
+      latest.set(run.name, run);
+    }
+  }
+  for (const name of FULL_SUITE_WORKFLOWS) {
+    const run = latest.get(name);
+    if (!run || run.status !== 'completed') {
+      core.info(`Full suite for ${headSha}: ${name} ${run ? run.status : 'has no run yet'}, waiting`);
+      return { status: 'pending' };
+    }
+  }
+  for (const run of latest.values()) {
+    if (run.conclusion !== 'success') {
+      return { status: 'failure', failedRun: run };
+    }
+  }
+  return { status: 'success' };
 }
 
 async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
-  const workflow = ciWorkflowFor(pr);
+  // The workflow that matters depends on lifecycle state: the fast gate
+  // (ci.yaml) during iteration, all four full-suite workflows at
+  // ready-to-merge (verify.yaml was split into per-phase workflows).
+  if (getLifecycleState(pr) === LABELS.READY_TO_MERGE) {
+    let found = false;
+    for (const workflow of FULL_SUITE_WORKFLOW_FILES) {
+      found = (await retriggerWorkflowRun(api, pr, core, workflow, { waitForRun })) || found;
+    }
+    if (!found) {
+      await triggerViaBranchUpdate(api, pr, core, 'the full suite');
+    }
+    return;
+  }
+  const found = await retriggerWorkflowRun(api, pr, core, 'ci.yaml', { waitForRun });
+  if (!found) {
+    await triggerViaBranchUpdate(api, pr, core, 'ci.yaml');
+  }
+}
+
+async function triggerViaBranchUpdate(api, pr, core, workflow) {
+  // No run exists for this SHA (e.g. PR predates the current
+  // workflow, or the run was cleaned up). Update the PR branch to
+  // trigger a fresh synchronize event and a new run.
+  // handlePrSynchronize will approve the new run for fork PRs.
+  core.warning(`PR #${pr.number} no ${workflow} run found for ${pr.head.sha}, attempting branch update`);
+  try {
+    await api.updateBranch(pr.number, pr.head.sha);
+    core.info(`PR #${pr.number} branch updated to trigger fresh ${workflow} run`);
+    return;
+  } catch (e) {
+    core.warning(`PR #${pr.number} branch update failed: ${e.message}`);
+    await api.postComment(pr.number,
+      `Could not trigger the test suite automatically — no existing workflow run ` +
+      `was found and the branch could not be updated. @${pr.user.login}, please push ` +
+      `a change to trigger CI.`
+    );
+    return;
+  }
+}
+
+// Retriggers the latest run of a single workflow file for the PR's head SHA.
+// Returns true when a run existed (regardless of what was done with it).
+async function retriggerWorkflowRun(api, pr, core, workflow, { waitForRun = false } = {}) {
   let run = null;
 
   if (waitForRun) {
@@ -302,24 +382,7 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
   }
 
   if (!run) {
-    // No Verify run exists for this SHA (e.g. PR predates the current
-    // workflow, or the run was cleaned up). Update the PR branch to
-    // trigger a fresh synchronize event and a new Verify run.
-    // handlePrSynchronize will approve the new run for fork PRs.
-    core.warning(`PR #${pr.number} no ${workflow} run found for ${pr.head.sha}, attempting branch update`);
-    try {
-      await api.updateBranch(pr.number, pr.head.sha);
-      core.info(`PR #${pr.number} branch updated to trigger fresh ${workflow} run`);
-      return;
-    } catch (e) {
-      core.warning(`PR #${pr.number} branch update failed: ${e.message}`);
-      await api.postComment(pr.number,
-        `Could not trigger the test suite automatically — no existing workflow run ` +
-        `was found and the branch could not be updated. @${pr.user.login}, please push ` +
-        `a change to trigger CI.`
-      );
-      return;
-    }
+    return false;
   }
 
   // Fork PRs need workflow approval before they can run. Approve instead
@@ -333,15 +396,21 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
     } catch (e) {
       core.warning(`PR #${pr.number} failed to approve ${workflow} run ${run.id}: ${e.message}`);
     }
-    return;
+    return true;
+  }
+
+  // Only re-run workflows that actually need it; a green sibling is left alone.
+  if (run.conclusion === 'success') {
+    core.info(`PR #${pr.number} ${workflow} run ${run.id} already green, not re-triggering`);
+    return true;
   }
 
   if (run.status === 'in_progress' || run.status === 'queued') {
     core.info(`PR #${pr.number} cancelling in-progress ${workflow} run ${run.id}`);
     await api.cancelWorkflowRun(run.id);
 
-    // Wait for the run to fully complete — the Verification Gate job
-    // has `if: always()` and keeps the run alive after cancellation.
+    // Wait for the run to fully complete — gate jobs with `if: always()`
+    // keep the run alive after cancellation.
     for (let attempt = 0; attempt < 20; attempt++) {
       await new Promise(r => setTimeout(r, 5000));
       const fresh = await api.getWorkflowRun(run.id);
@@ -359,6 +428,7 @@ async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
   } catch (e) {
     core.warning(`PR #${pr.number} failed to re-trigger ${workflow} run ${run.id}: ${e.message}`);
   }
+  return true;
 }
 
 // Approves all Verify workflow runs awaiting approval for a PR's head SHA.
@@ -388,13 +458,16 @@ async function approvePendingVerifyRuns(api, pr, core, workflow = 'verify.yaml')
   }
 }
 
-// Approves pending fork-PR runs for BOTH tiers: the fast gate (ci.yaml) and
-// the full suite (verify.yaml). Approving a run the current state will skip
-// is harmless; missing one strands a fork PR on "action_required".
+// Approves pending fork-PR runs for ALL tiers: the fast gate plus every
+// full-suite workflow (ci.yaml doubles as both). Approving a run the current
+// state will skip is harmless; missing one strands a fork PR on
+// "action_required".
 async function approveAllPendingCiRuns(api, pr, core) {
-  const a = await approvePendingVerifyRuns(api, pr, core, 'ci.yaml');
-  const b = await approvePendingVerifyRuns(api, pr, core, 'verify.yaml');
-  return a + b;
+  let approved = 0;
+  for (const workflow of FULL_SUITE_WORKFLOW_FILES) {
+    approved += await approvePendingVerifyRuns(api, pr, core, workflow);
+  }
+  return approved;
 }
 
 function latestReviewsByReviewer(reviews) {
@@ -509,7 +582,7 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
     await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
 
-    // Two-tier CI: the full suite (verify.yaml) is the pre-merge gate. The
+    // Two-tier CI: the full suite is the pre-merge gate. The
     // label was applied by the orchestrator, which does NOT trigger a
     // labeled-event workflow run — kick the suite off explicitly. The PR
     // object held by callers is stale, so refetch for correct routing.
@@ -716,19 +789,25 @@ async function initNewPr(github, owner, repo, api, config, pr, core) {
   if (isAutoAccepted(config, pr.user.login)) {
     await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+    // Trusted authors don't wait for review before the full suite runs:
+    // review-skipped makes the PR eligible for ready-to-merge as soon as the
+    // fast gate is green, and the full suite (still the merge gate) starts
+    // immediately instead of after a maintainer review.
+    await api.addLabel(pr.number, LABELS.REVIEW_SKIPPED);
     const maintainerHint = isMaintainer(config, pr.user.login)
-      ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes, ` +
-        `or \`/auto-merge\` to merge automatically once approved and tested.`
+      ? `\n\nReview is skipped; a maintainer can still use \`/merge\` to merge early ` +
+        `(it will wait for the full suite) or \`/auto-merge\` to merge automatically.`
       : '';
     const forkHint = pr.head.repo?.full_name !== `${owner}/${repo}`
       ? `\n\n**Note (fork PR):** Review label updates may not apply automatically. ` +
         `A maintainer can use \`/retry\` after reviewing to update the labels.`
       : '';
     await api.postComment(pr.number,
-      `PR auto-accepted (trusted author). Full test suite will run.` +
+      `PR auto-accepted (trusted author). The full verification suite starts immediately; ` +
+      `review is not required before CI.` +
       maintainerHint + forkHint
     );
-    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${LABELS.READY_FOR_REVIEW}`);
+    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${LABELS.READY_FOR_REVIEW}, review skipped`);
     await retriggerVerify(api, pr, core, { waitForRun: true });
     return;
   }
@@ -1125,10 +1204,21 @@ async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comm
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
 
-  // The workflow that matters depends on lifecycle state: the fast gate
-  // (ci.yaml) during iteration, the full suite (verify.yaml) at ready-to-merge.
-  const workflow = ciWorkflowFor(freshPr);
-  const latestRun = await api.findLatestVerifyRun(freshPr.head.sha, workflow);
+  // The workflows that matter depend on lifecycle state: the fast gate
+  // (ci.yaml) during iteration, all four full-suite workflows at
+  // ready-to-merge (verify.yaml was split into per-phase workflows).
+  const atMergeGate = getLifecycleState(freshPr) === LABELS.READY_TO_MERGE;
+  const workflowFiles = atMergeGate ? FULL_SUITE_WORKFLOW_FILES : ['ci.yaml'];
+  const workflowDesc = atMergeGate ? 'full-suite' : 'ci.yaml';
+  const latestRuns = [];
+  for (const wf of workflowFiles) {
+    const run = await api.findLatestVerifyRun(freshPr.head.sha, wf);
+    if (run) latestRuns.push(run);
+  }
+  const latestRun = latestRuns.find(r => r.conclusion === 'action_required')
+    || latestRuns.find(r => r.conclusion === 'failure' || r.conclusion === 'cancelled')
+    || latestRuns.find(r => r.status !== 'completed')
+    || latestRuns[0];
   if (latestRun && latestRun.conclusion === 'action_required') {
     const approved = await approveAllPendingCiRuns(api, freshPr, core);
     await api.postComment(pr.number,
@@ -1138,25 +1228,25 @@ async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comm
     core.info(`PR #${pr.number} retry: reconciled + approved ${approved} pending run(s) by ${actor}`);
   } else if (latestRun && (latestRun.conclusion === 'failure' || latestRun.conclusion === 'cancelled')) {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state and re-triggering the ${workflow} workflow ` +
-      `(previous run [${latestRun.conclusion}](${latestRun.html_url})).`
+      `Retrying: reconciled PR state and re-triggering the failed ${workflowDesc} workflow ` +
+      `run(s) (previous run [${latestRun.conclusion}](${latestRun.html_url})).`
     );
     await retriggerVerify(api, freshPr, core);
-    core.info(`PR #${pr.number} retry: reconciled + re-triggered ${workflow} by ${actor}`);
+    core.info(`PR #${pr.number} retry: reconciled + re-triggered ${workflowDesc} by ${actor}`);
   } else if (latestRun && latestRun.status !== 'completed') {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state. The ${workflow} workflow is already running.`
+      `Retrying: reconciled PR state. The ${workflowDesc} workflow is already running.`
     );
-    core.info(`PR #${pr.number} retry: reconciled (${workflow} already running) by ${actor}`);
+    core.info(`PR #${pr.number} retry: reconciled (${workflowDesc} already running) by ${actor}`);
   } else if (!latestRun) {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state. No ${workflow} run found — attempting to trigger a fresh one.`
+      `Retrying: reconciled PR state. No ${workflowDesc} run found — attempting to trigger a fresh one.`
     );
     await retriggerVerify(api, freshPr, core);
-    core.info(`PR #${pr.number} retry: reconciled + triggered fresh ${workflow} by ${actor}`);
+    core.info(`PR #${pr.number} retry: reconciled + triggered fresh ${workflowDesc} by ${actor}`);
   } else {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state. No failed ${workflow} run to re-trigger.`
+      `Retrying: reconciled PR state. No failed ${workflowDesc} run to re-trigger.`
     );
     core.info(`PR #${pr.number} retry: reconciled (no failed run) by ${actor}`);
   }
@@ -1220,15 +1310,18 @@ async function handleTestResult({ github, context, core }) {
   }
 
   // Two-tier CI routing:
-  //  - "CI" (ci.yaml): the fast gate. Its result drives lifecycle/tested
-  //    during ready-for-review.
-  //  - "Verify" (verify.yaml): the full suite. It only runs (with real
-  //    content) at ready-to-merge; its result gates the merge itself via
-  //    lifecycle/full-verified. Verify runs completed while a PR is still
-  //    in ready-for-review are no-ops (Decide skips every job) and must
-  //    NOT mark the PR tested.
-  const isFastGate = workflowRun.name === 'CI';
-  if (!isFastGate && workflowRun.name !== 'Verify') {
+  //  - "CI" (ci.yaml): dual-mode. During ready-for-review only its Quick
+  //    Verify job runs and its result drives lifecycle/tested. At
+  //    ready-to-merge it also runs the full unit tier and counts as one of
+  //    the full-suite workflows.
+  //  - "Integration Tests" / "Extra Tests" / "Verify": the rest of the full
+  //    suite (verify.yaml was split into per-phase top-level workflows).
+  //    lifecycle/full-verified is only applied once ALL of them are green
+  //    for the PR's head SHA; their runs completed while a PR is still in
+  //    ready-for-review are no-ops (Decide skips every job) and must NOT
+  //    mark the PR tested.
+  const isFastGate = workflowRun.name === FAST_GATE_WORKFLOW;
+  if (!FULL_SUITE_WORKFLOWS.includes(workflowRun.name)) {
     core.info(`Unhandled workflow ${workflowRun.name}, skipping`);
     return;
   }
@@ -1261,14 +1354,23 @@ async function handleTestResult({ github, context, core }) {
 
     const state = getLifecycleState(pr);
 
+    // The CI workflow is dual-mode: it serves fast-gate results during
+    // ready-for-review and is part of the full-suite set at ready-to-merge.
+    const asFastGate = isFastGate && state === LABELS.READY_FOR_REVIEW;
+
     // Merge-rebase flow (full suite only): branch was auto-updated;
-    // proceed to merge once the Verification Gate passes.
-    if (!isFastGate && state === LABELS.READY_TO_MERGE && hasLabel(pr, LABELS.MERGE_REBASE)) {
+    // proceed to merge once the full suite passes.
+    if (!asFastGate && state === LABELS.READY_TO_MERGE && hasLabel(pr, LABELS.MERGE_REBASE)) {
       if (pr.head.sha !== workflowRun.head_sha) {
         core.info(`PR #${pr.number} merge-rebase SHA mismatch, skipping`);
         continue;
       }
-      if (workflowRun.conclusion === 'success') {
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, workflowRun.event, core);
+      if (suite.status === 'pending') {
+        core.info(`PR #${pr.number} merge-rebase: waiting for other full-suite workflows`);
+        continue;
+      }
+      if (suite.status === 'success') {
         await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
         // The full suite just passed for this (rebased) HEAD — record it so
         // performMerge's full-verified gate accepts the merge.
@@ -1297,17 +1399,19 @@ async function handleTestResult({ github, context, core }) {
       continue;
     }
 
-    if (isFastGate) {
-      // The fast gate reports during iteration; at ready-to-merge the full
-      // suite owns the result.
-      if (state !== LABELS.READY_FOR_REVIEW) {
-        core.info(`PR #${pr.number} not in ready-for-review state, skipping fast-gate result`);
+    if (asFastGate) {
+      // A late CI completion can belong to a full-tier run that raced a
+      // failure revert. If any full-suite workflow already failed for this
+      // SHA, the suite owns the result — do not promote the PR.
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, workflowRun.event, core);
+      if (suite.status === 'failure') {
+        core.info(`PR #${pr.number} full-suite failure recorded for this SHA, skipping fast-gate result`);
         continue;
       }
     } else {
       // The full suite is the pre-merge gate. While a PR is in
-      // ready-for-review its Verify runs are no-ops (Decide skips every
-      // job), so they must not mark the PR tested.
+      // ready-for-review these runs are no-ops (Decide skips every job),
+      // so they must not mark the PR tested.
       if (state !== LABELS.READY_TO_MERGE) {
         core.info(`PR #${pr.number} not in ready-to-merge state, skipping full-suite result`);
         continue;
@@ -1319,7 +1423,7 @@ async function handleTestResult({ github, context, core }) {
       continue;
     }
 
-    if (isFastGate) {
+    if (asFastGate) {
       if (workflowRun.conclusion === 'success') {
         await api.addLabel(pr.number, LABELS.TESTED);
         await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
@@ -1350,8 +1454,15 @@ async function handleTestResult({ github, context, core }) {
         core.info(`PR #${pr.number} fast gate cancelled`);
       }
     } else {
-      // Full suite (verify.yaml) at ready-to-merge: the pre-merge gate.
-      if (workflowRun.conclusion === 'success') {
+      // Full suite at ready-to-merge: the pre-merge gate. All full-suite
+      // workflows (CI, Integration Tests, Extra Tests, Verify) must be green
+      // for this SHA; a failure or cancellation in any of them fails the suite.
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, workflowRun.event, core);
+      if (suite.status === 'pending') {
+        core.info(`PR #${pr.number} waiting for other full-suite workflows`);
+        continue;
+      }
+      if (suite.status === 'success') {
         await api.addLabel(pr.number, LABELS.FULL_VERIFIED);
         core.info(`PR #${pr.number} full verification passed, added lifecycle/full-verified`);
 
@@ -1364,7 +1475,9 @@ async function handleTestResult({ github, context, core }) {
             core.warning(`PR #${pr.number} pending merge did not complete after full verification`);
           }
         }
-      } else if (workflowRun.conclusion === 'failure') {
+      } else {
+        const failed = suite.failedRun;
+        const verb = failed.conclusion === 'cancelled' ? 'was cancelled' : 'failed';
         await api.removeLabel(pr.number, LABELS.FULL_VERIFIED);
         await api.removeLabel(pr.number, LABELS.TESTED);
         if (hasLabel(pr, LABELS.PENDING_MERGE)) {
@@ -1374,17 +1487,12 @@ async function handleTestResult({ github, context, core }) {
         await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
         await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
         await api.postComment(pr.number,
-          `The full verification suite failed for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
+          `The full verification suite ${verb} for commit ${workflowRun.head_sha.substring(0, 7)} ` +
+          `(${failed.name}: ${failed.html_url}). ` +
           `Reverting to \`lifecycle/ready-for-review\`. @${pr.user.login}, please check the ` +
-          `[workflow run](${workflowRun.html_url}) and push a fix.`
+          `workflow run and push a fix.`
         );
-        core.info(`PR #${pr.number} full verification failed, reverted to ready-for-review`);
-      } else if (workflowRun.conclusion === 'cancelled') {
-        await api.postComment(pr.number,
-          `The full verification suite was cancelled for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
-          `See the [workflow run](${workflowRun.html_url}). Use \`/retry\` to re-run.`
-        );
-        core.info(`PR #${pr.number} full verification cancelled`);
+        core.info(`PR #${pr.number} full verification ${verb}, reverted to ready-for-review`);
       }
     }
 
@@ -1824,4 +1932,5 @@ module.exports = {
   handleReconcile,
   reconcile,
   LABELS,
+  FULL_SUITE_WORKFLOWS,
 };

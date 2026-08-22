@@ -80,11 +80,13 @@ CI runs in two tiers:
 1. **Fast gate** (`CI` workflow, ~5 min): runs on every non-draft push. Compiles the
    project (including test sources) and runs the pure unit tests plus a curated app
    smoke set. This is what gives you rapid feedback while iterating.
-2. **Full verification** (`Verify` workflow): the complete suite — all unit-test
-   shards, the integration-test storage matrix, operator, SDKs, and docker images.
-   It runs when a maintainer marks the PR `lifecycle/ready-to-merge` (and on every
-   push to `main`), and must pass before the merge completes. If it fails, the PR
-   returns to `lifecycle/ready-for-review` automatically.
+2. **Full verification**: the complete suite, split across per-phase workflows —
+   `CI` (unit-test shards, SDKs, CLI, console plugin), `Integration Tests`
+   (storage matrix), `Extra Tests` (additional checks), and `Verify` (operator
+   tests, image publishing, and the cross-workflow Verification Gate). It runs when
+   a maintainer marks the PR `lifecycle/ready-to-merge` (and on every push to
+   `main`), and all four workflows must pass before the merge completes. If any
+   fails, the PR returns to `lifecycle/ready-for-review` automatically.
 
 ### Tests and documentation are not optional
 

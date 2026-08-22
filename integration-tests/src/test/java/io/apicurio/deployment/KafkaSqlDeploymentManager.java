@@ -73,7 +73,9 @@ public class KafkaSqlDeploymentManager {
 
         Vertx vertx = Vertx.vertx();
         var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx)
-                .requestTimeout(10_000, 60_000).retry());
+                // Seeding runs against a registry that may still be converging; the read-idle
+                // timeout kills stalled connections and retries must cover a slow redeploy.
+                .requestTimeout(10_000, 60_000).retry(true, 5, 1_000));
 
         // Thousands of sequential blocking calls take 20+ minutes on a loaded CI
         // runner (this read as "the job hangs" more than once); fan out instead.

@@ -789,19 +789,25 @@ async function initNewPr(github, owner, repo, api, config, pr, core) {
   if (isAutoAccepted(config, pr.user.login)) {
     await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+    // Trusted authors don't wait for review before the full suite runs:
+    // review-skipped makes the PR eligible for ready-to-merge as soon as the
+    // fast gate is green, and the full suite (still the merge gate) starts
+    // immediately instead of after a maintainer review.
+    await api.addLabel(pr.number, LABELS.REVIEW_SKIPPED);
     const maintainerHint = isMaintainer(config, pr.user.login)
-      ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes, ` +
-        `or \`/auto-merge\` to merge automatically once approved and tested.`
+      ? `\n\nReview is skipped; a maintainer can still use \`/merge\` to merge early ` +
+        `(it will wait for the full suite) or \`/auto-merge\` to merge automatically.`
       : '';
     const forkHint = pr.head.repo?.full_name !== `${owner}/${repo}`
       ? `\n\n**Note (fork PR):** Review label updates may not apply automatically. ` +
         `A maintainer can use \`/retry\` after reviewing to update the labels.`
       : '';
     await api.postComment(pr.number,
-      `PR auto-accepted (trusted author). Full test suite will run.` +
+      `PR auto-accepted (trusted author). The full verification suite starts immediately; ` +
+      `review is not required before CI.` +
       maintainerHint + forkHint
     );
-    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${LABELS.READY_FOR_REVIEW}`);
+    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${LABELS.READY_FOR_REVIEW}, review skipped`);
     await retriggerVerify(api, pr, core, { waitForRun: true });
     return;
   }

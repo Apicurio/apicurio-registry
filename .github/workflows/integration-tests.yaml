@@ -127,7 +127,7 @@ jobs:
         run: |
           gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
             -f state=pending \
-            -f context="Integration Tests" \
+            -f context="Integration Tests Gate" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             -f description="Running the integration test matrix..."
 
@@ -148,6 +148,6 @@ jobs:
           DESC=$([ "$RESULT" = "success" ] && echo "Integration tests passed" || echo "Integration tests failed")
           gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
             -f state="$STATE" \
-            -f context="Integration Tests" \
+            -f context="Integration Tests Gate" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             -f description="$DESC"

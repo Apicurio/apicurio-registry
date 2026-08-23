@@ -128,7 +128,7 @@ jobs:
         run: |
           gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
             -f state=pending \
-            -f context="Extra Tests" \
+            -f context="Extra Tests Gate" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             -f description="Running extra tests..."
 
@@ -149,7 +149,7 @@ jobs:
           DESC=$([ "$RESULT" = "success" ] && echo "Extra tests passed" || echo "Extra tests failed")
           gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
             -f state="$STATE" \
-            -f context="Extra Tests" \
+            -f context="Extra Tests Gate" \
             -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             -f description="$DESC"
           echo "All checks passed"

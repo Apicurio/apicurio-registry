@@ -1,15 +1,20 @@
 name: Await Build (reusable)
 
-# Shared by ci.yaml/integration-tests.yaml/extras.yaml: waits for quick-check.yaml's
-# Build job to complete for this commit and exposes its run id, so callers can fetch
-# its build-artifacts/Docker images via a cross-run actions/download-artifact instead
-# of rebuilding the same commit from scratch in every top-level workflow.
+# Shared by ci.yaml/integration-tests.yaml/extras.yaml/verify.yaml: waits for
+# quick-check.yaml's Build job to complete for this commit and exposes its run
+# id, so callers can fetch its build-artifacts/Docker images via a cross-run
+# actions/download-artifact instead of rebuilding the same commit from scratch
+# in every top-level workflow.
 #
-# quick-check.yaml and this caller both trigger on the same pull_request/push event
-# for the same commit and both compute Decide independently (the established pattern
-# in this repo — each top-level workflow recomputes Decide rather than sharing one),
-# so if THIS workflow's own Decide said the build is needed, quick-check.yaml's did
-# too and will eventually produce a run to wait for.
+# quick-check.yaml and this caller both trigger on the same pull_request/push
+# event for the same commit. For push events (verify.yaml's only use of this
+# workflow) quick-check.yaml's Decide computes run-build unconditionally true
+# — no race to worry about. For pull_request events (ci.yaml/
+# integration-tests.yaml/extras.yaml) both compute Decide independently (the
+# established pattern in this repo — each top-level workflow recomputes Decide
+# rather than sharing one), so if THIS workflow's own Decide said the build is
+# needed, quick-check.yaml's did too and will eventually produce a run to wait
+# for.
 
 on:
   workflow_call:

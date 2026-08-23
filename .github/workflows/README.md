@@ -9,10 +9,18 @@ and on pushes to `main`, and only run real work once a PR is marked
 
 | Workflow | Contents |
 |----------|----------|
-| `ci.yaml` (**CI**) | **Quick Verify** fast gate (~5 min, every PR push) + the full unit tier: lint, unit-test shards, Scalpel report, CLI, Go SDK freshness, SDK verification, console plugin |
-| `integration-tests.yaml` (**Integration Tests**) | Build + integration-test storage matrix |
-| `extras.yaml` (**Extra Tests**) | Build + additional checks (examples) |
+| `quick-check.yaml` (**Quick Check**) | **Quick Verify** fast gate (~5 min, every PR push) + the sole real Build (Java app + Docker images) for the commit |
+| `ci.yaml` (**CI**) | The full unit tier: lint, unit-test shards, Scalpel report, CLI, Go SDK freshness, SDK verification, console plugin |
+| `integration-tests.yaml` (**Integration Tests**) | Integration-test storage matrix |
+| `extras.yaml` (**Extra Tests**) | Additional checks (examples) |
 | `verify.yaml` (**Verify**) | Operator tests, image publishing (main only), Slack notification, and the Verification Gate |
+
+`ci.yaml`/`integration-tests.yaml`/`extras.yaml`/`verify.yaml`'s push-only jobs
+that need the build (Unit Tests/SDK/CLI Verification, the integration-test
+matrix, extras, image publishing) all wait for `quick-check.yaml`'s Build job
+to complete for the same commit (`verify-await-build.yaml`) and download its
+build-artifacts/Docker images across runs, instead of each rebuilding the
+commit from scratch.
 
 ### Centralized Decision (`decide` job)
 
@@ -23,8 +31,8 @@ downstream job uses a single `if:` condition.
 
 **Lifecycle scope** is driven by PR labels from the PR lifecycle orchestrator:
 - `lifecycle/new`, `lifecycle/ready-for-review` or no label → full tier skipped
-  (the Quick Verify fast gate in `ci.yaml` covers PR iteration)
-- `lifecycle/ready-to-merge` → full suite in all four workflows
+  (the Quick Verify fast gate in `quick-check.yaml` covers PR iteration)
+- `lifecycle/ready-to-merge` → full suite in all five workflows
 - Push to main → always full suite
 
 **Change detection** uses `dorny/paths-filter` to determine which areas changed:
@@ -45,14 +53,14 @@ Push to main always runs everything regardless of change detection.
 
 The `verification-gate` job in `verify.yaml` is the **single required check** for
 branch protection. It runs with `if: always()` and aggregates results across all
-four full-suite workflows: it evaluates its own jobs, then polls the GitHub API
-until the latest `CI`, `Integration Tests` and `Extra Tests` runs for the same
-commit have completed, failing if any of them failed. During PR review the full
-tier is skipped by Decide in every workflow, so the gate passes without blocking
-iteration.
+five full-suite workflows: it evaluates its own jobs, then polls the GitHub API
+until the latest `Quick Check`, `CI`, `Integration Tests` and `Extra Tests` runs
+for the same commit have completed, failing if any of them failed. During PR
+review the full tier is skipped by Decide in every workflow, so the gate passes
+without blocking iteration.
 
 The PR lifecycle orchestrator (`pr-lifecycle.js`) independently aggregates the
-same four workflows by head SHA before applying `lifecycle/full-verified`.
+same five workflows by head SHA before applying `lifecycle/full-verified`.
 
 This replaces the previous approach of configuring 24 individual jobs as required
 checks, which caused skipped jobs to show as permanently pending.

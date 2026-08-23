@@ -4,13 +4,16 @@ name: Verify
 # Verification Gate.
 #
 # The rest of the full suite was split into per-phase top-level workflows:
-#   - ci.yaml                  — fast PR gate + unit tier (unit tests, SDKs, CLI, console plugin)
+#   - quick-check.yaml         — fast PR gate + the sole real Build (Java app + Docker images)
+#   - ci.yaml                  — unit tier (unit tests, SDKs, CLI, console plugin)
 #   - integration-tests.yaml   — integration test matrix
 #   - extras.yaml              — additional checks (examples)
-# All four share the Decide logic via verify-decide.yaml and only run real work at
+# All five share the Decide logic via verify-decide.yaml and only run real work at
 # lifecycle/ready-to-merge (and on pushes to main). The Verification Gate below is
 # the single required check for branch protection: it waits for the sibling
-# workflows' runs on the same SHA and fails if any of them failed.
+# workflows' runs on the same SHA and fails if any of them failed. On push to main,
+# publishing reuses quick-check.yaml's Build job artifacts/Docker images (via
+# await-build below) instead of rebuilding them again here.
 
 on:
   push:
@@ -25,6 +28,10 @@ concurrency:
 
 permissions:
   contents: read
+  # actions: read is needed for await-build's cross-run artifact download
+  # (quick-check.yaml's Build job runs in a separate workflow run) — a
+  # reusable workflow's own permissions are capped by what the caller grants.
+  actions: read
 
 jobs:
   decide:
@@ -40,26 +47,27 @@ jobs:
       publish: ${{ github.event_name == 'push' }}
     secrets: inherit
 
-  # Push-only: verify-publish downloads the build-artifacts-<sha> artifact from
-  # this run, so publishing needs a build in this workflow.
-  build:
-    name: Build
+  # Push-only: verify-publish downloads build-artifacts-<sha> and the app/MCP
+  # Docker images from quick-check.yaml's Build job for this SHA (the sole
+  # build, same as every other top-level workflow) instead of rebuilding here.
+  await-build:
+    name: Await Build
     needs: [decide]
     if: github.event_name == 'push'
-    uses: ./.github/workflows/verify-build.yaml
+    uses: ./.github/workflows/verify-await-build.yaml
 
   # ============================================================================
   # VERIFICATION GATE: single required check for branch protection
   #
   # Aggregates this workflow's jobs AND the sibling full-suite workflows
-  # (CI, Integration Tests, Extra Tests) for the same commit. During PR review
-  # the full tier is skipped by Decide in every workflow, so all runs complete
-  # quickly and the gate passes without blocking iteration.
+  # (Quick Check, CI, Integration Tests, Extra Tests) for the same commit.
+  # During PR review the full tier is skipped by Decide in every workflow, so
+  # all runs complete quickly and the gate passes without blocking iteration.
   # ============================================================================
   verification-gate:
     name: Verification Gate
     if: always() && github.repository_owner == 'Apicurio'
-    needs: [decide, operator, build]
+    needs: [decide, operator, await-build]
     runs-on: ubuntu-latest
     timeout-minutes: 210
     steps:
@@ -142,11 +150,12 @@ jobs:
   # ============================================================================
   publish:
     name: Publish Images
-    needs: [build, verification-gate]
+    needs: [await-build, verification-gate]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
+      build-run-id: ${{ needs.await-build.outputs.run-id }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

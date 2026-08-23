@@ -10,6 +10,14 @@ on:
         type: string
         required: true
         description: 'Docker image tag to test'
+      checkout-ref:
+        description: >
+          Commit SHA to test. Only needed when called via the orchestrator's
+          workflow_dispatch (single-build dispatch chain) — see verify-build.yaml's
+          input of the same name for why. Empty for the push caller, which already
+          checks out the right commit by default.
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -55,6 +63,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5

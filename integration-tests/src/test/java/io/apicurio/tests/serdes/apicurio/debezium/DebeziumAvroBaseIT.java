@@ -130,7 +130,10 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         synchronized (CONNECTOR_LOCK) {
             registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
             // Wait for connector to be ready with a longer timeout for initial startup
-            waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+            // Under class-level parallel execution the shared Kafka Connect can take >30 s to
+            // bring a connector to RUNNING; a tighter budget makes the second class time out
+            // while the first is still booting. 120 s matches the other CI-visible timeouts.
+            waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(120));
         }
 
         log.info("Shared connector {} is ready and watching pattern: {}", sharedConnectorName, tablePattern);

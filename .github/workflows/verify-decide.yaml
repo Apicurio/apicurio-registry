@@ -125,7 +125,12 @@ jobs:
           # and pushes to main.
           run_tests=false
 
-          if [ "$EVENT" = "push" ]; then
+          # workflow_dispatch: the orchestrator only dispatches the downstream
+          # workflows (single-build chain) for PRs whose full suite should run —
+          # the dispatch itself is the scope signal; no label evaluation here.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            run_tests=true
+          elif [ "$EVENT" = "push" ]; then
             run_tests=true
           else
             # Non-lifecycle label events: skip the workflow run entirely.
@@ -178,10 +183,10 @@ jobs:
             else
               # Two-tier CI: PR iteration is covered by the fast gate in ci.yaml
               # (<= 5 min, compile + smoke). The full suite here is the
-              # pre-merge gate. Trusted authors (orchestrator/review-skipped,
-              # applied at PR open for auto-accepted authors) run it
-              # immediately; everyone else needs lifecycle/ready-to-merge.
-              if has_label "lifecycle/ready-to-merge" || has_label "orchestrator/review-skipped"; then
+              # pre-merge gate and only runs once a maintainer marks the PR
+              # lifecycle/ready-to-merge. lifecycle/ready-for-review no longer
+              # triggers full CI.
+              if has_label "lifecycle/ready-to-merge"; then
                 run_tests=true
               else
                 # lifecycle/new, lifecycle/ready-for-review or no lifecycle label
@@ -218,20 +223,27 @@ jobs:
             echo "$name=false" >> "$GITHUB_OUTPUT"
           }
 
-          IS_PUSH=$( [ "$EVENT" = "push" ] && echo true || echo false )
+          # RUN_ALL covers both push-to-main and the orchestrator's workflow_dispatch
+          # calls (single-build dispatch chain): both mean "run the full suite
+          # unconditionally for this SHA", so change-detection accuracy doesn't matter
+          # for those two triggers — path-filter output above may not even reflect the
+          # right diff for workflow_dispatch (no PR base to diff against, and the
+          # checked-out ref may not have history), and it doesn't need to: the
+          # orchestrator only dispatches when it has already decided the suite runs.
+          RUN_ALL=$( ([ "$EVENT" = "push" ] || [ "$EVENT" = "workflow_dispatch" ]) && echo true || echo false )
 
           echo "lifecycle-ready=$run_tests" >> "$GITHUB_OUTPUT"
-          decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
-          decide run-unit-tests  "$run_tests" "$IS_PUSH" "$JAVA" "$CI"
+          decide run-build       "$run_tests" "$RUN_ALL" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
+          decide run-unit-tests  "$run_tests" "$RUN_ALL" "$JAVA" "$CI"
           # Report only when java sources changed: .github-only PRs trip
           # scalpel.disableTriggers and would produce an empty report.
           decide run-scalpel-report "$run_tests" "$JAVA"
-          decide run-integration "$run_tests" "$IS_PUSH" "$INTEGRATION" "$CI"
-          decide run-extras      "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$CI"
-          decide run-sdk         "$run_tests" "$IS_PUSH" "$SDK" "$JAVA" "$CI"
+          decide run-integration "$run_tests" "$RUN_ALL" "$INTEGRATION" "$CI"
+          decide run-extras      "$run_tests" "$RUN_ALL" "$JAVA" "$UI" "$CI"
+          decide run-sdk         "$run_tests" "$RUN_ALL" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_tests" "$CLI"
-          decide run-operator        "$run_tests" "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
-          decide run-console-plugin  "$run_tests" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
+          decide run-operator        "$run_tests" "$RUN_ALL" "$OPERATOR" "$CI_OPERATOR"
+          decide run-console-plugin  "$run_tests" "$RUN_ALL" "$CONSOLE_PLUGIN" "$CI"
           decide run-go-sdk-freshness "$run_tests" "$GO_SDK_GEN" "$CI"
 
           # Scalpel (affected-module detection) can be disabled via PR label

@@ -1,8 +1,25 @@
 name: Integration Tests
 
+# run-name embeds the PR's actual SHA for workflow_dispatch runs. GitHub reports
+# head_sha for a workflow_dispatch run as the dispatch ref's resolved commit (the
+# PR's base branch tip — confirmed empirically, not just undocumented), never the
+# pr-sha input, so head_sha cannot correlate these runs back to the PR that
+# triggered them. The orchestrator (and the Verification Gate) matches on this
+# run-name instead for workflow_dispatch runs. Empty for the push trigger, which
+# falls back to GitHub's own default title and correlates by head_sha normally.
+run-name: ${{ inputs.pr-sha }}
+
 # Top-level workflow for the integration-test matrix. Triggered by workflow_dispatch
-# from the PR lifecycle orchestrator when the shared Build job in ci.yaml completes
-# (single build per SHA — no duplicate builds across workflows), and by push to main.
+# from the PR lifecycle orchestrator when the fast gate (CI workflow) goes green for
+# a PR that should run the full suite, and by push to main.
+#
+# workflow_dispatch cannot target a PR's own ref (only branches/tags on the base
+# repo), so the orchestrator dispatches against the PR's base branch and passes the
+# PR's actual head SHA as an input; every job below that needs the PR's code (not
+# the dispatch ref's tip) checks out pr-sha explicitly instead of relying on the
+# default (github.sha / github.ref), which here would resolve to the dispatch ref.
+# This also means the shared Build artifact from ci.yaml cannot be reused (no
+# cross-run artifact fetch is wired up) — this workflow builds its own image.
 #
 # Merge gating: the Verification Gate in verify.yaml waits for this workflow's run
 # on the same SHA; the orchestrator (pr-lifecycle) aggregates all full-suite
@@ -17,9 +34,20 @@ on:
         description: PR number this run belongs to (informational)
         required: false
         type: string
+      pr-sha:
+        description: >
+          Head commit SHA to check out and test. Required for the dispatch to
+          test the right code — workflow_dispatch always runs against the ref
+          it was dispatched to (the PR's base branch), not the PR itself.
+        required: false
+        type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # workflow_dispatch runs all target the same ref (the PR's base branch — see
+  # the header comment), so github.ref alone would group every dispatched PR's
+  # run together and cancel-in-progress would cancel one PR's run when another
+  # PR's is dispatched. Key by the PR's actual SHA when present.
+  group: ${{ github.workflow }}-${{ inputs.pr-sha || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -33,9 +61,12 @@ jobs:
   build:
     name: Build
     needs: [decide]
-    # Only push events build here; PR runs reuse ci.yaml's build (single producer).
-    if: github.event_name == 'push'
+    # push builds for the main-branch run; workflow_dispatch builds because there is
+    # no cross-run artifact fetch to reuse ci.yaml's build (see header comment).
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/verify-build.yaml
+    with:
+      checkout-ref: ${{ inputs.pr-sha }}
 
   integration-tests:
     name: Integration Tests
@@ -44,6 +75,7 @@ jobs:
     uses: ./.github/workflows/verify-integration-tests.yaml
     with:
       image-tag: ${{ github.sha }}
+      checkout-ref: ${{ inputs.pr-sha }}
 
   # Terminal gate so this workflow has a single check summarizing its jobs.
   # Passes when every job succeeded or was appropriately skipped by Decide
@@ -65,3 +97,57 @@ jobs:
             exit 1
           fi
           echo "All checks passed"
+
+  # ============================================================================
+  # PR VISIBILITY: commit statuses on the PR's actual SHA
+  #
+  # workflow_dispatch runs are never associated with a PR by GitHub — the
+  # check_suite's pull_requests array is empty regardless of which ref was
+  # dispatched to (confirmed empirically: dispatching straight at the default
+  # branch produces the same empty array), because association is based on
+  # (repository, head_branch) matching an open PR's head, and a dispatched
+  # run's head_branch is always the ref it was dispatched to, never the PR's
+  # actual branch (which for a fork PR does not even exist on this repo).
+  # So without this, a fork PR's own page never shows Integration Tests at
+  # all, even once it runs and passes — the native Actions check is invisible
+  # there. Commit statuses are looked up purely by SHA and do show up in a
+  # PR's checks list; this is the same mechanism third-party CI systems use
+  # for exactly this scenario.
+  notify-pr-pending:
+    name: Notify PR (pending)
+    needs: [decide]
+    if: github.event_name == 'workflow_dispatch' && inputs.pr-sha != '' && needs.decide.outputs.run-integration == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Post pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
+            -f state=pending \
+            -f context="Integration Tests Gate" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description="Running the integration test matrix..."
+
+  notify-pr-result:
+    name: Notify PR (result)
+    needs: [decide, gate]
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.pr-sha != ''
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Post final status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.gate.result }}
+        run: |
+          STATE=$([ "$RESULT" = "success" ] && echo success || echo failure)
+          DESC=$([ "$RESULT" = "success" ] && echo "Integration tests passed" || echo "Integration tests failed")
+          gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
+            -f state="$STATE" \
+            -f context="Integration Tests Gate" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description="$DESC"

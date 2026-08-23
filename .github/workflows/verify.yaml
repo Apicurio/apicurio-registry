@@ -377,20 +377,29 @@ jobs:
           fi
           echo "All jobs passed or were appropriately skipped"
 
-      # Live, direct check of the PR's CURRENT lifecycle state. This job's
-      # own Decide computed lifecycle-ready once already (gating every job
-      # above), so in principle it cannot disagree with itself — but a
-      # skipped required job still counts as "passing" for branch
-      # protection, and every job above is skipped until the PR is ready to
-      # merge. Without this check, native "Merge pull request" would be
-      # unblocked as soon as Decide+Gate complete, regardless of whether the
-      # full suite ever actually ran for the commit.
+      # Live, direct check of the PR's CURRENT lifecycle state, cross-checked
+      # against THIS run's own Decide output. A skipped required job counts
+      # as "passing" for branch protection, and every job above is skipped
+      # unless Decide's lifecycle-ready was true when THIS run started —
+      # so checking only the live PR state is not enough: Decide is
+      # evaluated once, early, right when the run starts, while this step
+      # runs later (after every other job above has finished, however long
+      # that took). If the PR gets promoted to ready-to-merge in that
+      # window, this run's live check alone would see "ready" and pass,
+      # even though Decide already skipped every real job for this exact
+      # run because it evaluated too early to know that — a stale pass
+      # that never actually ran the suite it is reporting success for.
+      # Requiring THIS run's own Decide to also have seen ready-to-merge
+      # closes that: a stale run now fails instead, and the orchestrator's
+      # existing force-retrigger on promotion produces a fresh run whose
+      # Decide correctly sees the promoted state and runs the real jobs.
       - name: Verify PR is actually ready to merge
         if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          DECIDE_LIFECYCLE_READY: ${{ needs.decide.outputs.lifecycle-ready }}
         run: |
           # Mirrors verify-decide.yaml's own lifecycle-scope logic exactly
           # (orchestrator/disabled bypasses the lifecycle label dance unless
@@ -407,7 +416,11 @@ jobs:
             echo "::error::PR #$PR_NUMBER is not lifecycle/ready-to-merge yet — the full suite has not run for this SHA. This is expected during PR review, not a failure of anything: promotion happens automatically once the fast gate (Quick Check) passes (immediately for trusted/auto-accepted authors, or after an approving review for everyone else), and this Gate will pass once the full suite subsequently completes for the promoted commit."
             exit 1
           fi
-          echo "PR #$PR_NUMBER is lifecycle/ready-to-merge"
+          if [ "$DECIDE_LIFECYCLE_READY" != "true" ]; then
+            echo "::error::PR #$PR_NUMBER is lifecycle/ready-to-merge right now, but THIS run's own Decide evaluated earlier (before promotion) and saw lifecycle-ready=$DECIDE_LIFECYCLE_READY, so every real job above was skipped. This run is stale and cannot retroactively claim to have run the suite it skipped. A fresh run with up-to-date Decide output is required — the orchestrator's force-retrigger on promotion should already produce one; use /retry if it has not appeared."
+            exit 1
+          fi
+          echo "PR #$PR_NUMBER is lifecycle/ready-to-merge and this run's own Decide agrees"
 
   # ============================================================================
   # PUBLISH: Push images (only on push to main)

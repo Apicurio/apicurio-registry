@@ -16,9 +16,10 @@ const LABELS = {
   TESTED: 'lifecycle/tested',
   READY_TO_MERGE: 'lifecycle/ready-to-merge',
   // Set when the FULL verification suite passes for the current
-  // HEAD. Two-tier CI: lifecycle/tested comes from the fast gate (ci.yaml's
-  // Quick Verify job) during iteration; lifecycle/full-verified is the
-  // pre-merge gate, applied once all full-suite workflows are green.
+  // HEAD. Two-tier CI: lifecycle/tested comes from the fast gate
+  // (quick-check.yaml's Quick Verify job) during iteration;
+  // lifecycle/full-verified is the pre-merge gate, applied once all
+  // full-suite workflows are green.
   FULL_VERIFIED: 'lifecycle/full-verified',
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
@@ -54,8 +55,8 @@ const COLORS = {
 
 const LABEL_DEFS = {
   [LABELS.NEW]:                  { color: COLORS.INFO, description: 'PR awaiting triage' },
-  [LABELS.READY_FOR_REVIEW]:     { color: COLORS.INFO, description: 'Ready for review, fast CI gate runs on push' },
-  [LABELS.TESTED]:               { color: COLORS.SUCCESS, description: 'Fast CI gate passed for current HEAD' },
+  [LABELS.READY_FOR_REVIEW]:     { color: COLORS.INFO, description: 'Ready for review, Quick Check gate runs on push' },
+  [LABELS.TESTED]:               { color: COLORS.SUCCESS, description: 'Quick Check gate passed for current HEAD' },
   [LABELS.FULL_VERIFIED]:        { color: COLORS.SUCCESS, description: 'Full verification suite passed for current HEAD' },
   [LABELS.REVIEW_APPROVED]:      { color: COLORS.SUCCESS, description: 'PR has an approved review' },
   [LABELS.READY_TO_MERGE]:       { color: COLORS.INFO, description: 'Approved and fast-gated; full suite is the merge gate' },
@@ -279,18 +280,19 @@ function createApi(github, owner, repo) {
   };
 }
 
-// Two-tier CI routing: the fast gate (ci.yaml's Quick Verify job, workflow
-// name "CI") covers PR iteration; the full suite (ci.yaml's full tier plus the
-// "Integration Tests", "Extra Tests" and "Verify" workflows) is the pre-merge
-// gate and only meaningful once the PR is lifecycle/ready-to-merge. Retrigger
-// and approval operations target the workflow files that matter for the PR's
-// current state.
+// Two-tier CI routing: the fast gate (quick-check.yaml's Quick Verify job,
+// workflow name "Quick Check") covers PR iteration; the full suite
+// (quick-check.yaml's Build job plus the "CI", "Integration Tests",
+// "Extra Tests" and "Verify" workflows) is the pre-merge gate and only
+// meaningful once the PR is lifecycle/ready-to-merge. Retrigger and approval
+// operations target the workflow files that matter for the PR's current
+// state.
 // The full suite is split across these top-level workflows; all of them must
 // be green for a PR's head SHA before lifecycle/full-verified is applied.
-// "CI" is dual-mode: it is also the fast gate during review.
-const FAST_GATE_WORKFLOW = 'CI';
-const FULL_SUITE_WORKFLOWS = ['CI', 'Integration Tests', 'Extra Tests', 'Verify'];
-const FULL_SUITE_WORKFLOW_FILES = ['ci.yaml', 'integration-tests.yaml', 'extras.yaml', 'verify.yaml'];
+// "Quick Check" is dual-mode: it is also the fast gate during review.
+const FAST_GATE_WORKFLOW = 'Quick Check';
+const FULL_SUITE_WORKFLOWS = ['Quick Check', 'CI', 'Integration Tests', 'Extra Tests', 'Verify'];
+const FULL_SUITE_WORKFLOW_FILES = ['quick-check.yaml', 'ci.yaml', 'integration-tests.yaml', 'extras.yaml', 'verify.yaml'];
 
 // Aggregates the latest run of each full-suite workflow for a commit.
 // Returns:
@@ -326,11 +328,11 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
 
 async function retriggerVerify(api, pr, core, { waitForRun = false, force = false } = {}) {
   // The workflow that matters depends on lifecycle state: the fast gate
-  // (ci.yaml) during iteration, all four full-suite workflows at
+  // (quick-check.yaml) during iteration, all five full-suite workflows at
   // ready-to-merge (verify.yaml was split into per-phase workflows).
   // force=true re-runs even green workflows: promotion to ready-to-merge is a
-  // bot-applied label (no labeled event fires), so CI/Verify must re-run for
-  // Decide to see the new state and start the full tier.
+  // bot-applied label (no labeled event fires), so Quick Check/Verify must
+  // re-run for Decide to see the new state and start the full tier.
   if (getLifecycleState(pr) === LABELS.READY_TO_MERGE) {
     let found = false;
     for (const workflow of FULL_SUITE_WORKFLOW_FILES) {
@@ -341,9 +343,9 @@ async function retriggerVerify(api, pr, core, { waitForRun = false, force = fals
     }
     return;
   }
-  const found = await retriggerWorkflowRun(api, pr, core, 'ci.yaml', { waitForRun, force });
+  const found = await retriggerWorkflowRun(api, pr, core, 'quick-check.yaml', { waitForRun, force });
   if (!found) {
-    await triggerViaBranchUpdate(api, pr, core, 'ci.yaml');
+    await triggerViaBranchUpdate(api, pr, core, 'quick-check.yaml');
   }
 }
 
@@ -462,8 +464,8 @@ async function approvePendingVerifyRuns(api, pr, core, workflow = 'verify.yaml')
 }
 
 // Approves pending fork-PR runs for ALL tiers: the fast gate plus every
-// full-suite workflow (ci.yaml doubles as both). Approving a run the current
-// state will skip is harmless; missing one strands a fork PR on
+// full-suite workflow (quick-check.yaml doubles as both). Approving a run the
+// current state will skip is harmless; missing one strands a fork PR on
 // "action_required".
 async function approveAllPendingCiRuns(api, pr, core) {
   let approved = 0;
@@ -608,7 +610,7 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
     const mentionSuffix = mentions ? ` ${mentions}` : '';
 
     await api.postComment(pr.number,
-      `This PR is approved and has passed the fast CI gate. The full verification suite is now ` +
+      `This PR is approved and has passed the Quick Check gate. The full verification suite is now ` +
       `running as the final merge gate.${mentionSuffix} A maintainer can merge it with \`/merge\`, ` +
       `or enable auto-merge with \`/auto-merge\` — the merge completes once full verification passes.`
     );
@@ -655,7 +657,7 @@ async function migrateLegacyLabels(api, pr, core) {
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.postComment(pr.number,
     `**Lifecycle update:** the \`lifecycle/wip\` stage has been removed. This PR has been ` +
-    `migrated to \`lifecycle/ready-for-review\` and the fast CI gate will run.`
+    `migrated to \`lifecycle/ready-for-review\` and the Quick Check gate will run.`
   );
   await retriggerVerify(api, pr, core, { waitForRun: true });
   core.warning(`PR #${pr.number} migrated from legacy lifecycle/wip to ${LABELS.READY_FOR_REVIEW}`);
@@ -1208,11 +1210,11 @@ async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comm
   await reconcile(github, api, freshPr, core);
 
   // The workflows that matter depend on lifecycle state: the fast gate
-  // (ci.yaml) during iteration, all four full-suite workflows at
+  // (quick-check.yaml) during iteration, all five full-suite workflows at
   // ready-to-merge (verify.yaml was split into per-phase workflows).
   const atMergeGate = getLifecycleState(freshPr) === LABELS.READY_TO_MERGE;
-  const workflowFiles = atMergeGate ? FULL_SUITE_WORKFLOW_FILES : ['ci.yaml'];
-  const workflowDesc = atMergeGate ? 'full-suite' : 'ci.yaml';
+  const workflowFiles = atMergeGate ? FULL_SUITE_WORKFLOW_FILES : ['quick-check.yaml'];
+  const workflowDesc = atMergeGate ? 'full-suite' : 'quick-check.yaml';
   const latestRuns = [];
   for (const wf of workflowFiles) {
     const run = await api.findLatestVerifyRun(freshPr.head.sha, wf);
@@ -1313,12 +1315,12 @@ async function handleTestResult({ github, context, core }) {
   }
 
   // Two-tier CI routing:
-  //  - "CI" (ci.yaml): dual-mode. During ready-for-review only its Quick
-  //    Verify job runs and its result drives lifecycle/tested. At
-  //    ready-to-merge it also runs the full unit tier and counts as one of
-  //    the full-suite workflows.
-  //  - "Integration Tests" / "Extra Tests" / "Verify": the rest of the full
-  //    suite (verify.yaml was split into per-phase top-level workflows).
+  //  - "Quick Check" (quick-check.yaml): dual-mode. During ready-for-review
+  //    only its Quick Verify job runs and its result drives lifecycle/tested.
+  //    At ready-to-merge it also runs the real Build job and counts as one
+  //    of the full-suite workflows.
+  //  - "CI" / "Integration Tests" / "Extra Tests" / "Verify": the rest of the
+  //    full suite (verify.yaml was split into per-phase top-level workflows).
   //    lifecycle/full-verified is only applied once ALL of them are green
   //    for the PR's head SHA; their runs completed while a PR is still in
   //    ready-for-review are no-ops (Decide skips every job) and must NOT
@@ -1365,8 +1367,9 @@ async function handleTestResult({ github, context, core }) {
 
     const state = getLifecycleState(pr);
 
-    // The CI workflow is dual-mode: it serves fast-gate results during
-    // ready-for-review and is part of the full-suite set at ready-to-merge.
+    // The Quick Check workflow is dual-mode: it serves fast-gate results
+    // during ready-for-review and is part of the full-suite set at
+    // ready-to-merge.
     const asFastGate = isFastGate && state === LABELS.READY_FOR_REVIEW;
 
     // Merge-rebase flow (full suite only): branch was auto-updated;
@@ -1411,9 +1414,9 @@ async function handleTestResult({ github, context, core }) {
     }
 
     if (asFastGate) {
-      // A late CI completion can belong to a full-tier run that raced a
-      // failure revert. If any full-suite workflow already failed for this
-      // SHA, the suite owns the result — do not promote the PR.
+      // A late Quick Check completion can belong to a full-tier run that
+      // raced a failure revert. If any full-suite workflow already failed
+      // for this SHA, the suite owns the result — do not promote the PR.
       const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
       if (suite.status === 'failure') {
         core.info(`PR #${pr.number} full-suite failure recorded for this SHA, skipping fast-gate result`);
@@ -1452,14 +1455,14 @@ async function handleTestResult({ github, context, core }) {
         await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
         await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
         await api.postComment(pr.number,
-          `The fast CI gate failed for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
+          `The Quick Check gate failed for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
           `@${pr.user.login}, please check the ` +
           `[workflow run](${workflowRun.html_url}) and push a fix.`
         );
         core.info(`PR #${pr.number} fast gate failed`);
       } else if (workflowRun.conclusion === 'cancelled') {
         await api.postComment(pr.number,
-          `The fast CI gate was cancelled for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
+          `The Quick Check gate was cancelled for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
           `See the [workflow run](${workflowRun.html_url}). Use \`/retry\` to re-run.`
         );
         core.info(`PR #${pr.number} fast gate cancelled`);

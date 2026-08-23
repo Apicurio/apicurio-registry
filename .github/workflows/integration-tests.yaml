@@ -20,9 +20,9 @@ name: Integration Tests
 # label does not itself fire a new event) re-runs this one too once it
 # exists, with no dispatch-specific code needed.
 #
-# No cross-run artifact fetch is wired up for the shared Build job in
-# ci.yaml (see verify-build.yaml/verify-integration-tests.yaml), so this
-# workflow builds its own image rather than reusing it.
+# The Java/Docker build itself lives solely in quick-check.yaml now — this
+# workflow waits for its run (verify-await-build.yaml) and downloads its
+# Docker image across runs instead of rebuilding.
 #
 # Merge gating: the Verification Gate in verify.yaml waits for this workflow's run
 # on the same SHA; the orchestrator (pr-lifecycle) aggregates all full-suite
@@ -41,25 +41,30 @@ concurrency:
 
 permissions:
   contents: read
+  # actions: read is needed for await-build's cross-run artifact download
+  # (quick-check.yaml's Build job runs in a separate workflow run) — a
+  # reusable workflow's own permissions are capped by what the caller grants.
+  actions: read
 
 jobs:
   decide:
     name: Decide
     uses: ./.github/workflows/verify-decide.yaml
 
-  build:
-    name: Build
+  await-build:
+    name: Await Build
     needs: [decide]
     if: needs.decide.outputs.run-integration == 'true'
-    uses: ./.github/workflows/verify-build.yaml
+    uses: ./.github/workflows/verify-await-build.yaml
 
   integration-tests:
     name: Integration Tests
-    needs: [decide, build]
+    needs: [decide, await-build]
     if: needs.decide.outputs.run-integration == 'true'
     uses: ./.github/workflows/verify-integration-tests.yaml
     with:
       image-tag: ${{ github.sha }}
+      build-run-id: ${{ needs.await-build.outputs.run-id }}
 
   # Terminal gate so this workflow has a single check summarizing its jobs.
   # Passes when every job succeeded or was appropriately skipped by Decide
@@ -67,7 +72,7 @@ jobs:
   gate:
     name: Integration Tests Gate
     if: always()
-    needs: [decide, build, integration-tests]
+    needs: [decide, await-build, integration-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate gate

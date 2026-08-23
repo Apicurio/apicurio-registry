@@ -81,14 +81,15 @@ jobs:
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REPO: ${{ github.repository }}
           # This workflow's OWN Decide job re-fetches live PR label state, same
-          # as CI/Integration Tests/Extra Tests' Decide jobs do — independently,
-          # at whatever moment each of the 4 sibling workflow runs happens to
-          # schedule its Decide job. If the PR's lifecycle label changes between
-          # those moments (e.g. the orchestrator promotes/demotes mid-flight),
-          # this run's own 'lifecycle-ready' can legitimately disagree with a
-          # sibling's. Do NOT branch the wait strategy on it: always wait for
-          # actual completion of all three sibling runs below and trust their
-          # real conclusion, whatever each of them decided to do internally.
+          # as Quick Check/CI/Integration Tests/Extra Tests' Decide jobs do —
+          # independently, at whatever moment each of the 5 sibling workflow
+          # runs happens to schedule its Decide job. If the PR's lifecycle
+          # label changes between those moments (e.g. the orchestrator
+          # promotes/demotes mid-flight), this run's own 'lifecycle-ready' can
+          # legitimately disagree with a sibling's. Do NOT branch the wait
+          # strategy on it: always wait for actual completion of all four
+          # sibling runs below and trust their real conclusion, whatever each
+          # of them decided to do internally.
           # 'skip' (non-lifecycle label churn on an otherwise-already-covered
           # SHA) is the one case where this run itself has nothing to add.
           LIFECYCLE_READY: ${{ needs.decide.outputs.lifecycle-ready }}
@@ -98,20 +99,21 @@ jobs:
             exit 0
           fi
 
-          echo "Waiting for CI, Integration Tests and Extra Tests to complete for $SHA"
+          echo "Waiting for Quick Check, CI, Integration Tests and Extra Tests to complete for $SHA"
 
-          # CI/Integration Tests/Extra Tests all trigger directly on the same
-          # pull_request/push events as this workflow, so a single head_sha
-          # filter finds all of them. Always require all three regardless of
-          # what THIS run's Decide computed (see LIFECYCLE_READY comment above):
-          # each sibling's own workflow run always completes quickly on its own
-          # whether it ran real jobs or skipped them internally, so waiting for
-          # all three unconditionally is never a false timeout, and it is the
-          # only way to reliably catch a sibling that did run (and failed) even
-          # when this run's own Decide disagreed about whether it should have.
+          # Quick Check/CI/Integration Tests/Extra Tests all trigger directly
+          # on the same pull_request/push events as this workflow, so a single
+          # head_sha filter finds all of them. Always require all four
+          # regardless of what THIS run's Decide computed (see LIFECYCLE_READY
+          # comment above): each sibling's own workflow run always completes
+          # quickly on its own whether it ran real jobs or skipped them
+          # internally, so waiting for all four unconditionally is never a
+          # false timeout, and it is the only way to reliably catch a sibling
+          # that did run (and failed) even when this run's own Decide
+          # disagreed about whether it should have.
           for i in $(seq 1 200); do
             LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
-              --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")
+              --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"Quick Check\" or .name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")
 
             echo "Sibling runs (attempt $i):"
             echo "$LATEST" | jq -c '.[]'
@@ -124,7 +126,7 @@ jobs:
 
             COUNT=$(echo "$LATEST" | jq 'length')
             PENDING=$(echo "$LATEST" | jq '[.[] | select(.status != "completed")] | length')
-            if [ "$COUNT" -eq 3 ] && [ "$PENDING" -eq 0 ]; then
+            if [ "$COUNT" -eq 4 ] && [ "$PENDING" -eq 0 ]; then
               echo "All sibling workflows completed successfully"
               exit 0
             fi

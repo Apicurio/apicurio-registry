@@ -10,9 +10,14 @@ on:
         type: string
         required: true
         description: 'Docker image tag to test'
+      build-run-id:
+        type: string
+        required: true
+        description: 'quick-check.yaml run id to download the Docker image from (see verify-await-build.yaml)'
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   integration-tests:
@@ -75,9 +80,17 @@ jobs:
       - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         if: steps.minikube-setup.outcome == 'failure'
 
+      - name: Download Docker Image Artifact (cross-run)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          path: /tmp
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          download: 'false'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           minikube: 'true'
           image-name: 'apicurio/apicurio-registry'

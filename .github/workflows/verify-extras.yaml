@@ -13,9 +13,14 @@ on:
         type: string
         required: true
         description: 'Docker image tag to test'
+      build-run-id:
+        type: string
+        required: true
+        description: 'quick-check.yaml run id to download build-artifacts/Docker images from (see verify-await-build.yaml)'
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   # Self-contained docker-compose suite (no JDK/Maven needed), running as its
@@ -27,9 +32,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Download Docker Image Artifact (cross-run)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: apicurio-registry-${{ inputs.image-tag }}.tar
+          path: /tmp
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          download: 'false'
           image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
           image-name: apicurio/apicurio-registry
           tag: ${{ inputs.image-tag }}
@@ -64,16 +77,32 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'ui/tests/package-lock.json'
 
+      - name: Download App Docker Image Artifact (cross-run)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          path: /tmp
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+
+      - name: Download UI Docker Image Artifact (cross-run)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: 'apicurio-registry-ui-${{ inputs.image-tag }}.tar'
+          path: /tmp
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          download: 'false'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          artifact-name: 'apicurio-registry-ui-${{ inputs.image-tag }}.tar'
+          download: 'false'
           image-file: '/tmp/apicurio-registry-ui-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry-ui'
           tag: '${{ inputs.image-tag }}'
@@ -122,9 +151,17 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Download Docker Image Artifact (cross-run)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          path: /tmp
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          download: 'false'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
@@ -155,9 +192,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Download Docker Image Artifact (cross-run)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          path: /tmp
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          download: 'false'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
@@ -193,6 +238,8 @@ jobs:
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
 
       - name: Restore executable permissions
         run: |
@@ -201,9 +248,17 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
+      - name: Download Docker Image Artifact (cross-run)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          path: /tmp
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          download: 'false'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'

@@ -1,0 +1,66 @@
+name: Await Build (reusable)
+
+# Shared by ci.yaml/integration-tests.yaml/extras.yaml: waits for quick-check.yaml's
+# Build job to complete for this commit and exposes its run id, so callers can fetch
+# its build-artifacts/Docker images via a cross-run actions/download-artifact instead
+# of rebuilding the same commit from scratch in every top-level workflow.
+#
+# quick-check.yaml and this caller both trigger on the same pull_request/push event
+# for the same commit and both compute Decide independently (the established pattern
+# in this repo — each top-level workflow recomputes Decide rather than sharing one),
+# so if THIS workflow's own Decide said the build is needed, quick-check.yaml's did
+# too and will eventually produce a run to wait for.
+
+on:
+  workflow_call:
+    outputs:
+      run-id:
+        description: 'quick-check.yaml run id whose Build job produced the artifacts for this SHA'
+        value: ${{ jobs.await-build.outputs.run-id }}
+
+permissions:
+  actions: read
+
+jobs:
+  await-build:
+    name: Await Build
+    runs-on: ubuntu-latest
+    # Comfortably above quick-check.yaml's own Build job's realistic duration
+    # (Java + Docker + UI build, ~5-10 min) plus initial run-registration lag.
+    timeout-minutes: 30
+    outputs:
+      run-id: ${{ steps.wait.outputs.run-id }}
+    steps:
+      - name: Wait for quick-check.yaml's Build job
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          for i in $(seq 1 90); do
+            RUN=$(gh api "repos/$REPO/actions/workflows/quick-check.yaml/runs?head_sha=$SHA&per_page=5" \
+              --jq '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0] // empty')
+
+            if [ -n "$RUN" ] && [ "$RUN" != "null" ]; then
+              STATUS=$(echo "$RUN" | jq -r '.status')
+              CONCLUSION=$(echo "$RUN" | jq -r '.conclusion')
+              RUN_ID=$(echo "$RUN" | jq -r '.id')
+              echo "quick-check.yaml run $RUN_ID for $SHA: status=$STATUS conclusion=$CONCLUSION"
+              if [ "$STATUS" = "completed" ]; then
+                if [ "$CONCLUSION" != "success" ]; then
+                  echo "::error::quick-check.yaml run $RUN_ID did not succeed ($CONCLUSION) — its Build job is what this job needs artifacts from"
+                  exit 1
+                fi
+                echo "run-id=$RUN_ID" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            else
+              echo "No quick-check.yaml run yet for $SHA"
+            fi
+
+            sleep 20
+          done
+
+          echo "::error::Timed out waiting for quick-check.yaml's Build for $SHA"
+          exit 1

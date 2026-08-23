@@ -181,7 +181,7 @@ test('non-maintainer PR open: lifecycle/new, waiting on a maintainer to /accept'
 
 test('fast gate pass + review-skipped (maintainer) promotes straight to ready-to-merge, no review required', async () => {
   const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.REVIEW_SKIPPED, LABELS.WAITING_ON_MAINTAINER]);
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
 
   assert.ok(w.calls.added.includes(LABELS.TESTED));
   assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE),
@@ -191,7 +191,7 @@ test('fast gate pass + review-skipped (maintainer) promotes straight to ready-to
 
 test('fast gate pass without review or skip-review stays in ready-for-review (waiting on maintainer)', async () => {
   const w = makeWorld([LABELS.READY_FOR_REVIEW]);
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
 
   assert.ok(w.calls.added.includes(LABELS.TESTED));
   assert.ok(!w.calls.added.includes(LABELS.READY_TO_MERGE),
@@ -201,7 +201,7 @@ test('fast gate pass without review or skip-review stays in ready-for-review (wa
 
 test('fast gate pass with an approved review promotes a contributor PR to ready-to-merge', async () => {
   const w = makeWorld([LABELS.READY_FOR_REVIEW], { approved: true });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
 
   assert.ok(w.calls.added.includes(LABELS.TESTED));
   assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE),
@@ -209,23 +209,23 @@ test('fast gate pass with an approved review promotes a contributor PR to ready-
 });
 
 // ---------------------------------------------------------------------------
-// Fast gate (CI workflow) — drives lifecycle/tested during review
+// Fast gate (Quick Check workflow) — drives lifecycle/tested during review
 // ---------------------------------------------------------------------------
 
-test('CI success in ready-for-review adds lifecycle/tested', async () => {
+test('Quick Check success in ready-for-review adds lifecycle/tested', async () => {
   const w = makeWorld([LABELS.READY_FOR_REVIEW]);
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(w.calls.added.includes(LABELS.TESTED));
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
 });
 
-test('CI failure in ready-for-review sets waiting-on-author', async () => {
+test('Quick Check failure in ready-for-review sets waiting-on-author', async () => {
   const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER]);
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'failure'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'failure'), core: w.core });
   assert.ok(w.calls.added.includes(LABELS.WAITING_ON_AUTHOR));
   assert.ok(w.calls.removed.includes(LABELS.WAITING_ON_MAINTAINER));
   assert.ok(!w.calls.added.includes(LABELS.TESTED));
-  assert.ok(w.calls.comments.some(c => c.includes('fast CI gate failed')));
+  assert.ok(w.calls.comments.some(c => c.includes('Quick Check gate failed')));
 });
 
 test('CI result is ignored at ready-to-merge (full suite owns the result)', async () => {
@@ -286,11 +286,11 @@ test('CI success at ready-to-merge counts towards the full suite', async () => {
   assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
 });
 
-test('late CI success does not promote the PR after a full-suite failure', async () => {
+test('late Quick Check success does not promote the PR after a full-suite failure', async () => {
   // State after the failure revert: ready-for-review, no tested label. A late
-  // CI completion (full-tier run) must not re-add lifecycle/tested.
+  // Quick Check completion (full-tier run) must not re-add lifecycle/tested.
   const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR], { suiteRuns: greenSuite({ 'Integration Tests': 'failure' }) });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.TESTED));
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
 });

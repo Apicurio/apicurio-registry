@@ -13,65 +13,30 @@ on:
         type: string
         required: true
         description: 'Docker image tag to test'
+      checkout-ref:
+        description: >
+          Commit SHA to test. Only needed when called via the orchestrator's
+          workflow_dispatch (single-build dispatch chain) — see verify-build.yaml's
+          input of the same name for why. Empty for the push caller, which already
+          checks out the right commit by default. Does not apply to the legacy-v2
+          job, which intentionally checks out a fixed historical release branch.
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
-  extra-tests:
-    name: Extra Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
-        with:
-          java-version: ${{ inputs.java-version }}
-          distribution: temurin
-
-      - name: Restore Maven cache
-        uses: ./.github/actions/setup-maven-cache
-
-      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
-        with:
-          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
-          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
-          image-name: apicurio/apicurio-registry
-          tag: ${{ inputs.image-tag }}
-
-      - name: Run Extra Tests
-        run: |
-          # -Pextra-tests: activates the extra-tests profile (additional validation beyond unit/integration)
-          # -Dregistry3-image: Docker image to test against (built by the Build job)
-          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify --no-transfer-progress -Dfull -pl utils/extra-tests -am \
-            -Pextra-tests \
-            -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
-            -Dmaven.javadoc.skip=true \
-            -Daether.syncContext.named.factory=noop
-
-      - name: Collect logs
-        if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
-
-      - name: Upload tests logs artifacts
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: tests-logs-extra
-          path: artifacts
-
-  # Split out of the extra-tests job: it is a self-contained docker-compose suite
-  # (no JDK/Maven needed) and running it in parallel removes it from the
-  # extra-tests critical path.
+  # Self-contained docker-compose suite (no JDK/Maven needed), running as its
+  # own parallel job.
   examples-http-caching:
     name: Examples HTTP Caching Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
@@ -102,6 +67,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -200,6 +167,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
@@ -224,6 +193,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5

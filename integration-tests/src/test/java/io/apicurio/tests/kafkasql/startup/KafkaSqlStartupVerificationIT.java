@@ -1,22 +1,32 @@
-package io.apicurio.registry.utils.tests;
+package io.apicurio.tests.kafkasql.startup;
 
-import io.apicurio.registry.utils.tests.infra.KafkaInfra;
-import io.apicurio.registry.utils.tests.infra.RegistryV2KafkaSQLInfra;
-import io.apicurio.registry.utils.tests.infra.RegistryV3KafkaSQLInfra;
+import io.apicurio.tests.kafkasql.startup.infra.KafkaInfra;
+import io.apicurio.tests.kafkasql.startup.infra.RegistryV2KafkaSQLInfra;
+import io.apicurio.tests.kafkasql.startup.infra.RegistryV3KafkaSQLInfra;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static io.apicurio.deployment.Constants.KAFKASQL_STARTUP;
 
 import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOn;
 import static io.apicurio.registry.utils.kafka.KafkaUtil.toJavaFuture;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Validates KafkaSQL storage startup checks (topic configuration verification,
+ * v2/v3 journal topic reuse). Deploys its own Kafka and registry containers —
+ * it does not use the matrix-deployed registry.
+ */
+@Tag(KAFKASQL_STARTUP)
 public class KafkaSqlStartupVerificationIT {
 
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlStartupVerificationIT.class);
@@ -32,16 +42,16 @@ public class KafkaSqlStartupVerificationIT {
 
     @Test
     public void testHappyPath() {
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isTrue();
+        assertTrue(registry3.start(kafka.getNetworkBootstrapServers()));
         registry3.stop();
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isTrue();
+        assertTrue(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
     public void testTopicReuse() {
-        assertThat(registry2.start(kafka.getNetworkBootstrapServers())).isTrue();
+        assertTrue(registry2.start(kafka.getNetworkBootstrapServers()));
         registry2.stop();
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -51,7 +61,7 @@ public class KafkaSqlStartupVerificationIT {
                 "retention.ms", "-1",
                 "retention.bytes", "-1"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isTrue();
+        assertTrue(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -59,7 +69,7 @@ public class KafkaSqlStartupVerificationIT {
         kafka.createTopic("kafkasql-journal", null, null, Map.of(
                 "cleanup.policy", "compact"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -68,7 +78,7 @@ public class KafkaSqlStartupVerificationIT {
                 "cleanup.policy", "delete",
                 "retention.ms", "42000"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -77,7 +87,7 @@ public class KafkaSqlStartupVerificationIT {
                 "cleanup.policy", "delete",
                 "retention.bytes", "42000"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -87,7 +97,7 @@ public class KafkaSqlStartupVerificationIT {
                 "retention.ms", "-1",
                 "retention.bytes", "-1"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isTrue();
+        assertTrue(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -95,7 +105,7 @@ public class KafkaSqlStartupVerificationIT {
         kafka.createTopic("kafkasql-snapshots", null, null, Map.of(
                 "cleanup.policy", "compact"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -104,7 +114,7 @@ public class KafkaSqlStartupVerificationIT {
                 "cleanup.policy", "delete",
                 "retention.ms", "42000"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -113,9 +123,8 @@ public class KafkaSqlStartupVerificationIT {
                 "cleanup.policy", "delete",
                 "retention.ms", "42000"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers(),
-                Map.of("APICURIO_KAFKASQL_TOPIC_CONFIGURATION_VERIFICATION_OVERRIDE_ENABLED", "true"))
-        ).isTrue();
+        assertTrue(registry3.start(kafka.getNetworkBootstrapServers(),
+                Map.of("APICURIO_KAFKASQL_TOPIC_CONFIGURATION_VERIFICATION_OVERRIDE_ENABLED", "true")));
     }
 
     @Test
@@ -124,7 +133,7 @@ public class KafkaSqlStartupVerificationIT {
                 "cleanup.policy", "delete",
                 "retention.bytes", "42000"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -135,7 +144,7 @@ public class KafkaSqlStartupVerificationIT {
                 "retention.ms", "42000",
                 "retention.bytes", "42000"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isTrue();
+        assertTrue(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @Test
@@ -144,7 +153,7 @@ public class KafkaSqlStartupVerificationIT {
         kafka.createTopic("registry-events", null, null, Map.of(
                 "cleanup.policy", "compact"
         ));
-        assertThat(registry3.start(kafka.getNetworkBootstrapServers())).isFalse();
+        assertFalse(registry3.start(kafka.getNetworkBootstrapServers()));
     }
 
     @AfterEach

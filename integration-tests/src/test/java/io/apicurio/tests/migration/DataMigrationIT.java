@@ -29,10 +29,12 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DataMigrationIT.MigrateTestInitializer.class, restrictToAnnotatedClass = true)
 @Tag(MIGRATION)
+@Isolated
 public class DataMigrationIT extends ApicurioRegistryBaseIT {
 
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);

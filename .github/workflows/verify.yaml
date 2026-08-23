@@ -4,13 +4,16 @@ name: Verify
 # Verification Gate.
 #
 # The rest of the full suite was split into per-phase top-level workflows:
-#   - ci.yaml                  — fast PR gate + unit tier (unit tests, SDKs, CLI, console plugin)
+#   - quick-check.yaml         — fast PR gate + the sole real Build (Java app + Docker images)
+#   - ci.yaml                  — unit tier (unit tests, SDKs, CLI, console plugin)
 #   - integration-tests.yaml   — integration test matrix
 #   - extras.yaml              — additional checks (examples)
-# All four share the Decide logic via verify-decide.yaml and only run real work at
+# All five share the Decide logic via verify-decide.yaml and only run real work at
 # lifecycle/ready-to-merge (and on pushes to main). The Verification Gate below is
 # the single required check for branch protection: it waits for the sibling
-# workflows' runs on the same SHA and fails if any of them failed.
+# workflows' runs on the same SHA and fails if any of them failed. On push to main,
+# publishing reuses quick-check.yaml's Build job artifacts/Docker images (via
+# await-build below) instead of rebuilding them again here.
 
 on:
   push:
@@ -25,6 +28,10 @@ concurrency:
 
 permissions:
   contents: read
+  # actions: read is needed for await-build's cross-run artifact download
+  # (quick-check.yaml's Build job runs in a separate workflow run) — a
+  # reusable workflow's own permissions are capped by what the caller grants.
+  actions: read
 
 jobs:
   decide:
@@ -40,26 +47,27 @@ jobs:
       publish: ${{ github.event_name == 'push' }}
     secrets: inherit
 
-  # Push-only: verify-publish downloads the build-artifacts-<sha> artifact from
-  # this run, so publishing needs a build in this workflow.
-  build:
-    name: Build
+  # Push-only: verify-publish downloads build-artifacts-<sha> and the app/MCP
+  # Docker images from quick-check.yaml's Build job for this SHA (the sole
+  # build, same as every other top-level workflow) instead of rebuilding here.
+  await-build:
+    name: Await Build
     needs: [decide]
     if: github.event_name == 'push'
-    uses: ./.github/workflows/verify-build.yaml
+    uses: ./.github/workflows/verify-await-build.yaml
 
   # ============================================================================
   # VERIFICATION GATE: single required check for branch protection
   #
   # Aggregates this workflow's jobs AND the sibling full-suite workflows
-  # (CI, Integration Tests, Extra Tests) for the same commit. During PR review
-  # the full tier is skipped by Decide in every workflow, so all runs complete
-  # quickly and the gate passes without blocking iteration.
+  # (Quick Check, CI, Integration Tests, Extra Tests) for the same commit.
+  # During PR review the full tier is skipped by Decide in every workflow, so
+  # all runs complete quickly and the gate passes without blocking iteration.
   # ============================================================================
   verification-gate:
     name: Verification Gate
     if: always() && github.repository_owner == 'Apicurio'
-    needs: [decide, operator, build]
+    needs: [decide, operator, await-build]
     runs-on: ubuntu-latest
     timeout-minutes: 210
     steps:
@@ -80,94 +88,55 @@ jobs:
           # PR runs report the branch head SHA; push runs report the commit.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REPO: ${{ github.repository }}
-          # This workflow's OWN Decide job (same reusable verify-decide.yaml, same
-          # event/labels) is authoritative for whether the full suite is expected
-          # for this SHA: 'true' (ready-to-merge or push) means CI, Integration
-          # Tests and Extra Tests must all complete; 'false' (PR review/draft)
-          # means only CI's fast gate runs and Integration Tests/Extra Tests are
-          # never dispatched; 'skip' (non-lifecycle label churn) means nothing
-          # meaningful runs at all. Using this instead of a fixed "no sibling
-          # after N minutes" guess avoids mistaking "not dispatched yet" for
-          # "will never run" — the two are indistinguishable by elapsed time
-          # alone, since Integration Tests/Extra Tests are only dispatched once
-          # CI's own full-tier build succeeds.
-          FULL_SUITE: ${{ needs.decide.outputs.lifecycle-ready }}
+          # This workflow's OWN Decide job re-fetches live PR label state, same
+          # as Quick Check/CI/Integration Tests/Extra Tests' Decide jobs do —
+          # independently, at whatever moment each of the 5 sibling workflow
+          # runs happens to schedule its Decide job. If the PR's lifecycle
+          # label changes between those moments (e.g. the orchestrator
+          # promotes/demotes mid-flight), this run's own 'lifecycle-ready' can
+          # legitimately disagree with a sibling's. Do NOT branch the wait
+          # strategy on it: always wait for actual completion of all four
+          # sibling runs below and trust their real conclusion, whatever each
+          # of them decided to do internally.
+          # 'skip' (non-lifecycle label churn on an otherwise-already-covered
+          # SHA) is the one case where this run itself has nothing to add.
+          LIFECYCLE_READY: ${{ needs.decide.outputs.lifecycle-ready }}
         run: |
-          if [ "$FULL_SUITE" = "skip" ]; then
+          if [ "$LIFECYCLE_READY" = "skip" ]; then
             echo "Non-lifecycle event, nothing to wait for"
             exit 0
           fi
 
-          if [ "$FULL_SUITE" = "true" ]; then
-            echo "Full suite required: waiting for CI, Integration Tests and Extra Tests"
-          else
-            echo "Fast gate only (PR review): waiting for CI"
-          fi
+          echo "Waiting for Quick Check, CI, Integration Tests and Extra Tests to complete for $SHA"
 
-          # Per-workflow-file queries, not one repo-wide head_sha-filtered query:
-          # Integration Tests/Extra Tests only run for PRs via the orchestrator's
-          # workflow_dispatch (dispatched against the PR's base branch), and GitHub
-          # reports head_sha for a workflow_dispatch run as that base branch's tip,
-          # never the PR's SHA — a head_sha filter would never find them. They
-          # run-name themselves with the exact SHA instead (see
-          # integration-tests.yaml/extras.yaml); match each workflow's runs by
-          # head_sha OR display_title so CI (head_sha-correct) and Integration
-          # Tests/Extra Tests (display_title-correct, for the dispatch path) are
-          # both found the same way.
-          FILES=(ci.yaml integration-tests.yaml extras.yaml)
-          NAMES=(CI "Integration Tests" "Extra Tests")
-
-          # ~200 iterations at 60s apart (200 min), comfortably above the full
-          # suite's realistic worst case (CI's own full tier, then Integration
-          # Tests/Extra Tests running after dispatch) while still bounded by
-          # this job's timeout-minutes so a genuinely hung run is caught rather
-          # than polled forever.
+          # Quick Check/CI/Integration Tests/Extra Tests all trigger directly
+          # on the same pull_request/push events as this workflow, so a single
+          # head_sha filter finds all of them. Always require all four
+          # regardless of what THIS run's Decide computed (see LIFECYCLE_READY
+          # comment above): each sibling's own workflow run always completes
+          # quickly on its own whether it ran real jobs or skipped them
+          # internally, so waiting for all four unconditionally is never a
+          # false timeout, and it is the only way to reliably catch a sibling
+          # that did run (and failed) even when this run's own Decide
+          # disagreed about whether it should have.
           for i in $(seq 1 200); do
-            FAILED=0
-            COUNT=0
-            PENDING=0
-            CI_DONE=0
-            echo "Sibling runs (attempt $i):"
-            for idx in "${!FILES[@]}"; do
-              file="${FILES[$idx]}"
-              name="${NAMES[$idx]}"
-              RUN=$(gh api "repos/$REPO/actions/workflows/$file/runs?per_page=100" \
-                --jq "[.workflow_runs[] | select(.head_sha == \"$SHA\" or .display_title == \"$SHA\")] | sort_by(.created_at) | reverse | .[0] // empty")
-              if [ -n "$RUN" ] && [ "$RUN" != "null" ]; then
-                COUNT=$((COUNT + 1))
-                STATUS=$(echo "$RUN" | jq -r '.status')
-                CONCLUSION=$(echo "$RUN" | jq -r '.conclusion')
-                echo "  $name: status=$STATUS conclusion=$CONCLUSION"
-                if [ "$STATUS" != "completed" ]; then
-                  PENDING=$((PENDING + 1))
-                elif [ "$CONCLUSION" != "success" ]; then
-                  FAILED=$((FAILED + 1))
-                fi
-                if [ "$name" = "CI" ] && [ "$STATUS" = "completed" ]; then
-                  CI_DONE=1
-                fi
-              else
-                echo "  $name: no run yet"
-              fi
-            done
+            LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
+              --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"Quick Check\" or .name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")
 
+            echo "Sibling runs (attempt $i):"
+            echo "$LATEST" | jq -c '.[]'
+
+            FAILED=$(echo "$LATEST" | jq '[.[] | select(.conclusion != null and .conclusion != "success")] | length')
             if [ "$FAILED" -gt 0 ]; then
               echo "::error::A sibling full-suite workflow failed for $SHA"
               exit 1
             fi
 
-            if [ "$FULL_SUITE" = "true" ]; then
-              if [ "$COUNT" -eq 3 ] && [ "$PENDING" -eq 0 ]; then
-                echo "All sibling workflows completed successfully"
-                exit 0
-              fi
-            else
-              # Integration Tests/Extra Tests are never dispatched in this
-              # state — only CI's fast gate matters.
-              if [ "$CI_DONE" -eq 1 ]; then
-                echo "CI fast gate completed successfully"
-                exit 0
-              fi
+            COUNT=$(echo "$LATEST" | jq 'length')
+            PENDING=$(echo "$LATEST" | jq '[.[] | select(.status != "completed")] | length')
+            if [ "$COUNT" -eq 4 ] && [ "$PENDING" -eq 0 ]; then
+              echo "All sibling workflows completed successfully"
+              exit 0
             fi
 
             sleep 60
@@ -181,11 +150,12 @@ jobs:
   # ============================================================================
   publish:
     name: Publish Images
-    needs: [build, verification-gate]
+    needs: [await-build, verification-gate]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
+      build-run-id: ${{ needs.await-build.outputs.run-id }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

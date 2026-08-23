@@ -1,0 +1,94 @@
+name: Await Build (reusable)
+
+# Shared by ci.yaml/integration-tests.yaml/extras.yaml/verify.yaml: waits for
+# quick-check.yaml's Build job to complete for this commit and exposes its run
+# id, so callers can fetch its build-artifacts/Docker images via a cross-run
+# actions/download-artifact instead of rebuilding the same commit from scratch
+# in every top-level workflow.
+#
+# quick-check.yaml and this caller both trigger on the same pull_request/push
+# event for the same commit. For push events (verify.yaml's only use of this
+# workflow) quick-check.yaml's Decide computes run-build unconditionally true
+# — no race to worry about. For pull_request events (ci.yaml/
+# integration-tests.yaml/extras.yaml) both compute Decide independently (the
+# established pattern in this repo — each top-level workflow recomputes Decide
+# rather than sharing one). Usually if THIS workflow's own Decide said the
+# build is needed, quick-check.yaml's did too. But each of the (now five)
+# sibling Decide jobs can be scheduled seconds to over a minute apart, and if
+# the PR's lifecycle label changes in that window (e.g. the orchestrator
+# promotes to ready-to-merge mid-flight), quick-check.yaml's Decide can
+# legitimately see a different answer than this caller's — meaning its Build
+# job (build-java/build-ui) gets skipped for a SHA a sibling still needs it
+# for. quick-check.yaml's own Gate job treats skipped jobs as fine, so the
+# overall run still reports conclusion=success with no artifacts uploaded —
+# checking only the run's conclusion would silently hand callers a run-id
+# with nothing to download. This job additionally checks build-java/build-ui's
+# own job conclusions and fails clearly if either was skipped, instead of
+# reporting false success.
+
+on:
+  workflow_call:
+    outputs:
+      run-id:
+        description: 'quick-check.yaml run id whose Build job produced the artifacts for this SHA'
+        value: ${{ jobs.await-build.outputs.run-id }}
+
+permissions:
+  actions: read
+
+jobs:
+  await-build:
+    name: Await Build
+    runs-on: ubuntu-latest
+    # Comfortably above quick-check.yaml's own Build job's realistic duration
+    # (Java + Docker + UI build, ~5-10 min) plus initial run-registration lag.
+    timeout-minutes: 30
+    outputs:
+      run-id: ${{ steps.wait.outputs.run-id }}
+    steps:
+      - name: Wait for quick-check.yaml's Build job
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          for i in $(seq 1 90); do
+            RUN=$(gh api "repos/$REPO/actions/workflows/quick-check.yaml/runs?head_sha=$SHA&per_page=5" \
+              --jq '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0] // empty')
+
+            if [ -n "$RUN" ] && [ "$RUN" != "null" ]; then
+              STATUS=$(echo "$RUN" | jq -r '.status')
+              CONCLUSION=$(echo "$RUN" | jq -r '.conclusion')
+              RUN_ID=$(echo "$RUN" | jq -r '.id')
+              echo "quick-check.yaml run $RUN_ID for $SHA: status=$STATUS conclusion=$CONCLUSION"
+              if [ "$STATUS" = "completed" ]; then
+                if [ "$CONCLUSION" != "success" ]; then
+                  echo "::error::quick-check.yaml run $RUN_ID did not succeed ($CONCLUSION) — its Build job is what this job needs artifacts from"
+                  exit 1
+                fi
+
+                # The overall run can report success even when build-java/build-ui
+                # were skipped (see comment above) — verify the actual build jobs
+                # ran before trusting this run-id has artifacts to download.
+                BUILD_JOBS=$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" \
+                  --jq '[.jobs[] | select(.name == "Build Java Application (no tests)" or .name == "Build UI Application")] | map({name, conclusion})')
+                echo "Build jobs: $(echo "$BUILD_JOBS" | jq -c '.')"
+                SKIPPED=$(echo "$BUILD_JOBS" | jq '[.[] | select(.conclusion != "success")] | length')
+                if [ "$SKIPPED" -gt 0 ]; then
+                  echo "::error::quick-check.yaml run $RUN_ID completed but its Build jobs were skipped for $SHA — its Decide disagreed with this workflow's about whether the full suite should run (see comment above). Re-run the full suite (e.g. /retry) so quick-check.yaml's Decide re-evaluates with up-to-date lifecycle state."
+                  exit 1
+                fi
+
+                echo "run-id=$RUN_ID" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            else
+              echo "No quick-check.yaml run yet for $SHA"
+            fi
+
+            sleep 20
+          done
+
+          echo "::error::Timed out waiting for quick-check.yaml's Build for $SHA"
+          exit 1

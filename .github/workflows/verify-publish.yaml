@@ -8,6 +8,10 @@ on:
         type: string
         required: true
         description: 'Docker image tag (commit SHA)'
+      build-run-id:
+        type: string
+        required: true
+        description: 'quick-check.yaml run id to download build-artifacts from (see verify-await-build.yaml)'
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -20,6 +24,11 @@ on:
 
 permissions:
   contents: read
+  # actions: read is needed for the cross-run download-artifact in
+  # reusable-docker-build.yaml (quick-check.yaml's Build job runs in a
+  # separate workflow run) — a reusable workflow's own permissions are capped
+  # by what the caller grants.
+  actions: read
 
 jobs:
   publish-app-image:
@@ -32,6 +41,7 @@ jobs:
       tag: 'latest-snapshot'
       maven-build: false
       download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
+      build-run-id: ${{ inputs.build-run-id }}
       platforms: 'linux/amd64,linux/arm64'
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -50,6 +60,7 @@ jobs:
       push-to-dockerhub: false
       maven-build: false
       download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
+      build-run-id: ${{ inputs.build-run-id }}
       platforms: 'linux/amd64,linux/arm64'
     secrets:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}

@@ -1,0 +1,347 @@
+name: Quick Check
+
+# The PR-iteration fast gate, split out of ci.yaml so it is a workflow of its own
+# (distinct from CI's full unit tier) — same event coverage as ci.yaml/verify.yaml.
+#
+# Two things happen here:
+#   1. Quick Verify — the fast gate (<= 5 min) on every PR push. See the job
+#      below for its philosophy and budget.
+#   2. The real Build (build-java + build-ui: Java app + Docker images) — gated
+#      by Decide the same way as before, at lifecycle/ready-to-merge and on
+#      pushes to main. This is now the SOLE build for a given SHA: ci.yaml's
+#      Unit Tests/SDK/CLI Verification, integration-tests.yaml, extras.yaml
+#      and verify.yaml's Publish all wait for this workflow's run (see
+#      verify-await-build.yaml) and download its artifacts/Docker images via a
+#      cross-run actions/download-artifact instead of each rebuilding the same
+#      commit from scratch.
+#
+# build-ui-fast/build-java/build-ui are inlined directly here rather than
+# calling a shared reusable workflow: they used to live in verify-build.yaml,
+# called twice (fast=true for the PR-iteration UI check, fast=false for the
+# real build) — but that reusable workflow unconditionally defined all three
+# jobs and gated them internally on the fast input, so each call showed all
+# three as checks, with the two that did not apply to that call permanently
+# "skipped". Since quick-check.yaml was verify-build.yaml's only caller,
+# inlining removes that always-skipped noise entirely.
+#
+# Merge gating: the Verification Gate in verify.yaml waits for this workflow's run
+# on the same SHA; the orchestrator (pr-lifecycle) aggregates all full-suite
+# workflows before applying lifecycle/full-verified.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  decide:
+    name: Decide
+    uses: ./.github/workflows/verify-decide.yaml
+
+  # ==========================================================================
+  # QUICK VERIFY: the fast PR gate. Target: <= 5 minutes.
+  #
+  # Philosophy: PR iteration (opened / synchronize / draft pushes) gets ONE job
+  # that answers "does it compile and do the core smoke tests pass".
+  #
+  # What this job deliberately does NOT do:
+  #   - no docker image builds or loads (the Build job alone costs ~5 min)
+  #   - no testcontainers / minikube / keycloak
+  #   - no matrix, no sharding, no artifact upload/download between jobs
+  #   - no javadoc/source/assembly/checkstyle (the -Dlocal tier skips them)
+  #
+  # What it DOES do:
+  #   1. repo file lint (~10 s)
+  #   2. full compile of the local tier incl. test sources (~2-3 min with warm cache)
+  #   3. all non-app unit tests (plain JUnit, no Quarkus boot) (~1 min)
+  #   4. a curated app smoke set: profile-free @QuarkusTest classes that share a
+  #      single Quarkus boot (in-memory storage, random port) (~1 min)
+  #
+  # If this job exceeds its budget the lever is the smoke list below, not new jobs.
+  # ==========================================================================
+  quick-verify:
+    name: Quick Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # PR iteration only: not on push (the Build job below covers main), and not
+    # on label events (the synchronize/opened run on the same SHA already ran it).
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Lint files
+        run: ./scripts/validate-files.sh
+
+      - name: Build (local tier, tests compiled but not run)
+        run: |
+          # -Dlocal skips javadoc, source JARs, checkstyle and assembly.
+          # -DskipTests still compiles test sources, so a PR that breaks test
+          # compilation fails here.
+          ./mvnw install -Dlocal -DskipTests --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -DskipCommitIdPlugin=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Non-app unit tests
+        run: |
+          # Plain JUnit modules (schema-utils, serdes, SDKs, common): no Quarkus
+          # boot, no containers. -Dlocal already excludes distro/docs from the
+          # reactor, so only app needs excluding here.
+          #
+          # utils/protobuf-schema-utilities is excluded: FileDescriptorUtilsTest
+          # fails in fresh environments (missing google well-known .proto
+          # resources) — a pre-existing issue on main, tracked separately.
+          ./mvnw test --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Dlocal -pl '!app,!utils/protobuf-schema-utilities' \
+            -DskipCommitIdPlugin=true \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Daether.syncContext.named.factory=noop
+
+      - name: App smoke tests
+        run: |
+          # Curated smoke set. Every class here is free of @TestProfile and
+          # @QuarkusTestResource, so the whole list boots Quarkus exactly once.
+          # When adding a class, verify it stays profile-free:
+          #   grep -L "@TestProfile\|QuarkusTestResource" <file>
+          ./mvnw surefire:test --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Pprod -pl app \
+            -Dtest='io.apicurio.registry.noprofile.rest.v3.BranchesTest,io.apicurio.registry.noprofile.rest.v3.ContentResourceTest,io.apicurio.registry.noprofile.rest.v3.SearchArtifactsTest,io.apicurio.registry.noprofile.rest.v3.ImportExportTest,io.apicurio.registry.noprofile.rest.v3.SystemResourceTest,io.apicurio.registry.noprofile.ArtifactTypeTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false \
+            -Daether.syncContext.named.factory=noop
+
+  # Fast UI build for PR iteration: install, lint, test, build — no docker image.
+  # Runs on every PR push alongside Quick Verify so UI breakage is caught early.
+  # The full UI build (with the docker image) runs in build-ui below at
+  # ready-to-merge.
+  build-ui-fast:
+    name: Build UI (fast)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # PR iteration only: not on push (build-ui below covers main), not on
+    # label events (the synchronize/opened run on the same SHA already ran it).
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Lint
+        working-directory: ui
+        run: npm run lint
+
+      - name: Generate TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
+      - name: Test
+        working-directory: ui
+        run: npm run test
+
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
+  # The one real Build for this SHA: Java app + Docker images (app, UI). Every
+  # other top-level workflow that needs them (ci.yaml's Unit Tests/SDK/CLI
+  # Verification, integration-tests.yaml, extras.yaml, verify.yaml's Publish)
+  # waits for this run (verify-await-build.yaml) and downloads its
+  # artifacts/Docker images across runs instead of rebuilding.
+  build-java:
+    name: Build Java Application (no tests)
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-build == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Build Application (skip tests for speed)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
+        run: |
+          # -T 0.5C: half a thread per CPU core (overrides .mvn/maven.config's -T 1C for memory-heavy packaging)
+          # -Pprod -Dfull: production profile with all optional modules (CLI, serdes, distro, etc.)
+          # -DskipCommitIdPlugin=false: generate git commit metadata (needed for the Docker image)
+          # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
+          ./mvnw clean package -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+            -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "[ERROR] Build produced uncommitted or untracked files. Generated files must either be committed or added to .gitignore as appropriate."
+            git --no-pager diff
+            git status
+            exit 1
+          fi
+
+      - name: Build Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }} \
+            ./distro/docker/target/docker
+
+      - name: Save Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          image-name: apicurio/apicurio-registry
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: |
+            app/target/
+            cli/target/
+            common/target/
+            contracts-rules/target/
+            schema-resolver/target/
+            config-index/*/target/
+            distro/*/target/
+            java-sdk/*/target/
+            schema-util/*/target/
+            schema-validation/*/target/
+            serdes/*/*/target/
+            utils/*/target/
+            mcp/target/docker/
+          retention-days: 1
+
+  build-ui:
+    name: Build UI Application
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-build == 'true'
+    # npm/vite occasionally hangs on a shared runner with no output; fail fast instead
+    # of burning the workflow timeout. The whole job normally finishes in ~4 min.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Lint
+        working-directory: ui
+        run: npm run lint
+
+      - name: Generate TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
+      - name: Test
+        working-directory: ui
+        run: npm run test
+
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
+      - name: Package
+        working-directory: ui
+        run: npm run package
+
+      - name: Install Test Dependencies
+        working-directory: ui/tests
+        run: npm install
+
+      - name: Lint Tests
+        working-directory: ui/tests
+        run: npm run lint
+
+      - name: Build UI Docker Image
+        working-directory: ui
+        run: |
+          docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
+
+      - name: Save UI Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          image-name: apicurio/apicurio-registry-ui
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
+
+  # Terminal gate so this workflow has a single check summarizing its jobs.
+  gate:
+    name: Quick Check Gate
+    if: always()
+    needs: [decide, quick-verify, build-ui-fast, build-java, build-ui]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate gate
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: |
+          echo "Job results: $RESULTS"
+          FAILED=$(echo "$RESULTS" | jq '[.[] | select(. != "success" and . != "skipped")] | length')
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::One or more Quick Check jobs failed or were cancelled"
+            exit 1
+          fi
+          echo "All checks passed"

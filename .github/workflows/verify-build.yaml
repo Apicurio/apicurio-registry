@@ -127,6 +127,11 @@ jobs:
             -t apicurio/apicurio-registry:${{ github.sha }} \
             ./distro/docker/target/docker
 
+      - name: Run Image Smoke Tests
+        run: |
+          chmod +x .github/scripts/smoke-test-image.sh
+          ./.github/scripts/smoke-test-image.sh apicurio/apicurio-registry:${{ github.sha }}
+
       - name: Save Docker Image
         uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:

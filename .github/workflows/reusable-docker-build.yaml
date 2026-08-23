@@ -50,14 +50,6 @@ on:
         required: false
         type: string
         default: '.'
-      build-run-id:
-        description: >
-          Workflow run id to download download-artifact from (optional). When
-          set, the artifact is fetched cross-run (e.g. from quick-check.yaml's
-          Build job) instead of from this workflow's own run.
-        required: false
-        type: string
-        default: ''
       java-version:
         description: 'Java version for Maven build (if maven-build is true)'
         required: false
@@ -100,10 +92,6 @@ on:
 
 permissions:
   contents: read
-  # actions: read is needed for the cross-run download-artifact below when
-  # build-run-id is set (a reusable workflow's own permissions are capped by
-  # what the caller grants).
-  actions: read
 
 jobs:
   docker-build:
@@ -120,8 +108,6 @@ jobs:
         with:
           name: ${{ inputs.download-artifact }}
           path: ${{ inputs.artifact-path }}
-          run-id: ${{ inputs.build-run-id || github.run_id }}
-          github-token: ${{ github.token }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         if: inputs.maven-build

@@ -109,9 +109,9 @@ function runPayload(workflowName, conclusion) {
   };
 }
 
-// Latest-run state for all full-suite workflows, green except where overridden
-// (e.g. greenSuite({ Verify: 'failure' })). Pass status via the special
-// '<status>/' prefix (e.g. { 'Integration Tests': 'in_progress/' }).
+// Latest-run state for all full-suite workflows (just "Verify"), green except
+// where overridden (e.g. greenSuite({ Verify: 'failure' })). Pass status via
+// the special '<status>/' prefix (e.g. { Verify: 'in_progress/' }).
 function greenSuite(overrides = {}) {
   return FULL_SUITE_WORKFLOWS.map(name => {
     const o = overrides[name] || 'success';
@@ -153,8 +153,9 @@ function openedContext(pr) {
 test('maintainer PR open: auto-accepted straight to ready-for-review + review-skipped, fast gate only (not ready-to-merge yet)', async () => {
   await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
     const w = makeWorld([]);
-    // retriggerVerify(waitForRun: true) polls for the ci.yaml run it just triggered;
-    // already-green means retriggerWorkflowRun leaves it alone instead of re-running it.
+    // retriggerVerify(waitForRun: true) polls for the quick-check.yaml run it
+    // just triggered; already-green means retriggerWorkflowRun leaves it
+    // alone instead of re-running it.
     w.github.rest.actions.listWorkflowRuns = async () => ({
       data: { workflow_runs: [{ id: 1, status: 'completed', conclusion: 'success', head_sha: SHA }] },
     });
@@ -228,9 +229,15 @@ test('Quick Check failure in ready-for-review sets waiting-on-author', async () 
   assert.ok(w.calls.comments.some(c => c.includes('Quick Check gate failed')));
 });
 
-test('CI result is ignored at ready-to-merge (full suite owns the result)', async () => {
+test('Quick Check completing at ready-to-merge is a harmless no-op re-check (not a fast-gate result)', async () => {
+  // handlePrSynchronize normally reverts ready-to-merge to ready-for-review
+  // on every new push before a Quick Check run for that push could complete,
+  // but a Quick Check completion arriving for an already-promoted SHA is
+  // possible. It must not touch lifecycle/tested (that is not what its
+  // result means once promoted) and must fall through to the full-suite
+  // check like any other event would.
   const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
   assert.equal(w.calls.merges.length, 0);
 });
@@ -261,35 +268,23 @@ test('Verify success at ready-to-merge completes a queued (pending) merge', asyn
   assert.equal(w.calls.merges.length, 1);
 });
 
-test('full suite stays pending while a sibling workflow is still running', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite({ 'Integration Tests': 'in_progress/' }) });
+test('full suite stays pending if the search API has not caught up with the just-completed run yet', async () => {
+  // getFullSuiteResult re-queries workflow runs by head_sha independently of
+  // the webhook payload; a still-in_progress result for the very run that
+  // just fired this event is a (rare) eventual-consistency lag, not a real
+  // failure, and must be treated as pending rather than promoted.
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite({ Verify: 'in_progress/' }) });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
   assert.equal(w.calls.merges.length, 0);
   assert.equal(w.calls.comments.length, 0);
 });
 
-test('a failure in any full-suite workflow reverts to ready-for-review', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.FULL_VERIFIED, LABELS.PENDING_MERGE], { approved: true, suiteRuns: greenSuite({ 'Extra Tests': 'failure' }) });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
-  assert.ok(w.calls.removed.includes(LABELS.FULL_VERIFIED));
-  assert.ok(w.calls.removed.includes(LABELS.TESTED));
-  assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
-  assert.ok(w.calls.added.includes(LABELS.WAITING_ON_AUTHOR));
-  assert.ok(w.calls.comments.some(c => c.includes('Extra Tests')));
-  assert.equal(w.calls.merges.length, 0);
-});
-
-test('CI success at ready-to-merge counts towards the full suite', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite() });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
-  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
-});
-
 test('late Quick Check success does not promote the PR after a full-suite failure', async () => {
   // State after the failure revert: ready-for-review, no tested label. A late
-  // Quick Check completion (full-tier run) must not re-add lifecycle/tested.
-  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR], { suiteRuns: greenSuite({ 'Integration Tests': 'failure' }) });
+  // Quick Check completion must not re-add lifecycle/tested while the full
+  // suite is recorded as failed for this SHA.
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR], { suiteRuns: greenSuite({ Verify: 'failure' }) });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.TESTED));
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));

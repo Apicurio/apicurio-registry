@@ -1,9 +1,10 @@
 name: Verify Decide (reusable)
 
-# Shared decision job for the full-suite workflows (ci.yaml, integration-tests.yaml,
-# extras.yaml, verify.yaml). Combines lifecycle-label evaluation (PR readiness) with
-# path-based change detection into per-phase boolean outputs, so each top-level
-# workflow decides identically without duplicating this logic.
+# Decision job for verify.yaml (the full test suite): combines lifecycle-label
+# evaluation (PR readiness) with path-based change detection into per-phase
+# boolean outputs, computed once per run and shared by every job in verify.yaml
+# via needs: — so nothing downstream can end up disagreeing about whether the
+# full suite is required for this commit.
 
 on:
   workflow_call:
@@ -120,7 +121,7 @@ jobs:
           ACTION="${{ github.event.action }}"
 
           # ── Phase 1: Lifecycle scope ──────────────────────────────────
-          # Two-tier CI: ci.yaml's fast gate covers PR iteration; the full
+          # Two-tier CI: quick-check.yaml's fast gate covers PR iteration; the full
           # suite only runs for lifecycle/ready-to-merge (pre-merge gate)
           # and pushes to main.
           run_tests=false
@@ -176,7 +177,7 @@ jobs:
                 run_tests=true
               fi
             else
-              # Two-tier CI: PR iteration is covered by the fast gate in ci.yaml
+              # Two-tier CI: PR iteration is covered by the fast gate in quick-check.yaml
               # (<= 5 min, compile + smoke). The full suite here is the
               # pre-merge gate and only runs once a maintainer marks the PR
               # lifecycle/ready-to-merge. lifecycle/ready-for-review no longer

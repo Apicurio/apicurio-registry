@@ -1,19 +1,26 @@
 name: Verify
 
-# Slim top-level workflow: operator tests, image publishing, and the
-# Verification Gate.
+# The full test suite: lint, build, unit tests, CLI, SDKs, console plugin,
+# integration tests, extra tests, operator tests, and (on push to main) image
+# publishing. One Decide job, computed once, shared by every job below via
+# needs: — there is exactly one answer to "is the full suite required for this
+# SHA" per run, so nothing here can disagree with anything else about it.
 #
-# The rest of the full suite was split into per-phase top-level workflows:
-#   - quick-check.yaml         — fast PR gate + the sole real Build (Java app + Docker images)
-#   - ci.yaml                  — unit tier (unit tests, SDKs, CLI, console plugin)
-#   - integration-tests.yaml   — integration test matrix
-#   - extras.yaml              — additional checks (examples)
-# All five share the Decide logic via verify-decide.yaml and only run real work at
-# lifecycle/ready-to-merge (and on pushes to main). The Verification Gate below is
-# the single required check for branch protection: it waits for the sibling
-# workflows' runs on the same SHA and fails if any of them failed. On push to main,
-# publishing reuses quick-check.yaml's Build job artifacts/Docker images (via
-# await-build below) instead of rebuilding them again here.
+# Two workflows make up the whole pipeline:
+#   - quick-check.yaml — the fast PR gate (Quick Verify, <= 5 min, every push)
+#   - verify.yaml (this file) — everything else, gated by Decide on
+#     lifecycle/ready-to-merge and pushes to main
+#
+# The Verification Gate below is the single required check for branch
+# protection: it aggregates every job in this run and, for PR events, also
+# does a live check that the PR actually carries lifecycle/ready-to-merge —
+# not because it distrusts this run's own Decide (there is only one, computed
+# once, so it cannot disagree with anything), but because a skipped required
+# job counts as "passing" for branch protection, and this run itself skips
+# everything below Decide until the PR is genuinely ready to merge. Without
+# the live check, native "Merge pull request" would be unblocked the moment
+# this run's Decide+Gate complete, regardless of whether the full suite ever
+# ran for the commit.
 
 on:
   push:
@@ -28,15 +35,310 @@ concurrency:
 
 permissions:
   contents: read
-  # actions: read is needed for await-build's cross-run artifact download
-  # (quick-check.yaml's Build job runs in a separate workflow run) — a
-  # reusable workflow's own permissions are capped by what the caller grants.
-  actions: read
 
 jobs:
   decide:
     name: Decide
     uses: ./.github/workflows/verify-decide.yaml
+
+  lint-and-validate:
+    name: Lint and Validate
+    runs-on: ubuntu-latest
+    needs: decide
+    if: needs.decide.outputs.lifecycle-ready == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Run linter
+        run: ./scripts/validate-files.sh
+
+      # Fails if any app/ test class is claimed by zero shards (it would never run in CI, and
+      # -Dsurefire.failIfNoSpecifiedTests=false means no shard would complain) or by more than
+      # one (wasted runner time). Runs here rather than in verify-unit-tests.yaml so it is checked
+      # once instead of once per shard, and so it fails fast. See issue #9265.
+      - name: Verify unit test shard partition
+        run: python3 .github/scripts/verify-test-shards.py
+
+      # Orchestrator scripts run with repo write permissions under
+      # pull_request_target — their logic must be tested before merge.
+      - name: Test PR lifecycle scripts
+        run: node --test .github/scripts/pr-lifecycle.test.js
+
+      - name: Verify docs generation
+        run: |
+          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
+            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
+            git --no-pager diff docs
+            exit 1
+          fi
+
+  build-java:
+    name: Build Java Application (no tests)
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-build == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Build Application (skip tests for speed)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
+        run: |
+          # -T 0.5C: half a thread per CPU core (overrides .mvn/maven.config's -T 1C for memory-heavy packaging)
+          # -Pprod -Dfull: production profile with all optional modules (CLI, serdes, distro, etc.)
+          # -DskipCommitIdPlugin=false: generate git commit metadata (needed for the Docker image)
+          # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
+          ./mvnw clean package -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+            -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "[ERROR] Build produced uncommitted or untracked files. Generated files must either be committed or added to .gitignore as appropriate."
+            git --no-pager diff
+            git status
+            exit 1
+          fi
+
+      - name: Build Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }} \
+            ./distro/docker/target/docker
+
+      - name: Save Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          image-name: apicurio/apicurio-registry
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: |
+            app/target/
+            cli/target/
+            common/target/
+            contracts-rules/target/
+            schema-resolver/target/
+            config-index/*/target/
+            distro/*/target/
+            java-sdk/*/target/
+            schema-util/*/target/
+            schema-validation/*/target/
+            serdes/*/*/target/
+            utils/*/target/
+            mcp/target/docker/
+          retention-days: 1
+
+  build-ui:
+    name: Build UI Application
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-build == 'true'
+    # npm/vite occasionally hangs on a shared runner with no output; fail fast instead
+    # of burning the workflow timeout. The whole job normally finishes in ~4 min.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Lint
+        working-directory: ui
+        run: npm run lint
+
+      - name: Generate TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
+      - name: Test
+        working-directory: ui
+        run: npm run test
+
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
+      - name: Package
+        working-directory: ui
+        run: npm run package
+
+      - name: Install Test Dependencies
+        working-directory: ui/tests
+        run: npm install
+
+      - name: Lint Tests
+        working-directory: ui/tests
+        run: npm run lint
+
+      - name: Build UI Docker Image
+        working-directory: ui
+        run: |
+          docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
+
+      - name: Save UI Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          image-name: apicurio/apicurio-registry-ui
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
+
+  unit-tests:
+    name: Unit Tests
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-unit-tests == 'true'
+    uses: ./.github/workflows/verify-unit-tests.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  # Scalpel Report (affected-module detection, data collection only).
+  # Not in the Gate: a failure here never blocks a PR.
+  # See Discussion #8364 for the evaluation results that led to this change.
+  scalpel-report:
+    name: Scalpel Report
+    needs: [decide]
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.decide.outputs.run-scalpel-report == 'true'
+      && needs.decide.outputs.scalpel-enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Full history: Scalpel diffs against the base branch (GITHUB_BASE_REF)
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Generate Scalpel report
+        run: |
+          # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
+          # reportFile restates the documented default so the upload path
+          # below cannot drift if upstream changes it.
+          # wagon flags: same transient-failure hardening as the other CI jobs.
+          ./mvnw validate --no-transfer-progress \
+            -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Dscalpel.enabled=true \
+            -Dscalpel.mode=report \
+            -Dscalpel.reportFile=target/scalpel-report.json \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Upload Scalpel report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+          path: target/scalpel-report.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  cli-verify:
+    name: CLI Verification
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-cli == 'true'
+    uses: ./.github/workflows/verify-cli.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  go-sdk-freshness:
+    name: Go SDK Freshness
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-go-sdk-freshness == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.27.0'
+
+      - name: Regenerate Go SDK
+        run: |
+          cd go-sdk
+          make generate format
+
+      - name: Check for drift
+        run: |
+          if ! git diff --exit-code go-sdk/pkg/; then
+            echo "::error::Go SDK is out of date. Run 'cd go-sdk && make generate format' and commit the changes."
+            exit 1
+          fi
+
+  sdk:
+    name: SDK Verification
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-sdk == 'true'
+    uses: ./.github/workflows/verify-sdk.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  console-plugin:
+    name: Console Plugin
+    needs: [decide]
+    if: needs.decide.outputs.run-console-plugin == 'true'
+    uses: ./.github/workflows/verify-console-plugin.yaml
+    secrets: inherit
+
+  integration-tests:
+    name: Integration Tests
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-integration == 'true'
+    uses: ./.github/workflows/verify-integration-tests.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  extras:
+    name: Extra Tests
+    needs: [decide, build-java, build-ui]
+    if: needs.decide.outputs.run-extras == 'true'
+    uses: ./.github/workflows/verify-extras.yaml
+    with:
+      image-tag: ${{ github.sha }}
 
   operator:
     name: Operator Tests
@@ -47,31 +349,23 @@ jobs:
       publish: ${{ github.event_name == 'push' }}
     secrets: inherit
 
-  # Push-only: verify-publish downloads build-artifacts-<sha> and the app/MCP
-  # Docker images from quick-check.yaml's Build job for this SHA (the sole
-  # build, same as every other top-level workflow) instead of rebuilding here.
-  await-build:
-    name: Await Build
-    needs: [decide]
-    if: github.event_name == 'push'
-    uses: ./.github/workflows/verify-await-build.yaml
-
   # ============================================================================
   # VERIFICATION GATE: single required check for branch protection
   #
-  # Aggregates this workflow's jobs AND the sibling full-suite workflows
-  # (Quick Check, CI, Integration Tests, Extra Tests) for the same commit.
-  # During PR review the full tier is skipped by Decide in every workflow, so
-  # all runs complete quickly and the gate passes without blocking iteration.
+  # Aggregates every job above. Passes when all of them succeeded or were
+  # appropriately skipped by Decide (e.g. during PR review, when the full
+  # suite does not run) — see the live ready-to-merge check below for why
+  # that alone is not sufficient for a required check.
   # ============================================================================
-  verification-gate:
+  gate:
     name: Verification Gate
     if: always() && github.repository_owner == 'Apicurio'
-    needs: [decide, operator, await-build]
+    needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
+            cli-verify, go-sdk-freshness, sdk, console-plugin,
+            integration-tests, extras, operator]
     runs-on: ubuntu-latest
-    timeout-minutes: 210
     steps:
-      - name: Evaluate own jobs
+      - name: Evaluate jobs
         env:
           RESULTS: ${{ toJSON(needs.*.result) }}
         run: |
@@ -81,109 +375,50 @@ jobs:
             echo "::error::One or more Verify jobs failed or were cancelled"
             exit 1
           fi
+          echo "All jobs passed or were appropriately skipped"
 
-      - name: Wait for sibling full-suite workflows
+      # Live, direct check of the PR's CURRENT lifecycle state. This job's
+      # own Decide computed lifecycle-ready once already (gating every job
+      # above), so in principle it cannot disagree with itself — but a
+      # skipped required job still counts as "passing" for branch
+      # protection, and every job above is skipped until the PR is ready to
+      # merge. Without this check, native "Merge pull request" would be
+      # unblocked as soon as Decide+Gate complete, regardless of whether the
+      # full suite ever actually ran for the commit.
+      - name: Verify PR is actually ready to merge
+        if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ github.token }}
-          # PR runs report the branch head SHA; push runs report the commit.
-          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REPO: ${{ github.repository }}
-          EVENT_NAME: ${{ github.event_name }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          # Live, direct check of the PR's CURRENT lifecycle state — do NOT
-          # trust this run's own Decide output (computed once, from this run's
-          # triggering event/label, which can already be stale by the time
-          # this step runs — see the sibling-workflow-disagreement comment
-          # further down) or assume some other Verify run for this SHA is
-          # "authoritative" for a non-lifecycle event. Every invocation of
-          # this step re-fetches the PR's actual labels right here, right
-          # before deciding, so the answer can never be stale.
-          #
-          # This matters because both required branch-protection checks
-          # (Lint and Validate, and this Gate) are designed to complete near-
-          # instantly while the full suite is not required yet (PR review,
-          # before lifecycle/ready-to-merge) — skipped jobs count as passing
-          # for required-status-check purposes. If this step also reported
-          # success in that state, native "Merge pull request" would be
-          # unblocked despite the full suite never having actually run.
-          # Failing here instead is the correct, honest signal: the check
-          # legitimately has not been satisfied yet, and GitHub will show it
-          # as failing (not neutral/pending) until the PR is promoted and the
-          # full suite genuinely completes — which is expected and not a sign
-          # of anything broken.
-          if [ "$EVENT_NAME" = "push" ]; then
-            echo "Push to main: full suite always required"
-          else
-            # Mirrors verify-decide.yaml's own lifecycle-scope logic exactly
-            # (orchestrator/disabled bypasses the lifecycle label dance unless
-            # DO NOT MERGE is also present) so this live check agrees with
-            # what Decide itself would compute right now — not a stale
-            # snapshot from whenever Decide happened to run earlier.
-            READY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '
-              [.labels[].name] as $labels |
-              ($labels | index("lifecycle/ready-to-merge") != null) as $readyToMerge |
-              ($labels | index("orchestrator/disabled") != null) as $orchestratorDisabled |
-              ($labels | index("DO NOT MERGE") != null) as $doNotMerge |
-              if $orchestratorDisabled then (if $doNotMerge then false else true end)
-              else $readyToMerge
-              end')
-            if [ "$READY" != "true" ]; then
-              echo "::error::PR #$PR_NUMBER is not lifecycle/ready-to-merge yet — the full suite has not run for this SHA. This is expected during PR review, not a failure of anything: promotion happens automatically once the fast gate (Quick Check) passes (immediately for trusted/auto-accepted authors, or after an approving review for everyone else), and this Gate will pass once the full suite subsequently completes for the promoted commit."
-              exit 1
-            fi
-            echo "PR #$PR_NUMBER is lifecycle/ready-to-merge: full suite required"
+          # Mirrors verify-decide.yaml's own lifecycle-scope logic exactly
+          # (orchestrator/disabled bypasses the lifecycle label dance unless
+          # DO NOT MERGE is also present).
+          READY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '
+            [.labels[].name] as $labels |
+            ($labels | index("lifecycle/ready-to-merge") != null) as $readyToMerge |
+            ($labels | index("orchestrator/disabled") != null) as $orchestratorDisabled |
+            ($labels | index("DO NOT MERGE") != null) as $doNotMerge |
+            if $orchestratorDisabled then (if $doNotMerge then false else true end)
+            else $readyToMerge
+            end')
+          if [ "$READY" != "true" ]; then
+            echo "::error::PR #$PR_NUMBER is not lifecycle/ready-to-merge yet — the full suite has not run for this SHA. This is expected during PR review, not a failure of anything: promotion happens automatically once the fast gate (Quick Check) passes (immediately for trusted/auto-accepted authors, or after an approving review for everyone else), and this Gate will pass once the full suite subsequently completes for the promoted commit."
+            exit 1
           fi
-
-          echo "Waiting for Quick Check, CI, Integration Tests and Extra Tests to complete for $SHA"
-
-          # Quick Check/CI/Integration Tests/Extra Tests all trigger directly
-          # on the same pull_request/push events as this workflow, so a single
-          # head_sha filter finds all of them. Always require all four
-          # regardless of what any sibling's own Decide computed: each
-          # sibling's own workflow run always completes quickly on its own
-          # whether it ran real jobs or skipped them internally, so waiting
-          # for all four unconditionally is never a false timeout, and it is
-          # the only way to reliably catch a sibling that did run (and
-          # failed) even when its own Decide disagreed with this check's
-          # live PR-state read above about whether it should have.
-          for i in $(seq 1 200); do
-            LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
-              --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"Quick Check\" or .name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")
-
-            echo "Sibling runs (attempt $i):"
-            echo "$LATEST" | jq -c '.[]'
-
-            FAILED=$(echo "$LATEST" | jq '[.[] | select(.conclusion != null and .conclusion != "success")] | length')
-            if [ "$FAILED" -gt 0 ]; then
-              echo "::error::A sibling full-suite workflow failed for $SHA"
-              exit 1
-            fi
-
-            COUNT=$(echo "$LATEST" | jq 'length')
-            PENDING=$(echo "$LATEST" | jq '[.[] | select(.status != "completed")] | length')
-            if [ "$COUNT" -eq 4 ] && [ "$PENDING" -eq 0 ]; then
-              echo "All sibling workflows completed successfully"
-              exit 0
-            fi
-
-            sleep 60
-          done
-
-          echo "::error::Timed out waiting for sibling full-suite workflows for $SHA"
-          exit 1
+          echo "PR #$PR_NUMBER is lifecycle/ready-to-merge"
 
   # ============================================================================
   # PUBLISH: Push images (only on push to main)
   # ============================================================================
   publish:
     name: Publish Images
-    needs: [await-build, verification-gate]
+    needs: [build-java, gate]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
-      build-run-id: ${{ needs.await-build.outputs.run-id }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -195,13 +430,13 @@ jobs:
   # ============================================================================
   notify-slack:
     name: Slack Notification
-    needs: [verification-gate, publish, operator]
+    needs: [gate, publish, operator]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio' && always()
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'verification'
-      job-status: ${{ (needs.verification-gate.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
+      job-status: ${{ (needs.gate.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

@@ -10,14 +10,9 @@ on:
         type: string
         required: true
         description: 'Build artifact identifier (commit SHA)'
-      build-run-id:
-        type: string
-        required: true
-        description: 'quick-check.yaml run id to download build-artifacts from (see verify-await-build.yaml)'
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   unit-tests:
@@ -112,8 +107,6 @@ jobs:
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .
-          run-id: ${{ inputs.build-run-id }}
-          github-token: ${{ github.token }}
 
       - name: Restore executable permissions
         run: |

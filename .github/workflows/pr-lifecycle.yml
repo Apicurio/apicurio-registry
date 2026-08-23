@@ -7,7 +7,7 @@ on:
   issue_comment:
     types: [created]
   workflow_run:
-    workflows: ["Verify"]
+    workflows: ["Verify", "CI", "Integration Tests", "Extra Tests"]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -191,6 +191,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        # workflow_run handlers must NOT check out the run's head SHA: GitHub refuses
+        # fork pull_request code in a workflow_run context, and the checkout fails the
+        # whole orchestrator. The orchestrator's dispatch logic lives on main once
+        # merged; for the rollout PR itself, the dispatch is bootstrapped manually.
 
       - name: Convert config to JSON
         run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json

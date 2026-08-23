@@ -228,22 +228,12 @@ function createApi(github, owner, repo) {
       await github.rest.pulls.updateBranch(params);
     },
 
-    // GitHub reports head_sha for a workflow_dispatch run as the dispatch ref's
-    // resolved commit, never a value from `inputs` — confirmed empirically. For
-    // ci.yaml/verify.yaml (triggered directly by pull_request/push) head_sha is
-    // the PR's actual commit and matches directly. For integration-tests.yaml/
-    // extras.yaml, which for PRs only ever run via the orchestrator's
-    // workflow_dispatch (dispatched against the PR's base branch — see
-    // dispatchDownstreamWorkflows), head_sha is the base branch's tip, not the
-    // PR's SHA; those two workflows run-name themselves with the exact SHA
-    // instead (see integration-tests.yaml/extras.yaml), so it is matched here as
-    // a fallback via display_title. No server-side head_sha filter, since that
-    // would exclude exactly the runs display_title needs to catch.
     findLatestVerifyRun: async (headSha, workflow = 'verify.yaml') => {
       const { data } = await github.rest.actions.listWorkflowRuns({
-        owner, repo, workflow_id: workflow, per_page: 100,
+        owner, repo, workflow_id: workflow,
+        head_sha: headSha, per_page: 1,
       });
-      return data.workflow_runs.find(r => r.head_sha === headSha || r.display_title === headSha) || null;
+      return data.workflow_runs[0] || null;
     },
 
     cancelWorkflowRun: async (runId) => {
@@ -275,12 +265,6 @@ function createApi(github, owner, repo) {
       });
     },
 
-    dispatchWorkflow: async (workflow, ref, inputs = {}) => {
-      await github.rest.actions.createWorkflowDispatch({
-        owner, repo, workflow_id: workflow, ref, inputs,
-      });
-    },
-
     // GitHub represents runs awaiting fork PR approval as    // status=completed, conclusion=action_required. The API's status
     // query parameter accepts 'action_required' as a filter value even
     // though the run object itself stores it in the conclusion field.
@@ -307,20 +291,6 @@ function createApi(github, owner, repo) {
 const FAST_GATE_WORKFLOW = 'CI';
 const FULL_SUITE_WORKFLOWS = ['CI', 'Integration Tests', 'Extra Tests', 'Verify'];
 const FULL_SUITE_WORKFLOW_FILES = ['ci.yaml', 'integration-tests.yaml', 'extras.yaml', 'verify.yaml'];
-const FULL_SUITE_WORKFLOW_PATHS = FULL_SUITE_WORKFLOW_FILES.map(f => `.github/workflows/${f}`);
-
-// integration-tests.yaml/extras.yaml set run-name to the PR's SHA (see
-// dispatchDownstreamWorkflows) so their workflow_dispatch runs can be found by
-// display_title. Setting run-name overwrites the run's own `name` field too —
-// not just display_title — confirmed empirically against the live API: a
-// dispatched Integration Tests run's `name` comes back as the SHA string, not
-// "Integration Tests". `path` is unaffected by run-name and always identifies
-// the workflow file that produced the run, so it — not `name` — is the
-// reliable way to map a run back to one of FULL_SUITE_WORKFLOWS.
-function workflowConceptualName(run) {
-  const idx = FULL_SUITE_WORKFLOW_PATHS.indexOf(run.path);
-  return idx === -1 ? run.name : FULL_SUITE_WORKFLOWS[idx];
-}
 
 // Aggregates the latest run of each full-suite workflow for a commit.
 // Returns:
@@ -328,23 +298,16 @@ function workflowConceptualName(run) {
 //   { status: 'success' }  — every workflow's latest run succeeded
 //   { status: 'failure' }  — at least one failed/was cancelled (fail fast)
 async function getFullSuiteResult(github, owner, repo, headSha, core) {
-  // Per-workflow-file queries, not a single repo-wide head_sha-filtered query:
-  // Integration Tests / Extra Tests only ever run for PRs via the orchestrator's
-  // workflow_dispatch (dispatched against the PR's base branch), and GitHub
-  // reports head_sha for a workflow_dispatch run as that base branch's tip, not
-  // the PR's SHA — a head_sha filter would never find them. They run-name
-  // themselves with the exact SHA instead (see integration-tests.yaml/
-  // extras.yaml); match each workflow's runs by head_sha OR display_title so
-  // CI/Verify (which always report head_sha correctly) and IT/Extras (which
-  // don't, for workflow_dispatch) are both found the same way.
+  const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+    owner, repo, head_sha: headSha, per_page: 100,
+  });
   const latest = new Map();
-  for (let i = 0; i < FULL_SUITE_WORKFLOWS.length; i++) {
-    const name = FULL_SUITE_WORKFLOWS[i];
-    const { data } = await github.rest.actions.listWorkflowRuns({
-      owner, repo, workflow_id: FULL_SUITE_WORKFLOW_FILES[i], per_page: 100,
-    });
-    const run = data.workflow_runs.find(r => r.head_sha === headSha || r.display_title === headSha);
-    if (run) latest.set(name, run);
+  for (const run of data.workflow_runs) {
+    if (!FULL_SUITE_WORKFLOWS.includes(run.name)) continue;
+    const prev = latest.get(run.name);
+    if (!prev || new Date(run.created_at) > new Date(prev.created_at)) {
+      latest.set(run.name, run);
+    }
   }
   for (const name of FULL_SUITE_WORKFLOWS) {
     const run = latest.get(name);
@@ -355,7 +318,7 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   }
   for (const run of latest.values()) {
     if (run.conclusion !== 'success') {
-      return { status: 'failure', failedRun: run, failedName: workflowConceptualName(run) };
+      return { status: 'failure', failedRun: run };
     }
   }
   return { status: 'success' };
@@ -1342,55 +1305,10 @@ async function handleLabelChange({ github, context, core }) {
 // Test Result Handler
 // ---------------------------------------------------------------------------
 
-// True when the PR's full suite should run: at ready-to-merge (produced by a maintainer
-// review or a maintainer /skip-review). review-skipped alone does not run the full suite.
-function isFullSuiteState(state) {
-  return state === LABELS.READY_TO_MERGE;
-}
-
-// Dispatches the downstream workflows that test the PR's code once CI's fast gate
-// (which already compiled/smoke-tested it) confirms it is worth the full suite.
-// Runs under pull_request_target with the orchestrator's token.
-//
-// workflow_dispatch's ref parameter only accepts a branch or tag that exists on the
-// base repo — it rejects refs/pull/<n>/head (confirmed: GitHub returns "No ref
-// found" for it even though the ref itself resolves fine via the Git Data API) and,
-// for fork PRs, the head branch name does not exist on the base repo at all. There
-// is no ref we can dispatch to that resolves to the PR's actual commit, so this
-// dispatches to the PR's base branch (always exists) and passes the PR's head SHA
-// as an explicit input; the dispatched workflows check out that SHA themselves
-// instead of relying on github.sha/github.ref, which here would resolve to the
-// base branch's tip, not the PR.
-//
-// Idempotent per head SHA: skips a workflow that already has a run for this exact
-// SHA which is still active (queued/in_progress) or already succeeded, so repeated
-// events (retries, the merge-rebase path re-checking the same SHA) do not cancel a
-// good run out from under itself via the workflow's own concurrency group. A prior
-// failed/cancelled run for the same SHA is still redispatched.
-async function dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core) {
-  const ref = pr.base.ref;
-  for (const workflow of ['integration-tests.yaml', 'extras.yaml']) {
-    const existing = await api.findLatestVerifyRun(workflowRun.head_sha, workflow);
-    if (existing && (existing.status !== 'completed' || existing.conclusion === 'success')) {
-      core.info(`PR #${pr.number} ${workflow} already has a run for ${workflowRun.head_sha.substring(0, 7)} (${existing.status}/${existing.conclusion}), not re-dispatching`);
-      continue;
-    }
-    try {
-      await api.dispatchWorkflow(workflow, ref, { 'pr-number': String(pr.number), 'pr-sha': workflowRun.head_sha });
-      core.info(`PR #${pr.number} dispatched ${workflow} for ${workflowRun.head_sha.substring(0, 7)}`);
-    } catch (e) {
-      core.warning(`PR #${pr.number} failed to dispatch ${workflow}: ${e.message}`);
-    }
-  }
-}
-
 async function handleTestResult({ github, context, core }) {
   const workflowRun = context.payload.workflow_run;
-  // The full-suite downstream workflows (Integration Tests, Extra Tests) are
-  // dispatched by this orchestrator via workflow_dispatch (single build per SHA);
-  // those runs carry event=workflow_dispatch and must not be filtered out.
-  if (workflowRun.event !== 'pull_request' && workflowRun.event !== 'workflow_dispatch') {
-    core.info('Workflow run is not from a PR or dispatch event, skipping');
+  if (workflowRun.event !== 'pull_request') {
+    core.info('Workflow run is not from a PR event, skipping');
     return;
   }
 
@@ -1405,10 +1323,9 @@ async function handleTestResult({ github, context, core }) {
   //    for the PR's head SHA; their runs completed while a PR is still in
   //    ready-for-review are no-ops (Decide skips every job) and must NOT
   //    mark the PR tested.
-  const conceptualName = workflowConceptualName(workflowRun);
-  const isFastGate = conceptualName === FAST_GATE_WORKFLOW;
-  if (!FULL_SUITE_WORKFLOWS.includes(conceptualName)) {
-    core.info(`Unhandled workflow ${conceptualName} (path ${workflowRun.path}), skipping`);
+  const isFastGate = workflowRun.name === FAST_GATE_WORKFLOW;
+  if (!FULL_SUITE_WORKFLOWS.includes(workflowRun.name)) {
+    core.info(`Unhandled workflow ${workflowRun.name}, skipping`);
     return;
   }
 
@@ -1427,9 +1344,8 @@ async function handleTestResult({ github, context, core }) {
     });
     prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
     if (!prRefs.length) {
-      // Dispatched runs (single-build chain) run on refs/pull/<n>/head, which the
-      // head-branch filter cannot resolve — fall back to scanning recent open PRs
-      // by head SHA.
+      // Last resort: scan all open PRs by head SHA (covers edge cases where
+      // the head-branch filter above misses, e.g. a stale/renamed branch).
       const { data: openPrs } = await github.rest.pulls.list({
         owner, repo, state: 'open', per_page: 50,
       });
@@ -1459,12 +1375,6 @@ async function handleTestResult({ github, context, core }) {
       if (pr.head.sha !== workflowRun.head_sha) {
         core.info(`PR #${pr.number} merge-rebase SHA mismatch, skipping`);
         continue;
-      }
-      // Same single-build dispatch as the main path below: CI's own success is
-      // what makes Integration Tests / Extra Tests exist for the rebased SHA in
-      // the first place, so it must fire before getFullSuiteResult is consulted.
-      if (isFastGate && workflowRun.conclusion === 'success') {
-        await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
       }
       const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
       if (suite.status === 'pending') {
@@ -1555,18 +1465,6 @@ async function handleTestResult({ github, context, core }) {
         core.info(`PR #${pr.number} fast gate cancelled`);
       }
     } else {
-      // The shared Build job lives in the CI workflow; as soon as CI's own
-      // full-tier run succeeds, dispatch the downstream workflows that consume
-      // its artifact (single build per SHA) instead of letting them build
-      // again. This MUST happen before evaluating suite completeness below:
-      // Integration Tests / Extra Tests have no run at all yet at this point
-      // (that is exactly what this dispatch creates), so getFullSuiteResult
-      // will always report 'pending' here — waiting for it first would mean
-      // the dispatch that resolves that pending state never fires.
-      if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(state)) {
-        await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
-      }
-
       // Full suite at ready-to-merge: the pre-merge gate. All full-suite
       // workflows (CI, Integration Tests, Extra Tests, Verify) must be green
       // for this SHA; a failure or cancellation in any of them fails the suite.
@@ -1601,7 +1499,7 @@ async function handleTestResult({ github, context, core }) {
         await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
         await api.postComment(pr.number,
           `The full verification suite ${verb} for commit ${workflowRun.head_sha.substring(0, 7)} ` +
-          `(${suite.failedName}: ${failed.html_url}). ` +
+          `(${failed.name}: ${failed.html_url}). ` +
           `Reverting to \`lifecycle/ready-for-review\`. @${pr.user.login}, please check the ` +
           `workflow run and push a fix.`
         );

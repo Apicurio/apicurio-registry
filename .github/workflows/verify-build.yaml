@@ -13,6 +13,16 @@ on:
         description: 'Run only the fast UI check (no Java build, no docker images)'
         type: boolean
         default: false
+      checkout-ref:
+        description: >
+          Commit SHA to build. Only needed when called via the orchestrator's
+          workflow_dispatch (single-build dispatch chain): that ref is a base-repo
+          branch name (workflow_dispatch cannot target a PR ref directly), so
+          github.sha there is the branch tip, not the PR's actual commit. Empty
+          for pull_request/push callers, which already check out the right commit
+          by default.
+        type: string
+        default: ''
     outputs:
       image-tag:
         description: 'Docker image tag (commit SHA)'
@@ -32,6 +42,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -71,6 +83,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -151,6 +165,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7

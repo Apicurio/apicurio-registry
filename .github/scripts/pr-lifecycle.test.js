@@ -54,6 +54,7 @@ function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
     labels: [...labels].map(name => ({ name })),
     user: { login: 'contributor' },
     head: { sha: SHA, ref: 'feature-x' },
+    base: { ref: 'main' },
     requested_reviewers: [],
   });
 
@@ -75,10 +76,24 @@ function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
         updateBranch: async () => { calls.branchUpdates.push('update'); },
       },
       actions: {
-        listWorkflowRuns: async () => ({ data: { workflow_runs: [] } }),
+        // getFullSuiteResult queries per workflow file now (head_sha can't
+        // correlate a workflow_dispatch run back to the PR — see pr-lifecycle.js).
+        // Default: serve suiteRuns filtered by the file's workflow name, each
+        // annotated with head_sha so the head_sha-based match path (CI/Verify,
+        // and IT/Extras' push trigger) succeeds; dispatch-path tests override
+        // this per-call to exercise the display_title match path instead.
+        listWorkflowRuns: async ({ workflow_id }) => {
+          const nameByFile = {
+            'ci.yaml': 'CI', 'integration-tests.yaml': 'Integration Tests',
+            'extras.yaml': 'Extra Tests', 'verify.yaml': 'Verify',
+          };
+          const name = nameByFile[workflow_id];
+          const matches = suiteRuns.filter(r => r.name === name).map(r => ({ head_sha: SHA, ...r }));
+          return { data: { workflow_runs: matches } };
+        },
         listWorkflowRunsForRepo: async () => ({ data: { workflow_runs: suiteRuns } }),
         listWorkflowRunArtifacts: async () => ({}),
-        createWorkflowDispatch: async ({ workflow_id, ref }) => calls.dispatches.push({ workflow_id, ref }),
+        createWorkflowDispatch: async ({ workflow_id, ref, inputs }) => calls.dispatches.push({ workflow_id, ref, inputs }),
       },
     },
     // paginate: reviews list when asked for reviews, empty otherwise
@@ -156,7 +171,7 @@ test('maintainer PR open: auto-accepted straight to ready-for-review + review-sk
     // retriggerVerify(waitForRun: true) polls for the ci.yaml run it just triggered;
     // already-green means retriggerWorkflowRun leaves it alone instead of re-running it.
     w.github.rest.actions.listWorkflowRuns = async () => ({
-      data: { workflow_runs: [{ id: 1, status: 'completed', conclusion: 'success' }] },
+      data: { workflow_runs: [{ id: 1, status: 'completed', conclusion: 'success', head_sha: SHA }] },
     });
     await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('maintainer-jane')), core: w.core });
 
@@ -253,6 +268,35 @@ test('Verify success at ready-to-merge adds lifecycle/full-verified when the who
   assert.equal(w.calls.merges.length, 0);
 });
 
+test('full suite completes via display_title match for a real workflow_dispatch run (head_sha is the base branch tip, not the PR SHA)', async () => {
+  // This is what a genuine dispatched Integration Tests/Extra Tests run looks
+  // like: GitHub sets head_sha to the dispatch ref's resolved commit (the PR's
+  // base branch), never the PR's own SHA, regardless of the pr-sha input —
+  // confirmed against the live API. Only display_title (set via run-name:
+  // ${{ inputs.pr-sha }}) carries the PR's actual SHA. If getFullSuiteResult
+  // only matched on head_sha, this run would never be found and the suite
+  // would stay pending forever.
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true });
+  const BASE_BRANCH_TIP = 'ffffffffffffffffffffffffffffffffffffffff';
+  const runFor = (name, overrides = {}) => ({
+    name, status: 'completed', conclusion: 'success',
+    created_at: '2026-01-01T00:00:00Z', html_url: 'https://example.com/run/' + name,
+    ...overrides,
+  });
+  w.github.rest.actions.listWorkflowRuns = async ({ workflow_id }) => {
+    const byFile = {
+      'ci.yaml': [runFor('CI', { head_sha: SHA })],
+      'verify.yaml': [runFor('Verify', { head_sha: SHA })],
+      // Dispatched runs: head_sha is the base branch tip, display_title is the PR's SHA.
+      'integration-tests.yaml': [runFor('Integration Tests', { head_sha: BASE_BRANCH_TIP, display_title: SHA })],
+      'extras.yaml': [runFor('Extra Tests', { head_sha: BASE_BRANCH_TIP, display_title: SHA })],
+    };
+    return { data: { workflow_runs: byFile[workflow_id] || [] } };
+  };
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
+  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
 test('Verify success at ready-to-merge completes a queued (pending) merge', async () => {
   const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.PENDING_MERGE], { approved: true, suiteRuns: greenSuite() });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
@@ -345,6 +389,13 @@ test('CI success at ready-to-merge dispatches Integration/Extra Tests even thoug
   const dispatched = w.calls.dispatches.map(d => d.workflow_id);
   assert.ok(dispatched.includes('integration-tests.yaml'), 'Integration Tests must be dispatched');
   assert.ok(dispatched.includes('extras.yaml'), 'Extra Tests must be dispatched');
+  // workflow_dispatch cannot target refs/pull/<n>/head or a fork's branch name —
+  // it must dispatch to a real branch on the base repo (the PR's base branch),
+  // with the PR's actual head SHA threaded through as an input.
+  for (const d of w.calls.dispatches) {
+    assert.equal(d.ref, 'main', `${d.workflow_id} must dispatch to the PR's base branch`);
+    assert.equal(d.inputs['pr-sha'], SHA, `${d.workflow_id} must receive the PR's head SHA to check out`);
+  }
 });
 
 test('CI success at ready-to-merge does not re-dispatch a workflow already succeeded for this SHA', async () => {
@@ -358,10 +409,13 @@ test('CI success at ready-to-merge does not re-dispatch a workflow already succe
   // Integration Tests already has a successful run for this SHA (e.g. a
   // redelivered/duplicate CI-completed event); it must not be redispatched
   // (that would cancel the good run via its own concurrency group). Extra
-  // Tests has no run yet and must still be dispatched.
+  // Tests has no run yet and must still be dispatched. The existing run is
+  // matched by display_title (as a real dispatched run would be, since
+  // workflow_dispatch runs don't report the PR's head_sha — see
+  // dispatchDownstreamWorkflows), not head_sha, to exercise that path too.
   w.github.rest.actions.listWorkflowRuns = async ({ workflow_id }) =>
     workflow_id === 'integration-tests.yaml'
-      ? { data: { workflow_runs: [{ status: 'completed', conclusion: 'success' }] } }
+      ? { data: { workflow_runs: [{ status: 'completed', conclusion: 'success', display_title: SHA }] } }
       : { data: { workflow_runs: [] } };
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
   const dispatched = w.calls.dispatches.map(d => d.workflow_id);

@@ -104,27 +104,59 @@ jobs:
             echo "Fast gate only (PR review): waiting for CI"
           fi
 
-          # ~200 requests at 60s apart (200 min), comfortably above the full
+          # Per-workflow-file queries, not one repo-wide head_sha-filtered query:
+          # Integration Tests/Extra Tests only run for PRs via the orchestrator's
+          # workflow_dispatch (dispatched against the PR's base branch), and GitHub
+          # reports head_sha for a workflow_dispatch run as that base branch's tip,
+          # never the PR's SHA — a head_sha filter would never find them. They
+          # run-name themselves with the exact SHA instead (see
+          # integration-tests.yaml/extras.yaml); match each workflow's runs by
+          # head_sha OR display_title so CI (head_sha-correct) and Integration
+          # Tests/Extra Tests (display_title-correct, for the dispatch path) are
+          # both found the same way.
+          FILES=(ci.yaml integration-tests.yaml extras.yaml)
+          NAMES=(CI "Integration Tests" "Extra Tests")
+
+          # ~200 iterations at 60s apart (200 min), comfortably above the full
           # suite's realistic worst case (CI's own full tier, then Integration
           # Tests/Extra Tests running after dispatch) while still bounded by
           # this job's timeout-minutes so a genuinely hung run is caught rather
           # than polled forever.
           for i in $(seq 1 200); do
-            LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
-              --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")
-
+            FAILED=0
+            COUNT=0
+            PENDING=0
+            CI_DONE=0
             echo "Sibling runs (attempt $i):"
-            echo "$LATEST" | jq -c '.[]'
+            for idx in "${!FILES[@]}"; do
+              file="${FILES[$idx]}"
+              name="${NAMES[$idx]}"
+              RUN=$(gh api "repos/$REPO/actions/workflows/$file/runs?per_page=100" \
+                --jq "[.workflow_runs[] | select(.head_sha == \"$SHA\" or .display_title == \"$SHA\")] | sort_by(.created_at) | reverse | .[0] // empty")
+              if [ -n "$RUN" ] && [ "$RUN" != "null" ]; then
+                COUNT=$((COUNT + 1))
+                STATUS=$(echo "$RUN" | jq -r '.status')
+                CONCLUSION=$(echo "$RUN" | jq -r '.conclusion')
+                echo "  $name: status=$STATUS conclusion=$CONCLUSION"
+                if [ "$STATUS" != "completed" ]; then
+                  PENDING=$((PENDING + 1))
+                elif [ "$CONCLUSION" != "success" ]; then
+                  FAILED=$((FAILED + 1))
+                fi
+                if [ "$name" = "CI" ] && [ "$STATUS" = "completed" ]; then
+                  CI_DONE=1
+                fi
+              else
+                echo "  $name: no run yet"
+              fi
+            done
 
-            FAILED=$(echo "$LATEST" | jq '[.[] | select(.conclusion != null and .conclusion != "success")] | length')
             if [ "$FAILED" -gt 0 ]; then
               echo "::error::A sibling full-suite workflow failed for $SHA"
               exit 1
             fi
 
             if [ "$FULL_SUITE" = "true" ]; then
-              COUNT=$(echo "$LATEST" | jq 'length')
-              PENDING=$(echo "$LATEST" | jq '[.[] | select(.status != "completed")] | length')
               if [ "$COUNT" -eq 3 ] && [ "$PENDING" -eq 0 ]; then
                 echo "All sibling workflows completed successfully"
                 exit 0
@@ -132,7 +164,6 @@ jobs:
             else
               # Integration Tests/Extra Tests are never dispatched in this
               # state — only CI's fast gate matters.
-              CI_DONE=$(echo "$LATEST" | jq '[.[] | select(.name == "CI" and .status == "completed")] | length')
               if [ "$CI_DONE" -eq 1 ]; then
                 echo "CI fast gate completed successfully"
                 exit 0

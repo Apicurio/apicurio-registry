@@ -137,8 +137,11 @@ jobs:
     # PR iteration only: not on push (the full Build covers main), not on label
     # events (the synchronize/opened run on the same SHA already ran it).
     if: github.event_name == 'pull_request' && github.event.action != 'labeled'
-    # verify-build.yaml's inputs all have defaults; the fast job needs no overrides.
+    # verify-build.yaml's build-ui-fast has no needs and always runs when called.
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled'
     uses: ./.github/workflows/verify-build.yaml
+    with:
+      fast: true
 
   lint-and-validate:
     name: Lint and Validate

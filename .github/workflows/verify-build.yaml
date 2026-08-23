@@ -9,6 +9,10 @@ on:
       node-version:
         type: string
         default: '20'
+      fast:
+        description: 'Run only the fast UI check (no Java build, no docker images)'
+        type: boolean
+        default: false
     outputs:
       image-tag:
         description: 'Docker image tag (commit SHA)'
@@ -23,6 +27,7 @@ jobs:
   build-ui-fast:
     name: Build UI (fast)
     runs-on: ubuntu-latest
+    if: inputs.fast
     timeout-minutes: 15
     steps:
       - name: Checkout Code
@@ -60,6 +65,7 @@ jobs:
   build-java:
     name: Build Java Application (no tests)
     runs-on: ubuntu-latest
+    if: inputs.fast != true
     outputs:
       image-tag: ${{ github.sha }}
     steps:
@@ -138,6 +144,7 @@ jobs:
   build-ui:
     name: Build UI Application
     runs-on: ubuntu-latest
+    if: inputs.fast != true
     # npm/vite occasionally hangs on a shared runner with no output; fail fast instead
     # of burning the workflow timeout. The whole job normally finishes in ~4 min.
     timeout-minutes: 15

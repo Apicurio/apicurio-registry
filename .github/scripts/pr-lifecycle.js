@@ -307,6 +307,20 @@ function createApi(github, owner, repo) {
 const FAST_GATE_WORKFLOW = 'CI';
 const FULL_SUITE_WORKFLOWS = ['CI', 'Integration Tests', 'Extra Tests', 'Verify'];
 const FULL_SUITE_WORKFLOW_FILES = ['ci.yaml', 'integration-tests.yaml', 'extras.yaml', 'verify.yaml'];
+const FULL_SUITE_WORKFLOW_PATHS = FULL_SUITE_WORKFLOW_FILES.map(f => `.github/workflows/${f}`);
+
+// integration-tests.yaml/extras.yaml set run-name to the PR's SHA (see
+// dispatchDownstreamWorkflows) so their workflow_dispatch runs can be found by
+// display_title. Setting run-name overwrites the run's own `name` field too —
+// not just display_title — confirmed empirically against the live API: a
+// dispatched Integration Tests run's `name` comes back as the SHA string, not
+// "Integration Tests". `path` is unaffected by run-name and always identifies
+// the workflow file that produced the run, so it — not `name` — is the
+// reliable way to map a run back to one of FULL_SUITE_WORKFLOWS.
+function workflowConceptualName(run) {
+  const idx = FULL_SUITE_WORKFLOW_PATHS.indexOf(run.path);
+  return idx === -1 ? run.name : FULL_SUITE_WORKFLOWS[idx];
+}
 
 // Aggregates the latest run of each full-suite workflow for a commit.
 // Returns:
@@ -341,7 +355,7 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   }
   for (const run of latest.values()) {
     if (run.conclusion !== 'success') {
-      return { status: 'failure', failedRun: run };
+      return { status: 'failure', failedRun: run, failedName: workflowConceptualName(run) };
     }
   }
   return { status: 'success' };
@@ -1391,9 +1405,10 @@ async function handleTestResult({ github, context, core }) {
   //    for the PR's head SHA; their runs completed while a PR is still in
   //    ready-for-review are no-ops (Decide skips every job) and must NOT
   //    mark the PR tested.
-  const isFastGate = workflowRun.name === FAST_GATE_WORKFLOW;
-  if (!FULL_SUITE_WORKFLOWS.includes(workflowRun.name)) {
-    core.info(`Unhandled workflow ${workflowRun.name}, skipping`);
+  const conceptualName = workflowConceptualName(workflowRun);
+  const isFastGate = conceptualName === FAST_GATE_WORKFLOW;
+  if (!FULL_SUITE_WORKFLOWS.includes(conceptualName)) {
+    core.info(`Unhandled workflow ${conceptualName} (path ${workflowRun.path}), skipping`);
     return;
   }
 
@@ -1586,7 +1601,7 @@ async function handleTestResult({ github, context, core }) {
         await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
         await api.postComment(pr.number,
           `The full verification suite ${verb} for commit ${workflowRun.head_sha.substring(0, 7)} ` +
-          `(${failed.name}: ${failed.html_url}). ` +
+          `(${suite.failedName}: ${failed.html_url}). ` +
           `Reverting to \`lifecycle/ready-for-review\`. @${pr.user.login}, please check the ` +
           `workflow run and push a fix.`
         );

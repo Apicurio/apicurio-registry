@@ -106,12 +106,20 @@ function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
   return { github, core, calls, labels };
 }
 
+const WORKFLOW_PATHS = {
+  CI: '.github/workflows/ci.yaml',
+  'Integration Tests': '.github/workflows/integration-tests.yaml',
+  'Extra Tests': '.github/workflows/extras.yaml',
+  Verify: '.github/workflows/verify.yaml',
+};
+
 function runPayload(workflowName, conclusion) {
   return {
     repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
     payload: {
       workflow_run: {
         name: workflowName,
+        path: WORKFLOW_PATHS[workflowName],
         event: 'pull_request',
         conclusion,
         head_sha: SHA,
@@ -134,6 +142,7 @@ function greenSuite(overrides = {}) {
     const conclusion = inProgress ? null : o;
     return {
       name,
+      path: WORKFLOW_PATHS[name],
       status: inProgress ? o.slice(0, -1) : 'completed',
       conclusion,
       created_at: '2026-01-01T00:00:00Z',
@@ -275,7 +284,12 @@ test('full suite completes via display_title match for a real workflow_dispatch 
   // confirmed against the live API. Only display_title (set via run-name:
   // ${{ inputs.pr-sha }}) carries the PR's actual SHA. If getFullSuiteResult
   // only matched on head_sha, this run would never be found and the suite
-  // would stay pending forever.
+  // would stay pending forever. run-name also overwrites `name` itself (also
+  // confirmed against the live API — a dispatched Integration Tests run's
+  // `name` comes back as the SHA string, not "Integration Tests"), which is
+  // why `path`, not `name`, must be used to identify which workflow a run
+  // belongs to; this test's runFor() reflects that by NOT setting `name` to
+  // the conceptual name for the dispatched runs.
   const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true });
   const BASE_BRANCH_TIP = 'ffffffffffffffffffffffffffffffffffffffff';
   const runFor = (name, overrides = {}) => ({
@@ -285,16 +299,36 @@ test('full suite completes via display_title match for a real workflow_dispatch 
   });
   w.github.rest.actions.listWorkflowRuns = async ({ workflow_id }) => {
     const byFile = {
-      'ci.yaml': [runFor('CI', { head_sha: SHA })],
-      'verify.yaml': [runFor('Verify', { head_sha: SHA })],
-      // Dispatched runs: head_sha is the base branch tip, display_title is the PR's SHA.
-      'integration-tests.yaml': [runFor('Integration Tests', { head_sha: BASE_BRANCH_TIP, display_title: SHA })],
-      'extras.yaml': [runFor('Extra Tests', { head_sha: BASE_BRANCH_TIP, display_title: SHA })],
+      'ci.yaml': [runFor('CI', { path: WORKFLOW_PATHS.CI, head_sha: SHA })],
+      'verify.yaml': [runFor('Verify', { path: WORKFLOW_PATHS.Verify, head_sha: SHA })],
+      // Dispatched runs: head_sha is the base branch tip, display_title is the
+      // PR's SHA, and `name` is ALSO the SHA (run-name overwrites it) rather
+      // than the conceptual workflow name — only `path` is reliable here.
+      'integration-tests.yaml': [runFor(SHA, {
+        path: WORKFLOW_PATHS['Integration Tests'], head_sha: BASE_BRANCH_TIP, display_title: SHA,
+      })],
+      'extras.yaml': [runFor(SHA, {
+        path: WORKFLOW_PATHS['Extra Tests'], head_sha: BASE_BRANCH_TIP, display_title: SHA,
+      })],
     };
     return { data: { workflow_runs: byFile[workflow_id] || [] } };
   };
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
   assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
+test('a dispatched Integration Tests run completing is not misidentified as "unhandled" because run-name corrupted its own name field', async () => {
+  // handleTestResult's own entry point must still recognize a dispatched
+  // Integration Tests run as one of the full-suite workflows even though its
+  // workflow_run.name is the SHA (run-name's side effect), not "Integration
+  // Tests" — via workflow_run.path instead.
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite() });
+  const ctx = runPayload('Integration Tests', 'success');
+  ctx.payload.workflow_run.name = SHA; // what the real API actually returns
+  ctx.payload.workflow_run.path = WORKFLOW_PATHS['Integration Tests'];
+  ctx.payload.workflow_run.event = 'workflow_dispatch';
+  await lifecycle.handleTestResult({ github: w.github, context: ctx, core: w.core });
+  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED), 'must still be processed as the Integration Tests completion, not skipped as unhandled');
 });
 
 test('Verify success at ready-to-merge completes a queued (pending) merge', async () => {

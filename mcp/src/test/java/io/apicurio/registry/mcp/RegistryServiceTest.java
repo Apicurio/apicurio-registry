@@ -16,9 +16,12 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -112,6 +115,74 @@ public class RegistryServiceTest {
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(response.getBytes(StandardCharsets.UTF_8));
                 }
+                return;
+            }
+
+            if (path.endsWith("/admin/rules") && exchange.getRequestMethod().equals("GET")) {
+                String response = "[\"VALIDITY\", \"COMPATIBILITY\"]";
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
+
+            if (path.contains("/admin/rules/") && (exchange.getRequestMethod().equals("GET") || exchange.getRequestMethod().equals("PUT"))) {
+                String ruleName = path.substring(path.lastIndexOf('/') + 1);
+                String response = "{\"ruleType\":\"" + ruleName + "\",\"config\":\"FULL\"}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
+
+            if (path.matches(".*/groups/[^/]+/rules") && exchange.getRequestMethod().equals("GET")) {
+                String response = "[\"INTEGRITY\"]";
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
+
+            if (path.matches(".*/groups/[^/]+/rules/[^/]+") && (exchange.getRequestMethod().equals("GET") || exchange.getRequestMethod().equals("PUT"))) {
+                String ruleName = path.substring(path.lastIndexOf('/') + 1);
+                String response = "{\"ruleType\":\"" + ruleName + "\",\"config\":\"NO_DUPLICATES\"}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
+
+            if (path.matches(".*/groups/[^/]+/artifacts/[^/]+/rules") && exchange.getRequestMethod().equals("GET")) {
+                String response = "[\"COMPATIBILITY\"]";
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
+
+            if (path.matches(".*/groups/[^/]+/artifacts/[^/]+/rules/[^/]+") && (exchange.getRequestMethod().equals("GET") || exchange.getRequestMethod().equals("PUT"))) {
+                String ruleName = path.substring(path.lastIndexOf('/') + 1);
+                String response = "{\"ruleType\":\"" + ruleName + "\",\"config\":\"BACKWARD\"}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
+
+            if (path.contains("/rules") && (exchange.getRequestMethod().equals("DELETE") || exchange.getRequestMethod().equals("POST"))) {
+                exchange.sendResponseHeaders(204, -1);
                 return;
             }
 
@@ -416,6 +487,79 @@ public class RegistryServiceTest {
         ToolCallException exEmpty = assertThrows(ToolCallException.class,
                 () -> service.updateVersionState("g1", "a1", "1", "  "));
         assertTrue(exEmpty.getMessage().contains("Invalid version state: '  '"));
+    }
+
+    @Test
+    public void testRulesManagement() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false);
+
+        // Global Rules
+        List<RuleType> globalRules = service.listGlobalRules();
+        assertNotNull(globalRules);
+        assertEquals(2, globalRules.size());
+        assertTrue(globalRules.contains(RuleType.VALIDITY));
+        assertTrue(globalRules.contains(RuleType.COMPATIBILITY));
+
+        Rule gRule = service.getGlobalRule("compatibility");
+        assertNotNull(gRule);
+        assertEquals(RuleType.COMPATIBILITY, gRule.getRuleType());
+        assertEquals("FULL", gRule.getConfig());
+
+        Rule createdGRule = service.createGlobalRule("validity", "SYNTAX_ONLY");
+        assertNotNull(createdGRule);
+
+        Rule updatedGRule = service.updateGlobalRule("validity", "FULL");
+        assertNotNull(updatedGRule);
+
+        service.deleteGlobalRule("validity");
+        service.deleteAllGlobalRules();
+
+        // Group Rules
+        List<RuleType> groupRules = service.listGroupRules("g1");
+        assertNotNull(groupRules);
+        assertEquals(1, groupRules.size());
+        assertEquals(RuleType.INTEGRITY, groupRules.get(0));
+
+        Rule grRule = service.getGroupRule("g1", "integrity");
+        assertNotNull(grRule);
+        assertEquals(RuleType.INTEGRITY, grRule.getRuleType());
+        assertEquals("NO_DUPLICATES", grRule.getConfig());
+
+        Rule createdGrRule = service.createGroupRule("g1", "integrity", "REFS_EXIST");
+        assertNotNull(createdGrRule);
+
+        Rule updatedGrRule = service.updateGroupRule("g1", "integrity", "NO_DUPLICATES");
+        assertNotNull(updatedGrRule);
+
+        service.deleteGroupRule("g1", "integrity");
+        service.deleteAllGroupRules("g1");
+
+        // Artifact Rules
+        List<RuleType> artifactRules = service.listArtifactRules("g1", "a1");
+        assertNotNull(artifactRules);
+        assertEquals(1, artifactRules.size());
+        assertEquals(RuleType.COMPATIBILITY, artifactRules.get(0));
+
+        Rule aRule = service.getArtifactRule("g1", "a1", "compatibility");
+        assertNotNull(aRule);
+        assertEquals(RuleType.COMPATIBILITY, aRule.getRuleType());
+        assertEquals("BACKWARD", aRule.getConfig());
+
+        Rule createdARule = service.createArtifactRule("g1", "a1", "compatibility", "FORWARD");
+        assertNotNull(createdARule);
+
+        Rule updatedARule = service.updateArtifactRule("g1", "a1", "compatibility", "BACKWARD");
+        assertNotNull(updatedARule);
+
+        service.deleteArtifactRule("g1", "a1", "compatibility");
+        service.deleteAllArtifactRules("g1", "a1");
+
+        // Invalid rule type input validation
+        ToolCallException exInvalid = assertThrows(ToolCallException.class,
+                () -> service.getGlobalRule("invalid_rule"));
+        assertTrue(exInvalid.getMessage().contains("Invalid rule type: 'invalid_rule'"));
+
+        assertThrows(ToolCallException.class, () -> service.getGlobalRule(null));
     }
 }
 

@@ -133,6 +133,18 @@ public final class Descriptions {
              Global ID is a numeric identifier unique within an Apicurio Registry instance. \
              It is assigned by incrementing a counter each time an artifact version is created.""";
 
+    public static final String RULE_TYPE = """
+            The type of the rule. Valid values are:
+             - VALIDITY: Enforces syntax and semantic validation rules on content.
+             - COMPATIBILITY: Enforces backward/forward compatibility rules on content.
+             - INTEGRITY: Enforces reference integrity rules on content.""";
+
+    public static final String RULE_CONFIG = """
+            The configuration value for the rule. The accepted values depend on the rule type:
+             - For COMPATIBILITY: NONE, BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE.
+             - For VALIDITY: NONE, SYNTAX_ONLY, FULL.
+             - For INTEGRITY: NONE, NO_DUPLICATES, REFS_EXIST.""";
+
     private Descriptions() {
     }
 }

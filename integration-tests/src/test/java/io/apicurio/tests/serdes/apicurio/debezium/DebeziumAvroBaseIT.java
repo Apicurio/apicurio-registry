@@ -54,6 +54,11 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     protected static String tablePrefix;
     protected static final AtomicInteger connectorCounter = new AtomicInteger(0);
 
+    // Kafka Connect connector registration/deletion is not safe to run concurrently across
+    // test classes (POST /connectors returns 409 while a previous register is still settling),
+    // and test classes run in parallel in CI. Serialize the register/delete window.
+    private static final Object CONNECTOR_LOCK = new Object();
+
     /**
      * Returns the registry URL to use for connector configuration.
      */
@@ -122,10 +127,11 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
 
         // Register connector to watch all tables in the schema
         String tablePattern = getTableIncludePattern();
-        registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
-
-        // Wait for connector to be ready with a longer timeout for initial startup
-        waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+        synchronized (CONNECTOR_LOCK) {
+            registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
+            // Wait for connector to be ready with a longer timeout for initial startup
+            waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+        }
 
         log.info("Shared connector {} is ready and watching pattern: {}", sharedConnectorName, tablePattern);
     }
@@ -159,7 +165,9 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         if (sharedConnectorName != null) {
             try {
                 log.info("Deleting shared connector: {}", sharedConnectorName);
-                getDebeziumContainer().deleteConnector(sharedConnectorName);
+                synchronized (CONNECTOR_LOCK) {
+                    getDebeziumContainer().deleteConnector(sharedConnectorName);
+                }
                 log.info("Successfully deleted shared connector: {}", sharedConnectorName);
             }
             catch (Exception e) {
@@ -273,6 +281,44 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
                     GenericRecord avroRecord = deserializeAvroValue(record.value());
                     records.add(avroRecord);
                     log.debug("Consumed Avro event from {}: {}", topic, avroRecord);
+                }
+                catch (Exception e) {
+                    log.error("Failed to deserialize Avro record", e);
+                }
+            });
+            return records.size() >= expectedCount;
+        });
+
+        return records;
+    }
+
+    /**
+     * Like {@link #consumeAvroEvents(String, int, Duration)}, but only counts records whose
+     * {@code after.data} matches {@code expectedData}. Connector snapshots of a freshly created
+     * table (or inserts from a concurrently running test class sharing the same Kafka) otherwise
+     * inflate a bare record count and make exact-count assertions flaky.
+     */
+    protected List<GenericRecord> consumeAvroEvents(String topic, int expectedCount, Duration timeout,
+            String expectedData) throws Exception {
+        List<GenericRecord> records = new ArrayList<>();
+
+        Unreliables.retryUntilTrue((int) timeout.getSeconds(), TimeUnit.SECONDS, () -> {
+            consumer.poll(Duration.ofMillis(500)).forEach(record -> {
+                try {
+                    if (record.value() == null || record.value().length < 5) {
+                        log.debug("Skipping tombstone message from {}", topic);
+                        return;
+                    }
+                    GenericRecord avroRecord = deserializeAvroValue(record.value());
+                    Object afterField = avroRecord.get("after");
+                    if (afterField instanceof GenericRecord after
+                            && after.get("data") != null
+                            && expectedData.equals(after.get("data").toString())) {
+                        records.add(avroRecord);
+                        log.debug("Consumed matching Avro event from {}: {}", topic, avroRecord);
+                    } else {
+                        log.debug("Ignoring non-matching event from {}: {}", topic, avroRecord);
+                    }
                 }
                 catch (Exception e) {
                     log.error("Failed to deserialize Avro record", e);

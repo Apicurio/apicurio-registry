@@ -43,7 +43,7 @@ async function withConfig(cfg, fn) {
 
 const SHA = 'abcdef1234567890';
 
-function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
+function makeWorld(prLabels, { approved = false, suiteRuns = [], suiteJobs = {} } = {}) {
   const labels = new Set(prLabels);
   const calls = { added: [], removed: [], comments: [], merges: [], branchUpdates: [] };
 
@@ -79,6 +79,14 @@ function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
         listWorkflowRuns: async () => ({ data: { workflow_runs: [] } }),
         listWorkflowRunsForRepo: async () => ({ data: { workflow_runs: suiteRuns } }),
         listWorkflowRunArtifacts: async () => ({}),
+        // Used by getFullSuiteResult to tell a genuine full-suite failure
+        // apart from the Gate's own not-ready-to-merge-yet check failing
+        // (see suiteJobs option below). Defaults to "some other job
+        // genuinely failed" so existing greenSuite({ Verify: 'failure' })
+        // callers keep meaning a real failure without having to specify it.
+        listJobsForWorkflowRun: async ({ run_id }) => ({
+          data: { jobs: suiteJobs[run_id] ?? [{ name: 'Some Job', conclusion: 'failure' }] },
+        }),
       },
     },
     // paginate: reviews list when asked for reviews, empty otherwise
@@ -118,6 +126,7 @@ function greenSuite(overrides = {}) {
     const inProgress = o.endsWith('/');
     const conclusion = inProgress ? null : o;
     return {
+      id: name, // looked up by suiteJobs/listJobsForWorkflowRun in the mock
       name,
       status: inProgress ? o.slice(0, -1) : 'completed',
       conclusion,
@@ -288,6 +297,23 @@ test('late Quick Check success does not promote the PR after a full-suite failur
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.TESTED));
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
+test('Quick Check success DOES promote a first-time PR even though an earlier not-yet-ready Verify run shows failure', async () => {
+  // Every Verify run before a PR is promoted legitimately fails its own
+  // "is this actually ready to merge" check (see verify.yaml's Gate) --
+  // that is not a real test failure and must not be confused with one.
+  // Here only "Verification Gate" failed; every other job in the run was
+  // skipped (Decide gated them on the same not-yet-ready state), so
+  // getFullSuiteResult must treat this as pending, not a genuine failure,
+  // and let the fast gate promote the PR normally.
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.REVIEW_SKIPPED, LABELS.WAITING_ON_MAINTAINER], {
+    suiteRuns: greenSuite({ Verify: 'failure' }),
+    suiteJobs: { Verify: [{ name: 'Verification Gate', conclusion: 'failure' }] },
+  });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
+  assert.ok(w.calls.added.includes(LABELS.TESTED));
+  assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE));
 });
 
 test('Verify failure at ready-to-merge reverts to ready-for-review', async () => {

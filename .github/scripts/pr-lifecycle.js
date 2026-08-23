@@ -297,7 +297,7 @@ const FULL_SUITE_WORKFLOW_FILES = ['verify.yaml'];
 // Returns:
 //   { status: 'pending' }  — some workflow has no run yet or is still running
 //   { status: 'success' }  — every workflow's latest run succeeded
-//   { status: 'failure' }  — at least one failed/was cancelled (fail fast)
+//   { status: 'failure' }  — at least one genuinely failed/was cancelled (fail fast)
 async function getFullSuiteResult(github, owner, repo, headSha, core) {
   const { data } = await github.rest.actions.listWorkflowRunsForRepo({
     owner, repo, head_sha: headSha, per_page: 100,
@@ -319,6 +319,24 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   }
   for (const run of latest.values()) {
     if (run.conclusion !== 'success') {
+      // verify.yaml's Gate job intentionally fails (not skips) while the PR
+      // is not yet lifecycle/ready-to-merge, as the only way to make the
+      // required branch-protection check honestly reflect "not satisfied
+      // yet" instead of the false-pass a skipped required job would produce
+      // (see verify.yaml's Gate for the full reasoning). That failure is
+      // expected and must NOT be treated as a genuine full-suite failure
+      // here — every job in the run other than Gate itself is either
+      // success or skipped in that case, since Decide gated all of them on
+      // the same not-yet-ready state. Only trust 'failure' when some other
+      // job actually failed.
+      const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+        owner, repo, run_id: run.id, per_page: 100,
+      });
+      const realFailure = jobs.some(j => j.name !== 'Verification Gate' && j.conclusion === 'failure');
+      if (!realFailure) {
+        core.info(`Full suite for ${headSha}: ${run.name}'s only failure is its own not-ready-to-merge-yet check, treating as pending`);
+        return { status: 'pending' };
+      }
       return { status: 'failure', failedRun: run };
     }
   }

@@ -98,3 +98,58 @@ jobs:
             exit 1
           fi
           echo "All checks passed"
+
+  # ============================================================================
+  # PR VISIBILITY: commit statuses on the PR's actual SHA
+  #
+  # workflow_dispatch runs are never associated with a PR by GitHub — the
+  # check_suite's pull_requests array is empty regardless of which ref was
+  # dispatched to (confirmed empirically: dispatching straight at the default
+  # branch produces the same empty array), because association is based on
+  # (repository, head_branch) matching an open PR's head, and a dispatched
+  # run's head_branch is always the ref it was dispatched to, never the PR's
+  # actual branch (which for a fork PR does not even exist on this repo).
+  # So without this, a fork PR's own page never shows Extra Tests at all,
+  # even once it runs and passes — the native Actions check is invisible
+  # there. Commit statuses are looked up purely by SHA and do show up in a
+  # PR's checks list; this is the same mechanism third-party CI systems use
+  # for exactly this scenario.
+  notify-pr-pending:
+    name: Notify PR (pending)
+    needs: [decide]
+    if: github.event_name == 'workflow_dispatch' && inputs.pr-sha != '' && needs.decide.outputs.run-extras == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Post pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
+            -f state=pending \
+            -f context="Extra Tests" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description="Running extra tests..."
+
+  notify-pr-result:
+    name: Notify PR (result)
+    needs: [decide, gate]
+    if: always() && github.event_name == 'workflow_dispatch' && inputs.pr-sha != ''
+    runs-on: ubuntu-latest
+    permissions:
+      statuses: write
+    steps:
+      - name: Post final status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.gate.result }}
+        run: |
+          STATE=$([ "$RESULT" = "success" ] && echo success || echo failure)
+          DESC=$([ "$RESULT" = "success" ] && echo "Extra tests passed" || echo "Extra tests failed")
+          gh api "repos/${{ github.repository }}/statuses/${{ inputs.pr-sha }}" \
+            -f state="$STATE" \
+            -f context="Extra Tests" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description="$DESC"
+          echo "All checks passed"

@@ -88,23 +88,51 @@ jobs:
           # PR runs report the branch head SHA; push runs report the commit.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REPO: ${{ github.repository }}
-          # This workflow's OWN Decide job re-fetches live PR label state, same
-          # as Quick Check/CI/Integration Tests/Extra Tests' Decide jobs do —
-          # independently, at whatever moment each of the 5 sibling workflow
-          # runs happens to schedule its Decide job. If the PR's lifecycle
-          # label changes between those moments (e.g. the orchestrator
-          # promotes/demotes mid-flight), this run's own 'lifecycle-ready' can
-          # legitimately disagree with a sibling's. Do NOT branch the wait
-          # strategy on it: always wait for actual completion of all four
-          # sibling runs below and trust their real conclusion, whatever each
-          # of them decided to do internally.
-          # 'skip' (non-lifecycle label churn on an otherwise-already-covered
-          # SHA) is the one case where this run itself has nothing to add.
-          LIFECYCLE_READY: ${{ needs.decide.outputs.lifecycle-ready }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if [ "$LIFECYCLE_READY" = "skip" ]; then
-            echo "Non-lifecycle event, nothing to wait for"
-            exit 0
+          # Live, direct check of the PR's CURRENT lifecycle state — do NOT
+          # trust this run's own Decide output (computed once, from this run's
+          # triggering event/label, which can already be stale by the time
+          # this step runs — see the sibling-workflow-disagreement comment
+          # further down) or assume some other Verify run for this SHA is
+          # "authoritative" for a non-lifecycle event. Every invocation of
+          # this step re-fetches the PR's actual labels right here, right
+          # before deciding, so the answer can never be stale.
+          #
+          # This matters because both required branch-protection checks
+          # (Lint and Validate, and this Gate) are designed to complete near-
+          # instantly while the full suite is not required yet (PR review,
+          # before lifecycle/ready-to-merge) — skipped jobs count as passing
+          # for required-status-check purposes. If this step also reported
+          # success in that state, native "Merge pull request" would be
+          # unblocked despite the full suite never having actually run.
+          # Failing here instead is the correct, honest signal: the check
+          # legitimately has not been satisfied yet, and GitHub will show it
+          # as failing (not neutral/pending) until the PR is promoted and the
+          # full suite genuinely completes — which is expected and not a sign
+          # of anything broken.
+          if [ "$EVENT_NAME" = "push" ]; then
+            echo "Push to main: full suite always required"
+          else
+            # Mirrors verify-decide.yaml's own lifecycle-scope logic exactly
+            # (orchestrator/disabled bypasses the lifecycle label dance unless
+            # DO NOT MERGE is also present) so this live check agrees with
+            # what Decide itself would compute right now — not a stale
+            # snapshot from whenever Decide happened to run earlier.
+            READY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '
+              [.labels[].name] as $labels |
+              ($labels | index("lifecycle/ready-to-merge") != null) as $readyToMerge |
+              ($labels | index("orchestrator/disabled") != null) as $orchestratorDisabled |
+              ($labels | index("DO NOT MERGE") != null) as $doNotMerge |
+              if $orchestratorDisabled then (if $doNotMerge then false else true end)
+              else $readyToMerge
+              end')
+            if [ "$READY" != "true" ]; then
+              echo "::error::PR #$PR_NUMBER is not lifecycle/ready-to-merge yet — the full suite has not run for this SHA. This is expected during PR review, not a failure of anything: promotion happens automatically once the fast gate (Quick Check) passes (immediately for trusted/auto-accepted authors, or after an approving review for everyone else), and this Gate will pass once the full suite subsequently completes for the promoted commit."
+              exit 1
+            fi
+            echo "PR #$PR_NUMBER is lifecycle/ready-to-merge: full suite required"
           fi
 
           echo "Waiting for Quick Check, CI, Integration Tests and Extra Tests to complete for $SHA"
@@ -112,13 +140,13 @@ jobs:
           # Quick Check/CI/Integration Tests/Extra Tests all trigger directly
           # on the same pull_request/push events as this workflow, so a single
           # head_sha filter finds all of them. Always require all four
-          # regardless of what THIS run's Decide computed (see LIFECYCLE_READY
-          # comment above): each sibling's own workflow run always completes
-          # quickly on its own whether it ran real jobs or skipped them
-          # internally, so waiting for all four unconditionally is never a
-          # false timeout, and it is the only way to reliably catch a sibling
-          # that did run (and failed) even when this run's own Decide
-          # disagreed about whether it should have.
+          # regardless of what any sibling's own Decide computed: each
+          # sibling's own workflow run always completes quickly on its own
+          # whether it ran real jobs or skipped them internally, so waiting
+          # for all four unconditionally is never a false timeout, and it is
+          # the only way to reliably catch a sibling that did run (and
+          # failed) even when its own Decide disagreed with this check's
+          # live PR-state read above about whether it should have.
           for i in $(seq 1 200); do
             LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
               --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"Quick Check\" or .name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")

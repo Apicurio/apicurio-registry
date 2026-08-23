@@ -77,6 +77,7 @@ export interface UiConfig {
     navPrefixPath?: string;
     oaiDocsUrl?: string;
     editorsUrl?: string;
+    monacoEditorUrl?: string;
 }
 
 export interface AuthConfig {
@@ -225,6 +226,7 @@ export interface ConfigService {
     uiContextPath(): string|undefined;
     uiOaiDocsUrl(): string;
     uiEditorsUrl(): string;
+    uiMonacoEditorUrl(): string;
     uiNavPrefixPath(): string|undefined;
     features(): FeaturesConfig;
     featureReadOnly(): boolean;
@@ -298,6 +300,10 @@ export class ConfigServiceImpl implements ConfigService {
         console.info("=====> Editors URL: ", registryConfig.ui?.editorsUrl);
         console.info("=====> Context Path: ", this.uiContextPath());
         return registryConfig.ui?.editorsUrl || (this.uiContextPath() + "editors");
+    }
+
+    public uiMonacoEditorUrl(): string {
+        return registryConfig.ui?.monacoEditorUrl || (this.uiContextPath() + "vs");
     }
 
     public uiNavPrefixPath(): string|undefined {

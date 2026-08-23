@@ -12,6 +12,7 @@ const CONTEXT_PATH=process.env["REGISTRY_CONTEXT_PATH"];
 const NAV_PREFIX_PATH=process.env["REGISTRY_NAV_PREFIX_PATH"];
 const DOCS_URL=process.env["REGISTRY_DOCS_URL"];
 const EDITORS_URL=process.env["REGISTRY_EDITORS_URL"];
+const MONACO_EDITOR_URL=process.env["REGISTRY_MONACO_EDITOR_URL"];
 
 const AUTH_TYPE=process.env["REGISTRY_AUTH_TYPE"];
 const AUTH_RBAC_ENABLED=process.env["REGISTRY_AUTH_RBAC_ENABLED"];
@@ -59,6 +60,9 @@ if (DOCS_URL) {
 }
 if (EDITORS_URL) {
     CONFIG.ui.editorsUrl = EDITORS_URL;
+}
+if (MONACO_EDITOR_URL) {
+    CONFIG.ui.monacoEditorUrl = MONACO_EDITOR_URL;
 }
 
 

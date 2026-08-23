@@ -73,6 +73,10 @@ variables can be used to control the behavior of the UI:
 | ENV var     | Description | Default |
 | ----------- | ----------- | ------- |
 | REGISTRY_API_URL | Location of the backend API. | http://localhost:8080/apis/registry/v3 |
+| REGISTRY_CONTEXT_PATH | Override for the UI context path. | / |
+| REGISTRY_DOCS_URL | Override for the documentation (ui-docs) URL. | `{contextPath}docs` |
+| REGISTRY_EDITORS_URL | Override for the editors (Designer) URL. | `{contextPath}editors` |
+| REGISTRY_MONACO_EDITOR_URL | Override for self-hosted Monaco Editor assets (`vs/`). | `{contextPath}vs` |
 | REGISTRY_AUTH_TYPE | Type of authentication to use. [none, oidc] | none |
 | REGISTRY_AUTH_URL | URL of the OIDC server. | "" |
 | REGISTRY_AUTH_CLIENT_ID | Client ID for auth using OIDC. | registry-ui |

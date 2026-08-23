@@ -294,7 +294,7 @@ jobs:
   gate:
     name: CI Gate
     if: always()
-    needs: [quick-verify, decide, lint-and-validate, build, unit-tests,
+    needs: [quick-verify, decide, build-ui-fast, lint-and-validate, build, unit-tests,
             cli-verify, go-sdk-freshness, sdk, console-plugin]
     runs-on: ubuntu-latest
     steps:

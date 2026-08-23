@@ -61,7 +61,7 @@ jobs:
     if: always() && github.repository_owner == 'Apicurio'
     needs: [decide, operator, build]
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 210
     steps:
       - name: Evaluate own jobs
         env:
@@ -79,15 +79,37 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           # PR runs report the branch head SHA; push runs report the commit.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          EVENT: ${{ github.event_name }}
           REPO: ${{ github.repository }}
+          # This workflow's OWN Decide job (same reusable verify-decide.yaml, same
+          # event/labels) is authoritative for whether the full suite is expected
+          # for this SHA: 'true' (ready-to-merge or push) means CI, Integration
+          # Tests and Extra Tests must all complete; 'false' (PR review/draft)
+          # means only CI's fast gate runs and Integration Tests/Extra Tests are
+          # never dispatched; 'skip' (non-lifecycle label churn) means nothing
+          # meaningful runs at all. Using this instead of a fixed "no sibling
+          # after N minutes" guess avoids mistaking "not dispatched yet" for
+          # "will never run" — the two are indistinguishable by elapsed time
+          # alone, since Integration Tests/Extra Tests are only dispatched once
+          # CI's own full-tier build succeeds.
+          FULL_SUITE: ${{ needs.decide.outputs.lifecycle-ready }}
         run: |
-          # The sibling workflows trigger on the same PR events as this one, plus
-          # workflow_dispatch for the orchestrator-driven single-build chain — match
-          # by head SHA and name regardless of event.
-          REQUIRED="CI|Integration Tests|Extra Tests"
+          if [ "$FULL_SUITE" = "skip" ]; then
+            echo "Non-lifecycle event, nothing to wait for"
+            exit 0
+          fi
 
-          for i in $(seq 1 130); do
+          if [ "$FULL_SUITE" = "true" ]; then
+            echo "Full suite required: waiting for CI, Integration Tests and Extra Tests"
+          else
+            echo "Fast gate only (PR review): waiting for CI"
+          fi
+
+          # ~200 requests at 60s apart (200 min), comfortably above the full
+          # suite's realistic worst case (CI's own full tier, then Integration
+          # Tests/Extra Tests running after dispatch) while still bounded by
+          # this job's timeout-minutes so a genuinely hung run is caught rather
+          # than polled forever.
+          for i in $(seq 1 200); do
             LATEST=$(gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" \
               --jq "[.workflow_runs | sort_by(.created_at) | reverse | .[] | select(.name == \"CI\" or .name == \"Integration Tests\" or .name == \"Extra Tests\")] | unique_by(.name) | map({name, status, conclusion})")
 
@@ -100,24 +122,24 @@ jobs:
               exit 1
             fi
 
-            PENDING=$(echo "$LATEST" | jq '[.[] | select(.status != "completed")] | length')
-            COUNT=$(echo "$LATEST" | jq 'length')
-            if [ "$COUNT" -eq 3 ] && [ "$PENDING" -eq 0 ]; then
-              echo "All sibling workflows completed successfully"
-              exit 0
+            if [ "$FULL_SUITE" = "true" ]; then
+              COUNT=$(echo "$LATEST" | jq 'length')
+              PENDING=$(echo "$LATEST" | jq '[.[] | select(.status != "completed")] | length')
+              if [ "$COUNT" -eq 3 ] && [ "$PENDING" -eq 0 ]; then
+                echo "All sibling workflows completed successfully"
+                exit 0
+              fi
+            else
+              # Integration Tests/Extra Tests are never dispatched in this
+              # state — only CI's fast gate matters.
+              CI_DONE=$(echo "$LATEST" | jq '[.[] | select(.name == "CI" and .status == "completed")] | length')
+              if [ "$CI_DONE" -eq 1 ]; then
+                echo "CI fast gate completed successfully"
+                exit 0
+              fi
             fi
 
-            # After ~5 minutes a missing run means a sibling workflow never
-            # triggered. If the PR is not in a full-suite lifecycle state (e.g.
-            # ready-for-review), those workflows are correctly skipped — the gate
-            # is not meaningful then, so pass instead of failing.
-            if [ "$COUNT" -lt 3 ] && [ "$i" -ge 10 ]; then
-              echo "Missing sibling workflow runs for $SHA (found $COUNT of 3: $REQUIRED)"
-              echo "::notice::Siblings not running — PR is not in a full-suite state, gate passes"
-              exit 0
-            fi
-
-            sleep 30
+            sleep 60
           done
 
           echo "::error::Timed out waiting for sibling full-suite workflows for $SHA"

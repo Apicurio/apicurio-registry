@@ -1323,9 +1323,20 @@ function isFullSuiteState(state) {
 // CI workflow, so they do not build again. Runs under pull_request_target with the
 // orchestrator's token. The ref is refs/pull/<n>/head, which exists on the base repo
 // for every PR (fork or not) — a fork's head branch name does not resolve there.
+//
+// Idempotent per head SHA: skips a workflow that already has a run for this exact
+// SHA which is still active (queued/in_progress) or already succeeded, so repeated
+// events (retries, the merge-rebase path re-checking the same SHA) do not cancel a
+// good run out from under itself via the workflow's own concurrency group. A prior
+// failed/cancelled run for the same SHA is still redispatched.
 async function dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core) {
   const ref = `refs/pull/${pr.number}/head`;
   for (const workflow of ['integration-tests.yaml', 'extras.yaml']) {
+    const existing = await api.findLatestVerifyRun(workflowRun.head_sha, workflow);
+    if (existing && (existing.status !== 'completed' || existing.conclusion === 'success')) {
+      core.info(`PR #${pr.number} ${workflow} already has a run for ${workflowRun.head_sha.substring(0, 7)} (${existing.status}/${existing.conclusion}), not re-dispatching`);
+      continue;
+    }
     try {
       await api.dispatchWorkflow(workflow, ref, { 'pr-number': String(pr.number) });
       core.info(`PR #${pr.number} dispatched ${workflow} for ${workflowRun.head_sha.substring(0, 7)}`);
@@ -1409,6 +1420,12 @@ async function handleTestResult({ github, context, core }) {
       if (pr.head.sha !== workflowRun.head_sha) {
         core.info(`PR #${pr.number} merge-rebase SHA mismatch, skipping`);
         continue;
+      }
+      // Same single-build dispatch as the main path below: CI's own success is
+      // what makes Integration Tests / Extra Tests exist for the rebased SHA in
+      // the first place, so it must fire before getFullSuiteResult is consulted.
+      if (isFastGate && workflowRun.conclusion === 'success') {
+        await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
       }
       const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
       if (suite.status === 'pending') {
@@ -1499,6 +1516,18 @@ async function handleTestResult({ github, context, core }) {
         core.info(`PR #${pr.number} fast gate cancelled`);
       }
     } else {
+      // The shared Build job lives in the CI workflow; as soon as CI's own
+      // full-tier run succeeds, dispatch the downstream workflows that consume
+      // its artifact (single build per SHA) instead of letting them build
+      // again. This MUST happen before evaluating suite completeness below:
+      // Integration Tests / Extra Tests have no run at all yet at this point
+      // (that is exactly what this dispatch creates), so getFullSuiteResult
+      // will always report 'pending' here — waiting for it first would mean
+      // the dispatch that resolves that pending state never fires.
+      if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(state)) {
+        await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
+      }
+
       // Full suite at ready-to-merge: the pre-merge gate. All full-suite
       // workflows (CI, Integration Tests, Extra Tests, Verify) must be green
       // for this SHA; a failure or cancellation in any of them fails the suite.
@@ -1547,15 +1576,6 @@ async function handleTestResult({ github, context, core }) {
 
     const reconPr = await api.getPr(pr.number);
     await reconcile(github, api, reconPr, core);
-
-    // The shared Build job lives in the CI workflow; when it completes for a PR
-    // whose full suite should run, dispatch the downstream workflows that consume
-    // its artifact instead of letting them build again. Runs under
-    // pull_request_target with the orchestrator's token (ci.yaml's own GITHUB_TOKEN
-    // cannot dispatch workflows from a pull_request trigger).
-    if (isFastGate && workflowRun.conclusion === 'success' && isFullSuiteState(state)) {
-      await dispatchDownstreamWorkflows(github, api, owner, repo, workflowRun, pr, core);
-    }
   }
 }
 

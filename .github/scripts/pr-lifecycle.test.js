@@ -14,12 +14,28 @@ let hadConfig = false;
 before(() => {
   hadConfig = fs.existsSync(CONFIG_PATH);
   if (!hadConfig) {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify({ maintainers: [], merge: { strategy: 'rebase' } }));
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify({
+      maintainers: [], merge: { strategy: 'rebase' },
+      welcome_message: 'Thanks for opening this PR, {author}!',
+    }));
   }
 });
 after(() => {
   if (!hadConfig) fs.rmSync(CONFIG_PATH, { force: true });
 });
+
+// Temporarily swaps .github/pr-lifecycle.json for the duration of fn (e.g. to set
+// a maintainers list), then restores whatever was there before — regardless of
+// hadConfig, so it composes safely with the suite-level before()/after() above.
+async function withConfig(cfg, fn) {
+  const backup = fs.readFileSync(CONFIG_PATH, 'utf8');
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg));
+  try {
+    await fn();
+  } finally {
+    fs.writeFileSync(CONFIG_PATH, backup);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Stateful mock GitHub API
@@ -29,7 +45,7 @@ const SHA = 'abcdef1234567890';
 
 function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
   const labels = new Set(prLabels);
-  const calls = { added: [], removed: [], comments: [], merges: [], branchUpdates: [] };
+  const calls = { added: [], removed: [], comments: [], merges: [], branchUpdates: [], dispatches: [] };
 
   const pr = () => ({
     number: 42,
@@ -62,6 +78,7 @@ function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
         listWorkflowRuns: async () => ({ data: { workflow_runs: [] } }),
         listWorkflowRunsForRepo: async () => ({ data: { workflow_runs: suiteRuns } }),
         listWorkflowRunArtifacts: async () => ({}),
+        createWorkflowDispatch: async ({ workflow_id, ref }) => calls.dispatches.push({ workflow_id, ref }),
       },
     },
     // paginate: reviews list when asked for reviews, empty otherwise
@@ -109,6 +126,87 @@ function greenSuite(overrides = {}) {
     };
   });
 }
+
+// ---------------------------------------------------------------------------
+// PR Opened — maintainer auto-accept vs. contributor review gate
+// ---------------------------------------------------------------------------
+
+function openedPr(login) {
+  return {
+    number: 42,
+    title: 'test',
+    draft: false,
+    labels: [],
+    user: { login },
+    head: { sha: SHA, ref: 'feature-x' },
+    requested_reviewers: [],
+  };
+}
+
+function openedContext(pr) {
+  return {
+    repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+    payload: { pull_request: pr },
+  };
+}
+
+test('maintainer PR open: auto-accepted straight to ready-for-review + review-skipped, fast gate only (not ready-to-merge yet)', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = makeWorld([]);
+    // retriggerVerify(waitForRun: true) polls for the ci.yaml run it just triggered;
+    // already-green means retriggerWorkflowRun leaves it alone instead of re-running it.
+    w.github.rest.actions.listWorkflowRuns = async () => ({
+      data: { workflow_runs: [{ id: 1, status: 'completed', conclusion: 'success' }] },
+    });
+    await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('maintainer-jane')), core: w.core });
+
+    assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+    assert.ok(w.calls.added.includes(LABELS.REVIEW_SKIPPED));
+    assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+    assert.ok(!w.calls.added.includes(LABELS.READY_TO_MERGE),
+      'must not skip straight to ready-to-merge — the fast gate still has to pass first');
+    assert.ok(w.calls.comments.some(c => c.includes('auto-accepted')));
+  });
+});
+
+test('non-maintainer PR open: lifecycle/new, waiting on a maintainer to /accept', async () => {
+  const w = makeWorld([]);
+  await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('some-contributor')), core: w.core });
+
+  assert.ok(w.calls.added.includes(LABELS.NEW));
+  assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+  assert.ok(!w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+  assert.ok(!w.calls.added.includes(LABELS.REVIEW_SKIPPED));
+});
+
+test('fast gate pass + review-skipped (maintainer) promotes straight to ready-to-merge, no review required', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.REVIEW_SKIPPED, LABELS.WAITING_ON_MAINTAINER]);
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+
+  assert.ok(w.calls.added.includes(LABELS.TESTED));
+  assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE),
+    'review-skipped + tested must promote without waiting for a review');
+  assert.ok(w.calls.comments.some(c => c.includes('full verification suite is now')));
+});
+
+test('fast gate pass without review or skip-review stays in ready-for-review (waiting on maintainer)', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW]);
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+
+  assert.ok(w.calls.added.includes(LABELS.TESTED));
+  assert.ok(!w.calls.added.includes(LABELS.READY_TO_MERGE),
+    'an unreviewed, non-skipped PR must wait for an approval before the full suite runs');
+  assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+});
+
+test('fast gate pass with an approved review promotes a contributor PR to ready-to-merge', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW], { approved: true });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+
+  assert.ok(w.calls.added.includes(LABELS.TESTED));
+  assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE),
+    'an approved review + green fast gate must promote to ready-to-merge');
+});
 
 // ---------------------------------------------------------------------------
 // Fast gate (CI workflow) — drives lifecycle/tested during review
@@ -228,6 +326,62 @@ test('dispatched run resolves its PR via open-PR head-SHA scan (refs/pull/<n>/he
   ctx.payload.workflow_run.head_branch = 'refs/pull/42/head';
   await lifecycle.handleTestResult({ github: w.github, context: ctx, core: w.core });
   assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
+test('CI success at ready-to-merge dispatches Integration/Extra Tests even though the suite is still pending', async () => {
+  // Realistic timing: CI's full-tier run just succeeded; Integration Tests, Extra
+  // Tests and Verify have no runs yet for this SHA (they have not been dispatched/
+  // completed). getFullSuiteResult must report 'pending' here, but the downstream
+  // dispatch must still fire — it is the thing that makes those runs exist at all.
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], {
+    approved: true,
+    suiteRuns: [{
+      name: 'CI', status: 'completed', conclusion: 'success',
+      created_at: '2026-01-01T00:00:00Z', html_url: 'https://example.com/run/CI',
+    }],
+  });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED), 'suite is pending, must not be marked full-verified yet');
+  const dispatched = w.calls.dispatches.map(d => d.workflow_id);
+  assert.ok(dispatched.includes('integration-tests.yaml'), 'Integration Tests must be dispatched');
+  assert.ok(dispatched.includes('extras.yaml'), 'Extra Tests must be dispatched');
+});
+
+test('CI success at ready-to-merge does not re-dispatch a workflow already succeeded for this SHA', async () => {
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], {
+    approved: true,
+    suiteRuns: [{
+      name: 'CI', status: 'completed', conclusion: 'success',
+      created_at: '2026-01-01T00:00:00Z', html_url: 'https://example.com/run/CI',
+    }],
+  });
+  // Integration Tests already has a successful run for this SHA (e.g. a
+  // redelivered/duplicate CI-completed event); it must not be redispatched
+  // (that would cancel the good run via its own concurrency group). Extra
+  // Tests has no run yet and must still be dispatched.
+  w.github.rest.actions.listWorkflowRuns = async ({ workflow_id }) =>
+    workflow_id === 'integration-tests.yaml'
+      ? { data: { workflow_runs: [{ status: 'completed', conclusion: 'success' }] } }
+      : { data: { workflow_runs: [] } };
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  const dispatched = w.calls.dispatches.map(d => d.workflow_id);
+  assert.ok(!dispatched.includes('integration-tests.yaml'), 'must not re-dispatch an already-successful run');
+  assert.ok(dispatched.includes('extras.yaml'), 'Extra Tests still has no run and must be dispatched');
+});
+
+test('merge-rebase: CI success dispatches Integration/Extra Tests for the rebased SHA', async () => {
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.MERGE_REBASE], {
+    approved: true,
+    suiteRuns: [{
+      name: 'CI', status: 'completed', conclusion: 'success',
+      created_at: '2026-01-01T00:00:00Z', html_url: 'https://example.com/run/CI',
+    }],
+  });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  const dispatched = w.calls.dispatches.map(d => d.workflow_id);
+  assert.ok(dispatched.includes('integration-tests.yaml'), 'Integration Tests must be dispatched during merge-rebase');
+  assert.ok(dispatched.includes('extras.yaml'), 'Extra Tests must be dispatched during merge-rebase');
+  assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED), 'suite is still pending');
 });
 
 test('Verify result with stale SHA is ignored', async () => {

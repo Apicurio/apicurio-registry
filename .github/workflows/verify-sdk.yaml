@@ -10,14 +10,9 @@ on:
         type: string
         required: true
         description: 'Docker image tag to test'
-      build-run-id:
-        type: string
-        required: true
-        description: 'quick-check.yaml run id to download the Docker image from (see verify-await-build.yaml)'
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   verify-python-sdk:
@@ -49,17 +44,9 @@ jobs:
         working-directory: python-sdk
         run: make lint-check
 
-      - name: Download Docker Image Artifact (cross-run)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
-          path: /tmp
-          run-id: ${{ inputs.build-run-id }}
-          github-token: ${{ github.token }}
-
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          download: 'false'
+          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'
@@ -90,17 +77,9 @@ jobs:
         with:
           go-version: '1.27.0'
 
-      - name: Download Docker Image Artifact (cross-run)
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
-          path: /tmp
-          run-id: ${{ inputs.build-run-id }}
-          github-token: ${{ github.token }}
-
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
-          download: 'false'
+          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
           image-name: 'apicurio/apicurio-registry'
           tag: '${{ inputs.image-tag }}'

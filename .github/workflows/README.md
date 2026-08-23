@@ -2,37 +2,42 @@
 
 ## PR Verification Pipeline
 
-The full suite is split into per-phase top-level workflows, all driven by the
-shared Decide logic (`verify-decide.yaml`). They run on pull requests to `main`
-and on pushes to `main`, and only run real work once a PR is marked
-`lifecycle/ready-to-merge` (pushes to `main` always run everything):
+Two top-level workflows make up the whole pipeline:
 
 | Workflow | Contents |
 |----------|----------|
-| `quick-check.yaml` (**Quick Check**) | **Quick Verify** fast gate (~5 min, every PR push) + the sole real Build (Java app + Docker images) for the commit |
-| `ci.yaml` (**CI**) | The full unit tier: lint, unit-test shards, Scalpel report, CLI, Go SDK freshness, SDK verification, console plugin |
-| `integration-tests.yaml` (**Integration Tests**) | Integration-test storage matrix |
-| `extras.yaml` (**Extra Tests**) | Additional checks (examples) |
-| `verify.yaml` (**Verify**) | Operator tests, image publishing (main only), Slack notification, and the Verification Gate |
+| `quick-check.yaml` (**Quick Check**) | The fast PR gate: **Quick Verify** (~5 min, every PR push) and a fast UI build. No lifecycle awareness, no Decide job — it always runs the same way. Drives `lifecycle/tested` while a PR is in `lifecycle/ready-for-review`. |
+| `verify.yaml` (**Verify**) | Everything else: Build (Java app + Docker images), unit tests, CLI, SDKs, console plugin, integration tests, extra tests, operator tests, and (on push to `main`) image publishing. One `decide` job, shared by every job in this workflow via `needs:`. Drives `lifecycle/full-verified`. |
 
-`ci.yaml`/`integration-tests.yaml`/`extras.yaml`/`verify.yaml`'s push-only jobs
-that need the build (Unit Tests/SDK/CLI Verification, the integration-test
-matrix, extras, image publishing) all wait for `quick-check.yaml`'s Build job
-to complete for the same commit (`verify-await-build.yaml`) and download its
-build-artifacts/Docker images across runs, instead of each rebuilding the
-commit from scratch.
+`verify.yaml` intentionally has a single Decide job that every other job in it
+depends on, rather than being split across several independently-triggered
+workflow files each with their own Decide. That used to be the design (four
+separate workflow files, each recomputing "is the full suite required"
+independently) so that Integration Tests and Extra Tests would show up as
+their own grouped sections in the PR Checks tab — but four independent Decide
+evaluations for the same commit can each see different PR label state if
+anything changes between when they happen to run, which repeatedly produced
+real bugs (a sibling workflow's Build silently skipped while another sibling
+expected to consume it; the Verification Gate reporting success while a
+sibling had not actually run). Consolidating back into one workflow with one
+Decide removes that entire class of problem structurally: there is exactly
+one answer to "is the full suite required for this commit" per run, so
+nothing in it can disagree with anything else about it. The cost is cosmetic
+— Integration Tests and Extra Tests show up as `Verify / Integration Tests
+(h2-default)` etc. instead of their own workflow header — which is a better
+trade than the alternative.
 
 ### Centralized Decision (`decide` job)
 
-A single reusable `decide` job (`verify-decide.yaml`) combines **lifecycle
+`verify.yaml`'s `decide` job (`verify-decide.yaml`) combines **lifecycle
 scope** (PR labels) and **change detection** (path-based filtering) into one
-boolean output per test phase. Every top-level workflow calls it, and every
-downstream job uses a single `if:` condition.
+boolean output per phase, computed once and shared by every other job in the
+workflow via `needs:` and a single `if:` condition each.
 
 **Lifecycle scope** is driven by PR labels from the PR lifecycle orchestrator:
-- `lifecycle/new`, `lifecycle/ready-for-review` or no label → full tier skipped
+- `lifecycle/new`, `lifecycle/ready-for-review` or no label → full suite skipped
   (the Quick Verify fast gate in `quick-check.yaml` covers PR iteration)
-- `lifecycle/ready-to-merge` → full suite in all five workflows
+- `lifecycle/ready-to-merge` → full suite runs
 - Push to main → always full suite
 
 **Change detection** uses `dorny/paths-filter` to determine which areas changed:
@@ -51,19 +56,30 @@ Push to main always runs everything regardless of change detection.
 
 ### Verification Gate
 
-The `verification-gate` job in `verify.yaml` is the **single required check** for
-branch protection. It runs with `if: always()` and aggregates results across all
-five full-suite workflows: it evaluates its own jobs, then polls the GitHub API
-until the latest `Quick Check`, `CI`, `Integration Tests` and `Extra Tests` runs
-for the same commit have completed, failing if any of them failed. During PR
-review the full tier is skipped by Decide in every workflow, so the gate passes
-without blocking iteration.
+The `gate` job in `verify.yaml` is the **single required check** for branch
+protection (alongside `Lint and Validate`, also a job in the same workflow).
+It runs with `if: always()` and aggregates every job in the same run via
+`needs.*.result`. For PR events it then does one more thing: a live,
+direct check (via `gh api`) of whether the PR actually carries
+`lifecycle/ready-to-merge` right now, and fails if it does not.
 
-The PR lifecycle orchestrator (`pr-lifecycle.js`) independently aggregates the
-same five workflows by head SHA before applying `lifecycle/full-verified`.
+That live check exists because a skipped required job counts as "passing"
+for branch protection purposes, and every job in `verify.yaml` is skipped by
+Decide until the PR reaches `lifecycle/ready-to-merge` — without it, native
+"Merge pull request" would be unblocked the moment Decide+Gate complete for
+any PR, regardless of whether the full suite had ever actually run for the
+commit. The failure this produces during normal PR review is expected, not a
+sign of anything broken: it clears on its own once the orchestrator promotes
+the PR and force-retriggers `verify.yaml`.
 
-This replaces the previous approach of configuring 24 individual jobs as required
-checks, which caused skipped jobs to show as permanently pending.
+The PR lifecycle orchestrator (`pr-lifecycle.js`) independently tracks
+`verify.yaml`'s latest run by head SHA before applying `lifecycle/full-verified`.
+
+This (and the single-Decide-job design above) replaces two earlier approaches:
+first, configuring 24 individual jobs as required checks, which caused skipped
+jobs to show as permanently pending; then, splitting the suite across four
+independently-triggered workflow files, which introduced cross-workflow
+Decide-disagreement races (see above).
 
 ## Unit Test Sharding
 
@@ -182,8 +198,8 @@ non-Java changes (docs, UI).
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `verification-gate` is the single required check | N/A |
-| `build-java`/`build-ui` (jobs in `quick-check.yaml`) | Called by quick-check | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit — everything else downloads its artifacts/images cross-run instead of rebuilding | ~6 min |
+| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verification Gate) is the single required check | N/A |
+| `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |

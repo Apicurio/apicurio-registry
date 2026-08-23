@@ -7,7 +7,7 @@ on:
   issue_comment:
     types: [created]
   workflow_run:
-    workflows: ["Verify", "CI", "Integration Tests", "Extra Tests"]
+    workflows: ["Verify", "CI", "Integration Tests", "Extra Tests", "Quick Check"]
     types: [completed]
   workflow_dispatch:
     inputs:

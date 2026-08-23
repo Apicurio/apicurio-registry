@@ -1,5 +1,5 @@
 import React from "react";
-import { isSubstitutableVariableTag } from "./promptTemplateVariables";
+import { classifyHandlebarsTag } from "./promptTemplateVariables";
 
 export type TemplateTokenKind = "plain" | "variable" | "block";
 
@@ -10,15 +10,6 @@ export interface TemplateToken {
 
 const HANDLEBARS_TAG = /\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}|\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g;
 
-const classifyTag = (tag: string): TemplateTokenKind => {
-    const inner = tag.replace(/^\{+|\}+$/g, "").trim();
-    const head = inner.split(/\s+/, 1)[0];
-    if (head.startsWith("#") || head.startsWith("/") || head.startsWith("^") || head === "else") {
-        return "block";
-    }
-    return isSubstitutableVariableTag(tag) ? "variable" : "plain";
-};
-
 export const tokenizeTemplate = (template: string): TemplateToken[] => {
     const tokens: TemplateToken[] = [];
     let lastIndex = 0;
@@ -28,7 +19,7 @@ export const tokenizeTemplate = (template: string): TemplateToken[] => {
             tokens.push({ text: template.substring(lastIndex, match.index), kind: "plain" });
         }
         const tag = match[0];
-        const kind = tag.startsWith("{{!") ? "plain" : classifyTag(tag);
+        const kind = tag.startsWith("{{!") ? "plain" : classifyHandlebarsTag(tag);
         tokens.push({ text: tag, kind });
         lastIndex = match.index + match[0].length;
     }

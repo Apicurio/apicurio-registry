@@ -118,6 +118,14 @@ describe("tokenizeTemplate", () => {
         });
     });
 
+    it("classifies whitespace-control block tags as blocks", () => {
+        expect(tokenizeTemplate("{{~#each items~}}{{item}}{{~/each~}}").map(t => [t.text, t.kind])).toEqual([
+            ["{{~#each items~}}", "block"],
+            ["{{item}}", "variable"],
+            ["{{~/each~}}", "block"]
+        ]);
+    });
+
     it("handles an empty template", () => {
         expect(tokenizeTemplate("")).toEqual([]);
     });

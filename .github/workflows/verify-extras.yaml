@@ -13,15 +13,6 @@ on:
         type: string
         required: true
         description: 'Docker image tag to test'
-      checkout-ref:
-        description: >
-          Commit SHA to test. Only needed when called via the orchestrator's
-          workflow_dispatch (single-build dispatch chain) — see verify-build.yaml's
-          input of the same name for why. Empty for the push caller, which already
-          checks out the right commit by default. Does not apply to the legacy-v2
-          job, which intentionally checks out a fixed historical release branch.
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -35,8 +26,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ inputs.checkout-ref }}
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
@@ -61,14 +50,12 @@ jobs:
           name: tests-logs-http-caching
           path: artifacts
 
-  integration-tests-ui:
-    name: Integration Tests UI
+  ui-e2e-tests:
+    name: UI End-to-End Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -119,8 +106,8 @@ jobs:
           path: ui/tests/playwright-report/
           retention-days: 30
 
-  integration-tests-legacy-v2:
-    name: Integration Tests Legacy V2
+  legacy-v2-compatibility:
+    name: Legacy V2 Compatibility Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Registry 2.6
@@ -161,14 +148,12 @@ jobs:
           name: tests-logs-legacy-v2
           path: artifacts
 
-  integration-tests-typescript-sdk:
-    name: Integration Tests Typescript SDK
+  typescript-sdk-tests:
+    name: TypeScript SDK Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ inputs.checkout-ref }}
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
@@ -188,13 +173,11 @@ jobs:
           npm run test
 
   build-examples:
-    name: Build and Run Application examples
+    name: Build and Run Application Examples
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ inputs.checkout-ref }}
 
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5

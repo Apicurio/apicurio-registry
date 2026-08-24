@@ -4,10 +4,12 @@ on:
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
     branches: [main]
+  pull_request_review:
+    types: [submitted]
   issue_comment:
     types: [created]
   workflow_run:
-    workflows: ["Verify", "CI", "Integration Tests", "Extra Tests"]
+    workflows: ["Verify", "Quick Check"]
     types: [completed]
   workflow_dispatch:
     inputs:
@@ -127,6 +129,40 @@ jobs:
             await handler.handlePrConvertedToDraft({ github, context, core });
 
   # ==========================================================================
+  # Review Submitted
+  # ==========================================================================
+  # Same-repo PRs only: pull_request_review gives GITHUB_TOKEN the same
+  # restricted, secret-less, read-only token for fork PRs that pull_request
+  # does (see verify.yaml's own pull_request_review trigger, which only needs
+  # to read/build/test, not write). This job needs write access to update
+  # labels, so fork PR reviews are left to the slower but still-correct path:
+  # verify.yaml's own pull_request_review trigger re-evaluates Decide and
+  # runs the full suite regardless of fork status (building/testing only
+  # needs read access), and its completion already reconciles labels via the
+  # existing workflow_run handler below.
+  pr-review-submitted:
+    name: Review Submitted
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      github.event_name == 'pull_request_review' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !contains(github.event.pull_request.labels.*.name, 'orchestrator/disabled')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Handle review submitted
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handlePrReviewSubmitted({ github, context, core });
+
+  # ==========================================================================
   # Comment Commands
   # ==========================================================================
   command:
@@ -216,7 +252,7 @@ jobs:
       github.repository_owner == 'Apicurio' &&
       failure() &&
       github.event_name != 'schedule'
-    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, command, label-guard, test-result, reconcile]
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, pr-review-submitted, command, label-guard, test-result, reconcile]
     steps:
       - name: Post warning comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9

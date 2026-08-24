@@ -428,37 +428,9 @@ public class AgentCardContentValidator extends AbstractContentValidator {
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
-        Set<String> allRefs = getAllRefs(content);
+        Set<String> allRefs = extractExternalJsonRefs(content);
         if (!allRefs.isEmpty()) {
             validateMappedReferences(references, allRefs, "Unmapped reference detected.");
-        }
-    }
-
-    private Set<String> getAllRefs(TypedContent content) {
-        try {
-            JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
-            Set<String> refs = new HashSet<>();
-            findRefs(tree, refs);
-            return refs;
-        } catch (Exception e) {
-            return Collections.emptySet();
-        }
-    }
-
-    private void findRefs(JsonNode node, Set<String> refs) {
-        if (node == null) {
-            return;
-        }
-        if (node.isObject()) {
-            if (node.has("$ref") && node.get("$ref").isTextual()) {
-                String ref = node.get("$ref").asText();
-                if (ref != null && !ref.startsWith("#/")) {
-                    refs.add(ref);
-                }
-            }
-            node.elements().forEachRemaining(child -> findRefs(child, refs));
-        } else if (node.isArray()) {
-            node.elements().forEachRemaining(child -> findRefs(child, refs));
         }
     }
 }

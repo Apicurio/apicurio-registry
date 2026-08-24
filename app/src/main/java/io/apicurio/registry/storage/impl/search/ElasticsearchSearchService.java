@@ -10,10 +10,12 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -143,6 +145,56 @@ public class ElasticsearchSearchService {
         return VersionSearchResultsDto.builder()
                 .versions(versions)
                 .count((int) totalCount)
+                .build();
+    }
+
+    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) throws IOException {
+
+        Query query = buildEsQuery(filters);
+        List<SortOptions> sortOptions = buildSort(orderBy, orderDirection);
+
+        SearchResponse<Map> response = client.search(s -> {
+            s.index(config.getIndexName())
+                    .query(query)
+                    .collapse(c -> c.field("ga_key"))
+                    .from(offset)
+                    .size(limit);
+
+            for (SortOptions sortOption : sortOptions) {
+                s.sort(sortOption);
+            }
+            s.sort(SortOptions.of(so -> so.field(FieldSort.of(f -> f
+                    .field("ga_key").order(SortOrder.Asc)))));
+
+            if (!skipCount) {
+                s.aggregations("artifact_count", a -> a
+                        .cardinality(ca -> ca.field("ga_key").precisionThreshold(40000)));
+            }
+
+            return s;
+        }, Map.class);
+
+        long totalCount = 0;
+        if (!skipCount && response.aggregations() != null
+                && response.aggregations().containsKey("artifact_count")) {
+            totalCount = (long) response.aggregations()
+                    .get("artifact_count").cardinality().value();
+        }
+
+        List<SearchedArtifactDto> artifacts = new ArrayList<>();
+        for (Hit<Map> hit : response.hits().hits()) {
+            if (hit.source() != null) {
+                artifacts.add(mapToSearchedArtifactDto(hit.source()));
+            }
+        }
+
+        log.debug("Elasticsearch artifact search returned {} results (total: {}, offset: {}, limit: {})",
+                artifacts.size(), totalCount, offset, limit);
+
+        return ArtifactSearchResultsDto.builder()
+                .artifacts(artifacts)
+                .count(totalCount)
                 .build();
     }
 
@@ -290,10 +342,20 @@ public class ElasticsearchSearchService {
     /**
      * Builds a query for the structure field using the faceted format. Supports three formats:
      * <ul>
-     * <li>{@code type:kind:name} - exact match on the structure field</li>
+     * <li>{@code type:kind:name} - exact match on the structure field. The name segment may
+     * itself contain ':' (for example a namespaced Agent Card skill id, or an indexed URL), so
+     * any value with three or more segments is treated as this fully-qualified form and matched
+     * exactly against the indexed value.</li>
      * <li>{@code kind:name} - text search on structure_text</li>
      * <li>{@code name} - text search on structure_text</li>
      * </ul>
+     *
+     * <p>Structured values are indexed as {@code type:kind:name} where {@code type} and
+     * {@code kind} are colon-free identifiers, so counting segments to detect the fully-qualified
+     * form is only reliable when the name is allowed to keep its own colons. Detecting the exact
+     * form by an exact segment count of three silently dropped any value whose name contained a
+     * colon into a text search that could never match; see {@link ElasticsearchDocumentBuilder}
+     * for the indexing side.
      *
      * @param value the structure filter value
      * @return an Elasticsearch query for structured element search
@@ -306,8 +368,10 @@ public class ElasticsearchSearchService {
         String lowered = value.toLowerCase(Locale.ROOT).trim();
         String[] parts = lowered.split(":", -1);
 
-        if (parts.length == 3) {
-            // Full format: type:kind:name - exact match on structure field
+        if (parts.length >= 3) {
+            // Full format: type:kind:name - exact match on structure field. The exact match uses
+            // the whole value, so a name that itself contains ':' (four or more segments) is still
+            // matched correctly against the indexed "type:kind:name" value.
             return Query.of(q -> q.term(t -> t
                     .field("structure").value(lowered)));
         } else if (parts.length == 2) {
@@ -451,6 +515,34 @@ public class ElasticsearchSearchService {
         }
 
         // Labels
+        Map<String, String> labels = documentBuilder.extractLabels(source);
+        builder.labels(labels);
+
+        return builder.build();
+    }
+
+    @SuppressWarnings("unchecked")
+    SearchedArtifactDto mapToSearchedArtifactDto(Map<String, Object> source) {
+        SearchedArtifactDto.SearchedArtifactDtoBuilder builder = SearchedArtifactDto.builder();
+
+        builder.groupId(toStr(source.get("groupId")));
+        builder.artifactId(toStr(source.get("artifactId")));
+        builder.name(toStr(source.get("name")));
+        builder.description(toStr(source.get("description")));
+        builder.artifactType(toStr(source.get("artifactType")));
+        builder.owner(toStr(source.get("owner")));
+        builder.modifiedBy(toStr(source.get("modifiedBy")));
+
+        Object createdOn = source.get("createdOn");
+        if (createdOn != null) {
+            builder.createdOn(new Date(toLong(createdOn)));
+        }
+
+        Object modifiedOn = source.get("modifiedOn");
+        if (modifiedOn != null) {
+            builder.modifiedOn(new Date(toLong(modifiedOn)));
+        }
+
         Map<String, String> labels = documentBuilder.extractLabels(source);
         builder.labels(labels);
 

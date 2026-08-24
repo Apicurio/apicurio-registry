@@ -1,4 +1,4 @@
-package io.apicurio.registry.utils.tests.infra;
+package io.apicurio.tests.kafkasql.startup.infra;
 
 public final class Configs {
 

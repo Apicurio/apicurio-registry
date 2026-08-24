@@ -32,6 +32,14 @@ This project uses GitHub issues to manage the issues. Open an issue directly in 
 If you believe you found a bug, and it's likely possible, please indicate a way to reproduce it, what you are seeing and what you would expect to see.
 Don't forget to indicate your Apicurio Registry, Java, and Maven versions.
 
+For security vulnerabilities, please do not use GitHub issues. Instead, email
+[cncf-apicurio-registry-security@lists.cncf.io](mailto:cncf-apicurio-registry-security@lists.cncf.io).
+See [SECURITY.md](SECURITY.md) for details.
+
+For general questions and development discussions, use the
+[cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
+or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+
 ## Before you contribute
 
 To contribute, use GitHub Pull Requests, from your **own** fork.

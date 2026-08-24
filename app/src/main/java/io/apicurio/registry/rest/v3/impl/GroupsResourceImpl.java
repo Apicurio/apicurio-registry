@@ -80,10 +80,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -263,8 +265,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     private ReferenceGraph buildReferenceGraph(String groupId, String artifactId, String version,
             ArtifactVersionMetaDataDto rootMetadata, ReferenceGraphDirection direction, int maxDepth) {
 
-        // Track visited nodes (version-level) to avoid processing the same node twice
-        Set<String> visited = new HashSet<>();
+        // Track nodes already added to the graph (version-level), together with the shallowest depth
+        // each of them has had its own references expanded at. A node first reached at the depth
+        // limit has its references cut off, so it has to be expanded again when a shorter path to it
+        // turns up later. Integer.MAX_VALUE means the node is in the graph but was never expanded.
+        Map<String, Integer> expandedAt = new HashMap<>();
+        // Cache each node's reference list for the duration of this graph build. A node can be
+        // expanded more than once, and the stored references cannot change while a single request is
+        // being served, so each node only has to be read from storage once.
+        Map<String, List<ArtifactReferenceDto>> outboundReferences = new HashMap<>();
+        Map<String, List<ArtifactReferenceDto>> inboundReferences = new HashMap<>();
         // Track current path of artifacts for cycle detection (artifact-level)
         // A cycle exists only if we encounter the same artifact in the current traversal path
         Set<String> currentPath = new HashSet<>();
@@ -288,7 +298,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         List<ReferenceGraphNode> nodes = new java.util.ArrayList<>();
         List<ReferenceGraphEdge> edges = new java.util.ArrayList<>();
         nodes.add(rootNode);
-        visited.add(rootNodeId);
+        expandedAt.put(rootNodeId, 0);
         currentPath.add(rootArtifactKey);
 
         // Track the actual max depth reached
@@ -297,11 +307,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Traverse the graph
         if (direction == ReferenceGraphDirection.OUTBOUND || direction == ReferenceGraphDirection.BOTH) {
             traverseOutboundReferences(groupId, artifactId, version, rootNodeId, nodes, edges,
-                    visited, currentPath, cycleNodes, 1, maxDepth, actualMaxDepth);
+                    expandedAt, outboundReferences, currentPath, cycleNodes, 1, maxDepth, actualMaxDepth);
         }
         if (direction == ReferenceGraphDirection.INBOUND || direction == ReferenceGraphDirection.BOTH) {
             traverseInboundReferences(groupId, artifactId, version, rootNodeId, nodes, edges,
-                    visited, currentPath, cycleNodes, 1, maxDepth, actualMaxDepth);
+                    expandedAt, inboundReferences, currentPath, cycleNodes, 1, maxDepth, actualMaxDepth);
         }
 
         // Mark cycle nodes
@@ -311,10 +321,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             }
         }
 
+        // A node can be expanded more than once, once per shorter path found to it, so the same
+        // reference can be reported more than once. Keep the first occurrence of each edge.
+        List<ReferenceGraphEdge> uniqueEdges = new ArrayList<>();
+        Set<List<String>> knownEdges = new HashSet<>();
+        for (ReferenceGraphEdge edge : edges) {
+            // Compare the parts rather than a concatenated string, so a null reference name stays
+            // distinct from an empty one instead of both collapsing to the same key.
+            List<String> edgeKey = Arrays.asList(edge.getSourceNodeId(), edge.getTargetNodeId(),
+                    edge.getName());
+            if (knownEdges.add(edgeKey)) {
+                uniqueEdges.add(edge);
+            }
+        }
+
         // Build metadata
         ReferenceGraphMetadata metadata = ReferenceGraphMetadata.builder()
                 .totalNodes(nodes.size())
-                .totalEdges(edges.size())
+                .totalEdges(uniqueEdges.size())
                 .maxDepth(actualMaxDepth[0])
                 .hasCycles(!cycleNodes.isEmpty())
                 .build();
@@ -322,7 +346,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return ReferenceGraph.builder()
                 .root(rootNode)
                 .nodes(nodes)
-                .edges(edges)
+                .edges(uniqueEdges)
                 .metadata(metadata)
                 .build();
     }
@@ -332,7 +356,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     private void traverseOutboundReferences(String groupId, String artifactId, String version,
             String sourceNodeId, List<ReferenceGraphNode> nodes, List<ReferenceGraphEdge> edges,
-            Set<String> visited, Set<String> currentPath, Set<String> cycleNodes,
+            Map<String, Integer> expandedAt, Map<String, List<ArtifactReferenceDto>> outboundReferences,
+            Set<String> currentPath, Set<String> cycleNodes,
             int currentDepth, int maxDepth, int[] actualMaxDepth) {
 
         if (currentDepth > maxDepth) {
@@ -340,10 +365,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         try {
-            StoredArtifactVersionDto content = storage.getArtifactVersionContent(groupId, artifactId, version);
-            List<ArtifactReferenceDto> references = content.getReferences();
+            List<ArtifactReferenceDto> references = outboundReferences.get(sourceNodeId);
+            if (references == null) {
+                StoredArtifactVersionDto content = storage.getArtifactVersionContent(groupId, artifactId,
+                        version);
+                references = content.getReferences();
+                if (references == null) {
+                    references = Collections.emptyList();
+                }
+                outboundReferences.put(sourceNodeId, references);
+            }
 
-            if (references == null || references.isEmpty()) {
+            if (references.isEmpty()) {
                 return;
             }
 
@@ -371,53 +404,62 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     cycleNodes.add(sourceNodeId);
                 }
 
-                // Skip processing if this exact version was already visited (avoid duplicate nodes)
-                if (visited.contains(targetNodeId)) {
+                // Add the node the first time this exact version is seen (avoid duplicate nodes)
+                if (!expandedAt.containsKey(targetNodeId)) {
+                    expandedAt.put(targetNodeId, Integer.MAX_VALUE);
+                    try {
+                        ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
+                                refGroupId, refArtifactId, refVersion);
+
+                        ReferenceGraphNode node = ReferenceGraphNode.builder()
+                                .id(targetNodeId)
+                                .groupId(refGroupId != null ? refGroupId : "default")
+                                .artifactId(refArtifactId)
+                                .version(refVersion)
+                                .artifactType(refMetadata.getArtifactType())
+                                .name(refMetadata.getName())
+                                .isRoot(false)
+                                .isCycleNode(isArtifactCycle)
+                                .build();
+                        nodes.add(node);
+                    } catch (Exception e) {
+                        // Reference might not exist, add a placeholder node
+                        ReferenceGraphNode node = ReferenceGraphNode.builder()
+                                .id(targetNodeId)
+                                .groupId(refGroupId != null ? refGroupId : "default")
+                                .artifactId(refArtifactId)
+                                .version(refVersion)
+                                .isRoot(false)
+                                .isCycleNode(isArtifactCycle)
+                                .build();
+                        nodes.add(node);
+                    }
+                }
+
+                // Don't traverse through a cycle node
+                if (isArtifactCycle) {
                     continue;
                 }
 
-                // Add node
-                visited.add(targetNodeId);
-                try {
-                    ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
-                            refGroupId, refArtifactId, refVersion);
-
-                    ReferenceGraphNode node = ReferenceGraphNode.builder()
-                            .id(targetNodeId)
-                            .groupId(refGroupId != null ? refGroupId : "default")
-                            .artifactId(refArtifactId)
-                            .version(refVersion)
-                            .artifactType(refMetadata.getArtifactType())
-                            .name(refMetadata.getName())
-                            .isRoot(false)
-                            .isCycleNode(isArtifactCycle)
-                            .build();
-                    nodes.add(node);
-
-                    // Recursively traverse (but don't continue if this is a cycle node)
-                    if (!isArtifactCycle) {
-                        // Add to current path before recursing, remove after (backtracking)
-                        currentPath.add(targetArtifactKey);
-                        traverseOutboundReferences(refGroupId, refArtifactId, refVersion, targetNodeId,
-                                nodes, edges, visited, currentPath, cycleNodes,
-                                currentDepth + 1, maxDepth, actualMaxDepth);
-                        currentPath.remove(targetArtifactKey);
-                    }
-                } catch (Exception e) {
-                    // Reference might not exist, add a placeholder node
-                    ReferenceGraphNode node = ReferenceGraphNode.builder()
-                            .id(targetNodeId)
-                            .groupId(refGroupId != null ? refGroupId : "default")
-                            .artifactId(refArtifactId)
-                            .version(refVersion)
-                            .isRoot(false)
-                            .isCycleNode(isArtifactCycle)
-                            .build();
-                    nodes.add(node);
+                // Expand the node's own references only when this is the shallowest depth it has
+                // been reached at. Reaching it again on a shorter path leaves room for references
+                // that the earlier, deeper visit had to cut off.
+                if (expandedAt.get(targetNodeId) <= currentDepth) {
+                    continue;
                 }
+                expandedAt.put(targetNodeId, currentDepth);
+
+                // Add to current path before recursing, remove after (backtracking)
+                currentPath.add(targetArtifactKey);
+                traverseOutboundReferences(refGroupId, refArtifactId, refVersion, targetNodeId,
+                        nodes, edges, expandedAt, outboundReferences, currentPath, cycleNodes,
+                        currentDepth + 1, maxDepth, actualMaxDepth);
+                currentPath.remove(targetArtifactKey);
             }
         } catch (Exception e) {
-            // Artifact content might not be accessible
+            // Artifact content might not be accessible. Remember that, so re-expanding this node
+            // does not retry the same failing lookup.
+            outboundReferences.putIfAbsent(sourceNodeId, Collections.emptyList());
         }
     }
 
@@ -426,7 +468,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     private void traverseInboundReferences(String groupId, String artifactId, String version,
             String targetNodeId, List<ReferenceGraphNode> nodes, List<ReferenceGraphEdge> edges,
-            Set<String> visited, Set<String> currentPath, Set<String> cycleNodes,
+            Map<String, Integer> expandedAt, Map<String, List<ArtifactReferenceDto>> inboundReferences,
+            Set<String> currentPath, Set<String> cycleNodes,
             int currentDepth, int maxDepth, int[] actualMaxDepth) {
 
         if (currentDepth > maxDepth) {
@@ -434,9 +477,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         try {
-            List<ArtifactReferenceDto> inboundRefs = storage.getInboundArtifactReferences(groupId, artifactId, version);
+            List<ArtifactReferenceDto> inboundRefs = inboundReferences.get(targetNodeId);
+            if (inboundRefs == null) {
+                inboundRefs = storage.getInboundArtifactReferences(groupId, artifactId, version);
+                if (inboundRefs == null) {
+                    inboundRefs = Collections.emptyList();
+                }
+                inboundReferences.put(targetNodeId, inboundRefs);
+            }
 
-            if (inboundRefs == null || inboundRefs.isEmpty()) {
+            if (inboundRefs.isEmpty()) {
                 return;
             }
 
@@ -464,53 +514,62 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     cycleNodes.add(targetNodeId);
                 }
 
-                // Skip processing if this exact version was already visited (avoid duplicate nodes)
-                if (visited.contains(sourceNodeId)) {
+                // Add the node the first time this exact version is seen (avoid duplicate nodes)
+                if (!expandedAt.containsKey(sourceNodeId)) {
+                    expandedAt.put(sourceNodeId, Integer.MAX_VALUE);
+                    try {
+                        ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
+                                refGroupId, refArtifactId, refVersion);
+
+                        ReferenceGraphNode node = ReferenceGraphNode.builder()
+                                .id(sourceNodeId)
+                                .groupId(refGroupId != null ? refGroupId : "default")
+                                .artifactId(refArtifactId)
+                                .version(refVersion)
+                                .artifactType(refMetadata.getArtifactType())
+                                .name(refMetadata.getName())
+                                .isRoot(false)
+                                .isCycleNode(isArtifactCycle)
+                                .build();
+                        nodes.add(node);
+                    } catch (Exception e) {
+                        // Reference might not exist, add a placeholder node
+                        ReferenceGraphNode node = ReferenceGraphNode.builder()
+                                .id(sourceNodeId)
+                                .groupId(refGroupId != null ? refGroupId : "default")
+                                .artifactId(refArtifactId)
+                                .version(refVersion)
+                                .isRoot(false)
+                                .isCycleNode(isArtifactCycle)
+                                .build();
+                        nodes.add(node);
+                    }
+                }
+
+                // Don't traverse through a cycle node
+                if (isArtifactCycle) {
                     continue;
                 }
 
-                // Add node
-                visited.add(sourceNodeId);
-                try {
-                    ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
-                            refGroupId, refArtifactId, refVersion);
-
-                    ReferenceGraphNode node = ReferenceGraphNode.builder()
-                            .id(sourceNodeId)
-                            .groupId(refGroupId != null ? refGroupId : "default")
-                            .artifactId(refArtifactId)
-                            .version(refVersion)
-                            .artifactType(refMetadata.getArtifactType())
-                            .name(refMetadata.getName())
-                            .isRoot(false)
-                            .isCycleNode(isArtifactCycle)
-                            .build();
-                    nodes.add(node);
-
-                    // Recursively traverse (but don't continue if this is a cycle node)
-                    if (!isArtifactCycle) {
-                        // Add to current path before recursing, remove after (backtracking)
-                        currentPath.add(sourceArtifactKey);
-                        traverseInboundReferences(refGroupId, refArtifactId, refVersion, sourceNodeId,
-                                nodes, edges, visited, currentPath, cycleNodes,
-                                currentDepth + 1, maxDepth, actualMaxDepth);
-                        currentPath.remove(sourceArtifactKey);
-                    }
-                } catch (Exception e) {
-                    // Reference might not exist, add a placeholder node
-                    ReferenceGraphNode node = ReferenceGraphNode.builder()
-                            .id(sourceNodeId)
-                            .groupId(refGroupId != null ? refGroupId : "default")
-                            .artifactId(refArtifactId)
-                            .version(refVersion)
-                            .isRoot(false)
-                            .isCycleNode(isArtifactCycle)
-                            .build();
-                    nodes.add(node);
+                // Expand the node's own references only when this is the shallowest depth it has
+                // been reached at. Reaching it again on a shorter path leaves room for references
+                // that the earlier, deeper visit had to cut off.
+                if (expandedAt.get(sourceNodeId) <= currentDepth) {
+                    continue;
                 }
+                expandedAt.put(sourceNodeId, currentDepth);
+
+                // Add to current path before recursing, remove after (backtracking)
+                currentPath.add(sourceArtifactKey);
+                traverseInboundReferences(refGroupId, refArtifactId, refVersion, sourceNodeId,
+                        nodes, edges, expandedAt, inboundReferences, currentPath, cycleNodes,
+                        currentDepth + 1, maxDepth, actualMaxDepth);
+                currentPath.remove(sourceArtifactKey);
             }
         } catch (Exception e) {
-            // Inbound references might not be accessible
+            // Inbound references might not be accessible. Remember that, so re-expanding this node
+            // does not retry the same failing lookup.
+            inboundReferences.putIfAbsent(targetNodeId, Collections.emptyList());
         }
     }
 
@@ -584,6 +643,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaData data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -636,6 +696,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
@@ -715,6 +776,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void createGroupRule(String groupId, CreateRule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
         ParameterValidationUtils.requireParameter("config", data.getConfig());
@@ -742,6 +804,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Rule updateGroupRuleConfig(String groupId, RuleType ruleType, Rule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
         ParameterValidationUtils.requireParameter("config", data.getConfig());
@@ -813,6 +876,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void createArtifactRule(String groupId, String artifactId, CreateRule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
@@ -877,6 +941,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType, Rule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
@@ -1129,6 +1194,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 3)
     public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression,
             Boolean dryRun, WrappedVersionState data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
@@ -1313,6 +1379,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public CreateArtifactResponse createArtifact(String groupId, IfArtifactExists ifExists, Boolean canonical,
             Boolean dryRun, CreateArtifact data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("body", data);
         if (data.getFirstVersion() != null) {
             boolean contentRequired = true;
             if (data.getArtifactType() != null) {
@@ -1529,6 +1596,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             CreateVersion data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("body", data);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
@@ -1616,6 +1684,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public BranchMetaData createBranch(String groupId, String artifactId, CreateBranch data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("branchId", data.getBranchId());
@@ -1920,11 +1989,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("variables", data.getVariables());
 
         var gav = VersionExpressionParser.parse(new GA(groupId, artifactId), versionExpression,
-                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.ALL_STATES));
+                (ga, branchId) -> storage.getBranchTip(ga, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
         // Verify the artifact exists and is of type PROMPT_TEMPLATE
         ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        if (versionMetaData.getState() == VersionState.DISABLED) {
+            throw new VersionNotFoundException(groupId, artifactId, versionExpression);
+        }
 
         String artifactType = versionMetaData.getArtifactType();
         if (!"PROMPT_TEMPLATE".equals(artifactType)) {
@@ -1965,6 +2038,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Verify the artifact exists and is of type PROTOBUF
         ArtifactVersionMetaDataDto versionMetaData = storage.getArtifactVersionMetaData(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+
+        if (versionMetaData.getState() == VersionState.DISABLED) {
+            throw new VersionNotFoundException(groupId, artifactId, versionExpression);
+        }
 
         String artifactType = versionMetaData.getArtifactType();
         if (!"PROTOBUF".equals(artifactType)) {

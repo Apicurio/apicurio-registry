@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -44,7 +44,7 @@ jobs:
         working-directory: python-sdk
         run: make lint-check
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -66,7 +66,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -75,9 +75,9 @@ jobs:
       - name: Go - Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26.5'
+          go-version: '1.27.0'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'

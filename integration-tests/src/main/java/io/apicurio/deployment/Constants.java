@@ -28,6 +28,7 @@ public final class Constants {
     public static final String MIGRATION = "migration";
     public static final String AUTH = "auth";
     public static final String KAFKA_SQL_SNAPSHOTTING = "kafkasql-snapshotting";
+    public static final String KAFKASQL_STARTUP = "kafkasql-startup";
     public static final String DEBEZIUM = "debezium";
     public static final String DEBEZIUM_MYSQL = "debezium-mysql";
     public static final String DEBEZIUM_SNAPSHOT = "debezium-snapshot";

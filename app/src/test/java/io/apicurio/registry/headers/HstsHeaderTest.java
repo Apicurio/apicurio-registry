@@ -11,7 +11,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
-// #2411: the HSTS header is set by a servlet filter, so error responses that bypass the chain lose it.
+// #2411: the HSTS header is set by Quarkus configuration, including error responses that bypass the chain.
 @QuarkusTest
 @TestProfile(HstsHeaderTest.DisabledApisProfile.class)
 public class HstsHeaderTest {
@@ -48,7 +48,7 @@ public class HstsHeaderTest {
                         X_CONTENT_TYPE_OPTIONS, equalTo("nosniff"));
     }
 
-    // #8713: the filter chain (see #2411) also covers error responses, so pin the exact
+    // #8713: the Quarkus configuration (see #2411) also covers error responses, so pin the exact
     // directive casing there too, not just on success responses.
     @Test
     public void testHstsDirectiveCasingIsRfcCompliantOn404() {

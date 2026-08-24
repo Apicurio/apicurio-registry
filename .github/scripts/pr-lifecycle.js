@@ -11,22 +11,24 @@ const path = require('path');
 // ---------------------------------------------------------------------------
 
 const LABELS = {
-  NEW: 'lifecycle/new',
   READY_FOR_REVIEW: 'lifecycle/ready-for-review',
+  // Fast gate (quick-check.yaml) passed for the current HEAD.
   TESTED: 'lifecycle/tested',
+  // Approved and tested; the full suite (verify.yaml) is the remaining
+  // merge gate. Purely a status label — it does not gate anything itself.
+  // What actually gates the full suite running is native: PR author
+  // (maintainer/auto_accept run it immediately) or an approving review
+  // (everyone else), evaluated directly by verify-decide.yaml.
   READY_TO_MERGE: 'lifecycle/ready-to-merge',
+  // Set when the full verification suite passes for the current HEAD.
+  FULL_VERIFIED: 'lifecycle/full-verified',
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
   STALE: 'lifecycle/stale',
-  REVIEW_APPROVED: 'lifecycle/review-approved',
   DISABLED: 'orchestrator/disabled',
-  AUTO_MERGE: 'orchestrator/auto-merge',
-  REVIEW_SKIPPED: 'orchestrator/review-skipped',
-  MERGE_REBASE: 'orchestrator/merge-rebase',
 };
 
 const PRIMARY_STATES = [
-  LABELS.NEW,
   LABELS.READY_FOR_REVIEW,
   LABELS.READY_TO_MERGE,
 ];
@@ -45,18 +47,14 @@ const COLORS = {
 };
 
 const LABEL_DEFS = {
-  [LABELS.NEW]:                  { color: COLORS.INFO, description: 'PR awaiting triage' },
-  [LABELS.READY_FOR_REVIEW]:     { color: COLORS.INFO, description: 'Ready for review, full tests running' },
-  [LABELS.TESTED]:               { color: COLORS.SUCCESS, description: 'Full test suite passed for current HEAD' },
-  [LABELS.REVIEW_APPROVED]:      { color: COLORS.SUCCESS, description: 'PR has an approved review' },
-  [LABELS.READY_TO_MERGE]:       { color: COLORS.INFO, description: 'Approved and tested, ready to merge' },
+  [LABELS.READY_FOR_REVIEW]:     { color: COLORS.INFO, description: 'In review; Quick Check gate runs on every push' },
+  [LABELS.TESTED]:               { color: COLORS.SUCCESS, description: 'Quick Check gate passed for current HEAD' },
+  [LABELS.FULL_VERIFIED]:        { color: COLORS.SUCCESS, description: 'Full verification suite passed for current HEAD' },
+  [LABELS.READY_TO_MERGE]:       { color: COLORS.INFO, description: 'Approved and fast-gated; full suite is the remaining merge gate' },
   [LABELS.WAITING_ON_AUTHOR]:    { color: COLORS.ATTENTION_STRONG, description: 'Blocked on contributor action' },
   [LABELS.WAITING_ON_MAINTAINER]:{ color: COLORS.ATTENTION, description: 'Blocked on maintainer action' },
   [LABELS.STALE]:                { color: COLORS.INACTIVE, description: 'No activity for 4+ days (waiting on author) or 7+ days' },
   [LABELS.DISABLED]:             { color: COLORS.INACTIVE, description: 'PR excluded from lifecycle orchestrator' },
-  [LABELS.AUTO_MERGE]:           { color: COLORS.INFO, description: 'Auto-merge enabled' },
-  [LABELS.REVIEW_SKIPPED]:       { color: COLORS.INFO, description: 'Review requirement skipped by maintainer' },
-  [LABELS.MERGE_REBASE]:         { color: COLORS.INFO, description: 'Branch auto-updated for merge, tests skipped' },
 };
 
 const BOT_LOGIN = 'github-actions[bot]';
@@ -194,22 +192,29 @@ function createApi(github, owner, repo) {
       });
     },
 
-    mergePr: async (prNumber, method, commitTitle) => {
-      await github.rest.pulls.merge({
-        owner, repo, pull_number: prNumber,
-        merge_method: method,
-        commit_title: commitTitle,
-      });
+    // Native GitHub auto-merge: GitHub itself merges the PR the moment its
+    // required checks and required review are satisfied — no bot polling,
+    // no rebase-retry, no pending-merge bookkeeping. Repo already has
+    // "Automatically delete head branches" enabled, so branch cleanup is
+    // native too.
+    enableAutoMerge: async (prNumber, mergeMethod) => {
+      const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+      await github.graphql(
+        `mutation($id: ID!, $method: PullRequestMergeMethod!) {
+          enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: $method }) { clientMutationId }
+        }`,
+        { id: pr.node_id, method: mergeMethod.toUpperCase() }
+      );
     },
 
-    deleteBranch: async (branch) => {
-      try {
-        await github.rest.git.deleteRef({
-          owner, repo, ref: `heads/${branch}`,
-        });
-      } catch (e) {
-        if (e.status !== 422) throw e;
-      }
+    disableAutoMerge: async (prNumber) => {
+      const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+      await github.graphql(
+        `mutation($id: ID!) {
+          disablePullRequestAutoMerge(input: { pullRequestId: $id }) { clientMutationId }
+        }`,
+        { id: pr.node_id }
+      );
     },
 
     updateBranch: async (prNumber, expectedHeadSha) => {
@@ -218,20 +223,12 @@ function createApi(github, owner, repo) {
       await github.rest.pulls.updateBranch(params);
     },
 
-    findLatestVerifyRun: async (headSha) => {
+    findLatestVerifyRun: async (headSha, workflow = 'verify.yaml') => {
       const { data } = await github.rest.actions.listWorkflowRuns({
-        owner, repo, workflow_id: 'verify.yaml',
+        owner, repo, workflow_id: workflow,
         head_sha: headSha, per_page: 1,
       });
       return data.workflow_runs[0] || null;
-    },
-
-    cancelWorkflowRun: async (runId) => {
-      try {
-        await github.rest.actions.cancelWorkflowRun({ owner, repo, run_id: runId });
-      } catch (e) {
-        if (e.status !== 409) throw e;
-      }
     },
 
     reRunWorkflow: async (runId) => {
@@ -242,26 +239,18 @@ function createApi(github, owner, repo) {
       }
     },
 
-    getWorkflowRun: async (runId) => {
-      const { data } = await github.rest.actions.getWorkflowRun({
-        owner, repo, run_id: runId,
-      });
-      return data;
-    },
-
     approveWorkflowRun: async (runId) => {
       await github.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve', {
         owner, repo, run_id: runId,
       });
     },
 
-    // GitHub represents runs awaiting fork PR approval as
-    // status=completed, conclusion=action_required. The API's status
+    // GitHub represents runs awaiting fork PR approval as    // status=completed, conclusion=action_required. The API's status
     // query parameter accepts 'action_required' as a filter value even
     // though the run object itself stores it in the conclusion field.
-    findPendingApprovalVerifyRuns: async (headSha) => {
+    findPendingApprovalVerifyRuns: async (headSha, workflow = 'verify.yaml') => {
       const { data } = await github.rest.actions.listWorkflowRuns({
-        owner, repo, workflow_id: 'verify.yaml',
+        owner, repo, workflow_id: workflow,
         head_sha: headSha, status: 'action_required',
         per_page: 10,
       });
@@ -270,87 +259,168 @@ function createApi(github, owner, repo) {
   };
 }
 
-async function retriggerVerify(api, pr, core, { waitForRun = false } = {}) {
-  let run = null;
+// Two-tier CI routing: the fast gate (quick-check.yaml, workflow name "Quick
+// Check") covers PR iteration; the full suite (verify.yaml — build, unit
+// tests, CLI, SDKs, console plugin, integration tests, extra tests, operator
+// tests, and on push, publishing) is the pre-merge gate. It runs on its own
+// native triggers (push for trusted authors, review submission for everyone
+// else) rather than a bot-applied label. verify.yaml has a single Decide
+// job shared by every job in it, so there is exactly one workflow (and one
+// answer to "is the full suite required") to track for full-verified —
+// unlike the fast gate, which is intentionally a separate, independent
+// workflow with no lifecycle awareness of its own.
+const FAST_GATE_WORKFLOW = 'Quick Check';
+const FULL_SUITE_WORKFLOWS = ['Verify'];
+const FULL_SUITE_WORKFLOW_FILES = ['verify.yaml'];
 
-  if (waitForRun) {
-    for (let attempt = 0; attempt < 5; attempt++) {
-      await new Promise(r => setTimeout(r, 3000));
-      run = await api.findLatestVerifyRun(pr.head.sha);
-      if (run) break;
+// Aggregates the latest run of each full-suite workflow for a commit.
+// Returns:
+//   { status: 'pending' }  — some workflow has no run yet or is still running
+//   { status: 'success' }  — every workflow's latest run succeeded
+//   { status: 'failure' }  — at least one genuinely failed/was cancelled (fail fast)
+async function getFullSuiteResult(github, owner, repo, headSha, core) {
+  const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+    owner, repo, head_sha: headSha, per_page: 100,
+  });
+  const latest = new Map();
+  for (const run of data.workflow_runs) {
+    if (!FULL_SUITE_WORKFLOWS.includes(run.name)) continue;
+    const prev = latest.get(run.name);
+    if (!prev || new Date(run.created_at) > new Date(prev.created_at)) {
+      latest.set(run.name, run);
     }
-  } else {
-    run = await api.findLatestVerifyRun(pr.head.sha);
   }
+  for (const name of FULL_SUITE_WORKFLOWS) {
+    const run = latest.get(name);
+    if (!run || run.status !== 'completed') {
+      core.info(`Full suite for ${headSha}: ${name} ${run ? run.status : 'has no run yet'}, waiting`);
+      return { status: 'pending' };
+    }
+  }
+  for (const run of latest.values()) {
+    if (run.conclusion !== 'success') {
+      // verify.yaml's Gate job intentionally fails (not skips) while Decide
+      // has not required the full suite yet (author isn't trusted and the
+      // PR isn't approved), as the only way to make the required
+      // branch-protection check honestly reflect "not satisfied yet"
+      // instead of the false-pass a skipped required job would produce
+      // (see verify.yaml's Gate for the full reasoning). That failure is
+      // expected and must NOT be treated as a genuine full-suite failure
+      // here — every job in the run other than Gate itself is either
+      // success or skipped in that case, since Decide gated all of them on
+      // the same not-yet-ready state. Only trust 'failure' when some other
+      // job actually failed.
+      const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+        owner, repo, run_id: run.id, per_page: 100,
+      });
+      const realFailure = jobs.some(j => j.name !== 'Verification Gate' && j.conclusion === 'failure');
+      if (!realFailure) {
+        core.info(`Full suite for ${headSha}: ${run.name}'s only failure is its own not-ready-to-merge-yet check, treating as pending`);
+        return { status: 'pending' };
+      }
+      return { status: 'failure', failedRun: run };
+    }
+  }
+  return { status: 'success' };
+}
+
+// Used by /retry. Both verify.yaml and quick-check.yaml now trigger natively
+// off PR events (push, review submission) — nothing needs to force a
+// re-run purely because the bot changed a label — so this only ever
+// re-runs a workflow that is actually stuck or failed.
+async function retriggerVerify(api, pr, core, isTrustedAuthor) {
+  // The full suite is the relevant workflow once approved+tested (about to
+  // merge) or for a trusted author (it runs from the start for them);
+  // otherwise the fast gate is what /retry should be looking at.
+  const checkFullSuite = getLifecycleState(pr) === LABELS.READY_TO_MERGE || isTrustedAuthor;
+  if (checkFullSuite) {
+    let found = false;
+    for (const workflow of FULL_SUITE_WORKFLOW_FILES) {
+      found = (await retriggerWorkflowRun(api, pr, core, workflow)) || found;
+    }
+    if (!found) {
+      await triggerViaBranchUpdate(api, pr, core, 'the full suite');
+    }
+    return;
+  }
+  const found = await retriggerWorkflowRun(api, pr, core, 'quick-check.yaml');
+  if (!found) {
+    await triggerViaBranchUpdate(api, pr, core, 'quick-check.yaml');
+  }
+}
+
+async function triggerViaBranchUpdate(api, pr, core, workflow) {
+  // No run exists for this SHA (e.g. PR predates the current
+  // workflow, or the run was cleaned up). Update the PR branch to
+  // trigger a fresh synchronize event and a new run.
+  // handlePrSynchronize will approve the new run for fork PRs.
+  core.warning(`PR #${pr.number} no ${workflow} run found for ${pr.head.sha}, attempting branch update`);
+  try {
+    await api.updateBranch(pr.number, pr.head.sha);
+    core.info(`PR #${pr.number} branch updated to trigger fresh ${workflow} run`);
+    return;
+  } catch (e) {
+    core.warning(`PR #${pr.number} branch update failed: ${e.message}`);
+    await api.postComment(pr.number,
+      `Could not trigger the test suite automatically — no existing workflow run ` +
+      `was found and the branch could not be updated. @${pr.user.login}, please push ` +
+      `a change to trigger CI.`
+    );
+    return;
+  }
+}
+
+// Retriggers the latest run of a single workflow file for the PR's head SHA.
+// Returns true when a run existed (regardless of what was done with it).
+async function retriggerWorkflowRun(api, pr, core, workflow) {
+  const run = await api.findLatestVerifyRun(pr.head.sha, workflow);
 
   if (!run) {
-    // No Verify run exists for this SHA (e.g. PR predates the current
-    // workflow, or the run was cleaned up). Update the PR branch to
-    // trigger a fresh synchronize event and a new Verify run.
-    // handlePrSynchronize will approve the new run for fork PRs.
-    core.warning(`PR #${pr.number} no Verify run found for ${pr.head.sha}, attempting branch update`);
-    try {
-      await api.updateBranch(pr.number, pr.head.sha);
-      core.info(`PR #${pr.number} branch updated to trigger fresh Verify run`);
-      return;
-    } catch (e) {
-      core.warning(`PR #${pr.number} branch update failed: ${e.message}`);
-      await api.postComment(pr.number,
-        `Could not trigger the test suite automatically — no existing workflow run ` +
-        `was found and the branch could not be updated. @${pr.user.login}, please push ` +
-        `a change to trigger CI.`
-      );
-      return;
-    }
+    return false;
   }
 
   // Fork PRs need workflow approval before they can run. Approve instead
-  // of re-running — the Decide step fetches current labels from the API,
-  // so the approved run will see the up-to-date lifecycle state.
+  // of re-running — Decide re-evaluates live, so the approved run will see
+  // current PR/review state.
   // GitHub represents these as status=completed, conclusion=action_required.
   if (run.conclusion === 'action_required') {
     try {
       await api.approveWorkflowRun(run.id);
-      core.info(`PR #${pr.number} approved pending Verify run ${run.id}`);
+      core.info(`PR #${pr.number} approved pending ${workflow} run ${run.id}`);
     } catch (e) {
-      core.warning(`PR #${pr.number} failed to approve Verify run ${run.id}: ${e.message}`);
+      core.warning(`PR #${pr.number} failed to approve ${workflow} run ${run.id}: ${e.message}`);
     }
-    return;
+    return true;
+  }
+
+  // Only re-run workflows that actually need it; a green run is left alone.
+  if (run.conclusion === 'success') {
+    core.info(`PR #${pr.number} ${workflow} run ${run.id} already green, not re-triggering`);
+    return true;
   }
 
   if (run.status === 'in_progress' || run.status === 'queued') {
-    core.info(`PR #${pr.number} cancelling in-progress Verify run ${run.id}`);
-    await api.cancelWorkflowRun(run.id);
-
-    // Wait for the run to fully complete — the Verification Gate job
-    // has `if: always()` and keeps the run alive after cancellation.
-    for (let attempt = 0; attempt < 20; attempt++) {
-      await new Promise(r => setTimeout(r, 5000));
-      const fresh = await api.getWorkflowRun(run.id);
-      if (fresh.status === 'completed') break;
-    }
+    core.info(`PR #${pr.number} ${workflow} run ${run.id} already running, not re-triggering`);
+    return true;
   }
-
-  // Allow label changes to propagate through GitHub's eventually-consistent API
-  // before re-triggering, so the scope job sees the current labels.
-  await new Promise(r => setTimeout(r, 5000));
 
   try {
     await api.reRunWorkflow(run.id);
-    core.info(`PR #${pr.number} re-triggered Verify run ${run.id}`);
+    core.info(`PR #${pr.number} re-triggered ${workflow} run ${run.id}`);
   } catch (e) {
-    core.warning(`PR #${pr.number} failed to re-trigger Verify run ${run.id}: ${e.message}`);
+    core.warning(`PR #${pr.number} failed to re-trigger ${workflow} run ${run.id}: ${e.message}`);
   }
+  return true;
 }
 
 // Approves all Verify workflow runs awaiting approval for a PR's head SHA.
-// Called after lifecycle transitions that should enable CI (e.g. /accept)
-// to catch label-triggered runs that race with retriggerVerify.
-async function approvePendingVerifyRuns(api, pr, core) {
+// Called after events that should enable CI (e.g. a fresh push) to catch
+// label-triggered or event-triggered runs that race with retriggerVerify.
+async function approvePendingVerifyRuns(api, pr, core, workflow = 'verify.yaml') {
   try {
-    const runs = await api.findPendingApprovalVerifyRuns(pr.head.sha);
+    const runs = await api.findPendingApprovalVerifyRuns(pr.head.sha, workflow);
     if (runs.length === 0) {
-      core.info(`PR #${pr.number} no pending-approval Verify runs found for ${pr.head.sha}`);
+      core.info(`PR #${pr.number} no pending-approval ${workflow} runs found for ${pr.head.sha}`);
       return 0;
     }
     let approved = 0;
@@ -358,16 +428,28 @@ async function approvePendingVerifyRuns(api, pr, core) {
       try {
         await api.approveWorkflowRun(run.id);
         approved++;
-        core.info(`PR #${pr.number} approved pending Verify run ${run.id}`);
+        core.info(`PR #${pr.number} approved pending ${workflow} run ${run.id}`);
       } catch (e) {
-        core.warning(`PR #${pr.number} failed to approve Verify run ${run.id}: ${e.message}`);
+        core.warning(`PR #${pr.number} failed to approve ${workflow} run ${run.id}: ${e.message}`);
       }
     }
     return approved;
   } catch (e) {
-    core.warning(`PR #${pr.number} failed to list pending Verify runs: ${e.message}`);
+    core.warning(`PR #${pr.number} failed to list pending ${workflow} runs: ${e.message}`);
     return 0;
   }
+}
+
+// Approves pending fork-PR runs for both tiers: the fast gate
+// (quick-check.yaml) and the full suite (verify.yaml). Approving a run the
+// current state will skip is harmless; missing one strands a fork PR on
+// "action_required".
+async function approveAllPendingCiRuns(api, pr, core) {
+  let approved = 0;
+  for (const workflow of FULL_SUITE_WORKFLOW_FILES) {
+    approved += await approvePendingVerifyRuns(api, pr, core, workflow);
+  }
+  return approved;
 }
 
 function latestReviewsByReviewer(reviews) {
@@ -394,82 +476,49 @@ function hasLatestChangesRequested(reviews) {
   return latestReviewsByReviewer(reviews).some(r => r.state === 'CHANGES_REQUESTED');
 }
 
-async function performMerge(api, config, pr, core, { allowBranchUpdate = true } = {}) {
+// Enables (or, if already on, disables) native GitHub auto-merge for a PR.
+// GitHub merges automatically once its own required checks and required
+// review are satisfied — no bot polling, no rebase-retry, no
+// pending-merge/merge-rebase bookkeeping needed.
+async function setAutoMerge(api, config, pr, core) {
   const freshPr = await api.getPr(pr.number);
-  if (!hasLabel(freshPr, LABELS.TESTED) || !hasLabel(freshPr, LABELS.READY_TO_MERGE)) {
-    core.warning(`PR #${pr.number} merge aborted: state changed since merge was initiated`);
-    return false;
+  if (freshPr.auto_merge) {
+    await api.disableAutoMerge(pr.number);
+    core.info(`PR #${pr.number} auto-merge disabled`);
+    return 'disabled';
   }
 
   const strategy = config.merge?.strategy || 'rebase';
   try {
-    await api.mergePr(pr.number, strategy, freshPr.title);
-    if (config.merge?.delete_branch) {
-      await api.deleteBranch(freshPr.head.ref);
-    }
-    core.info(`PR #${pr.number} merged using ${strategy}`);
-    return true;
+    await api.enableAutoMerge(pr.number, strategy);
+    core.info(`PR #${pr.number} auto-merge enabled (${strategy})`);
+    return 'enabled';
   } catch (e) {
-    // Branch is behind but can be cleanly updated — rebase and retry.
-    // Skip for permission errors (403 / "Resource not accessible") which
-    // indicate a different problem (e.g. workflow file modifications).
-    const isPermissionError = e.status === 403 || e.message?.includes('Resource not accessible');
-    if (allowBranchUpdate && !isPermissionError) {
-      const currentPr = await api.getPr(pr.number);
-      if (currentPr.rebaseable) {
-        try {
-          await api.addLabel(pr.number, LABELS.MERGE_REBASE);
-          await api.updateBranch(pr.number, currentPr.head.sha);
-          await api.postComment(pr.number,
-            `Merge could not proceed because the branch is behind \`${currentPr.base.ref}\`. ` +
-            `The branch has been updated automatically. Tests are skipped (they already ` +
-            `passed for the previous HEAD) and the merge will proceed shortly.`
-          );
-          core.info(`PR #${pr.number} branch updated for merge-rebase`);
-          return false;
-        } catch (updateErr) {
-          await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
-          core.warning(`PR #${pr.number} branch update failed: ${updateErr.message}`);
-        }
-      }
-    }
-
     const workflowHint = e.message?.includes('Resource not accessible')
-      ? ' This may be because the PR modifies workflow files, which requires manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
+      ? ' This may be because the PR modifies workflow files, which requires a manual merge via the GitHub UI (the `workflow` token scope is not available to GitHub Actions).'
       : '';
-    const conflictHint = freshPr.rebaseable === false
-      ? ' The branch has conflicts with the base branch that need manual resolution.'
-      : '';
-    await api.setLifecycleState(freshPr, LABELS.READY_FOR_REVIEW);
-    await api.removeLabel(pr.number, LABELS.TESTED);
-    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-    await api.postComment(pr.number,
-      `Merge failed: ${e.message}\n\n` +
-      `Reverted to \`lifecycle/ready-for-review\`.${workflowHint}${conflictHint}` +
-      (workflowHint || conflictHint ? '' : ` The branch may need to be rebased. Use \`/auto-merge\` to merge automatically once approved and tested.`)
-    );
-    core.error(`PR #${pr.number} merge failed: ${e.message}`);
-    return false;
+    core.error(`PR #${pr.number} failed to enable auto-merge: ${e.message}`);
+    await api.postComment(pr.number, `Could not enable auto-merge: ${e.message}${workflowHint}`);
+    return 'error';
   }
 }
 
+// Promotes ready-for-review to ready-to-merge once approved and fast-gated.
+// Purely a status transition now — it does not gate or trigger anything:
+// the full suite already runs on its own native triggers (PR push for
+// trusted authors, review submission for everyone else), and merging (if
+// auto-merge was enabled via /merge) is entirely GitHub's own job from here.
 async function checkAndTransitionToReady(api, pr, core, reviews) {
   if (!reviews) reviews = await api.getReviews(pr.number);
   const approved = isApproved(reviews);
-  const reviewSkipped = hasLabel(pr, LABELS.REVIEW_SKIPPED);
   const tested = hasLabel(pr, LABELS.TESTED);
   const state = getLifecycleState(pr);
 
-  if ((approved || reviewSkipped) && tested && state === LABELS.READY_FOR_REVIEW) {
+  if (approved && tested && state === LABELS.READY_FOR_REVIEW) {
     await api.setLifecycleState(pr, LABELS.READY_TO_MERGE);
     await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
     await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-
-    if (hasLabel(pr, LABELS.AUTO_MERGE)) {
-      core.info(`PR #${pr.number} auto-merge enabled, will merge`);
-      return 'auto-merge';
-    }
 
     // Ping reviewers/requested reviewers so they know the PR is ready
     const reviewerLogins = [...new Set(reviews.map(r => r.user.login))];
@@ -482,13 +531,14 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
     const mentionSuffix = mentions ? ` ${mentions}` : '';
 
     await api.postComment(pr.number,
-      `This PR is approved and tested.${mentionSuffix} A maintainer can merge it with \`/merge\`, ` +
-      `or enable auto-merge with \`/auto-merge\`.`
+      `This PR is approved and has passed the Quick Check gate. The full verification suite is the ` +
+      `remaining merge gate.${mentionSuffix} A maintainer can merge it with \`/merge\` — it enables ` +
+      `auto-merge, which completes once the full suite passes and the review is still valid.`
     );
     core.info(`PR #${pr.number} is ready to merge`);
-    return 'ready-to-merge';
+    return true;
   }
-  return null;
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -500,17 +550,58 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
 const LEGACY_WIP_LABEL = 'lifecycle/wip';
 const LEGACY_SMOKE_TESTED_LABEL = 'lifecycle/smoke-tested';
 const LEGACY_TESTS_DISABLED_LABEL = 'orchestrator/tests-disabled';
+// Retired when the full suite moved from a bot-label-gated trigger to a
+// native one (maintainer/auto_accept authorship or an approving review):
+// these no longer mean anything, they are just dropped.
+const LEGACY_NEW_LABEL = 'lifecycle/new';
+const LEGACY_REVIEW_APPROVED_LABEL = 'lifecycle/review-approved';
+const LEGACY_REVIEW_SKIPPED_LABEL = 'orchestrator/review-skipped';
+const LEGACY_PENDING_MERGE_LABEL = 'orchestrator/merge-pending';
+const LEGACY_MERGE_REBASE_LABEL = 'orchestrator/merge-rebase';
+// Retired in favor of native GitHub auto-merge (checked via pr.auto_merge).
+const LEGACY_AUTO_MERGE_LABEL = 'orchestrator/auto-merge';
+const SIMPLE_RETIRED_LABELS = [
+  LEGACY_REVIEW_APPROVED_LABEL, LEGACY_REVIEW_SKIPPED_LABEL,
+  LEGACY_PENDING_MERGE_LABEL, LEGACY_MERGE_REBASE_LABEL,
+];
 
 async function migrateLegacyLabels(api, pr, core) {
   const labels = getLabelNames(pr);
-  const hasLegacyWip = labels.includes(LEGACY_WIP_LABEL);
+  let migrated = false;
+
   if (labels.includes(LEGACY_SMOKE_TESTED_LABEL)) {
     await api.removeLabel(pr.number, LEGACY_SMOKE_TESTED_LABEL);
   }
   if (labels.includes(LEGACY_TESTS_DISABLED_LABEL)) {
     await api.removeLabel(pr.number, LEGACY_TESTS_DISABLED_LABEL);
   }
-  if (!hasLegacyWip) return false;
+  for (const label of SIMPLE_RETIRED_LABELS) {
+    if (labels.includes(label)) {
+      await api.removeLabel(pr.number, label);
+      core.info(`PR #${pr.number} removed retired label ${label}`);
+    }
+  }
+  if (labels.includes(LEGACY_AUTO_MERGE_LABEL)) {
+    await api.removeLabel(pr.number, LEGACY_AUTO_MERGE_LABEL);
+    const config = loadConfig();
+    await setAutoMerge(api, config, pr, core);
+    core.info(`PR #${pr.number} migrated ${LEGACY_AUTO_MERGE_LABEL} to native auto-merge`);
+  }
+  if (labels.includes(LEGACY_NEW_LABEL)) {
+    await api.removeLabel(pr.number, LEGACY_NEW_LABEL);
+    if (!pr.draft && !getLifecycleState(pr)) {
+      await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
+      await api.postComment(pr.number,
+        `**Lifecycle update:** the triage (\`lifecycle/new\` / \`/accept\`) stage has been removed — ` +
+        `this PR now moves straight to \`lifecycle/ready-for-review\`.`
+      );
+      migrated = true;
+    }
+    core.info(`PR #${pr.number} migrated off retired ${LEGACY_NEW_LABEL}`);
+  }
+
+  const hasLegacyWip = labels.includes(LEGACY_WIP_LABEL);
+  if (!hasLegacyWip) return migrated;
 
   await api.removeLabel(pr.number, LEGACY_WIP_LABEL);
 
@@ -528,16 +619,13 @@ async function migrateLegacyLabels(api, pr, core) {
   await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
   await api.postComment(pr.number,
     `**Lifecycle update:** the \`lifecycle/wip\` stage has been removed. This PR has been ` +
-    `migrated to \`lifecycle/ready-for-review\` and the full test suite will run.`
+    `migrated to \`lifecycle/ready-for-review\` and the Quick Check gate will run.`
   );
-  await retriggerVerify(api, pr, core, { waitForRun: true });
   core.warning(`PR #${pr.number} migrated from legacy lifecycle/wip to ${LABELS.READY_FOR_REVIEW}`);
   return true;
 }
 
 async function reconcile(github, api, pr, core) {
-  const config = loadConfig();
-
   if (await migrateLegacyLabels(api, pr, core)) return;
 
   // The orchestrator ignores draft PRs entirely — nothing to reconcile,
@@ -551,27 +639,22 @@ async function reconcile(github, api, pr, core) {
 
   const state = getLifecycleState(pr);
 
-  // 1. No lifecycle label at all → initialize as new PR
+  // 1. No lifecycle label at all → recover into ready-for-review. There is
+  //    no separate triage stage any more: Quick Check already runs for every
+  //    PR on its own native trigger, and the full suite runs immediately for
+  //    trusted authors or after an approving review — neither depends on
+  //    this label, so recovering it is just a display fix.
   if (!state) {
     if (hasLabel(pr, LABELS.DISABLED)) return;
 
-    if (isAutoAccepted(config, pr.user.login)) {
-      await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
-      await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      await retriggerVerify(api, pr, core);
-      core.warning(`PR #${pr.number} had no lifecycle label — initialized as ${LABELS.READY_FOR_REVIEW} (auto-accepted)`);
-    } else {
-      await api.addLabel(pr.number, LABELS.NEW);
-      await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      core.warning(`PR #${pr.number} had no lifecycle label — initialized as lifecycle/new`);
-    }
-
+    await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
+    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
     await api.postComment(pr.number,
       `**Warning:** This PR was missing a lifecycle label, which indicates the ` +
       `PR lifecycle orchestrator may have failed during initial processing. ` +
-      `The label has been restored automatically. If this PR was already accepted, ` +
-      `a maintainer may need to re-run the appropriate command (e.g. \`/accept\`).`
+      `The label has been restored automatically.`
     );
+    core.warning(`PR #${pr.number} had no lifecycle label — recovered as ${LABELS.READY_FOR_REVIEW}`);
     return;
   }
 
@@ -585,7 +668,6 @@ async function reconcile(github, api, pr, core) {
     if (hasChangesRequested) {
       await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
       await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
       core.info(`PR #${pr.number} reconciler fixed waiting-on labels (changes requested)`);
     } else if (!hasChangesRequested && hasLabel(pr, LABELS.WAITING_ON_AUTHOR) && hasLabel(pr, LABELS.TESTED)) {
       // Only remove waiting-on-author if tests passed — otherwise the label
@@ -595,14 +677,8 @@ async function reconcile(github, api, pr, core) {
       core.info(`PR #${pr.number} reconciler fixed waiting-on labels (changes addressed)`);
     }
 
-    if (approved) {
-      await api.addLabel(pr.number, LABELS.REVIEW_APPROVED);
-    }
-
-    const result = await checkAndTransitionToReady(api, pr, core, reviews);
-    if (result === 'auto-merge') {
-      await performMerge(api, config, pr, core);
-    } else if (result === 'ready-to-merge') {
+    const promoted = await checkAndTransitionToReady(api, pr, core, reviews);
+    if (promoted) {
       core.info(`PR #${pr.number} reconciler transitioned to ready-to-merge`);
     }
   }
@@ -612,11 +688,9 @@ async function reconcile(github, api, pr, core) {
   if (state === LABELS.READY_TO_MERGE) {
     const reviews = await api.getReviews(pr.number);
     const approved = isApproved(reviews);
-    const reviewSkipped = hasLabel(pr, LABELS.REVIEW_SKIPPED);
 
-    if (!approved && !reviewSkipped) {
+    if (!approved) {
       await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
-      await api.removeLabel(pr.number, LABELS.REVIEW_APPROVED);
 
       if (hasLatestChangesRequested(reviews)) {
         await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
@@ -641,10 +715,19 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
   return prs.filter(p => p.user.login === author && p.number !== excludePr);
 }
 
-// Puts a PR at the top of the lifecycle, fresh or after leaving draft.
+// Puts a PR at the top of the lifecycle, fresh or after leaving draft. Every
+// non-draft PR goes straight to ready-for-review — there is no separate
+// triage/accept stage; Quick Check already runs for every PR on its own
+// native trigger (fork-PR workflow approval, if configured, is GitHub's own
+// gate on whether a stranger's code runs at all), and the full suite runs
+// immediately for trusted authors or after an approving review for everyone
+// else — both decided natively by verify-decide.yaml, not by anything this
+// function does.
 // Drafts never reach here — they're ignored until marked ready for review.
 async function initNewPr(github, owner, repo, api, config, pr, core) {
-  if (!isAutoAccepted(config, pr.user.login)) {
+  const trusted = isAutoAccepted(config, pr.user.login);
+
+  if (!trusted) {
     const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
     const maxPrs = config.max_contributor_prs ?? 1;
     if (existingPrs.length >= maxPrs) {
@@ -662,35 +745,27 @@ async function initNewPr(github, owner, repo, api, config, pr, core) {
     }
   }
 
-  if (isAutoAccepted(config, pr.user.login)) {
-    await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
-    await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-    const maintainerHint = isMaintainer(config, pr.user.login)
-      ? `\n\nA maintainer can use \`/skip-review\` to skip the review requirement for small changes, ` +
-        `or \`/auto-merge\` to merge automatically once approved and tested.`
-      : '';
-    const forkHint = pr.head.repo?.full_name !== `${owner}/${repo}`
-      ? `\n\n**Note (fork PR):** Review label updates may not apply automatically. ` +
-        `A maintainer can use \`/retry\` after reviewing to update the labels.`
-      : '';
+  await api.addLabel(pr.number, LABELS.READY_FOR_REVIEW);
+  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+
+  const forkHint = pr.head.repo?.full_name !== `${owner}/${repo}`
+    ? `\n\n**Note (fork PR):** label updates may not apply automatically. ` +
+      `A maintainer can use \`/retry\` after reviewing to update them.`
+    : '';
+
+  if (trusted) {
     await api.postComment(pr.number,
-      `PR auto-accepted (trusted author). Full test suite will run.` +
-      maintainerHint + forkHint
+      `Thanks for opening this PR! As a trusted author, the full verification suite starts ` +
+      `immediately — it does not wait for a review. A maintainer's review is still required to merge.` +
+      forkHint
     );
-    core.info(`PR #${pr.number} auto-accepted for ${pr.user.login}, state=${LABELS.READY_FOR_REVIEW}`);
-    await retriggerVerify(api, pr, core, { waitForRun: true });
+    core.info(`PR #${pr.number} opened by trusted author ${pr.user.login}, state=${LABELS.READY_FOR_REVIEW}`);
     return;
   }
 
-  await api.addLabel(pr.number, LABELS.NEW);
-  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-  let message = config.welcome_message.replace(/\{author\}/g, pr.user.login);
-  if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
-    message += `\n**Note (fork PR):** Review label updates may not apply automatically. ` +
-      `A maintainer can use \`/retry\` after reviewing to update the labels.`;
-  }
+  const message = config.welcome_message.replace(/\{author\}/g, pr.user.login) + forkHint;
   await api.postComment(pr.number, message);
-  core.info(`PR #${pr.number} opened, set to lifecycle/new`);
+  core.info(`PR #${pr.number} opened, state=${LABELS.READY_FOR_REVIEW}`);
 }
 
 async function handlePrOpened({ github, context, core }) {
@@ -716,34 +791,13 @@ async function handlePrSynchronize({ github, context, core }) {
     return;
   }
 
-  // Orchestrator-initiated branch update for merge — preserve state.
-  // Only honour for bot-triggered syncs; if a human pushes while the
-  // label is set, abort the fast-merge flow and proceed normally.
-  if (hasLabel(pr, LABELS.MERGE_REBASE)) {
-    if (context.payload.sender?.login === BOT_LOGIN) {
-      core.info(`PR #${pr.number} orchestrator-initiated branch update for merge, preserving state`);
-      if (hasLabel(pr, LABELS.STALE)) {
-        await api.removeLabel(pr.number, LABELS.STALE);
-      }
-      return;
-    }
-    await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
-    core.info(`PR #${pr.number} human push during merge-rebase, aborting fast-merge`);
-  }
-
-  const rerunHints = [];
-
   if (hasLabel(pr, LABELS.TESTED)) {
     await api.removeLabel(pr.number, LABELS.TESTED);
     core.info(`PR #${pr.number} new push, removed lifecycle/tested`);
   }
-  // review-approved is not removed here — it is only removed when GitHub
-  // dismisses the review (pull_request_review dismissed event), keeping
-  // parity with GitHub's branch protection "dismiss stale reviews" setting.
-  if (hasLabel(pr, LABELS.AUTO_MERGE)) {
-    await api.removeLabel(pr.number, LABELS.AUTO_MERGE);
-    rerunHints.push('Auto-merge has been disabled — use `/auto-merge` to re-enable after tests pass.');
-    core.info(`PR #${pr.number} new push, removed orchestrator/auto-merge`);
+  if (hasLabel(pr, LABELS.FULL_VERIFIED)) {
+    await api.removeLabel(pr.number, LABELS.FULL_VERIFIED);
+    core.info(`PR #${pr.number} new push, removed lifecycle/full-verified`);
   }
   if (hasLabel(pr, LABELS.STALE)) {
     await api.removeLabel(pr.number, LABELS.STALE);
@@ -759,25 +813,15 @@ async function handlePrSynchronize({ github, context, core }) {
     core.info(`PR #${pr.number} reverted from ready-to-merge to ready-for-review`);
   }
 
-  if (rerunHints.length > 0) {
-    await api.postComment(pr.number,
-      `New commits pushed. The test suite will re-run.\n\n` +
-      rerunHints.map(h => `- ${h}`).join('\n')
-    );
-  }
-
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
 
-  // For fork PRs in a testable state, the synchronize event creates a new
-  // Verify run that needs approval. Wait for it to appear, then approve.
-  const currentState = getLifecycleState(freshPr);
-  if (currentState === LABELS.READY_FOR_REVIEW || currentState === LABELS.READY_TO_MERGE) {
-    await new Promise(r => setTimeout(r, 5000));
-    const approved = await approvePendingVerifyRuns(api, freshPr, core);
-    if (approved > 0) {
-      core.info(`PR #${pr.number} approved ${approved} pending Verify run(s) after push`);
-    }
+  // For fork PRs, the synchronize event creates a new run that needs
+  // approval. Wait for it to appear, then approve.
+  await new Promise(r => setTimeout(r, 5000));
+  const approved = await approveAllPendingCiRuns(api, freshPr, core);
+  if (approved > 0) {
+    core.info(`PR #${pr.number} approved ${approved} pending CI run(s) after push`);
   }
 }
 
@@ -803,8 +847,7 @@ async function handlePrConvertedToDraft({ github, context, core }) {
   await api.postComment(pr.number,
     `Converted to draft — the orchestrator ignores draft PRs, so lifecycle labels ` +
     `have been removed and CI will not run on new pushes.\n\n` +
-    `Mark the PR as ready for review to re-enter the lifecycle at \`lifecycle/new\`. ` +
-    `Note that a maintainer will need to \`/accept\` it again.`
+    `Mark the PR as ready for review to re-enter the lifecycle at \`lifecycle/ready-for-review\`.`
   );
   core.info(`PR #${pr.number} converted to draft, removed: ${toRemove.join(', ')}`);
 }
@@ -822,8 +865,31 @@ async function handlePrReadyForReview({ github, context, core }) {
     return;
   }
 
-  core.info(`PR #${pr.number} marked ready for review (was draft), entering lifecycle/new`);
+  core.info(`PR #${pr.number} marked ready for review (was draft), entering the lifecycle`);
   await initNewPr(github, owner, repo, api, config, pr, core);
+}
+
+// Fires when a review is submitted. verify.yaml (the full suite) already
+// reacts to this natively (pull_request_review: submitted) for non-trusted
+// authors; this reconciles labels (waiting-on-*, ready-to-merge) right away
+// instead of waiting for the next label-change event or the periodic sweep.
+// Fires when a review is submitted. verify.yaml has its own native
+// pull_request_review trigger (safe — GitHub gives it the same restricted,
+// secret-less fork-PR token as pull_request, and GITHUB_REF/GITHUB_SHA
+// already resolve to the PR's merge branch, same as pull_request), so it
+// re-evaluates Decide and starts the full suite on its own the moment a
+// review lands. This just keeps the display labels (waiting-on-*,
+// ready-to-merge) in sync right away instead of waiting for the next
+// label-change event or the periodic sweep.
+async function handlePrReviewSubmitted({ github, context, core }) {
+  const pr = context.payload.pull_request;
+  const { owner, repo } = context.repo;
+  const api = createApi(github, owner, repo);
+
+  if (hasLabel(pr, LABELS.DISABLED) || pr.draft) return;
+
+  const freshPr = await api.getPr(pr.number);
+  await reconcile(github, api, freshPr, core);
 }
 
 async function handleComment({ github, context, core }) {
@@ -844,13 +910,10 @@ async function handleComment({ github, context, core }) {
   const isAuthor = actor === pr.user.login;
 
   const handlers = {
-    'accept': () => cmdAccept(api, config, core, pr, actor, maintainer, comment.id),
     'reject': () => cmdReject(api, config, core, pr, actor, maintainer, parsed.args, comment.id),
     'merge': () => cmdMerge(api, config, core, pr, actor, maintainer, comment.id),
-    'auto-merge': () => cmdAutoMerge(api, config, core, pr, actor, maintainer, comment.id),
-    'skip-review': () => cmdSkipReview(api, config, core, pr, actor, maintainer, comment.id),
     'unstale': () => cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, comment.id),
-    'retry': () => cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comment.id),
+    'retry': () => cmdRetry(github, api, config, core, pr, actor, isAuthor, maintainer, comment.id),
   };
 
   const handler = handlers[parsed.command];
@@ -863,51 +926,12 @@ async function handleComment({ github, context, core }) {
 // Command Handlers
 // ---------------------------------------------------------------------------
 
-async function cmdAccept(api, config, core, pr, actor, maintainer, commentId) {
-  if (!maintainer) {
-    await api.addReaction(commentId, '-1');
-    await api.postComment(pr.number, `@${actor} Only maintainers can accept PRs.`);
-    return;
-  }
-
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.NEW) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} Cannot accept: PR is not in \`lifecycle/new\` state (current: \`${state || 'none'}\`).`
-    );
-    return;
-  }
-
-  await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
-  await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-  await api.addReaction(commentId, '+1');
-  await api.postComment(pr.number,
-    `PR accepted by @${actor}. @${pr.user.login}, the full test suite will run now.\n\n` +
-    `A maintainer can use \`/auto-merge\` to merge automatically once approved and tested.`
-  );
-  core.info(`PR #${pr.number} accepted by ${actor}`);
-  await retriggerVerify(api, pr, core);
-
-  // The label change above may trigger a new Verify run that also needs
-  // approval (fork PRs). Wait for GitHub to create it, then approve.
-  await new Promise(r => setTimeout(r, 5000));
-  await approvePendingVerifyRuns(api, pr, core);
-}
-
+// Maintainer moderation — closes a PR that should not be worked further,
+// regardless of its current lifecycle state.
 async function cmdReject(api, config, core, pr, actor, maintainer, reason, commentId) {
   if (!maintainer) {
     await api.addReaction(commentId, '-1');
     await api.postComment(pr.number, `@${actor} Only maintainers can reject PRs.`);
-    return;
-  }
-
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.NEW) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} Cannot reject: PR is not in \`lifecycle/new\` state (current: \`${state || 'none'}\`).`
-    );
     return;
   }
 
@@ -916,12 +940,14 @@ async function cmdReject(api, config, core, pr, actor, maintainer, reason, comme
     `PR rejected by @${actor}.${reasonText}\n\n` +
     `@${pr.user.login}, please address the feedback and reopen if appropriate.`
   );
-  await api.setLifecycleState(pr, null);
   await api.closePr(pr.number);
   await api.addReaction(commentId, '+1');
   core.info(`PR #${pr.number} rejected by ${actor}`);
 }
 
+// Toggles native GitHub auto-merge. GitHub merges automatically once its own
+// required checks and required review are satisfied — this does not require
+// the PR to already be lifecycle/ready-to-merge; it just queues the intent.
 async function cmdMerge(api, config, core, pr, actor, maintainer, commentId) {
   if (!maintainer) {
     await api.addReaction(commentId, '-1');
@@ -929,104 +955,16 @@ async function cmdMerge(api, config, core, pr, actor, maintainer, commentId) {
     return;
   }
 
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.READY_TO_MERGE) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} Cannot merge: PR is not in \`lifecycle/ready-to-merge\` state ` +
-      `(current: \`${state || 'none'}\`). The PR must be both approved and tested.`
-    );
-    return;
-  }
-
-  const merged = await performMerge(api, config, pr, core);
-  await api.addReaction(commentId, merged ? '+1' : '-1');
-}
-
-async function cmdAutoMerge(api, config, core, pr, actor, maintainer, commentId) {
-  if (!maintainer) {
-    await api.addReaction(commentId, '-1');
-    await api.postComment(pr.number, `@${actor} Only maintainers can enable auto-merge.`);
-    return;
-  }
-
-  const state = getLifecycleState(pr);
-  if (!state || state === LABELS.NEW) {
-    await api.addReaction(commentId, 'confused');
-    await api.postComment(pr.number,
-      `@${actor} Cannot enable auto-merge: PR must be accepted first.`
-    );
-    return;
-  }
-
-  if (hasLabel(pr, LABELS.AUTO_MERGE)) {
-    await api.removeLabel(pr.number, LABELS.AUTO_MERGE);
-    await api.addReaction(commentId, '+1');
+  const result = await setAutoMerge(api, config, pr, core);
+  await api.addReaction(commentId, result === 'error' ? '-1' : '+1');
+  if (result === 'disabled') {
     await api.postComment(pr.number, `Auto-merge disabled by @${actor}.`);
-    core.info(`PR #${pr.number} auto-merge disabled by ${actor}`);
-    return;
-  }
-
-  await api.addLabel(pr.number, LABELS.AUTO_MERGE);
-  await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-  await api.addReaction(commentId, '+1');
-
-  const approved = isApproved(await api.getReviews(pr.number));
-  const reviewSkipped = hasLabel(pr, LABELS.REVIEW_SKIPPED);
-  const needsReview = !approved && !reviewSkipped;
-
-  await api.postComment(pr.number,
-    `Auto-merge enabled by @${actor}. This PR will be merged automatically ` +
-    `when it reaches \`lifecycle/ready-to-merge\` state. Use \`/auto-merge\` again to disable.` +
-    (needsReview ? `\n\n**Note:** A review or \`/skip-review\` is still required before auto-merge can proceed.` : '')
-  );
-
-  if (state === LABELS.READY_TO_MERGE) {
-    await performMerge(api, config, pr, core);
-  }
-
-  core.info(`PR #${pr.number} auto-merge enabled by ${actor}`);
-}
-
-async function cmdSkipReview(api, config, core, pr, actor, maintainer, commentId) {
-  if (!maintainer) {
-    await api.addReaction(commentId, '-1');
-    await api.postComment(pr.number, `@${actor} Only maintainers can skip the review requirement.`);
-    return;
-  }
-
-  const state = getLifecycleState(pr);
-  if (state !== LABELS.READY_FOR_REVIEW) {
-    await api.addReaction(commentId, 'confused');
+  } else if (result === 'enabled') {
     await api.postComment(pr.number,
-      `@${actor} Cannot skip review: PR must be in \`lifecycle/ready-for-review\` state ` +
-      `(current: \`${state || 'none'}\`).`
-    );
-    return;
-  }
-
-  await api.addLabel(pr.number, LABELS.REVIEW_SKIPPED);
-  await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-  await api.addReaction(commentId, '+1');
-
-  const freshPr = await api.getPr(pr.number);
-  if (hasLabel(freshPr, LABELS.TESTED)) {
-    const result = await checkAndTransitionToReady(api, freshPr, core);
-    if (result === 'auto-merge') {
-      await performMerge(api, config, freshPr, core);
-      await api.postComment(pr.number,
-        `Review requirement skipped by @${actor}. PR was tested and has been auto-merged.`
-      );
-    } else if (result === 'ready-to-merge') {
-      // checkAndTransitionToReady already posted its own comment
-    }
-  } else {
-    await api.postComment(pr.number,
-      `Review requirement skipped by @${actor}. The PR will move to \`lifecycle/ready-to-merge\` ` +
-      `once tests pass.`
+      `Auto-merge enabled by @${actor}. GitHub will merge this PR automatically once all ` +
+      `required checks pass and it has an approving review. Use \`/merge\` again to disable.`
     );
   }
-  core.info(`PR #${pr.number} review skipped by ${actor}`);
 }
 
 async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, commentId) {
@@ -1046,7 +984,7 @@ async function cmdUnstale(api, config, core, pr, actor, isAuthor, maintainer, co
   core.info(`PR #${pr.number} unstaled by ${actor}`);
 }
 
-async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, commentId) {
+async function cmdRetry(github, api, config, core, pr, actor, isAuthor, maintainer, commentId) {
   if (!isAuthor && !maintainer) {
     await api.addReaction(commentId, '-1');
     await api.postComment(pr.number,
@@ -1061,36 +999,50 @@ async function cmdRetry(github, api, core, pr, actor, isAuthor, maintainer, comm
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
 
-  // Check if the latest Verify run failed, was cancelled, or needs approval
-  const latestRun = await api.findLatestVerifyRun(freshPr.head.sha);
+  // The workflow that matters depends on lifecycle state: the fast gate
+  // (quick-check.yaml) during iteration, the full suite (verify.yaml) at
+  // ready-to-merge or for trusted authors (it runs from the start for them).
+  const isTrustedAuthor = isAutoAccepted(config, freshPr.user.login);
+  const atMergeGate = getLifecycleState(freshPr) === LABELS.READY_TO_MERGE || isTrustedAuthor;
+  const workflowFiles = atMergeGate ? FULL_SUITE_WORKFLOW_FILES : ['quick-check.yaml'];
+  const workflowDesc = atMergeGate ? 'full-suite' : 'quick-check.yaml';
+  const latestRuns = [];
+  for (const wf of workflowFiles) {
+    const run = await api.findLatestVerifyRun(freshPr.head.sha, wf);
+    if (run) latestRuns.push(run);
+  }
+  const latestRun = latestRuns.find(r => r.conclusion === 'action_required')
+    || latestRuns.find(r => r.conclusion === 'failure' || r.conclusion === 'cancelled')
+    || latestRuns.find(r => r.status !== 'completed')
+    || latestRuns[0];
   if (latestRun && latestRun.conclusion === 'action_required') {
-    const approved = await approvePendingVerifyRuns(api, freshPr, core);
+    const approved = await approveAllPendingCiRuns(api, freshPr, core);
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state and approved ${approved} pending Verify ` +
+      `Retrying: reconciled PR state and approved ${approved} pending CI ` +
       `workflow run${approved !== 1 ? 's' : ''} (fork PR approval).`
     );
     core.info(`PR #${pr.number} retry: reconciled + approved ${approved} pending run(s) by ${actor}`);
   } else if (latestRun && (latestRun.conclusion === 'failure' || latestRun.conclusion === 'cancelled')) {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state and re-triggering the Verify workflow ` +
-      `(previous run [${latestRun.conclusion}](${latestRun.html_url})).`
+      `Retrying: reconciled PR state and re-triggering the failed ${workflowDesc} workflow ` +
+      `run(s) (previous run [${latestRun.conclusion}](${latestRun.html_url})).`
     );
-    await retriggerVerify(api, freshPr, core);
-    core.info(`PR #${pr.number} retry: reconciled + re-triggered Verify by ${actor}`);
+    await retriggerVerify(api, freshPr, core, isTrustedAuthor);
+    core.info(`PR #${pr.number} retry: reconciled + re-triggered ${workflowDesc} by ${actor}`);
   } else if (latestRun && latestRun.status !== 'completed') {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state. The Verify workflow is already running.`
+      `Retrying: reconciled PR state. The ${workflowDesc} workflow is already running.`
     );
-    core.info(`PR #${pr.number} retry: reconciled (Verify already running) by ${actor}`);
+    core.info(`PR #${pr.number} retry: reconciled (${workflowDesc} already running) by ${actor}`);
   } else if (!latestRun) {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state. No Verify run found — attempting to trigger a fresh one.`
+      `Retrying: reconciled PR state. No ${workflowDesc} run found — attempting to trigger a fresh one.`
     );
-    await retriggerVerify(api, freshPr, core);
-    core.info(`PR #${pr.number} retry: reconciled + triggered fresh Verify by ${actor}`);
+    await retriggerVerify(api, freshPr, core, isTrustedAuthor);
+    core.info(`PR #${pr.number} retry: reconciled + triggered fresh ${workflowDesc} by ${actor}`);
   } else {
     await api.postComment(pr.number,
-      `Retrying: reconciled PR state. No failed Verify run to re-trigger.`
+      `Retrying: reconciled PR state. No failed ${workflowDesc} run to re-trigger.`
     );
     core.info(`PR #${pr.number} retry: reconciled (no failed run) by ${actor}`);
   }
@@ -1153,6 +1105,25 @@ async function handleTestResult({ github, context, core }) {
     return;
   }
 
+  // Two-tier CI routing:
+  //  - "Quick Check" (quick-check.yaml): the fast gate. Its result drives
+  //    lifecycle/tested while a PR is in ready-for-review. It has no
+  //    lifecycle awareness of its own and is not part of the full suite —
+  //    unlike before the quick-check.yaml/verify.yaml split, it no longer
+  //    doubles as one of the full-suite workflows, so it is intentionally
+  //    NOT in FULL_SUITE_WORKFLOWS.
+  //  - "Verify": the full suite (build, unit tests, CLI, SDKs, console
+  //    plugin, integration tests, extra tests, operator tests). One Decide
+  //    job shared by every job in it, so lifecycle/full-verified is applied
+  //    or reverted based on this single workflow's outcome. Its runs
+  //    completing while a PR is still in ready-for-review are no-ops
+  //    (Decide skips every job) and must NOT mark the PR tested.
+  const isFastGate = workflowRun.name === FAST_GATE_WORKFLOW;
+  if (!isFastGate && !FULL_SUITE_WORKFLOWS.includes(workflowRun.name)) {
+    core.info(`Unhandled workflow ${workflowRun.name}, skipping`);
+    return;
+  }
+
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
 
@@ -1168,6 +1139,14 @@ async function handleTestResult({ github, context, core }) {
     });
     prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
     if (!prRefs.length) {
+      // Last resort: scan all open PRs by head SHA (covers edge cases where
+      // the head-branch filter above misses, e.g. a stale/renamed branch).
+      const { data: openPrs } = await github.rest.pulls.list({
+        owner, repo, state: 'open', per_page: 50,
+      });
+      prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
+    }
+    if (!prRefs.length) {
       core.info(`No open PR found for branch ${workflowRun.head_branch} / SHA ${workflowRun.head_sha}, skipping`);
       return;
     }
@@ -1181,73 +1160,91 @@ async function handleTestResult({ github, context, core }) {
 
     const state = getLifecycleState(pr);
 
-    // Merge-rebase flow: branch was auto-updated, tests were skipped,
-    // proceed to merge once the Verification Gate passes.
-    if (state === LABELS.READY_TO_MERGE && hasLabel(pr, LABELS.MERGE_REBASE)) {
-      if (pr.head.sha !== workflowRun.head_sha) {
-        core.info(`PR #${pr.number} merge-rebase SHA mismatch, skipping`);
+    // Quick Check's result only drives lifecycle/tested while the PR is in
+    // ready-for-review; a Quick Check completion arriving after promotion
+    // (handlePrSynchronize normally reverts to ready-for-review on every new
+    // push before this can happen, but a completion for an already-promoted
+    // SHA is possible) falls through to the full-suite branch below instead,
+    // which is a harmless no-op re-check of verify.yaml's status.
+    const asFastGate = isFastGate && state === LABELS.READY_FOR_REVIEW;
+
+    if (asFastGate) {
+      // A late Quick Check completion can belong to a full-tier run that
+      // raced a failure revert. If the full suite (verify.yaml) already
+      // failed for this SHA, it owns the result — do not promote the PR.
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
+      if (suite.status === 'failure') {
+        core.info(`PR #${pr.number} full-suite failure recorded for this SHA, skipping fast-gate result`);
         continue;
       }
-      if (workflowRun.conclusion === 'success') {
-        await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
-        const config = loadConfig();
-        const merged = await performMerge(api, config, pr, core, { allowBranchUpdate: false });
-        if (!merged) {
-          core.warning(`PR #${pr.number} merge-rebase: merge failed after branch update`);
-        }
-      } else {
-        await api.removeLabel(pr.number, LABELS.MERGE_REBASE);
-        await api.removeLabel(pr.number, LABELS.TESTED);
-        await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
-        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-        await api.postComment(pr.number,
-          `The verification workflow failed after the branch update. ` +
-          `Reverting to \`lifecycle/ready-for-review\` for a full test run.`
-        );
-      }
-      await postDecisionSummary(github, owner, repo, workflowRun, pr.number, core);
-      await postFlakyTestsSummary(github, owner, repo, workflowRun, pr.number, core);
-      continue;
     }
-
-    if (state !== LABELS.READY_FOR_REVIEW) {
-      core.info(`PR #${pr.number} not in ready-for-review state, skipping test result`);
-      continue;
-    }
+    // Unlike before, the full-suite branch below is NOT gated on
+    // lifecycle/ready-to-merge: verify.yaml now triggers on its own native
+    // events (push for trusted authors, review submission for everyone
+    // else), so it can legitimately complete before the fast gate/review has
+    // finished promoting the PR.
 
     if (pr.head.sha !== workflowRun.head_sha) {
       core.info(`PR #${pr.number} head SHA mismatch (PR: ${pr.head.sha}, run: ${workflowRun.head_sha}), skipping`);
       continue;
     }
 
-    if (workflowRun.conclusion === 'success') {
-      await api.addLabel(pr.number, LABELS.TESTED);
-      await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-      core.info(`PR #${pr.number} tests passed, added lifecycle/tested`);
+    if (asFastGate) {
+      if (workflowRun.conclusion === 'success') {
+        await api.addLabel(pr.number, LABELS.TESTED);
+        await api.removeLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+        core.info(`PR #${pr.number} fast gate passed, added lifecycle/tested`);
 
-      const freshPr = await api.getPr(pr.number);
-      const result = await checkAndTransitionToReady(api, freshPr, core);
-      if (result === 'auto-merge') {
-        const config = loadConfig();
-        await performMerge(api, config, freshPr, core);
-      } else if (!result) {
-        await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+        const freshPr = await api.getPr(pr.number);
+        const promoted = await checkAndTransitionToReady(api, freshPr, core);
+        if (!promoted) {
+          await api.addLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+        }
+      } else if (workflowRun.conclusion === 'failure') {
+        await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+        await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+        await api.postComment(pr.number,
+          `The Quick Check gate failed for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
+          `@${pr.user.login}, please check the ` +
+          `[workflow run](${workflowRun.html_url}) and push a fix.`
+        );
+        core.info(`PR #${pr.number} fast gate failed`);
+      } else if (workflowRun.conclusion === 'cancelled') {
+        await api.postComment(pr.number,
+          `The Quick Check gate was cancelled for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
+          `See the [workflow run](${workflowRun.html_url}). Use \`/retry\` to re-run.`
+        );
+        core.info(`PR #${pr.number} fast gate cancelled`);
       }
-    } else if (workflowRun.conclusion === 'failure') {
-      await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
-      await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
-      await api.postComment(pr.number,
-        `The test suite failed for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
-        `@${pr.user.login}, please check the ` +
-        `[workflow run](${workflowRun.html_url}) and push a fix.`
-      );
-      core.info(`PR #${pr.number} tests failed`);
-    } else if (workflowRun.conclusion === 'cancelled') {
-      await api.postComment(pr.number,
-        `The test suite was cancelled for commit ${workflowRun.head_sha.substring(0, 7)}. ` +
-        `See the [workflow run](${workflowRun.html_url}). Use \`/retry\` to re-run.`
-      );
-      core.info(`PR #${pr.number} tests cancelled`);
+    } else {
+      // Full suite: the pre-merge gate. verify.yaml must be green for this
+      // SHA; a failure or cancellation fails the suite.
+      const suite = await getFullSuiteResult(github, owner, repo, workflowRun.head_sha, core);
+      if (suite.status === 'pending') {
+        core.info(`PR #${pr.number} waiting for the full-suite workflow`);
+        continue;
+      }
+      if (suite.status === 'success') {
+        await api.addLabel(pr.number, LABELS.FULL_VERIFIED);
+        core.info(`PR #${pr.number} full verification passed, added lifecycle/full-verified`);
+      } else {
+        const failed = suite.failedRun;
+        const verb = failed.conclusion === 'cancelled' ? 'was cancelled' : 'failed';
+        await api.removeLabel(pr.number, LABELS.FULL_VERIFIED);
+        await api.postComment(pr.number,
+          `The full verification suite ${verb} for commit ${workflowRun.head_sha.substring(0, 7)} ` +
+          `(${failed.name}: ${failed.html_url}). @${pr.user.login}, please check the workflow run and push a fix.`
+        );
+        if (state === LABELS.READY_TO_MERGE) {
+          await api.removeLabel(pr.number, LABELS.TESTED);
+          await api.setLifecycleState(pr, LABELS.READY_FOR_REVIEW);
+          await api.addLabel(pr.number, LABELS.WAITING_ON_AUTHOR);
+          await api.removeLabel(pr.number, LABELS.WAITING_ON_MAINTAINER);
+          core.info(`PR #${pr.number} full verification ${verb}, reverted to ready-for-review`);
+        } else {
+          core.info(`PR #${pr.number} full verification ${verb}`);
+        }
+      }
     }
 
     // Post or update the decision summary comment
@@ -1361,7 +1358,11 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
 
     const phases = [
       ['Lint and Validate', 'lifecycle-ready', 'Lint and Validate'],
-      ['Build', 'run-build', 'Build /'],
+      // build-java/build-ui are inlined directly in verify.yaml (not a
+      // reusable "Build" caller job), so they are named "Build Java
+      // Application (no tests)" / "Build UI Application" directly rather
+      // than composing as "Build / ...".
+      ['Build', 'run-build', 'Build '],
       ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
       ['Integration Tests', 'run-integration', 'Integration Tests /'],
       ['Extra Tests', 'run-extras', 'Extra Tests /'],
@@ -1679,6 +1680,7 @@ module.exports = {
   handlePrSynchronize,
   handlePrReadyForReview,
   handlePrConvertedToDraft,
+  handlePrReviewSubmitted,
   handleComment,
   handleLabelChange,
   handleTestResult,
@@ -1686,4 +1688,5 @@ module.exports = {
   handleReconcile,
   reconcile,
   LABELS,
+  FULL_SUITE_WORKFLOWS,
 };

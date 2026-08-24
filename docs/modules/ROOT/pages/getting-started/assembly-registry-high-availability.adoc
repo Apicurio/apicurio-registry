@@ -349,6 +349,23 @@ APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_REPLICATION_FACTOR=3
 APICURIO_KAFKASQL_SNAPSHOTS_TOPIC_MIN_INSYNC_REPLICAS=2
 ----
 
+[id="ha-kafkasql-startup-verification_{context}"]
+== KafkaSQL startup verification
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+At startup, {registry} verifies the KafkaSQL topic configuration and the contents of the journal topic before it serves requests. Verification protects against accidental data loss from misconfigured topics or from data that an earlier major version wrote.
+
+{registry} performs the following checks:
+
+* Topic configuration: every KafkaSQL topic must use the `delete` cleanup policy, and the journal and snapshots topics must use unlimited retention (`retention.ms=-1` and `retention.bytes=-1`). When a check fails, {registry} refuses to start, and the error message names the topic, the effective value, and where the value was configured.
+* Journal contents: {registry} inspects recent messages in the journal topic. When the journal contains only {registry} version 2.x records, {registry} refuses to start to prevent data loss. When the journal contains a mix of version 2.x and 3.x records, {registry} logs an error and continues.
+
+The journal inspection is bounded: {registry} captures the topic end offsets before it reads, so messages that other replicas produce concurrently do not delay startup.
+
+To relax the retention verification, for example, when you use the snapshotting feature with automatic cleanup, set `apicurio.kafkasql.topic-configuration-verification-override-enabled=true`. With this setting, {registry} does not enforce unlimited retention, so ensure that snapshots are created more frequently than messages are deleted.
+
 [id="ha-kafkasql-consumer-behavior_{context}"]
 == Consumer behavior with multiple replicas
 
@@ -376,6 +393,36 @@ group ID causes Kafka to resume from previously committed offsets, skipping the 
 resulting in the registry appearing empty after a restart. If you need a recognizable consumer group
 name for monitoring, use the `APICURIO_KAFKASQL_CONSUMER_GROUP_PREFIX` environment variable instead,
 which sets a prefix while still generating a unique group ID on each startup.
+
+[id="ha-operator-leader-election_{context}"]
+== Operator leader election
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+When you run more than one replica of the {operator}, Kubernetes Lease-based leader election ensures that only one replica reconciles resources at a time. Leader election is enabled by default.
+
+You can configure leader election with the following environment variables on the operator deployment:
+
+.Operator leader election environment variables
+[cols="3,2,3",options="header"]
+|===
+|Environment variable
+|Default
+|Description
+
+|`APICURIO_OPERATOR_LEADER_ELECTION_ENABLED`
+|`true`
+|Enables Lease-based leader election. When the lease namespace cannot be resolved, leader election is disabled automatically.
+
+|`APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAME`
+|`apicurio-registry-operator-lease`
+|Name of the Lease resource.
+
+|`APICURIO_OPERATOR_LEADER_ELECTION_LEASE_NAMESPACE`
+|The operator pod namespace
+|Namespace of the Lease resource.
+|===
 
 [id="ha-monitoring_{context}"]
 == High availability monitoring

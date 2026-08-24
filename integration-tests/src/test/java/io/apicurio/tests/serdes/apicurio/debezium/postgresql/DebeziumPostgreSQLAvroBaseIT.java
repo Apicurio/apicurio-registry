@@ -9,7 +9,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -23,7 +22,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -334,7 +332,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         executeUpdate("INSERT INTO " + table3 + " (sku, stock_count) VALUES ('SKU-123', 50)");
 
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(20, TimeUnit.SECONDS, () -> {
+        pollUntilTrue(Duration.ofSeconds(20), () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(allRecords::add);
             return allRecords.size() >= 3;
         });
@@ -657,7 +655,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         }
 
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(60, TimeUnit.SECONDS, () -> {
+        pollUntilTrue(Duration.ofSeconds(60), () -> {
             consumer.poll(Duration.ofSeconds(1)).forEach(allRecords::add);
             log.info("Consumed {} records so far", allRecords.size());
             return allRecords.size() >= totalRows;

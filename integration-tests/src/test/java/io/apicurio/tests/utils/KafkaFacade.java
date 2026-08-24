@@ -22,7 +22,12 @@ public class KafkaFacade implements AutoCloseable {
     private static KafkaFacade instance;
     private StrimziKafkaCluster kafkaContainer;
 
-    public static KafkaFacade getInstance() {
+    // Number of test classes currently using the shared cluster. The cluster is only
+    // stopped when the last user releases it, so concurrently running test classes
+    // cannot stop Kafka from under each other.
+    private int users = 0;
+
+    public static synchronized KafkaFacade getInstance() {
         if (instance == null) {
             instance = new KafkaFacade();
         }
@@ -53,7 +58,8 @@ public class KafkaFacade implements AutoCloseable {
         return kafkaContainer != null;
     }
 
-    public void startIfNeeded() {
+    public synchronized void startIfNeeded() {
+        users++;
         if (isRunning()) {
             LOGGER.info("Skipping deployment of kafka, because it's already deployed");
         } else {
@@ -61,29 +67,54 @@ public class KafkaFacade implements AutoCloseable {
         }
     }
 
-    public void start() {
+    private static final int MAX_START_ATTEMPTS = 2;
+
+    public synchronized void start() {
         if (isRunning()) {
             throw new IllegalStateException("Kafka cluster is already running");
         }
 
-        LOGGER.info("Starting kafka container");
-        this.kafkaContainer = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
-                .withNumberOfBrokers(1)
-                .withAdditionalKafkaConfiguration(Map.of(
-                        "transaction.state.log.replication.factor", "1",
-                        "transaction.state.log.min.isr", "1"))
-                .build();
-        kafkaContainer.start();
-
+        for (int attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt++) {
+            LOGGER.info("Starting kafka container (attempt {}/{})", attempt, MAX_START_ATTEMPTS);
+            this.kafkaContainer = new StrimziKafkaCluster.StrimziKafkaClusterBuilder()
+                    .withNumberOfBrokers(1)
+                    .withAdditionalKafkaConfiguration(Map.of(
+                            "transaction.state.log.replication.factor", "1",
+                            "transaction.state.log.min.isr", "1"))
+                    .build();
+            try {
+                kafkaContainer.start();
+                return;
+            } catch (Exception e) {
+                if (e instanceof InterruptedException
+                        || e.getCause() instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+                LOGGER.warn("Kafka container start attempt {} failed: {}", attempt, e.getMessage());
+                try {
+                    kafkaContainer.stop();
+                } catch (Exception stopEx) {
+                    LOGGER.debug("Error stopping failed container", stopEx);
+                }
+                kafkaContainer = null;
+                if (attempt == MAX_START_ATTEMPTS) {
+                    throw new RuntimeException("Failed to start Kafka container after " + MAX_START_ATTEMPTS + " attempts", e);
+                }
+            }
+        }
     }
 
-    public void stopIfPossible() throws Exception {
-        if (isRunning()) {
+    public synchronized void stopIfPossible() throws Exception {
+        if (users > 0) {
+            users--;
+        }
+        if (users == 0 && isRunning()) {
             close();
         }
     }
 
-    public AdminClient adminClient() {
+    public synchronized AdminClient adminClient() {
         if (client == null) {
             client = AdminClient.create(connectionProperties());
         }
@@ -91,7 +122,7 @@ public class KafkaFacade implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public synchronized void close() throws Exception {
         LOGGER.info("Stopping kafka container");
         if (client != null) {
             client.close();

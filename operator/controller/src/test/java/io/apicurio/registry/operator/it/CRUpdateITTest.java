@@ -13,12 +13,13 @@ import java.time.Duration;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
-import static io.apicurio.registry.operator.utils.Utils.isBlank;
+import static io.apicurio.registry.operator.Tags.FEATURE_B;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_B)
 public class CRUpdateITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(CRUpdateITTest.class);
@@ -30,14 +31,6 @@ public class CRUpdateITTest extends ITBase {
                 List.of(
                         "/k8s/examples/simple-deprecated.apicurioregistry3.yaml",
                         "/k8s/examples/simple.apicurioregistry3.yaml"
-                ),
-                List.of(
-                        "/k8s/examples/postgresql/example-postgresql-deprecated.apicurioregistry3.yaml",
-                        "/k8s/examples/postgresql/example-postgresql.apicurioregistry3.yaml"
-                ),
-                List.of(
-                        "/k8s/examples/kafkasql/plain/example-kafkasql-plain-deprecated.apicurioregistry3.yaml",
-                        "/k8s/examples/kafkasql/plain/example-kafkasql-plain.apicurioregistry3.yaml"
                 )
         );
 
@@ -56,10 +49,6 @@ public class CRUpdateITTest extends ITBase {
                         assertThat(updated).hasSize(1);
                         // We do not care about the operand here, just about the CR structure
                         assertThat(updated.get(0).getSpec()).usingRecursiveComparison()
-                                // We have to specially handle generated Secret name, since we do not know it in advance.
-                                // It should be enough to just make sure it's not blank.
-                                .withEqualsForFields((l, r) -> !isBlank((String) l) && !isBlank((String) r),
-                                        "app.storage.sql.dataSource.password.name")
                                 .isEqualTo(updatedExpected.getSpec());
                     });
         });

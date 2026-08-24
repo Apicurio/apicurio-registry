@@ -13,22 +13,8 @@ auto_accept:
 
 max_contributor_prs: 1
 
-# Automated triage of external PRs at open and on every push. Verdicts:
-#   green  — no findings, ready for maintainer /accept
-#   yellow — findings the author should fix; maintainer judgment call
-#   red    — blocking problems; PR is set to waiting-on-author and follows the
-#            accelerated stale/close cycle until fixed
-triage:
-  enabled: true
-  # Missing linked issue (or linked issue without a maintainer comment) is a
-  # red finding — implementing unapproved requests wastes review time.
-  require_linked_issue: true
-  # Diffs larger than this (added+deleted lines) get a yellow finding.
-  max_diff_lines: 3000
-
 merge:
   strategy: rebase
-  delete_branch: true
 
 stale:
   days_until_stale: 7
@@ -51,21 +37,18 @@ stale:
 welcome_message: |
   Thanks for opening this PR!
 
-  A maintainer will review and accept it shortly. In the meantime, you can
-  continue pushing changes.
+  The Quick Check gate runs on every push. The full verification suite runs
+  once a maintainer approves the PR (it runs immediately for trusted
+  authors) and is the final merge gate.
 
   **Available commands:**
   | Command | Description |
   |---------|-------------|
   | `/unstale` | Remove the stale label |
   | `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
-  | `/triage` | Re-run the automated triage checks |
 
   **Maintainer commands:**
   | Command | Description |
   |---------|-------------|
-  | `/accept` | Accept the PR and transition to ready-for-review, running the full test suite |
   | `/reject [reason]` | Reject and close the PR |
-  | `/skip-review` | Skip review requirement for small changes (tests still required) |
-  | `/auto-merge` | Toggle auto-merge |
-  | `/merge` | Merge the PR |
+  | `/merge` | Toggle auto-merge — GitHub merges automatically once required checks and review pass |

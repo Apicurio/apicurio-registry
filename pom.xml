@@ -192,7 +192,7 @@
     <okio.version>3.18.1</okio.version>
     <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.35.1</protobuf.version>
+    <protobuf.version>4.36.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.74.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -237,7 +237,7 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.46</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.47</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
     <lombok.version>1.18.46</lombok.version>
@@ -284,7 +284,7 @@
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
-    <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
+
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
@@ -482,6 +482,13 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-common</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-common</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
@@ -1321,18 +1328,24 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>${version.maven-antrun.plugin}</version>
+        <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
-            <goals>
-              <goal>run</goal>
-            </goals>
+            <id>create-meta-dir</id>
             <phase>initialize</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
             <configuration>
-              <target>
-                <mkdir dir="${project.build.directory}/meta"/>
-              </target>
+              <outputDirectory>${project.build.directory}/meta</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}</directory>
+                  <excludes>
+                    <exclude>**</exclude>
+                  </excludes>
+                </resource>
+              </resources>
             </configuration>
           </execution>
         </executions>
@@ -1421,7 +1434,6 @@
         <module>operator</module>
         <module>console-plugin/backend</module>
         <module>utils/exportConfluent</module>
-        <module>utils/extra-tests</module>
         <module>utils/flink</module>
       </modules>
     </profile>

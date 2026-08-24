@@ -24,6 +24,7 @@
     <!-- Max heap for the forked surefire JVM that runs the tests. -->
     <surefire.maxHeap>4g</surefire.maxHeap>
     <surefire.forkCount>1</surefire.forkCount>
+    <byteman.agent.argLine/>
   </properties>
 
   <dependencies>
@@ -578,7 +579,7 @@
           <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
                MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
                -Dsurefire.maxHeap=<size>. See issue #9265. -->
-          <argLine>@{argLine} -Xmx${surefire.maxHeap}</argLine>
+          <argLine>@{argLine} -Xmx${surefire.maxHeap} ${byteman.agent.argLine}</argLine>
           <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -811,5 +812,37 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>byteman</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>byteman-properties</id>
+                <goals><goal>properties</goal></goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+      <properties>
+        <byteman.script>byteman/version-order-race.btm</byteman.script>
+        <byteman.agent.argLine>-javaagent:${org.jboss.byteman:byteman:jar}=boot:${org.jboss.byteman:byteman:jar},resourcescript:${byteman.script} -Dbyteman.agent=true</byteman.agent.argLine>
+        <byteman.agent>true</byteman.agent>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>

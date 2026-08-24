@@ -53,6 +53,11 @@ import java.util.function.BiConsumer;
  */
 public class OidcAuthenticationStrategy implements AuthenticationStrategy {
 
+    // Cached auth failures expire after 60 seconds so the system retries quickly
+    // when the OIDC server recovers. This is deliberately shorter than the success
+    // token TTL (accessTokenExpiration, default 10 minutes).
+    private static final Duration FAILURE_CACHE_TTL = Duration.ofSeconds(60);
+
     private final OidcAuthenticationMechanism oidcAuthenticationMechanism;
     private final AuthConfig authConfig;
     private final AuditLogService auditLog;
@@ -229,29 +234,45 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     private Uni<SecurityIdentity> authenticateWithClientCredentials(
             Pair<String, String> clientCredentials, RoutingContext context,
             IdentityProviderManager identityProviderManager) {
-        String jwtToken;
         String credentialsHash = getCredentialsHash(
                 clientCredentials.getLeft() + clientCredentials.getRight());
-        if (authFailureIsCached(credentialsHash)) {
-            throw cachedAuthFailures.get(credentialsHash).getValue();
-        } else if (accessTokenIsCached(credentialsHash)) {
-            jwtToken = cachedAccessTokens.get(credentialsHash).getValue();
-        } else {
-            jwtToken = parent.getAccessToken(clientCredentials, credentialsHash,
-                    cachedAccessTokens, cachedAuthFailures, oidcTokenUrl);
+
+        // Atomic read: single get() avoids the containsKey/get TOCTOU
+        WrappedValue<RuntimeException> cachedFailure = cachedAuthFailures.get(credentialsHash);
+        if (cachedFailure != null && !cachedFailure.isExpired()) {
+            throw cachedFailure.getValue();
         }
+
+        String jwtToken;
+        try {
+            // Atomic check-and-fetch: only one thread fetches per expired key
+            WrappedValue<String> cached = cachedAccessTokens.compute(credentialsHash,
+                    (key, existing) -> {
+                        if (existing != null && !existing.isExpired()) {
+                            return existing;
+                        }
+                        // Re-check failures: another thread may have cached one while
+                        // we waited for the compute lock
+                        WrappedValue<RuntimeException> failure =
+                                cachedAuthFailures.get(key);
+                        if (failure != null && !failure.isExpired()) {
+                            throw failure.getValue();
+                        }
+                        return parent.getAccessToken(clientCredentials, oidcTokenUrl);
+                    });
+            jwtToken = cached.getValue();
+        } catch (io.quarkus.security.UnauthorizedException
+                | io.quarkus.security.ForbiddenException
+                | OidcAuthException ex) {
+            // Cache failures (auth rejections and server errors) with a short TTL
+            // to avoid hammering the OIDC server while allowing quick recovery.
+            cachedAuthFailures.put(credentialsHash,
+                    new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), ex));
+            throw ex;
+        }
+
         context.request().headers().set("Authorization", "Bearer " + jwtToken);
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
-    }
-
-    private boolean authFailureIsCached(String credentialsHash) {
-        return cachedAuthFailures.containsKey(credentialsHash)
-                && !cachedAuthFailures.get(credentialsHash).isExpired();
-    }
-
-    private boolean accessTokenIsCached(String credentialsHash) {
-        return cachedAccessTokens.containsKey(credentialsHash)
-                && !cachedAccessTokens.get(credentialsHash).isExpired();
     }
 
     private String getCredentialsHash(String credentials) {

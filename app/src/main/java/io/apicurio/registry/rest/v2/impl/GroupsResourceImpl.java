@@ -217,6 +217,7 @@ public class GroupsResourceImpl implements GroupsResource {
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public List<ArtifactReference> getArtifactVersionReferences(String groupId, String artifactId,
             String version, ReferenceType refType) {
 
@@ -401,8 +402,9 @@ public class GroupsResourceImpl implements GroupsResource {
 
         Set<SearchFilter> filters = Collections.emptySet();
 
-        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir, offset.intValue(),
-                limit.intValue());
+        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir,
+                ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimitUnbounded(limit));
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -903,8 +905,9 @@ public class GroupsResourceImpl implements GroupsResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(defaultGroupIdToNull(groupId)));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir, offset.intValue(),
-                limit.intValue(), false);
+        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir,
+                ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 
@@ -1138,7 +1141,8 @@ public class GroupsResourceImpl implements GroupsResource {
         Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(defaultGroupIdToNull(groupId)),
                 SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto resultsDto = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, offset.intValue(), limit.intValue(), false);
+                OrderDirection.asc, ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
     }
 

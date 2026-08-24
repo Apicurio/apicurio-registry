@@ -86,7 +86,12 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected RegistryClient createRegistryClient(Vertx vertx) {
         return RegistryClientFactory.create(
-                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx).retry(true, 5, 250));
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                        // A connection that stalls mid-request (no bytes, no error) otherwise
+                        // hangs the test until the JUnit timeout kills it — fail fast instead
+                        // and let the retry handler recover on a fresh connection.
+                        .requestTimeout(10_000, 60_000)
+                        .retry(true, 5, 250));
     }
 
     @BeforeAll

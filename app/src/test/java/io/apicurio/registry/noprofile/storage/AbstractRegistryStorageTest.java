@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1398,6 +1399,73 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
         Assertions.assertEquals(size, builder.toString().length());
         return builder.toString();
+    }
+
+    /**
+     * Verifies that label-based artifact search is locale-safe. Under the Turkish locale,
+     * plain .toLowerCase() maps 'I' to dotless-i (U+0131) instead of 'i', causing a
+     * mismatch between the stored label key and the search filter value. All normalization
+     * must use Locale.ROOT so this round-trip is consistent regardless of the JVM locale.
+     *
+     * <p>The label key is intentionally unique (UUID-based) so the test is isolated from
+     * any pre-existing artifacts in the shared database, making it safe to run inside
+     * {@code @QuarkusTest} classes ({@code DefaultRegistryStorageTest},
+     * {@code KafkaSqlRegistryStorageTest}) where the database is not reset between methods.
+     */
+    @Test
+    public void testSearchArtifactsByLabelWithTurkishLocale() throws Exception {
+        Locale savedLocale = Locale.getDefault();
+        // Unique suffix prevents collision with any other test's artifacts in the shared DB.
+        String uniqueSuffix = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String artifactId = "testTurkishLocale-" + uniqueSuffix;
+        // Uppercase I in the key — this is the character that Turkish locale maps to
+        // dotless-i (U+0131) instead of plain 'i', the canonical bug trigger.
+        String labelKey = "INSTABILITY-" + uniqueSuffix.toUpperCase();
+        try {
+            // Switch the JVM default locale to Turkish. After this point any bare
+            // .toLowerCase() call will produce the wrong result for keys containing 'I'.
+            Locale.setDefault(new Locale("tr", "TR"));
+
+            Map<String, String> labels = Collections.singletonMap(labelKey, "HIGH");
+            EditableArtifactMetaDataDto metaData = new EditableArtifactMetaDataDto(
+                    "Locale Test Artifact", "locale sensitivity check", null, labels);
+            storage().createArtifact(
+                    GROUP_ID, artifactId, ArtifactType.OPENAPI, metaData, null,
+                    ContentWrapperDto.builder()
+                            .contentType(ContentTypes.APPLICATION_JSON)
+                            .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                    null, Collections.emptyList(), false, false, null).getValue();
+
+            // Search using the same label key. Locale.ROOT normalization on both the
+            // write path (storage) and read path (query) must agree, otherwise the
+            // stored key ("instability-XXXXX" via ROOT) and the query key
+            // ("ınstability-XXXXX" via Turkish) diverge and the result list is empty.
+            Set<SearchFilter> filters = Collections.singleton(
+                    SearchFilter.ofLabel(labelKey, "HIGH"));
+            ArtifactSearchResultsDto results = storage().searchArtifacts(
+                    filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
+
+            Assertions.assertNotNull(results);
+            // Because the label key contains our unique suffix it cannot match any
+            // pre-existing artifact; we assert getCount() >= 1 to allow for any
+            // concurrent test activity without making the assertion brittle.
+            boolean found = results.getArtifacts().stream()
+                    .anyMatch(a -> artifactId.equals(a.getArtifactId()));
+            Assertions.assertTrue(found,
+                    "Label search must find the artifact even under a Turkish JVM locale. "
+                    + "Returned " + results.getCount() + " result(s), none matching "
+                    + artifactId + ". This indicates Locale.ROOT was not used consistently "
+                    + "in the storage write or search path.");
+        } finally {
+            // Always restore the JVM locale first so subsequent tests are not affected.
+            Locale.setDefault(savedLocale);
+            // Then clean up the artifact (locale is already restored at this point).
+            try {
+                storage().deleteArtifact(GROUP_ID, artifactId);
+            } catch (Exception ignored) {
+                // Artifact may not exist if createArtifact threw; safe to ignore.
+            }
+        }
     }
 
 }

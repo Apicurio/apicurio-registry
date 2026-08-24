@@ -4,6 +4,11 @@ import io.apicurio.registry.rest.v3.WellResource;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
+import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
+import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
+import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -87,5 +92,26 @@ public class V3WellKnownResource implements WellResource {
     @Override
     public Response getSchema(String schemaType, String version) {
         return delegate.getSchema(schemaType, version);
+    }
+
+    @Override
+    public AiCatalog getAiCatalog() {
+        return delegate.getAiCatalog();
+    }
+
+    @Override
+    public ArdSearchResponse ardSearch(ArdSearchRequest data) {
+        return delegate.ardSearch(data);
+    }
+
+    @Override
+    public AiCatalog ardListAgents(String filter, String orderBy, BigInteger pageSize, String pageToken) {
+        Integer size = pageSize != null ? pageSize.intValue() : 20;
+        return delegate.ardListAgents(filter, orderBy, size, pageToken);
+    }
+
+    @Override
+    public ArdExploreResponse ardExplore(ArdExploreRequest data) {
+        return delegate.ardExplore(data);
     }
 }

@@ -9,7 +9,7 @@ import {
     Content,
     ContentVariants
 } from "@patternfly/react-core";
-import { If, ObjectDropdown } from "@apicurio/common-ui-components";
+import { If, ObjectDropdown } from "@apitomy/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";

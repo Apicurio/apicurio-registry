@@ -123,11 +123,25 @@ public final class VertxAdapterFactory {
 
         boolean hasProxyConfig = options.getProxyHost() != null;
 
-        if (!hasSslConfig && !hasProxyConfig) {
+        boolean hasTimeoutConfig = options.getConnectTimeoutMs() >= 0
+                || options.getReadIdleTimeoutMs() >= 0;
+
+        if (!hasSslConfig && !hasProxyConfig && !hasTimeoutConfig) {
             return null;
         }
 
         WebClientOptions webClientOptions = new WebClientOptions();
+
+        if (options.getConnectTimeoutMs() >= 0) {
+            webClientOptions.setConnectTimeout((int) options.getConnectTimeoutMs());
+        }
+
+        if (options.getReadIdleTimeoutMs() >= 0) {
+            // Vert.x readIdleTimeout is expressed in seconds; round up so sub-second
+            // values cannot silently become 0 ("no timeout").
+            int readIdleSeconds = (int) ((options.getReadIdleTimeoutMs() + 999) / 1000);
+            webClientOptions.setReadIdleTimeout(readIdleSeconds);
+        }
 
         if (hasSslConfig) {
             webClientOptions.setSsl(true);

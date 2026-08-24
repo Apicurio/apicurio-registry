@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -237,19 +238,23 @@ public class RegistryLimitsService {
                     && labels.size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
                 errorMessages.add(MAX_LABELS_EXCEEDED_MSG);
+            }
 
-            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes)
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes)
                     || isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)) {
 
                 labels.entrySet().forEach(e -> {
 
-                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes) && e.getKey()
-                            .length() > registryLimitsConfiguration.getMaxPropertyKeySizeBytes()) {
+                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes)
+                            && e.getKey() != null
+                            && e.getKey().getBytes(StandardCharsets.UTF_8).length > registryLimitsConfiguration
+                                    .getMaxPropertyKeySizeBytes()) {
                         errorMessages.add(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG);
                     }
 
                     if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)
-                            && e.getValue().length() > registryLimitsConfiguration
+                            && e.getValue() != null
+                            && e.getValue().getBytes(StandardCharsets.UTF_8).length > registryLimitsConfiguration
                                     .getMaxPropertyValueSizeBytes()) {
                         errorMessages.add(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG);
                     }

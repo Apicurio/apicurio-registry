@@ -48,10 +48,31 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
     protected Connection dbConnection;
     protected List<String> createdTables = new ArrayList<>();
 
-    // Class-level connector that is shared across all test methods in a test class
-    protected static String sharedConnectorName;
-    protected static String sharedTopicPrefix;
-    protected static String tablePrefix;
+    // Class-level connector that is shared across all test methods in a test class.
+    // Instance fields, NOT static: @TestInstance(Lifecycle.PER_CLASS) (see
+    // ApicurioRegistryBaseIT) gives each test class exactly one instance, reused across all
+    // of its own @Test methods — but junit-platform.properties runs distinct test classes
+    // concurrently in the same JVM (mode.classes.default=concurrent). Since Java static
+    // fields have ONE identity shared by every subclass instance regardless of which
+    // concrete class it belongs to, declaring these static meant every concurrently-running
+    // Debezium test class (MySQL/PostgreSQL x Integration/LocalConverters, 4 total) stomped
+    // on the same connector name/topic prefix/table prefix throughout its entire lifetime,
+    // not just at setup — producing exactly the symptoms seen in CI: "connector already
+    // exists" 409s, tables colliding ("column already exists" / duplicate key), and consumers
+    // reading another class's events (wrong CDC counts, rules "already exists"). Instance
+    // fields give each concurrently-running class its own isolated copy.
+    protected String sharedConnectorName;
+    protected String sharedTopicPrefix;
+    protected String tablePrefix;
+    // This class's own stable numeric id, captured once in setup(). Subclasses that need a
+    // unique-but-stable derived number (e.g. MySQL's database.server.id) must use this, not a
+    // fresh connectorCounter.get() — the counter keeps moving as sibling classes run
+    // concurrently, so re-reading it later can race and collide with another class's value.
+    protected int classId;
+    // Global across all Debezium test classes, intentionally: this is what guarantees
+    // sharedConnectorName/classId are unique across concurrently-running classes in the first
+    // place. Safe to stay static/shared — only ever incremented, never read-then-cached
+    // elsewhere except into the per-instance classId field above.
     protected static final AtomicInteger connectorCounter = new AtomicInteger(0);
 
     // Kafka Connect connector registration/deletion is not safe to run concurrently across
@@ -117,7 +138,7 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         }
 
         // Create a single shared connector for this test class that watches all tables
-        int classId = connectorCounter.incrementAndGet();
+        classId = connectorCounter.incrementAndGet();
         sharedConnectorName = "connector-" + classId;
         sharedTopicPrefix = "test" + classId;
         tablePrefix = "tbl" + classId + "_";
@@ -130,7 +151,10 @@ public abstract class DebeziumAvroBaseIT extends ApicurioRegistryBaseIT {
         synchronized (CONNECTOR_LOCK) {
             registerDebeziumConnectorWithApicurioConverters(sharedConnectorName, sharedTopicPrefix, tablePattern);
             // Wait for connector to be ready with a longer timeout for initial startup
-            waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(30));
+            // Under class-level parallel execution the shared Kafka Connect can take >30 s to
+            // bring a connector to RUNNING; a tighter budget makes the second class time out
+            // while the first is still booting. 120 s matches the other CI-visible timeouts.
+            waitForConnectorReady(sharedConnectorName, Duration.ofSeconds(120));
         }
 
         log.info("Shared connector {} is ready and watching pattern: {}", sharedConnectorName, tablePattern);

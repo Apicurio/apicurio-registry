@@ -632,14 +632,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     handle.setRollback(true);
                 }
 
-                boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                // Lock the artifact's versions to serialize concurrent version creation.
+                // Without this, two concurrent inserts can both read the same MAX(versionOrder)
+                // and produce duplicate versionOrder values.
+                boolean isFirstVersion = handle
+                        .createQuery(sqlStatements.selectMaxVersionOrderForUpdate())
+                        .bind(0, normalizeGroupId(groupId))
+                        .bind(1, artifactId)
+                        .mapTo(Integer.class)
+                        .findFirst()
+                        .isEmpty();
 
                 // Now create the version and return the new version metadata.
-                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, isFirstVersion,
-                        groupId, artifactId, version,
-                        metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner,
-                        createdOn, contentId, branches, isDraft);
-                return versionDto;
+                return createArtifactVersionRaw(handle, isFirstVersion, groupId, artifactId,
+                        version,
+                        metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
+                        owner, createdOn, contentId, branches, isDraft);
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {

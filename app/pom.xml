@@ -23,6 +23,7 @@
     <argLine/>
     <!-- Max heap for the forked surefire JVM that runs the tests. -->
     <surefire.maxHeap>4g</surefire.maxHeap>
+    <surefire.forkCount>1</surefire.forkCount>
   </properties>
 
   <dependencies>
@@ -570,7 +571,10 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <groups>${groups}</groups>
-          <forkCount>1</forkCount>
+          <!-- Fork count is overridable per CI shard with -Dsurefire.forkCount=N (e.g. the
+               app-rest-v3 shard uses 2). Quarkus tests boot on random ports, so concurrent
+               forks do not collide. Default stays 1 for local runs. -->
+          <forkCount>${surefire.forkCount}</forkCount>
           <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
                MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
                -Dsurefire.maxHeap=<size>. See issue #9265. -->

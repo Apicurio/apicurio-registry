@@ -94,6 +94,37 @@ public class SchemaResolverConfigTest {
     }
 
     /**
+     * Test TLS/SSL keystore configuration properties.
+     */
+    @Test
+    void testKeystoreConfiguration() {
+        Map<String, Object> originals = new HashMap<>();
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        // Test defaults
+        assertNull(config.getTlsKeystoreLocation());
+        assertNull(config.getTlsKeystorePassword());
+        assertEquals("JKS", config.getTlsKeystoreType());
+        assertNull(config.getTlsClientCertificate());
+        assertNull(config.getTlsClientKey());
+
+        // Test setting values
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_LOCATION, "/path/to/keystore.jks");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_PASSWORD, "keystore123");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_TYPE, "PKCS12");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_CERTIFICATE, "/path/to/client-cert.pem");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, "/path/to/client-key.pem");
+
+        config = new SchemaResolverConfig(originals);
+
+        assertEquals("/path/to/keystore.jks", config.getTlsKeystoreLocation());
+        assertEquals("keystore123", config.getTlsKeystorePassword());
+        assertEquals("PKCS12", config.getTlsKeystoreType());
+        assertEquals("/path/to/client-cert.pem", config.getTlsClientCertificate());
+        assertEquals("/path/to/client-key.pem", config.getTlsClientKey());
+    }
+
+    /**
      * Test proxy configuration properties.
      */
     @Test

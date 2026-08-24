@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static io.apicurio.registry.operator.resource.ResourceFactory.deserialize;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCellCreate;
@@ -18,6 +19,7 @@ import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 public class IngressITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(IngressITTest.class);

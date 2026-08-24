@@ -22,7 +22,11 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,14 +40,21 @@ public class RegistryServiceTest {
     private int port;
     private final Map<String, String> lastHeaders = new ConcurrentHashMap<>();
     private volatile String lastUri;
+    private volatile String lastRequestBody;
 
     @BeforeEach
     public void setUp() throws IOException {
+        lastRequestBody = null;
         server = HttpServer.create(new InetSocketAddress(0), 0);
         port = server.getAddress().getPort();
 
         server.createContext("/", exchange -> {
             lastUri = exchange.getRequestURI().toString();
+            if (exchange.getRequestMethod().equals("POST") || exchange.getRequestMethod().equals("PUT")) {
+                try (java.io.InputStream is = exchange.getRequestBody()) {
+                    lastRequestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
             exchange.getRequestHeaders().forEach((k, v) -> {
                 if (!v.isEmpty()) {
                     lastHeaders.put(k.toLowerCase(), v.get(0));
@@ -505,11 +516,22 @@ public class RegistryServiceTest {
         assertEquals(RuleType.COMPATIBILITY, gRule.getRuleType());
         assertEquals("FULL", gRule.getConfig());
 
+        // Test whitespace/case normalization
+        Rule gRuleNormalized = service.getGlobalRule("  compatibility  ");
+        assertNotNull(gRuleNormalized);
+        assertEquals(RuleType.COMPATIBILITY, gRuleNormalized.getRuleType());
+
         Rule createdGRule = service.createGlobalRule("validity", "SYNTAX_ONLY");
         assertNotNull(createdGRule);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"config\":\"SYNTAX_ONLY\""));
+        assertTrue(lastRequestBody.contains("\"ruleType\":\"VALIDITY\""));
 
         Rule updatedGRule = service.updateGlobalRule("validity", "FULL");
         assertNotNull(updatedGRule);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"config\":\"FULL\""));
+        assertTrue(lastRequestBody.contains("\"ruleType\":\"VALIDITY\""));
 
         service.deleteGlobalRule("validity");
         service.deleteAllGlobalRules();
@@ -527,9 +549,15 @@ public class RegistryServiceTest {
 
         Rule createdGrRule = service.createGroupRule("g1", "integrity", "REFS_EXIST");
         assertNotNull(createdGrRule);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"config\":\"REFS_EXIST\""));
+        assertTrue(lastRequestBody.contains("\"ruleType\":\"INTEGRITY\""));
 
         Rule updatedGrRule = service.updateGroupRule("g1", "integrity", "NO_DUPLICATES");
         assertNotNull(updatedGrRule);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"config\":\"NO_DUPLICATES\""));
+        assertTrue(lastRequestBody.contains("\"ruleType\":\"INTEGRITY\""));
 
         service.deleteGroupRule("g1", "integrity");
         service.deleteAllGroupRules("g1");
@@ -547,9 +575,15 @@ public class RegistryServiceTest {
 
         Rule createdARule = service.createArtifactRule("g1", "a1", "compatibility", "FORWARD");
         assertNotNull(createdARule);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"config\":\"FORWARD\""));
+        assertTrue(lastRequestBody.contains("\"ruleType\":\"COMPATIBILITY\""));
 
         Rule updatedARule = service.updateArtifactRule("g1", "a1", "compatibility", "BACKWARD");
         assertNotNull(updatedARule);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"config\":\"BACKWARD\""));
+        assertTrue(lastRequestBody.contains("\"ruleType\":\"COMPATIBILITY\""));
 
         service.deleteArtifactRule("g1", "a1", "compatibility");
         service.deleteAllArtifactRules("g1", "a1");
@@ -560,6 +594,32 @@ public class RegistryServiceTest {
         assertTrue(exInvalid.getMessage().contains("Invalid rule type: 'invalid_rule'"));
 
         assertThrows(ToolCallException.class, () -> service.getGlobalRule(null));
+
+        // Invalid rule configuration validation
+        ToolCallException exInvalidConfig = assertThrows(ToolCallException.class,
+                () -> service.createGlobalRule("compatibility", "INVALID_VAL"));
+        assertTrue(exInvalidConfig.getMessage().contains("Invalid configuration 'INVALID_VAL' for rule type 'COMPATIBILITY'"));
+
+        ToolCallException exInvalidConfigValidity = assertThrows(ToolCallException.class,
+                () -> service.createGlobalRule("validity", "BACKWARD"));
+        assertTrue(exInvalidConfigValidity.getMessage().contains("Invalid configuration 'BACKWARD' for rule type 'VALIDITY'"));
+    }
+
+    @Test
+    public void testAllRuleConfigLevelsAreAccepted() {
+        RegistryService service = createService("http://localhost:" + port, false);
+        for (IntegrityLevel level : IntegrityLevel.values()) {
+            assertDoesNotThrow(() -> service.createGlobalRule("INTEGRITY", level.name()));
+        }
+        for (CompatibilityLevel level : CompatibilityLevel.values()) {
+            assertDoesNotThrow(() -> service.createGlobalRule("COMPATIBILITY", level.name()));
+        }
+        for (ValidityLevel level : ValidityLevel.values()) {
+            assertDoesNotThrow(() -> service.createGlobalRule("VALIDITY", level.name()));
+        }
+        
+        // Also verify comma-separated configs for INTEGRITY are accepted
+        assertDoesNotThrow(() -> service.createGlobalRule("INTEGRITY", "NO_DUPLICATES,REFS_EXIST"));
     }
 }
 

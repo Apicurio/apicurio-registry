@@ -143,7 +143,7 @@ public final class Descriptions {
             The configuration value for the rule. The accepted values depend on the rule type:
              - For COMPATIBILITY: NONE, BACKWARD, BACKWARD_TRANSITIVE, FORWARD, FORWARD_TRANSITIVE, FULL, FULL_TRANSITIVE.
              - For VALIDITY: NONE, SYNTAX_ONLY, FULL.
-             - For INTEGRITY: NONE, NO_DUPLICATES, REFS_EXIST.""";
+             - For INTEGRITY: NONE, NO_DUPLICATES, REFS_EXIST, ALL_REFS_MAPPED, NO_CIRCULAR_REFERENCES, FULL. Can be comma-separated.""";
 
     private Descriptions() {
     }

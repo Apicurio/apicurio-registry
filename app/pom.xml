@@ -361,6 +361,12 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-utils-tests</artifactId>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>com.squareup.okhttp3</groupId>
+          <artifactId>okhttp</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.strimzi</groupId>
@@ -416,6 +422,12 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-testing</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>no.nav.security</groupId>
+      <artifactId>mock-oauth2-server</artifactId>
+      <version>6.0.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>

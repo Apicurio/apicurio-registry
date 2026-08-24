@@ -8,7 +8,6 @@ Two top-level workflows make up the whole pipeline:
 |----------|----------|
 | `quick-check.yaml` (**Quick Check**) | The fast PR gate: **Quick Verify** (~5 min, every PR push) and a fast UI build. No lifecycle awareness, no Decide job — it always runs the same way. Drives `lifecycle/tested` while a PR is in `lifecycle/ready-for-review`. |
 | `verify.yaml` (**Verify**) | Everything else: Build (Java app + Docker images), unit tests, CLI, SDKs, console plugin, integration tests, extra tests, operator tests, and (on push to `main`) image publishing. One `decide` job, shared by every job in this workflow via `needs:`. Drives `lifecycle/full-verified`. |
-
 `verify.yaml` intentionally has a single Decide job that every other job in it
 depends on, rather than being split across several independently-triggered
 workflow files each with their own Decide. That used to be the design (four
@@ -34,11 +33,20 @@ scope** (PR labels) and **change detection** (path-based filtering) into one
 boolean output per phase, computed once and shared by every other job in the
 workflow via `needs:` and a single `if:` condition each.
 
-**Lifecycle scope** is driven by PR labels from the PR lifecycle orchestrator:
-- `lifecycle/new`, `lifecycle/ready-for-review` or no label → full suite skipped
-  (the Quick Verify fast gate in `quick-check.yaml` covers PR iteration)
-- `lifecycle/ready-to-merge` → full suite runs
+**Lifecycle scope** is a live, native-fact decision — not a PR label:
+- author is a maintainer or in `auto_accept` (e.g. Renovate) → full suite runs
+  immediately, on every push
+- otherwise → full suite runs once the PR has a current approving review
+  (`gh pr view --json reviewDecision` == `APPROVED`), re-evaluated fresh on
+  every `pull_request_review: submitted` event
+- `orchestrator/disabled` label → full suite runs regardless (unless
+  `DO NOT MERGE` is also present)
 - Push to main → always full suite
+
+Deciding this from author identity and review state instead of a bot-applied
+label (the previous `lifecycle/ready-to-merge` design) removes an entire class
+of races: there is no window where a run that started before a promotion could
+disagree with one that started after — Decide re-evaluates live, every time.
 
 **Change detection** uses `dorny/paths-filter` to determine which areas changed:
 
@@ -57,20 +65,22 @@ Push to main always runs everything regardless of change detection.
 ### Verification Gate
 
 The `gate` job in `verify.yaml` is the **single required check** for branch
-protection (alongside `Lint and Validate`, also a job in the same workflow).
-It runs with `if: always()` and aggregates every job in the same run via
-`needs.*.result`. For PR events it then does one more thing: a live,
-direct check (via `gh api`) of whether the PR actually carries
-`lifecycle/ready-to-merge` right now, and fails if it does not.
+protection. It runs with `if: always()` and aggregates every job in the same
+run via `needs.*.result`. For non-push events it then does one more thing:
+it fails outright if `needs.decide.outputs.lifecycle-ready != 'true'`.
 
-That live check exists because a skipped required job counts as "passing"
-for branch protection purposes, and every job in `verify.yaml` is skipped by
-Decide until the PR reaches `lifecycle/ready-to-merge` — without it, native
-"Merge pull request" would be unblocked the moment Decide+Gate complete for
-any PR, regardless of whether the full suite had ever actually run for the
-commit. The failure this produces during normal PR review is expected, not a
-sign of anything broken: it clears on its own once the orchestrator promotes
-the PR and force-retriggers `verify.yaml`.
+That check exists because a skipped required job counts as "passing" for
+branch protection purposes, and every job in `verify.yaml` is skipped by
+Decide whenever the full suite was not required for this run — without it,
+native "Merge pull request" would be unblocked the moment Decide+Gate
+complete for any PR, regardless of whether the full suite had ever actually
+run for the commit. Checking Decide's own output (the same static value that
+already gated every job above via `needs:`) means this cannot disagree with
+the rest of the run — there is nothing to race against, unlike a live
+re-fetch of current PR/label state would be. The failure this produces
+during normal PR review is expected, not a sign of anything broken: it
+clears on its own once the full suite subsequently runs and passes (for a
+trusted author, immediately; for everyone else, once a review lands).
 
 The PR lifecycle orchestrator (`pr-lifecycle.js`) independently tracks
 `verify.yaml`'s latest run by head SHA before applying `lifecycle/full-verified`.
@@ -79,7 +89,14 @@ This (and the single-Decide-job design above) replaces two earlier approaches:
 first, configuring 24 individual jobs as required checks, which caused skipped
 jobs to show as permanently pending; then, splitting the suite across four
 independently-triggered workflow files, which introduced cross-workflow
-Decide-disagreement races (see above).
+Decide-disagreement races (see above); then, gating Decide on a bot-applied
+`lifecycle/ready-to-merge` label with a live re-fetch in Gate to cross-check
+it, which added its own race between the live re-fetch (evaluated late, after
+every other job) and Decide (evaluated once, early) — a run could look "ready"
+by the time Gate's live check ran even though Decide itself had skipped
+everything at the start of that same run. Deciding from live author/review
+facts directly (this design) needs no live re-fetch and no bot-applied label
+at all, so there is nothing left to race.
 
 ## Unit Test Sharding
 
@@ -235,7 +252,7 @@ and tags starting with `3.`.
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `pr-lifecycle.yml` | PR events, comments, reviews, workflow_run, every 6 hours | Label-driven PR state machine. States: `new` -> `ready-for-review` -> `ready-to-merge`. Draft PRs are ignored until marked ready for review. Comment commands: `/accept`, `/reject`, `/merge`, `/auto-merge`, `/retry`. Auto-accepts maintainers. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 7-day auto-close for PRs waiting on the author). Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
+| `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 7-day auto-close for PRs waiting on the author). Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |

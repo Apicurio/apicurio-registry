@@ -76,6 +76,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 
 import java.nio.file.Files;
@@ -215,10 +216,21 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @PreDestroy
     void onDestroy() {
         stopped = true;
-        try {
-            journalConsumer.close();
-        } catch (Exception e) {
-            log.debug("Ignoring journal consumer close error during shutdown: {}", e.getMessage());
+        // Use wakeup() instead of close() because KafkaConsumer is not thread-safe.
+        // wakeup() is the only method safe to call from another thread. It causes
+        // poll() to throw WakeupException, and the consumer thread handles that by
+        // exiting its loop and calling close() on its own thread.
+        journalConsumer.wakeup();
+        if (consumerThread != null) {
+            try {
+                consumerThread.join(10_000);
+                if (consumerThread.isAlive()) {
+                    log.warn("Consumer thread did not exit within 10 seconds of wakeup(), interrupting.");
+                    consumerThread.interrupt();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
         try {
             snapshotsConsumer.close();
@@ -360,6 +372,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                         }
                     }
                 }
+            } catch (WakeupException e) {
+                // Expected during shutdown: onDestroy() calls consumer.wakeup()
+                // to safely interrupt poll() from the CDI shutdown thread.
+                log.debug("Consumer wakeup received, shutting down.");
             } finally {
                 try {
                     consumer.close();

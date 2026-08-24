@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "node .fix_yaml.cjs && rimraf ./public/kiota-wasm && copyfiles -u 4 'node_modules/@kiota-community/kiota-wasm/dist/**/*.*' 'public/kiota-wasm' && rimraf ./public/vs && copyfiles -u 3 'node_modules/monaco-editor/min/vs/**/*' 'public'",
+    "prebuild": "rimraf ./public/vs && copyfiles -u 3 'node_modules/monaco-editor/min/vs/**/*' 'public'",
     "clean": "rimraf dist",
     "dev": "vite",
     "build": "tsc && vite build",

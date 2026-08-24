@@ -1,5 +1,6 @@
 ---
 description: Generate or update a PR description following the Apicurio Registry PR template
+agent: repo-ops
 ---
 
 You are helping to create a Pull Request description for the Apicurio Registry project.

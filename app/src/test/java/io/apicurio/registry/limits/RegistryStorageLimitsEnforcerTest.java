@@ -90,7 +90,7 @@ public class RegistryStorageLimitsEnforcerTest {
         EditableVersionMetaDataDto versionMetaData = new EditableVersionMetaDataDto();
 
         Mockito.when(limitsService.canCreateArtifact(metaData, content, versionMetaData))
-                .thenReturn(LimitsCheckResult.disallowed("Artifact limit reached", "ARTIFACT_LIMIT"));
+                .thenReturn(LimitsCheckResult.disallowed("Artifact limit reached"));
 
         LimitExceededException ex = assertThrows(
                 LimitExceededException.class,
@@ -113,7 +113,7 @@ public class RegistryStorageLimitsEnforcerTest {
         EditableVersionMetaDataDto versionMetaData = new EditableVersionMetaDataDto();
 
         Mockito.when(limitsService.canCreateArtifact(metaData, content, versionMetaData))
-                .thenReturn(LimitsCheckResult.disallowed("Artifact limit reached", "ARTIFACT_LIMIT"));
+                .thenReturn(LimitsCheckResult.disallowed("Artifact limit reached"));
 
         LimitExceededException ex = assertThrows(
                 LimitExceededException.class,
@@ -184,7 +184,7 @@ public class RegistryStorageLimitsEnforcerTest {
         EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
 
         Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", null, contentHandle))
-                .thenReturn(LimitsCheckResult.disallowed("Artifact version limit reached", "VERSION_LIMIT"));
+                .thenReturn(LimitsCheckResult.disallowed("Artifact version limit reached"));
 
         LimitExceededException ex = assertThrows(
                 LimitExceededException.class,
@@ -208,7 +208,7 @@ public class RegistryStorageLimitsEnforcerTest {
         EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
 
         Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", null, contentHandle))
-                .thenReturn(LimitsCheckResult.disallowed("Artifact version limit reached", "VERSION_LIMIT"));
+                .thenReturn(LimitsCheckResult.disallowed("Artifact version limit reached"));
 
         LimitExceededException ex = assertThrows(
                 LimitExceededException.class,

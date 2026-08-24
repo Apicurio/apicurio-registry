@@ -201,6 +201,7 @@
               <kiotaVersion>${kiota.version}</kiotaVersion>
               <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
               <baseURL>${kiota.base.url}</baseURL>
+              <targetBinaryFolder>${kiota.binary.folder}</targetBinaryFolder>
               <file>${project.build.directory}/openapi-v2-filtered.json</file>
               <namespace>io.apicurio.registry.rest.client.v2</namespace>
               <clientClass>RegistryClient</clientClass>

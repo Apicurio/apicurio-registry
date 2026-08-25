@@ -22,6 +22,7 @@ import io.apicurio.registry.avro.content.refs.AvroReferenceFinder;
 import io.apicurio.registry.avro.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.avro.rules.validity.AvroContentValidator;
 import io.apicurio.registry.content.AgentCardContentAccepter;
+import io.apicurio.registry.content.McpServerContentAccepter;
 import io.apicurio.registry.content.McpToolContentAccepter;
 import io.apicurio.registry.content.ModelSchemaContentAccepter;
 import io.apicurio.registry.content.OdcsContractContentAccepter;
@@ -31,6 +32,8 @@ import io.apicurio.registry.content.dereference.ModelSchemaDereferencer;
 import io.apicurio.registry.content.dereference.PromptTemplateDereferencer;
 import io.apicurio.registry.content.extract.AgentCardContentExtractor;
 import io.apicurio.registry.content.extract.AgentCardStructuredContentExtractor;
+import io.apicurio.registry.content.extract.McpServerContentExtractor;
+import io.apicurio.registry.content.extract.McpServerStructuredContentExtractor;
 import io.apicurio.registry.content.extract.McpToolContentExtractor;
 import io.apicurio.registry.content.extract.McpToolStructuredContentExtractor;
 import io.apicurio.registry.content.extract.ModelSchemaContentExtractor;
@@ -87,6 +90,7 @@ import io.apicurio.registry.rules.compatibility.McpToolCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.ModelSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.PromptTemplateCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AgentCardContentValidator;
+import io.apicurio.registry.rules.validity.McpServerContentValidator;
 import io.apicurio.registry.rules.validity.McpToolContentValidator;
 import io.apicurio.registry.rules.validity.ModelSchemaContentValidator;
 import io.apicurio.registry.rules.validity.OdcsContractContentValidator;
@@ -232,6 +236,14 @@ public class StandardArtifactTypeProviderRegistry {
                 .validator(McpToolContentValidator::new)
                 .extractor(McpToolContentExtractor::new)
                 .structuredContentExtractor(McpToolStructuredContentExtractor::new)
+                .build());
+        PROVIDERS.put(ArtifactType.MCP_SERVER, new ProviderConfig.Builder()
+                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
+                .accepter(McpServerContentAccepter::new)
+                .canonicalizer(JsonContentCanonicalizer::new)
+                .validator(McpServerContentValidator::new)
+                .extractor(McpServerContentExtractor::new)
+                .structuredContentExtractor(McpServerStructuredContentExtractor::new)
                 .build());
         PROVIDERS.put(ArtifactType.ICEBERG_TABLE, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))

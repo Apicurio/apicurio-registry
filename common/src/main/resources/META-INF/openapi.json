@@ -10057,10 +10057,10 @@
             "examples": {
               "NotFoundExample": {
                 "value": {
-                    "detail": "ArtifactNotFoundException: No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
-                    "title": "No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
-                    "status": 404,
-                    "name": "ArtifactNotFoundException"
+                  "detail": "ArtifactNotFoundException: No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "title": "No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "status": 404,
+                  "name": "ArtifactNotFoundException"
                 }
               }
             }
@@ -10077,10 +10077,10 @@
             "examples": {
               "MethodNotAllowedExample": {
                 "value": {
-                    "detail": "The requested HTTP method is not allowed for this resource.",
-                    "title": "Method Not Allowed",
-                    "status": 405,
-                    "name": "NotAllowedException"
+                  "detail": "NotAllowedException: The requested HTTP method is not allowed for this resource.",
+                  "title": "Method Not Allowed.",
+                  "status": 405,
+                  "name": "NotAllowedException"
                 }
               }
             }
@@ -10093,6 +10093,16 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "ServerErrorExample": {
+                "value": {
+                  "detail": "StorageException: Lost connection to the database.",
+                  "title": "Lost connection to the database.",
+                  "status": 500,
+                  "name": "StorageException"
+                }
+              }
             }
           }
         },
@@ -10107,10 +10117,10 @@
             "examples": {
               "BadRequestExample": {
                 "value": {
-                    "detail": "BadRequestException: The request contains invalid or missing parameters.",
-                    "title": "Bad Request",
-                    "status": 400,
-                    "name": "BadRequestException"
+                  "detail": "BadRequestException: The request contains invalid or missing parameters.",
+                  "title": "Bad Request.",
+                  "status": 400,
+                  "name": "BadRequestException"
                 }
               }
             }
@@ -10232,9 +10242,10 @@
             "examples": {
               "UnprocessableEntityExample": {
                 "value": {
-                  "title": "The artifact content is invalid: Schema validation failed",
+                  "detail": "UnprocessableSchemaException: Could not execute compatibility rule on invalid Avro schema.",
+                  "title": "The artifact content is invalid: Schema validation failed.",
                   "status": 422,
-                  "name": "SchemaValidationException"
+                  "name": "UnprocessableSchemaException"
                 }
               }
             }

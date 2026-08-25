@@ -30,6 +30,17 @@ public class AvroSerdeConfig extends SerdeConfig {
     public static final String AVRO_SCHEMA_CACHE_SIZE = "apicurio.registry.avro.schema-cache-size";
     public static final long AVRO_SCHEMA_CACHE_SIZE_DEFAULT = 256;
 
+    /**
+     * Whether the serializer verifies that the schema resolved from the registry structurally
+     * matches the schema of the record being serialized. The schemas are compared by Avro parsing
+     * canonical form, so property-only differences (such as connect.* metadata or docs) are
+     * tolerated. A structural mismatch would otherwise silently write field values under the wrong
+     * fields, because the Avro datum writer extracts record values by field position of the writer
+     * schema.
+     */
+    public static final String AVRO_VALIDATE_WRITER_SCHEMA = "apicurio.registry.avro.validate-writer-schema";
+    public static final boolean AVRO_VALIDATE_WRITER_SCHEMA_DEFAULT = true;
+
     public AvroSerdeConfig(Map<String, ?> originals) {
         Map<String, Object> joint = new HashMap<>(getDefaults());
         joint.putAll(originals);
@@ -57,6 +68,15 @@ public class AvroSerdeConfig extends SerdeConfig {
         return (int) getLongNonNegative(AVRO_SCHEMA_CACHE_SIZE);
     }
 
+    /**
+     * Returns whether the serializer validates the resolved writer schema against the record's schema.
+     *
+     * @return true if writer schema validation is enabled
+     */
+    public boolean validateWriterSchema() {
+        return this.getBoolean(AVRO_VALIDATE_WRITER_SCHEMA);
+    }
+
     @Override
     protected Map<String, ?> getDefaults() {
         Map<String, Object> joint = new HashMap<>(super.getDefaults());
@@ -66,5 +86,6 @@ public class AvroSerdeConfig extends SerdeConfig {
 
     private static final Map<String, ?> DEFAULTS = Map.of(AVRO_ENCODING, AvroEncoding.BINARY.name(),
             AVRO_DATUM_PROVIDER, AVRO_DATUM_PROVIDER_DEFAULT, USE_SPECIFIC_AVRO_READER,
-            USE_SPECIFIC_AVRO_READER_DEFAULT, AVRO_SCHEMA_CACHE_SIZE, AVRO_SCHEMA_CACHE_SIZE_DEFAULT);
+            USE_SPECIFIC_AVRO_READER_DEFAULT, AVRO_SCHEMA_CACHE_SIZE, AVRO_SCHEMA_CACHE_SIZE_DEFAULT,
+            AVRO_VALIDATE_WRITER_SCHEMA, AVRO_VALIDATE_WRITER_SCHEMA_DEFAULT);
 }

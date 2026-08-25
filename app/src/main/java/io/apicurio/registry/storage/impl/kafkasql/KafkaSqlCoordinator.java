@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.types.RegistryException;
@@ -6,11 +22,16 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Coordinates "write" responses across threads in the Kafka-SQL artifactStore implementation. Basically this
@@ -24,86 +45,82 @@ public class KafkaSqlCoordinator {
     @Inject
     Instance<KafkaSqlConfiguration> configuration;
 
-    private static final Object NULL = new Object();
-    private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
-    private Map<UUID, Object> returnValues = new ConcurrentHashMap<>();
+    private static final Logger log = LoggerFactory.getLogger(KafkaSqlCoordinator.class);
+
+    private Map<UUID, CompletableFuture<Object>> operations = new ConcurrentHashMap<>();
 
     /**
      * Creates a UUID for a single operation.
      */
     public UUID createUUID() {
         UUID uuid = UUID.randomUUID();
-        latches.put(uuid, new CountDownLatch(1));
+        operations.put(uuid, new CompletableFuture<>());
         return uuid;
     }
 
     /**
-     * Waits for a response to the operation with the given UUID. There is a countdown latch for each
-     * operation. The caller waiting for the response will wait for the countdown to happen and then proceed.
-     * We also remove the latch from the Map here since it's not needed anymore.
+     * Waits for a response to the operation with the given UUID.
      *
      * @param uuid
-     * @throws InterruptedException
+     * @throws RegistryException
      */
     public Object waitForResponse(UUID uuid) {
         try {
-            boolean completed = latches.get(uuid).await(
-                    configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
-            if (!completed) {
+            CompletableFuture<Object> future = operations.get(uuid);
+            if (future == null) {
                 throw new RegistryException(
-                        "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
+                        "[KafkaSqlCoordinator] Operation not registered for UUID: " + uuid);
             }
-
-            Object rval = returnValues.remove(uuid);
-            if (rval == NULL) {
-                return null;
-            } else if (rval instanceof RuntimeException) {
-                // Rethrow any RuntimeException to preserve the original exception type
-                // for proper handling by exception mappers.
-                throw (RuntimeException) rval;
-            }
-            return rval;
+            return future.get(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            throw new RegistryException(
+                    "[KafkaSqlCoordinator] Timeout waiting for a Kafka Sql response from consumer thread.", e);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RegistryException(
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            // KafkaSqlSink.processMessage explicitly catches all Throwables and wraps non-RuntimeExceptions 
+            // into RegistryException. Therefore, `cause` will always be a RuntimeException (or a subclass).
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new RegistryException("Error waiting for Kafka Sql response", cause);
         } finally {
-            latches.remove(uuid);
-            returnValues.remove(uuid);
+            operations.remove(uuid);
         }
     }
 
     /**
-     * Countdown the latch for the given UUID. This will wake up the thread waiting for the response so that
-     * it can proceed.
+     * Completes the operation for the given UUID, notifying the waiting thread.
      *
      * @param uuid
      * @param returnValue
      */
     public void notifyResponse(UUID uuid, Object returnValue) {
-        // we are re-using the topic from a streams based registry instance
         if (uuid == null) {
             return;
         }
 
-        // Retrieve the latch in a single atomic call to avoid a TOCTOU race where
-        // waitForResponse removes the latch between a containsKey check and a get.
-        // If there is no countdown latch, then there is no HTTP thread waiting for
-        // a response. This means one of two possible things:
-        // 1) We're in a cluster and the HTTP thread is on another node
-        // 2) We're starting up and consuming all the old journal entries
-        CountDownLatch latch = latches.get(uuid);
-        if (latch == null) {
+        CompletableFuture<Object> future = operations.get(uuid);
+        if (future == null) {
+            log.warn("[KafkaSqlCoordinator] Response arrived but no operation registered for UUID: {}", uuid);
             return;
         }
 
-        // Otherwise, put the return value in the Map and countdown the latch. The latch
-        // countdown will notify the HTTP thread that the operation is complete and there is
-        // a return value waiting for it.
-        if (returnValue == null) {
-            returnValue = NULL;
+        if (future.isDone()) {
+            log.warn("[KafkaSqlCoordinator] Duplicate response arrived for already completed UUID: {}", uuid);
         }
-        returnValues.put(uuid, returnValue);
-        latch.countDown();
+
+        if (returnValue instanceof Throwable) {
+            // Replicate the previous behavior where the consumer could pass an exception as a return value,
+            // but now we complete the future exceptionally.
+            future.completeExceptionally((Throwable) returnValue);
+        } else {
+            future.complete(returnValue);
+        }
+
     }
 
 }

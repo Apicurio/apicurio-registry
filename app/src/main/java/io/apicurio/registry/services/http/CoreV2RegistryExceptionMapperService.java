@@ -83,8 +83,13 @@ public class CoreV2RegistryExceptionMapperService {
     private Object toAuthError(Throwable t, int code) {
         AuthError error = new AuthError();
         error.setStatus(code);
-        error.setTitle(t.getLocalizedMessage());
-        error.setName(t.getClass().getSimpleName());
+        if (code >= 500 && !includeStackTrace) {
+            error.setTitle("Internal Server Error");
+            error.setName("InternalError");
+        } else {
+            error.setTitle(t.getLocalizedMessage());
+            error.setName(t.getClass().getSimpleName());
+        }
         return error;
     }
 
@@ -100,13 +105,19 @@ public class CoreV2RegistryExceptionMapperService {
         }
 
         error.setErrorCode(code);
-        error.setMessage(t.getLocalizedMessage());
-        if (includeStackTrace) {
-            error.setDetail(getStackTrace(t));
+        if (code >= 500 && !includeStackTrace) {
+            error.setMessage("Internal Server Error");
+            error.setDetail("An unexpected error occurred.");
+            error.setName("InternalError");
         } else {
-            error.setDetail(getRootMessage(t));
+            error.setMessage(t.getLocalizedMessage());
+            if (includeStackTrace) {
+                error.setDetail(getStackTrace(t));
+            } else {
+                error.setDetail(getRootMessage(t));
+            }
+            error.setName(t.getClass().getSimpleName());
         }
-        error.setName(t.getClass().getSimpleName());
         return error;
     }
 

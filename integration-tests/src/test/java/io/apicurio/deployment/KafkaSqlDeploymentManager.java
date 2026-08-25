@@ -1,5 +1,6 @@
 package io.apicurio.deployment;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -16,6 +17,7 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -123,15 +125,51 @@ public class KafkaSqlDeploymentManager {
 
     private static void createArtifactWithRule(RegistryClient client, String groupId, String content) {
         String artifactId = UUID.randomUUID().toString();
-        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId,
-                ArtifactType.AVRO, content, ContentTypes.APPLICATION_JSON);
-        client.groups().byGroupId(groupId).artifacts().post(createArtifact,
-                config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-        CreateRule createRule = new CreateRule();
-        createRule.setRuleType(RuleType.VALIDITY);
-        createRule.setConfig("SYNTAX_ONLY");
-        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
-                .post(createRule);
+        try {
+            // The two REST calls below are independent HTTP requests that can land on
+            // different KafkaSQL replicas; a replica's local consumer may not yet have
+            // caught up to a create-artifact message a moment ago produced (and applied)
+            // on a different replica, and a slow/overloaded replica can also bounce a
+            // request outright. Retry the pair as a unit -- and tolerate 409 (already
+            // exists) on either call, since a retry can land after a previous attempt's
+            // write actually succeeded server-side even though its response was lost.
+            TestUtils.retry(() -> {
+                createArtifactTolerateConflict(client, groupId, artifactId, content);
+                createRuleTolerateConflict(client, groupId, artifactId);
+            }, "seed artifact+rule " + artifactId, 10);
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to seed artifact " + artifactId + " in group " + groupId, e);
+        }
+    }
+
+    private static void createArtifactTolerateConflict(RegistryClient client, String groupId,
+            String artifactId, String content) {
+        try {
+            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                    content, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact,
+                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+        } catch (ApiException e) {
+            if (e.getResponseStatusCode() != HttpURLConnection.HTTP_CONFLICT) {
+                throw e;
+            }
+        }
+    }
+
+    private static void createRuleTolerateConflict(RegistryClient client, String groupId,
+            String artifactId) {
+        try {
+            CreateRule createRule = new CreateRule();
+            createRule.setRuleType(RuleType.VALIDITY);
+            createRule.setConfig("SYNTAX_ONLY");
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                    .post(createRule);
+        } catch (ApiException e) {
+            if (e.getResponseStatusCode() != HttpURLConnection.HTTP_CONFLICT) {
+                throw e;
+            }
+        }
     }
 
     private static void deleteRegistryDeployment() {

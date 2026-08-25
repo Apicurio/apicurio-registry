@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
@@ -1118,19 +1117,15 @@ public class AvroData {
 
     // Visible for testing
     protected static String doScrubName(String name) {
-        try {
-            if (name == null) {
-                return name;
-            }
-            String encoded = URLEncoder.encode(name, "UTF-8");
-            if (!NAME_START_CHAR.matcher(encoded).lookingAt()) {
-                encoded = "x" + encoded; // use an arbitrary valid prefix
-            }
-            encoded = NAME_INVALID_CHARS.matcher(encoded).replaceAll("_");
-            return encoded;
-        } catch (UnsupportedEncodingException e) {
+        if (name == null) {
             return name;
         }
+        String encoded = URLEncoder.encode(name, StandardCharsets.UTF_8);
+        if (!NAME_START_CHAR.matcher(encoded).lookingAt()) {
+            encoded = "x" + encoded; // use an arbitrary valid prefix
+        }
+        encoded = NAME_INVALID_CHARS.matcher(encoded).replaceAll("_");
+        return encoded;
     }
 
     public org.apache.avro.Schema fromConnectSchemaWithCycle(Schema schema,

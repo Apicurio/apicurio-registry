@@ -30,7 +30,7 @@ import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
 /**
  * Unit test for {@link StandardArtifactTypeProviderRegistry} and {@link ConfigurableArtifactTypeUtilProvider}.
  * <p>
- * Verifies that the registry produces the expected 19 built-in provider instances in deterministic order,
+ * Verifies that the registry produces the expected 20 built-in provider instances in deterministic order,
  * resolves custom component suppliers correctly, and integrates cleanly with {@link DefaultArtifactTypeUtilProviderImpl}.
  */
 class StandardArtifactTypeProviderRegistryTest {
@@ -48,6 +48,7 @@ class StandardArtifactTypeProviderRegistryTest {
             ArtifactType.XML,
             ArtifactType.AGENT_CARD,
             ArtifactType.MCP_TOOL,
+            ArtifactType.MCP_SERVER,
             ArtifactType.ICEBERG_TABLE,
             ArtifactType.ICEBERG_VIEW,
             ArtifactType.OPENRPC,
@@ -60,7 +61,7 @@ class StandardArtifactTypeProviderRegistryTest {
     @Test
     void testCreateStandardProviders_count() {
         List<ArtifactTypeUtilProvider> providers = StandardArtifactTypeProviderRegistry.createStandardProviders();
-        assertEquals(19, providers.size());
+        assertEquals(20, providers.size());
     }
 
     @Test

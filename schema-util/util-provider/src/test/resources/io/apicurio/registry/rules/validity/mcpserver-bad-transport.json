@@ -1,0 +1,11 @@
+{
+  "name": "io.github.example/weather",
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registry_type": "npm",
+      "identifier": "@example/weather-mcp",
+      "transport": { "type": "carrier-pigeon" }
+    }
+  ]
+}

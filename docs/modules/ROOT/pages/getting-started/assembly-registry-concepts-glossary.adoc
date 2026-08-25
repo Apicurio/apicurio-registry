@@ -193,6 +193,7 @@ Supported artifact types include:
 * `ICEBERG_VIEW`: Apache Iceberg view metadata
 * `OPENRPC`: OpenRPC specification for JSON-RPC APIs
 * `MCP_TOOL`: MCP tool definitions (Model Context Protocol)
+* `MCP_SERVER`: MCP server definitions in `server.json` format (Model Context Protocol)
 * `MODEL_SCHEMA`: AI/ML model input/output schema definitions
 * `PROMPT_TEMPLATE`: LLM prompt templates with variable schemas
 

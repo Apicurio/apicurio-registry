@@ -88,8 +88,11 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
                                                                    String tableIncludeList) {
         String dockerAccessibleRegistryUrl = getContainerAccessibleRegistryUrl();
 
-        // MySQL requires unique server ID for each connector
-        int serverId = 10000 + connectorCounter.get();
+        // MySQL requires unique server ID for each connector. Use this class's own stable
+        // classId (captured once in DebeziumAvroBaseIT.setup()), not connectorCounter.get() —
+        // the counter keeps moving as sibling Debezium test classes register concurrently, so
+        // re-reading it here could race and collide with another class's server-id.
+        int serverId = 10000 + classId;
 
         // Schema history topic for tracking DDL changes
         String schemaHistoryTopic = "schema-history-" + connectorName.replace("-", "_");

@@ -10,6 +10,7 @@ import io.apicurio.registry.types.RuleType;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,11 +23,23 @@ import java.util.Set;
  * Validation levels:
  * - NONE: No validation
  * - SYNTAX_ONLY: Validates that the content is valid JSON and is an object
- * - FULL: Full schema validation including required fields, type checking, and structure validation
+ * - FULL: Full schema validation including required fields, type checking, and structure
+ *   validation. The 'annotations' object is validated as a closed ToolAnnotations shape.
  *
  * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools</a>
  */
 public class McpToolContentValidator implements ContentValidator {
+
+    /**
+     * Declared by both Tool (via BaseMetadata) and ToolAnnotations, so it is validated in both places.
+     */
+    private static final String TITLE_FIELD = "title";
+
+    /**
+     * The optional behavioral hints of the MCP ToolAnnotations schema. All of them are booleans.
+     */
+    private static final List<String> TOOL_ANNOTATION_HINTS = List.of("readOnlyHint",
+            "destructiveHint", "idempotentHint", "openWorldHint");
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -86,7 +99,7 @@ public class McpToolContentValidator implements ContentValidator {
     }
 
     private void validateOptionalStringFields(JsonNode tree, Set<RuleViolation> violations) {
-        JsonValidationUtils.validateOptionalString(tree, "title", violations);
+        JsonValidationUtils.validateOptionalString(tree, TITLE_FIELD, violations);
         JsonValidationUtils.validateOptionalString(tree, "description", violations);
     }
 
@@ -155,33 +168,24 @@ public class McpToolContentValidator implements ContentValidator {
         }
 
         // title: optional string (fallback display name per MCP spec)
-        JsonValidationUtils.validateOptionalString(annotations, "title", violations);
+        JsonValidationUtils.validateOptionalString(annotations, TITLE_FIELD, violations);
 
-        // audience: optional array of strings ("user", "assistant")
-        if (annotations.has("audience")) {
-            JsonNode audience = annotations.get("audience");
-            if (!audience.isArray()) {
-                violations.add(new RuleViolation("'annotations.audience' must be an array",
-                        "/annotations/audience"));
-            } else {
-                JsonValidationUtils.validateStringArray(audience,
-                        "/annotations/audience", "audience role", violations);
+        // readOnlyHint, destructiveHint, idempotentHint, openWorldHint: optional booleans
+        for (String hint : TOOL_ANNOTATION_HINTS) {
+            if (annotations.has(hint) && !annotations.get(hint).isBoolean()) {
+                violations.add(new RuleViolation("'annotations." + hint + "' must be a boolean",
+                        "/annotations/" + hint));
             }
         }
 
-        // priority: optional number between 0 and 1
-        if (annotations.has("priority")) {
-            JsonNode priority = annotations.get("priority");
-            if (!priority.isNumber()) {
-                violations.add(new RuleViolation("'annotations.priority' must be a number",
-                        "/annotations/priority"));
-            } else {
-                double value = priority.asDouble();
-                if (value < 0 || value > 1) {
-                    violations.add(new RuleViolation(
-                            "'annotations.priority' must be between 0 and 1",
-                            "/annotations/priority"));
-                }
+        // ToolAnnotations is a closed shape at FULL, so a typo or a stray field is a violation
+        // rather than a silently ignored no-op.
+        Iterator<String> fieldNames = annotations.fieldNames();
+        while (fieldNames.hasNext()) {
+            String field = fieldNames.next();
+            if (!TITLE_FIELD.equals(field) && !TOOL_ANNOTATION_HINTS.contains(field)) {
+                violations.add(new RuleViolation("'annotations." + field
+                        + "' is not a ToolAnnotations property", "/annotations/" + field));
             }
         }
     }

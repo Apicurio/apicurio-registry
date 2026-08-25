@@ -47,7 +47,12 @@ public class KafkaSqlCoordinator {
      */
     public Object waitForResponse(UUID uuid) {
         try {
-            latches.get(uuid).await(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            boolean completed = latches.get(uuid).await(
+                    configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            if (!completed) {
+                throw new RegistryException(
+                        "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
+            }
 
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {
@@ -63,6 +68,7 @@ public class KafkaSqlCoordinator {
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
         } finally {
             latches.remove(uuid);
+            returnValues.remove(uuid);
         }
     }
 

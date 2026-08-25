@@ -12,7 +12,7 @@ import {
 import {
     Modal
 } from "@patternfly/react-core/deprecated";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 import { detectContentType, detectVersionInContent } from "@utils/content.utils.ts";
 import { CreateVersion } from "@sdk/lib/generated-client/models";

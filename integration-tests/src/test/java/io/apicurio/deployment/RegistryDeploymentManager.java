@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
 import static io.apicurio.deployment.KubernetesTestResources.*;
@@ -33,6 +34,10 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
     public static KubernetesClient kubernetesClient;
+
+    // Guards against failsafe's rerun re-executing the test plan (and therefore the
+    // deployment) in the same JVM.
+    private static final AtomicBoolean DEPLOYED = new AtomicBoolean(false);
 
     static List<LogWatch> logWatch;
 
@@ -65,12 +70,28 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
+            // Failsafe re-executes the whole test plan for failing-test reruns
+            // (rerunFailingTestsCount). Deploy only once per JVM: redeploying would
+            // tear down and recreate the namespace mid-run, and the rerun can never
+            // pass against a half-recreated deployment.
+            if (!DEPLOYED.compareAndSet(false, true)) {
+                LOGGER.info("Registry already deployed in this JVM (failsafe rerun), skipping redeploy");
+                return;
+            }
+
             kubernetesClient = new KubernetesClientBuilder().build();
 
             try {
                 handleInfraDeployment();
             } catch (Exception e) {
                 LOGGER.error("Error starting registry deployment", e);
+            }
+
+            // Namespace cleanup must not run at test-plan end either: that method
+            // fires between the initial plan and the failsafe rerun plan. The CI
+            // runner is ephemeral, so deleting on JVM shutdown is sufficient.
+            if (!Boolean.parseBoolean(System.getProperty("preserveNamespace"))) {
+                Runtime.getRuntime().addShutdownHook(new Thread(this::cleanupTestResources));
             }
 
             LOGGER.info("Test suite started ##################################################");
@@ -82,21 +103,23 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         LOGGER.info("Test suite ended ##################################################");
 
         try {
+            if (logWatch != null && !logWatch.isEmpty()) {
+                logWatch.forEach(LogWatch::close);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Exception closing log watchers", e);
+        }
+    }
 
-            // Finally, once the testsuite is done, cleanup all the resources in the cluster
-            if (kubernetesClient != null
-                    && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
+    private void cleanupTestResources() {
+        try {
+            if (kubernetesClient != null) {
                 LOGGER.info("Closing test resources ##################################################");
-
-                if (logWatch != null && !logWatch.isEmpty()) {
-                    logWatch.forEach(LogWatch::close);
-                }
 
                 final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
                         .withName(TEST_NAMESPACE);
 
                 namespaceResource.delete();
-
             }
         } catch (Exception e) {
             LOGGER.error("Exception closing test resources", e);

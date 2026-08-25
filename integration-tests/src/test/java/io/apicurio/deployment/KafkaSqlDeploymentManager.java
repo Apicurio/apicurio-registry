@@ -75,7 +75,13 @@ public class KafkaSqlDeploymentManager {
         var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx)
                 // Seeding runs against a registry that may still be converging; the read-idle
                 // timeout kills stalled connections and retries must cover a slow redeploy.
-                .requestTimeout(10_000, 60_000).retry(true, 5, 1_000));
+                // KafkaSQL applies every one of these 1000 concurrent creates through a single
+                // ordered consumer thread, so a request near the tail of that backlog can
+                // legitimately wait well past a "normal" request's timeout under loaded CI --
+                // a shorter deadline here previously produced a client-side connection-closed
+                // error that silently aborted seeding partway through (see the incident this
+                // comment was added for: 999/1000 artifacts, snapshot never triggered).
+                .requestTimeout(10_000, 180_000).retry(true, 5, 1_000));
 
         // Thousands of sequential blocking calls take 20+ minutes on a loaded CI
         // runner (this read as "the job hangs" more than once); fan out instead.

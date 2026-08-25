@@ -529,10 +529,18 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testPostgreSQLSpecificTypes() throws Exception {
         String tableName = getTableName("pg_types_test");
         String topicName = getTopicNameForTable(tableName);
+        // The ENUM type is a schema-global object, not scoped to this table -- unlike
+        // tableName above it wasn't namespaced per test-class instance, so the two
+        // concrete subclasses of this base class (DebeziumPostgreSQLAvroIntegrationIT and
+        // DebeziumPostgreSQLAvroLocalConvertersIT) running concurrently as separate JUnit
+        // test classes could race on the shared literal name "mood": one class's
+        // DROP TYPE ... CASCADE could drop the other's still-in-use column (or whole
+        // table) mid-test, surfacing as "column ... does not exist" further down.
+        String moodType = tablePrefix + "mood";
 
         try (Statement stmt = getDatabaseConnection().createStatement()) {
-            stmt.execute("DROP TYPE IF EXISTS mood CASCADE");
-            stmt.execute("CREATE TYPE mood AS ENUM ('happy', 'sad', 'neutral')");
+            stmt.execute("DROP TYPE IF EXISTS " + moodType + " CASCADE");
+            stmt.execute("CREATE TYPE " + moodType + " AS ENUM ('happy', 'sad', 'neutral')");
         }
 
         createTable(tableName,
@@ -540,7 +548,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "id SERIAL PRIMARY KEY, " +
                         "data_json JSONB, " +
                         "tags TEXT[], " +
-                        "user_mood mood, " +
+                        "user_mood " + moodType + ", " +
                         "user_id UUID, " +
                         "created_at TIMESTAMPTZ" +
                         ")");
@@ -552,7 +560,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         try (PreparedStatement stmt = getDatabaseConnection().prepareStatement(
                 "INSERT INTO " + tableName +
                         " (data_json, tags, user_mood, user_id, created_at) " +
-                        "VALUES (?::jsonb, ?::text[], ?::mood, ?::uuid, NOW())")) {
+                        "VALUES (?::jsonb, ?::text[], ?::" + moodType + ", ?::uuid, NOW())")) {
             stmt.setString(1, "{\"key\": \"value\", \"number\": 42}");
             stmt.setArray(2, getDatabaseConnection().createArrayOf("text", new String[]{ "tag1", "tag2", "tag3" }));
             stmt.setObject(3, "happy", java.sql.Types.OTHER);

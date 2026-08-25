@@ -1700,6 +1700,9 @@ The UI container environment variables override application configuration. You t
 | `REGISTRY_EDITORS_URL`
 | Override for the editors (Designer) URL
 
+| `REGISTRY_MONACO_EDITOR_URL`
+| Override for self-hosted Monaco Editor assets (`vs/`)
+
 | `REGISTRY_AUTH_URL`
 | Override for the OAuth2/OIDC auth server URL
 

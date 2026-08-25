@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_CACHE;
 import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
@@ -34,6 +35,7 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
     boolean enabled;
 
     private Map<String, DynamicConfigPropertyDto> configCache = new ConcurrentHashMap<>();
+    private final AtomicLong cacheGeneration = new AtomicLong();
     private Instant lastRefresh = null;
 
     /**
@@ -64,17 +66,22 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
      * @see io.apicurio.registry.storage.decorator.RegistryStorageDecorator#getConfigProperty(java.lang.String)
      */
     public DynamicConfigPropertyDto getConfigProperty(String propertyName) {
-        DynamicConfigPropertyDto propertyDto = configCache.computeIfAbsent(propertyName, (key) -> {
-            DynamicConfigPropertyDto dto = delegate.getConfigProperty(key);
-            if (dto == null) {
-                dto = NULL_DTO;
-            }
-            return dto;
-        });
-        return propertyDto == NULL_DTO ? null : propertyDto;
+        DynamicConfigPropertyDto cached = configCache.get(propertyName);
+        if (cached != null) {
+            return cached == NULL_DTO ? null : cached;
+        }
+        // Load outside the map, so no bin is locked while storage is queried, and discard the
+        // result instead of caching it if an invalidation happened during the load.
+        long generation = cacheGeneration.get();
+        DynamicConfigPropertyDto loaded = delegate.getConfigProperty(propertyName);
+        if (cacheGeneration.get() == generation) {
+            configCache.putIfAbsent(propertyName, loaded == null ? NULL_DTO : loaded);
+        }
+        return loaded;
     }
 
     private void invalidateCache() {
+        cacheGeneration.incrementAndGet();
         configCache.clear();
     }
 

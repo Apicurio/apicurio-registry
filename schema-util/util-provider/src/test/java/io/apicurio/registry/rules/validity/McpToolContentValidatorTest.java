@@ -81,10 +81,35 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
         RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
-        Assertions.assertFalse(error.getCauses().isEmpty());
-        // Should have violations for title (not string), audience (not array),
-        // and priority (not number)
-        Assertions.assertTrue(error.getCauses().size() >= 3);
+        // Violations for title (not a string), readOnlyHint and destructiveHint (not booleans)
+        Assertions.assertEquals(3, error.getCauses().size());
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'title' field must be a string".equals(v.getDescription())));
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'annotations.readOnlyHint' must be a boolean"
+                        .equals(v.getDescription())));
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'annotations.destructiveHint' must be a boolean"
+                        .equals(v.getDescription())));
+    }
+
+    @Test
+    public void testMcpToolAnnotationsRejectUnsupportedFields() throws Exception {
+        // audience and priority belong to the MCP content annotation schema, not to
+        // ToolAnnotations, so at FULL they are rejected as unsupported rather than range-checked.
+        TypedContent content = resourceToTypedContentHandle(
+                "mcptool-annotations-content-fields.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(2, error.getCauses().size());
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'annotations.audience' is not a ToolAnnotations property"
+                        .equals(v.getDescription())));
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> "'annotations.priority' is not a ToolAnnotations property"
+                        .equals(v.getDescription())));
     }
 
     @Test

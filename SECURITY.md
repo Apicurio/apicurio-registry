@@ -8,7 +8,8 @@ Reported vulnerabilities will be investigated and patched on the next patch (or 
 
 **IMPORTANT: Please do not file public issues on GitHub for security vulnerabilities**
 
-To report a vulnerability or a security-related issue, please email [apicurio.registry@redhat.com](mailto:apicurio.registry@redhat.com) with the details of the vulnerability.
+To report a vulnerability or a security-related issue, please email [cncf-apicurio-registry-security@lists.cncf.io](mailto:cncf-apicurio-registry-security@lists.cncf.io) with the details of the vulnerability.
+(Note: The mailing list address was corrected from `cncf-apicurio-registery-security` to `cncf-apicurio-registry-security`.)
 Do not report non-security-impacting issues through this channel.
 Use [GitHub issues](https://github.com/Apicurio/apicurio-registry/issues) instead.
 

@@ -17,6 +17,8 @@ import java.util.Set;
  * - Removing skills: Backward incompatible
  * - Adding capabilities: Always compatible
  * - Removing/disabling capabilities: Backward incompatible
+ * - Adding capability extensions: Always compatible
+ * - Removing capability extensions (by uri): Backward incompatible
  * - Removing interfaces (by url+protocolBinding): Backward incompatible
  * - Changing protocolVersion on existing interface: Backward incompatible
  * - Adding security schemes: Always compatible
@@ -30,6 +32,7 @@ public class AgentCardCompatibilityChecker
     private static final String CONTEXT_INTERFACES = "/supportedInterfaces";
     private static final String CONTEXT_SKILLS = "/skills";
     private static final String CONTEXT_CAPABILITIES = "/capabilities";
+    private static final String CONTEXT_CAPABILITY_EXTENSIONS = "/capabilities/extensions";
     private static final String CONTEXT_SECURITY_SCHEMES = "/securitySchemes";
     private static final String CONTEXT_MODES = "/modes";
     private static final String CONTEXT_DOCUMENT = "/document";
@@ -154,6 +157,26 @@ public class AgentCardCompatibilityChecker
                 }
             }
         }
+
+        checkCapabilityExtensionRemovals(existingCaps, proposedCaps, differences);
+    }
+
+    /**
+     * capabilities.extensions is an array, so the boolean scan above skips it. Extensions are
+     * identified by uri.
+     */
+    private void checkCapabilityExtensionRemovals(JsonNode existingCaps, JsonNode proposedCaps,
+            Set<SimpleCompatibilityDifference> differences) {
+        Set<String> existingUris = extractExtensionUris(existingCaps);
+        Set<String> proposedUris = extractExtensionUris(proposedCaps);
+
+        for (String uri : existingUris) {
+            if (!proposedUris.contains(uri)) {
+                differences.add(new SimpleCompatibilityDifference(
+                        "Capability extension '" + uri + "' was removed",
+                        CONTEXT_CAPABILITY_EXTENSIONS));
+            }
+        }
     }
 
     private void checkSecuritySchemeRemovals(JsonNode existing, JsonNode proposed,
@@ -223,6 +246,26 @@ public class AgentCardCompatibilityChecker
             schemesNode.fieldNames().forEachRemaining(schemes::add);
         }
         return schemes;
+    }
+
+    private Set<String> extractExtensionUris(JsonNode capabilities) {
+        Set<String> uris = new HashSet<>();
+        if (capabilities == null) {
+            return uris;
+        }
+        JsonNode extensions = capabilities.get("extensions");
+        if (extensions != null && extensions.isArray()) {
+            for (JsonNode extension : extensions) {
+                // getTextValue already drops a missing or non-textual uri. A blank one is
+                // dropped too: it is not a usable identity, and tracking it would report a
+                // removal of extension '' when the entry disappears.
+                String uri = getTextValue(extension, "uri");
+                if (uri != null && !uri.isBlank()) {
+                    uris.add(uri);
+                }
+            }
+        }
+        return uris;
     }
 
     private Set<String> extractStringArray(JsonNode node, String fieldName) {

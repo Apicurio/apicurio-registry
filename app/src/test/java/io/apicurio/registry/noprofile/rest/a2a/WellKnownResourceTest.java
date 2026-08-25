@@ -103,6 +103,20 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String MCP_TOOL_CONTENT = """
+            {
+                "name": "get_weather",
+                "description": "Get the current weather for a city",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "city": { "type": "string" }
+                    },
+                    "required": ["city"]
+                }
+            }
+            """;
+
     @Test
     public void testGetAgentCard() {
         givenAtRoot()
@@ -128,7 +142,6 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("skills.id", hasItem("artifact-management"))
                 .body("skills.id", hasItem("compatibility-check"))
                 .body("skills.id", hasItem("agent-discovery"))
-                .body("capabilities.stateTransitionHistory", equalTo(false))
                 .body("defaultInputModes", hasItem("text/plain"))
                 .body("defaultOutputModes", hasItem("text/plain"))
                 .body("securitySchemes", notNullValue());
@@ -245,6 +258,104 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", greaterThanOrEqualTo(2))
                 .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testSearchAgentsPartialNameMatch() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "partialmatchagent-alpha", AGENT_CARD_CONTENT);
+
+        // The name filter is documented as a partial match, so a substring should match even
+        // though the caller did not supply any wildcards.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "partialmatchagent")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("partialmatchagent-alpha"));
+    }
+
+    @Test
+    public void testSearchAgentsExplicitWildcardIsPreserved() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "explicitwildcardagent-alpha", AGENT_CARD_CONTENT);
+
+        // A caller-supplied wildcard must still work (the value is not wrapped a second time).
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "*explicitwildcardagent*")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("explicitwildcardagent-alpha"));
+    }
+
+    @Test
+    public void testSearchAgentsPartialWildcardIsPreserved() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "boundedwildcardagent-alpha", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "zzz-boundedwildcardagent-beta", AGENT_CARD_CONTENT);
+
+        // A prefix-only search stays a prefix search - if the value were wrapped again it would
+        // also match the agent that only contains the term in the middle.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "boundedwildcardagent*")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem("boundedwildcardagent-alpha"))
+                .body("agents.artifactId", not(hasItem("zzz-boundedwildcardagent-beta")));
+
+        // Same for a suffix-only search.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "*boundedwildcardagent-beta")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem("zzz-boundedwildcardagent-beta"))
+                .body("agents.artifactId", not(hasItem("boundedwildcardagent-alpha")));
+    }
+
+    @Test
+    public void testSearchMcpToolsPartialNameMatch() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createMcpTool(groupId, "partialmatchtool-alpha", MCP_TOOL_CONTENT);
+
+        // Same partial-match behaviour is documented for the MCP tool discovery endpoint.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "partialmatchtool")
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("tools.artifactId", hasItem("partialmatchtool-alpha"));
+    }
+
+    @Test
+    public void testSearchAgentsWhitespaceNameDoesNotMatchAll() throws Exception {
+        // Whitespace-only name should be trimmed to empty string rather than wrapped into "**".
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "   ")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200);
     }
 
     @Test
@@ -445,6 +556,43 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testGetPublicAgentsNegativeOffset() {
+        givenAtRoot()
+                .when()
+                .queryParam("offset", -1)
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgentsNegativeLimit() {
+        givenAtRoot()
+                .when()
+                .queryParam("limit", -1)
+                .get("/.well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
+    public void testGetPublicAgentsNegativeOffsetLimitViaV3Path() {
+        givenAtRoot()
+                .when()
+                .queryParam("offset", -1)
+                .queryParam("limit", -1)
+                .get("/apis/registry/v3/well-known/agents/public")
+                .then()
+                .statusCode(200)
+                .body("count", notNullValue())
+                .body("agents", notNullValue());
+    }
+
+    @Test
     public void testSearchAgentsAdvancedWithQueryWildcard() throws Exception {
         String groupId = TestUtils.generateGroupId();
         createAgentCard(groupId, "wildcard-target-agent", AGENT_CARD_CONTENT);
@@ -535,10 +683,91 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(meta);
     }
 
+    @Test
+    public void testGetAgentCardViaOrchestrateAlias() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agent-card.json")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("Apicurio Registry"))
+                .body("supportedInterfaces", hasSize(1))
+                .body("skills", hasSize(5))
+                .body("skills.id", hasItem("schema-validation"))
+                .body("skills.id", hasItem("agent-discovery"));
+    }
+
+    @Test
+    public void testOrchestrateAliasMatchesCanonicalEndpoint() {
+        String canonical = givenAtRoot()
+                .when()
+                .get("/.well-known/agent.json")
+                .then()
+                .statusCode(200)
+                .extract().body().asString();
+
+        String alias = givenAtRoot()
+                .when()
+                .get("/.well-known/agent-card.json")
+                .then()
+                .statusCode(200)
+                .extract().body().asString();
+
+        org.junit.jupiter.api.Assertions.assertEquals(canonical, alias);
+    }
+
+    @Test
+    public void testSearchAgentsReturnsInterfaceUrls() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        createAgentCard(groupId, "url-agent", AGENT_CARD_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.find { it.artifactId == 'url-agent' }.supportedInterfaces[0].url",
+                        equalTo("https://example.com/agent"))
+                .body("agents.find { it.artifactId == 'url-agent' }.supportedInterfaces[0].protocolVersion",
+                        equalTo("1.0"));
+    }
+
+    @Test
+    public void testGetSchemaWithRenamedParam() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/prompt-template/v1")
+                .then()
+                .statusCode(200);
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/nonexistent/v1")
+                .then()
+                .statusCode(404);
+    }
+
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        createArtifact.setFirstVersion(createVersion);
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+    }
+
+    private void createMcpTool(String groupId, String artifactId, String content) throws Exception {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();

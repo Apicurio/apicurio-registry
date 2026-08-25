@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>3.3.1-SNAPSHOT</version>
+        <version>3.3.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -36,13 +36,35 @@
     <dependencies>
 
         <!--
-        The stdio transport enables communication through standard input and output streams.
-        This is particularly useful for local integrations and command-line tools.
-        This project does not currently use the SSE transport.
+        The HTTP transport enables remote agents with OAuth.
         -->
         <dependency>
             <groupId>io.quarkiverse.mcp</groupId>
             <artifactId>quarkus-mcp-server-stdio</artifactId>
+        </dependency>
+
+        <!--
+        The SSE transport enables communication over HTTP using Server-Sent Events.
+        This is required for remote integrations such as watsonx Orchestrate toolkit import.
+        -->
+        <dependency>
+            <groupId>io.quarkiverse.mcp</groupId>
+            <artifactId>quarkus-mcp-server-sse</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkiverse.mcp</groupId>
+            <artifactId>quarkus-mcp-server-http</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-oidc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-security</artifactId>
         </dependency>
 
         <dependency>
@@ -53,6 +75,20 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-java-sdk</artifactId>
+        </dependency>
+
+        <!--
+        Provides PromptTemplateVariableUtil, the canonical {{variable}} parser shared with the
+        validity rule and the REST render endpoint, so the three do not drift apart again.
+        -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-schema-util-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-java-sdk-common</artifactId>
         </dependency>
 
         <dependency>
@@ -67,7 +103,7 @@
 
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit5</artifactId>
+            <artifactId>quarkus-junit</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -86,6 +122,12 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
             <scope>test</scope>
         </dependency>
 

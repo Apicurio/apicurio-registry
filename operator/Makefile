@@ -26,11 +26,14 @@ IMAGE_TAG ?= $(LC_VERSION)
 IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
+IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+
 OPERAND_IMAGE_TAG ?= latest-snapshot
 
 REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:$(OPERAND_IMAGE_TAG)
 REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:$(OPERAND_IMAGE_TAG)
 REGISTRY_GITOPS_SYNC_IMAGE ?= quay.io/apicurio/apicurio-registry-gitops-sync:$(OPERAND_IMAGE_TAG)
+REGISTRY_CONSOLE_PLUGIN_IMAGE ?= quay.io/apicurio/apicurio-registry-console-plugin:$(OPERAND_IMAGE_TAG)
 
 NAMESPACE ?= default
 
@@ -39,7 +42,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.2.6
+PREVIOUS_PACKAGE_VERSION ?= 3.3.1
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 # Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
@@ -90,6 +93,7 @@ OLM_DEPLOY_DIR ?= $(CATALOG_DIR)/../olmv$(OLM_VERSION)
 
 INSTALL_NAMESPACE ?= PLACEHOLDER_NAMESPACE
 INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
+INSTALL_NAMESPACED_FILE ?= install/apicurio-registry-operator-namespaced-$(VERSION).yaml
 
 DIST_TARGET_DIR ?= target/dist
 
@@ -118,6 +122,7 @@ export PLACEHOLDER_IMAGE := $(IMAGE)
 export PLACEHOLDER_REGISTRY_APP_IMAGE := $(REGISTRY_APP_IMAGE)
 export PLACEHOLDER_REGISTRY_UI_IMAGE := $(REGISTRY_UI_IMAGE)
 export PLACEHOLDER_REGISTRY_GITOPS_SYNC_IMAGE := $(REGISTRY_GITOPS_SYNC_IMAGE)
+export PLACEHOLDER_REGISTRY_CONSOLE_PLUGIN_IMAGE := $(REGISTRY_CONSOLE_PLUGIN_IMAGE)
 
 export PLACEHOLDER_DATE := $(DATE)
 
@@ -312,6 +317,15 @@ endif
 endif
 
 
+.PHONY: image-buildx-push
+image-buildx-push: ## Build and push a multi-arch operator image
+	docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
+		--platform $(IMAGE_PLATFORMS) \
+		-t $(IMAGE) \
+		$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
+		controller/target
+
+
 .PHONY: image
 image: image-build image-push ## TODO
 
@@ -339,8 +353,15 @@ else
 endif
 
 
+.PHONY: dist-install-file-namespaced
+dist-install-file-namespaced: ## Generate the single-namespace (least-privilege) install file
+	mkdir -p $(dir $(INSTALL_NAMESPACED_FILE))
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/namespaced | envsubst >$(INSTALL_NAMESPACED_FILE)
+
+
 .PHONY: dist
-dist: dist-install-file ## TODO
+dist: dist-install-file dist-install-file-namespaced ## TODO
 	$(call target_dir,$(DIST_TARGET_DIR))
 	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
 	# Licenses
@@ -356,6 +377,7 @@ dist: dist-install-file ## TODO
 	# Install
 	mkdir -p $(DIST_TARGET_DIR)/install
 	cp $(INSTALL_FILE) $(DIST_TARGET_DIR)/install/install.yaml
+	cp $(INSTALL_NAMESPACED_FILE) $(DIST_TARGET_DIR)/install/install-namespaced.yaml
 	# Archive
 	cd $(DIST_TARGET_DIR) && tar -zcf ../apicurio-registry-operator-$(VERSION).tar.gz *
 

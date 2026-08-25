@@ -20,6 +20,10 @@ export class ArtifactTypes {
     public static THRIFT = "THRIFT";
     public static AGENT_CARD = "AGENT_CARD";
     public static MCP_TOOL = "MCP_TOOL";
+    public static ICEBERG_TABLE = "ICEBERG_TABLE";
+    public static ICEBERG_VIEW = "ICEBERG_VIEW";
+    public static OPENRPC = "OPENRPC";
+    public static ODCS_CONTRACT = "ODCS_CONTRACT";
     public static MODEL_SCHEMA = "MODEL_SCHEMA";
     public static PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
 
@@ -64,6 +68,18 @@ export class ArtifactTypes {
                 break;
             case "MCP_TOOL":
                 title = "MCP Tool Definition";
+                break;
+            case "ICEBERG_TABLE":
+                title = "Iceberg Table";
+                break;
+            case "ICEBERG_VIEW":
+                title = "Iceberg View";
+                break;
+            case "OPENRPC":
+                title = "OpenRPC Definition";
+                break;
+            case "ODCS_CONTRACT":
+                title = "ODCS Contract";
                 break;
             case "MODEL_SCHEMA":
                 title = "AI Model Schema";
@@ -117,6 +133,18 @@ export class ArtifactTypes {
             case "MCP_TOOL":
                 title = "MCP Tool";
                 break;
+            case "ICEBERG_TABLE":
+                title = "Iceberg Table";
+                break;
+            case "ICEBERG_VIEW":
+                title = "Iceberg View";
+                break;
+            case "OPENRPC":
+                title = "OpenRPC";
+                break;
+            case "ODCS_CONTRACT":
+                title = "ODCS Contract";
+                break;
             case "MODEL_SCHEMA":
                 title = "Model Schema";
                 break;
@@ -125,6 +153,19 @@ export class ArtifactTypes {
                 break;
         }
         return title;
+    }
+
+    // All artifact types the UI knows about. Used as a fallback when the backend
+    // list of types can't be fetched. Keep in sync with the constants above so that
+    // new types don't silently drop out of the Create Artifact dropdown on API failure.
+    public static all(): string[] {
+        return [
+            ArtifactTypes.AVRO, ArtifactTypes.PROTOBUF, ArtifactTypes.JSON,
+            ArtifactTypes.OPENAPI, ArtifactTypes.ASYNCAPI, ArtifactTypes.GRAPHQL,
+            ArtifactTypes.KCONNECT, ArtifactTypes.WSDL, ArtifactTypes.XSD,
+            ArtifactTypes.XML, ArtifactTypes.THRIFT, ArtifactTypes.AGENT_CARD,
+            ArtifactTypes.MCP_TOOL, ArtifactTypes.MODEL_SCHEMA, ArtifactTypes.PROMPT_TEMPLATE
+        ];
     }
 
     public static getClassNames(type: string): string {
@@ -167,7 +208,19 @@ export class ArtifactTypes {
                 classes += " agentcard-icon24";
                 break;
             case "MCP_TOOL":
-                classes += " mcptool-icon24";
+                classes += " mcp-tool-icon24";
+                break;
+            case "ICEBERG_TABLE":
+                classes += " iceberg-table-icon24";
+                break;
+            case "ICEBERG_VIEW":
+                classes += " iceberg-view-icon24";
+                break;
+            case "OPENRPC":
+                classes += " openrpc-icon24";
+                break;
+            case "ODCS_CONTRACT":
+                classes += " odcs-contract-icon24";
                 break;
             case "MODEL_SCHEMA":
                 classes += " modelschema-icon24";
@@ -191,7 +244,7 @@ const allTypes = async (admin: AdminService): Promise<string[]> => {
         try {
             ALL_TYPES = (await admin.getArtifactTypes()).map(t => t.name!);
         } catch {
-            ALL_TYPES = ["AVRO", "PROTOBUF", "JSON", "OPENAPI", "ASYNCAPI", "GRAPHQL", "KCONNECT", "WSDL", "XSD", "XML"];
+            ALL_TYPES = ArtifactTypes.all();
         }
     }
     return Promise.resolve(ALL_TYPES);

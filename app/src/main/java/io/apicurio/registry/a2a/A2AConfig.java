@@ -76,6 +76,10 @@ public class A2AConfig {
     @Info(category = CATEGORY_A2A, description = "Default visibility for new Agent Card artifacts (public, entitled, private)", availableSince = "3.0.0")
     String defaultVisibility;
 
+    @ConfigProperty(name = "apicurio.a2a.agent.auth.api-key.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_A2A, description = "Advertise API key authentication in the agent card security schemes", availableSince = "3.3.1")
+    boolean apiKeyAuthEnabled;
+
     @ConfigProperty(name = "apicurio.a2a.agent.protocol-version", defaultValue = "1.0")
     @Info(category = CATEGORY_A2A, description = "A2A protocol version supported by the registry agent", availableSince = "3.0.0")
     String protocolVersion;
@@ -146,5 +150,9 @@ public class A2AConfig {
 
     public String getDefaultVisibility() {
         return defaultVisibility;
+    }
+
+    public boolean isApiKeyAuthEnabled() {
+        return apiKeyAuthEnabled;
     }
 }

@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.1-SNAPSHOT</version>
+    <version>3.3.2-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -21,6 +21,9 @@
          Without this, Java 25+ treats the literal '@{argLine}' as an arg file reference
          and fails with 'could not open {argLine}'. -->
     <argLine/>
+    <!-- Max heap for the forked surefire JVM that runs the tests. -->
+    <surefire.maxHeap>4g</surefire.maxHeap>
+    <surefire.forkCount>1</surefire.forkCount>
   </properties>
 
   <dependencies>
@@ -65,6 +68,23 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-protobuf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-avro</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-json</artifactId>
     </dependency>
 
     <!-- Quarkus Dependencies -->
@@ -244,7 +264,7 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
+      <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -254,7 +274,7 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5-mockito</artifactId>
+      <artifactId>quarkus-junit-mockito</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -274,17 +294,57 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-v2-java-sdk</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-resolver</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-asyncapi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-openapi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-graphql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-xml</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-xsd</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-wsdl</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-iceberg</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -295,27 +355,6 @@
     <dependency>
       <groupId>io.kiota</groupId>
       <artifactId>kiota-http-vertx</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-maven-plugin</artifactId>
-      <type>maven-plugin</type>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -370,12 +409,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>raml-test-micro-service</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
@@ -393,6 +426,58 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-test-kubernetes-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-pulsar</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-kafka-common</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common-avro</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-serde-common-jsonschema</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-maven-plugin</artifactId>
+      <type>maven-plugin</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>raml-test-micro-service</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -486,8 +571,14 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <groups>${groups}</groups>
-          <forkCount>1</forkCount>
-          <argLine>@{argLine} -Xmx4g</argLine>
+          <!-- Fork count is overridable per CI shard with -Dsurefire.forkCount=N (e.g. the
+               app-rest-v3 shard uses 2). Quarkus tests boot on random ports, so concurrent
+               forks do not collide. Default stays 1 for local runs. -->
+          <forkCount>${surefire.forkCount}</forkCount>
+          <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
+               MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
+               -Dsurefire.maxHeap=<size>. See issue #9265. -->
+          <argLine>@{argLine} -Xmx${surefire.maxHeap}</argLine>
           <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -495,6 +586,8 @@
             <project.build.directory>${project.build.directory}</project.build.directory>
             <!-- Prevent OTel SPI conflict between Quarkus ContextStorageProvider and SDK testing -->
             <io.opentelemetry.context.contextStorageProvider>default</io.opentelemetry.context.contextStorageProvider>
+            <!-- Avro 1.12.2 rejects classes not on the trusted list during reflection-based serde -->
+            <org.apache.avro.SERIALIZABLE_PACKAGES>ch.mobi.lead.leadfall,com.kubetrade.schema.trade,io.apicurio.registry.support</org.apache.avro.SERIALIZABLE_PACKAGES>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -509,34 +602,7 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>unpack-openapi</id>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <phase>generate-resources</phase>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>${project.groupId}</groupId>
-                  <artifactId>apicurio-registry-common</artifactId>
-                  <version>${project.version}</version>
-                  <type>jar</type>
-                  <overWrite>true</overWrite>
-                  <includes>**/openapi.json</includes>
-                </artifactItem>
-              </artifactItems>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -681,6 +747,27 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
+            <!-- Copy the v3 OpenAPI spec from common module to output directory.
+                 This replaces the maven-dependency-plugin unpack execution which fails during the build
+                 (e.g., generate-resources phase) due to MDEP-98, because the sibling artifact has not been packaged into a JAR yet. -->
+          <execution>
+            <id>copy-openapi-from-common</id>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.parent.basedir}/common/src/main/resources/META-INF</directory>
+                  <includes>
+                    <include>openapi.json</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
           <!-- Copy the v3 OpenAPI spec to the api-specifications path served by the Swagger UI.
                This keeps it in sync with the canonical spec in the common module. -->
           <execution>
@@ -689,9 +776,9 @@
               <goal>copy-resources</goal>
             </goals>
             <phase>process-resources</phase>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}/META-INF/resources/api-specifications/registry/v3</outputDirectory>
-              <resources>
+              <configuration>
+                <outputDirectory>${project.build.outputDirectory}/META-INF/resources/api-specifications/registry/v3</outputDirectory>
+                <resources>
                 <resource>
                   <directory>${project.build.outputDirectory}/META-INF</directory>
                   <includes>
@@ -707,9 +794,9 @@
               <goal>copy-resources</goal>
             </goals>
             <phase>prepare-package</phase>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <resources>
+              <configuration>
+                <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                <resources>
                 <resource>
                   <directory>${project.basedir}/target/generated-test-sources/protobuf/</directory>
                   <filtering>false</filtering>
@@ -722,5 +809,6 @@
       </plugin>
     </plugins>
   </build>
+
 
 </project>

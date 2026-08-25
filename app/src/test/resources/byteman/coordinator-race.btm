@@ -1,0 +1,23 @@
+# Freeze the HTTP thread inside waitForResponse's finally block (after future.get
+# returns but before pending.remove) so the consumer thread can call notifyResponse
+# on the same UUID concurrently. With the old dual-map design, this caused NPE.
+# With CompletableFuture, notifyResponse on an already-completed future is a no-op.
+
+RULE freeze waiter in finally before remove
+CLASS io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator
+METHOD waitForResponse
+AT INVOKE java.util.concurrent.ConcurrentHashMap.remove
+IF NOT flagged("waiter-frozen")
+DO flag("waiter-frozen");
+   java.lang.System.setProperty("byteman.waiterFrozen", "true");
+   waitFor("coordinator-race", 10000)
+ENDRULE
+
+RULE release waiter after concurrent notify
+CLASS io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator
+METHOD notifyResponse
+AT EXIT
+IF flagged("waiter-frozen") AND NOT flagged("waiter-released")
+DO flag("waiter-released");
+   signalWake("coordinator-race", true)
+ENDRULE

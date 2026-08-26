@@ -165,40 +165,35 @@ public class RegistryApiSimulation extends Simulation {
     private static ScenarioBuilder buildScenario() {
         FeederBuilder<Object> seedFeeder = listFeeder(seedArtifactRecords()).random();
 
+        // Write path: registering a new schema. A real producer's serde auto-registers a schema
+        // once (on first use) and does not read it back afterwards - so this is a single call,
+        // matching AvroKafkaSerializer's actual behavior rather than a create-then-verify chain.
         ChainBuilder writeChain = exec(
                 session -> session.set("groupId", "perf-test-group-" + GROUP_COUNTER.incrementAndGet()))
                 .exec(http("Create artifact").post("/groups/#{groupId}/artifacts")
                         .queryParam("ifExists", "FAIL")
                         .header("Authorization", RegistryApiSimulation::authHeader)
                         .body(StringBody(RegistryApiSimulation::createArtifactBody)).asJson()
-                        .check(status().is(200), jmesPath("artifact.artifactId").saveAs("artifactId")))
-                .exec(http("Get artifact content (write path)")
-                        .get("/groups/#{groupId}/artifacts/#{artifactId}/versions/branch=latest/content")
-                        .header("Authorization", RegistryApiSimulation::authHeader)
-                        .check(status().is(200)))
-                .exec(http("Get artifact metadata (write path)")
-                        .get("/groups/#{groupId}/artifacts/#{artifactId}")
-                        .header("Authorization", RegistryApiSimulation::authHeader)
                         .check(status().is(200)));
 
-        // The realistic path: resolve an already-registered schema, the way a Kafka
-        // producer/consumer does on (close to) every message - see PERF_WRITE_RATIO javadoc.
+        // Read path: a single independent schema lookup by ID, matching how a real Kafka
+        // consumer/producer's serde resolves a schema for a given message - one call, not a
+        // chained sequence of calls. (A real client also caches this locally after the first
+        // lookup, so this scenario is already a pessimistic upper bound on real per-message
+        // registry traffic, not an underestimate.) See PERF_WRITE_RATIO javadoc for the rationale
+        // behind the 95%-read default. There is deliberately no "search artifacts" call here
+        // either - searching/browsing is an occasional UI/tooling action, not something a schema
+        // resolution client does per-message, so including it in this hot-path loop would not
+        // reflect real traffic.
         ChainBuilder readChain = feed(seedFeeder)
                 .exec(http("Get artifact content (read path)")
                         .get("/groups/" + SEED_GROUP + "/artifacts/#{seedArtifactId}/versions/branch=latest/content")
-                        .header("Authorization", RegistryApiSimulation::authHeader)
-                        .check(status().is(200)))
-                .exec(http("Get artifact metadata (read path)")
-                        .get("/groups/" + SEED_GROUP + "/artifacts/#{seedArtifactId}")
                         .header("Authorization", RegistryApiSimulation::authHeader)
                         .check(status().is(200)));
 
         return scenario("Registry REST API")
                 .randomSwitch().on(new Choice.WithWeight(WRITE_RATIO * 100, writeChain),
                         new Choice.WithWeight((1 - WRITE_RATIO) * 100, readChain))
-                .exec(http("Search artifacts").get("/search/artifacts").queryParam("limit", "20")
-                        .header("Authorization", RegistryApiSimulation::authHeader)
-                        .check(status().is(200)))
                 .pause(Duration.ofMillis(50), Duration.ofMillis(250));
     }
 

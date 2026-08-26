@@ -15,7 +15,6 @@ max_contributor_prs: 1
 
 merge:
   strategy: rebase
-  delete_branch: true
 
 stale:
   days_until_stale: 7
@@ -38,8 +37,9 @@ stale:
 welcome_message: |
   Thanks for opening this PR!
 
-  A maintainer will review and accept it shortly. In the meantime, you can
-  continue pushing changes.
+  The Quick Check gate runs on every push. The full verification suite runs
+  once a maintainer approves the PR (it runs immediately for trusted
+  authors) and is the final merge gate.
 
   **Available commands:**
   | Command | Description |
@@ -50,8 +50,5 @@ welcome_message: |
   **Maintainer commands:**
   | Command | Description |
   |---------|-------------|
-  | `/accept` | Accept the PR and transition to ready-for-review, running the full test suite |
   | `/reject [reason]` | Reject and close the PR |
-  | `/skip-review` | Skip review requirement for small changes (tests still required) |
-  | `/auto-merge` | Toggle auto-merge |
-  | `/merge` | Merge the PR |
+  | `/merge` | Toggle auto-merge — GitHub merges automatically once required checks and review pass |

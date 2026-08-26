@@ -72,5 +72,82 @@ checked without a cluster; the live OLM v1 smoke run is the end-to-end backstop,
 - **`NamespacedPermissionsOLMITTest`** and **`AllNamespacesOLMITTest`** assert the v0 least-privilege
   boundary directly with `SubjectAccessReview`s, and are disabled under v1: they rely on `OperatorGroup`
   install modes and the SingleNamespace boundary, neither of which v1 exposes today.
-- **`ChannelValidationOLMITTest`** and **`UpgradeOLMITTest`** install released bundles from the catalog
-  to exercise channel and upgrade behavior.
+- **`ChannelValidationOLMITTest`** validates channel metadata (names, heads, default channel) against
+  the live catalog.
+- **`UpgradeOLMITTest`** installs an older version from the catalog and verifies OLM upgrades it to the
+  current version. It discovers available versions from the live `PackageManifest` at runtime rather than
+  hardcoding version strings, so it works with both upstream catalogs (built from `catalog.template.yaml`)
+  and downstream IIB images (where CSV names have productized suffixes like `-r1`).
+
+## OLM upgrade test scenarios
+
+The upgrade tests exercise OLM's version resolution across channels. Which tests are applicable depends
+on which channels the current version appears in, which in turn depends on the release branch.
+
+### Channel model
+
+- **Rolling channel (`3.x`):** receives every new minor release from `main`. Contains the full version
+  history across minors (3.0.x → 3.1.x → 3.2.x → 3.3.x → ...).
+- **Minor channels (`3.2.x`, `3.3.x`, ...):** receive only patch releases for that minor. A version
+  released from a maintenance branch (e.g., 3.2.7 from the `3.2.x` branch) goes into `3.2.x` only, not
+  into `3.x`.
+
+### Release from `main` (e.g., 3.3.1)
+
+The version goes into both `3.x` (rolling) and `3.3.x` (minor). All upgrade tests are applicable:
+
+| Test | Channel | Start → Target | What it verifies |
+|------|---------|----------------|------------------|
+| Upgrade within minor | `3.3.x` | 3.3.0 → 3.3.1 | Patch upgrade within the current minor channel |
+| Upgrade across minors | `3.x` | previous minor → 3.3.1 | Cross-minor upgrade via the rolling channel |
+| Channel switch rolling→minor | `3.x` → `3.3.x` | 3.3.0 → 3.3.1 | Install on rolling, switch to minor |
+| Minor channel isolation | `3.3.x` | 3.3.0 → 3.3.1 | Verify no leak to a different minor |
+| Fresh install on minor | `3.3.x` | (none) → 3.3.1 | Fresh install gets the channel head |
+| Manual approval upgrade | `3.3.x` | 3.3.0 → 3.3.1 | Upgrade with manual install plan approval |
+| Downgrade rejected | `3.x` → older minor | 3.3.1 stays | Channel switch doesn't downgrade |
+| Channel switch noop | `3.x` → `3.3.x` | 3.3.1 stays | Switch at head is a no-op |
+
+### First release of a new minor from `main` (e.g., 3.4.0)
+
+The version goes into `3.x` and `3.4.x`. The minor channel has only one entry, so within-minor upgrade
+tests are not applicable:
+
+| Test | Applicable? | Reason |
+|------|-------------|--------|
+| Upgrade within minor | No | `3.4.x` has only one entry (3.4.0) |
+| Upgrade across minors | Yes | `3.x` has entries from previous minors |
+| Channel switch rolling→minor | Yes | Version is in both channels |
+| Minor channel isolation | No | Nothing to upgrade from in `3.4.x` |
+| Fresh install on minor | Yes | Always applicable |
+| Manual approval upgrade | No | `3.4.x` has only one entry |
+| Downgrade rejected | Yes | Version is in `3.x` |
+| Channel switch noop | Yes | Version is in both channels |
+
+### Release from a maintenance branch (e.g., 3.2.7 from `3.2.x`)
+
+The version goes into `3.2.x` only, not `3.x`. Tests involving the rolling channel are not applicable:
+
+| Test | Applicable? | Reason |
+|------|-------------|--------|
+| Upgrade within minor | Yes | `3.2.x` has previous entries |
+| Upgrade across minors | No | Version is not in `3.x` |
+| Channel switch rolling→minor | No | Version is not in `3.x` |
+| Minor channel isolation | Yes | Verify no leak beyond `3.2.x` |
+| Fresh install on minor | Yes | Always applicable |
+| Manual approval upgrade | Yes | `3.2.x` has previous entries |
+| Downgrade rejected | No | Version is not in `3.x` |
+| Channel switch noop | No | Version is not in `3.x` |
+
+### How tests determine applicability
+
+Tests query the live `PackageManifest` (OLM v0) or catalog pod (OLM v1) after the `CatalogSource` is
+created. The discovery result is cached for the duration of the test run. Each test checks its
+preconditions and logs the reason when skipping:
+
+- **Is the current version in `3.x`?** Check if `3.x` channel entries contain a CSV matching the current
+  package version.
+- **Does the minor channel have ≥2 entries?** Required for any within-minor upgrade test.
+- **Does `3.x` have entries from a different minor?** Required for cross-minor upgrade tests.
+
+This approach works for both upstream catalogs and downstream IIB images, since it reads the actual
+catalog content rather than assuming a specific structure.

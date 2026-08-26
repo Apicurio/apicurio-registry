@@ -26,6 +26,7 @@ import java.util.Map;
 import static io.apicurio.registry.operator.it.ITBase.MEDIUM_DURATION;
 import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
 import static io.apicurio.registry.operator.it.ITBase.setDefaultAwaitilityTimings;
+import static io.apicurio.registry.operator.it.OLMTestUtils.waitForCatalogPodReady;
 import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -137,12 +138,20 @@ public abstract class OLMITBase implements OperatorTestContext {
 
             createResource("olmv0/catalog-source.yaml");
 
-            await().ignoreExceptions().until(() -> {
-                return client.pods().inNamespace(namespace).list().getItems().stream().filter(
-                                pod -> pod.getMetadata().getName().startsWith("apicurio-registry-operator-catalog"))
-                        .anyMatch(pod -> pod.getStatus().getConditions().stream()
-                                .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus())));
-            });
+            // A Ready catalog pod is not immediately routable: the Service endpoints (and
+            // kube-proxy rules) lag by a beat behind pod readiness. package-server polls this
+            // catalog over that Service to sync the PackageManifest that
+            // ChannelValidationOLMITTest and the subscription resolver both read; querying it
+            // before the endpoints are actually programmed is a proven source of a stale-read
+            // race (see #9818, #9722). The previous pod-only readiness wait here let the
+            // Subscription (and any early PackageManifest read) race package-server's first
+            // successful sync against this catalog, intermittently observing a defaultChannel
+            // that "matches no catalog we build" -- i.e. genuinely stale data, not bad catalog
+            // content. waitForCatalogPodReady is the same helper already proven for this exact
+            // race in UpgradeOLMITTest/CatalogDiscovery; it was just never wired into this base
+            // setup, which is what every OLM v0 test (including ChannelValidationOLMITTest)
+            // actually runs through.
+            waitForCatalogPodReady(client, namespace);
 
             createResource(getOperatorGroupResourcePath());
             createResource("olmv0/subscription.yaml");

@@ -2,7 +2,6 @@ package io.apicurio.registry.xsd.rules.compatibility;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.xml.util.DocumentBuilderAccessor;
@@ -25,21 +24,21 @@ import java.util.*;
  * - FULL: Both backward and forward compatible
  * - TRANSITIVE: Rules apply to all historical versions, not just the latest
  */
-public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCompatibilityChecker.XsdIncompatibility> {
+public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
     private static final String XSD_NS = "http://www.w3.org/2001/XMLSchema";
     
     @Override
-    protected Set<XsdIncompatibility> isBackwardsCompatibleWith(String existing, String proposed,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences) {
         try {
             Document existingDoc = parseXsd(existing);
             Document proposedDoc = parseXsd(proposed);
-            
+
             XsdSchema existingSchema = new XsdSchema(existingDoc);
             XsdSchema proposedSchema = new XsdSchema(proposedDoc);
-            
-            Set<XsdIncompatibility> incompatibilities = new HashSet<>();
+
+            Set<SimpleCompatibilityDifference> incompatibilities = new HashSet<>();
             
             // Check for breaking changes in backward compatibility
             checkElementsBackwardCompatibility(existingSchema, proposedSchema, incompatibilities);
@@ -53,11 +52,6 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         }
     }
 
-    @Override
-    protected CompatibilityDifference transform(XsdIncompatibility original) {
-        return new SimpleCompatibilityDifference(original.getMessage(), original.getContext());
-    }
-
     private Document parseXsd(String xsdContent) throws Exception {
         ByteArrayInputStream stream = new ByteArrayInputStream(xsdContent.getBytes(StandardCharsets.UTF_8));
         return DocumentBuilderAccessor.getDocumentBuilder().parse(stream);
@@ -67,7 +61,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
      * Check backward compatibility for elements
      */
     private void checkElementsBackwardCompatibility(XsdSchema existing, XsdSchema proposed,
-            Set<XsdIncompatibility> incompatibilities) {
+            Set<SimpleCompatibilityDifference> incompatibilities) {
         // Check that all existing required elements are still present in proposed
         for (XsdElement existingElement : existing.getElements()) {
             XsdElement proposedElement = proposed.getElement(existingElement.getName());
@@ -75,7 +69,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
             if (proposedElement == null) {
                 // Element was removed - this is backward incompatible even if optional
                 // because old data may have this element
-                incompatibilities.add(new XsdIncompatibility(
+                incompatibilities.add(new SimpleCompatibilityDifference(
                     "Element '" + existingElement.getName() + "' was removed",
                     "/element[" + existingElement.getName() + "]"
                 ));
@@ -89,7 +83,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         for (XsdElement proposedElement : proposed.getElements()) {
             XsdElement existingElement = existing.getElement(proposedElement.getName());
             if (existingElement == null && proposedElement.isRequired()) {
-                incompatibilities.add(new XsdIncompatibility(
+                incompatibilities.add(new SimpleCompatibilityDifference(
                     "New required element '" + proposedElement.getName() + "' was added",
                     "/element[" + proposedElement.getName() + "]"
                 ));
@@ -98,12 +92,12 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
     }
 
     private void checkElementChanges(XsdElement existing, XsdElement proposed,
-            Set<XsdIncompatibility> incompatibilities) {
+            Set<SimpleCompatibilityDifference> incompatibilities) {
         String elementPath = "/element[" + existing.getName() + "]";
         
         // Check if minOccurs increased (making it more restrictive)
         if (proposed.getMinOccurs() > existing.getMinOccurs()) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Element '" + existing.getName() + "' minOccurs increased from " +
                 existing.getMinOccurs() + " to " + proposed.getMinOccurs(),
                 elementPath
@@ -113,13 +107,13 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         // Check if maxOccurs decreased (making it more restrictive)
         if (existing.getMaxOccurs() != -1 && proposed.getMaxOccurs() != -1 &&
             proposed.getMaxOccurs() < existing.getMaxOccurs()) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Element '" + existing.getName() + "' maxOccurs decreased from " +
                 existing.getMaxOccurs() + " to " + proposed.getMaxOccurs(),
                 elementPath
             ));
         } else if (existing.getMaxOccurs() == -1 && proposed.getMaxOccurs() != -1) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Element '" + existing.getName() + "' maxOccurs changed from unbounded to " +
                 proposed.getMaxOccurs(),
                 elementPath
@@ -128,7 +122,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         
         // Check type compatibility (narrowing)
         if (!isTypeCompatible(existing.getType(), proposed.getType(), false)) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Element '" + existing.getName() + "' type changed from " +
                 existing.getType() + " to " + proposed.getType() + " in an incompatible way",
                 elementPath
@@ -137,7 +131,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         
         // Check if nillable was removed
         if (existing.isNillable() && !proposed.isNillable()) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Element '" + existing.getName() + "' is no longer nillable",
                 elementPath
             ));
@@ -148,14 +142,14 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
      * Check backward compatibility for attributes
      */
     private void checkAttributesBackwardCompatibility(XsdSchema existing, XsdSchema proposed,
-            Set<XsdIncompatibility> incompatibilities) {
+            Set<SimpleCompatibilityDifference> incompatibilities) {
         for (XsdAttribute existingAttr : existing.getAttributes()) {
             XsdAttribute proposedAttr = proposed.getAttribute(existingAttr.getName());
             
             if (proposedAttr == null) {
                 // Attribute was removed - backward incompatible even if optional
                 // because old data may have this attribute
-                incompatibilities.add(new XsdIncompatibility(
+                incompatibilities.add(new SimpleCompatibilityDifference(
                     "Attribute '" + existingAttr.getName() + "' was removed",
                     "/attribute[" + existingAttr.getName() + "]"
                 ));
@@ -168,7 +162,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         for (XsdAttribute proposedAttr : proposed.getAttributes()) {
             XsdAttribute existingAttr = existing.getAttribute(proposedAttr.getName());
             if (existingAttr == null && proposedAttr.isRequired()) {
-                incompatibilities.add(new XsdIncompatibility(
+                incompatibilities.add(new SimpleCompatibilityDifference(
                     "New required attribute '" + proposedAttr.getName() + "' was added",
                     "/attribute[" + proposedAttr.getName() + "]"
                 ));
@@ -177,7 +171,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
     }
 
     private void checkAttributeChanges(XsdAttribute existing, XsdAttribute proposed,
-            Set<XsdIncompatibility> incompatibilities) {
+            Set<SimpleCompatibilityDifference> incompatibilities) {
         String attrPath = "/attribute[" + existing.getName() + "]";
         
         // Check if optional became required
@@ -191,7 +185,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         
         // Check type compatibility
         if (!isTypeCompatible(existing.getType(), proposed.getType(), false)) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Attribute '" + existing.getName() + "' type changed from " +
                 existing.getType() + " to " + proposed.getType() + " in an incompatible way",
                 attrPath
@@ -203,12 +197,12 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
      * Check backward compatibility for types
      */
     private void checkTypesBackwardCompatibility(XsdSchema existing, XsdSchema proposed,
-            Set<XsdIncompatibility> incompatibilities) {
+            Set<SimpleCompatibilityDifference> incompatibilities) {
         for (XsdType existingType : existing.getTypes()) {
             XsdType proposedType = proposed.getType(existingType.getName());
             
             if (proposedType == null) {
-                incompatibilities.add(new XsdIncompatibility(
+                incompatibilities.add(new SimpleCompatibilityDifference(
                     "Type '" + existingType.getName() + "' was removed",
                     "/type[" + existingType.getName() + "]"
                 ));
@@ -219,7 +213,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
     }
 
     private void checkTypeChanges(XsdType existing, XsdType proposed,
-            Set<XsdIncompatibility> incompatibilities) {
+            Set<SimpleCompatibilityDifference> incompatibilities) {
         String typePath = "/type[" + existing.getName() + "]";
         
         // Check restriction changes
@@ -236,11 +230,11 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
     }
 
     private void checkRestrictionChanges(String typeName, XsdRestriction existing,
-            XsdRestriction proposed, Set<XsdIncompatibility> incompatibilities, String context) {
+            XsdRestriction proposed, Set<SimpleCompatibilityDifference> incompatibilities, String context) {
         // Check if numeric ranges were tightened
         if (existing.getMinInclusive() != null && proposed.getMinInclusive() != null) {
             if (compareNumeric(proposed.getMinInclusive(), existing.getMinInclusive()) > 0) {
-                incompatibilities.add(new XsdIncompatibility(
+                incompatibilities.add(new SimpleCompatibilityDifference(
                     "Type '" + typeName + "' minInclusive increased from " +
                     existing.getMinInclusive() + " to " + proposed.getMinInclusive(),
                     context
@@ -250,7 +244,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         
         if (existing.getMaxInclusive() != null && proposed.getMaxInclusive() != null) {
             if (compareNumeric(proposed.getMaxInclusive(), existing.getMaxInclusive()) < 0) {
-                incompatibilities.add(new XsdIncompatibility(
+                incompatibilities.add(new SimpleCompatibilityDifference(
                     "Type '" + typeName + "' maxInclusive decreased from " +
                     existing.getMaxInclusive() + " to " + proposed.getMaxInclusive(),
                     context
@@ -261,7 +255,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         // Check if minLength increased
         if (proposed.getMinLength() != null && existing.getMinLength() != null &&
             proposed.getMinLength() > existing.getMinLength()) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Type '" + typeName + "' minLength increased from " +
                 existing.getMinLength() + " to " + proposed.getMinLength(),
                 context
@@ -271,7 +265,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         // Check if maxLength decreased
         if (proposed.getMaxLength() != null && existing.getMaxLength() != null &&
             proposed.getMaxLength() < existing.getMaxLength()) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Type '" + typeName + "' maxLength decreased from " +
                 existing.getMaxLength() + " to " + proposed.getMaxLength(),
                 context
@@ -282,7 +276,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
         if (existing.getPattern() != null && proposed.getPattern() != null &&
             !existing.getPattern().equals(proposed.getPattern())) {
             // Pattern change is incompatible unless we can prove new pattern is broader
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Type '" + typeName + "' pattern changed from '" +
                 existing.getPattern() + "' to '" + proposed.getPattern() + "'",
                 context
@@ -291,13 +285,13 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
     }
 
     private void checkEnumerationChanges(String typeName, Set<String> existingValues,
-            Set<String> proposedValues, Set<XsdIncompatibility> incompatibilities, String context) {
+            Set<String> proposedValues, Set<SimpleCompatibilityDifference> incompatibilities, String context) {
         // For backward compatibility, removing enum values is a problem
         Set<String> removedValues = new HashSet<>(existingValues);
         removedValues.removeAll(proposedValues);
         
         if (!removedValues.isEmpty()) {
-            incompatibilities.add(new XsdIncompatibility(
+            incompatibilities.add(new SimpleCompatibilityDifference(
                 "Type '" + typeName + "' enumeration values removed: " +
                 String.join(", ", removedValues),
                 context
@@ -322,40 +316,6 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<XsdCom
             return bd1.compareTo(bd2);
         } catch (NumberFormatException e) {
             return val1.compareTo(val2);
-        }
-    }
-
-    /**
-     * Represents an XSD incompatibility
-     */
-    public static class XsdIncompatibility {
-        private final String message;
-        private final String context;
-
-        public XsdIncompatibility(String message, String context) {
-            this.message = message;
-            this.context = context;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public String getContext() {
-            return context;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            XsdIncompatibility that = (XsdIncompatibility) o;
-            return Objects.equals(message, that.message) && Objects.equals(context, that.context);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(message, context);
         }
     }
 

@@ -24,15 +24,20 @@ import java.util.Set;
  * - Cannot remove outputSchema properties
  */
 public class PromptTemplateCompatibilityChecker
-        extends AbstractCompatibilityChecker<PromptTemplateCompatibilityDifference> {
+        extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
+
+    private static final String CONTEXT_VARIABLES = "/variables";
+    private static final String CONTEXT_OUTPUT_SCHEMA = "/outputSchema";
+    private static final String CONTEXT_OUTPUT_SCHEMA_PROPERTIES = "/outputSchema/properties";
+    private static final String CONTEXT_DOCUMENT = "/document";
 
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
-    protected Set<PromptTemplateCompatibilityDifference> isBackwardsCompatibleWith(String existing,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
             String proposed, Map<String, TypedContent> resolvedReferences) {
-        Set<PromptTemplateCompatibilityDifference> differences = new HashSet<>();
+        Set<SimpleCompatibilityDifference> differences = new HashSet<>();
 
         try {
             JsonNode existingNode = parseContent(existing);
@@ -42,9 +47,8 @@ public class PromptTemplateCompatibilityChecker
             checkOutputSchemaCompatibility(existingNode, proposedNode, differences);
 
         } catch (Exception e) {
-            differences.add(new PromptTemplateCompatibilityDifference(
-                    PromptTemplateCompatibilityDifference.Type.PARSE_ERROR,
-                    "Failed to parse Prompt Template: " + e.getMessage()));
+            differences.add(new SimpleCompatibilityDifference(
+                    "Failed to parse Prompt Template: " + e.getMessage(), CONTEXT_DOCUMENT));
         }
 
         return differences;
@@ -59,7 +63,7 @@ public class PromptTemplateCompatibilityChecker
     }
 
     private void checkVariableCompatibility(JsonNode existing, JsonNode proposed,
-            Set<PromptTemplateCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingVars = existing.get("variables");
         JsonNode proposedVars = proposed.get("variables");
 
@@ -79,9 +83,9 @@ public class PromptTemplateCompatibilityChecker
 
             if (proposedVars == null || !proposedVars.has(varName)) {
                 if (proposedTemplateVars.contains(varName)) {
-                    differences.add(new PromptTemplateCompatibilityDifference(
-                            PromptTemplateCompatibilityDifference.Type.VARIABLE_REMOVED_BUT_USED,
-                            "Variable '" + varName + "' was removed but is still used in the template."));
+                    differences.add(new SimpleCompatibilityDifference(
+                            "Variable '" + varName + "' was removed but is still used in the template.",
+                            CONTEXT_VARIABLES));
                 }
                 continue;
             }
@@ -96,32 +100,31 @@ public class PromptTemplateCompatibilityChecker
     }
 
     private void checkVariableTypeChange(String varName, JsonNode existingVar, JsonNode proposedVar,
-            Set<PromptTemplateCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         String existingType = getTextValue(existingVar, "type");
         String proposedType = getTextValue(proposedVar, "type");
 
         if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
-            differences.add(new PromptTemplateCompatibilityDifference(
-                    PromptTemplateCompatibilityDifference.Type.VARIABLE_TYPE_CHANGED,
+            differences.add(new SimpleCompatibilityDifference(
                     "Variable '" + varName + "' type changed from '" + existingType
-                            + "' to '" + proposedType + "'."));
+                            + "' to '" + proposedType + "'.",
+                    CONTEXT_VARIABLES));
         }
     }
 
     private void checkVariableBecameRequired(String varName, JsonNode existingVar, JsonNode proposedVar,
-            Set<PromptTemplateCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         boolean wasRequired = existingVar.has("required") && existingVar.get("required").asBoolean(false);
         boolean isRequired = proposedVar.has("required") && proposedVar.get("required").asBoolean(false);
 
         if (!wasRequired && isRequired) {
-            differences.add(new PromptTemplateCompatibilityDifference(
-                    PromptTemplateCompatibilityDifference.Type.VARIABLE_BECAME_REQUIRED,
-                    "Variable '" + varName + "' changed from optional to required."));
+            differences.add(new SimpleCompatibilityDifference(
+                    "Variable '" + varName + "' changed from optional to required.", CONTEXT_VARIABLES));
         }
     }
 
     private void checkEnumNarrowing(String varName, JsonNode existingVar, JsonNode proposedVar,
-            Set<PromptTemplateCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingEnum = existingVar.get("enum");
         JsonNode proposedEnum = proposedVar.get("enum");
 
@@ -137,15 +140,15 @@ public class PromptTemplateCompatibilityChecker
 
         for (JsonNode val : existingEnum) {
             if (!proposedValues.contains(val.asText())) {
-                differences.add(new PromptTemplateCompatibilityDifference(
-                        PromptTemplateCompatibilityDifference.Type.ENUM_VALUE_REMOVED,
-                        "Variable '" + varName + "' enum value '" + val.asText() + "' was removed."));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Variable '" + varName + "' enum value '" + val.asText() + "' was removed.",
+                        CONTEXT_VARIABLES));
             }
         }
     }
 
     private void checkOutputSchemaCompatibility(JsonNode existing, JsonNode proposed,
-            Set<PromptTemplateCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingSchema = existing.get("outputSchema");
         JsonNode proposedSchema = proposed.get("outputSchema");
 
@@ -154,9 +157,8 @@ public class PromptTemplateCompatibilityChecker
         }
 
         if (proposedSchema == null || !proposedSchema.isObject()) {
-            differences.add(new PromptTemplateCompatibilityDifference(
-                    PromptTemplateCompatibilityDifference.Type.OUTPUT_SCHEMA_REMOVED,
-                    "Output schema was removed."));
+            differences.add(new SimpleCompatibilityDifference(
+                    "Output schema was removed.", CONTEXT_OUTPUT_SCHEMA));
             return;
         }
 
@@ -168,9 +170,9 @@ public class PromptTemplateCompatibilityChecker
             while (propNames.hasNext()) {
                 String propName = propNames.next();
                 if (proposedProps == null || !proposedProps.has(propName)) {
-                    differences.add(new PromptTemplateCompatibilityDifference(
-                            PromptTemplateCompatibilityDifference.Type.OUTPUT_SCHEMA_PROPERTY_REMOVED,
-                            "Output schema property '" + propName + "' was removed."));
+                    differences.add(new SimpleCompatibilityDifference(
+                            "Output schema property '" + propName + "' was removed.",
+                            CONTEXT_OUTPUT_SCHEMA_PROPERTIES));
                 }
             }
         }
@@ -179,10 +181,5 @@ public class PromptTemplateCompatibilityChecker
     private String getTextValue(JsonNode node, String fieldName) {
         JsonNode field = node.get(fieldName);
         return (field != null && field.isTextual()) ? field.asText() : null;
-    }
-
-    @Override
-    protected CompatibilityDifference transform(PromptTemplateCompatibilityDifference original) {
-        return original;
     }
 }

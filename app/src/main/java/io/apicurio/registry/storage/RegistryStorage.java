@@ -26,6 +26,8 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ContractAuditEntryDto;
@@ -951,6 +953,43 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param principalId
      */
     void deleteRoleMapping(String principalId) throws RegistryStorageException;
+
+    /**
+     * Creates a webhook subscription.
+     *
+     * @param subscription the webhook subscription
+     */
+    void createWebhookSubscription(WebhookSubscriptionDto subscription) throws RegistryStorageException;
+
+    /**
+     * Searches for webhook subscriptions.
+     *
+     * @param offset the number of subscriptions to skip
+     * @param limit the result size limit
+     */
+    WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException;
+
+    /**
+     * Gets a single webhook subscription.
+     *
+     * @param subscriptionId the subscription identifier
+     */
+    WebhookSubscriptionDto getWebhookSubscription(String subscriptionId) throws RegistryStorageException;
+
+    /**
+     * Updates a webhook subscription.
+     *
+     * @param subscription the webhook subscription
+     */
+    void updateWebhookSubscription(WebhookSubscriptionDto subscription) throws RegistryStorageException;
+
+    /**
+     * Deletes a webhook subscription.
+     *
+     * @param subscriptionId the subscription identifier
+     */
+    void deleteWebhookSubscription(String subscriptionId) throws RegistryStorageException;
 
     /**
      * Deletes ALL user data. Does not delete global data, such as log configuration.

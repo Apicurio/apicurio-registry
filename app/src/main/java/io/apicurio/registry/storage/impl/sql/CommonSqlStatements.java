@@ -1089,6 +1089,59 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertWebhookSubscription()
+     */
+    @Override
+    public String insertWebhookSubscription() {
+        return "INSERT INTO webhook_subscriptions "
+                + "(subscriptionId, endpointUrl, eventTypes, groupFilter, artifactFilter, authType, authConfig, "
+                + "isEnabled, owner, createdOn, modifiedBy, modifiedOn) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteWebhookSubscription()
+     */
+    @Override
+    public String deleteWebhookSubscription() {
+        return "DELETE FROM webhook_subscriptions WHERE subscriptionId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectWebhookSubscriptionById()
+     */
+    @Override
+    public String selectWebhookSubscriptionById() {
+        return "SELECT w.* FROM webhook_subscriptions w WHERE w.subscriptionId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectWebhookSubscriptions()
+     */
+    @Override
+    public String selectWebhookSubscriptions() {
+        return "SELECT w.* FROM webhook_subscriptions w ORDER BY w.createdOn ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countWebhookSubscriptions()
+     */
+    @Override
+    public String countWebhookSubscriptions() {
+        return "SELECT COUNT(w.subscriptionId) FROM webhook_subscriptions w";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateWebhookSubscription()
+     */
+    @Override
+    public String updateWebhookSubscription() {
+        return "UPDATE webhook_subscriptions SET endpointUrl = ?, eventTypes = ?, groupFilter = ?, "
+                + "artifactFilter = ?, authType = ?, authConfig = ?, isEnabled = ?, modifiedBy = ?, modifiedOn = ? "
+                + "WHERE subscriptionId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
      */
     @Override

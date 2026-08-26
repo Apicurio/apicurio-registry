@@ -502,7 +502,110 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         given().when().delete("/registry/v3/admin/roleMappings/TestUser").then().statusCode(204)
                 .body(anything());
     }
+    @Test
+    public void testWebhookSubscriptions() throws Exception {
+        // Start with no webhook subscriptions
+        given().when().get("/registry/v3/admin/webhooks").then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("webhookSubscriptions[0]", nullValue())
+                .body("count", equalTo(0));
 
+        // Create a webhook subscription
+        String endpointUrl = "https://example.com/webhook-" + UUID.randomUUID();
+
+        String subscription = """
+                {
+                  "endpointUrl": "%s",
+                  "eventTypes": ["ARTIFACT_CREATED", "ARTIFACT_UPDATED"],
+                  "groupFilter": "test-group",
+                  "artifactFilter": "test-artifact",
+                  "authType": "NONE",
+                  "isEnabled": true
+                }
+                """.formatted(endpointUrl);
+
+        String subscriptionId = given().when()
+                .contentType(CT_JSON)
+                .body(subscription)
+                .post("/registry/v3/admin/webhooks")
+                .then()
+                .statusCode(201)
+                .contentType(ContentType.JSON)
+                .body("subscriptionId", notNullValue())
+                .body("endpointUrl", equalTo(endpointUrl))
+                .body("eventTypes", equalTo(List.of("ARTIFACT_CREATED", "ARTIFACT_UPDATED")))
+                .body("groupFilter", equalTo("test-group"))
+                .body("artifactFilter", equalTo("test-artifact"))
+                .body("authType", equalTo("NONE"))
+                .body("isEnabled", equalTo(true))
+                .extract()
+                .path("subscriptionId");
+
+        // Get the subscription
+        given().when()
+                .get("/registry/v3/admin/webhooks/{subscriptionId}", subscriptionId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("subscriptionId", equalTo(subscriptionId))
+                .body("endpointUrl", equalTo(endpointUrl));
+
+        // Verify it appears in the list
+        given().when()
+                .get("/registry/v3/admin/webhooks")
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("count", equalTo(1))
+                .body("webhookSubscriptions[0].subscriptionId", equalTo(subscriptionId));
+
+        // Update the subscription
+        String updatedEndpointUrl = "https://example.com/updated-" + UUID.randomUUID();
+
+        String update = """
+                {
+                  "endpointUrl": "%s",
+                  "eventTypes": ["ARTIFACT_CREATED"],
+                  "groupFilter": "updated-group",
+                  "artifactFilter": "updated-artifact",
+                  "authType": "NONE",
+                  "isEnabled": false
+                }
+                """.formatted(updatedEndpointUrl);
+
+        given().when()
+                .contentType(CT_JSON)
+                .body(update)
+                .put("/registry/v3/admin/webhooks/{subscriptionId}", subscriptionId)
+                .then()
+                .statusCode(204);
+
+        // Verify the update
+        given().when()
+                .get("/registry/v3/admin/webhooks/{subscriptionId}", subscriptionId)
+                .then()
+                .statusCode(200)
+                .contentType(ContentType.JSON)
+                .body("subscriptionId", equalTo(subscriptionId))
+                .body("endpointUrl", equalTo(updatedEndpointUrl))
+                .body("eventTypes", equalTo(List.of("ARTIFACT_CREATED")))
+                .body("groupFilter", equalTo("updated-group"))
+                .body("artifactFilter", equalTo("updated-artifact"))
+                .body("isEnabled", equalTo(false));
+
+        // Delete the subscription
+        given().when()
+                .delete("/registry/v3/admin/webhooks/{subscriptionId}", subscriptionId)
+                .then()
+                .statusCode(204);
+
+        // Verify deletion
+        given().when()
+                .get("/registry/v3/admin/webhooks/{subscriptionId}", subscriptionId)
+                .then()
+                .statusCode(404);
+    }
     @Test
     public void testRoleMappingPaging() throws Exception {
         // Start with no role mappings

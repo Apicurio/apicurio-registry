@@ -1,4 +1,9 @@
 package io.apicurio.registry.storage.impl.kafkasql;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.impl.kafkasql.messages.CreateWebhookSubscription1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.UpdateWebhookSubscription1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteWebhookSubscription1Message;
+
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
@@ -1344,6 +1349,52 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void deleteOldUsageEvents(long cutoffTimestamp) {
         submitter.submitMessage(new DeleteOldUsageEvents1Message(cutoffTimestamp));
+    }
+    /**
+ * @see io.apicurio.registry.storage.RegistryStorage#getWebhookSubscription(java.lang.String)
+ */
+@Override
+public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId)
+        throws RegistryStorageException {
+    return sqlStore.getWebhookSubscription(subscriptionId);
+}
+ /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createWebhookSubscription(io.apicurio.registry.storage.dto.WebhookSubscriptionDto)
+     */
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#searchWebhookSubscriptions(int, int)
+     */
+    @Override
+    public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException {
+        return sqlStore.searchWebhookSubscriptions(offset, limit);
+    }
+
+ @Override
+    public void createWebhookSubscription(WebhookSubscriptionDto subscription) throws RegistryStorageException {
+        var message = new CreateWebhookSubscription1Message(subscription);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updateWebhookSubscription(io.apicurio.registry.storage.dto.WebhookSubscriptionDto)
+     */
+    @Override
+    public void updateWebhookSubscription(WebhookSubscriptionDto subscription) throws RegistryStorageException {
+        var message = new UpdateWebhookSubscription1Message(subscription);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deleteWebhookSubscription(java.lang.String)
+     */
+    @Override
+    public void deleteWebhookSubscription(String subscriptionId) throws RegistryStorageException {
+        var message = new DeleteWebhookSubscription1Message(subscriptionId);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
 }

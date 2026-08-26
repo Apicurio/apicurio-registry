@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.impl.search;
-
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -593,7 +594,30 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     public void deleteRoleMapping(String principalId) {
         throw new UnsupportedOperationException();
     }
+    @Override
+    public void createWebhookSubscription(WebhookSubscriptionDto subscription) {
+         throw new UnsupportedOperationException();
+    }
 
+@Override
+public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId) {
+    throw new UnsupportedOperationException();
+}
+
+@Override
+public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit) {
+    throw new UnsupportedOperationException();
+}
+
+@Override
+public void updateWebhookSubscription(WebhookSubscriptionDto subscription) {
+    throw new UnsupportedOperationException();
+}
+
+@Override
+public void deleteWebhookSubscription(String subscriptionId) {
+    throw new UnsupportedOperationException();
+}
     @Override
     public void deleteAllUserData() {
         throw new UnsupportedOperationException();

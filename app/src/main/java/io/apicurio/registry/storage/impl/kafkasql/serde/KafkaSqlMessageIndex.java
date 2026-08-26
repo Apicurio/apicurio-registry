@@ -66,7 +66,10 @@ public class KafkaSqlMessageIndex {
                 MergeArtifactLabels4Message.class,
                 MergeVersionLabels5Message.class,
                 UpdateContractMetadata4Message.class,
-                TransitionContractStatus6Message.class);
+                TransitionContractStatus6Message.class,
+                CreateWebhookSubscription1Message.class,
+                UpdateWebhookSubscription1Message.class,
+                DeleteWebhookSubscription1Message.class);
     }
 
     public static Class<? extends KafkaSqlMessage> lookup(String name) {

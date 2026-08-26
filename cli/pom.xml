@@ -22,7 +22,7 @@
             quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-23
         </quarkus.native.builder-image>
         <jna.version>5.19.1</jna.version>
-        <jansi.version>2.4.0</jansi.version>
+        <jansi.version>2.4.3</jansi.version>
         <!-- Suffix of the native executable. Empty on Linux/macOS, ".exe" on Windows
              (set by the windows profile below). -->
         <executable.suffix></executable.suffix>

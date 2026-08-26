@@ -7,6 +7,7 @@ But first, read this page (including the small print at the end).
 
 * [Legal](#legal)
 * [Reporting an issue](#reporting-an-issue)
+* [Getting started and where to ask](#getting-started-and-where-to-ask)
 * [Before you contribute](#before-you-contribute)
   + [Code reviews](#code-reviews)
   + [Coding Guidelines](#coding-guidelines)
@@ -39,6 +40,18 @@ See [SECURITY.md](SECURITY.md) for details.
 For general questions and development discussions, use the
 [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
 or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+
+## Getting started and where to ask
+
+New here? This section points you to the right place for whatever you need.
+
+**Not sure where a question belongs?** [SUPPORT.md](SUPPORT.md) maps each kind of question or report to the channel that will answer it fastest, from usage questions and bugs to feature ideas and security reports.
+
+**Looking for a first issue?** Browse issues labelled [`good first issue`](https://github.com/Apicurio/apicurio-registry/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [`help wanted`](https://github.com/Apicurio/apicurio-registry/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22). When you find one, follow [Claiming an issue](#claiming-an-issue) to self-assign before you start, and ask in the issue if anything is unclear.
+
+**Building and running the project** is covered in [DEVELOPING.md](DEVELOPING.md): prerequisites, build options, running the server, running tests, and IDE setup.
+
+**New to open source, or joining through a mentorship program?** You are very welcome. Apicurio Registry is a CNCF Sandbox project and takes part in programs such as [LFX Mentorship](https://mentorship.lfx.linuxfoundation.org/) and [CNCF Mentoring](https://github.com/cncf/mentoring); general guidance for new CNCF contributors is collected at [contribute.cncf.io](https://contribute.cncf.io/). The guidelines on this page apply equally to mentees and first-time contributors. When in doubt, just ask in the issue or on Slack.
 
 ## Before you contribute
 

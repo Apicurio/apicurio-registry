@@ -15,6 +15,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableContractMetadataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
@@ -23,6 +24,7 @@ import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
 import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
+import io.apicurio.registry.storage.dto.ContractStatus;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.types.RuleType;
@@ -149,6 +151,19 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String contractId,
+            EditableContractMetadataDto metadata) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String contractId,
+            ContractStatus fromStatus, ContractStatus toStatus, String transitionDate)
+            throws RegistryStorageException {
         readOnlyViolation();
     }
 

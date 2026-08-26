@@ -79,6 +79,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
@@ -2096,17 +2097,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Detect existing contractId from labels
         ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
         String contractId = findContractId(existing.getLabels());
-        String prefix = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
-
-        // Convert editable metadata to namespaced labels
-        Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto, prefix);
-
-        // Atomic merge scoped to the contract prefix
-        storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
-
-        // Fire metadata updated event
-        storage.createEvent(io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId));
+        storage.updateContractMetadata(rawGroupId, artifactId, contractId, editableDto);
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2233,30 +2224,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Validate transition
         contractMetadataValidator.validateStatusTransition(currentMetadata.getStatus(), targetStatus);
 
-        String prefix = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
-
-        // Update status label
-        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
-        storage.mergeArtifactLabels(rawGroupId, artifactId, statusKey,
-                Map.of(statusKey, targetStatus.name()));
-
-        // Update lifecycle date labels
-        if (targetStatus == ContractStatus.STABLE) {
-            String key = prefix + ContractLabels.SUFFIX_STABLE_DATE;
-            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
-                    Map.of(key, java.time.LocalDate.now().toString()));
-        }
-        if (targetStatus == ContractStatus.DEPRECATED) {
-            String key = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
-            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
-                    Map.of(key, java.time.LocalDate.now().toString()));
-        }
-
-        // Fire status changed event
-        storage.createEvent(io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
-                currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : null,
-                targetStatus.name()));
+        storage.transitionContractStatus(rawGroupId, artifactId, contractId,
+                currentMetadata.getStatus(), targetStatus, LocalDate.now().toString());
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

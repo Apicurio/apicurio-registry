@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.contracts.ContractMetadataMapper;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.events.ContractMetadataUpdated;
+import io.apicurio.registry.events.ContractStatusChanged;
 import io.apicurio.registry.events.ContractRulesetConfigured;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
@@ -150,6 +154,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     Event<SqlOutboxEvent> outboxEvent;
+
+    @Inject
+    ContractMetadataMapper contractMetadataMapper;
 
     // Repository instances - one set per storage instance (not shared CDI singletons)
     SqlArtifactRepository artifactRepository;
@@ -831,6 +838,45 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void deleteGroupRule(String groupId, RuleType rule) throws RegistryStorageException {
 
         ruleRepository.deleteGroupRule(groupId, rule);
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String contractId,
+            EditableContractMetadataDto metadata) throws RegistryStorageException {
+        handles.withHandle(handle -> {
+            String prefix = contractId != null
+                    ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+            mergeArtifactLabels(groupId, artifactId, prefix,
+                    contractMetadataMapper.toLabels(metadata, prefix));
+            outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+            return null;
+        });
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String contractId,
+            ContractStatus fromStatus, ContractStatus toStatus, String transitionDate)
+            throws RegistryStorageException {
+        handles.withHandle(handle -> {
+            String prefix = contractId != null
+                    ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+            String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+            mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus.name()));
+
+            if (toStatus == ContractStatus.STABLE) {
+                String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
+                mergeArtifactLabels(groupId, artifactId, stableDateKey,
+                        Map.of(stableDateKey, transitionDate));
+            } else if (toStatus == ContractStatus.DEPRECATED) {
+                String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
+                mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
+                        Map.of(deprecatedDateKey, transitionDate));
+            }
+
+            outboxEvent.fire(SqlOutboxEvent.of(ContractStatusChanged.of(groupId, artifactId,
+                    fromStatus != null ? fromStatus.name() : null, toStatus.name())));
+            return null;
+        });
     }
 
     @Override

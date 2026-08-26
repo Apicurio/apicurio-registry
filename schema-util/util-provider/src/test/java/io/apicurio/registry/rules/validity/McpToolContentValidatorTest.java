@@ -1,7 +1,7 @@
 package io.apicurio.registry.rules.validity;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.ContentTypes;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.content.McpToolContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.ExtractedMetaData;

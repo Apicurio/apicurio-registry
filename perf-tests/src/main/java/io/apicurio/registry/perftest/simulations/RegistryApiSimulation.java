@@ -48,7 +48,9 @@ import static io.gatling.javaapi.http.HttpDsl.*;
  *   <li>{@code AUTH_TOKEN_ENDPOINT} - OIDC token endpoint (Keycloak realm token URL). If unset,
  *       requests are sent without an Authorization header (useful for anonymous-read setups).
  *   <li>{@code AUTH_CLIENT_ID} / {@code AUTH_CLIENT_SECRET} - OAuth2 client-credentials
- *   <li>{@code PERF_USERS} - number of concurrent virtual users (default 20)
+ *   <li>{@code PERF_USERS} - number of *concurrent* virtual users sustained for the whole test
+ *       duration (a closed injection model - see the {@code setUp()} block for why this matters
+ *       and what it replaced) (default 20)
  *   <li>{@code PERF_DURATION_SECONDS} - how long to sustain the load (default 120)
  *   <li>{@code PERF_WRITE_RATIO} - fraction of iterations that register a *new* artifact, as
  *       opposed to reading a pre-existing one (default {@code 0.05} = 5%). Real schema registry
@@ -318,8 +320,17 @@ public class RegistryApiSimulation extends Simulation {
     }
 
     {
-        setUp(scn.injectOpen(rampUsers(USERS).during(Duration.ofSeconds(10)),
-                constantUsersPerSec(Math.max(1, USERS / 2)).during(Duration.ofSeconds(DURATION_SECONDS))))
+        // A *closed* injection model: PERF_USERS concurrent virtual users, each immediately
+        // starting a new iteration as soon as its previous one finishes, for the whole test
+        // duration - i.e. genuinely PERF_USERS concurrent in-flight users, not an arrival-rate
+        // model. (The previous injectOpen(rampUsers/constantUsersPerSec(...)) model only injects
+        // USERS/2 *new* one-shot arrivals per second; by Little's Law, actual concurrency was
+        // roughly (USERS/2) x (mean iteration time), which at ~300-400ms per iteration meant
+        // true concurrency - and therefore measured throughput - was only a fraction of what
+        // PERF_USERS implied. That silently capped every "PERF_USERS=N" result in earlier reports
+        // well below the registry's actual achievable throughput at N concurrent clients.)
+        setUp(scn.injectClosed(rampConcurrentUsers(1).to(USERS).during(Duration.ofSeconds(10)),
+                constantConcurrentUsers(USERS).during(Duration.ofSeconds(DURATION_SECONDS))))
                 .protocols(httpProtocol)
                 .assertions(global().failedRequests().percent().lte(1.0));
     }

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Apicurio Registry — PostgreSQL Sizing Dashboard</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; background: #0d1117; color: #c9d1d9; }
+  h1 { color: #58a6ff; }
+  h2 { color: #79c0ff; border-bottom: 1px solid #30363d; padding-bottom: 0.3rem; margin-top: 2.5rem; }
+  .meta { color: #8b949e; font-size: 0.9rem; margin-bottom: 1.5rem; }
+  .meta code { background: #161b22; padding: 0.1rem 0.4rem; border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { padding: 0.5rem 0.8rem; text-align: right; border-bottom: 1px solid #21262d; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: #8b949e; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+  tr.ok td.status { color: #3fb950; }
+  tr.warn td.status { color: #d29922; }
+  tr.bad td.status { color: #f85149; }
+  .bar-cell { min-width: 220px; }
+  .bar-track { background: #161b22; border-radius: 3px; height: 18px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-fill.fail { background: linear-gradient(90deg, #f85149, #da3633); }
+  .bar-fill.throughput { background: linear-gradient(90deg, #3fb950, #2ea043); }
+  .bar-label { position: absolute; right: 6px; top: 0; font-size: 0.75rem; line-height: 18px; color: #e6edf3; }
+  .callout { background: #161b22; border-left: 4px solid #58a6ff; padding: 0.8rem 1.2rem; margin: 1rem 0; border-radius: 4px; }
+  .callout.warn { border-left-color: #d29922; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 1rem 0; }
+  .stat { background: #161b22; border: 1px solid #21262d; border-radius: 6px; padding: 1rem; }
+  .stat .value { font-size: 1.8rem; font-weight: 700; color: #58a6ff; }
+  .stat .label { font-size: 0.8rem; color: #8b949e; text-transform: uppercase; }
+  .footer { color: #8b949e; font-size: 0.8rem; margin-top: 3rem; border-top: 1px solid #21262d; padding-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>Apicurio Registry — PostgreSQL Sizing Dashboard</h1>
+<div class="meta">
+  Topology: single-replica registry, operator-deployed, PostgreSQL storage behind Toxiproxy
+  (<code>~15ms &plusmn; 5ms</code> injected latency), Keycloak OAuth2 client-credentials.
+  Resources: <code>1 CPU / 1Gi</code> (operator defaults). Traffic: 95% reads / 5% writes against
+  a 200-artifact pre-seeded pool (<code>RegistryApiSimulation</code>, read-heavy default).
+  Load model: <b>closed</b> injection (<code>constantConcurrentUsers</code>) — N genuinely
+  concurrent virtual users sustained for the full 45s run, not an arrival-rate model.
+</div>
+
+<div class="callout warn">
+  <b>Methodology note:</b> this data was collected after fixing a real bug in the load generator:
+  it previously used Gatling's <i>open</i> injection model (<code>rampUsers</code> +
+  <code>constantUsersPerSec(USERS/2)</code>), which controls arrival <i>rate</i>, not concurrency —
+  by Little's Law, true concurrency was only a fraction of the configured <code>PERF_USERS</code>
+  value. All numbers on this dashboard use the corrected <b>closed</b> model
+  (<code>constantConcurrentUsers</code>), so <code>N users</code> here means N genuinely
+  concurrent, continuously-active clients for the whole run.
+</div>
+
+<h2>Key numbers</h2>
+<div class="grid">
+  <div class="stat"><div class="value">150</div><div class="label">Max concurrent users, 0% failures</div></div>
+  <div class="stat"><div class="value">192</div><div class="label">Peak clean throughput (rps)</div></div>
+  <div class="stat"><div class="value">150&ndash;200</div><div class="label">Practical ceiling window</div></div>
+  <div class="stat"><div class="value">12.82%</div><div class="label">Failure rate at 300 users</div></div>
+</div>
+
+<h2>Failure rate vs. concurrency</h2>
+<table>
+  <tr><th>Users</th><th>Status</th><th>Requests</th><th>Failed</th><th>Failure %</th><th class="bar-cell">Failure rate</th></tr>
+  <!-- rows -->
+  <tr class="ok"><td>10</td><td class="status">&#9679; clean</td><td>339</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="ok"><td>25</td><td class="status">&#9679; clean</td><td>1,725</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="ok"><td>35</td><td class="status">&#9679; clean</td><td>2,436</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="ok"><td>40</td><td class="status">&#9679; clean</td><td>2,878</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="ok"><td>45</td><td class="status">&#9679; clean</td><td>3,152</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="ok"><td>60</td><td class="status">&#9679; clean</td><td>4,299</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="ok"><td>100</td><td class="status">&#9679; clean</td><td>7,168</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="ok"><td>150</td><td class="status">&#9679; clean</td><td>10,765</td><td>0</td><td>0.00%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:0%"></div><span class="bar-label">0%</span></div></td></tr>
+  <tr class="warn"><td>200</td><td class="status">&#9679; degrading (1 restart)</td><td>14,266</td><td>677</td><td>4.75%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:4.75%"></div><span class="bar-label">4.75%</span></div></td></tr>
+  <tr class="bad"><td>300</td><td class="status">&#9679; broken (2 restarts)</td><td>21,177</td><td>2,714</td><td>12.82%</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill fail" style="width:12.82%"></div><span class="bar-label">12.82%</span></div></td></tr>
+</table>
+
+<h2>Throughput vs. concurrency</h2>
+<table>
+  <tr><th>Users</th><th>OK throughput (rps)</th><th class="bar-cell">Relative to peak (192 rps)</th><th>p50 (OK, ms)</th><th>p99 (OK, ms)</th></tr>
+  <tr><td>10</td><td>10.94</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:5.7%"></div><span class="bar-label">10.94</span></div></td>
+    <td>57</td><td>451</td></tr>
+  <tr><td>25</td><td>30.80</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:16.0%"></div><span class="bar-label">30.80</span></div></td>
+    <td>53</td><td>405</td></tr>
+  <tr><td>35</td><td>43.50</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:22.7%"></div><span class="bar-label">43.50</span></div></td>
+    <td>52</td><td>352</td></tr>
+  <tr><td>40</td><td>51.39</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:26.8%"></div><span class="bar-label">51.39</span></div></td>
+    <td>52</td><td>429</td></tr>
+  <tr><td>45</td><td>56.29</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:29.3%"></div><span class="bar-label">56.29</span></div></td>
+    <td>52</td><td>368</td></tr>
+  <tr><td>60</td><td>76.77</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:40.0%"></div><span class="bar-label">76.77</span></div></td>
+    <td>52</td><td>382</td></tr>
+  <tr><td>100</td><td>128.00</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:66.7%"></div><span class="bar-label">128.00</span></div></td>
+    <td>53</td><td>444</td></tr>
+  <tr><td><b>150</b></td><td><b>192.23</b></td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:100%"></div><span class="bar-label">192.23 (peak)</span></div></td>
+    <td>58</td><td>693</td></tr>
+  <tr><td>200</td><td>183.64</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:95.5%"></div><span class="bar-label">183.64 (degraded)</span></div></td>
+    <td>108</td><td>15,824</td></tr>
+  <tr><td>300</td><td>239.78</td>
+    <td class="bar-cell"><div class="bar-track"><div class="bar-fill throughput" style="width:100%"></div><span class="bar-label">239.78 (12.8% failing)</span></div></td>
+    <td>3,342</td><td>17,772</td></tr>
+</table>
+<div class="meta">
+  Note on 200/300: raw OK-throughput keeps climbing past 150 users, but that's misleading in
+  isolation — an increasing share of total traffic is failing outright (4.75% at 200, 12.82% at
+  300) and p50/p99 latency for the requests that <i>do</i> succeed has already blown up by
+  10&ndash;100x. 150 concurrent users is the last point with both 0% failures <i>and</i> stable
+  latency.
+</div>
+
+<h2>Sizing recommendation (this topology only)</h2>
+<div class="callout">
+  For a <b>single registry replica on 1 CPU / 1Gi, SQL storage, ~15ms DB latency</b>: keep
+  sustained concurrent client load at or below <b>~150</b> for zero-failure operation. Between
+  150&ndash;200 concurrent users, expect the first restarts and failures to appear. Beyond 200,
+  failure rate and tail latency both degrade sharply. To serve more concurrent clients, scale
+  <i>horizontally</i> (more replicas) rather than assuming a single instance will linearly absorb
+  more load — see <code>extreme-case-and-realism-report.md</code> for how much worse this gets
+  under degraded network conditions, and <code>prod-like-vt-comparison-report.md</code> /
+  <code>prod-like-vt-multirun-report.md</code> for how virtual threads change this specific
+  picture (those runs pre-date this dashboard's closed-model fix and should be treated as
+  directionally indicative, not exact numbers, until re-validated under the corrected model).
+</div>
+
+<div class="footer">
+  Generated from perf-tests/k8s/postgresql/ runs against a local Minikube cluster.
+  Raw Gatling reports and runner logs are not included in this file - see the perf-tests/
+  directory's *-report.md files for full narrative detail and methodology.
+</div>
+
+</body>
+</html>

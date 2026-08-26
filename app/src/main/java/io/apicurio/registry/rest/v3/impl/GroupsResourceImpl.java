@@ -644,6 +644,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaData data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
@@ -696,6 +697,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void updateGroupById(String groupId, EditableGroupMetaData data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
@@ -775,6 +777,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public void createGroupRule(String groupId, CreateRule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
         ParameterValidationUtils.requireParameter("config", data.getConfig());
@@ -802,6 +805,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
     public Rule updateGroupRuleConfig(String groupId, RuleType ruleType, Rule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
         ParameterValidationUtils.requireParameter("config", data.getConfig());
@@ -873,6 +877,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void createArtifactRule(String groupId, String artifactId, CreateRule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("ruleType", data.getRuleType());
@@ -937,6 +942,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Rule updateArtifactRuleConfig(String groupId, String artifactId, RuleType ruleType, Rule data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("ruleType", ruleType);
@@ -1189,6 +1195,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 3)
     public void updateArtifactVersionState(String groupId, String artifactId, String versionExpression,
             Boolean dryRun, WrappedVersionState data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("versionExpression", versionExpression);
@@ -1373,6 +1380,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public CreateArtifactResponse createArtifact(String groupId, IfArtifactExists ifExists, Boolean canonical,
             Boolean dryRun, CreateArtifact data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("body", data);
         if (data.getFirstVersion() != null) {
             boolean contentRequired = true;
             if (data.getArtifactType() != null) {
@@ -1589,6 +1597,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             CreateVersion data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("body", data);
 
         String artifactType = lookupArtifactType(groupId, artifactId);
         ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);
@@ -1676,6 +1685,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public BranchMetaData createBranch(String groupId, String artifactId, CreateBranch data) {
+        ParameterValidationUtils.requireParameter("body", data);
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
         ParameterValidationUtils.requireParameter("branchId", data.getBranchId());

@@ -6,26 +6,44 @@
 
 The CLI is distributed as a native executable. A separate ZIP is provided for each platform:
 
-| Platform | Architecture            | ZIP Classifier | Shell |
-|----------|-------------------------|----------------|-------|
-| Linux    | x86_64                  | `linux-x86_64` | bash  |
-| macOS    | aarch64 (Apple Silicon) | `osx-aarch64`  | zsh   |
+| Platform | Architecture            | ZIP Classifier   | Shell            |
+|----------|-------------------------|------------------|------------------|
+| Linux    | x86_64                  | `linux-x86_64`   | bash             |
+| macOS    | aarch64 (Apple Silicon) | `osx-aarch64`    | zsh              |
+| Windows  | x86_64                  | `windows-x86_64` | cmd / PowerShell |
 
-Windows is not supported.
+On Windows the binaries are not code-signed, so SmartScreen may warn the first time you run
+the CLI. Windows on ARM and PowerShell tab-completions are not supported yet, a stored
+secret cannot exceed 2560 bytes — see [Authentication](#authentication) for what that covers —
+and installing rewrites any variable references in your user `Path`, described under
+[Installation](#installation).
 
 ## Installation
 
 Prerequisites:
 
- - Linux (x86_64) with bash, or macOS (Apple Silicon) with zsh
+ - Linux (x86_64) with bash, macOS (Apple Silicon) with zsh, or Windows (x86_64) with cmd or PowerShell
 
 To install the Apicurio Registry CLI:
 
 1. Download the ZIP for your platform from [GitHub Releases](https://github.com/Apicurio/apicurio-registry/releases) or [Maven Central](https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli).
 2. Unzip the downloaded file to a location of your choice.
-3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
+3. You can run the CLI directly using `./acr` (`acr.cmd` on Windows), or install it for the local user first (recommended):
 
    1. Run `./acr install` to install the CLI. This will install the CLI files to default locations (`$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`), update the `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configure shell completions. Global installation is not supported yet.
+
+   On Windows, run `acr.cmd install` instead. It installs to `%USERPROFILE%\bin` and
+   `%USERPROFILE%\.apicurio\apicurio-registry-cli`. Since Windows has no shell configuration file
+   to source, the installer instead persists the `ACR_HOME` user environment variable and prepends
+   the `bin` directory to your user `Path`. **Open a new terminal** for those changes to take
+   effect; afterwards `acr` resolves to `acr.cmd` through `PATHEXT`. Shell completions are
+   installed for bash and zsh only.
+
+   Note that adding the entry rewrites your user `Path` in expanded form. Windows can store it
+   with references such as `%USERPROFILE%\...` in it, and the API the installer updates it through
+   returns those already resolved and writes the result back as plain text. The directories on your
+   `Path` are unchanged, but a reference in it is replaced by the directory it pointed at during the
+   install, and stops following later changes to that variable.
 4. If you do not have an instance of Apicurio Registry running, you use Docker:
 
    ```bash
@@ -94,6 +112,17 @@ sudo dnf install gcc zlib-static
 # Debian/Ubuntu
 sudo apt install gcc zlib1g-dev
 ```
+
+On **Windows**, install GraalVM CE (or Mandrel) for JDK 17 or later and the Visual Studio 2022
+Build Tools with the "Desktop development with C++" workload, then build from a shell where
+`native-image` can find the MSVC toolchain (GraalVM auto-detects a full Visual Studio install):
+
+```cmd
+mvnw.cmd clean package -pl cli -am -DskipTests
+```
+
+The container-based build is not available on Windows (it produces a Linux binary), so the local
+GraalVM and C++ toolchain are required there.
 
 To use a Mandrel container image instead (no local GraalVM or native toolchain needed, requires Docker/Podman):
 
@@ -178,11 +207,12 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property                             | Default | Description                                                                                  |
-|---------------------------------------|---------|-----------------------------------------------------------------------------------------------|
-| `update.check-enabled`               | `true`  | Enable automatic update checks                                                               |
-| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                          |
-| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)  |
+| Property                             | Default | Description                                                                                                             |
+|---------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------|
+| `update.check-enabled`               | `true`  | Enable automatic update checks                                                                                          |
+| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                                                     |
+| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)                             |
+| `context.auto-update`                | `false` | Automatically save the group/artifact ID to the current context after `group create`/`get` and `artifact create`/`get` |
 
 #### Logging
 
@@ -190,6 +220,51 @@ Use `--verbose` to enable debug logging:
 
 ```bash
 acr --verbose artifact get my-artifact -g my-group
+```
+
+Verbose output includes the raw request and response of every Registry call, with requests
+prefixed by `>` and responses by `<`:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+> Authorization: <redacted>
+
+HTTP response:
+< 200 OK
+< Content-Type: application/json
+<
+< {"groupId":"my-group", ...}
+```
+
+Headers that carry credentials (`Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`)
+are redacted, as are query parameters that carry them (`access_token`, `id_token`,
+`refresh_token`, `token`, `code`, `client_secret`, `assertion`, `api_key`, `apikey`). Everything
+else, including the rest of the URL and the request and response bodies, is logged as it is sent,
+so treat verbose output as sensitive. Bodies longer than 8192 characters are truncated.
+
+One command can produce more than one request record. A redirect is logged as a second request,
+tagged with its hop number, and the response that follows it says how many hops it took:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+
+HTTP request (redirect 1):
+> GET https://registry.example.com/apis/registry/v3/groups/my-group
+
+HTTP response (after 1 redirect):
+< 200 OK
+```
+
+A call that is retried, for example after an expired token is refreshed, is logged as another
+untagged request.
+
+HTTP traffic is logged under the `io.apicurio.registry.client.http` category, so it can be quieted
+on its own:
+
+```bash
+acr config set 'quarkus.log.category."io.apicurio.registry.client.http".level=WARNING'
 ```
 
 Verbose output can be noisy. To quiet a specific package while keeping the rest, set a
@@ -243,9 +318,18 @@ acr context delete --all
 
 Use `--no-switch-current` when creating a context to add it without switching to it.
 
+**Auto context update:**
+```bash
+acr config set context.auto-update=true
+```
+When enabled, `group create`/`get` and `artifact create`/`get` automatically save the resolved group and/or
+artifact ID to the current context, so subsequent commands don't need repeated `-g`/`-a` flags. Switching to a
+different group clears the artifact ID from the context, since the previous artifact no longer applies; re-getting
+the same group leaves it untouched. Disabled by default.
+
 ### Authentication
 
-The CLI supports authenticating with secured registry instances. Credentials are stored securely in the OS keychain (macOS Keychain or Linux Secret Service) — never in config files.
+The CLI supports authenticating with secured registry instances. Credentials are stored securely in the OS keychain (macOS Keychain, Linux Secret Service, or Windows Credential Manager) — never in config files.
 
 **Basic authentication:**
 ```bash
@@ -289,7 +373,13 @@ Credentials are stored in a local file instead of the OS keychain. A warning is 
 **Prerequisites for credential storage:**
 - macOS: No prerequisites (uses Keychain)
 - Linux: `secret-tool` required (`sudo apt install libsecret-tools` or `sudo dnf install libsecret`)
+- Windows: No prerequisites (uses Windows Credential Manager)
 - Headless/CI: Use `--allow-unsafe-credential-storage` if no keychain is available
+
+On Windows, a single secret cannot exceed 2560 bytes (`CRED_MAX_CREDENTIAL_BLOB_SIZE`), which is a
+limit of the Credential Manager itself; the macOS and Linux stores have no comparable limit. The CLI
+stores only a password or an OAuth2 client secret — access and refresh tokens are requested per
+invocation and never stored — so this is not reached in practice.
 
 ### Working with Groups
 
@@ -482,7 +572,7 @@ All filters are optional and can be combined. Additional filters include `--desc
 
 These options work with most commands:
 
-- `--verbose, -v` - Enable verbose output for debugging
+- `--verbose, -v` - Enable verbose output for debugging, including raw HTTP requests and responses
 - `--help, -h` - Show help information
 - `--output-type, -o` - Set output format (table or json)
 

@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.wellknown;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.a2a.A2AConfig;
+import io.apicurio.registry.a2a.A2AConstants;
 import io.apicurio.registry.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
@@ -148,7 +149,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
-        filters.add(SearchFilter.ofLabel("apicurio.agent.visibility", "public"));
+
+        // Agent Cards without an explicit visibility label fall back to the configured default
+        // visibility (see resolveVisibility), so when that default is "public" they belong in
+        // these results even though no label filter can match them. Resolve visibility in memory
+        // in that case, as getEntitledAgents does. Otherwise keep the cheaper indexed label query.
+        if (A2AConstants.VISIBILITY_PUBLIC
+                .equals(a2aConfig.getDefaultVisibility().toLowerCase(Locale.ROOT))) {
+            return publicAgentsByResolvedVisibility(filters, offset, limit);
+        }
+
+        filters.add(SearchFilter.ofLabel(A2AConstants.LABEL_AGENT_VISIBILITY, A2AConstants.VISIBILITY_PUBLIC));
 
         int safeOffset = Math.max(0, offset);
         int safeLimit = Math.max(1, Math.min(limit, 500));
@@ -221,13 +232,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
         if (f != null) {
             if (f.getSkills() != null) {
                 for (String skill : f.getSkills()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
                 }
             }
             if (f.getCapabilities() != null) {
                 for (Map.Entry<String, Object> entry : f.getCapabilities().getAdditionalProperties().entrySet()) {
                     SearchFilter filter = SearchFilter.ofStructure(
-                            "agent_card:capability:" + entry.getKey());
+                            A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + entry.getKey());
                     if (!Boolean.TRUE.equals(entry.getValue())) {
                         filter = filter.negated();
                     }
@@ -241,17 +252,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
             if (f.getInputModes() != null) {
                 for (String mode : f.getInputModes()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
                 }
             }
             if (f.getOutputModes() != null) {
                 for (String mode : f.getOutputModes()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
                 }
             }
             if (f.getProtocolBindings() != null) {
                 for (String binding : f.getProtocolBindings()) {
-                    filters.add(SearchFilter.ofStructure("agent_card:protocolbinding:" + binding));
+                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_PROTOCOL_BINDING + binding));
                 }
             }
         }
@@ -355,7 +366,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Filter by skills (indexed as structured content: agent_card:skill:<id>)
         if (skills != null && !skills.isEmpty()) {
             for (String skill : skills) {
-                filters.add(SearchFilter.ofStructure("agent_card:skill:" + skill));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
             }
         }
 
@@ -366,7 +377,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 String[] parts = capability.split(":", 2);
                 String capKey = parts[0];
                 String capValue = parts.length > 1 ? parts[1] : "true";
-                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + capKey);
+                SearchFilter filter = SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + capKey);
                 if ("false".equals(capValue)) {
                     filter = filter.negated();
                 }
@@ -377,14 +388,14 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Filter by input modes (indexed as structured content: agent_card:inputmode:<mode>)
         if (inputModes != null && !inputModes.isEmpty()) {
             for (String mode : inputModes) {
-                filters.add(SearchFilter.ofStructure("agent_card:inputmode:" + mode));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
             }
         }
 
         // Filter by output modes (indexed as structured content: agent_card:outputmode:<mode>)
         if (outputModes != null && !outputModes.isEmpty()) {
             for (String mode : outputModes) {
-                filters.add(SearchFilter.ofStructure("agent_card:outputmode:" + mode));
+                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
             }
         }
 
@@ -970,14 +981,58 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     /**
+     * Returns public agents by resolving each artifact's effective visibility in memory, rather
+     * than filtering on the {@code apicurio.agent.visibility} label. Used when the configured
+     * default visibility is {@code public}, because artifacts relying on that default carry no
+     * visibility label and so cannot be matched by a label search filter.
+     */
+    private AgentSearchResults publicAgentsByResolvedVisibility(Set<SearchFilter> filters,
+            Integer offset, Integer limit) {
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+        warnIfTruncated(results);
+
+        // Filter by resolved visibility on DTOs first (cheap), then paginate, then convert (expensive)
+        List<SearchedArtifactDto> visible = new ArrayList<>();
+        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            if (A2AConstants.VISIBILITY_PUBLIC.equals(resolveVisibility(artifact.getLabels()))) {
+                visible.add(artifact);
+            }
+        }
+
+        int total = visible.size();
+        int safeOffset = Math.max(0, Math.min(offset, total));
+        int safeLimit = Math.max(0, Math.min(limit, 500));
+        int toIndex = Math.min(safeOffset + safeLimit, total);
+
+        List<AgentSearchResult> agents = new ArrayList<>();
+        for (SearchedArtifactDto artifact : visible.subList(safeOffset, toIndex)) {
+            agents.add(convertToAgentSearchResult(artifact));
+        }
+
+        return AgentSearchResults.builder()
+                .count(total)
+                .agents(agents)
+                .build();
+    }
+
+    /**
      * Returns the effective visibility for an artifact. If the {@code apicurio.agent.visibility}
      * label is not set, falls back to the configured default visibility.
+     * <p>
+     * The label key is matched case-insensitively. Labels reach this method from the serialized
+     * {@code labels} column, which preserves the case they were supplied with, whereas the
+     * {@code artifact_labels} table used by label search filters is lowercased on insert. Matching
+     * exactly here would let a card labelled {@code Apicurio.Agent.Visibility=private} resolve to
+     * the configured default instead of to {@code private}.
      */
     private String resolveVisibility(Map<String, String> labels) {
         if (labels != null) {
-            String explicit = labels.get("apicurio.agent.visibility");
-            if (explicit != null) {
-                return explicit.toLowerCase(Locale.ROOT);
+            for (Map.Entry<String, String> label : labels.entrySet()) {
+                if (A2AConstants.LABEL_AGENT_VISIBILITY.equalsIgnoreCase(label.getKey())
+                        && label.getValue() != null) {
+                    return label.getValue().toLowerCase(Locale.ROOT);
+                }
             }
         }
         return a2aConfig.getDefaultVisibility().toLowerCase(Locale.ROOT);

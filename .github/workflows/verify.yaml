@@ -1,10 +1,42 @@
 name: Verify
+
+# The full test suite: lint, build, unit tests, CLI, SDKs, console plugin,
+# integration tests, extra tests, operator tests, and (on push to main) image
+# publishing. One Decide job, computed once, shared by every job below via
+# needs: — there is exactly one answer to "is the full suite required for this
+# SHA" per run, so nothing here can disagree with anything else about it.
+#
+# Two workflows make up the whole pipeline:
+#   - quick-check.yaml — the fast PR gate (Quick Verify, <= 5 min, every push)
+#   - verify.yaml (this file) — everything else. Decide runs it immediately
+#     for trusted authors (maintainers / configured auto_accept identities,
+#     e.g. Renovate) and, for everyone else, once the PR has a current
+#     approving review — both native facts evaluated live by Decide, not a
+#     bot-applied label, so there is no window where a stale run could
+#     mid-flight disagree with a promotion that happened after it started.
+#
+# The Verification Gate below is the single required check for branch
+# protection: it aggregates every job in this run and additionally fails
+# outright if Decide did not require the full suite for this run — a skipped
+# required job otherwise counts as "passing" for branch protection, and this
+# run skips everything below Decide until the PR is genuinely trusted/
+# reviewed. That failure is expected during normal review, not a bug: it is
+# what makes the required check honestly reflect "not verified yet" instead
+# of silently passing because nothing ran.
+
 on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, reopened, synchronize, labeled]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
     branches: [main]
+  # No branches: filter here — pull_request_review does not support one.
+  # In practice every PR in this repo targets main, so this is a non-issue.
+  # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
+  # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
+  # the full suite would stay skipped until the next push or new review.
+  pull_request_review:
+    types: [submitted, dismissed]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,267 +46,10 @@ permissions:
   contents: read
 
 jobs:
-  # ============================================================================
-  # DECIDE: Centralized decision on what to run
-  #
-  # Combines lifecycle-label evaluation (PR readiness) with path-based change
-  # detection into a single set of per-phase boolean outputs.  Every downstream
-  # job references exactly one output instead of combining two jobs.
-  # ============================================================================
   decide:
     name: Decide
-    runs-on: ubuntu-latest
-    if: github.repository_owner == 'Apicurio'
-    outputs:
-      lifecycle-ready: ${{ steps.decide.outputs.lifecycle-ready }}
-      run-build: ${{ steps.decide.outputs.run-build }}
-      run-unit-tests: ${{ steps.decide.outputs.run-unit-tests }}
-      run-scalpel-report: ${{ steps.decide.outputs.run-scalpel-report }}
-      run-integration: ${{ steps.decide.outputs.run-integration }}
-      run-extras: ${{ steps.decide.outputs.run-extras }}
-      run-sdk: ${{ steps.decide.outputs.run-sdk }}
-      run-cli: ${{ steps.decide.outputs.run-cli }}
-      run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
-      run-operator: ${{ steps.decide.outputs.run-operator }}
-      run-console-plugin: ${{ steps.decide.outputs.run-console-plugin }}
-      scalpel-enabled: ${{ steps.decide.outputs.scalpel-enabled }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+    uses: ./.github/workflows/verify-decide.yaml
 
-      - name: Detect changed paths
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
-        id: filter
-        with:
-          filters: |
-            java:
-              - 'app/**'
-              - 'common/**'
-              - 'schema-util/**'
-              - 'schema-validation/**'
-              - 'schema-resolver/**'
-              - 'serdes/**'
-              - 'config-index/**'
-              - 'java-sdk/**'
-              - 'mcp/**'
-              - 'distro/**'
-              - 'integration-tests/src/**'
-              - 'integration-tests/pom.xml'
-              - 'pom.xml'
-            ui:
-              - 'ui/**'
-            integration:
-              - 'app/**'
-              - 'common/**'
-              - 'integration-tests/**'
-              - 'schema-util/**'
-              - 'schema-validation/**'
-              - 'schema-resolver/**'
-              - 'serdes/**'
-              - 'distro/**'
-              - 'pom.xml'
-            sdk:
-              - 'java-sdk/**'
-              - 'go-sdk/**'
-              - 'python-sdk/**'
-              - 'typescript-sdk/**'
-            go-sdk-gen:
-              - 'common/src/main/resources/META-INF/openapi.json'
-              - 'common/src/main/resources/META-INF/openapi-v2.json'
-              - 'go-sdk/**'
-            cli:
-              - 'cli/**'
-              - 'java-sdk/**'
-              - '.github/workflows/verify-cli.yaml'
-            operator:
-              - 'operator/**'
-            console-plugin:
-              - 'console-plugin/**'
-            ci:
-              - '.github/workflows/**'
-            ci-operator:
-              - '.github/workflows/operator.yaml'
-
-      - name: Evaluate scope and decide
-        id: decide
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          EVENT="${{ github.event_name }}"
-          ACTION="${{ github.event.action }}"
-
-          # ── Phase 1: Lifecycle scope ──────────────────────────────────
-          # The lifecycle only has one active "run tests" scope now
-          # (lifecycle/ready-for-review / lifecycle/ready-to-merge run the
-          # full suite; everything else runs nothing).
-          run_tests=false
-
-          if [ "$EVENT" = "push" ]; then
-            run_tests=true
-          else
-            # Non-lifecycle label events: skip the workflow run entirely.
-            # Unlike other PR events, we do NOT need to evaluate lifecycle
-            # state here — the workflow already ran (or will run) for the
-            # synchronize/opened event on the same SHA, so the gate result
-            # from that run is authoritative.
-            if [ "$ACTION" = "labeled" ]; then
-              LABEL='${{ github.event.label.name }}'
-              if [[ "$LABEL" != lifecycle/* ]]; then
-                echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
-                  echo "$out=false" >> "$GITHUB_OUTPUT"
-                done
-                echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-            fi
-
-            # Fetch current labels and draft status from the API (event payload
-            # can be stale)
-            PR_NUMBER='${{ github.event.pull_request.number }}'
-            PR_JSON=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}" --jq '{labels: [.labels[].name], draft: .draft}')
-            LABELS=$(echo "$PR_JSON" | jq -c '.labels')
-            IS_DRAFT=$(echo "$PR_JSON" | jq -r '.draft')
-            has_label() { echo "$LABELS" | jq -e "index(\"$1\")" > /dev/null 2>&1; }
-
-            # Drafts are outside the lifecycle — no CI, regardless of any
-            # lifecycle labels left over from before the PR was converted back
-            # to draft (the orchestrator strips them, but that races with this).
-            if [ "$IS_DRAFT" = "true" ]; then
-              echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
-                echo "$out=false" >> "$GITHUB_OUTPUT"
-              done
-              echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            # Orchestrator-initiated branch update for merge — skip all tests.
-            # Only honour for bot-triggered syncs to prevent skipping tests
-            # if a human pushes while the label is still set.
-            SENDER='${{ github.event.sender.login }}'
-            if has_label "orchestrator/merge-rebase" && [ "$SENDER" = "github-actions[bot]" ]; then
-              echo "lifecycle-ready=true" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
-                echo "$out=false" >> "$GITHUB_OUTPUT"
-              done
-              echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            if has_label "orchestrator/disabled"; then
-              if has_label "DO NOT MERGE"; then
-                run_tests=false
-              else
-                run_tests=true
-              fi
-            else
-              if has_label "lifecycle/ready-for-review" || has_label "lifecycle/ready-to-merge"; then
-                run_tests=true
-              else
-                # lifecycle/new or no lifecycle label
-                run_tests=false
-              fi
-            fi
-          fi
-
-          # ── Phase 2: Read change-detection results ────────────────────
-          JAVA='${{ steps.filter.outputs.java }}'
-          UI='${{ steps.filter.outputs.ui }}'
-          INTEGRATION='${{ steps.filter.outputs.integration }}'
-          SDK='${{ steps.filter.outputs.sdk }}'
-          CLI='${{ steps.filter.outputs.cli }}'
-          OPERATOR='${{ steps.filter.outputs.operator }}'
-          CONSOLE_PLUGIN='${{ steps.filter.outputs.console-plugin }}'
-          GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
-          CI='${{ steps.filter.outputs.ci }}'
-          CI_OPERATOR='${{ steps.filter.outputs.ci-operator }}'
-
-          # ── Phase 3: Combine scope + changes into per-phase decisions ─
-          # decide <output-name> <scope-flag> <change-flags...>
-          # Outputs true when scope is active AND at least one flag is true.
-          decide() {
-            local name="$1" scope="$2"; shift 2
-            if [ "$scope" != "true" ]; then
-              echo "$name=false" >> "$GITHUB_OUTPUT"; return
-            fi
-            for flag in "$@"; do
-              if [ "$flag" = "true" ]; then
-                echo "$name=true" >> "$GITHUB_OUTPUT"; return
-              fi
-            done
-            echo "$name=false" >> "$GITHUB_OUTPUT"
-          }
-
-          IS_PUSH=$( [ "$EVENT" = "push" ] && echo true || echo false )
-
-          echo "lifecycle-ready=$run_tests" >> "$GITHUB_OUTPUT"
-          decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
-          decide run-unit-tests  "$run_tests" "$IS_PUSH" "$JAVA" "$CI"
-          # Report only when java sources changed: .github-only PRs trip
-          # scalpel.disableTriggers and would produce an empty report.
-          decide run-scalpel-report "$run_tests" "$JAVA"
-          decide run-integration "$run_tests" "$IS_PUSH" "$INTEGRATION" "$CI"
-          decide run-extras      "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$CI"
-          decide run-sdk         "$run_tests" "$IS_PUSH" "$SDK" "$JAVA" "$CI"
-          decide run-cli         "$run_tests" "$CLI"
-          decide run-operator        "$run_tests" "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
-          decide run-console-plugin  "$run_tests" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
-          decide run-go-sdk-freshness "$run_tests" "$GO_SDK_GEN" "$CI"
-
-          # Scalpel (affected-module detection) can be disabled via PR label
-          if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then
-            echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "scalpel-enabled=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Save decision summary
-        if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
-        run: |
-          cat > /tmp/verify-decisions.json << 'ARTIFACT_EOF'
-          {
-            "lifecycle-ready": "${{ steps.decide.outputs.lifecycle-ready }}",
-            "run-build": "${{ steps.decide.outputs.run-build }}",
-            "run-unit-tests": "${{ steps.decide.outputs.run-unit-tests }}",
-            "run-scalpel-report": "${{ steps.decide.outputs.run-scalpel-report }}",
-            "run-integration": "${{ steps.decide.outputs.run-integration }}",
-            "run-extras": "${{ steps.decide.outputs.run-extras }}",
-            "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
-            "run-cli": "${{ steps.decide.outputs.run-cli }}",
-            "run-operator": "${{ steps.decide.outputs.run-operator }}",
-            "run-console-plugin": "${{ steps.decide.outputs.run-console-plugin }}",
-            "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}",
-            "scalpel-enabled": "${{ steps.decide.outputs.scalpel-enabled }}"
-          }
-          ARTIFACT_EOF
-          cat > /tmp/verify-changes.json << 'ARTIFACT_EOF'
-          {
-            "java": "${{ steps.filter.outputs.java }}",
-            "ui": "${{ steps.filter.outputs.ui }}",
-            "integration": "${{ steps.filter.outputs.integration }}",
-            "sdk": "${{ steps.filter.outputs.sdk }}",
-            "cli": "${{ steps.filter.outputs.cli }}",
-            "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",
-            "operator": "${{ steps.filter.outputs.operator }}",
-            "console-plugin": "${{ steps.filter.outputs.console-plugin }}",
-            "ci": "${{ steps.filter.outputs.ci }}"
-          }
-          ARTIFACT_EOF
-
-      - name: Upload decision summary
-        if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: verify-decisions
-          retention-days: 1
-          path: |
-            /tmp/verify-decisions.json
-            /tmp/verify-changes.json
-
-  # ============================================================================
-  # PHASE 1: Fast Checks (fail early)
-  # ============================================================================
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-latest
@@ -294,6 +69,11 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
+      # Orchestrator scripts run with repo write permissions under
+      # pull_request_target — their logic must be tested before merge.
+      - name: Test PR lifecycle scripts
+        run: node --test .github/scripts/pr-lifecycle.test.js
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
@@ -302,41 +82,161 @@ jobs:
             exit 1
           fi
 
-  # ============================================================================
-  # PHASE 2: Build (parallel Java + UI builds)
-  # ============================================================================
-  build:
-    name: Build
-    needs: [decide, lint-and-validate]
+  build-java:
+    name: Build Java Application (no tests)
+    runs-on: ubuntu-latest
+    needs: [decide]
     if: needs.decide.outputs.run-build == 'true'
-    uses: ./.github/workflows/verify-build.yaml
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-  # ============================================================================
-  # PHASE 3: Unit Tests
-  # ============================================================================
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Build Application (skip tests for speed)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
+        run: |
+          # -T 0.5C: half a thread per CPU core (overrides .mvn/maven.config's -T 1C for memory-heavy packaging)
+          # -Pprod -Dfull: production profile with all optional modules (CLI, serdes, distro, etc.)
+          # -DskipCommitIdPlugin=false: generate git commit metadata (needed for the Docker image)
+          # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
+          ./mvnw clean package -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
+            -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "[ERROR] Build produced uncommitted or untracked files. Generated files must either be committed or added to .gitignore as appropriate."
+            git --no-pager diff
+            git status
+            exit 1
+          fi
+
+      - name: Build Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }} \
+            ./distro/docker/target/docker
+
+      - name: Save Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          image-name: apicurio/apicurio-registry
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: build-artifacts-${{ github.sha }}
+          path: |
+            app/target/
+            cli/target/
+            common/target/
+            contracts-rules/target/
+            schema-resolver/target/
+            config-index/*/target/
+            distro/*/target/
+            java-sdk/*/target/
+            schema-util/*/target/
+            schema-validation/*/target/
+            serdes/*/*/target/
+            utils/*/target/
+            mcp/target/docker/
+          retention-days: 1
+
+  build-ui:
+    name: Build UI Application
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-build == 'true'
+    # npm/vite occasionally hangs on a shared runner with no output; fail fast instead
+    # of burning the workflow timeout. The whole job normally finishes in ~4 min.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          cache: 'npm'
+          cache-dependency-path: 'ui/**/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Lint
+        working-directory: ui
+        run: npm run lint
+
+      - name: Generate TypeScript SDK
+        working-directory: typescript-sdk
+        run: |
+          npm install
+          npm run generate-sources
+
+      - name: Test
+        working-directory: ui
+        run: npm run test
+
+      - name: Build
+        working-directory: ui
+        run: npm run build
+
+      - name: Package
+        working-directory: ui
+        run: npm run package
+
+      - name: Install Test Dependencies
+        working-directory: ui/tests
+        run: npm install
+
+      - name: Lint Tests
+        working-directory: ui/tests
+        run: npm run lint
+
+      - name: Build UI Docker Image
+        working-directory: ui
+        run: |
+          docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
+
+      - name: Save UI Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          image-name: apicurio/apicurio-registry-ui
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-ui-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-ui-${{ github.sha }}.tar'
+
   unit-tests:
     name: Unit Tests
-    needs: [decide, build]
+    needs: [decide, build-java]
     if: needs.decide.outputs.run-unit-tests == 'true'
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
 
-  # ============================================================================
-  # Scalpel Report (affected-module detection, data collection only)
-  #
-  # Runs Scalpel in mode=report to record which modules it considers affected,
-  # without running any tests. Archives the JSON report as an artifact for
-  # offline analysis. ~2 minutes per run vs ~40 for the full shadow group.
-  # Not in the Verification Gate: a failure here never blocks a PR.
-  #
-  # Runs only when java sources changed (run-scalpel-report): on .github-only
-  # PRs Scalpel disables itself via scalpel.disableTriggers, so a report run
-  # would produce nothing. Mixed PRs (java + .github) still trip that trigger,
-  # which is why a missing report is a warning, not an error.
-  #
+  # Scalpel Report (affected-module detection, data collection only).
+  # Not in the Gate: a failure here never blocks a PR.
   # See Discussion #8364 for the evaluation results that led to this change.
-  # ============================================================================
   scalpel-report:
     name: Scalpel Report
     needs: [decide]
@@ -354,7 +254,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -384,42 +284,14 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-  # ============================================================================
-  # CLI Verification
-  # ============================================================================
   cli-verify:
     name: CLI Verification
-    needs: [decide, build]
+    needs: [decide, build-java]
     if: needs.decide.outputs.run-cli == 'true'
     uses: ./.github/workflows/verify-cli.yaml
     with:
       image-tag: ${{ github.sha }}
 
-  # ============================================================================
-  # PHASE 4: Integration Tests (matrix-based parallel execution)
-  # ============================================================================
-  integration-tests:
-    name: Integration Tests
-    needs: [decide, build]
-    if: needs.decide.outputs.run-integration == 'true'
-    uses: ./.github/workflows/verify-integration-tests.yaml
-    with:
-      image-tag: ${{ github.sha }}
-
-  # ============================================================================
-  # PHASE 5: Additional Tests (parallel)
-  # ============================================================================
-  extras:
-    name: Extra Tests
-    needs: [decide, build]
-    if: needs.decide.outputs.run-extras == 'true'
-    uses: ./.github/workflows/verify-extras.yaml
-    with:
-      image-tag: ${{ github.sha }}
-
-  # ============================================================================
-  # Go SDK Freshness Check (no build dependency — runs early)
-  # ============================================================================
   go-sdk-freshness:
     name: Go SDK Freshness
     runs-on: ubuntu-latest
@@ -432,7 +304,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26.5'
+          go-version: '1.27.0'
 
       - name: Regenerate Go SDK
         run: |
@@ -446,20 +318,37 @@ jobs:
             exit 1
           fi
 
-  # ============================================================================
-  # PHASE 6: SDK Verification (parallel)
-  # ============================================================================
   sdk:
     name: SDK Verification
-    needs: [decide, build]
+    needs: [decide, build-java]
     if: needs.decide.outputs.run-sdk == 'true'
     uses: ./.github/workflows/verify-sdk.yaml
     with:
       image-tag: ${{ github.sha }}
 
-  # ============================================================================
-  # Operator Tests
-  # ============================================================================
+  console-plugin:
+    name: Console Plugin
+    needs: [decide]
+    if: needs.decide.outputs.run-console-plugin == 'true'
+    uses: ./.github/workflows/verify-console-plugin.yaml
+    secrets: inherit
+
+  integration-tests:
+    name: Integration Tests
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-integration == 'true'
+    uses: ./.github/workflows/verify-integration-tests.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
+  extras:
+    name: Extra Tests
+    needs: [decide, build-java, build-ui]
+    if: needs.decide.outputs.run-extras == 'true'
+    uses: ./.github/workflows/verify-extras.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   operator:
     name: Operator Tests
     needs: [decide]
@@ -470,61 +359,58 @@ jobs:
     secrets: inherit
 
   # ============================================================================
-  # Console Plugin
-  # ============================================================================
-  console-plugin:
-    name: Console Plugin
-    needs: [decide]
-    if: needs.decide.outputs.run-console-plugin == 'true'
-    uses: ./.github/workflows/verify-console-plugin.yaml
-    secrets: inherit
-
-  # ============================================================================
-  # VERIFICATION GATE: Single required check for branch protection
+  # VERIFICATION GATE: single required check for branch protection
   #
-  # Aggregates results from all test phases.  Passes when every upstream job
-  # either succeeded or was appropriately skipped by change detection.
-  # Fails when any job failed, or when the PR lifecycle state does not allow
-  # merging (lifecycle/new, DO NOT MERGE, etc.).
+  # Aggregates every job above. Passes when all of them succeeded or were
+  # appropriately skipped by Decide (e.g. during PR review, when the full
+  # suite does not run) — see the live ready-to-merge check below for why
+  # that alone is not sufficient for a required check.
   # ============================================================================
-  verification-gate:
+  gate:
     name: Verification Gate
-    if: always()
-    needs: [decide, lint-and-validate, build, unit-tests, cli-verify,
-            integration-tests, extras, sdk, go-sdk-freshness, operator, console-plugin]
+    if: always() && github.repository_owner == 'Apicurio'
+    needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
+            cli-verify, go-sdk-freshness, sdk, console-plugin,
+            integration-tests, extras, operator]
     runs-on: ubuntu-latest
     steps:
-      - name: Evaluate gate
+      - name: Evaluate jobs
         env:
-          LIFECYCLE_READY: ${{ needs.decide.outputs.lifecycle-ready }}
-          EVENT: ${{ github.event_name }}
           RESULTS: ${{ toJSON(needs.*.result) }}
         run: |
           echo "Job results: $RESULTS"
-
-          # Fail if any upstream job failed or was cancelled
           FAILED=$(echo "$RESULTS" | jq '[.[] | select(. != "success" and . != "skipped")] | length')
           if [ "$FAILED" -gt 0 ]; then
-            echo "::error::One or more required jobs failed or were cancelled"
+            echo "::error::One or more Verify jobs failed or were cancelled"
             exit 1
           fi
+          echo "All jobs passed or were appropriately skipped"
 
-          # On PRs, fail if lifecycle state does not allow merging.
-          # "skip" means this run was triggered by a non-lifecycle label and
-          # is not authoritative — let it pass without blocking.
-          if [ "$EVENT" != "push" ] && [ "$LIFECYCLE_READY" != "true" ] && [ "$LIFECYCLE_READY" != "skip" ]; then
-            echo "::error::PR is not in a testable lifecycle state"
-            exit 1
-          fi
-
-          echo "All checks passed"
+      # A skipped required job counts as "passing" for branch protection, and
+      # every job above is skipped whenever Decide did not require the full
+      # suite for this run (author not yet trusted/reviewed). Checking
+      # Decide's own output — the same static value that already gated every
+      # job above via needs: — means this cannot disagree with the rest of
+      # the run: there is nothing to race against, unlike a live re-fetch of
+      # current PR state would be (Decide runs once, early; a live re-fetch
+      # here would run later, after everything above finished, and could see
+      # a promotion that happened in between — a stale pass for a suite that
+      # never actually ran). This step failing is expected throughout normal
+      # PR review — that is what makes the required check honestly reflect
+      # "not verified yet" instead of silently passing because Decide skipped
+      # everything.
+      - name: Verify this run's Decide required the full suite
+        if: github.event_name != 'push' && needs.decide.outputs.lifecycle-ready != 'true'
+        run: |
+          echo "::error::Decide did not require the full suite for this run (lifecycle-ready=${{ needs.decide.outputs.lifecycle-ready }}) — the author is not yet trusted/reviewed, so every job above was skipped. This is expected during PR review, not a failure: the full suite runs immediately for trusted authors, or once an approving review lands for everyone else, and this Gate passes once it subsequently completes."
+          exit 1
 
   # ============================================================================
   # PUBLISH: Push images (only on push to main)
   # ============================================================================
   publish:
     name: Publish Images
-    needs: [build, unit-tests, integration-tests, extras]
+    needs: [build-java, gate]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
     uses: ./.github/workflows/verify-publish.yaml
     with:
@@ -540,13 +426,13 @@ jobs:
   # ============================================================================
   notify-slack:
     name: Slack Notification
-    needs: [unit-tests, integration-tests, publish, operator, console-plugin]
+    needs: [gate, publish, operator]
     if: github.event_name == 'push' && github.repository_owner == 'Apicurio' && always()
     uses: ./.github/workflows/reusable-notify-slack.yaml
     with:
       workflow-name: ${{ github.workflow }}
       job-name: 'verification'
-      job-status: ${{ (needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure' || needs.console-plugin.result == 'failure') && 'failure' || 'success' }}
+      job-status: ${{ (needs.gate.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
     secrets:
       SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
       SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

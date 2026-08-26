@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
@@ -478,7 +479,7 @@ public class GitOpsValidationTaskManager {
     }
 
     private void deleteRecursive(Path path) throws IOException {
-        if (Files.isDirectory(path)) {
+        if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
             try (var entries = Files.list(path)) {
                 for (Path entry : entries.toList()) {
                     deleteRecursive(entry);

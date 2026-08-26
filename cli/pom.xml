@@ -21,6 +21,14 @@
         <quarkus.native.builder-image>
             quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-23
         </quarkus.native.builder-image>
+        <jna.version>5.19.1</jna.version>
+        <jansi.version>2.4.3</jansi.version>
+        <!-- Suffix of the native executable. Empty on Linux/macOS, ".exe" on Windows
+             (set by the windows profile below). -->
+        <executable.suffix></executable.suffix>
+        <!-- Common launcher scripts left out of the distribution ZIP. Empty here, so Linux and
+             macOS ship all of them; the windows profile below drops the POSIX "acr" launcher. -->
+        <cli.common.scripts.excludes></cli.common.scripts.excludes>
         <!-- CLI branding and update defaults. Override in productized profiles. -->
         <update.repo.url>https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli</update.repo.url>
         <branding.product-name>Apicurio Registry CLI</branding.product-name>
@@ -36,6 +44,15 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-vertx</artifactId>
+        </dependency>
+
+        <!-- Used by TerminalUtils, to detect the terminal width. The version is declared here
+             because Quarkus 3.33.3 replaced the managed org.fusesource.jansi:jansi with
+             org.jline:jansi, so this artifact is no longer managed by the BOM. -->
+        <dependency>
+            <groupId>org.fusesource.jansi</groupId>
+            <artifactId>jansi</artifactId>
+            <version>${jansi.version}</version>
         </dependency>
 
         <dependency>
@@ -91,6 +108,15 @@
         <dependency>
             <groupId>org.semver4j</groupId>
             <artifactId>semver4j</artifactId>
+        </dependency>
+
+        <!-- Used only by WindowsCredentialProvider, to call the Windows Credential Manager.
+             The version is declared here because the Quarkus BOM manages an older JNA that
+             predates the native-image support this build relies on. -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>${jna.version}</version>
         </dependency>
 
         <dependency>
@@ -206,6 +232,10 @@
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
+                        <!-- Tests assert on plain help output. On Windows picocli enables ANSI
+                             from the environment (for example TERM in Git Bash) rather than from
+                             a console check, so it has to be disabled explicitly. -->
+                        <picocli.ansi>false</picocli.ansi>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -263,6 +293,20 @@
     </build>
 
     <profiles>
+        <!-- On Windows the native executable and the packaged binary carry a ".exe" suffix. -->
+        <profile>
+            <id>cli-windows-executable</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <executable.suffix>.exe</executable.suffix>
+                <cli.common.scripts.excludes>acr</cli.common.scripts.excludes>
+            </properties>
+        </profile>
+
         <!-- Attaches pre-built CLI ZIPs for other architectures (e.g., macOS aarch64)
              that were downloaded into cli/target/ before the build.
              Activated by -DcliAttachArtifacts. Used during Maven Central deploy. -->
@@ -291,6 +335,11 @@
                                             <file>${project.build.directory}/apicurio-registry-cli-${project.version}-osx-aarch_64.zip</file>
                                             <type>zip</type>
                                             <classifier>osx-aarch_64</classifier>
+                                        </artifact>
+                                        <artifact>
+                                            <file>${project.build.directory}/apicurio-registry-cli-${project.version}-windows-x86_64.zip</file>
+                                            <type>zip</type>
+                                            <classifier>windows-x86_64</classifier>
                                         </artifact>
                                     </artifacts>
                                 </configuration>

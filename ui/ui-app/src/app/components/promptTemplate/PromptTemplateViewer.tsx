@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import "./PromptTemplateViewer.css";
 import {
     Card,
@@ -17,17 +17,9 @@ import {
     Title
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
-import { highlightVariables } from "./PromptTemplateViewer.utils";
+import { VariableSchema } from "./promptTemplateVariables";
+import { formatRange, highlightVariables } from "./PromptTemplateViewer.utils";
 
-export interface PromptVariable {
-    name?: string;
-    type?: string;
-    description?: string;
-    required?: boolean;
-    default?: any;
-    enum?: string[];
-    constraints?: any;
-}
 
 export interface PromptTemplateMetadata {
     author?: string;
@@ -47,7 +39,7 @@ export interface PromptTemplate {
     description?: string;
     version?: string;
     template?: string;
-    variables?: Record<string, PromptVariable> | PromptVariable[];
+    variables?: Record<string, VariableSchema> | VariableSchema[];
     outputSchema?: any;
     metadata?: PromptTemplateMetadata;
     mcp?: {
@@ -63,7 +55,7 @@ export type PromptTemplateViewerProps = {
     className?: string;
 };
 
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
+const getVariablesList = (variables: Record<string, VariableSchema> | VariableSchema[] | undefined): { name: string; variable: VariableSchema }[] => {
     if (!variables) return [];
     if (Array.isArray(variables)) {
         return variables.map(v => ({ name: v.name || "", variable: v }));
@@ -163,6 +155,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                         <th>Required</th>
                                         <th>Default</th>
                                         <th>Allowed Values</th>
+                                        <th>Range</th>
                                         <th>Description</th>
                                     </tr>
                                 </thead>
@@ -192,6 +185,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                                     </LabelGroup>
                                                 ) : "-"}
                                             </td>
+                                            <td>{formatRange(variable.minimum, variable.maximum) ?? "-"}</td>
                                             <td>{variable.description || "-"}</td>
                                         </tr>
                                     ))}
@@ -246,7 +240,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <DescriptionList isCompact className="section-content">
                             {promptTemplate.mcp.name && (
                                 <DescriptionListGroup>
-                                    <DescriptionListTerm>Tool Name</DescriptionListTerm>
+                                    <DescriptionListTerm>MCP Prompt Name</DescriptionListTerm>
                                     <DescriptionListDescription>
                                         <code>{promptTemplate.mcp.name}</code>
                                     </DescriptionListDescription>

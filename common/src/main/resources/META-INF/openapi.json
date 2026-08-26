@@ -7,7 +7,7 @@
     "contact": {
       "name": "Apicurio",
       "url": "https://github.com/apicurio/apicurio-registry",
-      "email": "apicurio@lists.jboss.org"
+      "email": "cncf-apicurio-registry-dev@lists.cncf.io"
     },
     "license": {
       "name": "Apache 2.0",
@@ -367,7 +367,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -809,7 +809,7 @@
         },
         "operationId": "deleteArtifactVersion",
         "summary": "Delete artifact version",
-        "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
+        "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `apicurio.rest.deletion.artifact-version.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
       },
       "parameters": [
         {
@@ -3662,7 +3662,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -3768,7 +3768,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -7653,8 +7653,8 @@
           }
         ],
         "example": {
-          "error_code": 409,
-          "message": "Artifact failed validation",
+          "status": 409,
+          "title": "Artifact failed validation",
           "causes": [
             {
               "description": "API is missing a title",
@@ -10057,8 +10057,10 @@
             "examples": {
               "NotFoundExample": {
                 "value": {
-                  "error_code": 404,
-                  "message": "No artifact with id 'Topic-1/Inbound' could be found."
+                  "detail": "ArtifactNotFoundException: No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "title": "No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "status": 404,
+                  "name": "ArtifactNotFoundException"
                 }
               }
             }
@@ -10075,8 +10077,10 @@
             "examples": {
               "MethodNotAllowedExample": {
                 "value": {
-                  "error_code": 405,
-                  "message": "Method is currently not supported or disabled."
+                  "detail": "NotAllowedException: The requested HTTP method is not allowed for this resource.",
+                  "title": "Method Not Allowed.",
+                  "status": 405,
+                  "name": "NotAllowedException"
                 }
               }
             }
@@ -10091,10 +10095,12 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "examples": {
-              "ErrorExample": {
+              "ServerErrorExample": {
                 "value": {
-                  "error_code": 500,
-                  "message": "Lost connection to the database."
+                  "detail": "StorageException: Lost connection to the database.",
+                  "title": "Lost connection to the database.",
+                  "status": 500,
+                  "name": "StorageException"
                 }
               }
             }
@@ -10107,6 +10113,16 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "BadRequestExample": {
+                "value": {
+                  "detail": "BadRequestException: The request contains invalid or missing parameters.",
+                  "title": "Bad Request.",
+                  "status": 400,
+                  "name": "BadRequestException"
+                }
+              }
             }
           }
         },
@@ -10121,8 +10137,10 @@
             "examples": {
               "ConflictExample": {
                 "value": {
-                  "error_code": 409,
-                  "message": "The artifact content was invalid."
+                  "detail": "ArtifactAlreadyExistsException: An artifact with ID 'artifact-ID' in group 'group-ID' already exists.",
+                  "title": "An artifact with ID 'artifact-ID' in group 'group-ID' already exists.",
+                  "status": 409,
+                  "name": "ArtifactAlreadyExistsException"
                 }
               }
             }
@@ -10139,8 +10157,8 @@
             "examples": {
               "RuleViolationConflictExample": {
                 "value": {
-                  "error_code": 409,
-                  "message": "The artifact content was invalid",
+                  "status": 409,
+                  "title": "The artifact content was invalid",
                   "causes": [
                     {
                       "description": "API is missing a title",
@@ -10167,8 +10185,8 @@
             "examples": {
               "RuleViolationBadRequestExample": {
                 "value": {
-                  "error_code": 400,
-                  "message": "The artifact content was invalid",
+                  "status": 400,
+                  "title": "The artifact content was invalid",
                   "causes": [
                     {
                       "description": "API is missing a title",
@@ -10224,9 +10242,10 @@
             "examples": {
               "UnprocessableEntityExample": {
                 "value": {
-                  "error_code": 422,
-                  "message": "The artifact content is invalid: Schema validation failed",
-                  "name": "SchemaValidationException"
+                  "detail": "UnprocessableSchemaException: Could not execute compatibility rule on invalid Avro schema.",
+                  "title": "The artifact content is invalid: Schema validation failed.",
+                  "status": 422,
+                  "name": "UnprocessableSchemaException"
                 }
               }
             }

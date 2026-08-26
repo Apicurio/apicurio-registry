@@ -3,7 +3,7 @@
 [![Automated Release Notes by gren](https://img.shields.io/badge/%F0%9F%A4%96-release%20notes-00B2EE.svg)](https://github-tools.github.io/github-release-notes/)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FApicurio%2Fapicurio-registry?ref=badge_shield)
 
-![Apicurio Registry](.assets/apicurio_registry_logo_default.svg)
+![Apicurio Registry](branding/logos/svg/apicurio_registry_logo_default.svg)
 
 An API/Schema registry - stores and retrieves APIs and Schemas.
 
@@ -119,6 +119,10 @@ this as a starting point and see the
 Apicurio Registry is a [Cloud Native Computing Foundation](https://cncf.io) Sandbox project.
 
 Join us on the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+
+Mailing lists:
+- Development: [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io)
+- Security reports: [cncf-apicurio-registry-security@lists.cncf.io](mailto:cncf-apicurio-registry-security@lists.cncf.io) (see [SECURITY.md](SECURITY.md))
 
 We abide by the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
 

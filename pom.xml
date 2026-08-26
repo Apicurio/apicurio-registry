@@ -243,7 +243,7 @@
     <lombok.version>1.18.46</lombok.version>
     <commons-codec.version>1.22.1</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
-    <kafka-clients.version>3.9.2</kafka-clients.version>
+    <kafka-clients.version>4.1.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
     <debezium.version>3.6.1.Final</debezium.version>
     <pulsar-clients.version>4.2.4</pulsar-clients.version>

@@ -1,0 +1,151 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="registry-sizing-guide_{context}"]
+= {registry} capacity planning and sizing guide
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+This chapter provides guidance on sizing a {registry} deployment: how the storage backend
+choice, network latency to that storage, and traffic pattern affect the number of concurrent
+clients a single {registry} replica can serve, and when to scale horizontally instead of vertically.
+
+The numbers in this chapter come from the automated performance test suite in the `perf-tests`
+Maven module, run against a topology intended to resemble a real deployment (registry installed
+via the {operator}, PostgreSQL or KafkaSQL storage placed behind an injected-latency proxy to
+approximate a managed/remote datastore, Keycloak securing the registry). They are a data point
+from one specific test environment, not a universal guarantee for your environment - see
+<<registry-sizing-methodology_{context}>> for how to reproduce or extend this testing against
+your own infrastructure and workload shape.
+
+== Prerequisites
+
+* {installing-the-registry-openshift}
+* xref:getting-started/assembly-registry-high-availability.adoc[]
+
+//INCLUDES
+
+[id="registry-sizing-methodology_{context}"]
+== Test methodology
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The results in this chapter were produced by the `perf-tests` module (see
+`perf-tests/README.md` and `perf-tests/k8s/README.md` in the {registry} source repository), using:
+
+* A single {registry} application replica with the default resource limits set by the {operator}
+  (1 CPU / 1Gi memory).
+* A *closed* (concurrent-user) load model: `N` virtual clients are held continuously active for
+  the full test duration, each immediately starting a new operation as soon as its previous one
+  completes - this measures genuine sustained concurrency, not an arrival-rate model.
+* A 95% read / 5% write traffic mix by default, resolving already-registered schemas by ID from a
+  pre-seeded pool - reflecting how schema registries are used in production (producers/consumers
+  resolving schemas on close to every message, with new schema registration being comparatively
+  rare), rather than a write-heavy synthetic benchmark.
+* Storage backends placed behind an injected-latency network proxy (~15ms +/- 5ms round-trip),
+  approximating a managed database or remote Kafka cluster on a different node or availability
+  zone, rather than a co-located, near-zero-latency connection.
+
+You can reproduce this testing, or adapt it to your own resource limits, traffic mix, or latency
+profile, using `perf-tests/k8s/postgresql/deploy.sh` or `perf-tests/k8s/kafkasql/deploy.sh`
+against your own Kubernetes cluster.
+
+[id="registry-sizing-sql-storage_{context}"]
+== SQL storage sizing
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+SQL storage (PostgreSQL, MySQL, or Microsoft SQL Server) processes every read and write as a
+synchronous database round-trip. Under the test conditions above, a single replica showed a clear
+capacity ceiling:
+
+[cols="1,1,1",options="header"]
+|===
+| Concurrent clients | Failed requests | Sustained throughput (requests/sec)
+
+| 10
+| 0%
+| ~11
+
+| 60
+| 0%
+| ~77
+
+| 100
+| 0%
+| ~128
+
+| 150
+| 0%
+| ~192
+
+| 200
+| ~4-5%, first restarts observed
+| ~184-256 (unstable)
+
+| 300
+| ~13%
+| ~240 (unstable, high tail latency)
+|===
+
+Up to and including 150 concurrent clients, this test environment sustained 0% failed requests.
+Beyond that, failure rate and tail latency both increase sharply, and the application pod may
+restart due to its liveness probe failing under sustained load. Throughput figures at 200 and 300
+concurrent clients should be read alongside the failure rate: raw requests-per-second continues
+to rise because more traffic is being generated, but an increasing share of it is failing or
+taking many seconds to complete.
+
+[IMPORTANT]
+====
+This ceiling is heavily influenced by network latency to the database and by how many sequential
+database round-trips a single logical operation requires - not primarily by CPU, memory, or
+connection pool exhaustion. In this test environment, CPU utilization stayed under 50% of the
+configured limit and the JDBC connection pool had substantial spare capacity even at the 150
+concurrent-client ceiling. A deployment with lower-latency access to its database (for example, a
+regional/zonal-local managed database instead of a cross-zone one) should sustain meaningfully
+higher concurrency than the figures above.
+====
+
+[id="registry-sizing-kafkasql-storage_{context}"]
+== KafkaSQL storage sizing
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+KafkaSQL storage applies writes asynchronously through a Kafka topic and serves reads from a
+local, in-memory index built at startup, rather than performing a network round-trip per read.
+Under the same injected-latency test conditions, this made KafkaSQL storage substantially more
+tolerant of network latency to its storage backend than SQL storage: a single replica sustained
+effectively 0% failed requests at every concurrency level tested against SQL storage's 150-client
+ceiling.
+
+This difference is architectural, not a general claim that KafkaSQL storage is unconditionally
+faster: write-heavy workloads, and the initial startup/catch-up time while KafkaSQL storage
+replays its underlying topic, are not covered by the read-heavy default traffic mix used here.
+
+[id="registry-sizing-recommendations_{context}"]
+== Recommendations
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+
+* Treat the SQL storage figures above as a starting point for a single replica on modest (1 CPU /
+  1Gi) resources with real network latency to the database, not as an absolute ceiling for
+  {registry} - reproduce the `perf-tests` module against your own cluster, resource limits, and
+  network conditions before relying on a specific number.
+* If your expected concurrent client count is close to or above the low hundreds, prefer scaling
+  *horizontally* (more replicas behind the application service - see
+  xref:getting-started/assembly-registry-high-availability.adoc[]) over assuming a single replica
+  will absorb more load by increasing CPU/memory limits alone: in this test environment, CPU and
+  memory both had headroom left unused at the point where failures began, because the bottleneck
+  was network-latency-bound sequential round-trips, not raw compute capacity.
+* If your registry's database is on a different availability zone, region, or network path with
+  higher latency than same-zone/co-located access, expect a lower concurrency ceiling than the
+  figures in this chapter, which used a comparatively modest ~15ms round-trip.
+* For workloads dominated by high-throughput schema resolution (the common case for Kafka
+  producers/consumers validating or resolving schemas), KafkaSQL storage's in-memory read path
+  showed markedly better tolerance of storage-backend network latency than SQL storage in this
+  testing.

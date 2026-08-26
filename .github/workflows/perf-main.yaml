@@ -1,9 +1,14 @@
 name: Performance Tests (main)
 
-# Runs performance tests against a topology that resembles a real installation: registry deployed
-# via the operator, secured with Keycloak (OAuth2 client-credentials), backed by PostgreSQL, with
-# a separate Kafka client (using the Avro serde) driving realistic produce/consume traffic
-# alongside a Gatling-driven REST load test. See perf-tests/README.md for details.
+# Runs performance tests against topologies that resemble real installations: registry deployed
+# via the operator, secured with Keycloak (OAuth2 client-credentials), with a separate Kafka
+# client (using the Avro serde) driving realistic produce/consume traffic alongside a
+# Gatling-driven REST load test. Two storage backends are exercised (see perf-tests/k8s/README.md
+# for full details on each):
+#
+#   - postgresql: SQL storage, PostgreSQL behind Toxiproxy (~15ms +/- 5ms injected latency, to
+#     approximate a managed/remote DB rather than a same-node connection)
+#   - kafkasql: KafkaSQL storage, Kafka behind Toxiproxy with the same injected latency profile
 #
 # Deliberately scoped to push-to-main only (not PRs): standing up this topology (cluster, operator
 # install, Keycloak, Kafka, sustained load run) is too slow/expensive to run per-PR, and the goal
@@ -27,10 +32,18 @@ env:
 
 jobs:
   perf-test:
-    name: Run Performance Tests
+    name: Run Performance Tests (${{ matrix.storage }})
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio'
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - storage: postgresql
+            kafka-bootstrap-servers: kafka.default.svc:9092
+          - storage: kafkasql
+            kafka-bootstrap-servers: toxiproxy.default.svc:9094
     steps:
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -100,33 +113,22 @@ jobs:
           kubectl -n default wait --for=condition=Available deployment \
             -l app.kubernetes.io/name=apicurio-registry-operator --timeout=5m
 
-      - name: Deploy PostgreSQL, Kafka, and Keycloak
-        working-directory: perf-tests/k8s
-        run: |
-          kubectl -n default apply -f postgresql.yaml
-          kubectl -n default apply -f kafka.yaml
-          kubectl -n default create configmap keycloak-realm-import --from-file=realm.json=realm-import.json
-          kubectl -n default apply -f keycloak.yaml
-          kubectl -n default rollout status deployment/postgresql --timeout=5m
-          kubectl -n default rollout status deployment/kafka --timeout=5m
-          kubectl -n default rollout status deployment/keycloak --timeout=5m
-
-      - name: Deploy the registry (ApicurioRegistry3 CR)
-        working-directory: perf-tests/k8s
-        run: |
-          kubectl -n default apply -f registry-cr.yaml
-          kubectl -n default rollout status deployment/perf-test-app-deployment --timeout=10m
+      - name: Deploy storage backend, Toxiproxy, and Keycloak
+        working-directory: perf-tests/k8s/${{ matrix.storage }}
+        run: ./deploy.sh
 
       - name: Run the performance test Job
         working-directory: perf-tests/k8s
         run: |
-          sed "s|\${PERF_TEST_IMAGE}|$PERF_TEST_IMAGE|" perf-job.yaml | kubectl -n default apply -f -
+          sed -e "s|\${PERF_TEST_IMAGE}|$PERF_TEST_IMAGE|" \
+              -e "s|\${KAFKA_BOOTSTRAP_SERVERS}|${{ matrix.kafka-bootstrap-servers }}|" \
+              common/perf-job.yaml | kubectl -n default apply -f -
           # The Job's container deliberately stays alive (sleeping) for a grace period after the
           # actual test run finishes, writing its real exit code to /results/exit-code - `kubectl
           # cp`/`exec` cannot target a pod that has already reached Succeeded/Failed, so we poll
           # for that marker file (via the still-running container) rather than waiting on the
           # Job's own condition=complete, then copy results out before letting the grace period
-          # elapse. See k8s/perf-job.yaml for the corresponding container-side wrapper.
+          # elapse. See k8s/common/perf-job.yaml for the corresponding container-side wrapper.
           for i in $(seq 1 270); do
             POD=$(kubectl -n default get pods -l job-name=perf-test-runner -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
             if [ -n "$POD" ] && kubectl -n default exec "$POD" -- test -f /results/exit-code 2>/dev/null; then
@@ -163,7 +165,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: perf-test-results-${{ github.sha }}
+          name: perf-test-results-${{ matrix.storage }}-${{ github.sha }}
           path: /tmp/perf-results
           retention-days: 90
 
@@ -177,3 +179,4 @@ jobs:
       job-name: "perf-test"
       job-status: "failure"
     secrets: inherit
+

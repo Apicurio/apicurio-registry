@@ -9,7 +9,10 @@ spec:
       type: postgresql
       sql:
         dataSource:
-          url: "jdbc:postgresql://postgresql.default.svc:5432/registry"
+          # Routed through toxiproxy.yaml, which injects ~15ms +/- 5ms latency to approximate a
+          # real managed-DB/different-AZ deployment rather than a same-node, near-zero-latency
+          # connection - see toxiproxy.yaml for the rationale.
+          url: "jdbc:postgresql://toxiproxy.default.svc:5433/registry"
           username: "postgres"
           password:
             name: postgresql-credentials

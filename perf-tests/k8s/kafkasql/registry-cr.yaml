@@ -1,0 +1,24 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: perf-test
+spec:
+  app:
+    replicas: 1
+    storage:
+      type: kafkasql
+      kafkasql:
+        # Routed through toxiproxy.yaml (~15ms +/- 5ms injected latency) - see kafka.yaml in
+        # this directory for why the broker's advertised listener, not just this bootstrap
+        # address, has to point at the proxy for the injected latency to actually apply to
+        # KafkaSQL's traffic.
+        bootstrapServers: "toxiproxy.default.svc:9094"
+    auth:
+      enabled: true
+      appClientId: registry-api
+      authServerUrl: "http://keycloak.default.svc:8080/realms/registry"
+      anonymousReadsEnabled: false
+      tls:
+        tlsVerificationType: none
+  ui:
+    replicas: 1

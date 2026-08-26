@@ -178,14 +178,20 @@ public class KafkaLoadGenerator {
      * (Keycloak-secured) registry REST API. This is independent of Kafka broker authentication:
      * in the perf-main topology the Kafka broker itself is unauthenticated (PLAINTEXT) - only the
      * registry is behind Keycloak - so no SASL/broker-auth properties are set here.
+     *
+     * <p>Note: {@code SerdeConfig.AUTH_TOKEN_ENDPOINT} etc. are dotted serde *config property*
+     * keys (e.g. {@code "apicurio.registry.auth.service.token.endpoint"}), not environment
+     * variable names - they must not be passed to {@link System#getenv(String)} directly. The
+     * plain env vars below (matching what {@code k8s/perf-job.yaml} sets, and what
+     * RegistryApiSimulation reads) are read here and then mapped onto those config property keys.
      */
     private static void applyOAuthIfConfigured(Properties props) {
-        String tokenEndpoint = System.getenv(SerdeConfig.AUTH_TOKEN_ENDPOINT);
+        String tokenEndpoint = System.getenv("AUTH_TOKEN_ENDPOINT");
         if (tokenEndpoint == null || tokenEndpoint.isBlank()) {
             return;
         }
-        String clientId = System.getenv(SerdeConfig.AUTH_CLIENT_ID);
-        String clientSecret = System.getenv(SerdeConfig.AUTH_CLIENT_SECRET);
+        String clientId = System.getenv("AUTH_CLIENT_ID");
+        String clientSecret = System.getenv("AUTH_CLIENT_SECRET");
         props.putIfAbsent(SerdeConfig.AUTH_CLIENT_SECRET, clientSecret);
         props.putIfAbsent(SerdeConfig.AUTH_CLIENT_ID, clientId);
         props.putIfAbsent(SerdeConfig.AUTH_TOKEN_ENDPOINT, tokenEndpoint);

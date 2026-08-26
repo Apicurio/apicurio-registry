@@ -19,5 +19,7 @@ spec:
       appClientId: registry-api
       authServerUrl: "http://keycloak.default.svc:8080/realms/registry"
       anonymousReadsEnabled: false
+      tls:
+        tlsVerificationType: none
   ui:
     replicas: 1

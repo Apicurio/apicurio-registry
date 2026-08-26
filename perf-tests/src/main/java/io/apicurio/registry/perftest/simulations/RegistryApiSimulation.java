@@ -55,8 +55,12 @@ public class RegistryApiSimulation extends Simulation {
             + "\"type\":\"record\",\"name\":\"PerfTestRecord\",\"namespace\":\"io.apicurio.registry.perftest\","
             + "\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"value\",\"type\":\"long\"}]}";
 
-    HttpProtocolBuilder httpProtocol = http.baseUrl(REGISTRY_URL)
-            .acceptHeader("application/json").contentTypeHeader("application/json")
+    // Note: deliberately no default contentTypeHeader() here - the OAuth token request needs
+    // application/x-www-form-urlencoded (set automatically by .formParam()), while the
+    // JSON-bodied requests set their own content type via .asJson(). A protocol-level default of
+    // application/json here would conflict with the token request's form-encoded body and cause
+    // Keycloak to reject it with a 400.
+    HttpProtocolBuilder httpProtocol = http.baseUrl(REGISTRY_URL).acceptHeader("application/json")
             .userAgentHeader("apicurio-registry-perf-tests/gatling");
 
     /**
@@ -81,12 +85,12 @@ public class RegistryApiSimulation extends Simulation {
                         .queryParam("ifExists", "FAIL")
                         .header("Authorization", RegistryApiSimulation::authHeader)
                         .body(StringBody(RegistryApiSimulation::createArtifactBody)).asJson()
-                        .check(status().is(200), jmesPath("id").saveAs("artifactId")))
-                .exec(http("Get artifact content").get("/groups/#{groupId}/artifacts/#{artifactId}")
+                        .check(status().is(200), jmesPath("artifact.artifactId").saveAs("artifactId")))
+                .exec(http("Get artifact content")
+                        .get("/groups/#{groupId}/artifacts/#{artifactId}/versions/branch=latest/content")
                         .header("Authorization", RegistryApiSimulation::authHeader)
                         .check(status().is(200)))
-                .exec(http("Get artifact metadata")
-                        .get("/groups/#{groupId}/artifacts/#{artifactId}/meta")
+                .exec(http("Get artifact metadata").get("/groups/#{groupId}/artifacts/#{artifactId}")
                         .header("Authorization", RegistryApiSimulation::authHeader)
                         .check(status().is(200)))
                 .exec(http("Search artifacts").get("/search/artifacts").queryParam("limit", "20")

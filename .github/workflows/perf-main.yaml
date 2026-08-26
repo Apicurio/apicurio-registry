@@ -121,11 +121,20 @@ jobs:
         working-directory: perf-tests/k8s
         run: |
           sed "s|\${PERF_TEST_IMAGE}|$PERF_TEST_IMAGE|" perf-job.yaml | kubectl -n default apply -f -
-          kubectl -n default wait --for=condition=complete --timeout=45m job/perf-test-runner || true
+          # The Job's container deliberately stays alive (sleeping) for a grace period after the
+          # actual test run finishes, writing its real exit code to /results/exit-code - `kubectl
+          # cp`/`exec` cannot target a pod that has already reached Succeeded/Failed, so we poll
+          # for that marker file (via the still-running container) rather than waiting on the
+          # Job's own condition=complete, then copy results out before letting the grace period
+          # elapse. See k8s/perf-job.yaml for the corresponding container-side wrapper.
+          for i in $(seq 1 270); do
+            POD=$(kubectl -n default get pods -l job-name=perf-test-runner -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+            if [ -n "$POD" ] && kubectl -n default exec "$POD" -- test -f /results/exit-code 2>/dev/null; then
+              break
+            fi
+            sleep 10
+          done
           kubectl -n default logs job/perf-test-runner --tail=-1 > /tmp/perf-test-runner.log || true
-          # Fail the step (and therefore the workflow) if the Job itself did not report success -
-          # this is the "did the load run at all / stay under the error-rate assertion" signal.
-          kubectl -n default get job perf-test-runner -o jsonpath='{.status.succeeded}' | grep -q 1
 
       - name: Copy results out of the cluster
         if: always()
@@ -135,6 +144,10 @@ jobs:
           mkdir -p /tmp/perf-results
           kubectl -n default cp "$POD:/results" /tmp/perf-results || true
           cp /tmp/perf-test-runner.log /tmp/perf-results/ || true
+          kubectl -n default delete job perf-test-runner --ignore-not-found || true
+          # Fail the step (and therefore the workflow) if the test run itself did not exit 0 -
+          # this is the "did the load run at all / stay under the error-rate assertion" signal.
+          test "$(cat /tmp/perf-results/exit-code 2>/dev/null || echo 1)" = "0"
 
       - name: Check results against baseline
         if: always()

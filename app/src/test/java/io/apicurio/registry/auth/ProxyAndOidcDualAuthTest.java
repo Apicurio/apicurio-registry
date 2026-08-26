@@ -1,10 +1,26 @@
+/*
+ * Copyright 2026 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.auth;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.utils.tests.AuthTestProfile;
-import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
+import io.apicurio.registry.utils.tests.MockOAuth2AuthTestProfile;
+import io.apicurio.registry.utils.tests.MockOAuth2TestResource;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -16,15 +32,11 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
- * Tests for dual proxy-header + OIDC authentication mode. When both mechanisms are enabled,
- * proxy headers are tried first. If absent, the request falls back to OIDC authentication.
- *
- * <p>This test shares {@link AuthTestProfile} with other auth tests to avoid an extra Quarkus
- * augmentation. The profile enables both proxy-header and OIDC; existing OIDC-only tests are
- * unaffected because the proxy-header mechanism returns null when no proxy headers are present.</p>
+ * Tests for dual proxy-header + OIDC authentication mode using lightweight {@link MockOAuth2TestResource}.
+ * When both mechanisms are enabled, proxy headers are tried first. If absent, the request falls back to OIDC.
  */
 @QuarkusTest
-@TestProfile(AuthTestProfile.class)
+@TestProfile(MockOAuth2AuthTestProfile.class)
 public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
 
     private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
@@ -46,7 +58,7 @@ public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
     }
 
     /**
-     * Obtains a Bearer token from Keycloak using client credentials grant.
+     * Obtains a Bearer token from mock-oauth2-server using client credentials grant.
      */
     private String obtainOidcToken(String clientId, String clientSecret) {
         return given()
@@ -103,7 +115,7 @@ public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
     public void testNoProxyHeaders_OidcFallback() {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        String token = obtainOidcToken(KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
+        String token = obtainOidcToken(MockOAuth2TestResource.ADMIN_CLIENT_ID, "test1");
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -116,7 +128,7 @@ public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version.owner",
-                        equalTo(KeycloakTestContainerManager.ADMIN_CLIENT_ID));
+                        equalTo(MockOAuth2TestResource.ADMIN_CLIENT_ID));
 
         // Clean up
         given()
@@ -147,7 +159,7 @@ public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
      */
     @Test
     public void testBothPresent_ProxyWins() {
-        String token = obtainOidcToken(KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1");
+        String token = obtainOidcToken(MockOAuth2TestResource.ADMIN_CLIENT_ID, "test1");
 
         given()
                 .header(HEADER_USERNAME, PROXY_USERNAME)
@@ -163,8 +175,7 @@ public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
 
     /**
      * Verify that OIDC client credentials authentication still works as a fallback when proxy
-     * headers are absent — confirming that the full OIDC client credentials flow (not just Bearer
-     * token pass-through) functions correctly in dual mode.
+     * headers are absent — confirming that the full OIDC client credentials flow functions correctly.
      */
     @Test
     public void testOidcClientCredentials_WithBasicAuth() {
@@ -173,7 +184,7 @@ public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
 
         given()
                 .auth().preemptive().basic(
-                        KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1")
+                        MockOAuth2TestResource.DEVELOPER_CLIENT_ID, "test1")
                 .contentType(ContentType.JSON)
                 .body(TestUtils.clientCreateArtifact(artifactId, ArtifactType.JSON,
                         ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON))
@@ -183,12 +194,12 @@ public class ProxyAndOidcDualAuthTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("version.owner",
-                        equalTo(KeycloakTestContainerManager.DEVELOPER_CLIENT_ID));
+                        equalTo(MockOAuth2TestResource.DEVELOPER_CLIENT_ID));
 
         // Clean up
         given()
                 .auth().preemptive().basic(
-                        KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1")
+                        MockOAuth2TestResource.DEVELOPER_CLIENT_ID, "test1")
                 .when()
                 .pathParam("groupId", groupId)
                 .delete("/registry/v3/groups/{groupId}/artifacts/" + artifactId)

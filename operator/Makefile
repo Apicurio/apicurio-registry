@@ -269,6 +269,16 @@ build: ## TODO
 	mvn clean install $(BUILD_OPTS_EXT)
 
 
+GROUPS ?=
+EXCLUDED_GROUPS ?=
+
+.PHONY: test-local-group
+test-local-group: ## Run local (in-process operator) tests filtered by JUnit tag groups
+	mvn verify $(BUILD_OPTS_EXT) \
+		$(if $(GROUPS),-Dgroups=$(GROUPS)) \
+		$(if $(EXCLUDED_GROUPS),-DexcludedGroups=$(EXCLUDED_GROUPS))
+
+
 .PHONY: test-remote-all
 test-remote-all: ## TODO
 	# Do not run `mvn clean` when not necessary.
@@ -279,9 +289,6 @@ else
 endif
 	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
-
-GROUPS ?=
-EXCLUDED_GROUPS ?=
 
 .PHONY: test-remote-group
 test-remote-group: ## Run remote tests filtered by JUnit tag groups

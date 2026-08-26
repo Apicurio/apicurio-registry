@@ -182,7 +182,9 @@ const UNSIGNED_COMMIT = (sha, subject) => ({ sha, ...commitWith(subject, 'dev@ex
  * tests can assert on exact arguments.
  */
 function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {} } = {}) {
-  const calls = { createdComments: [], updatedComments: [], addedLabels: [], removedLabels: [] };
+  const calls = {
+    createdComments: [], updatedComments: [], addedLabels: [], removedLabels: [], listParams: [],
+  };
   const comments = [];
   const knownLabels = new Set();
   let nextCommentId = 1;
@@ -192,7 +194,10 @@ function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {} } = {
     rest: {
       pulls: {
         listCommits: async ({ pull_number }) => ({ data: commitsByPr[pull_number] || [] }),
-        list: async () => ({ data: openPrs }),
+        list: async ({ base }) => {
+          calls.listParams.push({ base });
+          return { data: withDefaultBase(openPrs).filter(p => p.base.ref === base) };
+        },
         listFiles: async ({ pull_number }) => (
           { data: (filesByPr[pull_number] || []).map(filename => ({ filename })) }
         ),
@@ -255,8 +260,15 @@ function createFakeCore() {
   };
 }
 
+// Real pull_request payloads always carry base.ref; fixtures that do not care
+// which branch they target inherit main so every test does not have to say so.
+function withDefaultBase(prs) {
+  return prs.map(p => ({ base: { ref: 'main' }, ...p }));
+}
+
 function makeContext(pr) {
-  return { repo: { owner: OWNER, repo: REPO }, payload: { pull_request: pr } };
+  const [withBase] = withDefaultBase([pr]);
+  return { repo: { owner: OWNER, repo: REPO }, payload: { pull_request: withBase } };
 }
 
 test('validate(): unsigned commit fails the check, labels the PR, and posts one comment', async (t) => {
@@ -313,6 +325,29 @@ test('validate(): a second PR linking the same issue gets an advisory comment', 
   assert.match(advisory.body, /links the same issue \(#42\)/);
   const ownComment = calls.createdComments.find(c => c.issue_number === 1);
   assert.match(ownComment.body, /#2 by @other-dev also links #42/);
+});
+
+test('validate(): a PR targeting another branch is not a duplicate', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  // Same issue, same files, but a backport to a release branch: intentional, not a duplicate.
+  const backport = {
+    number: 2, user: { login: 'other-dev' }, body: 'Fixes #42', labels: [], draft: false,
+    base: { ref: '2.6.x' },
+  };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    openPrs: [backport],
+    filesByPr: { 1: ['a.js', 'b.js'], 2: ['a.js', 'b.js'] },
+  });
+  const { core } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.deepEqual(calls.listParams, [{ base: 'main' }]);
+  assert.equal(calls.createdComments.some(c => c.issue_number === 2), false);
+  const ownComment = calls.createdComments.find(c => c.issue_number === 1);
+  assert.match(ownComment.body, /All validation checks passed./);
 });
 
 test('validate(): two shared files trigger a file-based duplicate advisory', async (t) => {

@@ -129,7 +129,7 @@ function checkDcoSignOff(commits) {
 
 async function findDuplicates(github, owner, repo, pr, linkedIssues, config, core) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
-    owner, repo, state: 'open', per_page: 100,
+    owner, repo, state: 'open', base: pr.base.ref, per_page: 100,
   });
   const others = openPrs.filter(p => p.number !== pr.number && !p.draft
     && !isExemptAuthor(config, p.user.login));

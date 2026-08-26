@@ -61,7 +61,6 @@ class KafkaSqlCoordinatorTest {
     void testSuccessPath() throws Exception {
         UUID uuid = coordinator.createUUID();
 
-        // With CompletableFuture, complete() before get() works: get() returns immediately.
         coordinator.notifyResponse(uuid, "test-result");
 
         Object result = coordinator.waitForResponse(uuid);
@@ -107,6 +106,22 @@ class KafkaSqlCoordinatorTest {
     @Test
     void testNotifyForUnknownUuidIsNoOp() {
         coordinator.notifyResponse(UUID.randomUUID(), "value");
+    }
+
+    @Test
+    void testCreateUUIDRegistersInPending() {
+        assertEquals(0, coordinator.pendingCount());
+        coordinator.createUUID();
+        assertEquals(1, coordinator.pendingCount());
+    }
+
+    @Test
+    void testWaitForResponseCleansUpPending() {
+        UUID uuid = coordinator.createUUID();
+        assertEquals(1, coordinator.pendingCount());
+        coordinator.notifyResponse(uuid, "done");
+        coordinator.waitForResponse(uuid);
+        assertEquals(0, coordinator.pendingCount());
     }
 
     // Safety net only: prevents the test from blocking the build forever if a bug

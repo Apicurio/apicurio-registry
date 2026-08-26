@@ -63,14 +63,8 @@ public class KafkaSqlSubmitter {
         }
     }
 
-    /**
-     * Sends a message to the Kafka topic.
-     *
-     * @param key
-     * @param value
-     */
-    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value) {
-        UUID requestId = coordinator.get().createUUID();
+    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value, boolean tracked) {
+        UUID requestId = tracked ? coordinator.get().createUUID() : UUID.randomUUID();
         RecordHeader requestIdHeader = new RecordHeader(REQUEST_ID_HEADER,
                 requestId.toString().getBytes(StandardCharsets.UTF_8));
         RecordHeader messageTypeHeader = new RecordHeader(MESSAGE_TYPE_HEADER,
@@ -80,20 +74,20 @@ public class KafkaSqlSubmitter {
         return producer.get().apply(record).thenApply(rm -> requestId);
     }
 
-    /**
-     * Submits a bootstrap marker message and blocks until it is durably written to Kafka.
-     *
-     * @param bootstrapId unique identifier for this bootstrap sequence
-     */
     public void submitBootstrap(String bootstrapId) {
         KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
-        blockOnResult(send(key, null));
+        blockOnResult(send(key, null, false));
     }
 
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
         var key = message.getKey();
-        return send(key, message);
+        return send(key, message, true);
+    }
+
+    public void submitFireAndForget(KafkaSqlMessage message) {
+        var key = message.getKey();
+        send(key, message, false);
     }
 
 }

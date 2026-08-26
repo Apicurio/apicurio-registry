@@ -32,8 +32,11 @@ on:
     branches: [main]
   # No branches: filter here — pull_request_review does not support one.
   # In practice every PR in this repo targets main, so this is a non-issue.
+  # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
+  # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
+  # the full suite would stay skipped until the next push or new review.
   pull_request_review:
-    types: [submitted]
+    types: [submitted, dismissed]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -89,7 +92,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -251,7 +254,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'

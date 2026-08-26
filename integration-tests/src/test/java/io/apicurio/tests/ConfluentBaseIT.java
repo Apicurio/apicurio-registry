@@ -5,12 +5,14 @@ import io.apicurio.tests.utils.Constants;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInfo;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -23,8 +25,24 @@ public abstract class ConfluentBaseIT extends ApicurioRegistryBaseIT {
 
     @BeforeAll
     void confluentBeforeAll(TestInfo info) throws Exception {
+        // The (baseUrl, cacheCapacity) constructor builds a RestService that never calls
+        // configure(...) (CachedSchemaRegistryClient only does so if the configs map is
+        // non-null AND non-empty), leaving httpConnectTimeoutMs/httpReadTimeoutMs at their
+        // uninitialized 0 -- interpreted by HttpURLConnection as an INFINITE timeout -- and
+        // retries disabled (RetryExecutor(0, 0, 0)). A single stalled connection during a
+        // sequential batch of calls (e.g. createAndDeleteMultipleSchemas' 50 creates + 50
+        // deletes) then has nothing to make it fail and retry, hanging until only this
+        // test suite's blunt global JUnit timeout eventually kills it. Passing a non-empty
+        // configs map (even for the client's own already-sensible defaults: 60s connect/read
+        // timeout, 3 retries) forces that configure(...) call to actually happen.
+        Map<String, String> restConfigs = Map.of(SchemaRegistryClientConfig.HTTP_CONNECT_TIMEOUT_MS,
+                String.valueOf(SchemaRegistryClientConfig.HTTP_CONNECT_TIMEOUT_MS_DEFAULT),
+                SchemaRegistryClientConfig.HTTP_READ_TIMEOUT_MS,
+                String.valueOf(SchemaRegistryClientConfig.HTTP_READ_TIMEOUT_MS_DEFAULT),
+                SchemaRegistryClientConfig.MAX_RETRIES_CONFIG,
+                String.valueOf(SchemaRegistryClientConfig.MAX_RETRIES_DEFAULT));
         confluentService = new CachedSchemaRegistryClient(
-                ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7", 3);
+                ApicurioRegistryBaseIT.getRegistryApiUrl() + "/ccompat/v7", 3, restConfigs);
         clearAllConfluentSubjects();
     }
 

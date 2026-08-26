@@ -11,6 +11,9 @@ import io.quarkus.arc.Arc;
 import io.quarkus.arc.ManagedContext;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.jboss.byteman.contrib.bmunit.BMRule;
+import org.jboss.byteman.contrib.bmunit.BMRules;
+import org.jboss.byteman.contrib.bmunit.WithByteman;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 /** Run with: ./mvnw test -pl :apicurio-registry-app -Pbyteman -Dtest=ConcurrentVersionCreationTest */
 @QuarkusTest
+@WithByteman
 @EnabledIfSystemProperty(named = "byteman.agent", matches = "true")
 public class ConcurrentVersionCreationTest {
 
@@ -47,8 +51,21 @@ public class ConcurrentVersionCreationTest {
         System.clearProperty("byteman.writerFrozen");
     }
 
-    /** Byteman freezes thread A at entry; thread B creates version; both must get distinct versionOrder. */
     @Test
+    @BMRules(rules = {
+        @BMRule(name = "freeze first writer",
+            targetClass = "io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage",
+            targetMethod = "createArtifactVersion(String, String, String, String, ContentWrapperDto, EditableVersionMetaDataDto, java.util.List, boolean, boolean, String)",
+            targetLocation = "AT ENTRY",
+            condition = "NOT flagged(\"writer-entered\")",
+            action = "flag(\"writer-entered\"); java.lang.System.setProperty(\"byteman.writerFrozen\", \"true\"); waitFor(\"versionOrder-race\", 10000)"),
+        @BMRule(name = "release frozen writer",
+            targetClass = "io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage",
+            targetMethod = "createArtifactVersion(String, String, String, String, ContentWrapperDto, EditableVersionMetaDataDto, java.util.List, boolean, boolean, String)",
+            targetLocation = "AT EXIT",
+            condition = "flagged(\"writer-entered\") AND NOT flagged(\"writer-released\")",
+            action = "flag(\"writer-released\"); signalWake(\"versionOrder-race\", true)")
+    })
     public void testConcurrentVersionCreationGetsDifferentVersionOrder() throws Exception {
         String groupId = "ConcurrentVersionCreationTest";
         String artifactId = "testConcurrentVersionOrder-" + UUID.randomUUID();

@@ -822,25 +822,27 @@
           <version>4.0.27</version>
           <scope>test</scope>
         </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-bmunit5</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-submit</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-install</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
       </dependencies>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>byteman-properties</id>
-                <goals><goal>properties</goal></goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
       <properties>
-        <byteman.script>byteman/version-order-race.btm</byteman.script>
-        <byteman.agent.argLine>-javaagent:${org.jboss.byteman:byteman:jar}=boot:${org.jboss.byteman:byteman:jar},resourcescript:${byteman.script} -Dbyteman.agent=true</byteman.agent.argLine>
-        <byteman.agent>true</byteman.agent>
+        <byteman.agent.argLine>-Djdk.attach.allowAttachSelf=true -Dbyteman.agent=true</byteman.agent.argLine>
       </properties>
     </profile>
   </profiles>

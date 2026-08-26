@@ -32,6 +32,14 @@ This project uses GitHub issues to manage the issues. Open an issue directly in 
 If you believe you found a bug, and it's likely possible, please indicate a way to reproduce it, what you are seeing and what you would expect to see.
 Don't forget to indicate your Apicurio Registry, Java, and Maven versions.
 
+For security vulnerabilities, please do not use GitHub issues. Instead, email
+[cncf-apicurio-registry-security@lists.cncf.io](mailto:cncf-apicurio-registry-security@lists.cncf.io).
+See [SECURITY.md](SECURITY.md) for details.
+
+For general questions and development discussions, use the
+[cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
+or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+
 ## Before you contribute
 
 To contribute, use GitHub Pull Requests, from your **own** fork.
@@ -77,16 +85,18 @@ Because we are all humans, and to ensure Apicurio Registry is stable for everyon
 
 CI runs in two tiers:
 
-1. **Fast gate** (`CI` workflow, ~5 min): runs on every non-draft push. Compiles the
-   project (including test sources) and runs the pure unit tests plus a curated app
-   smoke set. This is what gives you rapid feedback while iterating.
-2. **Full verification**: the complete suite, split across per-phase workflows —
-   `CI` (unit-test shards, SDKs, CLI, console plugin), `Integration Tests`
-   (storage matrix), `Extra Tests` (additional checks), and `Verify` (operator
-   tests, image publishing, and the cross-workflow Verification Gate). It runs when
-   a maintainer marks the PR `lifecycle/ready-to-merge` (and on every push to
-   `main`), and all four workflows must pass before the merge completes. If any
-   fails, the PR returns to `lifecycle/ready-for-review` automatically.
+1. **Fast gate** (`Quick Check` workflow, ~5 min): runs on every push to every PR,
+   regardless of author or review state. Compiles the project (including test
+   sources) and runs the pure unit tests plus a curated app smoke set. This is what
+   gives you rapid feedback while iterating.
+2. **Full verification** (`Verify` workflow): the complete suite — build, unit
+   tests, CLI, SDKs, console plugin, integration tests, extra tests, operator
+   tests, and the Verification Gate (the single required check for merging). It
+   runs immediately for maintainers and other trusted authors (e.g. Renovate), or
+   once your PR has an approving review otherwise — not gated by any label a
+   maintainer has to apply. It also always runs on every push to `main`. If it
+   fails, the PR reverts to `lifecycle/ready-for-review` and `lifecycle/tested` is
+   cleared so it's clear a fresh fast-gate pass and review are needed again.
 
 ### Tests and documentation are not optional
 

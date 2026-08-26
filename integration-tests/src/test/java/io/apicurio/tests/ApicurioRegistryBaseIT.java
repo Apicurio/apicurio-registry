@@ -2,6 +2,7 @@ package io.apicurio.tests;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.deployment.PortForwardManager;
+import io.apicurio.deployment.RegistryDeploymentManager;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -96,6 +97,11 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     @BeforeAll
     void prepareRestAssured() throws Exception {
+        // Fail fast, with the real error, if test-infra setup failed rather than let every
+        // test class run against a broken/incomplete deployment and fail on unrelated,
+        // confusing assertions (see RegistryDeploymentManager#verifyDeploymentSucceeded).
+        RegistryDeploymentManager.verifyDeploymentSucceeded();
+
         vertx = Vertx.vertx();
         authServerUrlConfigured = Optional
                 .ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())

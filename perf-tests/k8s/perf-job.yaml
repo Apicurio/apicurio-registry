@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: perf-test-runner
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: perf-test-runner
+          image: "${PERF_TEST_IMAGE}"
+          env:
+            - name: REGISTRY_URL
+              value: "http://perf-test-app-service.default.svc:8080/apis/registry/v3"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka.default.svc:9092"
+            - name: AUTH_TOKEN_ENDPOINT
+              value: "http://keycloak.default.svc:8080/realms/registry/protocol/openid-connect/token"
+            - name: AUTH_CLIENT_ID
+              value: "registry-api"
+            - name: AUTH_CLIENT_SECRET
+              value: "perf-test-secret"
+            - name: PERF_USERS
+              value: "20"
+            - name: PERF_DURATION_SECONDS
+              value: "120"
+            - name: PERF_PRODUCE_RATE_PER_SEC
+              value: "20"
+          command: ["java"]
+          args:
+            - "-Dgatling.resultsFolder=/results/gatling"
+            - "-jar"
+            - "/opt/perf-tests/perf-tests.jar"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          emptyDir: {}

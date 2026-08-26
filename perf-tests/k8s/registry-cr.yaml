@@ -1,0 +1,23 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: perf-test
+spec:
+  app:
+    replicas: 1
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: "jdbc:postgresql://postgresql.default.svc:5432/registry"
+          username: "postgres"
+          password:
+            name: postgresql-credentials
+            key: password
+    auth:
+      enabled: true
+      appClientId: registry-api
+      authServerUrl: "http://keycloak.default.svc:8080/realms/registry"
+      anonymousReadsEnabled: false
+  ui:
+    replicas: 1

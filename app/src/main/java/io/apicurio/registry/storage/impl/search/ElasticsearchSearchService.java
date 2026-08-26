@@ -342,10 +342,20 @@ public class ElasticsearchSearchService {
     /**
      * Builds a query for the structure field using the faceted format. Supports three formats:
      * <ul>
-     * <li>{@code type:kind:name} - exact match on the structure field</li>
+     * <li>{@code type:kind:name} - exact match on the structure field. The name segment may
+     * itself contain ':' (for example a namespaced Agent Card skill id, or an indexed URL), so
+     * any value with three or more segments is treated as this fully-qualified form and matched
+     * exactly against the indexed value.</li>
      * <li>{@code kind:name} - text search on structure_text</li>
      * <li>{@code name} - text search on structure_text</li>
      * </ul>
+     *
+     * <p>Structured values are indexed as {@code type:kind:name} where {@code type} and
+     * {@code kind} are colon-free identifiers, so counting segments to detect the fully-qualified
+     * form is only reliable when the name is allowed to keep its own colons. Detecting the exact
+     * form by an exact segment count of three silently dropped any value whose name contained a
+     * colon into a text search that could never match; see {@link ElasticsearchDocumentBuilder}
+     * for the indexing side.
      *
      * @param value the structure filter value
      * @return an Elasticsearch query for structured element search
@@ -358,8 +368,10 @@ public class ElasticsearchSearchService {
         String lowered = value.toLowerCase(Locale.ROOT).trim();
         String[] parts = lowered.split(":", -1);
 
-        if (parts.length == 3) {
-            // Full format: type:kind:name - exact match on structure field
+        if (parts.length >= 3) {
+            // Full format: type:kind:name - exact match on structure field. The exact match uses
+            // the whole value, so a name that itself contains ':' (four or more segments) is still
+            // matched correctly against the indexed "type:kind:name" value.
             return Query.of(q -> q.term(t -> t
                     .field("structure").value(lowered)));
         } else if (parts.length == 2) {

@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
 import static io.apicurio.deployment.KubernetesTestResources.*;
@@ -33,6 +34,18 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
     public static KubernetesClient kubernetesClient;
+
+    // Guards against failsafe's rerun re-executing the test plan (and therefore the
+    // deployment) in the same JVM.
+    private static final AtomicBoolean DEPLOYED = new AtomicBoolean(false);
+
+    // Set when handleInfraDeployment() throws below. testPlanExecutionStarted() cannot
+    // abort the JUnit Platform launcher's test plan from a TestExecutionListener callback,
+    // so a failure here used to be logged and silently ignored: tests then ran against a
+    // half-seeded/never-restarted deployment and failed with confusing, unrelated
+    // assertion errors far away from the actual root cause. ApicurioRegistryBaseIT checks
+    // this in its @BeforeAll so every test class fails fast with the real error instead.
+    private static volatile Throwable deploymentFailure;
 
     static List<LogWatch> logWatch;
 
@@ -65,12 +78,29 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
+            // Failsafe re-executes the whole test plan for failing-test reruns
+            // (rerunFailingTestsCount). Deploy only once per JVM: redeploying would
+            // tear down and recreate the namespace mid-run, and the rerun can never
+            // pass against a half-recreated deployment.
+            if (!DEPLOYED.compareAndSet(false, true)) {
+                LOGGER.info("Registry already deployed in this JVM (failsafe rerun), skipping redeploy");
+                return;
+            }
+
             kubernetesClient = new KubernetesClientBuilder().build();
 
             try {
                 handleInfraDeployment();
             } catch (Exception e) {
                 LOGGER.error("Error starting registry deployment", e);
+                deploymentFailure = e;
+            }
+
+            // Namespace cleanup must not run at test-plan end either: that method
+            // fires between the initial plan and the failsafe rerun plan. The CI
+            // runner is ephemeral, so deleting on JVM shutdown is sufficient.
+            if (!Boolean.parseBoolean(System.getProperty("preserveNamespace"))) {
+                Runtime.getRuntime().addShutdownHook(new Thread(this::cleanupTestResources));
             }
 
             LOGGER.info("Test suite started ##################################################");
@@ -82,21 +112,39 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         LOGGER.info("Test suite ended ##################################################");
 
         try {
+            if (logWatch != null && !logWatch.isEmpty()) {
+                logWatch.forEach(LogWatch::close);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Exception closing log watchers", e);
+        }
+    }
 
-            // Finally, once the testsuite is done, cleanup all the resources in the cluster
-            if (kubernetesClient != null
-                    && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
+    /**
+     * Fails fast, with the real root cause, if test-infra deployment failed during
+     * testPlanExecutionStarted(). Must be called from every test class's setup (see
+     * ApicurioRegistryBaseIT#prepareRestAssured) since a TestExecutionListener cannot itself
+     * abort the test plan it was notified about.
+     */
+    public static void verifyDeploymentSucceeded() throws Exception {
+        if (deploymentFailure != null) {
+            throw new IllegalStateException(
+                    "Registry test-infra deployment failed during test-plan startup; "
+                            + "no tests can run against a broken/incomplete deployment. "
+                            + "See the 'Error starting registry deployment' log entry for the root cause.",
+                    deploymentFailure);
+        }
+    }
+
+    private void cleanupTestResources() {
+        try {
+            if (kubernetesClient != null) {
                 LOGGER.info("Closing test resources ##################################################");
-
-                if (logWatch != null && !logWatch.isEmpty()) {
-                    logWatch.forEach(LogWatch::close);
-                }
 
                 final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
                         .withName(TEST_NAMESPACE);
 
                 namespaceResource.delete();
-
             }
         } catch (Exception e) {
             LOGGER.error("Exception closing test resources", e);

@@ -32,8 +32,11 @@ on:
     branches: [main]
   # No branches: filter here — pull_request_review does not support one.
   # In practice every PR in this repo targets main, so this is a non-issue.
+  # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
+  # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
+  # the full suite would stay skipped until the next push or new review.
   pull_request_review:
-    types: [submitted]
+    types: [submitted, dismissed]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

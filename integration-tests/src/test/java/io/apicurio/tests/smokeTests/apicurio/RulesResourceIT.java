@@ -79,16 +79,16 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         assertThat(rules.size(), is(0));
 
         // Should be null/error (never configured the COMPATIBILITY rule)
-        retryAssertClientError("RuleNotFoundException", 404,
+        retryAssertClientError("RULE_NOT_FOUND", 404,
                 (rc) -> rc.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get(),
                 errorCodeExtractor);
 
         // Should be null/error (deleted the VALIDITY rule)
-        retryAssertClientError("RuleNotFoundException", 404,
+        retryAssertClientError("RULE_NOT_FOUND", 404,
                 (rc) -> rc.admin().rules().byRuleType(RuleType.VALIDITY.name()).get(), errorCodeExtractor);
 
         // Should be null/error (deleted the INTEGRITY rule)
-        retryAssertClientError("RuleNotFoundException", 404,
+        retryAssertClientError("RULE_NOT_FOUND", 404,
                 (rc) -> rc.admin().rules().byRuleType(RuleType.INTEGRITY.name()).get(), errorCodeExtractor);
     }
 
@@ -104,7 +104,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         TestUtils.retry(() -> registryClient.admin().rules().post(createRule));
         LOGGER.info("Created rule: {} - {}", createRule.getRuleType(), createRule.getConfig());
 
-        TestUtils.assertClientError("RuleAlreadyExistsException", 409,
+        TestUtils.assertClientError("RULE_ALREADY_EXISTS", 409,
                 () -> registryClient.admin().rules().post(createRule), true, errorCodeExtractor);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
@@ -112,12 +112,12 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
 
         LOGGER.info("Invalid artifact sent {}", invalidArtifactDefinition);
         TestUtils.assertClientError(
-                "RuleViolationException", 400, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO,
+                "RULE_VIOLATION", 400, () -> createArtifact(groupId, artifactId, ArtifactType.AVRO,
                         invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null, null),
                 errorCodeExtractor);
         TestUtils
                 .assertClientError(
-                        "ArtifactNotFoundException", 404, () -> createArtifactVersion(groupId, artifactId,
+                        "ARTIFACT_NOT_FOUND", 404, () -> createArtifactVersion(groupId, artifactId,
                                 invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null),
                         errorCodeExtractor);
 
@@ -169,14 +169,14 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
                 artifactId1);
 
         TestUtils.assertClientError(
-                "RuleAlreadyExistsException", 409, () -> registryClient.groups().byGroupId(groupId)
+                "RULE_ALREADY_EXISTS", 409, () -> registryClient.groups().byGroupId(groupId)
                         .artifacts().byArtifactId(artifactId1).rules().post(createRule),
                 true, errorCodeExtractor);
 
         String invalidArtifactDefinition = "<type>record</type>\n<name>test</name>";
         TestUtils
                 .assertClientError(
-                        "RuleViolationException", 400, () -> createArtifactVersion(groupId, artifactId1,
+                        "RULE_VIOLATION", 400, () -> createArtifactVersion(groupId, artifactId1,
                                 invalidArtifactDefinition, ContentTypes.APPLICATION_JSON, null),
                         errorCodeExtractor);
 
@@ -262,7 +262,7 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         assertThat(rules.size(), is(0));
 
         // Check that the integrity rule is not found.
-        TestUtils.assertClientError("RuleNotFoundException", 404, () -> {
+        TestUtils.assertClientError("RULE_NOT_FOUND", 404, () -> {
             registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules()
                     .byRuleType(RuleType.INTEGRITY.name()).get();
         }, errorCodeExtractor);
@@ -291,17 +291,17 @@ class RulesResourceIT extends ApicurioRegistryBaseIT {
         registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).delete();
 
         retryOp((rc) -> {
-            TestUtils.assertClientError("ArtifactNotFoundException", 404,
+            TestUtils.assertClientError("ARTIFACT_NOT_FOUND", 404,
                     () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).get(),
                     errorCodeExtractor);
 
             assertThat(rc.groups().byGroupId(groupId).artifacts().get().getCount(), is(0));
 
-            TestUtils.assertClientError("ArtifactNotFoundException", 404,
+            TestUtils.assertClientError("ARTIFACT_NOT_FOUND", 404,
                     () -> rc.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId1).rules().get(),
                     errorCodeExtractor);
             TestUtils.assertClientError(
-                    "ArtifactNotFoundException", 404, () -> rc.groups().byGroupId(groupId).artifacts()
+                    "ARTIFACT_NOT_FOUND", 404, () -> rc.groups().byGroupId(groupId).artifacts()
                             .byArtifactId(artifactId1).rules().byRuleType(RuleType.VALIDITY.name()).get(),
                     errorCodeExtractor);
         });

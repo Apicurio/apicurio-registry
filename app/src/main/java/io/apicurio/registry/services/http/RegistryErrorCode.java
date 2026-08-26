@@ -1,0 +1,82 @@
+package io.apicurio.registry.services.http;
+
+public enum RegistryErrorCode {
+
+    ALREADY_EXISTS,
+    ARTIFACT_ALREADY_EXISTS,
+    ARTIFACT_NOT_FOUND,
+    BAD_REQUEST,
+    BRANCH_ALREADY_EXISTS,
+    BRANCH_NOT_FOUND,
+    CLIENT_ERROR,
+    COMMENT_NOT_FOUND,
+    CONFIG_PROPERTY_NOT_FOUND,
+    CONFLICT,
+    CONTENT_ALREADY_EXISTS,
+    CONTENT_NOT_FOUND,
+    CONTENT_SEARCH_NOT_SUPPORTED,
+    DEFAULT_RULE_DELETION_NOT_ALLOWED,
+    DEREFERENCING_NOT_SUPPORTED,
+    DOWNLOAD_NOT_FOUND,
+    FORBIDDEN,
+    GROUP_ALREADY_EXISTS,
+    GROUP_NOT_FOUND,
+    INTERNAL_SERVER_ERROR,
+    INVALID_ARTIFACT_ID,
+    INVALID_ARTIFACT_STATE,
+    INVALID_ARTIFACT_TYPE,
+    INVALID_COMPATIBILITY_LEVEL,
+    INVALID_CONTENT,
+    INVALID_CONTRACT_METADATA,
+    INVALID_GROUP_ID,
+    INVALID_PARAMETER_VALUE,
+    INVALID_PROPERTY_VALUE,
+    INVALID_VERSION_STATE,
+    LIMIT_EXCEEDED,
+    METHOD_NOT_ALLOWED,
+    MISSING_REQUIRED_PARAMETER,
+    NOT_ALLOWED,
+    NOT_FOUND,
+    PARAMETERS_CONFLICT,
+    READ_ONLY_STORAGE,
+    REFERENCE_EXISTS,
+    ROLE_MAPPING_ALREADY_EXISTS,
+    ROLE_MAPPING_NOT_FOUND,
+    RULE_ALREADY_EXISTS,
+    RULE_NOT_FOUND,
+    RULE_VIOLATION,
+    SCHEMA_NOT_FOUND,
+    SCHEMA_NOT_SOFT_DELETED,
+    SCHEMA_SOFT_DELETED,
+    SERVICE_UNAVAILABLE,
+    SUBJECT_NOT_SOFT_DELETED,
+    SUBJECT_SOFT_DELETED,
+    TIMEOUT,
+    TOO_MANY_REQUESTS,
+    UNAUTHORIZED,
+    UNPROCESSABLE_ENTITY,
+    UNPROCESSABLE_SCHEMA,
+    VALIDATION_FAILED,
+    VERSION_ALREADY_EXISTS,
+    VERSION_ALREADY_EXISTS_ON_BRANCH,
+    VERSION_NOT_FOUND;
+
+    /**
+     * Returns a coarse fallback code for an exception that has no registered mapping. This mapping is
+     * intentionally lossy; registered exception mappings are authoritative.
+     */
+    public static RegistryErrorCode fromHttpStatus(int status) {
+        return switch (status) {
+            case 400 -> BAD_REQUEST;
+            case 401 -> UNAUTHORIZED;
+            case 403 -> FORBIDDEN;
+            case 404 -> NOT_FOUND;
+            case 405 -> METHOD_NOT_ALLOWED;
+            case 409 -> CONFLICT;
+            case 422 -> UNPROCESSABLE_ENTITY;
+            case 429 -> TOO_MANY_REQUESTS;
+            case 503 -> SERVICE_UNAVAILABLE;
+            default -> status >= 400 && status < 500 ? CLIENT_ERROR : INTERNAL_SERVER_ERROR;
+        };
+    }
+}

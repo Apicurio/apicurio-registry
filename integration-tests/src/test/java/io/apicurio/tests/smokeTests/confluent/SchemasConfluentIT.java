@@ -284,14 +284,14 @@ public class SchemasConfluentIT extends ConfluentBaseIT {
         confluentService.deleteSubject(subjectName, true);
 
         retryOp((rc) -> {
-            TestUtils.assertClientError("ArtifactNotFoundException", 404,
+            TestUtils.assertClientError("ARTIFACT_NOT_FOUND", 404,
                     () -> rc.groups().byGroupId("default").artifacts().byArtifactId(subjectName).get(),
                     errorCodeExtractor);
-            TestUtils.assertClientError("ArtifactNotFoundException", 404, () -> rc.groups()
+            TestUtils.assertClientError("ARTIFACT_NOT_FOUND", 404, () -> rc.groups()
                     .byGroupId("default").artifacts().byArtifactId(subjectName).rules().get(),
                     errorCodeExtractor);
             TestUtils.assertClientError(
-                    "ArtifactNotFoundException", 404, () -> rc.groups().byGroupId("default").artifacts()
+                    "ARTIFACT_NOT_FOUND", 404, () -> rc.groups().byGroupId("default").artifacts()
                             .byArtifactId(subjectName).rules().byRuleType(rules.get(0).name()).get(),
                     errorCodeExtractor);
         });

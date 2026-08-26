@@ -219,7 +219,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("1.0").content().put(versionContent);
         });
-        Assertions.assertEquals("ConflictException", error.getName());
+        Assertions.assertEquals("CONFLICT", error.getName());
         Assertions.assertEquals("Requested artifact version is not in DRAFT state.  Update disallowed.",
                 error.getTitle());
 
@@ -305,7 +305,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("1.0.0").state().put(enabled);
         });
-        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals("RULE_VIOLATION", error.getName());
         Assertions.assertEquals("Syntax violation for OpenAPI artifact.", error.getTitle());
     }
 
@@ -341,7 +341,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("1.0.0").state().put(enabled);
         });
-        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals("RULE_VIOLATION", error.getName());
         Assertions.assertEquals("Syntax violation for Avro artifact.", error.getTitle());
     }
 
@@ -366,7 +366,7 @@ public class DraftContentTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
                     .byBranchId("drafts").versions().get();
         });
-        Assertions.assertEquals("BranchNotFoundException", problemDetails.getName());
+        Assertions.assertEquals("BRANCH_NOT_FOUND", problemDetails.getName());
 
         // Second version is DRAFT
         CreateVersion createVersion = TestUtils.clientCreateVersion(content, ContentTypes.APPLICATION_JSON);

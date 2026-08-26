@@ -59,7 +59,7 @@ public class VersionStateTest extends AbstractResourceTestBase {
                     .byVersionExpression("3").content().get();
         });
         Assertions.assertEquals(404, exception.getStatus());
-        Assertions.assertEquals("VersionNotFoundException", exception.getName());
+        Assertions.assertEquals("VERSION_NOT_FOUND", exception.getName());
 
         // can update and get metadata for a disabled artifact, but must specify version
         EditableVersionMetaData emd = new EditableVersionMetaData();
@@ -153,7 +153,7 @@ public class VersionStateTest extends AbstractResourceTestBase {
                     .byVersionExpression(amd.getVersion()).render().post(body);
         });
         Assertions.assertEquals(404, exception.getStatus());
-        Assertions.assertEquals("VersionNotFoundException", exception.getName());
+        Assertions.assertEquals("VERSION_NOT_FOUND", exception.getName());
     }
 
     @Test
@@ -177,6 +177,6 @@ public class VersionStateTest extends AbstractResourceTestBase {
                     .byVersionExpression(amd.getVersion()).export().get();
         });
         Assertions.assertEquals(404, exception.getStatus());
-        Assertions.assertEquals("VersionNotFoundException", exception.getName());
+        Assertions.assertEquals("VERSION_NOT_FOUND", exception.getName());
     }
 }

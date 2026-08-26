@@ -494,7 +494,7 @@ class ReferenceGraphIT extends ApicurioRegistryBaseIT {
         String artifactId = "non-existent-artifact";
 
         // Try to get graph for non-existent artifact
-        assertClientError("ArtifactNotFoundException", 404, () -> {
+        assertClientError("ARTIFACT_NOT_FOUND", 404, () -> {
             registryClient.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("1.0").references().graph().get();
         }, errorCodeExtractor);

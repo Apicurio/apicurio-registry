@@ -1842,7 +1842,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                             .post(f_createVersion);
                 });
         Assertions.assertEquals(400, exception_1.getStatus());
-        Assertions.assertEquals("RuleViolationException", exception_1.getName());
+        Assertions.assertEquals("RULE_VIOLATION", exception_1.getName());
 
         // Now try registering an artifact with both a valid and invalid ref
         // valid ref
@@ -1869,7 +1869,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                             .post(f_createVersion2);
                 });
         Assertions.assertEquals(400, exception_2.getStatus());
-        Assertions.assertEquals("RuleViolationException", exception_2.getName());
+        Assertions.assertEquals("RULE_VIOLATION", exception_2.getName());
 
         // Now try registering an artifact with a duplicate ref
         createVersion = TestUtils.clientCreateVersion(artifactContent, ContentTypes.APPLICATION_JSON);
@@ -1883,7 +1883,7 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                             .post(f_createVersion3);
                 });
         Assertions.assertEquals(400, exception_3.getStatus());
-        Assertions.assertEquals("RuleViolationException", exception_3.getName());
+        Assertions.assertEquals("RULE_VIOLATION", exception_3.getName());
     }
 
     @Test

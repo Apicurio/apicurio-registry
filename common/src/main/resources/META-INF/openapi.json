@@ -6876,14 +6876,15 @@
             "type": "string"
           },
           "name": {
-            "description": "The name of the error (typically a server exception class name).",
+            "description": "A stable, human-readable error code. This value does not expose or depend on server implementation class names.",
             "type": "string"
           }
         },
         "example": {
           "status": 500,
-          "name": "NullPointerException",
-          "title": "An error occurred somewhere."
+          "name": "INTERNAL_SERVER_ERROR",
+          "title": "Internal server error",
+          "detail": "An unexpected server error occurred."
         }
       },
       "RuleType": {
@@ -10224,9 +10225,10 @@
             "examples": {
               "UnprocessableEntityExample": {
                 "value": {
-                  "error_code": 422,
-                  "message": "The artifact content is invalid: Schema validation failed",
-                  "name": "SchemaValidationException"
+                  "status": 422,
+                  "title": "The artifact content is invalid: Schema validation failed",
+                  "detail": "Schema validation failed",
+                  "name": "UNPROCESSABLE_SCHEMA"
                 }
               }
             }
@@ -10243,10 +10245,10 @@
             "examples": {
               "UnauthorizedExample": {
                 "value": {
-                  "detail": "UnauthorizedException: User is not authenticated.",
+                  "detail": "User is not authenticated.",
                   "title": "User is not authenticated.",
                   "status": 401,
-                  "name": "UnauthorizedException"
+                  "name": "UNAUTHORIZED"
                 }
               }
             }
@@ -10263,10 +10265,10 @@
             "examples": {
               "ForbiddenExample": {
                 "value": {
-                  "detail": "ForbiddenException: User is not authorized to perform this operation.",
+                  "detail": "User is not authorized to perform this operation.",
                   "title": "User is not authorized to perform this operation.",
                   "status": 403,
-                  "name": "ForbiddenException"
+                  "name": "FORBIDDEN"
                 }
               }
             }

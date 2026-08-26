@@ -169,7 +169,7 @@ Guidelines:
   carry no roles by default. Tests relying on realm-defined clients or role assignments must
   stay on `KeycloakTestContainerManager`.
 
-`AuthTestAuthenticatedReadAccess` is a working example of a test using the lightweight provider.
+`AuthenticatedReadAccessAuthTest` is a working example of a test using the lightweight provider.
 
 ## Running with Postgres (docker-compose)
 

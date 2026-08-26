@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 @TestProfile(MockOAuth2AuthTestProfile.class)
 @Tag(ApicurioTestTags.SLOW)
-public class AuthTestAuthenticatedReadAccess extends AbstractResourceTestBase {
+public class AuthenticatedReadAccessAuthTest extends AbstractResourceTestBase {
 
     /**
      * Client ids are arbitrary for the mock OIDC server - any credentials are accepted,

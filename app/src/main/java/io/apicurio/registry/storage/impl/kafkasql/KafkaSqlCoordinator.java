@@ -107,4 +107,8 @@ public class KafkaSqlCoordinator {
         future.complete(returnValue);
     }
 
+    int pendingCount() {
+        return pending.size();
+    }
+
 }

@@ -67,26 +67,27 @@ public class K8sCellTest {
     }
 
     @Test
-    void updateRetriesOnLegacyConflictMessageWhenCodeIs409() {
+    void updateDoesNotRetryOnLegacyConflictMessageWithoutHttp409() {
         var item = configMap("cm");
-        var conflict = new KubernetesClientException(
+        var nonConflict = new KubernetesClientException(
                 "the object has been modified; please apply your changes to the latest version and try again",
-                409, new StatusBuilder().withReason("Conflict").withCode(409).build());
+                500, new StatusBuilder().withCode(500).build());
 
         AtomicInteger updates = new AtomicInteger();
         KubernetesClient client = stubClient(new StubBehavior() {
             @Override
             public HasMetadata update(HasMetadata resource) {
-                if (updates.getAndIncrement() == 0) {
-                    throw conflict;
-                }
-                return resource;
+                updates.incrementAndGet();
+                throw nonConflict;
             }
         });
 
-        k8sCell(client, () -> item).update(cm -> cm.getMetadata().getLabels().put("k", "v"));
+        assertThatThrownBy(() ->
+                k8sCell(client, () -> item).update(cm -> cm.getMetadata().getLabels().put("k", "v")))
+                .isInstanceOf(KubernetesClientException.class)
+                .hasMessageContaining("the object has been modified");
 
-        assertThat(updates.get()).isEqualTo(2);
+        assertThat(updates.get()).isEqualTo(1);
     }
 
     @Test
@@ -100,6 +101,16 @@ public class K8sCellTest {
         assertThat(K8sCell.isConflict(byCode)).isTrue();
         assertThat(K8sCell.isConflict(byReason)).isTrue();
         assertThat(K8sCell.isConflict(other)).isFalse();
+    }
+
+    @Test
+    void isRetryableTimeoutMatchesOnlyTimeoutMessage() {
+        var timeout = new KubernetesClientException("Read timeout", -1, null);
+        var other = new KubernetesClientException("forbidden", 403,
+                new StatusBuilder().withReason("Forbidden").withCode(403).build());
+
+        assertThat(K8sCell.isRetryableTimeout(timeout)).isTrue();
+        assertThat(K8sCell.isRetryableTimeout(other)).isFalse();
     }
 
     private static ConfigMap configMap(String name) {

@@ -165,6 +165,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SqlCommentRepository commentRepository;
     SqlConfigRepository configRepository;
     SqlRoleMappingRepository roleMappingRepository;
+    SqlWebhookSubscriptionRepository webhookSubscriptionRepository;
     SqlDownloadRepository downloadRepository;
     SqlSequenceRepository sequenceRepository;
     SqlExportRepository exportRepository;
@@ -271,6 +272,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         sequenceRepository = new SqlSequenceRepository(handleFactory, sqlStatements, log);
         configRepository = new SqlConfigRepository(handleFactory, sqlStatements, log);
         roleMappingRepository = new SqlRoleMappingRepository(handleFactory, sqlStatements, log);
+        webhookSubscriptionRepository = new SqlWebhookSubscriptionRepository(handleFactory, sqlStatements, log);
         downloadRepository = new SqlDownloadRepository(handleFactory, sqlStatements, log);
         eventRepository = new SqlEventRepository(handleFactory, sqlStatements, log, eventsTopic);
         usageRepository = new SqlUsageRepository(handleFactory, sqlStatements);
@@ -1461,6 +1463,36 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
 
         roleMappingRepository.updateRoleMapping(principalId, role);
+    }
+
+    @Override
+    public void createWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException {
+        webhookSubscriptionRepository.createWebhookSubscription(subscription);
+    }
+
+    @Override
+    public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException {
+        return webhookSubscriptionRepository.searchWebhookSubscriptions(offset, limit);
+    }
+
+    @Override
+    public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId)
+            throws RegistryStorageException {
+        return webhookSubscriptionRepository.getWebhookSubscription(subscriptionId);
+    }
+
+    @Override
+    public void updateWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException {
+        webhookSubscriptionRepository.updateWebhookSubscription(subscription);
+    }
+
+    @Override
+    public void deleteWebhookSubscription(String subscriptionId)
+            throws RegistryStorageException {
+        webhookSubscriptionRepository.deleteWebhookSubscription(subscriptionId);
     }
 
     @Override

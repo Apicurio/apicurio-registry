@@ -7,6 +7,8 @@ import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.BranchMetaDataDto;
@@ -243,6 +245,39 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void createRoleMapping(String principalId, String role, String principalName)
+            throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void createWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException {
+        return WebhookSubscriptionSearchResultsDto.builder()
+                .webhookSubscriptions(List.of())
+                .count(0)
+                .build();
+    }
+
+    @Override
+    public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId)
+            throws RegistryStorageException {
+        return null;
+    }
+
+    @Override
+    public void updateWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deleteWebhookSubscription(String subscriptionId)
             throws RegistryStorageException {
         readOnlyViolation();
     }

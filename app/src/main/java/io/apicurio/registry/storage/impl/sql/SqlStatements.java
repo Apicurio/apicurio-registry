@@ -631,6 +631,22 @@ public interface SqlStatements {
     public String selectRoleMappingCountByPrincipal();
 
     /*
+     * The next few statements support webhook subscription management.
+     */
+
+    public String insertWebhookSubscription();
+
+    public String deleteWebhookSubscription();
+
+    public String selectWebhookSubscriptionById();
+
+    public String selectWebhookSubscriptions();
+
+    public String countWebhookSubscriptions();
+
+    public String updateWebhookSubscription();
+
+    /*
      * The next few statements support group rule management.
      */
 

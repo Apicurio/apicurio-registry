@@ -2950,6 +2950,207 @@
         "description": "Gets a list of all the configured artifact types.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n"
       }
     },
+    "/admin/webhooks": {
+      "summary": "Collection to manage webhook subscriptions.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "The number of webhook subscriptions to return. Defaults to 20.",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "The number of webhook subscriptions to skip before starting the result set. Defaults to 0.",
+            "schema": {
+              "type": "integer"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscriptionSearchResults"
+                }
+              }
+            },
+            "description": "A successful response will return the list of webhook subscriptions."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "listWebhookSubscriptions",
+        "summary": "List webhook subscriptions",
+        "description": "Gets a paginated list of webhook subscriptions."
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditableWebhookSubscription"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "Returned when the webhook subscription was successfully created."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "createWebhookSubscription",
+        "summary": "Create a webhook subscription",
+        "description": "Creates a new webhook subscription."
+      }
+    },
+    "/admin/webhooks/{subscriptionId}": {
+      "summary": "Manage a single webhook subscription.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "Returns the webhook subscription."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getWebhookSubscription",
+        "summary": "Get a webhook subscription",
+        "description": "Returns a single webhook subscription."
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditableWebhookSubscription"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response when the update is successful."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "updateWebhookSubscription",
+        "summary": "Update a webhook subscription",
+        "description": "Updates a webhook subscription."
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response returned when the delete was successful."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "deleteWebhookSubscription",
+        "summary": "Delete a webhook subscription",
+        "description": "Deletes a webhook subscription."
+      },
+      "parameters": [
+        {
+          "name": "subscriptionId",
+          "description": "Unique identifier of the webhook subscription.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/admin/contracts/ruleset": {
       "summary": "Manage the global contract ruleset.",
       "get": {
@@ -8367,6 +8568,101 @@
           "labels": {
             "custom-1": "foo",
             "custom-2": "bar"
+          }
+        }
+      },
+      "WebhookSubscription": {
+        "description": "A webhook subscription configured for registry events.",
+        "type": "object",
+        "properties": {
+          "subscriptionId": {
+            "type": "string"
+          },
+          "endpointUrl": {
+            "type": "string"
+          },
+          "eventTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupFilter": {
+            "type": "string"
+          },
+          "artifactFilter": {
+            "type": "string"
+          },
+          "authType": {
+            "type": "string"
+          },
+          "authConfig": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "createdOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modifiedBy": {
+            "type": "string"
+          },
+          "modifiedOn": {
+            "format": "date-time",
+            "type": "string"
+          }
+        }
+      },
+      "EditableWebhookSubscription": {
+        "type": "object",
+        "properties": {
+          "endpointUrl": {
+            "type": "string"
+          },
+          "eventTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupFilter": {
+            "type": "string"
+          },
+          "artifactFilter": {
+            "type": "string"
+          },
+          "authType": {
+            "type": "string"
+          },
+          "authConfig": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WebhookSubscriptionSearchResults": {
+        "description": "Describes the response received when searching for webhook subscriptions.",
+        "required": [
+          "count",
+          "webhookSubscriptions"
+        ],
+        "type": "object",
+        "properties": {
+          "webhookSubscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookSubscription"
+            }
+          },
+          "count": {
+            "type": "integer"
           }
         }
       },

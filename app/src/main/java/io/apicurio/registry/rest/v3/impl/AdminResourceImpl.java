@@ -35,6 +35,9 @@ import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.GitOpsStatus;
 import io.apicurio.registry.rest.v3.beans.GitOpsValidateRequest;
 import io.apicurio.registry.rest.v3.beans.GitOpsValidateTask;
+import io.apicurio.registry.rest.v3.beans.EditableWebhookSubscription;
+import io.apicurio.registry.rest.v3.beans.WebhookSubscription;
+import io.apicurio.registry.rest.v3.beans.WebhookSubscriptionSearchResults;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
@@ -56,6 +59,8 @@ import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
 import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
@@ -160,7 +165,6 @@ public class AdminResourceImpl implements AdminResource {
 
     @Context
     HttpServletRequest request;
-
     @Dynamic(label = "Download link expiry", description = "The number of seconds that a generated link to a .zip download file is active before expiring.")
     @ConfigProperty(name = "apicurio.download.href.ttl.seconds", defaultValue = "30")
     @Info(category = CATEGORY_DOWNLOAD, description = "Download link expiry", availableSince = "2.1.2.Final")
@@ -485,6 +489,121 @@ public class AdminResourceImpl implements AdminResource {
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
         storage.deleteRoleMapping(principalId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#listWebhookSubscriptions(java.math.BigInteger,
+     *      java.math.BigInteger)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public WebhookSubscriptionSearchResults listWebhookSubscriptions(BigInteger limit, BigInteger offset) {
+        if (offset == null) {
+            offset = BigInteger.valueOf(0);
+        }
+        if (limit == null) {
+            limit = BigInteger.valueOf(20);
+        }
+
+        WebhookSubscriptionSearchResultsDto dto =
+                storage.searchWebhookSubscriptions(offset.intValue(), limit.intValue());
+
+        WebhookSubscriptionSearchResults results = new WebhookSubscriptionSearchResults();
+        results.setCount(dto.getCount());
+        results.setWebhookSubscriptions(
+                dto.getWebhookSubscriptions().stream()
+                        .map(this::toWebhookSubscription)
+                        .collect(Collectors.toList())
+        );
+        return results;
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#createWebhookSubscription(
+     *      io.apicurio.registry.rest.v3.beans.EditableWebhookSubscription)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public WebhookSubscription createWebhookSubscription(EditableWebhookSubscription data) {
+        WebhookSubscriptionDto dto = toWebhookSubscriptionDto(data);
+        dto.setSubscriptionId(java.util.UUID.randomUUID().toString());
+        storage.createWebhookSubscription(dto);
+        return toWebhookSubscription(storage.getWebhookSubscription(dto.getSubscriptionId()));
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#getWebhookSubscription(java.lang.String)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public WebhookSubscription getWebhookSubscription(String subscriptionId) {
+        ParameterValidationUtils.requireParameter("subscriptionId", subscriptionId);
+        return toWebhookSubscription(storage.getWebhookSubscription(subscriptionId));
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateWebhookSubscription(java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.EditableWebhookSubscription)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public void updateWebhookSubscription(String subscriptionId, EditableWebhookSubscription data) {
+        ParameterValidationUtils.requireParameter("subscriptionId", subscriptionId);
+
+        WebhookSubscriptionDto dto = toWebhookSubscriptionDto(data);
+        dto.setSubscriptionId(subscriptionId);
+
+        storage.updateWebhookSubscription(dto);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#deleteWebhookSubscription(java.lang.String)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_NAME})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @RoleBasedAccessApiOperation
+    public void deleteWebhookSubscription(String subscriptionId) {
+        ParameterValidationUtils.requireParameter("subscriptionId", subscriptionId);
+        storage.deleteWebhookSubscription(subscriptionId);
+    }
+
+    private WebhookSubscriptionDto toWebhookSubscriptionDto(EditableWebhookSubscription data) {
+        WebhookSubscriptionDto dto = new WebhookSubscriptionDto();
+        dto.setEndpointUrl(data.getEndpointUrl());
+        dto.setEventTypes(data.getEventTypes());
+        dto.setGroupFilter(data.getGroupFilter());
+        dto.setArtifactFilter(data.getArtifactFilter());
+        dto.setAuthType(data.getAuthType());
+        dto.setAuthConfig(data.getAuthConfig());
+        dto.setEnabled(Boolean.TRUE.equals(data.getIsEnabled()));
+        return dto;
+    }
+
+    private WebhookSubscription toWebhookSubscription(WebhookSubscriptionDto dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        WebhookSubscription bean = new WebhookSubscription();
+        bean.setSubscriptionId(dto.getSubscriptionId());
+        bean.setEndpointUrl(dto.getEndpointUrl());
+        bean.setEventTypes(dto.getEventTypes());
+        bean.setGroupFilter(dto.getGroupFilter());
+        bean.setArtifactFilter(dto.getArtifactFilter());
+        bean.setAuthType(dto.getAuthType());
+        bean.setAuthConfig(dto.getAuthConfig());
+        bean.setIsEnabled(dto.isEnabled());
+        bean.setOwner(dto.getOwner());
+        bean.setCreatedOn(new java.util.Date(dto.getCreatedOn()));
+        bean.setModifiedBy(dto.getModifiedBy());
+        bean.setModifiedOn(dto.getModifiedOn() == 0 ? null : new java.util.Date(dto.getModifiedOn()));
+        return bean;
     }
 
     /**

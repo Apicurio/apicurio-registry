@@ -80,13 +80,6 @@ public class KafkaSqlCoordinator {
     }
 
     /**
-     * Number of operations currently registered whose response nobody has collected yet.
-     */
-    int pendingCount() {
-        return pending.size();
-    }
-
-    /**
      * Complete the future for the given UUID. This will wake up the thread waiting for the response so that
      * it can proceed.
      *
@@ -112,6 +105,10 @@ public class KafkaSqlCoordinator {
         // notify the HTTP thread that the operation is complete and there is
         // a return value waiting for it.
         future.complete(returnValue);
+    }
+
+    int pendingCount() {
+        return pending.size();
     }
 
 }

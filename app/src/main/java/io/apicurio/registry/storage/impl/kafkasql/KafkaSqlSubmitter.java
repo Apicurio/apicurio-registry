@@ -80,15 +80,10 @@ public class KafkaSqlSubmitter {
         return producer.get().apply(record).thenApply(rm -> requestId);
     }
 
-    /**
-     * Submits a bootstrap marker message and blocks until it is durably written to Kafka.
-     *
-     * @param bootstrapId unique identifier for this bootstrap sequence
-     */
     public void submitBootstrap(String bootstrapId) {
         KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
-        blockOnResult(send(key, null, coordinator.get().createUUID()));
+        blockOnResult(send(key, null, UUID.randomUUID()));
     }
 
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
@@ -103,6 +98,11 @@ public class KafkaSqlSubmitter {
      */
     public CompletableFuture<UUID> submitMessageWithoutResponse(KafkaSqlMessage message) {
         return send(message.getKey(), message, UUID.randomUUID());
+    }
+
+    public void submitFireAndForget(KafkaSqlMessage message) {
+        var key = message.getKey();
+        send(key, message, UUID.randomUUID());
     }
 
 }

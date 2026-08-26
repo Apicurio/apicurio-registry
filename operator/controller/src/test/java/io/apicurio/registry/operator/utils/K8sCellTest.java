@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * There is no Fabric8 mock-server or Mockito usage in the operator test tree.
  * These tests stub {@link KubernetesClient#resource(HasMetadata)} with a JDK proxy.
  */
-public class K8sCellTest {
+class K8sCellTest {
 
     @Test
     void createFailurePropagatesOriginalException() {
@@ -82,8 +82,9 @@ public class K8sCellTest {
             }
         });
 
-        assertThatThrownBy(() ->
-                k8sCell(client, () -> item).update(cm -> cm.getMetadata().getLabels().put("k", "v")))
+        var cell = k8sCell(client, () -> item);
+
+        assertThatThrownBy(() -> cell.update(cm -> cm.getMetadata().getLabels().put("k", "v")))
                 .isInstanceOf(KubernetesClientException.class)
                 .hasMessageContaining("the object has been modified");
 

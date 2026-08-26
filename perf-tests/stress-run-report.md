@@ -128,3 +128,66 @@ consumer, which mostly reads from a local cache.
   looking for a breaking point, whereas the actual CI defaults should represent a sustainable,
   repeatable load that doesn't crash-loop the pod (that's what happened in the 10-user/60s run in
   `local-run-report.md`, which stayed at 0% failures).
+
+---
+
+## Correction: the Keycloak-contention theory above was wrong
+
+The recommendation above was implemented and the exact same stress load (300 users, 300 msg/s
+Kafka, 180s) was re-run against a freshly redeployed topology to test it. **Finding: Keycloak was
+not a meaningful contributor to the original crash-loop.**
+
+`RegistryApiSimulation` was changed to fetch the OAuth client-credentials token **once at
+simulation startup** (with a background refresh every 60s, well under the realm's 300s access
+token lifespan), caching it in a static field shared by all virtual users - mirroring how the
+Kafka serde's registry REST client actually behaves (confirmed by inspecting
+`JdkAuthFactory.OAuth2TokenProvider` and Vert.x's `OAuth2WebClient`/`OAuth2AwareInterceptor`: both
+cache the token and only re-authenticate when it's missing or near expiry, never per-call). The
+old per-iteration "Fetch OAuth token" Gatling step was removed entirely.
+
+### Re-run with the fix: Keycloak CPU dropped to near-idle, but the app still crash-looped - worse
+
+```
+kubectl top pods (mid-run, ~30s in - the earlier 915m Keycloak reading here was JVM/Keycloak
+startup warmup, not sustained token-fetch load):
+NAME                          CPU(cores)   MEMORY(bytes)
+keycloak-...                  915m -> 5m -> 4m   (settles to near-idle within ~30s)
+perf-test-app-deployment-...  403m -> 457m -> 645m
+```
+
+Only **one** "Refreshed OAuth token" log line appeared in the first 30s (the initial fetch); no
+further refreshes had occurred by the time the app pod started restarting - i.e. the app's
+failures happened while Keycloak was doing essentially nothing.
+
+The app pod still restarted **4 times** (one more than the original run), with the identical
+failure signature: `Exit Code: 143` (SIGTERM from a failed liveness probe), not OOMKilled.
+
+Gatling REST results were actually **worse** than the original run:
+
+| Metric | Original run (per-iteration token fetch) | Re-run (cached token) |
+| --- | --- | --- |
+| Failed requests | 52.77% | **76.34%** |
+| Mean response time | 9,795 ms | 13,044 ms |
+| p95 response time | 26,608 ms | 28,791 ms |
+| p99 response time | 30,972 ms | 34,344 ms |
+| App pod restarts | 5 | 4 |
+
+(The "worse" numbers here are most likely just run-to-run variance at an already-catastrophic load
+level - e.g. GC pauses, JIT warmup timing, or how many restarts happened to land mid-request -
+not evidence that fixing the token caching made things worse. The point is that it didn't make
+things meaningfully *better* either.)
+
+Kafka path (still using the per-produce-cached-token registry client): **10,494 produced, 10,491
+consumed, only 2 failures** - just as resilient as before.
+
+### Corrected takeaway
+
+The registry itself collapses under ~300 concurrent virtual users on a 1-CPU limit **regardless**
+of whether Keycloak is under artificial load - the earlier hypothesis that Keycloak contention was
+a significant or even meaningful factor in the crash-loop is **not supported** by this controlled
+comparison. The fix (caching the OAuth token like a real client would) was still worth making on
+its own merits - it makes the simulation more representative and removes a confound - but it was
+not the explanation for what broke in the first stress run. The registry's CPU-bound liveness-probe
+failure under load is a real, reproducible characteristic of running it at a 1-CPU limit under
+~300 concurrent REST clients, independent of any auth-provider load.
+

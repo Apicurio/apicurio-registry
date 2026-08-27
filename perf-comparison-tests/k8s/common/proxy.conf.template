@@ -1,3 +1,8 @@
+upstream schema_registry_backend {
+    server schema-registry:8081;
+    keepalive 512;
+}
+
 server {
     listen 8443 ssl;
     server_name benchmark.local;
@@ -15,6 +20,6 @@ server {
         proxy_set_header Connection "";
         proxy_set_header Host $host;
         proxy_set_header Authorization "";
-        proxy_pass http://schema-registry:8081${UPSTREAM_PATH}/;
+        proxy_pass http://schema_registry_backend${UPSTREAM_PATH}/;
     }
 }

@@ -50,7 +50,10 @@ cleanup() {
     kubectl describe pods -n "$NAMESPACE" > "$OUTPUT_DIR/pod-describe.txt" 2>/dev/null || true
     mkdir -p "$OUTPUT_DIR/pod-logs"
     for pod in $(kubectl get pods -n "$NAMESPACE" -o name 2>/dev/null); do
-        kubectl logs -n "$NAMESPACE" "$pod" --all-containers > "$OUTPUT_DIR/pod-logs/${pod#pod/}.log" 2>&1 || true
+        # Keep diagnostics bounded across repeated multi-product runs. Full Kafka logs can grow
+        # by hundreds of megabytes and are not needed when startup/health tails are preserved.
+        kubectl logs -n "$NAMESPACE" "$pod" --all-containers --tail=10000 \
+            > "$OUTPUT_DIR/pod-logs/${pod#pod/}.log" 2>&1 || true
     done
     if [[ "$CREATED_NAMESPACE" == true ]]; then
         kubectl delete namespace "$NAMESPACE" --wait=true --timeout=3m >/dev/null 2>&1 || true
@@ -87,7 +90,11 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=benchmark.local' \
     -keyout "$TLS_DIR/tls.key" -out "$TLS_DIR/tls.crt" >/dev/null 2>&1
 keytool -importcert -noprompt -alias benchmark -file "$TLS_DIR/tls.crt" \
     -keystore "$TLS_DIR/truststore.p12" -storetype PKCS12 -storepass changeit >/dev/null 2>&1
-HASH="$(printf '%s' "$PASSWORD" | openssl passwd -6 -stdin)"
+# Nginx verifies this on every request. A deliberately slow password hash can saturate the shared
+# proxy before any registry is stressed, turning the run into a password-hashing benchmark. The
+# credential is random, high-entropy, single-run, TLS-protected, and never persisted, so an
+# RFC 2307 SHA digest provides the required common Basic-auth check without becoming the limiter.
+HASH="{SHA}$(printf '%s' "$PASSWORD" | openssl dgst -sha1 -binary | openssl base64 -A)"
 printf '%s:%s\n' "$USERNAME" "$HASH" > "$TLS_DIR/htpasswd"
 
 kubectl create secret generic benchmark-tls -n "$NAMESPACE" \

@@ -18,6 +18,12 @@ for repetition in $(seq 1 "$REPETITIONS"); do
     echo "Repetition $repetition product order: $ORDER"
     for product in $ORDER; do
         run_dir="$OUTPUT/repetition-$repetition/$product"
+        if find "$run_dir/gatling" -path '*/js/stats.js' -type f -print -quit 2>/dev/null | grep -q . \
+            && [[ -f "$run_dir/deployment-metadata.json" ]]; then
+            echo "Skipping completed run: repetition $repetition / $product"
+            continue
+        fi
+        rm -rf "$run_dir"
         mkdir -p "$run_dir"
         "$ROOT/k8s/run-product.sh" "$product" "$OPERATION" "$run_dir"
     done

@@ -46,6 +46,13 @@ HTTP Basic credentials. This normalizes client-facing security overhead; it does
 each product's proprietary internal authorization implementation is equivalent. Product-native
 OIDC/RBAC must be a separate comparison profile.
 
+The proxy uses a random high-entropy credential generated for each ephemeral run and a low-cost
+SHA verifier. Password stretching is intentionally avoided because Nginx verifies Basic auth on
+every request and a slow password hash makes the shared proxy, rather than the registry, the
+benchmark bottleneck. The credential is transported only over TLS and is not persisted in result
+artifacts. The proxy also uses a bounded upstream keepalive pool; without it, per-request upstream
+connection churn can exhaust the proxy's ephemeral ports before a registry reaches capacity.
+
 Product images are pinned to version tags. Every result records runtime digests for the registry,
 metadata broker, and security proxy:
 

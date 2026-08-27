@@ -35,19 +35,21 @@ The results in this chapter were produced by the `perf-tests` module (see
 `perf-tests/README.md` and `perf-tests/k8s/README.md` in the {registry} source repository), using:
 
 * A single {registry} application replica with a 2 CPU / 2Gi memory resource limit (both
-  scenarios' `registry-cr.yaml` set this explicitly; the {operator}'s own default is 1 CPU / 1Gi -
-  1Gi was found to be insufficient at the concurrency levels this chapter tests, causing GC
-  pressure that cascades into instability - see <<registry-sizing-sql-storage_{context}>>).
+  scenarios' `registry-cr.yaml` set this explicitly - higher than the {operator}'s own default of
+  1 CPU / 1Gi, which does not provide enough memory headroom to stay stable under the sustained
+  concurrency this chapter tests).
 * A JDBC connection pool sized to 400 (`APICURIO_DATASOURCE_JDBC_MAX_SIZE`), up from the default
-  100 - also found to bind throughput well below what the database and application could
-  otherwise sustain at this concurrency.
+  100, so the connection pool isn't the limiting factor at this concurrency.
 * A *closed* (concurrent-user) load model: `N` virtual clients are held continuously active for
   the full test duration, each immediately starting a new operation as soon as its previous one
   completes - this measures genuine sustained concurrency, not an arrival-rate model.
 * A **warmed-up, steady-state measurement**: each figure comes from a 3-minute sustained run, with
-  the first ~30-40 seconds (JVM/JIT warm-up - throughput was still climbing) excluded from the
-  reported average. Shorter (20-30 second) runs consistently understated throughput, in one case
-  by more than 3x - see <<registry-sizing-sql-storage_{context}>> for a worked example.
+  the first ~30-40 seconds (JVM/JIT warm-up) excluded from the reported average, since throughput
+  is still climbing during that window.
+* The load generator running as a separate process *outside* the cluster
+  (`perf-tests/k8s/common/run-external-load.sh`), against the registry exposed via a NodePort
+  Service, so the load generator's own resource usage doesn't compete with the registry under
+  test for the same node's capacity.
 * Reads and writes are measured *separately* (see <<registry-sizing-sql-storage_{context}>> for
   why), by setting the traffic mix to 100% reads or 100% writes rather than a blended ratio -
   resolving an already-registered schema by ID is representative of how producers/consumers use a
@@ -91,38 +93,14 @@ clients:
 
 [IMPORTANT]
 ====
-Reaching this number required fixing three confounds that each independently produced a much
-lower, misleading figure in earlier versions of this testing:
-
-* *Running the load generator inside the cluster.* A single Gatling process's own connection
-  handling degrades above roughly 250-300 concurrent connections (severe TCP `TIME_WAIT`
-  accumulation, eventually exhausting ephemeral ports), and on a resource-constrained cluster the
-  registry, database, Kafka, Keycloak, the operator, and the load generator all end up competing
-  for the same node's CPU. Both inflate latency and suppress throughput independently of the
-  registry's own capacity. Fixed by running the load generator as a separate process *outside*
-  the cluster (`perf-tests/k8s/common/run-external-load.sh`), against the registry exposed via a
-  NodePort Service.
-* *Measuring before the JVM warms up.* Short (20-30 second) test runs consistently understated
-  throughput - in one comparison, a 20-second run measured ~440 req/s while a 3-minute run of the
-  identical scenario reached a stable ~3,000+ req/s once past the first 30-40 seconds. Fixed by
-  measuring a 3-minute run's steady-state portion instead of a short one.
-* *Insufficient memory.* At the operator's default 1Gi memory limit, sustained 200-concurrent load
-  drove old-generation heap usage to ~99% within under two minutes, and the resulting GC pressure
-  (Parallel GC, full stop-the-world collections) cascaded into database connection-acquisition
-  timeouts and application pod restarts - confirmed via `jcmd <pid> GC.heap_info` during a live
-  run, not simply inferred. Fixed by raising the memory limit to 2Gi, which eliminated the
-  instability entirely across repeated sustained runs.
-
-None of these were CPU-bound - CPU utilization stayed under 50-80% of the 2 CPU limit throughout.
-If your own testing shows results well below these figures, check for these same three things
-before concluding the registry itself is the bottleneck.
+This figure depends heavily on giving the replica enough memory: at the {operator}'s default 1Gi
+memory limit, sustained load at this concurrency causes rising garbage-collection pressure that
+eventually cascades into database connection-acquisition timeouts and pod restarts. Size for at
+least 2Gi if you expect sustained concurrency in this range. It's also not CPU-bound - CPU
+utilization stayed under 50-80% of the 2 CPU limit throughout this testing - so if you see
+instability under sustained (not just momentary) load, check memory/GC behavior before assuming
+you need more CPU.
 ====
-
-A separate, real bug was also found and fixed along the way:
-`RegistryConfigSource.getProperties()` held a lock on every single config lookup (not just its
-one-time initialization), visible as threads `BLOCKED` on that monitor in a thread dump under
-concurrent load - fixed in
-link:https://github.com/Apicurio/apicurio-registry/pull/9853[PR #9853].
 
 === Write throughput
 
@@ -199,15 +177,6 @@ simply "KafkaSQL storage is faster" as a blanket claim - write-throughput behavi
 re-measured with the same rigor here, and the startup/catch-up time while KafkaSQL storage
 replays its underlying topic isn't reflected in these figures.
 
-[IMPORTANT]
-====
-An earlier version of this testing reported KafkaSQL storage as markedly *slower* than SQL
-storage (~440 req/s). That number was measured in a single ~20-second run and was almost entirely
-an artifact of JVM/JIT warm-up, not a real difference - see the warm-up methodology note in
-<<registry-sizing-sql-storage_{context}>>. Re-measured properly, the relationship is the opposite
-of what that earlier figure implied.
-====
-
 [id="registry-sizing-recommendations_{context}"]
 == Recommendations
 
@@ -228,10 +197,10 @@ of what that earlier figure implied.
   at 200 concurrent clients - they are not yet a ceiling, just the highest concurrency tested with
   this methodology so far.
 * Give the replica enough memory headroom for sustained concurrent load, not just enough to start
-  up successfully - 1Gi (the {operator}'s default) was sufficient to run normally but caused GC
-  pressure and cascading failures under this chapter's 200-concurrent-client test after about two
-  minutes; 2Gi resolved it. If you see rising latency or restarts under sustained (not just
-  momentary) load, check heap/GC behavior before assuming it's a connection or CPU limit.
+  up successfully - the {operator}'s default 1Gi limit is not enough at the concurrency this
+  chapter tests. Size for at least 2Gi, and if you see rising latency or restarts under sustained
+  (not just momentary) load, check memory/GC behavior before assuming it's a connection or CPU
+  limit.
 * If your expected concurrent read client count is in the hundreds per replica, prefer scaling
   *horizontally* (more replicas behind the application service - see
   xref:getting-started/assembly-registry-high-availability.adoc[]) rather than assuming a single

@@ -65,7 +65,9 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
                 .execute(() -> delegate.createArtifact(groupId, artifactId, artifactType, artifactMetaData,
                         version, versionContent, versionMetaData, versionBranches, versionIsDraft, dryRun,
                         owner));
-        limitsService.artifactCreated();
+        if (!dryRun) {
+            limitsService.artifactCreated();
+        }
         return rval;
     }
 
@@ -77,7 +79,9 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
                 () -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
                 .execute(() -> delegate.createArtifactVersion(groupId, artifactId, version, artifactType,
                         content, metaData, branches, isDraft, dryRun, owner));
-        limitsService.artifactVersionCreated(groupId, artifactId);
+        if (!dryRun) {
+            limitsService.artifactVersionCreated(groupId, artifactId);
+        }
         return dto;
     }
 

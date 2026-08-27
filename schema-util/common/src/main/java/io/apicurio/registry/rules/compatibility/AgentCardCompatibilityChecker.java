@@ -27,14 +27,22 @@ import java.util.Set;
  * - Removing input/output modes: Backward incompatible
  */
 public class AgentCardCompatibilityChecker
-        extends AbstractCompatibilityChecker<AgentCardCompatibilityDifference> {
+        extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
+
+    private static final String CONTEXT_INTERFACES = "/supportedInterfaces";
+    private static final String CONTEXT_SKILLS = "/skills";
+    private static final String CONTEXT_CAPABILITIES = "/capabilities";
+    private static final String CONTEXT_CAPABILITY_EXTENSIONS = "/capabilities/extensions";
+    private static final String CONTEXT_SECURITY_SCHEMES = "/securitySchemes";
+    private static final String CONTEXT_MODES = "/modes";
+    private static final String CONTEXT_DOCUMENT = "/document";
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    protected Set<AgentCardCompatibilityDifference> isBackwardsCompatibleWith(String existing,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
             String proposed, Map<String, TypedContent> resolvedReferences) {
-        Set<AgentCardCompatibilityDifference> differences = new HashSet<>();
+        Set<SimpleCompatibilityDifference> differences = new HashSet<>();
 
         try {
             JsonNode existingNode = mapper.readTree(existing);
@@ -50,24 +58,22 @@ public class AgentCardCompatibilityChecker
                     differences);
 
         } catch (Exception e) {
-            differences.add(new AgentCardCompatibilityDifference(
-                    AgentCardCompatibilityDifference.Type.PARSE_ERROR,
-                    "Failed to parse Agent Card: " + e.getMessage()));
+            differences.add(new SimpleCompatibilityDifference(
+                    "Failed to parse Agent Card: " + e.getMessage(), CONTEXT_DOCUMENT));
         }
 
         return differences;
     }
 
     private void checkInterfaceCompatibility(JsonNode existing, JsonNode proposed,
-            Set<AgentCardCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingKeys = extractInterfaceKeys(existing);
         Set<String> proposedKeys = extractInterfaceKeys(proposed);
 
         for (String key : existingKeys) {
             if (!proposedKeys.contains(key)) {
-                differences.add(new AgentCardCompatibilityDifference(
-                        AgentCardCompatibilityDifference.Type.INTERFACE_REMOVED,
-                        "Interface '" + key + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Interface '" + key + "' was removed", CONTEXT_INTERFACES));
             }
         }
 
@@ -75,7 +81,7 @@ public class AgentCardCompatibilityChecker
     }
 
     private void checkInterfaceProtocolVersionChanges(JsonNode existing, JsonNode proposed,
-            Set<AgentCardCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingInterfaces = existing.get("supportedInterfaces");
         JsonNode proposedInterfaces = proposed.get("supportedInterfaces");
 
@@ -99,31 +105,30 @@ public class AgentCardCompatibilityChecker
 
                 if (url.equals(pUrl) && binding.equals(pBinding)
                         && pVersion != null && !existingVersion.equals(pVersion)) {
-                    differences.add(new AgentCardCompatibilityDifference(
-                            AgentCardCompatibilityDifference.Type.PROTOCOL_VERSION_CHANGED,
+                    differences.add(new SimpleCompatibilityDifference(
                             "Protocol version changed from '" + existingVersion + "' to '"
-                                    + pVersion + "' for interface " + url + " (" + binding + ")"));
+                                    + pVersion + "' for interface " + url + " (" + binding + ")",
+                            CONTEXT_INTERFACES));
                 }
             }
         }
     }
 
     private void checkSkillRemovals(JsonNode existing, JsonNode proposed,
-            Set<AgentCardCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingSkills = extractSkillIds(existing);
         Set<String> proposedSkills = extractSkillIds(proposed);
 
         for (String skillId : existingSkills) {
             if (!proposedSkills.contains(skillId)) {
-                differences.add(new AgentCardCompatibilityDifference(
-                        AgentCardCompatibilityDifference.Type.SKILL_REMOVED,
-                        "Skill '" + skillId + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Skill '" + skillId + "' was removed", CONTEXT_SKILLS));
             }
         }
     }
 
     private void checkCapabilityRemovals(JsonNode existing, JsonNode proposed,
-            Set<AgentCardCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingCaps = existing.get("capabilities");
         JsonNode proposedCaps = proposed.get("capabilities");
 
@@ -146,9 +151,9 @@ public class AgentCardCompatibilityChecker
                 }
 
                 if (!proposedValue) {
-                    differences.add(new AgentCardCompatibilityDifference(
-                            AgentCardCompatibilityDifference.Type.CAPABILITY_REMOVED,
-                            "Capability '" + capName + "' was removed or disabled"));
+                    differences.add(new SimpleCompatibilityDifference(
+                            "Capability '" + capName + "' was removed or disabled",
+                            CONTEXT_CAPABILITIES));
                 }
             }
         }
@@ -161,43 +166,41 @@ public class AgentCardCompatibilityChecker
      * identified by uri.
      */
     private void checkCapabilityExtensionRemovals(JsonNode existingCaps, JsonNode proposedCaps,
-            Set<AgentCardCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingUris = extractExtensionUris(existingCaps);
         Set<String> proposedUris = extractExtensionUris(proposedCaps);
 
         for (String uri : existingUris) {
             if (!proposedUris.contains(uri)) {
-                differences.add(new AgentCardCompatibilityDifference(
-                        AgentCardCompatibilityDifference.Type.CAPABILITY_EXTENSION_REMOVED,
-                        "Capability extension '" + uri + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Capability extension '" + uri + "' was removed",
+                        CONTEXT_CAPABILITY_EXTENSIONS));
             }
         }
     }
 
     private void checkSecuritySchemeRemovals(JsonNode existing, JsonNode proposed,
-            Set<AgentCardCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingSchemes = extractSecuritySchemeNames(existing);
         Set<String> proposedSchemes = extractSecuritySchemeNames(proposed);
 
         for (String scheme : existingSchemes) {
             if (!proposedSchemes.contains(scheme)) {
-                differences.add(new AgentCardCompatibilityDifference(
-                        AgentCardCompatibilityDifference.Type.SECURITY_SCHEME_REMOVED,
-                        "Security scheme '" + scheme + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Security scheme '" + scheme + "' was removed", CONTEXT_SECURITY_SCHEMES));
             }
         }
     }
 
     private void checkModeRemovals(JsonNode existing, JsonNode proposed, String fieldName,
-            String modeType, Set<AgentCardCompatibilityDifference> differences) {
+            String modeType, Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingModes = extractStringArray(existing, fieldName);
         Set<String> proposedModes = extractStringArray(proposed, fieldName);
 
         for (String mode : existingModes) {
             if (!proposedModes.contains(mode)) {
-                differences.add(new AgentCardCompatibilityDifference(
-                        AgentCardCompatibilityDifference.Type.MODE_REMOVED,
-                        "The " + modeType + " '" + mode + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "The " + modeType + " '" + mode + "' was removed", CONTEXT_MODES));
             }
         }
     }
@@ -276,10 +279,5 @@ public class AgentCardCompatibilityChecker
             }
         }
         return values;
-    }
-
-    @Override
-    protected CompatibilityDifference transform(AgentCardCompatibilityDifference original) {
-        return original;
     }
 }

@@ -67,7 +67,7 @@ bottlenecks, so this section reports them separately rather than as one blended 
 === Read throughput
 
 A single replica's read path (resolving an existing schema by ID) scales cleanly with
-concurrency up to a point, then degrades:
+concurrency:
 
 [cols="1,1,1",options="header"]
 |===
@@ -81,35 +81,47 @@ concurrency up to a point, then degrades:
 | 0%
 | ~113
 
-| 200
+| 150
 | 0%
-| ~775
+| ~1,200
 
-| 400
+| 250
 | 0%
-| ~800
+| ~1,700
 
-| 500
-| ~0.4%, uneven across clients
-| ~726 (degrading)
-
-| 600
-| pod restarted (liveness probe failure)
-| unstable
+| 300-400
+| 0% in most runs, occasional restart in some
+| ~1,700-1,950 when clean
 |===
 
-Up to and including 400 concurrent clients, this test environment sustained 0% failed requests
-and no application pod restarts, though tail latency grows with concurrency (99th-percentile
-response time reached ~715ms at 400 concurrent clients, versus ~500ms at 200). Beyond that, the
-application pod's own liveness probe started failing under sustained load at 600 concurrent
-clients, causing Kubernetes to restart it - a real single-replica capacity boundary, not a test
-artifact: CPU utilization stayed well under the 2 CPU limit throughout (confirmed via the
-container's cgroup CPU accounting), so this reflects genuine request-handling saturation at high
-concurrency rather than resource starvation.
+Up to 250 concurrent clients, this was reliably 0% failed requests across repeated runs. In the
+300-400 range, results varied run to run: some runs completed cleanly at ~1,700-1,950 req/s, while
+others saw the application pod's liveness probe fail and trigger a restart partway through - this
+looks like the real capacity boundary for a single 2 CPU replica, but it is not a sharp,
+deterministic cutoff, so do not treat 300-400 clients as a guaranteed-safe number.
 
-(Measuring this required spreading load generation across multiple load-generator pods - a single
-instance's own outbound-connection limits become the bottleneck above roughly 200-250 concurrent
-connections, which is a client-tooling limit, not a registry one - see `perf-tests/README.md`.)
+[IMPORTANT]
+====
+These figures replace much lower numbers from an earlier version of this testing (peaking around
+800 req/s at 400 concurrent clients). That version ran the load generator *inside* the same
+cluster as the registry under test, which introduced two problems specific to high concurrency
+that inflated latency and suppressed throughput independently of the registry's own capacity:
+
+* A single Gatling process's own connection handling degrades above roughly 250-300 concurrent
+  connections (severe TCP `TIME_WAIT` accumulation, eventually exhausting ephemeral ports) - a
+  client-tooling artifact, not a registry limit.
+* The registry, its database, Kafka, Keycloak, the operator, and the load generator were all
+  competing for the same (in local testing, resource-constrained) node's CPU - inflating latency
+  in a way that looks like a registry-side bottleneck unless you check whether CPU is actually
+  saturated (it was not: CPU utilization stayed under 50% of the container's limit throughout the
+  earlier testing).
+
+The figures above were instead measured by running the load generator as a separate process
+*outside* the cluster (`perf-tests/k8s/common/run-external-load.sh`), talking to the registry over
+the network the way a real remote client would, with the whole host machine's own resources
+available to it rather than sharing the cluster's. See `perf-tests/README.md` for when to use this
+mode versus the simpler in-cluster Job.
+====
 
 === Write throughput
 
@@ -123,17 +135,18 @@ writers:
 | Concurrent writers | Sustained throughput (writes/sec) | 99th percentile latency
 
 | 5
-| ~6
+| ~6-9
 | ~1s
 
 | 20
-| ~6
+| ~6-9
 | ~11s
 |===
 
-Throughput is essentially flat regardless of concurrency (~6 writes/sec in this test environment)
-- adding more concurrent writers does not increase it, it only queues additional writers behind
-the same row lock and drives up tail latency. This is a database-level serialization point, not a
+Throughput is essentially flat regardless of concurrency (~6-9 writes/sec in this test
+environment, consistently reproduced both in-cluster and via the external load generator) -
+adding more concurrent writers does not increase it, it only queues additional writers behind the
+same row lock and drives up tail latency. This is a database-level serialization point, not a
 CPU, memory, or connection-pool limit, so it will not improve by giving the replica more resources
 or by adding more replicas (all replicas contend for the same row). See
 link:https://github.com/Apicurio/apicurio-registry/issues/9847[issue #9847] for details and
@@ -144,12 +157,11 @@ tracking.
 Blending reads and writes in the same test amplifies this: at just a 5% write ratio, 150
 concurrent clients drove sustained throughput down to ~110-130 requests/sec with 99th-percentile
 latencies of 30+ seconds - not because the read path or the container's resources were
-exhausted (CPU utilization stayed under 50% throughout), but because a modest number of
-concurrent writers was enough to saturate the `sequences` row lock, and the resulting slow
-responses were severe enough to occasionally trip the registry's built-in
-`ResponseTimeoutReadinessCheck` and pull the replica out of service rotation. If your workload has
-more than an incidental write rate, budget for the write-throughput ceiling above, independently
-of how much read capacity you provision.
+exhausted, but because a modest number of concurrent writers was enough to saturate the
+`sequences` row lock, and the resulting slow responses were severe enough to occasionally trip the
+registry's built-in `ResponseTimeoutReadinessCheck` and pull the replica out of service rotation.
+If your workload has more than an incidental write rate, budget for the write-throughput ceiling
+above, independently of how much read capacity you provision.
 ====
 
 [id="registry-sizing-kafkasql-storage_{context}"]
@@ -187,12 +199,13 @@ these figures either.
   resources with real network latency to the database, not as an absolute ceiling for {registry}
   - reproduce the `perf-tests` module against your own cluster, resource limits, and network
   conditions before relying on a specific number.
-* If your expected concurrent read client count approaches 400 per replica (the highest cleanly
-  measured here, with no failures or pod restarts), prefer scaling *horizontally* (more replicas
-  behind the application service - see
-  xref:getting-started/assembly-registry-high-availability.adoc[]) - this helps read throughput,
-  but does **not** help write throughput, which is bound by the same shared database row
-  regardless of replica count.
+* If your expected concurrent read client count approaches 250-300 per replica (reliably clean in
+  this testing, with the 300-400 range showing occasional restarts - see
+  <<registry-sizing-sql-storage_{context}>>), prefer scaling *horizontally* (more replicas behind
+  the application service - see xref:getting-started/assembly-registry-high-availability.adoc[])
+  over pushing a single replica toward that boundary - this helps read throughput, but does
+  **not** help write throughput, which is bound by the same shared database row regardless of
+  replica count.
 * If your registry's database is on a different availability zone, region, or network path with
   higher latency than same-zone/co-located access, expect a lower read-throughput ceiling than the
   figures in this chapter, which used a comparatively modest ~15ms round-trip.

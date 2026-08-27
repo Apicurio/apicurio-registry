@@ -34,6 +34,17 @@ public class PerfTestRunner {
     private static final Logger log = LoggerFactory.getLogger(PerfTestRunner.class);
 
     public static void main(String[] args) throws Exception {
+        boolean skipKafka = Boolean.parseBoolean(System.getenv("PERF_SKIP_KAFKA"));
+        if (skipKafka) {
+            // Useful when running just the Gatling REST simulation against an externally-exposed
+            // registry (see k8s/common/run-external-load.sh) - the Kafka load generator's own
+            // bootstrap-servers address is normally only resolvable from inside the cluster, and
+            // isn't needed to validate REST throughput/capacity.
+            log.info("PERF_SKIP_KAFKA=true - running only the Gatling REST simulation.");
+            System.exit(runGatling());
+            return;
+        }
+
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
             Future<Boolean> kafkaResult = executor.submit((Callable<Boolean>) KafkaLoadGenerator::run);

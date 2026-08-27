@@ -94,6 +94,7 @@ public class RegistryApiSimulation extends Simulation {
     private static final int USERS = Integer.parseInt(envOrDefault("PERF_USERS", "20"));
     private static final int DURATION_SECONDS = Integer
             .parseInt(envOrDefault("PERF_DURATION_SECONDS", "120"));
+    private static final int RAMP_SECONDS = 10;
     private static final double WRITE_RATIO = Double.parseDouble(envOrDefault("PERF_WRITE_RATIO", "0.05"));
     private static final int SEED_ARTIFACTS = Integer
             .parseInt(envOrDefault("PERF_SEED_ARTIFACTS", "200"));
@@ -199,16 +200,27 @@ public class RegistryApiSimulation extends Simulation {
                         .header("Authorization", RegistryApiSimulation::authHeader)
                         .check(status().is(200)));
 
-        ScenarioBuilder scenario = scenario("Registry REST API")
-                .randomSwitch().on(new Choice.WithWeight(WRITE_RATIO * 100, writeChain),
-                        new Choice.WithWeight((1 - WRITE_RATIO) * 100, readChain));
+        ChainBuilder iteration = exec(session -> session).randomSwitch().on(
+                new Choice.WithWeight(WRITE_RATIO * 100, writeChain),
+                new Choice.WithWeight((1 - WRITE_RATIO) * 100, readChain));
         // See PERF_PAUSE_MIN_MS/PERF_PAUSE_MAX_MS javadoc: skip pausing entirely when both are 0,
         // rather than pausing for a fixed zero duration, to measure maximum sustainable
         // throughput instead of a paced, realistic-traffic-shape number.
         if (PAUSE_MAX_MS > 0) {
-            scenario = scenario.pause(Duration.ofMillis(PAUSE_MIN_MS), Duration.ofMillis(PAUSE_MAX_MS));
+            iteration = iteration.pause(Duration.ofMillis(PAUSE_MIN_MS), Duration.ofMillis(PAUSE_MAX_MS));
         }
-        return scenario;
+        // Loop each virtual user's own session/connection for the whole test duration, rather
+        // than having it run the chain once and be replaced by a brand new virtual user (a new
+        // session/connection) to maintain the target concurrency. The latter is what a bare
+        // injectClosed(..., constantConcurrentUsers(...)) does by default if the scenario itself
+        // doesn't loop - each user's single iteration finishes almost immediately (especially
+        // with pausing disabled), so Gatling has to constantly inject replacement users just to
+        // hold the target concurrency, causing severe client-side connection churn (observed:
+        // tens of thousands of TIME_WAIT sockets from one load-generator pod within seconds -
+        // nowhere near what "N concurrent users" should require). This also doesn't reflect any
+        // real client, which holds its connection open and reuses it across many requests.
+        return scenario("Registry REST API")
+                .during(Duration.ofSeconds(DURATION_SECONDS + RAMP_SECONDS)).on(iteration);
     }
 
     /**
@@ -338,7 +350,13 @@ public class RegistryApiSimulation extends Simulation {
         // true concurrency - and therefore measured throughput - was only a fraction of what
         // PERF_USERS implied. That silently capped every "PERF_USERS=N" result in earlier reports
         // well below the registry's actual achievable throughput at N concurrent clients.)
-        setUp(scn.injectClosed(rampConcurrentUsers(1).to(USERS).during(Duration.ofSeconds(10)),
+        //
+        // The scenario itself loops each user for DURATION_SECONDS + RAMP_SECONDS (see
+        // buildScenario()), so in practice no user finishes before the ramp-up completes and
+        // constantConcurrentUsers never needs to inject a replacement mid-run - it's included
+        // only so the target concurrency is reached and held even in the (normally unreachable)
+        // case a user's loop were to end early.
+        setUp(scn.injectClosed(rampConcurrentUsers(1).to(USERS).during(Duration.ofSeconds(RAMP_SECONDS)),
                 constantConcurrentUsers(USERS).during(Duration.ofSeconds(DURATION_SECONDS))))
                 .protocols(httpProtocol)
                 .assertions(global().failedRequests().percent().lte(1.0));

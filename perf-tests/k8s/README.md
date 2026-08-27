@@ -27,7 +27,19 @@ Both scenarios share:
   workflow copies out via `kubectl cp` once the Job's exit-code marker file appears (see the
   comments in the file itself for why - `kubectl cp`/`exec` cannot target an already-completed
   pod). Has two placeholders substituted at deploy time: `${PERF_TEST_IMAGE}` and
-  `${KAFKA_BOOTSTRAP_SERVERS}` (different per scenario - see each scenario's `deploy.sh`).
+  `${KAFKA_BOOTSTRAP_SERVERS}` (different per scenario - see each scenario's `deploy.sh`). Good
+  for quick, modest-concurrency runs (roughly up to 200-250 concurrent clients); see
+  `common/run-external-load.sh` below for anything higher.
+- `common/run-external-load.sh` - runs the Gatling REST simulation as a plain process *outside*
+  the cluster instead of as an in-cluster Job, talking to the registry over a NodePort Service.
+  Use this instead of `perf-job.yaml` whenever you want more than a couple hundred concurrent
+  clients: a single Gatling process's own connection handling degrades above roughly 250-300
+  concurrent connections (TCP `TIME_WAIT` accumulation, eventually exhausting ephemeral ports) -
+  a client-tooling limit, not a registry one - and on a resource-constrained cluster (e.g. a local
+  Minikube VM), the load generator competing with the registry/database/Kafka/Keycloak for the
+  same node's CPU can itself become the bottleneck, masking the registry's real capacity. Running
+  the load generator as a separate process against a NodePort-exposed registry avoids both. See
+  the comments at the top of the script for the full rationale and usage.
 
 ## Running a scenario locally
 
@@ -37,8 +49,15 @@ perf-tests/k8s/postgresql/deploy.sh
 perf-tests/k8s/kafkasql/deploy.sh
 ```
 
-Then run the perf-test Job (each `deploy.sh` prints the exact command, with the correct
-`KAFKA_BOOTSTRAP_SERVERS` for that scenario, once it finishes).
+Then either run the perf-test Job (each `deploy.sh` prints the exact command, with the correct
+`KAFKA_BOOTSTRAP_SERVERS` for that scenario, once it finishes) for a quick, modest-concurrency
+check, or run the load generator externally for higher concurrency:
+
+```
+perf-tests/k8s/common/run-external-load.sh perf-tests/target/apicurio-registry-perf-tests-*-jar-with-dependencies.jar [PERF_USERS] [PERF_DURATION_SECONDS] [PERF_WRITE_RATIO]
+```
+
+(Build the jar first with `./mvnw -Dperf-tests package -pl perf-tests -am -DskipTests`.)
 
 None of these manifests are meant to be used outside of CI/local testing; they intentionally
 hard-code simple credentials/URLs for a throwaway, single-run cluster.

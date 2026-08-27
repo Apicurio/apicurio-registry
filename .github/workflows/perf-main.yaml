@@ -169,6 +169,48 @@ jobs:
           path: /tmp/perf-results
           retention-days: 90
 
+      # A single Gatling process's own connection handling degrades well before the registry's
+      # actual capacity does above roughly 250-300 concurrent connections (see
+      # perf-tests/k8s/README.md and perf-tests/k8s/common/run-external-load.sh) - so this runs at
+      # a concurrency safely below that, from *outside* the cluster, to validate a real
+      # higher-concurrency read-throughput number without either the load generator's own
+      # connection-handling limit or in-cluster resource sharing confounding the result. This is
+      # the same methodology used to produce the sizing-guide numbers in
+      # docs/modules/ROOT/pages/getting-started/assembly-registry-sizing-guide.adoc.
+      #
+      # Informational only, like the baseline check above (see this workflow's top-of-file
+      # comment on why perf-main doesn't hard-gate on performance trends) - GitHub-hosted runners
+      # vary in underlying hardware/noisy-neighbor conditions run to run, so a single failed
+      # attempt here isn't treated as a hard signal.
+      - name: Run external high-concurrency read validation
+        if: always()
+        working-directory: perf-tests
+        run: |
+          JAR=$(find target -name 'apicurio-registry-perf-tests-*-jar-with-dependencies.jar' | head -1)
+          if [ -z "$JAR" ]; then
+            echo "No perf-tests jar-with-dependencies found - skipping external validation." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          mkdir -p /tmp/external-load-results
+          GATLING_RESULTS_FOLDER=/tmp/external-load-results/gatling \
+            ./k8s/common/run-external-load.sh "$JAR" 200 30 0 \
+            > /tmp/external-load-results/console.log 2>&1 || true
+          tail -n 60 /tmp/external-load-results/console.log
+          {
+            echo "### External high-concurrency read validation (${{ matrix.storage }}, 200 concurrent clients)"
+            echo '```'
+            grep -A11 "Global Information" /tmp/external-load-results/console.log | tail -11 || echo "(no summary captured - see uploaded artifact)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload external validation results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: perf-test-external-results-${{ matrix.storage }}-${{ github.sha }}
+          path: /tmp/external-load-results
+          retention-days: 90
+
   notify:
     name: Notify on failure
     needs: perf-test

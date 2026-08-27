@@ -23,7 +23,12 @@ expensive to run per-PR; see the workflow file for details) as a matrix job acro
 - `src/main/java/.../simulations/RegistryApiSimulation.java` - a [Gatling](https://gatling.io)
   Java-DSL simulation exercising the REST API with OAuth2 client-credentials against Keycloak,
   using a closed (concurrent-user) injection model and a 95%-read/5%-write traffic mix against a
-  pre-seeded pool of artifacts by default - see the class Javadoc for all `PERF_*` env vars.
+  pre-seeded pool of artifacts by default. The read path is a single independent lookup by ID
+  (matching how a Kafka producer/consumer's serde resolves a schema per message), not a chain of
+  calls, so it's directly comparable to real per-message registry traffic - see the class Javadoc
+  for all `PERF_*` env vars, including `PERF_PAUSE_MIN_MS`/`PERF_PAUSE_MAX_MS` for disabling the
+  default inter-iteration pause when measuring maximum throughput rather than a paced traffic
+  shape.
 - `src/main/java/.../kafka/KafkaLoadGenerator.java` - a Kafka producer/consumer using
   `apicurio-registry-avro-serde-kafka`, so schema registration/lookup happens transparently as
   part of producing/consuming records, the same way a real Kafka application would use the
@@ -63,4 +68,8 @@ java -Dgatling.resultsFolder=/tmp/gatling-results -jar target/apicurio-registry-
 
 If `AUTH_TOKEN_ENDPOINT` / `AUTH_CLIENT_ID` / `AUTH_CLIENT_SECRET` are unset, requests are sent
 without an `Authorization` header (fine for an anonymous-read/no-auth local instance).
+
+For concurrency beyond a couple hundred clients, run the load generator outside the cluster
+instead (see `k8s/README.md`'s `run-external-load.sh` section) - a single Gatling process's own
+connection handling degrades well before the registry's actual capacity does at that point.
 

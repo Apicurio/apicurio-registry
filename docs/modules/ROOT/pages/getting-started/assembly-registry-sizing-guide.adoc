@@ -96,10 +96,12 @@ clients:
 This figure depends heavily on giving the replica enough memory: at the {operator}'s default 1Gi
 memory limit, sustained load at this concurrency causes rising garbage-collection pressure that
 eventually cascades into database connection-acquisition timeouts and pod restarts. Size for at
-least 2Gi if you expect sustained concurrency in this range. It's also not CPU-bound - CPU
-utilization stayed under 50-80% of the 2 CPU limit throughout this testing - so if you see
-instability under sustained (not just momentary) load, check memory/GC behavior before assuming
-you need more CPU.
+least 2Gi if you expect sustained concurrency in this range.
+
+At 200 concurrent clients, CPU utilization consistently saturates the 2 CPU limit - this is a
+genuine CPU-bound ceiling at this concurrency, not primarily a network/database-latency or
+memory limit (given enough memory). More CPU is likely to raise this ceiling further; this
+chapter does not yet have data on by how much.
 ====
 
 === Write throughput
@@ -177,7 +179,9 @@ the first 30-40 seconds excluded as JVM warm-up):
 
 This is nearly double SQL storage's read throughput at the same concurrency, consistent with the
 architectural difference: KafkaSQL storage's read path avoids the round-trip to a separate
-database server that SQL storage pays on every read, even over a fast connection.
+database server that SQL storage pays on every read, even over a fast connection. Like SQL
+storage's read path, this saturates the 2 CPU limit at this concurrency - more CPU is likely to
+raise this ceiling further.
 
 === Write throughput
 
@@ -212,6 +216,17 @@ throughput, with 99th-percentile latency rising well above the lower-concurrency
 looks like the beginning of a real ceiling, though it wasn't tested past 200 concurrent writers.
 Failure rates stayed under 0.02% throughout this range.
 
+[IMPORTANT]
+====
+At 200 concurrent writers, CPU utilization saturates the 2 CPU limit, and the underlying journal
+topic that KafkaSQL storage uses has a single partition - meaning the consumer that replays it to
+keep the local materialized view up to date is inherently single-threaded and can only use one
+CPU core's worth of processing, regardless of how many cores the replica has. Unlike the read
+path, giving this replica more CPU may not raise this ceiling proportionally past a certain point,
+since part of the write path is bound by that single-threaded replay rather than by total CPU
+capacity.
+====
+
 [id="registry-sizing-recommendations_{context}"]
 == Recommendations
 
@@ -230,12 +245,13 @@ Failure rates stayed under 0.02% throughout this range.
   - reproduce the `perf-tests` module against your own cluster, resource limits, and network
   conditions before relying on a specific number. In particular, these figures were only measured
   at 200 concurrent clients - they are not yet a ceiling, just the highest concurrency tested with
-  this methodology so far.
+  this methodology so far. Read throughput for both storage types is CPU-bound at this
+  concurrency (utilization consistently saturates the 2 CPU limit), so more CPU is a reasonable
+  first thing to try if you need more read throughput than these figures.
 * Give the replica enough memory headroom for sustained concurrent load, not just enough to start
   up successfully - the {operator}'s default 1Gi limit is not enough at the concurrency this
-  chapter tests. Size for at least 2Gi, and if you see rising latency or restarts under sustained
-  (not just momentary) load, check memory/GC behavior before assuming it's a connection or CPU
-  limit.
+  chapter tests, causing GC pressure that can cascade into connection timeouts and restarts. Size
+  for at least 2Gi.
 * If your expected concurrent read client count is in the hundreds per replica, prefer scaling
   *horizontally* (more replicas behind the application service - see
   xref:getting-started/assembly-registry-high-availability.adoc[]) rather than assuming a single

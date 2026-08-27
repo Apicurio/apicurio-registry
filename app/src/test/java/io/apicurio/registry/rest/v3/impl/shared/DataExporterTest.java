@@ -19,16 +19,21 @@ package io.apicurio.registry.rest.v3.impl.shared;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityType;
 import io.apicurio.registry.utils.impexp.ManifestEntity;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -38,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for DataExporter.
@@ -71,7 +77,7 @@ class DataExporterTest {
     }
 
     @Test
-    void exportDataShouldFailOnWriteError() {
+    void exportDataShouldIncludeErrorsManifestForPartiallyFailedExport() throws IOException {
         DataExporter exporter = new DataExporter();
 
         exporter.log = LoggerFactory.getLogger(DataExporter.class);
@@ -80,6 +86,9 @@ class DataExporterTest {
         doAnswer(invocation -> {
             Function<Entity, Void> handler = invocation.getArgument(1);
             handler.apply(new ManifestEntity());
+            Entity badEntity = mock(Entity.class);
+            when(badEntity.getEntityType()).thenReturn(EntityType.Content);
+            handler.apply(badEntity);
             return null;
         }).when(storage).exportData(any(), any());
 
@@ -90,19 +99,25 @@ class DataExporterTest {
                 "The response is prepared with 200 before the stream is written");
 
         StreamingOutput stream = (StreamingOutput) response.getEntity();
-        ByteArrayOutputStream os = new ByteArrayOutputStream() {
-            @Override
-            public synchronized void write(int b) {
-                throw new RuntimeException("Simulated write failure", new IOException("Simulated write failure"));
-            }
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        stream.write(os);
 
-            @Override
-            public synchronized void write(byte[] b, int off, int len) {
-                throw new RuntimeException("Simulated write failure", new IOException("Simulated write failure"));
+        ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(os.toByteArray()));
+        boolean foundErrors = false;
+        String errorsContent = null;
+        ZipEntry entry;
+        while ((entry = zis.getNextEntry()) != null) {
+            if (".errors".equals(entry.getName())) {
+                foundErrors = true;
+                errorsContent = new String(zis.readAllBytes(), StandardCharsets.UTF_8);
+                break;
             }
-        };
-        assertThrows(IOException.class, () -> stream.write(os),
-                "A write error must propagate so the client does not receive a completed 200 OK");
+        }
+        assertTrue(foundErrors, "Expected .errors manifest to be present in a partially failed export");
+        assertTrue(errorsContent.contains(EntityType.Content.name()),
+                "The .errors manifest should reference the failed entity type");
+        assertTrue(errorsContent.contains("ClassCastException"),
+                "The .errors manifest should include the error details");
     }
 
     private static class CloseTrackingOutputStream extends OutputStream {

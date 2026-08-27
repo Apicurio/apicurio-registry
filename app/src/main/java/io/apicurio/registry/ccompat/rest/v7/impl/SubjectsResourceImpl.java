@@ -33,7 +33,6 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
-import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactStateException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
@@ -48,6 +47,7 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.InternalServerErrorException;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +73,16 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             .expireAfterAccess(1, TimeUnit.HOURS) // Evict locks after 1 hour of inactivity
             .maximumSize(10000) // Limit the cache size to 10,000 locks
             .build();
+
+    /**
+     * Page size used to collect ALL versions of a subject through searchVersions. The compat API
+     * must never truncate a subject (listing or deletion) at an arbitrary limit, so results are
+     * collected in pages and concatenated. Configurable via
+     * {@code apicurio.ccompat.subject-versions-page-size}.
+     */
+    private int getMaxPageSize() {
+        return cconfig.subjectVersionsPageSize.get();
+    }
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
@@ -230,9 +240,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
 
-        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, 500, false);
-        rval = searchResults.getVersions().stream()
+        rval = getAllSubjectVersions(filters).stream()
                 .map(SearchedVersionDto::getVersionOrder)
                 .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
                 .sorted()
@@ -552,9 +560,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             Set<SearchFilter> filters = new HashSet<>();
             filters.add(SearchFilter.ofGroupId(groupId));
             filters.add(SearchFilter.ofArtifactId(artifactId));
-            VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                    OrderDirection.asc, 0, 500, false);
-            List<BigInteger> result = searchResults.getVersions().stream()
+            List<BigInteger> result = getAllSubjectVersions(filters).stream()
                     .map(SearchedVersionDto::getVersionOrder)
                     .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
                     .collect(Collectors.toList());
@@ -569,18 +575,37 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(groupId));
         filters.add(SearchFilter.ofArtifactId(artifactId));
-        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
-                OrderDirection.asc, 0, 500, false);
+        List<SearchedVersionDto> subjectVersions = getAllSubjectVersions(filters);
         try {
-            searchResults.getVersions().forEach(v -> storage.updateArtifactVersionState(groupId,
+            subjectVersions.forEach(v -> storage.updateArtifactVersionState(groupId,
                     artifactId, v.getVersion(), VersionState.DISABLED, false));
         } catch (InvalidArtifactStateException | InvalidVersionStateException ignored) {
             log.warn("Invalid artifact state transition", ignored);
         }
-        return searchResults.getVersions().stream()
+        return subjectVersions.stream()
                 .map(SearchedVersionDto::getVersionOrder)
                 .map(versionOrder -> converter.convertUnsigned((long) versionOrder))
                 .sorted()
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Collects all versions matching the given filters by fetching search results page by page.
+     * A single {@code searchVersions} call is not guaranteed to cover large subjects, so pages are
+     * accumulated until the backend reports fewer results than a full page.
+     */
+    private List<SearchedVersionDto> getAllSubjectVersions(Set<SearchFilter> filters) {
+        List<SearchedVersionDto> versions = new ArrayList<>();
+        int offset = 0;
+        int pageSize = getMaxPageSize();
+        List<SearchedVersionDto> page;
+        do {
+            // Ordered by globalId (unique) so that paging over ties on createdOn stays stable.
+            page = storage.searchVersions(filters, OrderBy.globalId, OrderDirection.asc,
+                    offset, pageSize, true).getVersions();
+            versions.addAll(page);
+            offset += page.size();
+        } while (page.size() == pageSize);
+        return versions;
     }
 }

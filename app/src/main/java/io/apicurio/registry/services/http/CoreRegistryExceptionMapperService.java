@@ -56,6 +56,10 @@ public class CoreRegistryExceptionMapperService {
             code = codeMap.getCode(t.getClass());
         }
 
+        if (code <= 0) {
+            code = HTTP_INTERNAL_ERROR;
+        }
+
         if (code == HTTP_INTERNAL_ERROR) {
             // If the error is not something we should ignore, then we report it to the liveness object
             // and log it. Otherwise we only log it if debug logging is enabled.

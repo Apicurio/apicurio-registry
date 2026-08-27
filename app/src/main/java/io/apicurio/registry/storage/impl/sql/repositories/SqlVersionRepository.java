@@ -251,6 +251,7 @@ public class SqlVersionRepository {
                             .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
                             .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                 });
+
             }
 
             if (modified) {

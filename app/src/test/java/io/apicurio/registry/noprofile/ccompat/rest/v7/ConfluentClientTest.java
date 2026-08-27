@@ -926,8 +926,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     "type" : "long"
                   }, {
                     "name" : "currency",
-                    "type" : {
-                      "type" : "myavro.currencies.Currency"    }
+                    "type" : "myavro.currencies.Currency"
                   }, {
                     "name" : "amount",
                     "type" : "double"
@@ -944,8 +943,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     "type" : "long"
                   }, {
                     "name" : "currency",
-                    "type" : {
-                      "type" : "myavro.currencies.Currency"    }
+                    "type" : "myavro.currencies.Currency"
                   }, {
                     "name" : "updatedValue",
                     "type" : "double"

@@ -20,6 +20,7 @@ import java.util.List;
 import static java.time.Duration.ofSeconds;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -29,6 +30,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 public class GitOpsITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(GitOpsITTest.class);

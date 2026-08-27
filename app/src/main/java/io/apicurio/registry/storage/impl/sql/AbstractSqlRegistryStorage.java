@@ -632,9 +632,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     handle.setRollback(true);
                 }
 
-                // Lock the artifact's versions to serialize concurrent version creation.
-                // Without this, two concurrent inserts can both read the same MAX(versionOrder)
-                // and produce duplicate versionOrder values.
+                // Lock the parent artifacts row to serialize concurrent version creation.
+                // Locking the artifacts row (instead of only version rows) prevents the
+                // zero-rows race: SELECT FOR UPDATE on an empty versions result set acquires
+                // no lock, so two concurrent first-version creators would both see isFirstVersion=true.
+                handle.createQuery(sqlStatements.selectArtifactRowForUpdate())
+                        .bind(0, normalizeGroupId(groupId))
+                        .bind(1, artifactId)
+                        .mapTo(String.class)
+                        .findFirst()
+                        .orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+
+                // Now read the max versionOrder while holding the artifact lock.
                 boolean isFirstVersion = handle
                         .createQuery(sqlStatements.selectMaxVersionOrderForUpdate())
                         .bind(0, normalizeGroupId(groupId))
@@ -669,7 +678,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         try {
             return handles.withHandle(handle -> {
-                // Lock the artifact's versions and get current max versionOrder
+                // Lock the parent artifacts row first to handle the zero-rows case.
+                handle.createQuery(sqlStatements.selectArtifactRowForUpdate())
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                        .mapTo(String.class).findFirst()
+                        .orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+
+                // Now read max versionOrder while holding the artifact lock.
                 Integer currentMax = handle
                         .createQuery(sqlStatements.selectMaxVersionOrderForUpdate())
                         .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class)
@@ -683,7 +698,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                     + expectedBaseVersionOrder + " but found " + currentMax);
                 }
 
-                // Safe to proceed — we hold the FOR UPDATE lock
+                // Safe to proceed; we hold the artifact lock.
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
                 ArtifactVersionMetaDataDto result = createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,

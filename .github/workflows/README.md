@@ -2,31 +2,51 @@
 
 ## PR Verification Pipeline
 
-The main PR pipeline is `verify.yaml`, which orchestrates all verification steps.
-It runs on pull requests to `main` and on pushes to `main`.
+Two top-level workflows make up the whole pipeline:
 
-### Pipeline Phases
-
-```
-decide ── lint-and-validate ── build ──┬── unit-tests (7 shards)
-                                       ├── integration-tests (13 jobs)
-                                       ├── extras (5 jobs)
-                                       ├── sdk
-                                       ├── cli-verify (conditional)
-                                       ├── publish (main only) ── notify-slack
-                                       └── verification-gate (aggregates all results)
-```
+| Workflow | Contents |
+|----------|----------|
+| `quick-check.yaml` (**Quick Check**) | The fast PR gate: **Quick Verify** (~5 min, every PR push) and a fast UI build. No lifecycle awareness, no Decide job — it always runs the same way. Drives `lifecycle/tested` while a PR is in `lifecycle/ready-for-review`. |
+| `verify.yaml` (**Verify**) | Everything else: Build (Java app + Docker images), unit tests, CLI, SDKs, console plugin, integration tests, extra tests, operator tests, and (on push to `main`) image publishing. One `decide` job, shared by every job in this workflow via `needs:`. Drives `lifecycle/full-verified`. |
+`verify.yaml` intentionally has a single Decide job that every other job in it
+depends on, rather than being split across several independently-triggered
+workflow files each with their own Decide. That used to be the design (four
+separate workflow files, each recomputing "is the full suite required"
+independently) so that Integration Tests and Extra Tests would show up as
+their own grouped sections in the PR Checks tab — but four independent Decide
+evaluations for the same commit can each see different PR label state if
+anything changes between when they happen to run, which repeatedly produced
+real bugs (a sibling workflow's Build silently skipped while another sibling
+expected to consume it; the Verification Gate reporting success while a
+sibling had not actually run). Consolidating back into one workflow with one
+Decide removes that entire class of problem structurally: there is exactly
+one answer to "is the full suite required for this commit" per run, so
+nothing in it can disagree with anything else about it. The cost is cosmetic
+— Integration Tests and Extra Tests show up as `Verify / Integration Tests
+(h2-default)` etc. instead of their own workflow header — which is a better
+trade than the alternative.
 
 ### Centralized Decision (`decide` job)
 
-A single `decide` job combines **lifecycle scope** (PR labels) and **change
-detection** (path-based filtering) into one boolean output per test phase.
-Every downstream job uses a single `if:` condition.
+`verify.yaml`'s `decide` job (`verify-decide.yaml`) combines **lifecycle
+scope** (PR labels) and **change detection** (path-based filtering) into one
+boolean output per phase, computed once and shared by every other job in the
+workflow via `needs:` and a single `if:` condition each.
 
-**Lifecycle scope** is driven by PR labels from the PR lifecycle orchestrator:
-- `lifecycle/new` or no label → no tests
-- `lifecycle/ready-for-review` / `lifecycle/ready-to-merge` → full suite
+**Lifecycle scope** is a live, native-fact decision — not a PR label:
+- author is a maintainer or in `auto_accept` (e.g. Renovate) → full suite runs
+  immediately, on every push
+- otherwise → full suite runs once the PR has a current approving review
+  (`gh pr view --json reviewDecision` == `APPROVED`), re-evaluated fresh on
+  every `pull_request_review: submitted` event
+- `orchestrator/disabled` label → full suite runs regardless (unless
+  `DO NOT MERGE` is also present)
 - Push to main → always full suite
+
+Deciding this from author identity and review state instead of a bot-applied
+label (the previous `lifecycle/ready-to-merge` design) removes an entire class
+of races: there is no window where a run that started before a promotion could
+disagree with one that started after — Decide re-evaluates live, every time.
 
 **Change detection** uses `dorny/paths-filter` to determine which areas changed:
 
@@ -44,15 +64,39 @@ Push to main always runs everything regardless of change detection.
 
 ### Verification Gate
 
-The `verification-gate` job is the **single required check** for branch protection.
-It runs with `if: always()` and aggregates all upstream results:
+The `gate` job in `verify.yaml` is the **single required check** for branch
+protection. It runs with `if: always()` and aggregates every job in the same
+run via `needs.*.result`. For non-push events it then does one more thing:
+it fails outright if `needs.decide.outputs.lifecycle-ready != 'true'`.
 
-- Any job **failed** → gate fails
-- PR in non-testable lifecycle state (`lifecycle/new`, etc.) → gate fails
-- All jobs passed or appropriately skipped → gate passes
+That check exists because a skipped required job counts as "passing" for
+branch protection purposes, and every job in `verify.yaml` is skipped by
+Decide whenever the full suite was not required for this run — without it,
+native "Merge pull request" would be unblocked the moment Decide+Gate
+complete for any PR, regardless of whether the full suite had ever actually
+run for the commit. Checking Decide's own output (the same static value that
+already gated every job above via `needs:`) means this cannot disagree with
+the rest of the run — there is nothing to race against, unlike a live
+re-fetch of current PR/label state would be. The failure this produces
+during normal PR review is expected, not a sign of anything broken: it
+clears on its own once the full suite subsequently runs and passes (for a
+trusted author, immediately; for everyone else, once a review lands).
 
-This replaces the previous approach of configuring 24 individual jobs as required
-checks, which caused skipped jobs to show as permanently pending.
+The PR lifecycle orchestrator (`pr-lifecycle.js`) independently tracks
+`verify.yaml`'s latest run by head SHA before applying `lifecycle/full-verified`.
+
+This (and the single-Decide-job design above) replaces two earlier approaches:
+first, configuring 24 individual jobs as required checks, which caused skipped
+jobs to show as permanently pending; then, splitting the suite across four
+independently-triggered workflow files, which introduced cross-workflow
+Decide-disagreement races (see above); then, gating Decide on a bot-applied
+`lifecycle/ready-to-merge` label with a live re-fetch in Gate to cross-check
+it, which added its own race between the live re-fetch (evaluated late, after
+every other job) and Decide (evaluated once, early) — a run could look "ready"
+by the time Gate's live check ran even though Decide itself had skipped
+everything at the start of that same run. Deciding from live author/review
+facts directly (this design) needs no live re-fetch and no bot-applied label
+at all, so there is nothing left to race.
 
 ## Unit Test Sharding
 
@@ -171,8 +215,8 @@ non-Java changes (docs, UI).
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `verification-gate` is the single required check | N/A |
-| `verify-build.yaml` | Called by verify | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention | ~6 min |
+| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verification Gate) is the single required check | N/A |
+| `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
@@ -187,6 +231,7 @@ non-Java changes (docs, UI).
 |----------|---------|---------|----------|
 | `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds | ~10 min |
 | `validate-openapi.yaml` | PR (openapi.json), workflow_call | Lints OpenAPI spec with `@rhoas/spectral-ruleset` | ~5 min |
+| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited | Checks the PR body links an issue and every commit is DCO signed; flags possible duplicate PRs by linked issue or overlapping files. Independent of the lifecycle: a red check never blocks `/accept`, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API | <1 min |
 
 ## Release Workflows
 
@@ -208,11 +253,11 @@ and tags starting with `3.`.
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `pr-lifecycle.yml` | PR events, comments, reviews, workflow_run, every 6 hours | Label-driven PR state machine. States: `new` -> `ready-for-review` -> `ready-to-merge`. Draft PRs are ignored until marked ready for review. Comment commands: `/accept`, `/reject`, `/merge`, `/auto-merge`, `/retry`. Auto-accepts maintainers. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 7-day auto-close for PRs waiting on the author). Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
+| `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 7-day auto-close for PRs waiting on the author). Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |
-| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 8-group test matrix on Minikube (smoke, kafka, auth, database, feature, feature-setup, OLM v0, OLM v1), publish to Quay.io on push. Cancels in-progress on new push | 45-90 min |
+| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 9-group test matrix on Minikube (smoke, kafka, auth, database, feature-a, feature-b, feature-setup, OLM v0, OLM v1) plus a single-JVM "Local Tests" run of the full IT suite against the same Minikube cluster, publish to Quay.io on push only. Cancels in-progress on new push | 45-90 min |
 | `image-scan.yaml` | Daily at 06:00 UTC, workflow_dispatch | Trivy vulnerability scan on `latest-snapshot` image (CRITICAL + HIGH severity). Results uploaded to GitHub Security tab as SARIF | 5-10 min |
 
 ## Reusable Workflows

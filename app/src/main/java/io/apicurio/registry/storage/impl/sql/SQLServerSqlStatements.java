@@ -67,6 +67,21 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 """;
     }
 
+    @Override
+    public String getNextSequenceValueBlock() {
+        return """
+                MERGE INTO sequences AS target
+                USING (VALUES  (?, ?)) AS source (seqName, seqValue)
+                ON (target.seqName = source.seqName)
+                WHEN MATCHED THEN
+                UPDATE SET seqValue = target.seqValue + ?
+                WHEN NOT MATCHED THEN
+                INSERT (seqName, seqValue)
+                VALUES (source.seqName, source.seqValue)
+                OUTPUT INSERTED.seqValue;
+                """;
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */

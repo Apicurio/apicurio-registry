@@ -1453,6 +1453,11 @@ The following {registry} configuration options are available for each component 
 |`h2`
 |`3.0.0`
 |Application datasource database type
+|`apicurio.storage.sql.sequence.block-size`
+|`int`
+|`50`
+|`3.3.2`
+|Number of global/content/comment ID values reserved from the database per allocation. Higher values reduce contention on the shared sequence row under concurrent writes, at the cost of skipping any unused IDs when the application stops. Set to 1 to allocate every ID individually.
 |`artifacts.skip.disabled.latest`
 |`boolean`
 |`true`

@@ -64,6 +64,12 @@ import static io.gatling.javaapi.http.HttpDsl.*;
  *   <li>{@code PERF_LARGE_SCHEMA} - if {@code true}, use a much larger (~8KB, ~150-field) Avro
  *       schema instead of the tiny default one, to exercise payload-size-sensitive code paths
  *       (parsing, canonicalization, storage) under more extreme conditions (default false)
+ *   <li>{@code PERF_PAUSE_MIN_MS} / {@code PERF_PAUSE_MAX_MS} - randomized "think time" paused
+ *       between a virtual user's iterations (default 50/250, modeling per-message pacing). Set
+ *       both to {@code 0} to remove pausing entirely and measure maximum sustainable throughput
+ *       instead of a paced, realistic-traffic-shape number - with pausing enabled, part of each
+ *       virtual user's cycle time is spent not making requests at all, so throughput at a given
+ *       {@code PERF_USERS} value is *not* directly comparable to a raw capacity/ceiling test.
  * </ul>
  *
  * <p><b>Token handling:</b> a real client (e.g. the Kafka serde's registry REST client - see
@@ -93,6 +99,8 @@ public class RegistryApiSimulation extends Simulation {
             .parseInt(envOrDefault("PERF_SEED_ARTIFACTS", "200"));
     private static final boolean LARGE_SCHEMA = Boolean
             .parseBoolean(envOrDefault("PERF_LARGE_SCHEMA", "false"));
+    private static final int PAUSE_MIN_MS = Integer.parseInt(envOrDefault("PERF_PAUSE_MIN_MS", "50"));
+    private static final int PAUSE_MAX_MS = Integer.parseInt(envOrDefault("PERF_PAUSE_MAX_MS", "250"));
 
     private static final String SEED_GROUP = "perf-test-seed";
 
@@ -191,10 +199,16 @@ public class RegistryApiSimulation extends Simulation {
                         .header("Authorization", RegistryApiSimulation::authHeader)
                         .check(status().is(200)));
 
-        return scenario("Registry REST API")
+        ScenarioBuilder scenario = scenario("Registry REST API")
                 .randomSwitch().on(new Choice.WithWeight(WRITE_RATIO * 100, writeChain),
-                        new Choice.WithWeight((1 - WRITE_RATIO) * 100, readChain))
-                .pause(Duration.ofMillis(50), Duration.ofMillis(250));
+                        new Choice.WithWeight((1 - WRITE_RATIO) * 100, readChain));
+        // See PERF_PAUSE_MIN_MS/PERF_PAUSE_MAX_MS javadoc: skip pausing entirely when both are 0,
+        // rather than pausing for a fixed zero duration, to measure maximum sustainable
+        // throughput instead of a paced, realistic-traffic-shape number.
+        if (PAUSE_MAX_MS > 0) {
+            scenario = scenario.pause(Duration.ofMillis(PAUSE_MIN_MS), Duration.ofMillis(PAUSE_MAX_MS));
+        }
+        return scenario;
     }
 
     /**

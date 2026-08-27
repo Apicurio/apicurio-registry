@@ -67,7 +67,7 @@ bottlenecks, so this section reports them separately rather than as one blended 
 === Read throughput
 
 A single replica's read path (resolving an existing schema by ID) scales cleanly with
-concurrency, bound only by CPU/network/connection-pool capacity:
+concurrency up to a point, then degrades:
 
 [cols="1,1,1",options="header"]
 |===
@@ -81,20 +81,35 @@ concurrency, bound only by CPU/network/connection-pool capacity:
 | 0%
 | ~113
 
-| 150
-| 0%
-| ~508
-
 | 200
 | 0%
-| ~667
+| ~775
+
+| 400
+| 0%
+| ~800
+
+| 500
+| ~0.4%, uneven across clients
+| ~726 (degrading)
+
+| 600
+| pod restarted (liveness probe failure)
+| unstable
 |===
 
-At 200 concurrent clients (the highest concurrency a single load-generator instance could sustain
-without its own outbound-connection limits becoming the bottleneck - see
-`perf-tests/README.md`), CPU utilization, the JDBC connection pool, and the database's own
-connection limit all still had headroom: this is not yet the read-path ceiling, only the highest
-point measured with this tooling.
+Up to and including 400 concurrent clients, this test environment sustained 0% failed requests
+and no application pod restarts, though tail latency grows with concurrency (99th-percentile
+response time reached ~715ms at 400 concurrent clients, versus ~500ms at 200). Beyond that, the
+application pod's own liveness probe started failing under sustained load at 600 concurrent
+clients, causing Kubernetes to restart it - a real single-replica capacity boundary, not a test
+artifact: CPU utilization stayed well under the 2 CPU limit throughout (confirmed via the
+container's cgroup CPU accounting), so this reflects genuine request-handling saturation at high
+concurrency rather than resource starvation.
+
+(Measuring this required spreading load generation across multiple load-generator pods - a single
+instance's own outbound-connection limits become the bottleneck above roughly 200-250 concurrent
+connections, which is a client-tooling limit, not a registry one - see `perf-tests/README.md`.)
 
 === Write throughput
 
@@ -168,12 +183,13 @@ these figures either.
 * If your write rate is more than incidental, treat the write-throughput ceiling above as a hard
   budget independent of replica count or resources, until
   link:https://github.com/Apicurio/apicurio-registry/issues/9847[issue #9847] is resolved.
-* Treat the read-throughput figures above as a starting point for a single replica on modest (1
-  CPU / 1Gi) resources with real network latency to the database, not as an absolute ceiling for
-  {registry} - reproduce the `perf-tests` module against your own cluster, resource limits, and
-  network conditions before relying on a specific number.
-* If your expected concurrent read client count is close to or above what a single replica
-  measured here, prefer scaling *horizontally* (more replicas behind the application service - see
+* Treat the read-throughput figures above as a starting point for a single replica on 2 CPU / 1Gi
+  resources with real network latency to the database, not as an absolute ceiling for {registry}
+  - reproduce the `perf-tests` module against your own cluster, resource limits, and network
+  conditions before relying on a specific number.
+* If your expected concurrent read client count approaches 400 per replica (the highest cleanly
+  measured here, with no failures or pod restarts), prefer scaling *horizontally* (more replicas
+  behind the application service - see
   xref:getting-started/assembly-registry-high-availability.adoc[]) - this helps read throughput,
   but does **not** help write throughput, which is bound by the same shared database row
   regardless of replica count.

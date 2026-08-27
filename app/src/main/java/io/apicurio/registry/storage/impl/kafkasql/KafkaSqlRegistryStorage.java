@@ -165,6 +165,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     // Reference to the consumer thread for health checks
     private volatile Thread consumerThread = null;
 
+    // How long onDestroy() waits for the consumer thread to exit before interrupting it.
+    // Package-private for testability.
+    long joinTimeoutMillis = 10_000;
+
     @Override
     public String storageName() {
         return "kafkasql";
@@ -223,9 +227,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         journalConsumer.wakeup();
         if (consumerThread != null) {
             try {
-                consumerThread.join(10_000);
+                consumerThread.join(joinTimeoutMillis);
                 if (consumerThread.isAlive()) {
-                    log.warn("Consumer thread did not exit within 10 seconds of wakeup(), interrupting.");
+                    log.warn("Consumer thread did not exit within {} ms of wakeup(), interrupting.",
+                            joinTimeoutMillis);
                     consumerThread.interrupt();
                 }
             } catch (InterruptedException e) {

@@ -44,7 +44,8 @@ public class McpToolCompatibilityChecker
 
             // Check removed properties
             checkPropertyRemovals(existingNode, proposedNode, differences);
-
+// Check changes to existing property schemas
+            checkPropertySchemaChanges(existingNode, proposedNode, differences);
             // Check added required parameters
             checkRequiredParamAdditions(existingNode, proposedNode, differences);
 
@@ -83,6 +84,73 @@ public class McpToolCompatibilityChecker
             }
         }
     }
+    private void checkPropertySchemaChanges(JsonNode existing, JsonNode proposed,
+        Set<McpToolCompatibilityDifference> differences) {
+    JsonNode existingSchema = existing.get("inputSchema");
+    JsonNode proposedSchema = proposed.get("inputSchema");
+
+    if (existingSchema == null || !existingSchema.isObject()
+            || proposedSchema == null || !proposedSchema.isObject()) {
+        return;
+    }
+
+    JsonNode existingProps = existingSchema.get("properties");
+    JsonNode proposedProps = proposedSchema.get("properties");
+
+    if (existingProps == null || !existingProps.isObject()
+            || proposedProps == null || !proposedProps.isObject()) {
+        return;
+    }
+
+    Iterator<String> fieldNames = existingProps.fieldNames();
+    while (fieldNames.hasNext()) {
+        String prop = fieldNames.next();
+
+        if (!proposedProps.has(prop)) {
+            continue;
+        }
+
+        JsonNode existingProp = existingProps.get(prop);
+        JsonNode proposedProp = proposedProps.get(prop);
+
+        String existingType = getPropertyType(existingProp);
+        String proposedType = getPropertyType(proposedProp);
+
+        if (existingType != null && proposedType != null
+                && !existingType.equals(proposedType)) {
+            differences.add(new McpToolCompatibilityDifference(
+                    McpToolCompatibilityDifference.Type.PROPERTY_TYPE_CHANGED,
+                    "Input property '" + prop + "' type changed from '" + existingType
+                            + "' to '" + proposedType + "'"));
+        }
+
+        checkPropertyEnumNarrowing(prop, existingProp, proposedProp, differences);
+    }
+}
+    private void checkPropertyEnumNarrowing(String prop, JsonNode existingProp, JsonNode proposedProp,
+            Set<McpToolCompatibilityDifference> differences) {
+        JsonNode existingEnum = existingProp.get("enum");
+        JsonNode proposedEnum = proposedProp.get("enum");
+
+        if (existingEnum == null || !existingEnum.isArray()
+                || proposedEnum == null || !proposedEnum.isArray()) {
+            return;
+        }
+
+        Set<String> proposedValues = new HashSet<>();
+        for (JsonNode value : proposedEnum) {
+            proposedValues.add(value.asText());
+        }
+
+        for (JsonNode value : existingEnum) {
+            if (!proposedValues.contains(value.asText())) {
+                differences.add(new McpToolCompatibilityDifference(
+                        McpToolCompatibilityDifference.Type.PROPERTY_ENUM_VALUE_REMOVED,
+                        "Input property '" + prop + "' enum value '" + value.asText()
+                                + "' was removed"));
+            }
+        }
+    }
 
     private void checkRequiredParamAdditions(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
@@ -109,7 +177,15 @@ public class McpToolCompatibilityChecker
             }
         }
     }
-
+    private String getPropertyType(JsonNode property) {
+        if (property != null && property.isObject()) {
+            JsonNode type = property.get("type");
+            if (type != null && type.isTextual()) {
+                return type.asText();
+            }
+        }
+        return null;
+    }
     private String getInputSchemaType(JsonNode node) {
         JsonNode inputSchema = node.get("inputSchema");
         if (inputSchema != null && inputSchema.isObject()) {

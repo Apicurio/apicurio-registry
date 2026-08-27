@@ -235,7 +235,7 @@ class McpToolCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Narrowing an existing parameter enum should be backward incompatible");
     }
-        @Test
+    @Test
     void testBackwardIncompatibleEnumValuesWithDifferentJsonTypes() {
         String existing = """
                 {

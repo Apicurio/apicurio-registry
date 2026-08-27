@@ -185,7 +185,7 @@ public class McpToolCompatibilityChecker
         return null;
     }
     private String getInputSchemaType(JsonNode node) {
-         JsonNode inputSchema = node.get(INPUT_SCHEMA);
+        JsonNode inputSchema = node.get(INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
             JsonNode type = inputSchema.get("type");
             if (type != null && type.isTextual()) {
@@ -212,7 +212,7 @@ public class McpToolCompatibilityChecker
 
     private Set<String> extractRequiredParams(JsonNode node) {
         Set<String> required = new HashSet<>();
-         JsonNode inputSchema = node.get(INPUT_SCHEMA);
+        JsonNode inputSchema = node.get(INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
             JsonNode requiredNode = inputSchema.get("required");
             if (requiredNode != null && requiredNode.isArray()) {

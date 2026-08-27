@@ -161,7 +161,7 @@ class McpToolCompatibilityCheckerTest {
     }
 
     @Test
-    void testBackwardIncompatibleRemovingRequiredParam() {
+    void testBackwardCompatibleRemovingRequiredParam() {
         String existing = """
                 {
                     "name": "test_tool",
@@ -194,8 +194,112 @@ class McpToolCompatibilityCheckerTest {
                 CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
                 createMcpTool(proposed), Map.of());
 
+        assertTrue(result.isCompatible(),
+                "Removing a required parameter (making optional) should be backward compatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleArrayTypeChange() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": ["string", "null"],
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": ["integer", "null"],
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
         assertFalse(result.isCompatible(),
-                "Removing a required parameter should be backward incompatible");
+                "Changing array inputSchema type from string/null to integer/null should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleArrayTypeSame() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": ["string", "null"],
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": ["null", "string"],
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Array inputSchema types with same elements in different order should be backward compatible");
+    }
+
+    @Test
+    void testStrictJsonNodeEqualityRequiredParamAdditions() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["1"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["1", 1]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Numeric 1 and string '1' in required array must not be treated as equal");
     }
 
     @Test

@@ -174,8 +174,11 @@ jobs:
       # perf-tests/k8s/README.md and perf-tests/k8s/common/run-external-load.sh) - so this runs at
       # a concurrency safely below that, from *outside* the cluster, to validate a real
       # higher-concurrency read-throughput number without either the load generator's own
-      # connection-handling limit or in-cluster resource sharing confounding the result. This is
-      # the same methodology used to produce the sizing-guide numbers in
+      # connection-handling limit or in-cluster resource sharing confounding the result. Runs for
+      # 3 minutes (not a short smoke-test duration) because throughput was found to be understated
+      # by more than 3x in short (20-30s) runs due to JVM/JIT warm-up - see
+      # run-external-load.sh's usage comment. This is the same methodology used to produce the
+      # sizing-guide numbers in
       # docs/modules/ROOT/pages/getting-started/assembly-registry-sizing-guide.adoc.
       #
       # Informational only, like the baseline check above (see this workflow's top-of-file
@@ -193,7 +196,7 @@ jobs:
           fi
           mkdir -p /tmp/external-load-results
           GATLING_RESULTS_FOLDER=/tmp/external-load-results/gatling \
-            ./k8s/common/run-external-load.sh "$JAR" 200 30 0 \
+            ./k8s/common/run-external-load.sh "$JAR" 200 180 0 \
             > /tmp/external-load-results/console.log 2>&1 || true
           tail -n 60 /tmp/external-load-results/console.log
           {

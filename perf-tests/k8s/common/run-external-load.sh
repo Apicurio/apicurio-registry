@@ -26,6 +26,13 @@
 # single in-cluster pod does (observed to scale cleanly to 1600+ concurrent connections without
 # the TIME_WAIT/port-exhaustion problem reappearing).
 #
+# A third pitfall applies regardless of where the load generator runs: JVM/JIT warm-up. Short
+# (20-30 second) runs were found to understate steady-state throughput dramatically (in one
+# comparison, by more than 3x) - throughput was still climbing when the run ended. Use a duration
+# of a few minutes and judge steady-state throughput from the later portion of the run (Gatling
+# prints progress every 5 seconds), or accept that a short run's number is a lower bound, not a
+# true measurement. The default below (180s) reflects this.
+#
 # Usage:
 #   run-external-load.sh <perf-tests-jar> [PERF_USERS] [PERF_DURATION_SECONDS] [PERF_WRITE_RATIO]
 #
@@ -34,8 +41,8 @@
 set -euo pipefail
 
 JAR="${1:?Usage: run-external-load.sh <perf-tests-jar> [PERF_USERS] [PERF_DURATION_SECONDS] [PERF_WRITE_RATIO]}"
-PERF_USERS="${2:-300}"
-PERF_DURATION_SECONDS="${3:-30}"
+PERF_USERS="${2:-200}"
+PERF_DURATION_SECONDS="${3:-180}"
 PERF_WRITE_RATIO="${4:-0}"
 
 echo "Exposing the registry and Keycloak outside the cluster..."

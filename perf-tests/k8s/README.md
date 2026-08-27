@@ -17,6 +17,14 @@ to a real deployment rather than a bare-bones local dev setup:
   scenario there is only one Kafka broker, used both as the registry's storage backend and by the
   Kafka load generator - both paths are latency-injected identically.
 
+Both scenarios' `registry-cr.yaml` set a 2 CPU / 2Gi memory limit (up from the {operator}'s
+default 1 CPU / 1Gi) and `APICURIO_DATASOURCE_JDBC_MAX_SIZE=400` (up from the default 100) - both
+found necessary for stable, representative results at a few hundred concurrent clients: 1Gi caused
+GC-pressure-driven instability under sustained load (confirmed via `jcmd <pid> GC.heap_info`), and
+the default JDBC pool size bottlenecked throughput well below what the database could otherwise
+sustain. See the capacity planning and sizing guide (`docs/modules/ROOT/pages/getting-started/
+assembly-registry-sizing-guide.adoc`) for the full findings.
+
 Both scenarios share:
 
 - `common/keycloak.yaml` / `common/realm-import.json` - Keycloak, pre-loaded with a purpose-built

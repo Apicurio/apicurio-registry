@@ -66,6 +66,14 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>src/main/proto</directory>
+      </resource>
+    </resources>
 
     <plugins>
       <plugin>
@@ -118,29 +126,6 @@
             <phase>generate-sources</phase>
             <configuration>
               <protoc>${protobuf.version}</protoc>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy-dist</id>
-            <goals>
-              <goal>copy-resources</goal>
-            </goals>
-            <phase>prepare-package</phase>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${project.basedir}/target/generated-test-sources/protobuf/</directory>
-                  <filtering>false</filtering>
-                  <excludes/>
-                </resource>
-              </resources>
             </configuration>
           </execution>
         </executions>

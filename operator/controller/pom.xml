@@ -140,6 +140,10 @@
             <phase>generate-resources</phase>
             <configuration>
               <outputDirectory>${projectRoot}/operator/controller/src/main/deploy/crd</outputDirectory>
+              <!-- The default only copies when the source is newer than the destination, which
+                   leaves a stale CRD in place whenever the destination happens to win on
+                   timestamp (a fresh checkout, a restored file, a copy from another branch). -->
+              <overwrite>true</overwrite>
               <resources>
                 <resource>
                   <directory>${projectRoot}/operator/model/target/classes/META-INF/fabric8</directory>
@@ -151,6 +155,24 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <plugin>
+        <!-- The CRD is generated, but it is copied into a source directory (above), so `mvn clean`
+             would otherwise leave it behind. `make deploy`, `make dist` and `make bundle` all read
+             it from there, and would then apply a CRD generated from an older model. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>${projectRoot}/operator/controller/src/main/deploy/crd</directory>
+              <includes>
+                <include>apicurioregistries3.registry.apicur.io-v1.yml</include>
+              </includes>
+            </fileset>
+          </filesets>
+        </configuration>
       </plugin>
 
       <plugin>

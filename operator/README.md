@@ -149,6 +149,14 @@ Available options:
 | REGISTRY_APP_IMAGE | string | `quay.io/apicurio/apicurio-registry:latest-snapshot`    | -                                                 |
 | REGISTRY_UI_IMAGE  | string | `quay.io/apicurio/apicurio-registry-ui:latest-snapshot` | -                                                 |
 
+*NOTE: The CRD file must have been generated using `make build`.*
+
+The CRD applied by `make deploy` is `controller/src/main/deploy/crd/apicurioregistries3.registry.apicur.io-v1.yml`.
+It is generated from the operator's Java model (`operator/model`) by `crd-generator-apt` and copied
+into that directory by the build, so it is not checked in, and `mvn clean` removes it. The targets
+that consume it fail with a message pointing back at `make build` rather than applying a CRD left
+over from an earlier build.
+
 To remove the operator from your cluster, run:
 
 ```shell

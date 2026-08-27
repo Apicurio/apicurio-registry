@@ -97,6 +97,10 @@ INSTALL_NAMESPACED_FILE ?= install/apicurio-registry-operator-namespaced-$(VERSI
 
 DIST_TARGET_DIR ?= target/dist
 
+# Generated from the Java model by the build (see controller/pom.xml) and consumed by every target
+# below that runs kustomize. Not checked in.
+CRD_FILE ?= controller/src/main/deploy/crd/apicurioregistries3.registry.apicur.io-v1.yml
+
 ### Other
 
 CURRENT_DIR = $(shell pwd)
@@ -269,6 +273,16 @@ build: ## TODO
 	mvn clean install $(BUILD_OPTS_EXT)
 
 
+.PHONY: require-crd
+require-crd: ## Fail with an actionable message if the generated CRD is missing
+	@test -f $(CRD_FILE) || { \
+		echo "$(CC_RED)$(CRD_FILE) is missing.$(CC_END)"; \
+		echo "It is generated from the operator's Java model during the build, and 'mvn clean' removes it."; \
+		echo "Run '$(CC_CYAN)make build$(CC_END)' first."; \
+		exit 1; \
+	}
+
+
 GROUPS ?=
 EXCLUDED_GROUPS ?=
 
@@ -338,7 +352,7 @@ image: image-build image-push ## TODO
 
 
 .PHONY: deploy
-deploy: ## Deploy the Operator to a cluster using kubectl
+deploy: require-crd ## Deploy the Operator to a cluster using kubectl
 	kubectl create namespace $(NAMESPACE) || true
 	kubectl kustomize controller/src/main/deploy/install/default | envsubst | kubectl -n $(NAMESPACE) apply -f -
 
@@ -349,7 +363,7 @@ undeploy: ## TODO
 
 
 .PHONY: dist-install-file
-dist-install-file: ## TODO
+dist-install-file: require-crd ## TODO
 	mkdir -p $(dir $(INSTALL_FILE))
 ifeq ($(DEBUG),true)
 	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
@@ -361,7 +375,7 @@ endif
 
 
 .PHONY: dist-install-file-namespaced
-dist-install-file-namespaced: ## Generate the single-namespace (least-privilege) install file
+dist-install-file-namespaced: require-crd ## Generate the single-namespace (least-privilege) install file
 	mkdir -p $(dir $(INSTALL_NAMESPACED_FILE))
 	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
 	kubectl kustomize controller/src/main/deploy/install/namespaced | envsubst >$(INSTALL_NAMESPACED_FILE)
@@ -394,7 +408,7 @@ quickstart: build image-build image-push deploy ## TODO
 
 
 .PHONY: bundle-build
-bundle-build: install-operator-sdk install-yq ## Generate bundle metadata
+bundle-build: install-operator-sdk install-yq require-crd ## Generate bundle metadata
 	$(call target_dir,$(BUNDLE_DIR))
 	kubectl kustomize controller/src/main/deploy/csv | envsubst | $(OPERATOR_SDK) generate bundle -q --output-dir $(BUNDLE_DIR) $(BUNDLE_OPTS)
 	# Post-process annotations.yaml

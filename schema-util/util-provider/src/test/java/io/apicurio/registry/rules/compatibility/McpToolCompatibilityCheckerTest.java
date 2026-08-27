@@ -160,6 +160,41 @@ class McpToolCompatibilityCheckerTest {
     }
 
     @Test
+    void testBackwardIncompatibleChangingParameterTypeArray() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": ["string", "null"] }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": ["integer", "null"] }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing an array-valued parameter type should be backward incompatible");
+    }
+    @Test
     void testBackwardIncompatibleNarrowingParameterEnum() {
         String existing = """
                 {
@@ -199,6 +234,47 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Narrowing an existing parameter enum should be backward incompatible");
+    }
+        @Test
+    void testBackwardIncompatibleEnumValuesWithDifferentJsonTypes() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": {
+                                "type": "string",
+                                "enum": [1, "1"]
+                            }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": {
+                                "type": "string",
+                                "enum": ["1"]
+                            }
+                        },
+                        "required": ["format"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing a numeric enum value while keeping the string value should be backward incompatible");
     }
 
     @Test

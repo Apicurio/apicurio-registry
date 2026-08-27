@@ -85,7 +85,7 @@ public class McpToolCompatibilityChecker
         }
     }
     private void checkPropertySchemaChanges(JsonNode existing, JsonNode proposed,
-        Set<McpToolCompatibilityDifference> differences) {
+        Set<SimpleCompatibilityDifference> differences) {
     JsonNode existingSchema = existing.get("inputSchema");
     JsonNode proposedSchema = proposed.get("inputSchema");
 
@@ -118,17 +118,16 @@ public class McpToolCompatibilityChecker
 
         if (existingType != null && proposedType != null
                 && !existingType.equals(proposedType)) {
-            differences.add(new McpToolCompatibilityDifference(
-                    McpToolCompatibilityDifference.Type.PROPERTY_TYPE_CHANGED,
-                    "Input property '" + prop + "' type changed from '" + existingType
-                            + "' to '" + proposedType + "'"));
+            differences.add(new SimpleCompatibilityDifference(
+        "Input property '" + prop + "' type changed from '" + existingType
+                + "' to '" + proposedType + "'", CONTEXT_PROPERTIES));
         }
 
         checkPropertyEnumNarrowing(prop, existingProp, proposedProp, differences);
     }
 }
     private void checkPropertyEnumNarrowing(String prop, JsonNode existingProp, JsonNode proposedProp,
-            Set<McpToolCompatibilityDifference> differences) {
+        Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingEnum = existingProp.get("enum");
         JsonNode proposedEnum = proposedProp.get("enum");
 
@@ -144,10 +143,9 @@ public class McpToolCompatibilityChecker
 
         for (JsonNode value : existingEnum) {
             if (!proposedValues.contains(value.asText())) {
-                differences.add(new McpToolCompatibilityDifference(
-                        McpToolCompatibilityDifference.Type.PROPERTY_ENUM_VALUE_REMOVED,
-                        "Input property '" + prop + "' enum value '" + value.asText()
-                                + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+        "Input property '" + prop + "' enum value '" + value.asText()
+                + "' was removed", CONTEXT_PROPERTIES));
             }
         }
     }
@@ -165,13 +163,14 @@ public class McpToolCompatibilityChecker
         }
     }
 
-    private void checkRequiredParamRemovals(JsonNode existing, JsonNode proposed,
+        private void checkRequiredParamRemovals(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingRequired = extractRequiredParams(existing);
         Set<String> proposedRequired = extractRequiredParams(proposed);
+        Set<String> proposedProperties = extractPropertyNames(proposed);
 
         for (String param : existingRequired) {
-            if (!proposedRequired.contains(param)) {
+            if (!proposedRequired.contains(param) && !proposedProperties.contains(param)) {
                 differences.add(new SimpleCompatibilityDifference(
                         "Required parameter '" + param + "' was removed", CONTEXT_REQUIRED));
             }

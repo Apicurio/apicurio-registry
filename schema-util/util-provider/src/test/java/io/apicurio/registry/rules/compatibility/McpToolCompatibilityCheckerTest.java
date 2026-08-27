@@ -121,8 +121,9 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Removing a property should be backward incompatible");
-        }
-        @Test
+    }
+
+    @Test
     void testBackwardIncompatibleChangingParameterType() {
         String existing = """
                 {
@@ -157,7 +158,8 @@ class McpToolCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Changing an existing parameter type should be backward incompatible");
     }
-        @Test
+
+    @Test
     void testBackwardIncompatibleNarrowingParameterEnum() {
         String existing = """
                 {
@@ -258,8 +260,7 @@ class McpToolCompatibilityCheckerTest {
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "query": { "type": "string" },
-                            "format": { "type": "string" }
+                            "query": { "type": "string" }
                         },
                         "required": ["query"]
                     }
@@ -272,6 +273,44 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Removing a required parameter should be backward incompatible");
+    }
+
+    @Test
+    void testBackwardCompatibleMakingRequiredParamOptional() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "format": { "type": "string" }
+                        },
+                        "required": ["query", "format"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "format": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Making a required parameter optional should be backward compatible");
     }
 
     @Test

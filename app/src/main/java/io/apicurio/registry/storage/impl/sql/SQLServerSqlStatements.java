@@ -144,6 +144,12 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String selectArtifactRowForUpdate() {
+        return "SELECT a.artifactId FROM artifacts a WITH (UPDLOCK, HOLDLOCK) "
+                + "WHERE a.groupId = ? AND a.artifactId = ?";
+    }
+
+    @Override
     public String selectMaxVersionOrderForUpdate() {
         return "SELECT v.versionOrder FROM versions v WITH (UPDLOCK, HOLDLOCK) "
                 + "WHERE v.groupId = ? AND v.artifactId = ? "

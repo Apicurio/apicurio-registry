@@ -44,6 +44,8 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
@@ -56,7 +58,13 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     // Cached auth failures expire after 60 seconds so the system retries quickly
     // when the OIDC server recovers. This is deliberately shorter than the success
     // token TTL (accessTokenExpiration, default 10 minutes).
-    private static final Duration FAILURE_CACHE_TTL = Duration.ofSeconds(60);
+    //
+    // Why not @CircuitBreaker? The circuit breaker annotation operates per-method,
+    // not per-key. A single bad client would open the circuit for all clients,
+    // denying service to valid credentials. The manual per-key TTL isolates
+    // failures: only the offending credentials hash is blocked, and only for
+    // FAILURE_CACHE_TTL seconds.
+    static final Duration FAILURE_CACHE_TTL = Duration.ofSeconds(60);
 
     private final OidcAuthenticationMechanism oidcAuthenticationMechanism;
     private final AuthConfig authConfig;
@@ -65,8 +73,9 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     private final Logger log;
     private final AppAuthenticationMechanism parent;
 
-    private final ConcurrentHashMap<String, WrappedValue<String>> cachedAccessTokens;
-    private final ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
+    // Package-private for test access
+    final ConcurrentHashMap<String, CompletableFuture<WrappedValue<String>>> cachedAccessTokens;
+    final ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
     private final String oidcTokenUrl;
 
     /**
@@ -245,22 +254,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
 
         String jwtToken;
         try {
-            // Atomic check-and-fetch: only one thread fetches per expired key
-            WrappedValue<String> cached = cachedAccessTokens.compute(credentialsHash,
-                    (key, existing) -> {
-                        if (existing != null && !existing.isExpired()) {
-                            return existing;
-                        }
-                        // Re-check failures: another thread may have cached one while
-                        // we waited for the compute lock
-                        WrappedValue<RuntimeException> failure =
-                                cachedAuthFailures.get(key);
-                        if (failure != null && !failure.isExpired()) {
-                            throw failure.getValue();
-                        }
-                        return parent.getAccessToken(clientCredentials, oidcTokenUrl);
-                    });
-            jwtToken = cached.getValue();
+            jwtToken = fetchOrJoinToken(credentialsHash, clientCredentials);
         } catch (io.quarkus.security.UnauthorizedException
                 | io.quarkus.security.ForbiddenException
                 | OidcAuthException ex) {
@@ -273,6 +267,68 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
 
         context.request().headers().set("Authorization", "Bearer " + jwtToken);
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
+    }
+
+    /**
+     * Fetches a token or joins an in-flight fetch for the same credentials hash.
+     *
+     * <p>Uses a future-valued cache so the ConcurrentHashMap bin monitor is held only
+     * long enough to register or look up a CompletableFuture. The actual blocking I/O
+     * (with @Retry, up to ~4 s) runs outside the lock. Other threads with the same key
+     * join() the future outside the lock; threads with different keys that happen to
+     * hash to the same bin are not blocked.
+     */
+    private String fetchOrJoinToken(String credentialsHash,
+            Pair<String, String> clientCredentials) {
+        CompletableFuture<WrappedValue<String>> newFuture = new CompletableFuture<>();
+        CompletableFuture<WrappedValue<String>> future = cachedAccessTokens.compute(
+                credentialsHash, (key, existing) -> {
+                    if (existing != null) {
+                        // Another thread is already fetching; join it outside the lock
+                        if (!existing.isDone()) {
+                            return existing;
+                        }
+                        // Completed successfully and not expired; reuse
+                        if (!existing.isCompletedExceptionally()) {
+                            WrappedValue<String> val = existing.join();
+                            if (!val.isExpired()) {
+                                return existing;
+                            }
+                        }
+                    }
+                    // Re-check failures: another thread may have cached one while
+                    // we waited for the compute lock
+                    WrappedValue<RuntimeException> failure = cachedAuthFailures.get(key);
+                    if (failure != null && !failure.isExpired()) {
+                        throw failure.getValue();
+                    }
+                    return newFuture;
+                });
+
+        // We are the creator: do the blocking fetch outside the lock
+        if (future == newFuture) {
+            try {
+                WrappedValue<String> result = parent.getAccessToken(
+                        clientCredentials, oidcTokenUrl);
+                future.complete(result);
+            } catch (RuntimeException ex) {
+                // Remove the placeholder so the next caller retries fresh
+                cachedAccessTokens.remove(credentialsHash, future);
+                future.completeExceptionally(ex);
+                throw ex;
+            }
+        }
+
+        // Join outside the lock (no-op if we are the creator and it succeeded)
+        try {
+            return future.join().getValue();
+        } catch (CompletionException ce) {
+            Throwable cause = ce.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new OidcAuthException("Failed to obtain access token", cause);
+        }
     }
 
     private String getCredentialsHash(String credentials) {

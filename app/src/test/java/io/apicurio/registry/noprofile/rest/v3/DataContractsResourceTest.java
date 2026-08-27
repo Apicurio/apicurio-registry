@@ -47,6 +47,8 @@ import java.util.UUID;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
@@ -569,7 +571,8 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body("{}") // missing status
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
-                .then().statusCode(400);
+                .then().statusCode(400)
+                .body("name", equalTo("MissingRequiredParameterException"));
     }
 
     @Test
@@ -582,7 +585,74 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body("{\"status\": null}") // explicit null status
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
-                .then().statusCode(400);
+                .then().statusCode(400)
+                .body("name", equalTo("MissingRequiredParameterException"));
+    }
+
+    @Test
+    public void testStatusTransition_ValidStatus_Returns200() throws Exception {
+        String artifactId = "testStatusTransition_ValidStatus-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": \"DRAFT\"}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(200)
+                .body("status", equalTo("DRAFT"));
+    }
+
+    @Test
+    public void testStatusTransition_BogusStatus_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_BogusStatus-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": \"BOGUS\"}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400)
+                .body("name", equalTo("InvalidParameterValueException"))
+                .body("detail", equalTo("InvalidParameterValueException: Request contains parameter 'status' with invalid value.  Expected 'valid status enum value' but got 'BOGUS'"))
+                .body(not(containsString("ContractStatusTransition.Status")))
+                .body(not(containsString("io.apicurio")))
+                .body(not(containsString("No enum constant")));
+    }
+
+    @Test
+    public void testStatusTransition_WrongShape_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_WrongShape-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": [\"BOGUS\"]}") // wrong shape
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400)
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", equalTo("BadRequestException: Not able to deserialize data provided."))
+                .body("detail", not(containsString("ContractStatusTransition")))
+                .body("detail", not(containsString("Status")));
+    }
+
+    @Test
+    public void testInvalidEnum_Unrelated() throws Exception {
+        String artifactId = "testInvalidEnum_Unrelated-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"domainRules\":[{\"name\":\"rule-1\",\"kind\":\"BOGUS_KIND\"}]}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then().statusCode(400)
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", equalTo("BadRequestException: Not able to deserialize data provided."))
+                .body("detail", not(containsString("BOGUS_KIND")))
+                .body("detail", not(containsString("ContractRule")));
     }
 
     @Test

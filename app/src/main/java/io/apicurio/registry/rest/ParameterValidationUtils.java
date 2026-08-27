@@ -54,7 +54,7 @@ public final class ParameterValidationUtils {
      */
     public static void requireParameterValue(String parameterName, String expectedValue, String actualValue) {
         if (actualValue != null && expectedValue != null && !actualValue.equals(expectedValue)) {
-            throw new InvalidParameterValueException(parameterName, actualValue, expectedValue);
+            throw new InvalidParameterValueException(parameterName, expectedValue, actualValue);
         }
     }
 

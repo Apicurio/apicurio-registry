@@ -7,7 +7,10 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.events.ContractMetadataUpdated;
 import io.apicurio.registry.events.ContractRulesetConfigured;
+import io.apicurio.registry.events.ContractStatusChanged;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -938,6 +941,38 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                     rebuildLabels(handle, normalizedGroup, artifactId)))
                             .bind(1, normalizedGroup).bind(2, artifactId).execute();
                 });
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        // Atomic merge scoped to the contract prefix.
+        mergeArtifactLabels(groupId, artifactId, prefix, labels);
+
+        outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        // Each merge is scoped to a single label key so that the other contract labels
+        // are left untouched.
+        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+        mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus));
+
+        if (ContractStatus.STABLE.name().equals(toStatus)) {
+            String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
+            mergeArtifactLabels(groupId, artifactId, stableDateKey,
+                    Map.of(stableDateKey, effectiveDate));
+        }
+        if (ContractStatus.DEPRECATED.name().equals(toStatus)) {
+            String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
+            mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
+                    Map.of(deprecatedDateKey, effectiveDate));
+        }
+
+        outboxEvent.fire(SqlOutboxEvent
+                .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
     }
 
     private Map<String, String> rebuildLabels(

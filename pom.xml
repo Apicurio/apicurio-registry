@@ -144,6 +144,10 @@
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
+    <!-- Re-augmentable (Quarkus mutable-jar) variant of the app distribution, used by the
+         "-mutable" container image. Skipped by default, enabled by -Dfull. -->
+    <apicurio.mutable-jar.skip>true</apicurio.mutable-jar.skip>
+
     <projectRoot>${project.basedir}</projectRoot>
 
     <!--
@@ -1422,6 +1426,10 @@
           <name>full</name>
         </property>
       </activation>
+      <properties>
+        <!-- Also build the re-augmentable app distribution (see app/pom.xml, build-mutable) -->
+        <apicurio.mutable-jar.skip>false</apicurio.mutable-jar.skip>
+      </properties>
       <modules>
         <!-- Include non-essential modules so -Dfull is a true superset -->
         <module>cli</module>

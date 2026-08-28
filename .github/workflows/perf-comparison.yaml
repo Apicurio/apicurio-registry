@@ -1,0 +1,121 @@
+name: Product-neutral Schema Registry Comparison
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Product-neutral Confluent-compatible operation
+        required: true
+        default: READ_ID
+        type: choice
+        options:
+          - READ_ID
+          - READ_VERSION
+          - REGISTER_NEW_SUBJECT
+          - REGISTER_NEW_VERSION
+          - REGISTER_IDEMPOTENT
+          - COMPATIBILITY
+      repetitions:
+        description: Measured repetitions per product (5 required for published claims)
+        required: true
+        default: "5"
+        type: string
+      users:
+        description: Concurrent clients per run
+        required: true
+        default: "100"
+        type: string
+      seed-schemas:
+        description: Seeded subjects per run
+        required: true
+        default: "1000"
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  APICURIO_IMAGE: localhost:5000/apicurio-registry:${{ github.sha }}
+
+jobs:
+  comparison:
+    name: Compare registries (${{ inputs.operation }})
+    if: github.repository_owner == 'Apicurio'
+    # This shared-runner workflow is for development/trend evidence only. Claim-grade runs use
+    # the same script on dedicated SUT and load-generator hardware (see the module README).
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Build Apicurio and comparison runner
+        run: |
+          ./mvnw -s "${GITHUB_WORKSPACE}/.github/ci-settings.xml" -B clean package \
+            -Pprod,perf-comparison-tests -pl distro/docker,perf-comparison-tests -am \
+            -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
+          docker build -f distro/docker/target/docker/Dockerfile.jvm \
+            -t "$APICURIO_IMAGE" distro/docker/target/docker
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          driver: none
+          ingress-enable: "false"
+          olm-enable: "false"
+          olm-v1-enable: "false"
+
+      - name: Enable resource metrics
+        run: |
+          minikube addons enable metrics-server
+          kubectl rollout status -n kube-system deployment/metrics-server --timeout=3m
+
+      - name: Start local image registry and publish Apicurio image
+        run: |
+          docker run -d -p 5000:5000 --restart=always ghcr.io/distribution/distribution:3.0
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:5000/v2/ >/dev/null 2>&1 && break
+            sleep 0.5
+          done
+          docker push "$APICURIO_IMAGE"
+
+      - name: Run randomized comparison
+        env:
+          OPERATION: ${{ inputs.operation }}
+          REPETITIONS: ${{ inputs.repetitions }}
+          PERF_USERS: ${{ inputs.users }}
+          PERF_SEED_SCHEMAS: ${{ inputs.seed-schemas }}
+          PERF_WARMUP_SECONDS: "60"
+          PERF_DURATION_SECONDS: "180"
+        run: |
+          [[ "$REPETITIONS" =~ ^[1-9][0-9]?$ ]] || { echo "Invalid repetitions"; exit 2; }
+          [[ "$PERF_USERS" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid users"; exit 2; }
+          [[ "$PERF_SEED_SCHEMAS" =~ ^[1-9][0-9]*$ ]] || { echo "Invalid seed count"; exit 2; }
+          ./perf-comparison-tests/run-comparison.sh \
+            "$OPERATION" "$REPETITIONS" "/tmp/perf-comparison/$OPERATION"
+
+      - name: Add comparison to job summary
+        if: always()
+        env:
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          REPORT="/tmp/perf-comparison/$OPERATION/comparison/comparison.md"
+          if [ -f "$REPORT" ]; then
+            cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Comparison did not produce an aggregate report; inspect raw artifacts." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload comparison results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: schema-registry-comparison-${{ inputs.operation }}-${{ github.sha }}
+          path: /tmp/perf-comparison
+          retention-days: 30

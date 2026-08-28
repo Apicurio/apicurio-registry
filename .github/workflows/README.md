@@ -8,6 +8,13 @@ Two top-level workflows make up the whole pipeline:
 |----------|----------|
 | `quick-check.yaml` (**Quick Check**) | The fast PR gate: **Quick Verify** (~5 min, every PR push) and a fast UI build. No lifecycle awareness, no Decide job — it always runs the same way. Drives `lifecycle/tested` while a PR is in `lifecycle/ready-for-review`. |
 | `verify.yaml` (**Verify**) | Everything else: Build (Java app + Docker images), unit tests, CLI, SDKs, console plugin, integration tests, extra tests, operator tests, and (on push to `main`) image publishing. One `decide` job, shared by every job in this workflow via `needs:`. Drives `lifecycle/full-verified`. |
+
+Performance workflows are intentionally not PR gates:
+
+- `perf-main.yaml` tracks Apicurio-specific capacity/regressions after merges to `main`.
+- `perf-comparison.yaml` is a manually dispatched, product-neutral Confluent-compatible API
+  comparison across Apicurio, Confluent, Karapace, and Redpanda. It runs sequential randomized
+  repetitions and publishes raw evidence; it is not part of Verify/Decide/Verification Gate.
 `verify.yaml` intentionally has a single Decide job that every other job in it
 depends on, rather than being split across several independently-triggered
 workflow files each with their own Decide. That used to be the design (four

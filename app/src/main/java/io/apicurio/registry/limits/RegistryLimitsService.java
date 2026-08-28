@@ -240,28 +240,48 @@ public class RegistryLimitsService {
                 errorMessages.add(MAX_LABELS_EXCEEDED_MSG);
             }
 
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes)
-                    || isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)) {
+            boolean checkKeySize = isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes);
+            boolean checkValueSize = isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes);
 
-                labels.entrySet().forEach(e -> {
+            if (checkKeySize || checkValueSize) {
+                long maxKeyBytes = checkKeySize ? registryLimitsConfiguration.getMaxPropertyKeySizeBytes() : 0;
+                long maxValueBytes = checkValueSize ? registryLimitsConfiguration.getMaxPropertyValueSizeBytes() : 0;
 
-                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes)
-                            && e.getKey() != null
-                            && e.getKey().getBytes(StandardCharsets.UTF_8).length > registryLimitsConfiguration
-                                    .getMaxPropertyKeySizeBytes()) {
-                        errorMessages.add(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG);
+                boolean keySizeExceeded = false;
+                boolean valueSizeExceeded = false;
+
+                for (Map.Entry<String, String> entry : labels.entrySet()) {
+                    if (checkKeySize && !keySizeExceeded && exceedsByteSizeLimit(entry.getKey(), maxKeyBytes)) {
+                        keySizeExceeded = true;
                     }
-
-                    if (isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes)
-                            && e.getValue() != null
-                            && e.getValue().getBytes(StandardCharsets.UTF_8).length > registryLimitsConfiguration
-                                    .getMaxPropertyValueSizeBytes()) {
-                        errorMessages.add(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG);
+                    if (checkValueSize && !valueSizeExceeded && exceedsByteSizeLimit(entry.getValue(), maxValueBytes)) {
+                        valueSizeExceeded = true;
                     }
-                });
+                    if ((!checkKeySize || keySizeExceeded) && (!checkValueSize || valueSizeExceeded)) {
+                        break;
+                    }
+                }
+
+                if (keySizeExceeded) {
+                    errorMessages.add(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG);
+                }
+                if (valueSizeExceeded) {
+                    errorMessages.add(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG);
+                }
             }
         }
     }
+
+    private boolean exceedsByteSizeLimit(String str, long maxBytes) {
+        if (str == null) {
+            return false;
+        }
+        if (str.length() > maxBytes) {
+            return true;
+        }
+        return str.getBytes(StandardCharsets.UTF_8).length > maxBytes;
+    }
+
 
     private boolean isLimitEnabled(Function<RegistryLimitsConfiguration, Long> limitGetter) {
         if (registryLimitsConfiguration != null) {

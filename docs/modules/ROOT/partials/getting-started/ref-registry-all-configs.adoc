@@ -1423,6 +1423,16 @@ The following {registry} configuration options are available for each component 
 |`30000`
 |`3.1.4`
 |Maximum delay in milliseconds between retry attempts
+|`apicurio.storage.content-cache.enabled`
+|`boolean`
+|`true`
+|`3.3.3`
+|Enable an in-memory, byte-weighted cache of immutable artifact content (keyed by content ID and content hash) in front of the storage layer
+|`apicurio.storage.content-cache.max-size`
+|`long`
+|`67108864`
+|`3.3.3`
+|Maximum total weight (approximate size in bytes) of the content cache described by apicurio.storage.content-cache.enabled
 |`apicurio.storage.enable-automatic-group-creation`
 |`boolean`
 |`true`

@@ -419,7 +419,7 @@ public class OdcsDataContractsDemo {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.err.println("\n" + R + "Interrupted: " + e.getMessage() + X);
+            fail("Interrupted: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("\n" + R + "Error: " + e.getMessage() + X);
         } finally {

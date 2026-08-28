@@ -48,7 +48,7 @@ jobs:
 
       # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -169,7 +169,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -238,7 +238,13 @@ jobs:
             os-name: linux-x86_64
           - runner: macos-14
             os-name: osx-aarch_64
+          - runner: windows-latest
+            os-name: windows-x86_64
     runs-on: ${{ matrix.runner }}
+    # The native build step is a bash script; Git Bash is available on windows-latest too.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Apicurio Registry Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -251,13 +257,17 @@ jobs:
           java-version: '23'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
+          # Disabled on Windows for the cross-drive BuildArtifactsExporter failure. See the same
+          # note in verify-cli.yaml.
+          native-image-job-reports: ${{ matrix.os-name != 'windows-x86_64' }}
 
       - name: Build CLI Native Binary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml clean package \
+          # Quoted because github.workspace is a backslash path on windows-latest and this step
+          # runs under bash. See the same note in verify-cli.yaml.
+          ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" clean package \
             --no-transfer-progress \
             -pl cli -am \
             -DskipTests \
@@ -301,7 +311,7 @@ jobs:
           ls -la artifacts/
           echo "=== CLI ZIPs ==="
           ls -la cli-zips/
-          for classifier in linux-x86_64 osx-aarch_64; do
+          for classifier in linux-x86_64 osx-aarch_64 windows-x86_64; do
             if ! ls cli-zips/*-${classifier}.zip 1>/dev/null 2>&1; then
               echo "ERROR: Missing CLI ZIP for ${classifier}"
               exit 1

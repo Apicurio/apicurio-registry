@@ -29,6 +29,13 @@ class McpToolCompatibilityCheckerTest {
         return TypedContent.create(ContentHandle.create(json), ContentTypes.APPLICATION_JSON);
     }
 
+    private static void assertHasDifferenceWithContext(CompatibilityExecutionResult result,
+            String context) {
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> context.equals(d.asRuleViolation().getContext())),
+                "Expected a difference with context '" + context + "'");
+    }
+
     @Test
     void testCompatibleWhenNoExistingArtifacts() {
         String proposed = """
@@ -121,6 +128,7 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Removing a property should be backward incompatible");
+        assertHasDifferenceWithContext(result, "/inputSchema/properties");
     }
 
     @Test
@@ -158,6 +166,7 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Adding a required parameter should be backward incompatible");
+        assertHasDifferenceWithContext(result, "/inputSchema/required");
     }
 
     @Test
@@ -196,6 +205,7 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Removing a required parameter should be backward incompatible");
+        assertHasDifferenceWithContext(result, "/inputSchema/required");
     }
 
     @Test
@@ -228,6 +238,7 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Changing inputSchema type should be backward incompatible");
+        assertHasDifferenceWithContext(result, "/inputSchema/type");
     }
 
     @Test

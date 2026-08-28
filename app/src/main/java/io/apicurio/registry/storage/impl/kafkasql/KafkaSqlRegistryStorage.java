@@ -10,13 +10,16 @@ import io.apicurio.registry.events.ArtifactVersionCreated;
 import io.apicurio.registry.events.ArtifactVersionDeleted;
 import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
 import io.apicurio.registry.events.ArtifactVersionStateChanged;
+import io.apicurio.registry.events.ContractMetadataUpdated;
 import io.apicurio.registry.events.ContractRulesetConfigured;
+import io.apicurio.registry.events.ContractStatusChanged;
 import io.apicurio.registry.events.GlobalRuleConfigured;
 import io.apicurio.registry.events.GroupCreated;
 import io.apicurio.registry.events.GroupDeleted;
 import io.apicurio.registry.events.GroupMetadataUpdated;
 import io.apicurio.registry.events.GroupRuleConfigured;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.impl.sql.SqlStatements;
 import io.apicurio.registry.metrics.StorageMetricsApply;
 import io.apicurio.registry.metrics.health.liveness.PersistenceExceptionLivenessApply;
 import io.apicurio.registry.metrics.health.readiness.PersistenceTimeoutReadinessApply;
@@ -83,6 +86,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
@@ -764,6 +768,26 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        var message = new UpdateContractMetadata4Message(groupId, artifactId, prefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        var message = new TransitionContractStatus6Message(groupId, artifactId, fromStatus,
+                toStatus, prefix, effectiveDate);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        outboxEvent.fire(KafkaSqlOutboxEvent
+                .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
+    }
+
+    @Override
     public void insertContractAuditEntry(io.apicurio.registry.storage.dto.ContractAuditEntryDto entry)
             throws RegistryStorageException {
         var message = new InsertContractAuditEntry1Message(entry);
@@ -1286,7 +1310,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // First we generate an identifier for the snapshot, then we send a snapshot marker to the journal
         // topic.
         String snapshotId = UUID.randomUUID().toString();
-        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + ".sql");
+        Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + SqlStatements.COMPRESSED_SNAPSHOT_EXTENSION);
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
         this.lastTriggeredSnapshot = snapshotId;
         log.debug("Snapshot with id {} triggered.", snapshotId);

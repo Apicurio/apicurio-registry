@@ -3,12 +3,12 @@ package io.apicurio.registry.rules.validity;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,8 +16,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Content validator for Prompt Template artifacts.
@@ -27,9 +25,11 @@ import java.util.regex.Pattern;
  */
 public class PromptTemplateContentValidator extends AbstractContentValidator {
 
-    private static final Pattern TEMPLATE_VARIABLE_PATTERN = Pattern.compile("\\{\\{(\\w+)\\}\\}");
     private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
             "string", "integer", "number", "boolean", "array", "object");
+            
+    private static final String FIELD_MINIMUM = "minimum";
+    private static final String FIELD_MAXIMUM = "maximum";
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -139,15 +139,29 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
                 }
             }
 
-            if (varSchema.has("minimum") && !varSchema.get("minimum").isNumber()) {
+            if (varSchema.has(FIELD_MINIMUM) && !varSchema.get(FIELD_MINIMUM).isNumber()) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid 'minimum' value. Must be a number.",
-                        "/variables/" + varName + "/minimum"));
+                        "Variable '" + varName + "' has invalid '" + FIELD_MINIMUM + "' value. Must be a number.",
+                        "/variables/" + varName + "/" + FIELD_MINIMUM));
             }
-            if (varSchema.has("maximum") && !varSchema.get("maximum").isNumber()) {
+            if (varSchema.has(FIELD_MAXIMUM) && !varSchema.get(FIELD_MAXIMUM).isNumber()) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid 'maximum' value. Must be a number.",
-                        "/variables/" + varName + "/maximum"));
+                        "Variable '" + varName + "' has invalid '" + FIELD_MAXIMUM + "' value. Must be a number.",
+                        "/variables/" + varName + "/" + FIELD_MAXIMUM));
+            }
+
+            if (varSchema.has(FIELD_MINIMUM) && varSchema.get(FIELD_MINIMUM).isNumber()
+                    && varSchema.has(FIELD_MAXIMUM) && varSchema.get(FIELD_MAXIMUM).isNumber()) {
+                double minimum = varSchema.get(FIELD_MINIMUM).asDouble();
+                double maximum = varSchema.get(FIELD_MAXIMUM).asDouble();
+                if (minimum > maximum) {
+                    violations.add(new RuleViolation(
+                            "Variable '" + varName + "' has '" + FIELD_MINIMUM + "' ("
+                                    + varSchema.get(FIELD_MINIMUM).asText() + ") greater than '" + FIELD_MAXIMUM
+                                    + "' (" + varSchema.get(FIELD_MAXIMUM).asText()
+                                    + "). No value could ever satisfy this constraint.",
+                            "/variables/" + varName + "/" + FIELD_MINIMUM));
+                }
             }
 
             if (varSchema.has("enum") && !varSchema.get("enum").isArray()) {
@@ -171,15 +185,7 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
     }
 
     public static List<String> extractTemplateVariables(String template) {
-        List<String> variables = new ArrayList<>();
-        Matcher matcher = TEMPLATE_VARIABLE_PATTERN.matcher(template);
-        while (matcher.find()) {
-            String varName = matcher.group(1);
-            if (!variables.contains(varName)) {
-                variables.add(varName);
-            }
-        }
-        return variables;
+        return PromptTemplateVariableUtil.extractVariableNames(template);
     }
 
     @Override

@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>3.3.2-SNAPSHOT</version>
+        <version>3.3.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -75,6 +75,15 @@
         <dependency>
             <groupId>io.apicurio</groupId>
             <artifactId>apicurio-registry-java-sdk</artifactId>
+        </dependency>
+
+        <!--
+        Provides PromptTemplateVariableUtil, the canonical {{variable}} parser shared with the
+        validity rule and the REST render endpoint, so the three do not drift apart again.
+        -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-registry-schema-util-common</artifactId>
         </dependency>
 
         <dependency>

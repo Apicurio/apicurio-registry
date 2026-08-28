@@ -39,6 +39,23 @@ jobs:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
 
+  publish-app-mutable-image:
+    name: Publish App Docker Image (mutable)
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry'
+      dockerfile: './distro/docker/target/docker/Dockerfile.mutable.jvm'
+      context: './distro/docker/target/docker'
+      tag: 'latest-snapshot-mutable'
+      maven-build: false
+      download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
+      platforms: 'linux/amd64,linux/arm64'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
   publish-mcp-image:
     name: Publish MCP Server Docker Image
     uses: ./.github/workflows/reusable-docker-build.yaml

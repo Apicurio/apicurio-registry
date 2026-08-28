@@ -74,6 +74,9 @@ jobs:
       - name: Test PR lifecycle scripts
         run: node --test .github/scripts/pr-lifecycle.test.js
 
+      - name: Test performance comparison result parser
+        run: python3 -m unittest discover -s perf-comparison-tests/scripts -p 'test_*.py' -v
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then

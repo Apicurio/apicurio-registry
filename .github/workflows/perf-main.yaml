@@ -58,8 +58,8 @@ jobs:
       # -Dfull: include the operator module needed for the operator image build.
       - name: Build app, operator, and perf-tests artifacts
         run: |
-          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull -Dperf-tests \
-            -pl app,distro/docker,operator,perf-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip \
+          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull \
+            -pl app,distro/docker,operator,perf-tests -am -Pprod,perf-tests -DskipTests -Dmaven.javadoc.skip \
             -Daether.syncContext.named.factory=noop
 
       - name: Build app image

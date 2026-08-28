@@ -237,31 +237,16 @@
       <version>${commons-beanutils.version}</version>
     </dependency>
 
-    <!-- Byteman (test-scoped so Byteman tests always compile; execution
-         is gated by @EnabledIfSystemProperty and the -Pbyteman profile) -->
-    <dependency>
-      <groupId>org.jboss.byteman</groupId>
-      <artifactId>byteman</artifactId>
-      <version>4.0.27</version>
-      <scope>test</scope>
-    </dependency>
+    <!-- Byteman BMUnit5 annotations on the compile classpath so Byteman
+         test classes compile without -Pbyteman. Provided scope keeps them
+         off the runtime classpath and out of the packaged artifact. The
+         full Byteman agent and submit/install deps are in the -Pbyteman
+         profile below. -->
     <dependency>
       <groupId>org.jboss.byteman</groupId>
       <artifactId>byteman-bmunit5</artifactId>
       <version>4.0.27</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.byteman</groupId>
-      <artifactId>byteman-submit</artifactId>
-      <version>4.0.27</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.byteman</groupId>
-      <artifactId>byteman-install</artifactId>
-      <version>4.0.27</version>
-      <scope>test</scope>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Test Only -->
@@ -842,6 +827,32 @@
   <profiles>
     <profile>
       <id>byteman</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-bmunit5</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-submit</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-install</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
       <properties>
         <byteman.agent.argLine>-Djdk.attach.allowAttachSelf=true -Dbyteman.agent=true</byteman.agent.argLine>
       </properties>

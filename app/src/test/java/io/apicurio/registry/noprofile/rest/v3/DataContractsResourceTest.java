@@ -181,7 +181,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testUpdateContractMetadata_InvalidSupportContact_Returns400() throws Exception {
+    public void testUpdateContractMetadata_InvalidSupportContact_Returns409() throws Exception {
         String artifactId = "testUpdateContractMetadata_InvalidContact-" + UUID.randomUUID();
         String content = resourceToString("openapi-empty.json");
         createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
@@ -194,8 +194,8 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .body("{\"status\":\"DRAFT\",\"supportContact\":\"plaintext\"}")
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
-                .statusCode(400)
-                .body("status", equalTo(400))
+                .statusCode(409)
+                .body("status", equalTo(409))
                 .body("name", equalTo("InvalidContractMetadataException"))
                 .body("title", containsString("supportContact"));
 

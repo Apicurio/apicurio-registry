@@ -352,6 +352,9 @@ public class OdcsDataContractsDemo {
                             topic, "key2", (org.apache.avro.generic.GenericRecord) invalidRecord);
                     producer.send(record).get();
                     fail("ERROR: Message should have been rejected!");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    fail("Interrupted while waiting for message rejection: " + e.getMessage());
                 } catch (Exception e) {
                     ok("Message correctly REJECTED by contract rule!");
                     String cause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
@@ -414,6 +417,9 @@ public class OdcsDataContractsDemo {
             System.out.println(C + "    3. Explore > odcs-example > OrderEvent > Contract tab" + X);
             System.out.println();
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("\n" + R + "Interrupted: " + e.getMessage() + X);
         } catch (Exception e) {
             System.err.println("\n" + R + "Error: " + e.getMessage() + X);
         } finally {

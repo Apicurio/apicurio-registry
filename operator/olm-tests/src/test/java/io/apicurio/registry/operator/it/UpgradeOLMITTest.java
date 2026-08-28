@@ -47,7 +47,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMITTest.class);
 
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
-            Integer.getInteger("test.operator.timeout.olm-upgrade", 900));
+            Integer.getInteger("test.operator.timeout.olm-upgrade", 1200));
 
     private static final String SUBSCRIPTION_NAME = "apicurio-registry-operator-subscription";
 

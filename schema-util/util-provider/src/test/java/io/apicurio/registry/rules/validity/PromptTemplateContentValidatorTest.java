@@ -234,6 +234,57 @@ class PromptTemplateContentValidatorTest {
         Assertions.assertTrue(
                 error.getCauses().stream().anyMatch(v -> v.getDescription().contains("invalid-type")));
     }
+    
+    @Test
+    void testMinimumGreaterThanMaximumIsRejected() {
+        String minGreaterThanMax = """
+                {
+                    "templateId": "test",
+                    "template": "Priority: {{priority}}",
+                    "variables": {
+                        "priority": { "type": "integer", "minimum": 10, "maximum": 5 }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(minGreaterThanMax), Collections.emptyMap());
+        });
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(v -> v.getDescription().contains("priority")
+                        && v.getDescription().contains("minimum")
+                        && v.getDescription().contains("maximum")));
+    }
+
+    @Test
+    void testMinimumEqualToMaximumIsAccepted() {
+        String minEqualsMax = """
+                {
+                    "templateId": "test",
+                    "template": "Priority: {{priority}}",
+                    "variables": {
+                        "priority": { "type": "integer", "minimum": 5, "maximum": 5 }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, create(minEqualsMax), Collections.emptyMap());
+    }
+
+    @Test
+    void testMinimumWithoutMaximumIsAccepted() {
+        String minOnly = """
+                {
+                    "templateId": "test",
+                    "template": "Priority: {{priority}}",
+                    "variables": {
+                        "priority": { "type": "integer", "minimum": 5 }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, create(minOnly), Collections.emptyMap());
+    }
 
     @Test
     void testAccepterAcceptsValidTemplate() {

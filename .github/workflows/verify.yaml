@@ -135,6 +135,63 @@ jobs:
             -t apicurio/apicurio-registry:${{ github.sha }} \
             ./distro/docker/target/docker
 
+      - name: Build Mutable Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.mutable.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }}-mutable \
+            ./distro/docker/target/docker
+
+      - name: Build Custom Artifact Type Provider
+        run: |
+          ./mvnw -Pexamples -pl examples/custom-artifact-types -am package -DskipTests
+
+      - name: Build Mutable Docker Provider Smoke Image
+        run: |
+          cat > /tmp/Dockerfile.mutable-provider-smoke <<'INNER_EOF'
+          ARG REGISTRY_IMAGE
+          FROM ${REGISTRY_IMAGE}
+          COPY examples/custom-artifact-types/target/custom-artifact-types.jar /deployments/quarkus-app/providers/
+          COPY examples/custom-artifact-types/artifact-types.json /deployments/artifact-types.json
+          RUN /deployments/build.sh --prune
+          ENV APICURIO_ARTIFACT_TYPES_CONFIG_FILE=/deployments/artifact-types.json
+          INNER_EOF
+          
+          docker build \
+            --build-arg REGISTRY_IMAGE=apicurio/apicurio-registry:${{ github.sha }}-mutable \
+            -f /tmp/Dockerfile.mutable-provider-smoke \
+            -t apicurio/apicurio-registry:${{ github.sha }}-mutable-provider-smoke \
+            .
+
+      - name: Smoke Test Mutable Provider Discovery
+        run: |
+          container_id=$(docker run -d -p 18080:8080 \
+            apicurio/apicurio-registry:${{ github.sha }}-mutable-provider-smoke)
+            
+          cleanup() {
+            docker rm -f "$container_id" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:18080/health/ready >/dev/null 2>&1; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "[ERROR] Mutable provider smoke-test container did not become ready."
+              docker logs "$container_id"
+              exit 1
+            fi
+            sleep 2
+          done
+          
+          artifact_types=$(curl -fsS http://localhost:18080/apis/registry/v3/admin/config/artifactTypes)
+          echo "$artifact_types"
+          echo "$artifact_types" | grep -q '"artifactType"[[:space:]]*:[[:space:]]*"MARKDOWN"' || {
+            echo "[ERROR] MARKDOWN custom artifact type was not discovered after re-augmentation."
+            exit 1
+          }
+          echo "Mutable provider discovery smoke test passed."
+
       - name: Save Docker Image
         uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:

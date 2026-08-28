@@ -564,6 +564,27 @@
               <goal>build</goal>
             </goals>
           </execution>
+          <!-- Second build producing a Quarkus "mutable-jar" (re-augmentable) distribution in
+               target/mutable/quarkus-app. It is the basis of the "-mutable" container image, which
+               lets deployers add Java providers for custom artifact types (jars dropped into
+               quarkus-app/providers) without rebuilding the registry. Enabled by -Dfull.
+               NOTE: do not set quarkus.package.output-directory here - plugin properties are recorded
+               in quarkus/build-system.properties and replayed at re-augmentation time. -->
+          <execution>
+            <id>build-mutable</id>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <skip>${apicurio.mutable-jar.skip}</skip>
+              <bootstrapId>mutable</bootstrapId>
+              <buildDir>${project.build.directory}/mutable</buildDir>
+              <properties>
+                <quarkus.package.jar.type>mutable-jar</quarkus.package.jar.type>
+                <quarkus.package.jar.user-providers-directory>providers</quarkus.package.jar.user-providers-directory>
+              </properties>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -619,6 +640,26 @@
               <attach>true</attach>
               <descriptors>
                 <descriptor>src/main/assembly/assembly.xml</descriptor>
+              </descriptors>
+              <archiverConfig>
+                <defaultDirectoryMode>0755</defaultDirectoryMode>
+              </archiverConfig>
+              <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+            </configuration>
+          </execution>
+          <!-- Tarball of the mutable-jar distribution (see build-mutable above); not attached/deployed -->
+          <execution>
+            <id>assembly-mutable</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <skipAssembly>${apicurio.mutable-jar.skip}</skipAssembly>
+              <finalName>${project.artifactId}-${project.version}</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/main/assembly/assembly-mutable.xml</descriptor>
               </descriptors>
               <archiverConfig>
                 <defaultDirectoryMode>0755</defaultDirectoryMode>

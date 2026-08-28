@@ -2219,6 +2219,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("data", data);
         ParameterValidationUtils.requireParameter("status", data.getStatus());
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();

@@ -181,7 +181,7 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testUpdateContractMetadata_InvalidSupportContact_Returns409() throws Exception {
+    public void testUpdateContractMetadata_InvalidSupportContact_Returns400() throws Exception {
         String artifactId = "testUpdateContractMetadata_InvalidContact-" + UUID.randomUUID();
         String content = resourceToString("openapi-empty.json");
         createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
@@ -194,8 +194,8 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .body("{\"status\":\"DRAFT\",\"supportContact\":\"plaintext\"}")
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
-                .statusCode(409)
-                .body("status", equalTo(409))
+                .statusCode(400)
+                .body("status", equalTo(400))
                 .body("name", equalTo("InvalidContractMetadataException"))
                 .body("title", containsString("supportContact"));
 
@@ -608,6 +608,21 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
     }
 
     // -- Status Transition Tests --
+
+    @Test
+    public void testStatusTransition_NullBody_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_NullBody-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("null")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("MissingRequiredParameterException"));
+    }
 
     @Test
     public void testStatusTransition_MissingStatus_Returns400() throws Exception {

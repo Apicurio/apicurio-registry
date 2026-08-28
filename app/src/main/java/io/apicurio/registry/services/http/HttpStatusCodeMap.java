@@ -106,7 +106,7 @@ public class HttpStatusCodeMap {
         map.put(InvalidVersionStateException.class, HTTP_BAD_REQUEST);
         map.put(InvalidArtifactTypeException.class, HTTP_BAD_REQUEST);
         map.put(InvalidContentException.class, HTTP_BAD_REQUEST);
-        map.put(InvalidContractMetadataException.class, HTTP_CONFLICT);
+        map.put(InvalidContractMetadataException.class, HTTP_BAD_REQUEST);
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
         map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
         map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);

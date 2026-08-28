@@ -160,6 +160,22 @@ public interface RegistryStorage extends DynamicConfigStorage {
             throws ContentNotFoundException, RegistryStorageException;
 
     /**
+     * Gets some artifact content by the unique contentId, together with the artifact type of one of the
+     * artifact versions that references it. This is a single-query variant of calling
+     * {@link #getContentById(long)} followed by {@link #getArtifactVersionsByContentId(long)} just to
+     * discover the artifact type - useful for read paths (e.g. ccompat's "get schema by id") that only need
+     * the type and not the full version meta-data. Throws {@link ContentNotFoundException} both when the
+     * content does not exist and when the content exists but is orphaned (not referenced by any artifact
+     * version), matching the semantics callers previously implemented by combining the two calls above.
+     *
+     * @param contentId
+     * @throws ContentNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException;
+
+    /**
      * Gets some artifact content by the SHA-256 hash of that content. This method of getting content from
      * storage does not allow extra meta-data to be returned, because the content hash only points to a piece
      * of content/data - it is divorced from any artifact version.

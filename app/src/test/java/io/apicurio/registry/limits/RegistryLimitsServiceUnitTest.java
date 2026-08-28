@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 
 public class RegistryLimitsServiceUnitTest {
@@ -14,21 +13,15 @@ public class RegistryLimitsServiceUnitTest {
     private RegistryLimitsConfiguration config;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         limitsService = new RegistryLimitsService();
         config = new RegistryLimitsConfiguration();
 
-        setField(config, "maxArtifactPropertiesCount", 1L);
-        setField(config, "maxPropertyKeySizeBytes", 4L);
-        setField(config, "maxPropertyValueSizeBytes", 4L);
+        config.setMaxArtifactPropertiesCount(1L);
+        config.setMaxPropertyKeySizeBytes(4L);
+        config.setMaxPropertyValueSizeBytes(4L);
 
-        setField(limitsService, "registryLimitsConfiguration", config);
-    }
-
-    private void setField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
+        limitsService.registryLimitsConfiguration = config;
     }
 
     @Test
@@ -66,4 +59,26 @@ public class RegistryLimitsServiceUnitTest {
         Assertions.assertFalse(result.isAllowed());
         Assertions.assertTrue(result.getMessage().contains("Maximum label value size exceeded"));
     }
+
+    @Test
+    public void testDuplicateErrorMessageDeduplication() {
+        // Multiple labels exceeding key size limit
+        Map<String, String> labels = Map.of(
+                "key001", "v1",
+                "key002", "v2"
+        );
+
+        EditableArtifactMetaDataDto meta = new EditableArtifactMetaDataDto();
+        meta.setLabels(labels);
+
+        LimitsCheckResult result = limitsService.checkMetaData(meta);
+        Assertions.assertFalse(result.isAllowed());
+        String msg = result.getMessage();
+        // Verify key size error is present exactly once and not duplicated
+        int firstIndex = msg.indexOf("Maximum label key size exceeded");
+        int lastIndex = msg.lastIndexOf("Maximum label key size exceeded");
+        Assertions.assertNotEquals(-1, firstIndex, "Expected error message to be present");
+        Assertions.assertEquals(firstIndex, lastIndex, "Expected error message to appear only once");
+    }
 }
+

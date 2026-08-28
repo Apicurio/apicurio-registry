@@ -230,11 +230,13 @@ public class AvroSerializerWriterSchemaValidationTest {
 
         @Override
         public void setClientFacade(RegistryClientFacade clientFacade) {
+            // no-op: this stub never talks to a registry, so no client facade is needed
         }
 
         @Override
         public void setArtifactResolverStrategy(
                 ArtifactReferenceResolverStrategy<Schema, D> artifactResolverStrategy) {
+            // no-op: this stub always resolves the fixed schema regardless of strategy
         }
 
         @Override
@@ -254,10 +256,12 @@ public class AvroSerializerWriterSchemaValidationTest {
 
         @Override
         public void reset() {
+            // no-op: this stub holds no mutable state that needs resetting
         }
 
         @Override
         public void close() {
+            // no-op: this stub holds no resources to release
         }
     }
 }

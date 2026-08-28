@@ -8,6 +8,13 @@ Two top-level workflows make up the whole pipeline:
 |----------|----------|
 | `quick-check.yaml` (**Quick Check**) | The fast PR gate: **Quick Verify** (~5 min, every PR push) and a fast UI build. No lifecycle awareness, no Decide job — it always runs the same way. Drives `lifecycle/tested` while a PR is in `lifecycle/ready-for-review`. |
 | `verify.yaml` (**Verify**) | Everything else: Build (Java app + Docker images), unit tests, CLI, SDKs, console plugin, integration tests, extra tests, operator tests, and (on push to `main`) image publishing. One `decide` job, shared by every job in this workflow via `needs:`. Drives `lifecycle/full-verified`. |
+
+Performance workflows are intentionally not PR gates:
+
+- `perf-main.yaml` tracks Apicurio-specific capacity/regressions after merges to `main`.
+- `perf-comparison.yaml` is a manually dispatched, product-neutral Confluent-compatible API
+  comparison across Apicurio, Confluent, Karapace, and Redpanda. It runs sequential randomized
+  repetitions and publishes raw evidence; it is not part of Verify/Decide/Verification Gate.
 `verify.yaml` intentionally has a single Decide job that every other job in it
 depends on, rather than being split across several independently-triggered
 workflow files each with their own Decide. That used to be the design (four
@@ -216,7 +223,7 @@ non-Java changes (docs, UI).
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verification Gate) is the single required check | N/A |
-| `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw package -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
+| `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
@@ -231,6 +238,7 @@ non-Java changes (docs, UI).
 |----------|---------|---------|----------|
 | `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds | ~10 min |
 | `validate-openapi.yaml` | PR (openapi.json), workflow_call | Lints OpenAPI spec with `@rhoas/spectral-ruleset` | ~5 min |
+| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited | Checks the PR body links an issue and every commit is DCO signed; flags possible duplicate PRs by linked issue or overlapping files. Independent of the lifecycle: a red check never blocks `/accept`, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API | <1 min |
 
 ## Release Workflows
 

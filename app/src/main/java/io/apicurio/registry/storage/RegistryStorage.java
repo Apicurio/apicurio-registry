@@ -564,6 +564,36 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Updates the contract metadata of an artifact by merging the given reserved contract.*
+     * labels, then fires a contract metadata updated event.
+     *
+     * <p>The prefix and the label map are resolved by the caller rather than derived here, so
+     * that a journal message carries exactly the values that were stored. Replaying such a
+     * message applies the same labels on every node, independent of the code version doing
+     * the replay.
+     */
+    default void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "updateContractMetadata not supported by this storage implementation");
+    }
+
+    /**
+     * Transitions the contract status of an artifact, updating the status label and any
+     * lifecycle date label implied by the target status. Fires a contract status changed
+     * event. The caller is responsible for validating that the transition is legal.
+     *
+     * @param effectiveDate the ISO date recorded on the lifecycle label for the target status.
+     *                      It is resolved by the caller rather than read from the clock here so
+     *                      that replaying a journal message applies the same value on every node.
+     */
+    default void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "transitionContractStatus not supported by this storage implementation");
+    }
+
+    /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.
      *
      * @param groupId (optional)

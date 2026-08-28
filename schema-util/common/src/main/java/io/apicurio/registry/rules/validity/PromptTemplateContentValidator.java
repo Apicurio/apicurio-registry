@@ -27,6 +27,9 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
 
     private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
             "string", "integer", "number", "boolean", "array", "object");
+            
+    private static final String FIELD_MINIMUM = "minimum";
+    private static final String FIELD_MAXIMUM = "maximum";
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -136,15 +139,29 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
                 }
             }
 
-            if (varSchema.has("minimum") && !varSchema.get("minimum").isNumber()) {
+            if (varSchema.has(FIELD_MINIMUM) && !varSchema.get(FIELD_MINIMUM).isNumber()) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid 'minimum' value. Must be a number.",
-                        "/variables/" + varName + "/minimum"));
+                        "Variable '" + varName + "' has invalid '" + FIELD_MINIMUM + "' value. Must be a number.",
+                        "/variables/" + varName + "/" + FIELD_MINIMUM));
             }
-            if (varSchema.has("maximum") && !varSchema.get("maximum").isNumber()) {
+            if (varSchema.has(FIELD_MAXIMUM) && !varSchema.get(FIELD_MAXIMUM).isNumber()) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid 'maximum' value. Must be a number.",
-                        "/variables/" + varName + "/maximum"));
+                        "Variable '" + varName + "' has invalid '" + FIELD_MAXIMUM + "' value. Must be a number.",
+                        "/variables/" + varName + "/" + FIELD_MAXIMUM));
+            }
+
+            if (varSchema.has(FIELD_MINIMUM) && varSchema.get(FIELD_MINIMUM).isNumber()
+                    && varSchema.has(FIELD_MAXIMUM) && varSchema.get(FIELD_MAXIMUM).isNumber()) {
+                double minimum = varSchema.get(FIELD_MINIMUM).asDouble();
+                double maximum = varSchema.get(FIELD_MAXIMUM).asDouble();
+                if (minimum > maximum) {
+                    violations.add(new RuleViolation(
+                            "Variable '" + varName + "' has '" + FIELD_MINIMUM + "' ("
+                                    + varSchema.get(FIELD_MINIMUM).asText() + ") greater than '" + FIELD_MAXIMUM
+                                    + "' (" + varSchema.get(FIELD_MAXIMUM).asText()
+                                    + "). No value could ever satisfy this constraint.",
+                            "/variables/" + varName + "/" + FIELD_MINIMUM));
+                }
             }
 
             if (varSchema.has("enum") && !varSchema.get("enum").isArray()) {

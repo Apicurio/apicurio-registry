@@ -115,10 +115,12 @@ public class VerboseHttpLoggingTest {
 
             @Override
             public void flush() {
+                // no-op: log records are captured directly in the publish() method above
             }
 
             @Override
             public void close() {
+                // no-op: this in-memory test handler holds no resources to release
             }
         };
         captureHandler.setLevel(Level.ALL);

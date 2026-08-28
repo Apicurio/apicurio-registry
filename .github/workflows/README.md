@@ -238,6 +238,7 @@ non-Java changes (docs, UI).
 |----------|---------|---------|----------|
 | `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds | ~10 min |
 | `validate-openapi.yaml` | PR (openapi.json), workflow_call | Lints OpenAPI spec with `@rhoas/spectral-ruleset` | ~5 min |
+| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited | Checks the PR body links an issue and every commit is DCO signed; flags possible duplicate PRs by linked issue or overlapping files. Independent of the lifecycle: a red check never blocks `/accept`, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API | <1 min |
 
 ## Release Workflows
 

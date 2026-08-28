@@ -519,10 +519,11 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
                 .description("An example API design using OpenAPI.").build();
+        String staleOwner = "stale-creation-user";
         ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
                 null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
                         .content(content).build(),
-                versionMetaDataDto, Collections.emptyList(), false, false, null).getValue();
+                versionMetaDataDto, Collections.emptyList(), false, false, staleOwner).getValue();
         Assertions.assertNotNull(dto);
         Assertions.assertEquals(GROUP_ID, dto.getGroupId());
         Assertions.assertEquals(artifactId, dto.getArtifactId());
@@ -530,6 +531,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
         Assertions.assertEquals("1", dto.getVersion());
+        Assertions.assertEquals(staleOwner, dto.getModifiedBy());
 
         String newName = "Updated Name";
         String newDescription = "Updated description.";
@@ -543,6 +545,51 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertNotNull(metaData);
         Assertions.assertEquals(newName, metaData.getName());
         Assertions.assertEquals(newDescription, metaData.getDescription());
+    }
+
+    @Test
+    public void testUpdateArtifactVersionMetaDataNameOnlyUpdatesModified() throws Exception {
+        String artifactId = "testUpdateArtifactVersionMetaDataNameOnly-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
+                .build();
+        String staleOwner = "stale-creation-user";
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false, staleOwner);
+
+        ArtifactVersionMetaDataDto before = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals(staleOwner, before.getModifiedBy());
+
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1",
+                EditableVersionMetaDataDto.builder().name("Name Only Update").build());
+
+        ArtifactVersionMetaDataDto after = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals("Name Only Update", after.getName());
+        // modifiedBy must move off the stale creation owner, proving the audit update ran
+        Assertions.assertNotEquals(staleOwner, after.getModifiedBy());
+        Assertions.assertTrue(after.getModifiedOn() >= before.getModifiedOn());
+    }
+
+    @Test
+    public void testUpdateArtifactVersionMetaDataEmptyUpdateDoesNotModify() throws Exception {
+        String artifactId = "testUpdateArtifactVersionMetaDataEmpty-1";
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
+                .build();
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false, null);
+
+        ArtifactVersionMetaDataDto before = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+
+        // An update with no fields set is a no-op: audit fields must be left untouched.
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1",
+                EditableVersionMetaDataDto.builder().build());
+
+        ArtifactVersionMetaDataDto after = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        Assertions.assertEquals(before.getModifiedBy(), after.getModifiedBy());
+        Assertions.assertEquals(before.getModifiedOn(), after.getModifiedOn());
     }
 
     @Test

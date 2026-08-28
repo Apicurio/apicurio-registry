@@ -4,8 +4,13 @@ project:
   id: github.com/Apicurio/apicurio-registry
   name: apicurio-registry
 
+maven:
+  scope-exclude:
+    - test
+    - provided
+
 paths:
   exclude:
-    # Test-only modules — dependencies here are not shipped
+    # Test-only modules (dependencies here are not shipped)
     - integration-tests/
     - utils/concurrency-tests/

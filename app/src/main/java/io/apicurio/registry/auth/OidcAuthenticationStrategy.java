@@ -282,28 +282,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
             Pair<String, String> clientCredentials) {
         CompletableFuture<WrappedValue<String>> newFuture = new CompletableFuture<>();
         CompletableFuture<WrappedValue<String>> future = cachedAccessTokens.compute(
-                credentialsHash, (key, existing) -> {
-                    if (existing != null) {
-                        // Another thread is already fetching; join it outside the lock
-                        if (!existing.isDone()) {
-                            return existing;
-                        }
-                        // Completed successfully and not expired; reuse
-                        if (!existing.isCompletedExceptionally()) {
-                            WrappedValue<String> val = existing.join();
-                            if (!val.isExpired()) {
-                                return existing;
-                            }
-                        }
-                    }
-                    // Re-check failures: another thread may have cached one while
-                    // we waited for the compute lock
-                    WrappedValue<RuntimeException> failure = cachedAuthFailures.get(key);
-                    if (failure != null && !failure.isExpired()) {
-                        throw failure.getValue();
-                    }
-                    return newFuture;
-                });
+                credentialsHash, (key, existing) -> reuseOrReplace(key, existing, newFuture));
 
         // We are the creator: do the blocking fetch outside the lock
         if (future == newFuture) {
@@ -312,7 +291,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                         clientCredentials, oidcTokenUrl);
                 future.complete(result);
             } catch (RuntimeException ex) {
-                // Remove the placeholder so the next caller retries fresh
+                // 2-arg remove: only removes if the value is still OUR future.
+                // A concurrent compute() may have already replaced it.
                 cachedAccessTokens.remove(credentialsHash, future);
                 future.completeExceptionally(ex);
                 throw ex;
@@ -324,11 +304,33 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
             return future.join().getValue();
         } catch (CompletionException ce) {
             Throwable cause = ce.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
+            if (cause instanceof RuntimeException re) {
+                throw re;
             }
             throw new OidcAuthException("Failed to obtain access token", cause);
         }
+    }
+
+    private CompletableFuture<WrappedValue<String>> reuseOrReplace(
+            String key,
+            CompletableFuture<WrappedValue<String>> existing,
+            CompletableFuture<WrappedValue<String>> newFuture) {
+        if (existing != null) {
+            if (!existing.isDone()) {
+                return existing;
+            }
+            if (!existing.isCompletedExceptionally()) {
+                WrappedValue<String> val = existing.join();
+                if (!val.isExpired()) {
+                    return existing;
+                }
+            }
+        }
+        WrappedValue<RuntimeException> failure = cachedAuthFailures.get(key);
+        if (failure != null && !failure.isExpired()) {
+            throw failure.getValue();
+        }
+        return newFuture;
     }
 
     private String getCredentialsHash(String credentials) {

@@ -108,6 +108,13 @@ spec:
       endpoint: <string>
       protocol: <string>
       traceSamplingRatio: <double>
+    metrics:
+      enabled: <bool>
+      scrapeIntervalSeconds: <int>
+      prometheusRuleEnabled: <bool>
+      connectionPoolUtilizationThreshold: <double>
+      errorRateThreshold: <double>
+      kafkaConsumerLagThreshold: <int>
     env: <k8s.io/api/core/v1 []EnvVar>
     ingress:
       enabled: <bool>
@@ -238,6 +245,13 @@ spec:
       endpoint: <string>
       protocol: <string>
       traceSamplingRatio: <double>
+    metrics:
+      enabled: <bool>
+      scrapeIntervalSeconds: <int>
+      prometheusRuleEnabled: <bool>
+      connectionPoolUtilizationThreshold: <double>
+      errorRateThreshold: <double>
+      kafkaConsumerLagThreshold: <int>
     env: <k8s.io/api/core/v1 []EnvVar>
     ingress:
       enabled: <bool>
@@ -634,6 +648,41 @@ endif::[]
 | double
 | _empty_
 | Sampling ratio for traces (0.0-1.0). When set, uses `parentbased_traceidratio` sampler.
+
+| `app/metrics`
+| -
+| -
+| Operator-side metrics collection configuration.
+
+| `app/metrics/enabled`
+| bool
+| `false`
+| Enable operator-side collection of {registry} metrics. When enabled, the Operator scrapes the management interface of each application Pod and reports a summary in `status.metrics`.
+
+| `app/metrics/scrapeIntervalSeconds`
+| int
+| `60`
+| How often the Operator collects metrics, in seconds. Values below 10 are raised to 10.
+
+| `app/metrics/prometheusRuleEnabled`
+| bool
+| `false`
+| Generate a PrometheusRule carrying the same thresholds. Requires the Prometheus Operator CRDs, and something already scraping {registry}.
+
+| `app/metrics/connectionPoolUtilizationThreshold`
+| double
+| `0.8`
+| Emit a `ConnectionPoolSaturated` Event when the fraction of in-use database connections reaches this value.
+
+| `app/metrics/errorRateThreshold`
+| double
+| `0.1`
+| Emit a `HighErrorRate` Event when the fraction of REST API requests answered with a 5xx status reaches this value.
+
+| `app/metrics/kafkaConsumerLagThreshold`
+| int
+| `1000`
+| Emit a `KafkaConsumerLagHigh` Event when the KafkaSQL consumer lag reaches this number of records.
 
 | `app/env`
 | k8s.io/api/core/v1 []EnvVar

@@ -224,7 +224,11 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // wakeup() is the only method safe to call from another thread. It causes
         // poll() to throw WakeupException, and the consumer thread handles that by
         // exiting its loop and calling close() on its own thread.
-        journalConsumer.wakeup();
+        try {
+            journalConsumer.wakeup();
+        } catch (Exception e) {
+            log.debug("Ignoring journal consumer wakeup error during shutdown: {}", e.getMessage());
+        }
         if (consumerThread != null) {
             try {
                 consumerThread.join(joinTimeoutMillis);

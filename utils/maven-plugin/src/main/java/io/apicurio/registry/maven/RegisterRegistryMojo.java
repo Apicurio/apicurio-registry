@@ -991,8 +991,18 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private static String printLoop(Deque<RegisterArtifact> registrationStack) {
-        return registrationStack.stream().map(artifact -> artifact.getFile().getName())
-                .collect(Collectors.joining(" -> "));
+        // descendingIterator: bottom-to-top (root → leaf), matching the original
+        // Stack iteration order. ArrayDeque.stream() iterates head-to-tail
+        // (most-recently-pushed first), which would reverse the chain.
+        var sb = new StringBuilder();
+        var it = registrationStack.descendingIterator();
+        while (it.hasNext()) {
+            if (sb.length() > 0) {
+                sb.append(" -> ");
+            }
+            sb.append(it.next().getFile().getName());
+        }
+        return sb.toString();
     }
 
 }

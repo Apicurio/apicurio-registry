@@ -93,6 +93,51 @@ public class HttpCompressionTest extends AbstractResourceTestBase {
                 + uncompressedBody.length + " bytes)");
     }
 
+    /**
+     * The kill switch is a @Dynamic property: toggling it at runtime must take effect without a
+     * restart. This used to be a separate test class with its own QuarkusTestProfile boot, which
+     * was order-dependent: when it ran after this class in the same surefire fork, the response
+     * was still compressed (the first boot's interceptor state leaked into the second boot).
+     */
+    @Test
+    public void testKillSwitchDisablesCompressionAtRuntime() throws Exception {
+        String artifactId = "testKillSwitchDisablesCompressionAtRuntime";
+        String content = largeJsonSchemaContent();
+        createArtifact(GROUP, artifactId, ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON);
+        byte[] expectedRawBody = content.getBytes(StandardCharsets.UTF_8);
+
+        // @Dynamic properties are resolved through a config source chain that is only
+        // eventually consistent with a bare System.setProperty (it may not be visible to the app
+        // immediately, depending on the surefire classloader strategy, and — separately — a
+        // DB-backed dynamic-config cache with its own invalidation timing sits ahead of System
+        // properties in resolution order). A single probe request confirming the toggle applied,
+        // followed by a second unprotected request assuming that state still holds, is exactly a
+        // TOCTOU gap onto that eventual consistency. Retry the whole "request + assert" as one
+        // unit instead, so a momentary flicker back just costs a retry, not a test failure.
+        System.setProperty("apicurio.rest.compression.enabled", "false");
+        try {
+            byte[] rawBody = io.apicurio.registry.utils.tests.TestUtils.retry(() -> {
+                var response = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
+                        .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content");
+                response.then().statusCode(200).header("Content-Encoding", nullValue());
+                return response.asByteArray();
+            });
+
+            assertArrayEquals(expectedRawBody, rawBody);
+        } finally {
+            System.clearProperty("apicurio.rest.compression.enabled");
+            // Poll until the re-enable takes effect so the following tests are not order-dependent
+            io.apicurio.registry.utils.tests.TestUtils.retry(() -> {
+                var probe = given().config(NO_AUTO_DECODE).header("Accept-Encoding", "gzip")
+                        .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                        .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content");
+                org.junit.jupiter.api.Assertions.assertEquals("gzip", probe.getHeader("Content-Encoding"),
+                        "response is not compressed after re-enabling the kill switch");
+            }, "kill switch re-enabled takes effect", 10);
+        }
+    }
+
     @Test
     public void testGzippedRequestBodyIsDecompressedByServer() throws Exception {
         String artifactId = "testGzippedRequestBodyIsDecompressedByServer";

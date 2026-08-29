@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.3.2-SNAPSHOT</version>
+  <version>3.3.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -194,7 +194,7 @@
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.36.0</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.74.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.75.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -1460,6 +1460,18 @@
       <id>examples</id>
       <modules>
         <module>examples</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>perf-tests</id>
+      <modules>
+        <module>perf-tests</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>perf-comparison-tests</id>
+      <modules>
+        <module>perf-comparison-tests</module>
       </modules>
     </profile>
     <profile>

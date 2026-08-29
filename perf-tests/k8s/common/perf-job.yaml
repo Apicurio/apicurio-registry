@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: perf-test-runner
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: perf-test-runner
+          image: "${PERF_TEST_IMAGE}"
+          env:
+            - name: REGISTRY_URL
+              value: "http://perf-test-app-service.default.svc:8080/apis/registry/v3"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "${KAFKA_BOOTSTRAP_SERVERS}"
+            - name: AUTH_TOKEN_ENDPOINT
+              value: "http://keycloak.default.svc:8080/realms/registry/protocol/openid-connect/token"
+            - name: AUTH_CLIENT_ID
+              value: "registry-api"
+            - name: AUTH_CLIENT_SECRET
+              value: "perf-test-secret"
+            - name: PERF_USERS
+              value: "20"
+            - name: PERF_DURATION_SECONDS
+              value: "120"
+            - name: PERF_PRODUCE_RATE_PER_SEC
+              value: "20"
+          # `kubectl cp` (used by perf-main.yaml to retrieve results) execs into a running
+          # container - it cannot target a pod that has already reached the Succeeded/Failed
+          # phase. So rather than exiting immediately, capture the real exit code, then keep the
+          # container alive for a grace period long enough for the workflow to copy /results out
+          # before the Job is allowed to complete.
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              java -Dgatling.resultsFolder=/results/gatling -jar /opt/perf-tests/perf-tests.jar
+              status=$?
+              echo "$status" > /results/exit-code
+              sleep 300
+              exit "$status"
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          emptyDir: {}

@@ -80,6 +80,7 @@ any other maintainer.
 | Jakub Senko | [@jsenko](https://github.com/jsenko) | Red Hat |
 | Carles Arnal | [@carlesarnal](https://github.com/carlesarnal) | Red Hat |
 | Andrea Peruffo | [@andreaTP](https://github.com/andreaTP) | Red Hat |
+| Paolo Antinori | [@paoloantinori](https://github.com/paoloantinori) | Red Hat |
 
 We actively encourage maintainer nominations from other organizations. Contributor
 diversity is a project health goal — see [ADOPTERS.md](ADOPTERS.md) for organizations

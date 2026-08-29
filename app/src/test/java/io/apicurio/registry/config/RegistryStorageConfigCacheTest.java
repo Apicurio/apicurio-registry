@@ -4,7 +4,6 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.storage.RegistryStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -16,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,7 +29,7 @@ class RegistryStorageConfigCacheTest {
 
     @BeforeEach
     void setUp() {
-        delegate = Mockito.mock(RegistryStorage.class);
+        delegate = mock(RegistryStorage.class);
         cache = new RegistryStorageConfigCache();
         cache.setDelegate(delegate);
     }

@@ -1,9 +1,11 @@
 package io.apicurio.registry.mcpregistry.rest.v0.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.logging.Logged;
@@ -49,6 +51,7 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ClientErrorException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
@@ -109,6 +112,12 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     @Inject
     McpRegistryConfig config;
+
+    @Inject
+    AuthConfig authConfig;
+
+    @Inject
+    RoleBasedAccessController rbac;
 
     private void requireEnabled() {
         if (!config.isEnabled()) {
@@ -251,11 +260,17 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         // server could be soft-deleted and then never restored through this endpoint.
         List<String> versions = storage.getArtifactVersions(name.namespace(), name.serverId(),
                 RetrievalBehavior.ALL_STATES);
+
+        // Resolve the version to report back BEFORE mutating, and resolve it against every state. Setting
+        // the whole server to 'deleted' leaves no ENABLED version, so resolving 'latest' afterwards would
+        // fail and report a 404 for an operation that fully succeeded.
+        String reportedVersion = latestVersionAnyState(name);
+
         for (String version : versions) {
             storage.updateArtifactVersionState(name.namespace(), name.serverId(), version, newState, false);
         }
 
-        return loadServer(name, LATEST_VERSION);
+        return loadServer(name, reportedVersion);
     }
 
     @Override
@@ -265,6 +280,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         requireEnabled();
 
         McpServerName name = McpServerName.parse(data.getName());
+        verifyPublishOwnership(name);
+
         String version = data.getVersion();
         if (version == null || version.isBlank()) {
             throw new BadRequestException("The 'version' field is required when publishing a server");
@@ -319,6 +336,30 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         return loadServer(name, version);
     }
 
+    /**
+     * Enforces owner-only authorization for publishing. The server name arrives in the request body rather
+     * than the path, so this endpoint cannot use {@code AuthorizedStyle.GroupAndArtifact} and
+     * {@code isOwner} would otherwise wave it through. Rules mirror {@code AuthorizedInterceptor}.
+     */
+    private void verifyPublishOwnership(McpServerName name) {
+        if (!authConfig.isObacEnabled()) {
+            return;
+        }
+        if (authConfig.isRbacEnabled() && rbac.isAdmin()) {
+            return;
+        }
+
+        try {
+            String owner = storage.getArtifactMetaData(name.namespace(), name.serverId()).getOwner();
+            if (owner != null && !owner.equals(currentUser())) {
+                throw new ForbiddenException(
+                        "User is not authorized to perform the requested operation.");
+            }
+        } catch (ArtifactNotFoundException e) {
+            // No such server yet, so there is no owner to conflict with.
+        }
+    }
+
     // === Loading and conversion ===
 
     /**
@@ -365,6 +406,15 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             return latest;
         }
         return version;
+    }
+
+    /**
+     * The newest version of a server regardless of its state, including versions marked deleted. Used
+     * where a concrete version has to be named even though no active version may remain.
+     */
+    private String latestVersionAnyState(McpServerName name) {
+        return storage.getBranchTip(new GA(name.namespace(), name.serverId()), BranchId.LATEST,
+                RetrievalBehavior.ALL_STATES).getRawVersionId();
     }
 
     private String latestVersionOrNull(McpServerName name) {

@@ -391,6 +391,63 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testDeletingEveryVersionSucceedsRatherThanReporting404() {
+        String namespace = uniqueNamespace();
+        String name = namespace + "/gone";
+
+        publish(name, "1.0.0", "v1");
+        publish(name, "2.0.0", "v2");
+
+        // Once every version is deleted there is no active version left to resolve, so the response must
+        // be built from a concrete version rather than by resolving 'latest' after the fact.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"deleted\"}")
+                .patch(BASE + "/servers/" + namespace + "/gone/status")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo(name))
+                .body("version", equalTo("2.0.0"))
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deleted"));
+
+        for (String version : new String[] {"1.0.0", "2.0.0"}) {
+            given()
+                    .when()
+                    .contentType(CT_JSON)
+                    .get(BASE + "/servers/" + namespace + "/gone/versions/" + version)
+                    .then()
+                    .statusCode(200)
+                    .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deleted"));
+        }
+
+        // A fully deleted server has no active version, so the bare endpoint is a genuine 404 ...
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/gone")
+                .then()
+                .statusCode(404);
+
+        // ... and it can still be brought back.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"active\"}")
+                .patch(BASE + "/servers/" + namespace + "/gone/status")
+                .then()
+                .statusCode(200);
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/gone")
+                .then()
+                .statusCode(200)
+                .body("version", equalTo("2.0.0"));
+    }
+
+    @Test
     public void testStatusUpdateRequiresAStatusField() {
         String namespace = uniqueNamespace();
         String name = namespace + "/nostatus";

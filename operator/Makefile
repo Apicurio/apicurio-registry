@@ -42,7 +42,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.3.1
+PREVIOUS_PACKAGE_VERSION ?= 3.3.2
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 # Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
@@ -269,6 +269,16 @@ build: ## TODO
 	mvn clean install $(BUILD_OPTS_EXT)
 
 
+GROUPS ?=
+EXCLUDED_GROUPS ?=
+
+.PHONY: test-local-group
+test-local-group: ## Run local (in-process operator) tests filtered by JUnit tag groups
+	mvn verify $(BUILD_OPTS_EXT) \
+		$(if $(GROUPS),-Dgroups=$(GROUPS)) \
+		$(if $(EXCLUDED_GROUPS),-DexcludedGroups=$(EXCLUDED_GROUPS))
+
+
 .PHONY: test-remote-all
 test-remote-all: ## TODO
 	# Do not run `mvn clean` when not necessary.
@@ -279,9 +289,6 @@ else
 endif
 	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
-
-GROUPS ?=
-EXCLUDED_GROUPS ?=
 
 .PHONY: test-remote-group
 test-remote-group: ## Run remote tests filtered by JUnit tag groups

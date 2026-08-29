@@ -1,7 +1,7 @@
 {
     "name": "@apicurio/registry-ui",
     "private": true,
-    "version": "3.3.2-Dev",
+    "version": "3.3.3-Dev",
     "type": "module",
     "scripts": {
         "postinstall": "npm run install-sdk && npm run install-app && npm run install-docs && npm run install-editors",

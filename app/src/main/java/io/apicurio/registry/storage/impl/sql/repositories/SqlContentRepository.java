@@ -80,6 +80,21 @@ public class SqlContentRepository {
     }
 
     /**
+     * Get content by contentId, together with the artifact type of one artifact version that references it,
+     * in a single query. Throws {@link ContentNotFoundException} if the content does not exist or is
+     * orphaned (i.e. not referenced by any artifact version), since the join used to fetch the artifact type
+     * would return no rows in either case.
+     */
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+        return handles.<ContentWrapperDto, RuntimeException>withHandleNoException(handle -> {
+            Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements.selectContentAndArtifactTypeById())
+                    .bind(0, contentId).map(ContentMapper.instanceWithArtifactType).findFirst();
+            return res.orElseThrow(() -> new ContentNotFoundException(contentId));
+        });
+    }
+
+    /**
      * Get content by content hash.
      */
     public ContentWrapperDto getContentByHash(String contentHash)

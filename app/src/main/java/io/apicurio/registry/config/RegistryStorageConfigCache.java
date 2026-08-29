@@ -70,13 +70,19 @@ public class RegistryStorageConfigCache extends RegistryStorageDecoratorBase
         if (cached != null) {
             return cached == NULL_DTO ? null : cached;
         }
-        // Load outside the map, so no bin is locked while storage is queried, and discard the
-        // result instead of caching it if an invalidation happened during the load.
+        // Load outside the map, so no bin is locked while storage is queried. The insert goes
+        // through compute() because it takes the same bin that clear() needs: an invalidation
+        // either bumps the generation before this check, or clears the entry after it. Checking
+        // the generation and then putting separately would leave a window between the two.
         long generation = cacheGeneration.get();
         DynamicConfigPropertyDto loaded = delegate.getConfigProperty(propertyName);
-        if (cacheGeneration.get() == generation) {
-            configCache.putIfAbsent(propertyName, loaded == null ? NULL_DTO : loaded);
-        }
+        DynamicConfigPropertyDto toCache = loaded == null ? NULL_DTO : loaded;
+        configCache.compute(propertyName, (key, existing) -> {
+            if (existing != null) {
+                return existing;
+            }
+            return cacheGeneration.get() == generation ? toCache : null;
+        });
         return loaded;
     }
 

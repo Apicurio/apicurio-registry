@@ -7,12 +7,15 @@ import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.ConfigurationProperty;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateGroup;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSortBy;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.SearchedGroup;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
@@ -27,12 +30,19 @@ import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.quarkiverse.mcp.server.ToolCallException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
 
 @ApplicationScoped
 public class RegistryService {
@@ -444,5 +454,171 @@ public class RegistryService {
         var p = new UpdateConfigurationProperty();
         p.setValue(propertyValue);
         client().admin().config().properties().byPropertyName(propertyName).put(p);
+    }
+
+    private static final Map<RuleType, Set<String>> RULE_CONFIGS = Map.of(
+            RuleType.COMPATIBILITY, enumNames(CompatibilityLevel.values()),
+            RuleType.VALIDITY,      enumNames(ValidityLevel.values()),
+            RuleType.INTEGRITY,     enumNames(IntegrityLevel.values()));
+
+    private static Set<String> enumNames(Enum<?>[] values) {
+        return Arrays.stream(values).map(Enum::name)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private RuleType parseRuleType(String ruleType) {
+        if (ruleType == null) {
+            throw new ToolCallException("Rule type must not be null");
+        }
+        RuleType parsed = RuleType.forValue(ruleType.trim().toUpperCase(Locale.ROOT));
+        if (parsed == null) {
+            throw new ToolCallException("Invalid rule type: '" + ruleType + "'. Accepted values: " + Arrays.toString(RuleType.values()));
+        }
+        return parsed;
+    }
+
+    private String validateRuleConfig(RuleType ruleType, String configValue) {
+        if (configValue == null || configValue.isBlank()) {
+            throw new ToolCallException("Rule configuration value must not be null or empty");
+        }
+        String normalizedConfig = configValue.trim().toUpperCase(Locale.ROOT);
+        Set<String> accepted = RULE_CONFIGS.get(ruleType);
+        if (accepted == null) {
+            throw new ToolCallException("Invalid rule type: " + ruleType);
+        }
+
+        if (ruleType == RuleType.INTEGRITY) {
+            String[] parts = normalizedConfig.split(",");
+            for (String part : parts) {
+                String trimmedPart = part.trim();
+                if (!accepted.contains(trimmedPart)) {
+                    throw new ToolCallException("Invalid configuration '" + configValue + "' for rule type '"
+                            + ruleType + "'. Accepted values (can be comma-separated): " + accepted);
+                }
+            }
+        } else {
+            if (!accepted.contains(normalizedConfig)) {
+                throw new ToolCallException("Invalid configuration '" + configValue + "' for rule type '"
+                        + ruleType + "'. Accepted values: " + accepted);
+            }
+        }
+        return normalizedConfig;
+    }
+
+    // ========== Global Rules ==========
+
+    public List<RuleType> listGlobalRules() {
+        return client().admin().rules().get();
+    }
+
+    public Rule getGlobalRule(String ruleType) {
+        RuleType rt = parseRuleType(ruleType);
+        return client().admin().rules().byRuleType(rt.name()).get();
+    }
+
+    public Rule createGlobalRule(String ruleType, String configValue) {
+        RuleType rt = parseRuleType(ruleType);
+        String ruleConfig = validateRuleConfig(rt, configValue);
+        CreateRule r = new CreateRule();
+        r.setRuleType(rt);
+        r.setConfig(ruleConfig);
+        client().admin().rules().post(r);
+        return getGlobalRule(ruleType);
+    }
+
+    public Rule updateGlobalRule(String ruleType, String configValue) {
+        RuleType rt = parseRuleType(ruleType);
+        String ruleConfig = validateRuleConfig(rt, configValue);
+        Rule r = new Rule();
+        r.setRuleType(rt);
+        r.setConfig(ruleConfig);
+        return client().admin().rules().byRuleType(rt.name()).put(r);
+    }
+
+    public void deleteGlobalRule(String ruleType) {
+        RuleType rt = parseRuleType(ruleType);
+        client().admin().rules().byRuleType(rt.name()).delete();
+    }
+
+    public void deleteAllGlobalRules() {
+        client().admin().rules().delete();
+    }
+
+    // ========== Group Rules ==========
+
+    public List<RuleType> listGroupRules(String groupId) {
+        return client().groups().byGroupId(groupId).rules().get();
+    }
+
+    public Rule getGroupRule(String groupId, String ruleType) {
+        RuleType rt = parseRuleType(ruleType);
+        return client().groups().byGroupId(groupId).rules().byRuleType(rt.name()).get();
+    }
+
+    public Rule createGroupRule(String groupId, String ruleType, String configValue) {
+        RuleType rt = parseRuleType(ruleType);
+        String ruleConfig = validateRuleConfig(rt, configValue);
+        CreateRule r = new CreateRule();
+        r.setRuleType(rt);
+        r.setConfig(ruleConfig);
+        client().groups().byGroupId(groupId).rules().post(r);
+        return getGroupRule(groupId, ruleType);
+    }
+
+    public Rule updateGroupRule(String groupId, String ruleType, String configValue) {
+        RuleType rt = parseRuleType(ruleType);
+        String ruleConfig = validateRuleConfig(rt, configValue);
+        Rule r = new Rule();
+        r.setRuleType(rt);
+        r.setConfig(ruleConfig);
+        return client().groups().byGroupId(groupId).rules().byRuleType(rt.name()).put(r);
+    }
+
+    public void deleteGroupRule(String groupId, String ruleType) {
+        RuleType rt = parseRuleType(ruleType);
+        client().groups().byGroupId(groupId).rules().byRuleType(rt.name()).delete();
+    }
+
+    public void deleteAllGroupRules(String groupId) {
+        client().groups().byGroupId(groupId).rules().delete();
+    }
+
+    // ========== Artifact Rules ==========
+
+    public List<RuleType> listArtifactRules(String groupId, String artifactId) {
+        return client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().get();
+    }
+
+    public Rule getArtifactRule(String groupId, String artifactId, String ruleType) {
+        RuleType rt = parseRuleType(ruleType);
+        return client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(rt.name()).get();
+    }
+
+    public Rule createArtifactRule(String groupId, String artifactId, String ruleType, String configValue) {
+        RuleType rt = parseRuleType(ruleType);
+        String ruleConfig = validateRuleConfig(rt, configValue);
+        CreateRule r = new CreateRule();
+        r.setRuleType(rt);
+        r.setConfig(ruleConfig);
+        client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(r);
+        return getArtifactRule(groupId, artifactId, ruleType);
+    }
+
+    public Rule updateArtifactRule(String groupId, String artifactId, String ruleType, String configValue) {
+        RuleType rt = parseRuleType(ruleType);
+        String ruleConfig = validateRuleConfig(rt, configValue);
+        Rule r = new Rule();
+        r.setRuleType(rt);
+        r.setConfig(ruleConfig);
+        return client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(rt.name()).put(r);
+    }
+
+    public void deleteArtifactRule(String groupId, String artifactId, String ruleType) {
+        RuleType rt = parseRuleType(ruleType);
+        client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().byRuleType(rt.name()).delete();
+    }
+
+    public void deleteAllArtifactRules(String groupId, String artifactId) {
+        client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().delete();
     }
 }

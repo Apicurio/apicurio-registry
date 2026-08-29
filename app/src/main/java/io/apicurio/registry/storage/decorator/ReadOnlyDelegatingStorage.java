@@ -95,6 +95,12 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     }
 
     @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+        return delegate.getContentAndArtifactTypeById(contentId);
+    }
+
+    @Override
     public ContentWrapperDto getContentByHash(String contentHash)
             throws ContentNotFoundException, RegistryStorageException {
         return delegate.getContentByHash(contentHash);

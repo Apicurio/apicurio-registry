@@ -87,7 +87,9 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
@@ -154,8 +156,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     private volatile boolean stopped = true;
     private volatile boolean snapshotProcessed = false;
 
-    // The snapshot id used to determine if this replica must process a snapshot message
-    private volatile String lastTriggeredSnapshot = null;
+    // Snapshot ids triggered by this replica. A concurrent set prevents lost updates when
+    // two API threads call triggerSnapshotCreation concurrently (the old volatile String
+    // was a single-slot register where the second write silently overwrote the first).
+    private final Set<String> triggeredSnapshots = ConcurrentHashMap.newKeySet();
 
     // Reference to the consumer thread for health checks
     private volatile Thread consumerThread = null;
@@ -404,11 +408,11 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
         // If the key is a CreateSnapshotMessage key, but this replica does not have the snapshotId, it means
         // that it wasn't triggered here, so just skip the message.
-        if (record.value() instanceof CreateSnapshot1Message
-                && !((CreateSnapshot1Message) record.value()).getSnapshotId().equals(lastTriggeredSnapshot)) {
+        if (record.value() instanceof CreateSnapshot1Message csm
+                && !triggeredSnapshots.contains(csm.getSnapshotId())) {
             log.debug(
                     "Snapshot trigger message with id {} being skipped since this replica did not trigger the creation.",
-                    ((CreateSnapshot1Message) record.value()).getSnapshotId());
+                    csm.getSnapshotId());
             return;
         }
 
@@ -425,6 +429,12 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // we'd still need to ensure sequential processing for correctness. The coordinator mechanism already
         // handles response synchronization for write operations.
         kafkaSqlSink.processMessage(record);
+
+        // Once a snapshot triggered by this replica has been processed, remove it from the set
+        // so the set does not grow unboundedly.
+        if (record.value() instanceof CreateSnapshot1Message csm) {
+            triggeredSnapshots.remove(csm.getSnapshotId());
+        }
     }
 
     /**
@@ -1312,7 +1322,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         String snapshotId = UUID.randomUUID().toString();
         Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + SqlStatements.COMPRESSED_SNAPSHOT_EXTENSION);
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
-        this.lastTriggeredSnapshot = snapshotId;
+        triggeredSnapshots.add(snapshotId);
         log.debug("Snapshot with id {} triggered.", snapshotId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         String snapshotLocation = (String) coordinator.waitForResponse(uuid);

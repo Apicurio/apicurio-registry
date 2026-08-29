@@ -459,6 +459,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return contentRepository.getContentById(contentId);
     }
 
+    @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+
+        return contentRepository.getContentAndArtifactTypeById(contentId);
+    }
+
     public ContentWrapperDto getContentByIdRaw(Handle handle, long contentId)
             throws ContentNotFoundException, RegistryStorageException {
         return contentRepository.getContentByIdRaw(handle, contentId);

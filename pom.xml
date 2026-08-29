@@ -1471,6 +1471,18 @@
       </modules>
     </profile>
     <profile>
+      <id>perf-tests</id>
+      <modules>
+        <module>perf-tests</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>perf-comparison-tests</id>
+      <modules>
+        <module>perf-comparison-tests</module>
+      </modules>
+    </profile>
+    <profile>
       <id>productization</id>
       <properties>
         <!-- Deactivates the external-repos profile -->

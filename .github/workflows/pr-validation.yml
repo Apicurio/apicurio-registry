@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.19.0
+          node-version: 24.20.0
 
       - name: Run unit tests
         run: node --test .github/scripts/pr-validation.test.js

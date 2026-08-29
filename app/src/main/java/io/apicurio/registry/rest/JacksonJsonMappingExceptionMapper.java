@@ -25,33 +25,9 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
 
     @Override
     public Response toResponse(JsonMappingException exception) {
-        String actualValue = null;
-        boolean isStatusEnum = false;
+        String actualValue = extractInvalidStatusValue(exception);
 
-        if (exception instanceof ValueInstantiationException) {
-            ValueInstantiationException vie = (ValueInstantiationException) exception;
-            if (vie.getType() != null && ContractStatusTransition.Status.class.equals(vie.getType().getRawClass())) {
-                isStatusEnum = true;
-                if (vie.getCause() instanceof IllegalArgumentException) {
-                    String message = vie.getCause().getMessage();
-                    if (message != null && !message.isBlank()
-                            && !message.contains(" ")
-                            && !message.contains(".")) {
-                        actualValue = message;
-                    }
-                }
-            }
-        } else if (exception instanceof InvalidFormatException) {
-            InvalidFormatException ife = (InvalidFormatException) exception;
-            if (ContractStatusTransition.Status.class.equals(ife.getTargetType())) {
-                isStatusEnum = true;
-                if (ife.getValue() != null) {
-                    actualValue = String.valueOf(ife.getValue());
-                }
-            }
-        }
-
-        if (isStatusEnum && actualValue != null) {
+        if (actualValue != null) {
             return coreMapper.mapException(new InvalidParameterValueException("status", "valid status enum value", actualValue));
         }
 
@@ -64,5 +40,35 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
         return coreMapper.mapException(
             new BadRequestException("Not able to deserialize data provided.")
         );
+    }
+
+    /**
+     * If the given exception represents an invalid value assigned to a
+     * {@link ContractStatusTransition.Status} enum field, and the offending raw value can be
+     * determined, returns that raw value. Returns null otherwise (either the exception is
+     * unrelated to that enum, or the raw value could not be determined), in which case the
+     * caller falls back to generic message-based handling.
+     */
+    private String extractInvalidStatusValue(JsonMappingException exception) {
+        if (exception instanceof ValueInstantiationException vie) {
+            if (vie.getType() != null && ContractStatusTransition.Status.class.equals(vie.getType().getRawClass())) {
+                return extractValueFromCause(vie.getCause());
+            }
+        } else if (exception instanceof InvalidFormatException ife) {
+            if (ContractStatusTransition.Status.class.equals(ife.getTargetType()) && ife.getValue() != null) {
+                return String.valueOf(ife.getValue());
+            }
+        }
+        return null;
+    }
+
+    private String extractValueFromCause(Throwable cause) {
+        if (cause instanceof IllegalArgumentException) {
+            String message = cause.getMessage();
+            if (message != null && !message.isBlank() && !message.contains(" ") && !message.contains(".")) {
+                return message;
+            }
+        }
+        return null;
     }
 }

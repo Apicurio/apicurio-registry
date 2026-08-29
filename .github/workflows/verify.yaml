@@ -32,8 +32,11 @@ on:
     branches: [main]
   # No branches: filter here — pull_request_review does not support one.
   # In practice every PR in this repo targets main, so this is a non-issue.
+  # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
+  # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
+  # the full suite would stay skipped until the next push or new review.
   pull_request_review:
-    types: [submitted]
+    types: [submitted, dismissed]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -71,6 +74,9 @@ jobs:
       - name: Test PR lifecycle scripts
         run: node --test .github/scripts/pr-lifecycle.test.js
 
+      - name: Test performance comparison result parser
+        run: python3 -m unittest discover -s perf-comparison-tests/scripts -p 'test_*.py' -v
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
@@ -89,7 +95,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -107,7 +113,7 @@ jobs:
           # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
-          ./mvnw clean package -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
+          ./mvnw clean install -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
@@ -172,7 +178,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24.19.0'
+          node-version: '24.20.0'
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
@@ -251,7 +257,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'

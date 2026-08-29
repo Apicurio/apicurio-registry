@@ -10,6 +10,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.ZipFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -71,6 +72,15 @@ public class ImportExportCommandTest extends AbstractCLITest {
         assertThat(Files.size(exportFile))
                 .as("Export file should not be empty")
                 .isGreaterThan(0);
+
+        try (ZipFile zipFile = new ZipFile(exportFile.toFile())) {
+            assertThat(zipFile.stream()
+                    .map(entry -> entry.getName())
+                    .toList())
+                    .as("Export ZIP should contain a manifest")
+                    .anyMatch(name -> name.contains("manifest"));
+        }
+
     }
 
     @Test

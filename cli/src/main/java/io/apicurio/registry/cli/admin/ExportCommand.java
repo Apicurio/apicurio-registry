@@ -3,8 +3,12 @@ package io.apicurio.registry.cli.admin;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.vertx.core.Vertx;
+import io.vertx.core.file.AsyncFile;
+import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
+import jakarta.inject.Inject;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -29,6 +33,10 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class ExportCommand extends AbstractCommand {
 
     private static final Logger log = Logger.getLogger(ExportCommand.class);
+
+    @Inject
+    Vertx vertx;
+
     private static final int DOWNLOAD_TIMEOUT_SECONDS = 300;
     private static final int HTTP_OK = 200;
     private static final int DEFAULT_HTTP_PORT = 80;
@@ -112,9 +120,7 @@ public class ExportCommand extends AbstractCommand {
                     "apicurio-export-",
                     ".tmp");
 
-            final var content = download(url);
-
-            Files.write(tempFile, content);
+            download(url, tempFile);
 
             moveFile(tempFile, outputPath);
             tempFile = null;
@@ -130,9 +136,9 @@ public class ExportCommand extends AbstractCommand {
         }
     }
 
-    private byte[] download(final URI url) {
+    private void download(final URI url, final Path tempFile) {
         final var httpClient = client.getHttpClient();
-        final var future = new CompletableFuture<byte[]>();
+        final var future = new CompletableFuture<Void>();
 
         final boolean ssl = HTTPS_SCHEME.equals(url.getScheme());
 
@@ -163,15 +169,24 @@ public class ExportCommand extends AbstractCommand {
                                 return;
                             }
 
-                            response.body()
-                                    .onSuccess(buffer -> future.complete(buffer.getBytes()))
+                            response.pause();
+
+                            vertx.fileSystem()
+                                    .open(
+                                            tempFile.toString(),
+                                            new OpenOptions()
+                                                    .setWrite(true)
+                                                    .setCreate(true)
+                                                    .setTruncateExisting(true))
+                                    .onSuccess(asyncFile ->
+                                            streamResponse(response, asyncFile, future))
                                     .onFailure(future::completeExceptionally);
                         })
                         .onFailure(future::completeExceptionally))
                 .onFailure(future::completeExceptionally);
 
         try {
-            return future.get(
+            future.get(
                     DOWNLOAD_TIMEOUT_SECONDS,
                     TimeUnit.SECONDS);
 
@@ -206,6 +221,16 @@ public class ExportCommand extends AbstractCommand {
                     ex,
                     APPLICATION_ERROR_RETURN_CODE);
         }
+    }
+
+    private void streamResponse(
+            final io.vertx.core.http.HttpClientResponse response,
+            final AsyncFile asyncFile,
+            final CompletableFuture<Void> future) {
+
+        response.pipeTo(asyncFile)
+                .onSuccess(ignored -> future.complete(null))
+                .onFailure(future::completeExceptionally);
     }
 
     private static void moveFile(final Path source, final Path target)

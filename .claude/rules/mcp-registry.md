@@ -160,9 +160,11 @@ markers to avoid colliding with each other's artifacts.
 
 Open questions for maintainers rather than settled decisions — raise on #7763, don't quietly pick:
 
-- **`_meta.id` is the artifact `globalId`, not a UUID.** The official registry issues UUIDs. Ours is
-  unique per registry instance but collides across instances. Changing it later is breaking, since a
-  UUID must be minted at publish and persisted (it cannot be recomputed on read like `globalId`).
+- ~~**`_meta.id` is the artifact `globalId`, not a UUID.**~~ **Resolved.** A UUID is minted at publish
+  time and persisted as an artifact-version label (`SERVER_VERSION_ID_LABEL`), the same pattern the
+  Iceberg REST Catalog uses for `table-uuid`. `serverVersionId()` reads the label back on every
+  request and falls back to `globalId` only for versions published before this label existed, so old
+  data doesn't break. See `McpRegistryApiResourceImpl.serverVersionId()`.
 - **`metadata.count` is the page size, not total matches.** The spec does not pin this down.
 - **`PATCH /{name}/status` is not atomic.** No bulk state change exists in `RegistryStorage`, and a
   REST-level transaction would not span the Kafka-backed variants. It loops; a mid-loop failure leaves

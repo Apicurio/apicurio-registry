@@ -78,6 +78,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
@@ -2108,20 +2109,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 .compatibilityGroup(data.getCompatibilityGroup())
                 .build();
 
-        // Detect existing contractId from labels
+        // Resolve the contract id and the labels to store before handing them to storage. The
+        // merge removes the contract.{id}.id label, so the id has to be read up front, and the
+        // resolved values are what a KafkaSQL journal message carries.
         ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
-        String contractId = findContractId(existing.getLabels());
-        String prefix = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
-
-        // Convert editable metadata to namespaced labels
+        String contractId = ContractLabels.findContractId(existing.getLabels());
+        String prefix = ContractLabels.prefixFor(contractId);
         Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto, prefix);
 
-        // Atomic merge scoped to the contract prefix
-        storage.mergeArtifactLabels(rawGroupId, artifactId, prefix, contractLabels);
-
-        // Fire metadata updated event
-        storage.createEvent(io.apicurio.registry.events.ContractMetadataUpdated.of(rawGroupId, artifactId));
+        // Persist the metadata and fire the metadata updated event
+        storage.updateContractMetadata(rawGroupId, artifactId, prefix, contractLabels);
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2241,37 +2238,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Get current metadata to check current status
         ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
-        String contractId = findContractId(existing.getLabels());
+        String contractId = ContractLabels.findContractId(existing.getLabels());
         ContractMetadataDto currentMetadata = contractMetadataMapper.fromLabels(
                 existing.getLabels(), contractId);
 
         // Validate transition
         contractMetadataValidator.validateStatusTransition(currentMetadata.getStatus(), targetStatus);
 
-        String prefix = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
-
-        // Update status label
-        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
-        storage.mergeArtifactLabels(rawGroupId, artifactId, statusKey,
-                Map.of(statusKey, targetStatus.name()));
-
-        // Update lifecycle date labels
-        if (targetStatus == ContractStatus.STABLE) {
-            String key = prefix + ContractLabels.SUFFIX_STABLE_DATE;
-            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
-                    Map.of(key, java.time.LocalDate.now().toString()));
-        }
-        if (targetStatus == ContractStatus.DEPRECATED) {
-            String key = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
-            storage.mergeArtifactLabels(rawGroupId, artifactId, key,
-                    Map.of(key, java.time.LocalDate.now().toString()));
-        }
-
-        // Fire status changed event
-        storage.createEvent(io.apicurio.registry.events.ContractStatusChanged.of(rawGroupId, artifactId,
+        // Apply the transition and fire the status changed event. The prefix and the lifecycle
+        // date are resolved here so that every KafkaSQL replica applies the same values on
+        // replay rather than recomputing them.
+        String prefix = ContractLabels.prefixFor(contractId);
+        storage.transitionContractStatus(rawGroupId, artifactId,
                 currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : null,
-                targetStatus.name()));
+                targetStatus.name(), prefix, LocalDate.now().toString());
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,
@@ -2594,30 +2574,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         var meta = storage.getArtifactMetaData(rawGroupId, artifactId);
-        String contractId = findContractId(meta.getLabels());
+        String contractId = ContractLabels.findContractId(meta.getLabels());
         if (contractId == null) {
             throw new jakarta.ws.rs.NotFoundException(
                     "No ODCS contract projected onto this artifact");
         }
         return odcsExporter.export(rawGroupId, artifactId, contractId);
-    }
-
-    private String findContractId(Map<String, String> labels) {
-        if (labels == null) {
-            return null;
-        }
-        String suffix = "." + ContractLabels.SUFFIX_ID;
-        for (Map.Entry<String, String> entry : labels.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
-                String middle = key.substring(ContractLabels.PREFIX.length(),
-                        key.length() - suffix.length());
-                if (!middle.contains(".")) {
-                    return entry.getValue();
-                }
-            }
-        }
-        return null;
     }
 
     // ========== Phase 4-5 Endpoints ==========

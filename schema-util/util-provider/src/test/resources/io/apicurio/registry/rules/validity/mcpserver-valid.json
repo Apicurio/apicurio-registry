@@ -11,7 +11,7 @@
   },
   "packages": [
     {
-      "registry_type": "npm",
+      "registryType": "npm",
       "identifier": "@example/weather-mcp",
       "version": "1.2.3",
       "transport": { "type": "stdio" }
@@ -21,6 +21,6 @@
     { "type": "streamable-http", "url": "https://weather.example.com/mcp" }
   ],
   "icons": [
-    { "src": "https://example.com/icon.png", "mime_type": "image/png" }
+    { "src": "https://example.com/icon.png", "mimeType": "image/png" }
   ]
 }

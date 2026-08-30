@@ -43,7 +43,7 @@ public class McpServerStructuredContentExtractor implements StructuredContentExt
             return;
         }
         for (JsonNode pkg : packages) {
-            addTextual(pkg, "registry_type", "packageRegistry", elements);
+            addTextual(pkg, "registryType", "packageRegistry", elements);
             addTextual(pkg, "identifier", "package", elements);
             JsonNode transport = pkg.path("transport");
             if (transport.isTextual()) {

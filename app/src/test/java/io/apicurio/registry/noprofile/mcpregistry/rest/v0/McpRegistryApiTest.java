@@ -43,7 +43,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                   },
                   "packages": [
                     {
-                      "registry_type": "npm",
+                      "registryType": "npm",
                       "identifier": "@example/weather-mcp",
                       "version": "%s",
                       "transport": { "type": "stdio" }
@@ -85,12 +85,12 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .body("description", equalTo("A weather server"))
                 .body("repository.url", equalTo("https://github.com/example/weather"))
                 .body("packages", hasSize(1))
-                .body("packages[0].registry_type", equalTo("npm"))
+                .body("packages[0].registryType", equalTo("npm"))
                 .body("packages[0].transport.type", equalTo("stdio"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"))
-                .body("_meta.'" + REGISTRY_META + "'.is_latest", equalTo(true))
+                .body("_meta.'" + REGISTRY_META + "'.isLatest", equalTo(true))
                 .body("_meta.'" + REGISTRY_META + "'.id", notNullValue())
-                .body("_meta.'" + REGISTRY_META + "'.published_at", notNullValue());
+                .body("_meta.'" + REGISTRY_META + "'.publishedAt", notNullValue());
     }
 
     @Test
@@ -199,8 +199,8 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .body("metadata.count", equalTo(2))
                 .body("servers[0].version", equalTo("1.0.0"))
                 .body("servers[1].version", equalTo("2.0.0"))
-                .body("servers[0]._meta.'" + REGISTRY_META + "'.is_latest", equalTo(false))
-                .body("servers[1]._meta.'" + REGISTRY_META + "'.is_latest", equalTo(true));
+                .body("servers[0]._meta.'" + REGISTRY_META + "'.isLatest", equalTo(false))
+                .body("servers[1]._meta.'" + REGISTRY_META + "'.isLatest", equalTo(true));
 
         // The bare server endpoint resolves to the most recently published version
         given()
@@ -463,6 +463,39 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .statusCode(400);
     }
 
+    @Test
+    public void testStatusMessageIsAcceptedWithDeprecated() {
+        String namespace = uniqueNamespace();
+        String name = namespace + "/withreason";
+
+        publish(name, "1.0.0", "v1");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"deprecated\",\"statusMessage\":\"superseded by 2.0.0\"}")
+                .patch(BASE + "/servers/" + namespace + "/withreason/versions/1.0.0/status")
+                .then()
+                .statusCode(200)
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deprecated"));
+    }
+
+    @Test
+    public void testStatusMessageIsRejectedWithActive() {
+        String namespace = uniqueNamespace();
+        String name = namespace + "/badreason";
+
+        publish(name, "1.0.0", "v1");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"active\",\"statusMessage\":\"should not be allowed\"}")
+                .patch(BASE + "/servers/" + namespace + "/badreason/versions/1.0.0/status")
+                .then()
+                .statusCode(400);
+    }
+
     // === Listing, search and pagination ===
 
     @Test
@@ -503,8 +536,8 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("servers", hasSize(2))
-                .body("metadata.next_cursor", notNullValue())
-                .extract().path("metadata.next_cursor");
+                .body("metadata.nextCursor", notNullValue())
+                .extract().path("metadata.nextCursor");
 
         given()
                 .when()
@@ -516,7 +549,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("servers", hasSize(1))
-                .body("metadata.next_cursor", nullValue());
+                .body("metadata.nextCursor", nullValue());
     }
 
     @Test
@@ -536,7 +569,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers")
                 .then()
                 .statusCode(200)
-                .extract().path("metadata.next_cursor");
+                .extract().path("metadata.nextCursor");
         assertNotNull(cursor);
 
         // An offset means nothing against a different result set, so the cursor must not be honoured.

@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * These tests are pure resource parsing with no database involved, so they run fast and cover all four
  * dialects at once including MySQL, whose outbox table is declared but not yet written to.
  */
-public class OutboxAggregateIdLengthTest {
+class OutboxAggregateIdLengthTest {
 
     private static final String DDL_PATH = "io/apicurio/registry/storage/impl/sql/";
 
@@ -72,7 +72,7 @@ public class OutboxAggregateIdLengthTest {
      */
     @ParameterizedTest
     @ValueSource(strings = { "postgresql", "mysql", "mssql" })
-    public void testAggregateIdColumnFitsWidestAggregateId(String dialect) throws IOException {
+    void testAggregateIdColumnFitsWidestAggregateId(String dialect) throws IOException {
         String ddl = readResource(DDL_PATH + dialect + ".ddl");
 
         int aggregateIdWidth = extractWidth(AGGREGATEID_COLUMN, ddl, "outbox.aggregateid", dialect);
@@ -101,7 +101,7 @@ public class OutboxAggregateIdLengthTest {
      * group or artifact ids are corrupted on the way into the outbox.
      */
     @Test
-    public void testMssqlAggregateIdIsNvarchar() throws IOException {
+    void testMssqlAggregateIdIsNvarchar() throws IOException {
         String ddl = readResource(DDL_PATH + "mssql.ddl");
         Matcher matcher = Pattern
                 .compile("aggregateid\\s+(?:TYPE\\s+)?(N?VARCHAR)\\(", Pattern.CASE_INSENSITIVE).matcher(ddl);
@@ -115,7 +115,7 @@ public class OutboxAggregateIdLengthTest {
      * storage backend is accepted by all of them.
      */
     @Test
-    public void testAggregateIdWidthIsConsistentAcrossDialects() throws IOException {
+    void testAggregateIdWidthIsConsistentAcrossDialects() throws IOException {
         Integer expected = null;
         for (String dialect : OUTBOX_DIALECTS) {
             String ddl = readResource(DDL_PATH + dialect + ".ddl");
@@ -137,7 +137,7 @@ public class OutboxAggregateIdLengthTest {
      */
     @ParameterizedTest
     @ValueSource(strings = { "postgresql", "mysql", "mssql", "h2" })
-    public void testUpgradeScriptExistsAndBumpsVersion(String dialect) throws IOException {
+    void testUpgradeScriptExistsAndBumpsVersion(String dialect) throws IOException {
         String upgrade = readResource(
                 DDL_PATH + "upgrades/" + WIDENING_DB_VERSION + "/" + dialect + ".upgrade.ddl");
         assertTrue(
@@ -153,7 +153,7 @@ public class OutboxAggregateIdLengthTest {
      */
     @ParameterizedTest
     @ValueSource(strings = { "postgresql", "mysql", "mssql" })
-    public void testUpgradeScriptWidensColumnToMatchBaseDdl(String dialect) throws IOException {
+    void testUpgradeScriptWidensColumnToMatchBaseDdl(String dialect) throws IOException {
         String upgrade = readResource(
                 DDL_PATH + "upgrades/" + WIDENING_DB_VERSION + "/" + dialect + ".upgrade.ddl");
         String baseDdl = readResource(DDL_PATH + dialect + ".ddl");
@@ -174,7 +174,7 @@ public class OutboxAggregateIdLengthTest {
      * H2 has no outbox table, so its upgrade script must not try to alter one.
      */
     @Test
-    public void testH2UpgradeScriptDoesNotTouchOutbox() throws IOException {
+    void testH2UpgradeScriptDoesNotTouchOutbox() throws IOException {
         String upgrade = readResource(DDL_PATH + "upgrades/" + WIDENING_DB_VERSION + "/h2.upgrade.ddl");
         assertFalse(upgrade.contains("outbox"),
                 "H2 has no outbox table, so its upgrade script must not reference one");
@@ -185,7 +185,7 @@ public class OutboxAggregateIdLengthTest {
      * script is never executed.
      */
     @Test
-    public void testDbVersionIncludesTheUpgrade() throws IOException {
+    void testDbVersionIncludesTheUpgrade() throws IOException {
         int dbVersion = Integer.parseInt(readResource(DDL_PATH + "db-version").trim());
         assertTrue(dbVersion >= WIDENING_DB_VERSION, "db-version is " + dbVersion + " but must be at least "
                 + WIDENING_DB_VERSION + " for the outbox.aggregateid widening to be applied");
@@ -196,7 +196,7 @@ public class OutboxAggregateIdLengthTest {
      * maximum-length identifiers must still fit the column.
      */
     @Test
-    public void testGeneratedAggregateIdFitsColumn() throws IOException {
+    void testGeneratedAggregateIdFitsColumn() throws IOException {
         String groupId = "g".repeat(512);
         String artifactId = "a".repeat(512);
         String version = "v".repeat(256);

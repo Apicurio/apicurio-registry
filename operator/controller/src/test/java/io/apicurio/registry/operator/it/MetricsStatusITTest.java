@@ -60,12 +60,15 @@ public class MetricsStatusITTest extends ITBase {
     }
 
     /**
-     * The reported timestamp tracks the last change in the numbers, not the last collection attempt. If it
-     * moved on every pass, each status patch would trigger another reconciliation.
+     * An idle registry serves no API requests and stores nothing new, so every scrape in this window yields
+     * the same numbers. The timestamp still has to advance, because it reports when the operator last read
+     * the operand rather than when the numbers last changed. That distinction is the only thing separating a
+     * healthy quiet deployment from one the operator stopped collecting from an hour ago, and it belongs in
+     * an integration test because it is the reconciliation loop that has to keep driving it.
      */
     @Test
     @DisabledIf("io.apicurio.registry.operator.it.ITBase#isLocalDeployment")
-    void testLastCollectedDoesNotMoveWhileTheRegistryIsIdle() {
+    void testLastCollectedAdvancesWhileTheRegistryIsIdle() {
         var registry = ResourceFactory.deserialize("/k8s/examples/simple.apicurioregistry3.yaml",
                 ApicurioRegistry3.class);
 
@@ -81,14 +84,17 @@ public class MetricsStatusITTest extends ITBase {
         await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> assertThat(
                 client.resource(registry).get().getStatus().getMetrics().getLastCollected()).isNotNull());
 
-        // An idle registry serves no API requests, so every scrape in this window yields the same numbers.
-        var first = client.resource(registry).get().getStatus().getMetrics().getLastCollected();
-        await().pollDelay(SHORT_DURATION).atMost(MEDIUM_DURATION).ignoreExceptions()
-                .untilAsserted(() -> assertThat(client.resource(registry).get()).isNotNull());
-        var later = client.resource(registry).get().getStatus().getMetrics().getLastCollected();
+        var reported = client.resource(registry).get().getStatus().getMetrics();
+        var first = reported.getLastCollected();
+        var summary = reported.getSummary();
 
-        log.info("lastCollected across several scrape intervals: {} then {}", first, later);
-        assertThat(later).isEqualTo(first);
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            var later = client.resource(registry).get().getStatus().getMetrics();
+            log.info("lastCollected was {}, now {}", first, later.getLastCollected());
+            assertThat(later.getLastCollected()).isAfter(first);
+            // The numbers did not have to change for the timestamp to move.
+            assertThat(later.getSummary()).isEqualTo(summary);
+        });
     }
 
     /**

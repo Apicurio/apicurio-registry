@@ -41,15 +41,15 @@ import static lombok.AccessLevel.PRIVATE;
 public class MetricsStatus {
 
     /**
-     * The last time the reported summary changed.
+     * The time of the last successful collection.
      * <p>
-     * This is deliberately not the time of the last collection attempt. Refreshing it on every attempt
-     * would rewrite the resource on every reconciliation, which would in turn trigger another
-     * reconciliation.
+     * A failed collection does not move this, so a timestamp that has stopped advancing means the operator
+     * can no longer read the operand. The accompanying MetricsUnavailable condition says why.
      */
     @JsonProperty("lastCollected")
     @JsonPropertyDescription("""
-            The last time the reported summary changed. This is not the time of the last collection attempt.""")
+            The time of the last successful collection. A failed collection does not move it, so a timestamp
+            that has stopped advancing means the operator can no longer read the application Pods.""")
     @JsonSetter(nulls = Nulls.SKIP)
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
     @SchemaFrom(type = String.class)

@@ -54,7 +54,7 @@ kubectl describe apicurioregistry3 registry-with-metrics
 | `spec.app.metrics.scrapeIntervalSeconds`
 | integer
 | `60`
-| How often the {operator} collects metrics, in seconds. Values below 10 are raised to 10.
+| How often the {operator} collects metrics, in seconds. Minimum 10; the CRD rejects anything lower.
 
 | `spec.app.metrics.connectionPoolUtilizationThreshold`
 | number
@@ -91,7 +91,9 @@ The {operator} contacts each {registry} application Pod on its management interf
 | Share of the requests in that interval that were answered with a 5xx status.
 
 | `status.metrics.summary.connectionPoolUtilization`
-| In-use database connections as a fraction of the current pool, averaged across Pods.
+| In-use database connections as a fraction of the current pool, on whichever Pod is using the most of
+its pool. Reported as the highest rather than the average so that one exhausted replica is not hidden
+behind idle ones.
 
 | `status.metrics.summary.artifactCount`
 | Number of artifacts in storage. Every replica counts the same shared storage, so this is the highest value seen rather than a sum.
@@ -102,12 +104,21 @@ The {operator} contacts each {registry} application Pod on its management interf
 | `status.metrics.summary.kafkaConsumerLag`
 | Highest consumer lag reported by any Pod. Present only with KafkaSQL storage.
 
+| `status.metrics.summary.scrapedPods`
+| How many application Pods the values above were read from. At most 10 Pods are read per collection, so on a larger deployment, or when a Pod cannot be reached, the totals cover only the Pods that answered.
+
 | `status.metrics.lastCollected`
-| The last time the reported summary changed. It deliberately does not move on every collection, because rewriting the resource when nothing has changed would trigger another reconciliation.
+| The time of the last successful collection. A failed collection does not move it, so a timestamp that has stopped advancing means the Operator can no longer read the Pods, and the `MetricsUnavailable` condition says why.
 |===
 
 A field is omitted when the underlying metric is not exposed, rather than reported as zero.
 Rates need two collections, so they appear one interval after the feature is enabled.
+
+`artifactCount` and `artifactVersionCount` come from gauges that {registry} does not publish by default,
+because each refresh of them costs an aggregate count over the whole dataset, which is not cheap on a large
+registry. To have the Operator report them, set `apicurio.metrics.storage-usage.enabled` to `true` on the
+{registry} deployment, for example through `spec.app.env`. Until then the two fields are simply absent, and
+the rest of the summary is unaffected.
 
 .Emitted Events
 Events are of type `Warning` and repeat at most once every 10 minutes while the breach continues.
@@ -117,7 +128,7 @@ Events are of type `Warning` and repeat at most once every 10 minutes while the 
 | Reason | Meaning
 
 | `ConnectionPoolSaturated`
-| Database connection pool use reached `connectionPoolUtilizationThreshold`.
+| Database connection pool use on at least one Pod reached `connectionPoolUtilizationThreshold`.
 
 | `HighErrorRate`
 | The share of 5xx responses reached `errorRateThreshold`.

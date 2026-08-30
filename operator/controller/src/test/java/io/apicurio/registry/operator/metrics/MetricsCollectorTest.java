@@ -8,11 +8,11 @@ import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.within;
 
 public class MetricsCollectorTest {
 
@@ -37,27 +37,53 @@ public class MetricsCollectorTest {
 
     @Test
     public void testAggregatesAcrossPods() {
-        var snapshot = MetricsCollector.aggregate(List.of(POD_A, POD_B));
+        var snapshot = MetricsCollector.aggregate(bodies("pod-a", POD_A, "pod-b", POD_B));
 
         assertThat(snapshot.scrapedPods()).isEqualTo(2);
-        assertThat(snapshot.requestsTotal()).isEqualTo(155.0);
-        assertThat(snapshot.serverErrorsTotal()).isEqualTo(5.0);
-        // Pod A is at 8/10, Pod B at 2/10.
-        assertThat(snapshot.poolUtilization()).isCloseTo(0.5, within(0.0001));
         assertThat(snapshot.kafkaConsumerLag()).isEqualTo(700L);
         // Every replica counts the same shared storage, so these are maxed and not summed.
         assertThat(snapshot.artifactCount()).isEqualTo(40L);
         assertThat(snapshot.artifactVersionCount()).isEqualTo(120L);
     }
 
+    /**
+     * Request counters stay attributed to the Pod they came from. Summing them here would make a scrape that
+     * covered a different set of Pods indistinguishable from one that covered the same set, and the operator
+     * derives rates by differencing these.
+     */
+    @Test
+    public void testRequestCountersAreKeptPerPod() {
+        var snapshot = MetricsCollector.aggregate(bodies("pod-a", POD_A, "pod-b", POD_B));
+
+        assertThat(snapshot.requestMetricSeen()).isTrue();
+        assertThat(snapshot.requestCounters()).containsOnlyKeys("pod-a", "pod-b");
+        assertThat(snapshot.requestCounters().get("pod-a").requests()).isEqualTo(105.0);
+        assertThat(snapshot.requestCounters().get("pod-a").serverErrors()).isEqualTo(5.0);
+        assertThat(snapshot.requestCounters().get("pod-b").requests()).isEqualTo(50.0);
+        assertThat(snapshot.requestCounters().get("pod-b").serverErrors()).isEqualTo(0.0);
+    }
+
+    /**
+     * A replica whose pool is exhausted is already queueing or failing requests. Averaging across replicas
+     * would let it hide behind idle ones, which is the case the threshold exists to catch.
+     */
+    @Test
+    public void testPoolUtilizationReportsTheWorstPodRatherThanTheAverage() {
+        // Pod A is at 8/10 and Pod B at 2/10, which would average to 0.5.
+        var snapshot = MetricsCollector.aggregate(bodies("pod-a", POD_A, "pod-b", POD_B));
+
+        assertThat(snapshot.poolUtilization()).isEqualTo(0.8);
+    }
+
     @Test
     public void testAbsentMetricsAreReportedAsAbsentRatherThanZero() {
-        var snapshot = MetricsCollector.aggregate(List.of("""
+        var snapshot = MetricsCollector.aggregate(bodies("pod-a", """
                 some_unrelated_metric 1
                 kafka_consumer_fetch_manager_records_lag_max NaN
                 """));
 
         assertThat(snapshot.requestMetricSeen()).isFalse();
+        assertThat(snapshot.requestCounters()).isEmpty();
         assertThat(snapshot.poolUtilization()).isNull();
         assertThat(snapshot.artifactCount()).isNull();
         // Non-finite samples are skipped rather than turned into a bogus value.
@@ -70,14 +96,14 @@ public class MetricsCollectorTest {
      */
     @Test
     public void testExplicitServerErrorCodesAreCounted() {
-        var snapshot = MetricsCollector.aggregate(List.of("""
+        var snapshot = MetricsCollector.aggregate(bodies("pod-a", """
                 rest_requests_seconds_count{status_code_group="2xx"} 90
                 rest_requests_seconds_count{status_code_group="503"} 10
                 rest_requests_seconds_count{status_code_group="401"} 5
                 """));
 
-        assertThat(snapshot.requestsTotal()).isEqualTo(105.0);
-        assertThat(snapshot.serverErrorsTotal()).isEqualTo(10.0);
+        assertThat(snapshot.requestCounters().get("pod-a").requests()).isEqualTo(105.0);
+        assertThat(snapshot.requestCounters().get("pod-a").serverErrors()).isEqualTo(10.0);
     }
 
     /**
@@ -91,11 +117,11 @@ public class MetricsCollectorTest {
             body = new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
 
-        var snapshot = MetricsCollector.aggregate(List.of(body));
+        var snapshot = MetricsCollector.aggregate(bodies("pod-a", body));
 
         // 7 successful and 3 not-found requests, counted once each across all label combinations.
-        assertThat(snapshot.requestsTotal()).isEqualTo(10.0);
-        assertThat(snapshot.serverErrorsTotal()).isEqualTo(0.0);
+        assertThat(snapshot.requestCounters().get("pod-a").requests()).isEqualTo(10.0);
+        assertThat(snapshot.requestCounters().get("pod-a").serverErrors()).isEqualTo(0.0);
         // The pool had opened 20 connections and none were checked out.
         assertThat(snapshot.poolUtilization()).isEqualTo(0.0);
         // Captured from a released image, which predates the gauges this change adds to the app module.
@@ -122,6 +148,19 @@ public class MetricsCollectorTest {
         assertThatThrownBy(() -> new MetricsCollector().collect(null, registryWithTls(tls)))
                 .isInstanceOf(MetricsCollectionException.class)
                 .hasMessageContaining("spec.app.tls");
+    }
+
+    private static Map<String, String> bodies(String name, String body) {
+        var bodies = new LinkedHashMap<String, String>();
+        bodies.put(name, body);
+        return bodies;
+    }
+
+    private static Map<String, String> bodies(String firstName, String firstBody, String secondName,
+                                              String secondBody) {
+        var bodies = bodies(firstName, firstBody);
+        bodies.put(secondName, secondBody);
+        return bodies;
     }
 
     private static ApicurioRegistry3 registryWithTls(TLSSpec tls) {

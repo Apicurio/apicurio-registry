@@ -26,6 +26,7 @@ status:
       requestRate: <double>
       errorRate: <double>
       connectionPoolUtilization: <double>
+      scrapedPods: <int>
       artifactCount: <int>
       artifactVersionCount: <int>
       kafkaConsumerLag: <int>
@@ -90,7 +91,7 @@ status:
 
 | `metrics/lastCollected`
 | string
-| The last time the reported summary changed. This is not the time of the last collection attempt.
+| The time of the last successful collection. A failed collection does not move it, so a timestamp that has stopped advancing means the Operator can no longer read the application Pods.
 
 | `metrics/summary/requestRate`
 | double
@@ -102,7 +103,11 @@ status:
 
 | `metrics/summary/connectionPoolUtilization`
 | double
-| Fraction of the database connection pool in use, averaged across all application Pods, between 0.0 and 1.0.
+| Highest fraction of the database connection pool in use on any one application Pod, between 0.0 and 1.0.
+
+| `metrics/summary/scrapedPods`
+| int
+| How many application Pods the reported values were read from. At most 10 Pods are read per collection, so on a larger deployment, or when a Pod cannot be reached, the totals cover only the Pods that answered.
 
 | `metrics/summary/artifactCount`
 | int

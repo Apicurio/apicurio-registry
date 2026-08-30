@@ -11,6 +11,7 @@ import io.apicurio.registry.cdi.LazyResource;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
 import io.quarkus.arc.lookup.LookupIfProperty;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
@@ -51,9 +52,28 @@ public class KafkaSqlFactory {
 
     /**
      * Held so that the binder, and through it the meters it registered, is not collected while the consumer
-     * is still in use.
+     * is still in use, and so that it can be closed on shutdown.
      */
     private KafkaClientMetrics journalConsumerMetrics;
+
+    /**
+     * Removes the meters the binder registered. Without this the binder outlives the bean and keeps a
+     * reference to a consumer that is on its way to being closed, which a scrape arriving during shutdown
+     * would then read from. Only the binder is closed here; the consumer's own lifecycle is unchanged.
+     */
+    @PreDestroy
+    void closeKafkaMetrics() {
+        if (journalConsumerMetrics == null) {
+            return;
+        }
+        try {
+            journalConsumerMetrics.close();
+        } catch (Exception ex) {
+            log.debug("Could not close Kafka client metrics: {}", ex.getMessage());
+        } finally {
+            journalConsumerMetrics = null;
+        }
+    }
 
     @Produces
     @ApplicationScoped

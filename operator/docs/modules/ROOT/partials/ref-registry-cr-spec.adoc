@@ -662,7 +662,7 @@ endif::[]
 | `app/metrics/scrapeIntervalSeconds`
 | int
 | `60`
-| How often the Operator collects metrics, in seconds. Values below 10 are raised to 10.
+| How often the Operator collects metrics, in seconds. Minimum 10; the CRD rejects anything lower.
 
 | `app/metrics/prometheusRuleEnabled`
 | bool
@@ -672,7 +672,7 @@ endif::[]
 | `app/metrics/connectionPoolUtilizationThreshold`
 | double
 | `0.8`
-| Emit a `ConnectionPoolSaturated` Event when the fraction of in-use database connections reaches this value.
+| Emit a `ConnectionPoolSaturated` Event when the fraction of in-use database connections on any one application Pod reaches this value.
 
 | `app/metrics/errorRateThreshold`
 | double

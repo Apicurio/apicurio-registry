@@ -6,6 +6,8 @@ import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.MetricsSpec;
 import io.apicurio.registry.operator.resource.Labels;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResourceBuilder;
+import io.fabric8.kubernetes.api.model.OwnerReference;
+import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.base.CustomResourceDefinitionContext;
 import org.slf4j.Logger;
@@ -94,6 +96,7 @@ public class PrometheusRuleManager {
                 .withName(name)
                 .withNamespace(namespace)
                 .withLabels(Labels.getSelectorLabels(primary, COMPONENT_APP))
+                .withOwnerReferences(ownerReferences(primary))
                 .endMetadata()
                 .build();
 
@@ -140,6 +143,11 @@ public class PrometheusRuleManager {
     /**
      * The alert names and thresholds deliberately mirror the Events the operator emits, so that whichever
      * path an admin is watching tells the same story.
+     * <p>
+     * The pool expression is evaluated per series, so it fires when any one Pod crosses the threshold. That
+     * is the same rule the operator applies, which reports the highest utilization across Pods rather than
+     * the average. Keeping it per series also means the firing alert carries the labels of the Pod
+     * responsible, which an aggregate would throw away.
      */
     static List<Map<String, Object>> buildRules(ApicurioRegistry3 primary, String namespace) {
         var spec = metricsSpec(primary);
@@ -156,7 +164,7 @@ public class PrometheusRuleManager {
                         """
                         agroal_active_count{%s} / clamp_min(agroal_active_count{%s} + agroal_available_count{%s}, 1) >= %s"""
                                 .formatted(selector, selector, selector, poolThreshold),
-                        "Database connection pool utilization is at or above %s%%."
+                        "Database connection pool utilization on an application Pod is at or above %s%%."
                                 .formatted(poolThreshold * 100)),
                 rule("ApicurioRegistryHighErrorRate",
                         """
@@ -177,6 +185,33 @@ public class PrometheusRuleManager {
                 "for", "5m",
                 "labels", Map.of("severity", "warning"),
                 "annotations", Map.of("description", description));
+    }
+
+    /**
+     * Ties the generated rule to the custom resource that asked for it, so that deleting the Registry takes
+     * the rule with it even if the operator is not running at the time. Without this the only thing removing
+     * it is the explicit delete in the cleanup path, and a rule left behind keeps alerting for a deployment
+     * that no longer exists.
+     * <p>
+     * Unlike the OpenShift ConsolePlugin, which is cluster scoped and so cannot be owned by a namespaced
+     * resource, a PrometheusRule lives in the same namespace as the custom resource and can be.
+     *
+     * @return the owner reference, or an empty list when the resource has no UID yet, since the API server
+     *         rejects an owner reference without one
+     */
+    static List<OwnerReference> ownerReferences(ApicurioRegistry3 primary) {
+        var uid = primary.getMetadata().getUid();
+        if (uid == null || uid.isBlank()) {
+            return List.of();
+        }
+        return List.of(new OwnerReferenceBuilder()
+                .withApiVersion(primary.getApiVersion())
+                .withKind(primary.getKind())
+                .withName(primary.getMetadata().getName())
+                .withUid(uid)
+                .withController(true)
+                .withBlockOwnerDeletion(false)
+                .build());
     }
 
     private static CustomResourceDefinitionContext ruleContext() {

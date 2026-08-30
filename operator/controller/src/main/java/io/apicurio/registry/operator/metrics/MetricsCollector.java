@@ -4,6 +4,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
 import io.apicurio.registry.operator.api.v1.spec.TLSSpec;
+import io.apicurio.registry.operator.metrics.RegistryMetricsSnapshot.RequestCounters;
 import io.apicurio.registry.operator.resource.Labels;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.client.KubernetesClient;
@@ -16,8 +17,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.apicurio.registry.operator.metrics.RegistryMetricNames.KAFKA_RECORDS_LAG_MAX;
 import static io.apicurio.registry.operator.metrics.RegistryMetricNames.POOL_ACTIVE_COUNT;
@@ -29,6 +31,7 @@ import static io.apicurio.registry.operator.metrics.RegistryMetricNames.TAG_STAT
 import static io.apicurio.registry.operator.metrics.RegistryMetricNames.isServerError;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
+import static java.util.Comparator.comparing;
 import static java.util.Optional.ofNullable;
 
 /**
@@ -100,14 +103,16 @@ public class MetricsCollector {
             throw new MetricsCollectionException("No running Apicurio Registry application Pod was found.");
         }
 
-        var bodies = new ArrayList<String>();
+        // Keyed by Pod, so that two collections can be compared by which Pods they actually covered.
+        var bodies = new LinkedHashMap<String, String>();
         String lastFailure = null;
         for (var pod : pods) {
+            var name = pod.getMetadata().getName();
             try {
-                bodies.add(scrape(pod.getStatus().getPodIP()));
+                bodies.put(name, scrape(pod.getStatus().getPodIP()));
             } catch (Exception ex) {
-                lastFailure = pod.getMetadata().getName() + ": " + describe(ex);
-                log.debug("Could not scrape metrics from Pod {}", pod.getMetadata().getName(), ex);
+                lastFailure = name + ": " + describe(ex);
+                log.debug("Could not scrape metrics from Pod {}", name, ex);
             }
         }
         if (bodies.isEmpty()) {
@@ -146,6 +151,9 @@ public class MetricsCollector {
                 .filter(pod -> pod.getStatus() != null
                         && "Running".equals(pod.getStatus().getPhase())
                         && !isBlank(pod.getStatus().getPodIP()))
+                // Sorted so that a deployment larger than the cap is truncated to the same set of Pods on
+                // every collection. An unstable set would make consecutive readings incomparable.
+                .sorted(comparing(pod -> pod.getMetadata().getName()))
                 .limit(MAX_SCRAPED_PODS)
                 .toList();
 
@@ -167,18 +175,21 @@ public class MetricsCollector {
         return response.body();
     }
 
-    static RegistryMetricsSnapshot aggregate(List<String> bodies) {
-        var requestsTotal = 0.0;
-        var serverErrorsTotal = 0.0;
-        var requestMetricSeen = false;
-        var poolUtilizationSum = 0.0;
-        var poolUtilizationPods = 0;
+    /**
+     * @param bodiesByPod the Prometheus endpoint response of every Pod that answered, keyed by Pod name
+     */
+    static RegistryMetricsSnapshot aggregate(Map<String, String> bodiesByPod) {
+        var requestCounters = new LinkedHashMap<String, RequestCounters>();
+        Double poolUtilization = null;
         Long artifactCount = null;
         Long artifactVersionCount = null;
         Long kafkaConsumerLag = null;
 
-        for (var body : bodies) {
-            var samples = PrometheusTextParser.parse(body);
+        for (var pod : bodiesByPod.entrySet()) {
+            var samples = PrometheusTextParser.parse(pod.getValue());
+            var podRequests = 0.0;
+            var podServerErrors = 0.0;
+            var podRequestSeen = false;
             var podActive = 0.0;
             var podAvailable = 0.0;
             var podPoolSeen = false;
@@ -189,10 +200,10 @@ public class MetricsCollector {
                 }
                 switch (sample.name()) {
                     case REST_REQUESTS_COUNT -> {
-                        requestMetricSeen = true;
-                        requestsTotal += sample.value();
+                        podRequestSeen = true;
+                        podRequests += sample.value();
                         if (isServerError(sample.label(TAG_STATUS_CODE_GROUP))) {
-                            serverErrorsTotal += sample.value();
+                            podServerErrors += sample.value();
                         }
                     }
                     case POOL_ACTIVE_COUNT -> {
@@ -208,6 +219,8 @@ public class MetricsCollector {
                     case STORAGE_ARTIFACTS -> artifactCount = highest(artifactCount, sample.value());
                     case STORAGE_ARTIFACT_VERSIONS ->
                             artifactVersionCount = highest(artifactVersionCount, sample.value());
+                    // Each replica runs its own consumer over its own assigned partitions, so this reports
+                    // the replica that is furthest behind rather than a total.
                     case KAFKA_RECORDS_LAG_MAX ->
                             kafkaConsumerLag = highest(kafkaConsumerLag, sample.value());
                     default -> {
@@ -216,21 +229,27 @@ public class MetricsCollector {
                 }
             }
 
+            if (podRequestSeen) {
+                requestCounters.put(pod.getKey(), new RequestCounters(podRequests, podServerErrors));
+            }
             if (podPoolSeen) {
                 var poolSize = podActive + podAvailable;
                 // A pool that has not opened a connection yet is idle, not saturated.
-                poolUtilizationSum += poolSize > 0 ? podActive / poolSize : 0.0;
-                poolUtilizationPods++;
+                var utilization = poolSize > 0 ? podActive / poolSize : 0.0;
+                // Pool exhaustion is a per-Pod condition: a replica whose pool is full is already queueing
+                // or failing requests. Averaging across replicas would let that replica hide behind idle
+                // ones, which is the case the threshold exists to catch. This also agrees with the
+                // generated PrometheusRule, which evaluates the same ratio per series.
+                poolUtilization = poolUtilization == null ? utilization
+                        : Math.max(poolUtilization, utilization);
             }
         }
 
         return new RegistryMetricsSnapshot(
                 Instant.now(),
-                bodies.size(),
-                requestsTotal,
-                serverErrorsTotal,
-                requestMetricSeen,
-                poolUtilizationPods > 0 ? poolUtilizationSum / poolUtilizationPods : null,
+                bodiesByPod.size(),
+                requestCounters,
+                poolUtilization,
                 artifactCount,
                 artifactVersionCount,
                 kafkaConsumerLag);

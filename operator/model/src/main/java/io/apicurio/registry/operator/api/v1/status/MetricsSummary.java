@@ -27,7 +27,7 @@ import static lombok.AccessLevel.PRIVATE;
  */
 @JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({"requestRate", "errorRate", "connectionPoolUtilization", "artifactCount",
-        "artifactVersionCount", "kafkaConsumerLag"})
+        "artifactVersionCount", "kafkaConsumerLag", "scrapedPods"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -61,13 +61,15 @@ public class MetricsSummary {
     private Double errorRate;
 
     /**
-     * Fraction of the database connection pool that is currently in use, averaged across all application
-     * Pods. Value between 0.0 and 1.0.
+     * Highest fraction of the database connection pool in use on any one application Pod. Reported as the
+     * highest rather than the average, because a replica whose pool is exhausted is already queueing or
+     * failing requests, and averaging would hide it behind idle replicas. Value between 0.0 and 1.0.
      */
     @JsonProperty("connectionPoolUtilization")
     @JsonPropertyDescription("""
-            Fraction of the database connection pool that is currently in use, averaged across all application
-            Pods. Value between 0.0 and 1.0.""")
+            Highest fraction of the database connection pool in use on any one application Pod. Reported as
+            the highest rather than the average, so that an exhausted replica is not hidden by idle ones.
+            Value between 0.0 and 1.0.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private Double connectionPoolUtilization;
 
@@ -99,5 +101,21 @@ public class MetricsSummary {
             Only present when KafkaSQL storage is used.""")
     @JsonSetter(nulls = Nulls.SKIP)
     private Long kafkaConsumerLag;
+
+    /**
+     * How many application Pods these values were read from.
+     * <p>
+     * The operator reads at most 10 Pods per collection, so that one custom resource cannot turn a single
+     * reconciliation into an unbounded number of requests. Above that, and whenever a Pod cannot be reached,
+     * the totals here cover only the Pods that answered. This field says how many that was, so that
+     * `requestRate` is not read as the whole deployment when it is not.
+     */
+    @JsonProperty("scrapedPods")
+    @JsonPropertyDescription("""
+            How many application Pods these values were read from. The operator reads at most 10 Pods per
+            collection, so on a larger deployment, or when a Pod cannot be reached, the totals cover only
+            the Pods that answered.""")
+    @JsonSetter(nulls = Nulls.SKIP)
+    private Integer scrapedPods;
 
 }

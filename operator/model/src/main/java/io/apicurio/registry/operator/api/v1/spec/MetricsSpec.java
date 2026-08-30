@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.Nulls;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.fabric8.generator.annotation.Max;
+import io.fabric8.generator.annotation.Min;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -49,23 +51,26 @@ public class MetricsSpec {
     private Boolean enabled;
 
     /**
-     * How often the operator collects metrics, in seconds. Default is 60.
+     * How often the operator collects metrics, in seconds. Minimum 10, default 60.
      */
     @JsonProperty("scrapeIntervalSeconds")
     @JsonPropertyDescription("""
-            How often the operator collects metrics, in seconds. Default is 60.""")
+            How often the operator collects metrics, in seconds. Minimum 10, default 60.""")
     @JsonSetter(nulls = Nulls.SKIP)
+    @Min(10)
     private Integer scrapeIntervalSeconds;
 
     /**
-     * Emit a Kubernetes Event when the fraction of in-use database connections reaches this value.
-     * Value between 0.0 and 1.0. Default is 0.8.
+     * Emit a Kubernetes Event when the fraction of in-use database connections on any one application Pod
+     * reaches this value. Value between 0.0 and 1.0. Default is 0.8.
      */
     @JsonProperty("connectionPoolUtilizationThreshold")
     @JsonPropertyDescription("""
-            Emit a Kubernetes Event when the fraction of in-use database connections reaches this value.
-            Value between 0.0 and 1.0. Default is 0.8.""")
+            Emit a Kubernetes Event when the fraction of in-use database connections on any one application
+            Pod reaches this value. Value between 0.0 and 1.0. Default is 0.8.""")
     @JsonSetter(nulls = Nulls.SKIP)
+    @Min(0)
+    @Max(1)
     private Double connectionPoolUtilizationThreshold;
 
     /**
@@ -77,6 +82,8 @@ public class MetricsSpec {
             Emit a Kubernetes Event when the fraction of REST API requests answered with a 5xx status
             reaches this value. Value between 0.0 and 1.0. Default is 0.1.""")
     @JsonSetter(nulls = Nulls.SKIP)
+    @Min(0)
+    @Max(1)
     private Double errorRateThreshold;
 
     /**
@@ -88,6 +95,7 @@ public class MetricsSpec {
             Emit a Kubernetes Event when the KafkaSQL consumer lag reaches this number of records.
             Only applies when KafkaSQL storage is used. Default is 1000.""")
     @JsonSetter(nulls = Nulls.SKIP)
+    @Min(0)
     private Long kafkaConsumerLagThreshold;
 
     /**

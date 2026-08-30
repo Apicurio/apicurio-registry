@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -39,11 +38,19 @@ import static java.util.Optional.ofNullable;
  * two collections and that requires state between reconciliations.
  * <p>
  * <strong>On reconciliation loops.</strong> The reconciler patches the status on every pass, and the operator
- * does not use server-side apply for the primary resource, so a status that changes on every pass would
- * rewrite the resource, trigger a watch event, and reconcile again without end. Two things prevent that.
- * Collection only happens once per scrape interval, and in between the previously published status object is
- * reused verbatim so the patch is a no-op. When collection does happen, the reported values are rounded and
- * {@code lastCollected} is only moved when the rounded summary actually changed.
+ * does not use server-side apply for the primary resource, so a status that changed on every pass would
+ * rewrite the resource and trigger another reconciliation. What stops that here is the scrape interval:
+ * collection happens at most once per interval, and in between the previously published status object is
+ * reused verbatim. The non-SSA status patch is an RFC 6902 diff, so an unchanged status produces an empty
+ * patch and no write at all.
+ * <p>
+ * A successful collection does move {@code lastCollected}, which writes and therefore fires a watch event.
+ * The reconciliation that event triggers falls inside the interval, reuses the published status, and writes
+ * nothing, so it settles after one extra pass instead of looping. That costs one additional reconciliation
+ * per interval, which is the price of {@code lastCollected} meaning what its name says. Reporting the last
+ * change instead would leave the field frozen on an idle registry, where every value is legitimately
+ * stable, and an operator could not then tell a healthy quiet deployment from one the operator stopped
+ * collecting from an hour ago.
  */
 public class MetricsManager {
 
@@ -160,6 +167,7 @@ public class MetricsManager {
         summary.setArtifactCount(snapshot.artifactCount());
         summary.setArtifactVersionCount(snapshot.artifactVersionCount());
         summary.setKafkaConsumerLag(snapshot.kafkaConsumerLag());
+        summary.setScrapedPods(snapshot.scrapedPods());
 
         var rates = deriveRates(snapshot);
         if (rates != null) {
@@ -176,33 +184,49 @@ public class MetricsManager {
 
     /**
      * Turn two consecutive counter readings into a rate, or return null when the pair cannot be trusted.
+     * <p>
+     * Counters are only comparable when both readings cover exactly the same Pods, which is why the set is
+     * compared and not just its size. A scrape that lost one Pod and gained another covers the same number
+     * of Pods, and the difference between the two sums would then be reported as traffic that never
+     * happened. The deltas are also checked per Pod, because one Pod resetting its counters can otherwise be
+     * masked by another Pod's traffic once the two are summed.
      */
     private Rates deriveRates(RegistryMetricsSnapshot snapshot) {
-        if (previousSnapshot == null || !snapshot.requestMetricSeen() || !previousSnapshot.requestMetricSeen()) {
+        if (previousSnapshot == null || !snapshot.requestMetricSeen()) {
             return null;
         }
-        if (snapshot.scrapedPods() != previousSnapshot.scrapedPods()) {
-            // The set of Pods changed, so the summed counters are not comparable.
+        var current = snapshot.requestCounters();
+        var previous = previousSnapshot.requestCounters();
+        if (!current.keySet().equals(previous.keySet())) {
             return null;
         }
         var seconds = Duration.between(previousSnapshot.timestamp(), snapshot.timestamp()).toMillis() / 1000.0;
-        var requests = snapshot.requestsTotal() - previousSnapshot.requestsTotal();
-        var errors = snapshot.serverErrorsTotal() - previousSnapshot.serverErrorsTotal();
-        if (seconds <= 0 || requests < 0 || errors < 0) {
-            // A negative delta means a Pod restarted and reset its counters.
+        if (seconds <= 0) {
             return null;
+        }
+        var requests = 0.0;
+        var errors = 0.0;
+        for (var pod : current.entrySet()) {
+            var before = previous.get(pod.getKey());
+            var requestDelta = pod.getValue().requests() - before.requests();
+            var errorDelta = pod.getValue().serverErrors() - before.serverErrors();
+            if (requestDelta < 0 || errorDelta < 0) {
+                // A negative delta means this Pod restarted and reset its counters.
+                return null;
+            }
+            requests += requestDelta;
+            errors += errorDelta;
         }
         return new Rates(requests / seconds, requests > 0 ? errors / requests : 0.0);
     }
 
     /**
-     * Store the summary, moving the timestamp only when the reported numbers actually changed.
+     * Store the summary and the time it was collected.
      */
     private void publish(MetricsSummary summary, Instant now) {
-        var unchanged = published != null && Objects.equals(published.getSummary(), summary);
         var status = new MetricsStatus();
         status.setSummary(summary);
-        status.setLastCollected(unchanged ? published.getLastCollected() : now);
+        status.setLastCollected(now);
         published = status;
     }
 
@@ -231,7 +255,7 @@ public class MetricsManager {
         if (summary.getConnectionPoolUtilization() != null
                 && summary.getConnectionPoolUtilization() >= poolThreshold) {
             found.add(new Breach(REASON_CONNECTION_POOL_SATURATED,
-                    "Database connection pool utilization is %.1f%%, at or above the configured threshold of %.1f%%."
+                    "Database connection pool utilization on at least one application Pod is %.1f%%, at or above the configured threshold of %.1f%%."
                             .formatted(summary.getConnectionPoolUtilization() * 100, poolThreshold * 100)));
         }
 

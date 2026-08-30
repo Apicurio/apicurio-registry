@@ -5,6 +5,7 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
 import io.apicurio.registry.operator.api.v1.spec.MetricsSpec;
 import io.apicurio.registry.operator.api.v1.status.MetricsStatus;
 import io.apicurio.registry.operator.api.v1.status.MetricsSummary;
+import io.apicurio.registry.operator.metrics.RegistryMetricsSnapshot.RequestCounters;
 import io.apicurio.registry.operator.status.MetricsUnavailableConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -16,6 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,34 +67,50 @@ public class MetricsManagerTest {
     }
 
     /**
-     * The reconciler patches the status on every pass. If the reported metrics changed on every pass, that
-     * patch would rewrite the resource, produce a watch event, and reconcile again without end.
+     * The reconciler patches the status on every pass. Inside the scrape interval nothing is collected and
+     * the previously published status is reused unchanged, so the patch is empty and nothing is written.
+     * That is what stops a reconciliation from feeding itself.
      */
     @Test
-    public void testStatusDoesNotChangeWhenTheNumbersDoNot() {
+    public void testStatusIsReusedInsideTheScrapeInterval() {
         collector.enqueue(snapshot(T0, 100, 0));
         collect();
         var afterFirst = currentStatus();
         assertThat(afterFirst.getLastCollected()).isEqualTo(T0);
 
-        // Inside the interval nothing is collected and the same status is reported.
         advance(Duration.ofSeconds(30));
         collect();
-        assertThat(currentStatus()).isEqualTo(afterFirst);
 
-        // A second collection produces rates for the first time, so the summary legitimately changes.
-        advance(Duration.ofSeconds(30));
+        assertThat(collector.calls).isEqualTo(1);
+        assertThat(currentStatus()).isEqualTo(afterFirst);
+    }
+
+    /**
+     * lastCollected reports when the operator last managed to read the operand, not when the numbers last
+     * changed. An idle registry serves no requests and stores nothing new, so it reports the same values
+     * every interval, and a timestamp that froze there would be indistinguishable from one that froze
+     * because collection had stopped.
+     */
+    @Test
+    public void testLastCollectedAdvancesEvenWhenTheNumbersAreUnchanged() {
+        collector.enqueue(snapshot(T0, 100, 0));
+        collect();
+        assertThat(currentStatus().getLastCollected()).isEqualTo(T0);
+
+        advance(Duration.ofSeconds(60));
         collector.enqueue(snapshot(clock.get(), 160, 0));
         collect();
         var afterSecond = currentStatus();
         assertThat(afterSecond.getLastCollected()).isEqualTo(T0.plusSeconds(60));
         assertThat(afterSecond.getSummary().getRequestRate()).isEqualTo(1.0);
 
-        // A third collection yields the same numbers, so the timestamp must not move.
+        // Identical traffic over an identical interval, so every reported number is the same.
         advance(Duration.ofSeconds(60));
         collector.enqueue(snapshot(clock.get(), 220, 0));
         collect();
-        assertThat(currentStatus()).isEqualTo(afterSecond);
+
+        assertThat(currentStatus().getSummary()).isEqualTo(afterSecond.getSummary());
+        assertThat(currentStatus().getLastCollected()).isEqualTo(T0.plusSeconds(120));
     }
 
     @Test
@@ -129,7 +147,56 @@ public class MetricsManagerTest {
         assertThat(currentStatus().getSummary().getRequestRate()).isEqualTo(2.0);
 
         advance(Duration.ofSeconds(60));
-        collector.enqueue(new RegistryMetricsSnapshot(clock.get(), 2, 4000, 0, true, 0.5, 12L, 34L, 100L));
+        collector.enqueue(snapshot(clock.get(), counters("pod-a", 4000, 0), counters("pod-b", 100, 0)));
+        collect();
+        assertThat(currentStatus().getSummary().getRequestRate()).isEqualTo(2.0);
+    }
+
+    /**
+     * A scrape that loses one Pod and gains another covers the same number of Pods but not the same Pods, so
+     * a count alone cannot tell the two apart. Differencing the sums anyway would report the gap between two
+     * populations as traffic, which inflates the request rate and can invent an error rate large enough to
+     * raise a Warning Event.
+     */
+    @Test
+    public void testRatesAreDiscardedWhenThePodSetChangesWithoutChangingSize() {
+        collector.enqueue(snapshot(T0, counters("pod-a", 1000, 0), counters("pod-b", 1000, 0)));
+        collect();
+
+        advance(Duration.ofSeconds(60));
+        collector.enqueue(snapshot(clock.get(), counters("pod-a", 1060, 0), counters("pod-b", 1060, 0)));
+        collect();
+        assertThat(currentStatus().getSummary().getRequestRate()).isEqualTo(2.0);
+        assertThat(currentStatus().getSummary().getErrorRate()).isEqualTo(0.0);
+
+        // pod-b dropped out and pod-c answered instead. Still two Pods, but not the same two.
+        advance(Duration.ofSeconds(60));
+        collector.enqueue(snapshot(clock.get(), counters("pod-a", 1120, 0), counters("pod-c", 9000, 900)));
+        collect();
+
+        // The last trustworthy rates are kept rather than the 150/s and 15% the raw sums would imply.
+        assertThat(currentStatus().getSummary().getRequestRate()).isEqualTo(2.0);
+        assertThat(currentStatus().getSummary().getErrorRate()).isEqualTo(0.0);
+    }
+
+    /**
+     * One Pod restarting is otherwise masked by another Pod serving traffic, because the two only have to
+     * net out positive for the summed delta to look like a plausible rate.
+     */
+    @Test
+    public void testARestartIsDetectedEvenWhenTheSummedDeltaStaysPositive() {
+        collector.enqueue(snapshot(T0, counters("pod-a", 1000, 0), counters("pod-b", 1000, 0)));
+        collect();
+
+        advance(Duration.ofSeconds(60));
+        collector.enqueue(snapshot(clock.get(), counters("pod-a", 1060, 0), counters("pod-b", 1060, 0)));
+        collect();
+        assertThat(currentStatus().getSummary().getRequestRate()).isEqualTo(2.0);
+
+        // pod-b restarted back to 10, losing 1050, while pod-a served 2000 more. The summed delta is still
+        // positive, so checking only the total would accept it and report a rate of nearly 16/s.
+        advance(Duration.ofSeconds(60));
+        collector.enqueue(snapshot(clock.get(), counters("pod-a", 3060, 0), counters("pod-b", 10, 0)));
         collect();
         assertThat(currentStatus().getSummary().getRequestRate()).isEqualTo(2.0);
     }
@@ -205,7 +272,22 @@ public class MetricsManagerTest {
     }
 
     private static RegistryMetricsSnapshot snapshot(Instant timestamp, double requests, double errors) {
-        return new RegistryMetricsSnapshot(timestamp, 1, requests, errors, true, 0.5, 12L, 34L, 100L);
+        return snapshot(timestamp, counters("pod-a", requests, errors));
+    }
+
+    private static RegistryMetricsSnapshot snapshot(Instant timestamp, PodCounters... pods) {
+        var counters = new LinkedHashMap<String, RequestCounters>();
+        for (var pod : pods) {
+            counters.put(pod.name(), pod.counters());
+        }
+        return new RegistryMetricsSnapshot(timestamp, counters.size(), counters, 0.5, 12L, 34L, 100L);
+    }
+
+    private static PodCounters counters(String name, double requests, double errors) {
+        return new PodCounters(name, new RequestCounters(requests, errors));
+    }
+
+    private record PodCounters(String name, RequestCounters counters) {
     }
 
     private static ApicurioRegistry3 registry(String name) {

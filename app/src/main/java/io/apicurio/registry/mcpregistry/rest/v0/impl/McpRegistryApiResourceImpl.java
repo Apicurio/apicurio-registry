@@ -64,9 +64,11 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Implementation of the official MCP Registry API, backed by ordinary registry artifacts.
@@ -90,6 +92,14 @@ public class McpRegistryApiResourceImpl implements ApisResource {
      * publisher and is stored and returned untouched.
      */
     private static final String REGISTRY_META_KEY = "io.modelcontextprotocol.registry/official";
+
+    /**
+     * Label key a published version's UUID is stored under. The MCP registry contract requires an opaque,
+     * globally-unique id: unlike the artifact's own {@code globalId}, which is only unique within this
+     * registry instance and would collide across separate Apicurio deployments, a UUID has to be minted
+     * once at publish time and persisted, since it cannot be recomputed later the way {@code globalId} can.
+     */
+    private static final String SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
 
     private static final String META_ID = "id";
     private static final String META_PUBLISHED_AT = "publishedAt";
@@ -308,9 +318,12 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 .references(Collections.emptyList())
                 .build();
 
+        Map<String, String> labels = new HashMap<>();
+        labels.put(SERVER_VERSION_ID_LABEL, UUID.randomUUID().toString());
         EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
                 .name(name.full())
                 .description(data.getDescription())
+                .labels(labels)
                 .build();
 
         try {
@@ -440,7 +453,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
      */
     private void decorate(Server server, ArtifactVersionMetaDataDto meta, boolean isLatest) {
         Map<String, Object> registryMeta = new LinkedHashMap<>();
-        registryMeta.put(META_ID, Long.toString(meta.getGlobalId()));
+        registryMeta.put(META_ID, serverVersionId(meta));
         registryMeta.put(META_PUBLISHED_AT, Instant.ofEpochMilli(meta.getCreatedOn()).toString());
         registryMeta.put(META_UPDATED_AT, Instant.ofEpochMilli(meta.getModifiedOn()).toString());
         registryMeta.put(META_IS_LATEST, isLatest);
@@ -452,6 +465,21 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             server.setMeta(serverMeta);
         }
         serverMeta.setAdditionalProperty(REGISTRY_META_KEY, registryMeta);
+    }
+
+    /**
+     * The persisted UUID label, if this version was published after that label was introduced. Falls back
+     * to {@code globalId} for versions published earlier, so old data keeps returning a (non-UUID) id
+     * rather than an error; a fresh publish always gets a real UUID.
+     */
+    private String serverVersionId(ArtifactVersionMetaDataDto meta) {
+        if (meta.getLabels() != null) {
+            String id = meta.getLabels().get(SERVER_VERSION_ID_LABEL);
+            if (id != null && !id.isBlank()) {
+                return id;
+            }
+        }
+        return Long.toString(meta.getGlobalId());
     }
 
     /**

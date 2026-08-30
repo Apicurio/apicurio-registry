@@ -13,6 +13,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -494,6 +495,78 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .patch(BASE + "/servers/" + namespace + "/badreason/versions/1.0.0/status")
                 .then()
                 .statusCode(400);
+    }
+
+    // === Identity ===
+
+    @Test
+    public void testMetaIdIsAGeneratedUuidNotTheGlobalId() {
+        String namespace = uniqueNamespace();
+        String name = namespace + "/uuidcheck";
+
+        publish(name, "1.0.0", "v1");
+
+        String id = given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/uuidcheck")
+                .then()
+                .statusCode(200)
+                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+
+        // A UUID, not a small sequential integer: two registries publishing independently must never
+        // collide on this value, which a globalId-based id cannot guarantee across instances.
+        assertNotNull(id);
+        assertDoesNotThrow(() -> UUID.fromString(id), "'id' must be a UUID, was: " + id);
+    }
+
+    @Test
+    public void testMetaIdIsStableAcrossReadsAndVersions() {
+        String namespace = uniqueNamespace();
+        String name = namespace + "/stableid";
+
+        publish(name, "1.0.0", "v1");
+
+        String firstRead = given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/stableid/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+
+        String secondRead = given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/stableid/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+
+        assertEquals(firstRead, secondRead, "the same version's id must not change between reads");
+
+        publish(name, "2.0.0", "v2");
+
+        String v1IdAfterV2Published = given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/stableid/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+
+        assertEquals(firstRead, v1IdAfterV2Published,
+                "publishing a new version must not change an existing version's id");
+
+        String v2Id = given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/stableid/versions/2.0.0")
+                .then()
+                .statusCode(200)
+                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+
+        assertNotEquals(firstRead, v2Id, "each version must get its own distinct id");
     }
 
     // === Listing, search and pagination ===

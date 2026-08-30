@@ -156,7 +156,7 @@ public class McpServerContentValidator implements ContentValidator {
                 violations.add(new RuleViolation("Each entry of 'packages' must be an object", path));
                 continue;
             }
-            requireTextualField(pkg, "registry_type", path, violations);
+            requireTextualField(pkg, "registryType", path, violations);
             requireTextualField(pkg, "identifier", path, violations);
             validateTransport(pkg, path, violations);
         }

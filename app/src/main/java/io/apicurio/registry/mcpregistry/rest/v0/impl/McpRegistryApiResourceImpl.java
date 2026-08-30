@@ -92,9 +92,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     private static final String REGISTRY_META_KEY = "io.modelcontextprotocol.registry/official";
 
     private static final String META_ID = "id";
-    private static final String META_PUBLISHED_AT = "published_at";
-    private static final String META_UPDATED_AT = "updated_at";
-    private static final String META_IS_LATEST = "is_latest";
+    private static final String META_PUBLISHED_AT = "publishedAt";
+    private static final String META_UPDATED_AT = "updatedAt";
+    private static final String META_IS_LATEST = "isLatest";
     private static final String META_STATUS = "status";
 
     private static final String LATEST_VERSION = "latest";
@@ -521,6 +521,10 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     private ServerStatus requireStatus(StatusUpdate data) {
         if (data == null || data.getStatus() == null) {
             throw new BadRequestException("The 'status' field is required");
+        }
+        if (data.getStatus() == ServerStatus.active && data.getStatusMessage() != null
+                && !data.getStatusMessage().isBlank()) {
+            throw new BadRequestException("'statusMessage' is not allowed when status is 'active'");
         }
         return data.getStatus();
     }

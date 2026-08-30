@@ -56,8 +56,14 @@ A server name is reverse-DNS plus a server id, separated by exactly one slash:
 
 **Why the paths use two params.** The spec says `/v0.1/servers/{name}/...`, but a JAX-RS template
 cannot match across a `/`, and the name contains one. The vendored spec therefore declares
-`/servers/{namespace}/{server_id}`, which produces a byte-identical wire URL for unencoded names —
-what the official registry's own examples use. Percent-encoded (`%2F`) names are **not** served.
+`/servers/{namespace}/{server_id}` — two segments instead of one.
+
+⚠️ **This does not match the official registry's own examples**, which use a single percent-encoded
+segment (`io.github.user%2Fmy-server`), confirmed against the upstream OpenAPI spec. Our two-segment
+route only serves the *unencoded* form. Accepting `%2F` properly requires enabling encoded-slash
+handling at the container level (Undertow/RESTEasy reject it by default, for the same reason path
+traversal defenses do), which is a bigger, security-relevant change than a spec edit — flag to
+maintainers rather than silently working around.
 
 `McpServerName` is the only way to build a name; both factories validate against
 `McpServerContentValidator.SERVER_NAME_PATTERN`, which admits no slashes and no `..` segments. Path
@@ -68,15 +74,25 @@ parameters reach storage as group/artifact ids, so never bypass it.
 The registry owns exactly one key inside `_meta`:
 
 ```
-_meta["io.modelcontextprotocol.registry/official"] = { id, published_at, updated_at, is_latest, status }
+_meta["io.modelcontextprotocol.registry/official"] = { id, publishedAt, updatedAt, isLatest, status }
 ```
 
 - **Recomputed on every read** from version metadata — never stored.
 - **Stripped from publish input**, so a publisher cannot spoof `status` or `id`.
 - Every other `_meta` key belongs to the publisher and round-trips untouched.
 
-`published_at`/`updated_at` map to the version's `createdOn`/`modifiedOn`, so `published_at` is frozen
-at first publish while `updated_at` moves on each mutation.
+`publishedAt`/`updatedAt` map to the version's `createdOn`/`modifiedOn`, so `publishedAt` is frozen
+at first publish while `updatedAt` moves on each mutation.
+
+**All JSON body fields are camelCase**, matching the official spec exactly (`registryType`,
+`registryBaseUrl`, `fileSha256`, `runtimeHint`, `nextCursor`, `mimeType`, …) — confirmed field-by-field
+against the upstream OpenAPI document, since an earlier snake_case draft would have silently broken
+compatibility with real clients despite passing every local test. Query parameters stay snake_case
+(`updated_since`, `include_deleted`), matching the official convention of camelCase bodies over
+snake_case query strings. `StatusUpdate` also carries an optional `statusMessage` (≤500 chars,
+rejected with 400 if sent alongside `status: "active"`) — accepted and validated, but **not yet
+persisted or returned**; there's no slot for it in version metadata today. Real gap, not a lie: don't
+claim round-trip support for it without adding storage.
 
 Generated beans initialise list fields to empty lists, which would emit `"packages": []` for a server
 that declared none. `normalize()` nulls empty lists so responses carry only what the publisher sent.
@@ -155,3 +171,13 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
   project requires storage-touching features to work across all four.
 - **`GET /servers/{namespace}/{server_id}`** exists beyond the endpoint table in #7763. It is in the
   official spec, but call it out in review so it does not read as scope drift.
+- **`%2F`-encoded names are not accepted.** See the callout under Identity mapping — the official
+  registry's own path examples use a single percent-encoded segment, which this two-segment route
+  cannot serve. Fixing it properly means enabling encoded-slash handling at the container level, a
+  security-relevant change beyond this PR's scope.
+- **`statusMessage` is accepted and validated but not persisted.** No slot exists for it in version
+  metadata; a client that reads it back after setting it will not find it. `PUT` (admin edit-in-place)
+  and `include_deleted` (on the list endpoints) are also unimplemented — both are spec-optional, so
+  neither blocks compatibility, but `include_deleted` semantics are worth confirming against the
+  *official* registry specifically before deciding whether to add it, since the generic sub-registry
+  spec leaves default behavior for deleted servers unstated.

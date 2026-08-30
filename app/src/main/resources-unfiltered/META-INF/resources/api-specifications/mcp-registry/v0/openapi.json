@@ -23,7 +23,7 @@
             "name": "cursor",
             "in": "query",
             "required": false,
-            "description": "Opaque cursor returned as 'next_cursor' by a previous call. Must be used with the same filters as the call that produced it.",
+            "description": "Opaque cursor returned as 'nextCursor' by a previous call. Must be used with the same filters as the call that produced it.",
             "schema": {
               "type": "string"
             }
@@ -499,10 +499,10 @@
         "type": "object",
         "additionalProperties": true,
         "properties": {
-          "registry_type": {
+          "registryType": {
             "type": "string"
           },
-          "registry_base_url": {
+          "registryBaseUrl": {
             "type": "string"
           },
           "identifier": {
@@ -511,10 +511,10 @@
           "version": {
             "type": "string"
           },
-          "file_sha256": {
+          "fileSha256": {
             "type": "string"
           },
-          "runtime_hint": {
+          "runtimeHint": {
             "type": "string"
           },
           "transport": {
@@ -570,7 +570,7 @@
           "src": {
             "type": "string"
           },
-          "mime_type": {
+          "mimeType": {
             "type": "string"
           },
           "sizes": {
@@ -598,15 +598,15 @@
           "id": {
             "type": "string"
           },
-          "published_at": {
+          "publishedAt": {
             "type": "string",
             "format": "date-time"
           },
-          "updated_at": {
+          "updatedAt": {
             "type": "string",
             "format": "date-time"
           },
-          "is_latest": {
+          "isLatest": {
             "type": "boolean"
           },
           "status": {
@@ -630,6 +630,11 @@
         "properties": {
           "status": {
             "$ref": "#/components/schemas/ServerStatus"
+          },
+          "statusMessage": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional human-readable reason for the status change. Not permitted when status is 'active'."
           }
         }
       },
@@ -653,7 +658,7 @@
       "ListMetadata": {
         "type": "object",
         "properties": {
-          "next_cursor": {
+          "nextCursor": {
             "type": "string",
             "description": "Cursor to pass to the next call. Absent when this is the last page."
           },

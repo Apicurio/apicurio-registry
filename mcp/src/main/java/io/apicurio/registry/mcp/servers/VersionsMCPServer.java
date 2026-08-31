@@ -3,10 +3,13 @@ package io.apicurio.registry.mcp.servers;
 import io.apicurio.registry.mcp.RegistryService;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionState;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
+import io.quarkiverse.mcp.server.ToolCallException;
 import jakarta.inject.Inject;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static io.apicurio.registry.mcp.Descriptions.ARTIFACT_ID;
@@ -189,7 +192,19 @@ public class VersionsMCPServer {
                 jsonLabels,
                 order,
                 versionOrderBy,
-                versionState != null ? java.util.Arrays.stream(io.apicurio.registry.rest.client.models.VersionState.values()).filter(v -> v.name().equalsIgnoreCase(versionState)).findFirst().orElse(null) : null
+                parseVersionState(versionState)
         ));
+    }
+
+    private static VersionState parseVersionState(String versionState) {
+        if (versionState == null || versionState.isBlank()) {
+            return null;
+        }
+        return Arrays.stream(VersionState.values())
+                .filter(v -> v.name().equalsIgnoreCase(versionState.trim()))
+                .findFirst()
+                .orElseThrow(() -> new ToolCallException(
+                        "Invalid version state: '" + versionState + "'. Accepted values (case-insensitive): "
+                                + Arrays.toString(VersionState.values())));
     }
 }

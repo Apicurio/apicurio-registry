@@ -155,7 +155,7 @@ jobs:
           RUN /deployments/build.sh --prune
           ENV APICURIO_ARTIFACT_TYPES_CONFIG_FILE=/deployments/artifact-types.json
           INNER_EOF
-          
+
           docker build \
             --build-arg REGISTRY_IMAGE=apicurio/apicurio-registry:${{ github.sha }}-mutable \
             -f /tmp/Dockerfile.mutable-provider-smoke \
@@ -166,12 +166,12 @@ jobs:
         run: |
           container_id=$(docker run -d -p 18080:8080 \
             apicurio/apicurio-registry:${{ github.sha }}-mutable-provider-smoke)
-            
+
           cleanup() {
             docker rm -f "$container_id" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
-          
+
           for attempt in $(seq 1 30); do
             if curl -fsS http://localhost:18080/health/ready >/dev/null 2>&1; then
               break
@@ -183,7 +183,7 @@ jobs:
             fi
             sleep 2
           done
-          
+
           artifact_types=$(curl -fsS http://localhost:18080/apis/registry/v3/admin/config/artifactTypes)
           echo "$artifact_types"
           echo "$artifact_types" | grep -q '"artifactType"[[:space:]]*:[[:space:]]*"MARKDOWN"' || {

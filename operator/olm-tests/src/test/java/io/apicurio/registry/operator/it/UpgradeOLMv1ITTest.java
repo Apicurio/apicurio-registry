@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static io.apicurio.registry.operator.it.ITBase.MEDIUM_DURATION;
@@ -405,14 +406,14 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
     }
 
     /**
-     * Verifies fresh install on the minor channel lands on the channel head.
+     * Verifies a fresh install on the minor channel resolves to the channel head <em>without</em> an
+     * explicit version pin.
      * <p>
-     * Note: unlike the OLM v0 equivalent (which omits {@code startingCSV} and relies on Subscription's
-     * always-resolve-to-newest-in-channel behavior), this pins {@code spec.source.catalog.version}
-     * explicitly to the discovered channel head. Whether an unset {@code version} field reliably resolves
-     * to the channel head under OLM v1 could not be verified against a live cluster in the environment
-     * this was developed in, so this test validates the pinned-head-install path instead of relying on
-     * that unconfirmed default.
+     * This is the direct OLM v1 analogue of the OLM v0 equivalent, which omits {@code startingCSV} and
+     * relies on the resolver picking the newest bundle in the channel. It installs a version-less
+     * {@code ClusterExtension} (channel only) and asserts OLM v1 resolves to the discovered channel head.
+     * The version OLM actually resolves to is logged either way, so the run records the observed behavior
+     * even if the assertion fails.
      */
     @RetryTest
     @EnabledIf("minorChannelExists")
@@ -421,13 +422,21 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
         var minorHeadVersion = catalog.getChannelHeadVersion(minorChannel());
 
-        log.info("Testing fresh install on {} channel, pinned to head {}", minorChannel(),
-                minorHeadVersion);
+        log.info("Testing version-less fresh install on {} channel; expecting resolution to head {}",
+                minorChannel(), minorHeadVersion);
 
-        deployClusterExtension(minorChannel(), minorHeadVersion);
-        verifyUpgradeTo(minorHeadVersion);
+        deployClusterExtensionChannelOnly(minorChannel());
 
-        log.info("Fresh install on {} channel got version {} as expected",
+        var resolvedVersion = waitForResolvedOperatorVersion();
+        log.info("Version-less ClusterExtension on {} resolved to operator version {} (channel head is {})",
+                minorChannel(), resolvedVersion, minorHeadVersion);
+
+        assertThat(resolvedVersion)
+                .as("A version-less ClusterExtension on channel %s should resolve to the channel head",
+                        minorChannel())
+                .isEqualTo(minorHeadVersion);
+
+        log.info("Fresh install on {} channel resolved to head {} as expected",
                 minorChannel(), minorHeadVersion);
     }
 
@@ -479,8 +488,10 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     // ---- Infrastructure methods ----
 
+    private static final String OPERATOR_DEPLOYMENT_PREFIX = "apicurio-registry-operator-v";
+
     private static String deploymentName(Semver version) {
-        return "apicurio-registry-operator-v" + version;
+        return OPERATOR_DEPLOYMENT_PREFIX + version;
     }
 
     private void deployClusterExtension(String channel, Semver version) throws Exception {
@@ -501,6 +512,56 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
             ClusterDiagnostics.dump(client, namespace, true);
             throw e;
         }
+    }
+
+    /**
+     * Installs a {@code ClusterExtension} pinned to a channel but with <em>no</em> explicit
+     * {@code spec.source.catalog.version}, mirroring the OLM v0 startingCSV-less Subscription install. This
+     * exercises OLM v1's own channel-head resolution rather than pinning the version the test then asserts.
+     */
+    private void deployClusterExtensionChannelOnly(String channel) throws Exception {
+        try {
+            createResource(client, namespace, "olmv1/cluster-catalog.yaml");
+            waitForClusterCatalogServing(client, namespace, CATALOG_NAME);
+            createResource(client, namespace, "olmv1/service-account.yaml");
+            createResource(client, namespace, "olmv1/cluster-role.yaml");
+            createResource(client, namespace, "olmv1/cluster-role-binding.yaml");
+
+            var extraVars = Map.of("${PLACEHOLDER_UPGRADE_CHANNEL}", channel);
+            // Drop the version pin entirely so the resolver picks the channel head on its own. Only the
+            // line carrying the unique PLACEHOLDER_UPGRADE_VERSION is removed; the
+            // app.kubernetes.io/version label (PLACEHOLDER_VERSION) is left intact.
+            var raw = loadRawResource("olmv1/cluster-extension-upgrade.yaml")
+                    .replaceAll("(?m)^.*\\$\\{PLACEHOLDER_UPGRADE_VERSION}.*\\R?", "");
+            client.resource(replaceVars(raw, namespace, extraVars)).create();
+        } catch (Exception e) {
+            log.error("OLM v1 version-less ClusterExtension setup failed, dumping cluster diagnostics", e);
+            ClusterDiagnostics.dump(client, namespace, true);
+            throw e;
+        }
+    }
+
+    /**
+     * Waits for OLM v1 to resolve and roll out <em>some</em> registry operator version, returning the
+     * version parsed from the ready deployment's name. Used by the version-less fresh-install test to
+     * discover which version the resolver actually chose, so the outcome is logged rather than surfacing
+     * only as an opaque timeout.
+     */
+    private Semver waitForResolvedOperatorVersion() {
+        var resolved = new AtomicReference<Semver>();
+        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+            var ready = client.apps().deployments().inNamespace(namespace).list().getItems().stream()
+                    .filter(d -> d.getMetadata().getName().startsWith(OPERATOR_DEPLOYMENT_PREFIX))
+                    .filter(d -> Integer.valueOf(1).equals(d.getStatus().getReadyReplicas()))
+                    .findFirst();
+            assertThat(ready)
+                    .as("A registry operator deployment (%s*) should become ready",
+                            OPERATOR_DEPLOYMENT_PREFIX)
+                    .isPresent();
+            resolved.set(CatalogInfo.parseVersion(
+                    ready.get().getMetadata().getName().substring(OPERATOR_DEPLOYMENT_PREFIX.length())));
+        });
+        return resolved.get();
     }
 
     private void waitForOperatorVersion(Semver version) {

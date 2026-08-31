@@ -75,7 +75,7 @@ def main():
     lines = ["# Product-neutral schema registry comparison", "", "| Operation | Product | Runs | Median successful measured-window RPS (95% CI) | Median p99 ms (95% CI) | Median p99.9 ms | Median failures |", "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
     for operation, product in sorted({(run["operation"], run["product"]) for run in runs}):
         group = [run for run in runs if run["operation"] == operation and run["product"] == product]
-        comparable = {(run["users"], run["warmup"], run["duration"], run["seeds"]) for run in group}
+        comparable = {(run["users"], run["warmup"], run["duration"], run["seeds"], run["replicas"]) for run in group}
         if len(comparable) != 1:
             raise ValueError(f"Incomparable run parameters for {operation}/{product}: {sorted(comparable)}")
         rps = [run["rps"] for run in group]

@@ -136,6 +136,15 @@ public final class OLMTestUtils {
                                 .startsWith("apicurio-registry-operator-catalog"))
                         .anyMatch(pod -> pod.getStatus().getConditions().stream().anyMatch(
                                 c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()))));
+        // A Ready pod is not immediately routable: the Service endpoints (and kube-proxy
+        // rules) lag by a beat, and OLM's resolver otherwise fails with "no route to host".
+        org.awaitility.Awaitility.await().ignoreExceptions().until(() -> {
+            var endpoints = client.endpoints().inNamespace(namespace)
+                    .withName("apicurio-registry-operator-catalog").get();
+            return endpoints != null && endpoints.getSubsets() != null
+                    && endpoints.getSubsets().stream()
+                            .anyMatch(s -> s.getAddresses() != null && !s.getAddresses().isEmpty());
+        });
     }
 
     /**

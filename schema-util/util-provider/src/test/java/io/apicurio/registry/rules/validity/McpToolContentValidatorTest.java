@@ -1,5 +1,7 @@
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.content.McpToolContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
@@ -138,6 +140,24 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
         TypedContent content = resourceToTypedContentHandle("mcptool-invalid-json.json");
         McpToolContentAccepter accepter = new McpToolContentAccepter();
         Assertions.assertFalse(accepter.acceptsContent(content, Collections.emptyMap()));
+    }
+
+    @Test
+    public void testMcpToolAccepterRejectsMalformedRequiredFields() {
+        McpToolContentAccepter accepter = new McpToolContentAccepter();
+
+        Assertions.assertFalse(accepter.acceptsContent(createMcpTool("{\"name\":null,\"inputSchema\":null}"),
+                Collections.emptyMap()));
+        Assertions.assertFalse(accepter.acceptsContent(createMcpTool("{\"name\":1,\"inputSchema\":{}}"),
+                Collections.emptyMap()));
+        Assertions.assertFalse(accepter.acceptsContent(createMcpTool("{\"name\":\"  \",\"inputSchema\":{}}"),
+                Collections.emptyMap()));
+        Assertions.assertFalse(accepter.acceptsContent(createMcpTool("{\"name\":\"tool\",\"inputSchema\":[]}"),
+                Collections.emptyMap()));
+    }
+
+    private TypedContent createMcpTool(String json) {
+        return TypedContent.create(ContentHandle.create(json), ContentTypes.APPLICATION_JSON);
     }
 
     @Test

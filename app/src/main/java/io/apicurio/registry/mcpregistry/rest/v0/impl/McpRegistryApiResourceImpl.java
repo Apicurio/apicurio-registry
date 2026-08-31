@@ -8,6 +8,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.mcpregistry.McpRegistryConfig;
@@ -24,6 +25,9 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.rules.violation.RuleViolation;
+import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -45,6 +49,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -69,14 +74,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the official MCP Registry API, backed by ordinary registry artifacts.
  *
- * A server name maps onto a group and an artifact: <code>io.github.user/weather</code> is the artifact
- * <code>weather</code> in group <code>io.github.user</code>. Each published server version is an artifact
- * version whose content is the <code>server.json</code> document verbatim, and the server status maps onto
- * the version state: active is ENABLED, deprecated is DEPRECATED, and deleted is DISABLED.
+ * <code>io.github.user/weather</code> is the artifact <code>weather</code> in group
+ * <code>io.github.user</code>; a server version is an artifact version holding the
+ * <code>server.json</code> verbatim; active/deprecated/deleted map to ENABLED/DEPRECATED/DISABLED.
  *
  * @see <a href="https://github.com/modelcontextprotocol/registry">MCP Registry</a>
  */
@@ -87,17 +92,12 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     private static final Logger log = LoggerFactory.getLogger(McpRegistryApiResourceImpl.class);
 
-    /**
-     * The key under which the registry owns a block of '_meta'. Everything else in '_meta' belongs to the
-     * publisher and is stored and returned untouched.
-     */
+    /** The registry owns this key in '_meta'; every other key belongs to the publisher. */
     private static final String REGISTRY_META_KEY = "io.modelcontextprotocol.registry/official";
 
     /**
-     * Label key a published version's UUID is stored under. The MCP registry contract requires an opaque,
-     * globally-unique id: unlike the artifact's own {@code globalId}, which is only unique within this
-     * registry instance and would collide across separate Apicurio deployments, a UUID has to be minted
-     * once at publish time and persisted, since it cannot be recomputed later the way {@code globalId} can.
+     * Label holding a published version's UUID. {@code globalId} is unique only within one registry
+     * instance, so the id is minted at publish time and persisted rather than recomputed.
      */
     private static final String SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
 
@@ -129,6 +129,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     @Inject
     RoleBasedAccessController rbac;
 
+    @Inject
+    ArtifactTypeUtilProviderFactory factory;
+
     private void requireEnabled() {
         if (!config.isEnabled()) {
             throw new NotFoundException("MCP Registry API is disabled");
@@ -152,11 +155,11 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             filters.add(SearchFilter.ofPartialName(search));
         }
 
-        // With 'updated_since' the result must be ordered by modification time, so that everything at or
-        // after the cutoff forms a prefix of the results and the scan can stop at the first older entry.
+        // 'updated_since' needs modifiedOn order so the scan can stop at the first older entry. Otherwise
+        // order by name: artifactId is only the server id, and ties across namespaces break offset paging.
         boolean byModifiedOn = updatedSince != null;
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
-                byModifiedOn ? OrderBy.modifiedOn : OrderBy.artifactId,
+                byModifiedOn ? OrderBy.modifiedOn : OrderBy.name,
                 byModifiedOn ? OrderDirection.desc : OrderDirection.asc, offset, pageSize, false);
 
         List<Server> servers = new ArrayList<>();
@@ -203,8 +206,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         filters.add(SearchFilter.ofGroupId(name.namespace()));
         filters.add(SearchFilter.ofArtifactId(name.serverId()));
 
-        // Ordered by globalId rather than creation time: two versions published in the same millisecond
-        // would tie on createdOn, and pagination needs a total order.
+        // globalId rather than createdOn: same-millisecond versions tie, and paging needs a total order.
         VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.globalId,
                 OrderDirection.asc, offset, pageSize, false);
 
@@ -260,20 +262,14 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         McpServerName name = McpServerName.of(namespace, serverId);
         VersionState newState = toVersionState(requireStatus(data));
 
-        // There is no bulk state change in the storage layer, and a REST-level transaction would not span
-        // the Kafka-backed variants anyway, so the versions are updated one at a time. A failure part-way
-        // through leaves the already-updated versions changed; the caller can safely retry, because
-        // setting a state that is already set is a no-op.
-        //
-        // ALL_STATES is required here: the two-argument overload applies the default retrieval behavior,
-        // which hides DISABLED versions. Those are exactly the ones marked 'deleted', so without this a
-        // server could be soft-deleted and then never restored through this endpoint.
+        // No bulk state change exists, so versions are updated one at a time; a partial failure is safe to
+        // retry because setting an already-set state is a no-op. ALL_STATES is required: the default
+        // behavior hides DISABLED versions, which are exactly the 'deleted' ones needing restore.
         List<String> versions = storage.getArtifactVersions(name.namespace(), name.serverId(),
                 RetrievalBehavior.ALL_STATES);
 
-        // Resolve the version to report back BEFORE mutating, and resolve it against every state. Setting
-        // the whole server to 'deleted' leaves no ENABLED version, so resolving 'latest' afterwards would
-        // fail and report a 404 for an operation that fully succeeded.
+        // Resolved before mutating, and against every state: setting the server to 'deleted' leaves no
+        // ENABLED version, so resolving 'latest' afterwards would 404 an operation that succeeded.
         String reportedVersion = latestVersionAnyState(name);
 
         for (String version : versions) {
@@ -301,8 +297,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                     + " version was published most recently");
         }
 
-        // The registry owns its block of '_meta' and recomputes it on read, so a caller-supplied one is
-        // dropped rather than stored. Any other extension metadata is kept.
+        // Recomputed on read, so a caller-supplied block is dropped; other extension metadata is kept.
         Meta submitted = data.getMeta();
         if (submitted != null) {
             submitted.getAdditionalProperties().remove(REGISTRY_META_KEY);
@@ -312,9 +307,13 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
         normalize(data);
 
+        TypedContent typedContent = TypedContent.create(ContentHandle.create(serialize(data)),
+                ContentTypes.APPLICATION_JSON);
+        validateServerDefinition(typedContent);
+
         ContentWrapperDto content = ContentWrapperDto.builder()
-                .content(ContentHandle.create(serialize(data)))
-                .contentType(ContentTypes.APPLICATION_JSON)
+                .content(typedContent.getContent())
+                .contentType(typedContent.getContentType())
                 .references(Collections.emptyList())
                 .build();
 
@@ -350,9 +349,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     /**
-     * Enforces owner-only authorization for publishing. The server name arrives in the request body rather
-     * than the path, so this endpoint cannot use {@code AuthorizedStyle.GroupAndArtifact} and
-     * {@code isOwner} would otherwise wave it through. Rules mirror {@code AuthorizedInterceptor}.
+     * Owner-only authorization for publishing. The name arrives in the body, not the path, so
+     * {@code AuthorizedStyle.GroupAndArtifact} cannot apply and {@code isOwner} would wave this through.
+     * Any other body-addressed write endpoint needs the same treatment.
      */
     private void verifyPublishOwnership(McpServerName name) {
         if (!authConfig.isObacEnabled()) {
@@ -373,13 +372,25 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
     }
 
+    /**
+     * Invoked directly rather than through the validity rule, which only runs when an operator has
+     * configured one: a well-formed server.json is a precondition of publishing, not an opt-in.
+     */
+    private void validateServerDefinition(TypedContent content) {
+        try {
+            factory.getArtifactTypeProvider(ArtifactType.MCP_SERVER).getContentValidator()
+                    .validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        } catch (RuleViolationException e) {
+            String detail = e.getCauses().stream().map(RuleViolation::getDescription).sorted()
+                    .collect(Collectors.joining("; "));
+            throw new BadRequestException(
+                    detail.isEmpty() ? e.getMessage() : e.getMessage() + ": " + detail);
+        }
+    }
+
     // === Loading and conversion ===
 
-    /**
-     * Loads one version of a server, or the latest one when the version is null or 'latest'.
-     *
-     * @throws NotFoundException if no such server or version exists
-     */
+    /** @throws NotFoundException if no such server or version exists */
     private Server loadServer(McpServerName name, String version) {
         String resolved = resolveVersion(name, version);
         ArtifactVersionMetaDataDto meta = storage.getArtifactVersionMetaData(name.namespace(),
@@ -393,11 +404,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         return server;
     }
 
-    /**
-     * Loads a server version the way {@link #loadServer} does, but yields null instead of throwing when the
-     * version does not exist. Used while building a list, where one server that cannot be resolved should
-     * not fail the whole page.
-     */
+    /** Null instead of throwing, so one unresolvable server does not fail a whole page. */
     private Server tryLoadServer(McpServerName name, String version) {
         try {
             return loadServer(name, version);
@@ -406,10 +413,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
     }
 
-    /**
-     * Resolves a version expression to a concrete version. Null and 'latest' both mean the tip of the
-     * artifact's latest branch, skipping versions that have been marked deleted.
-     */
+    /** Null and 'latest' both mean the latest branch tip, skipping versions marked deleted. */
     private String resolveVersion(McpServerName name, String version) {
         if (version == null || version.isBlank() || LATEST_VERSION.equals(version)) {
             String latest = latestVersionOrNull(name);
@@ -421,10 +425,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         return version;
     }
 
-    /**
-     * The newest version of a server regardless of its state, including versions marked deleted. Used
-     * where a concrete version has to be named even though no active version may remain.
-     */
+    /** Newest version regardless of state, for when no active version may remain. */
     private String latestVersionAnyState(McpServerName name) {
         return storage.getBranchTip(new GA(name.namespace(), name.serverId()), BranchId.LATEST,
                 RetrievalBehavior.ALL_STATES).getRawVersionId();
@@ -448,9 +449,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
     }
 
-    /**
-     * Writes the registry-managed block of '_meta' onto a server loaded from storage.
-     */
+    /** Writes the registry-managed block of '_meta' onto a server loaded from storage. */
     private void decorate(Server server, ArtifactVersionMetaDataDto meta, boolean isLatest) {
         Map<String, Object> registryMeta = new LinkedHashMap<>();
         registryMeta.put(META_ID, serverVersionId(meta));
@@ -467,11 +466,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         serverMeta.setAdditionalProperty(REGISTRY_META_KEY, registryMeta);
     }
 
-    /**
-     * The persisted UUID label, if this version was published after that label was introduced. Falls back
-     * to {@code globalId} for versions published earlier, so old data keeps returning a (non-UUID) id
-     * rather than an error; a fresh publish always gets a real UUID.
-     */
+    /** The persisted UUID, falling back to {@code globalId} for versions published before that label. */
     private String serverVersionId(ArtifactVersionMetaDataDto meta) {
         if (meta.getLabels() != null) {
             String id = meta.getLabels().get(SERVER_VERSION_ID_LABEL);
@@ -483,9 +478,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     /**
-     * The generated bean initialises its collection fields to empty lists, which would put
-     * <code>"packages": []</code> into the response of a server that declared no packages. Null them out so
-     * that only the fields the publisher actually supplied are serialized.
+     * The generated bean initialises collections to empty lists, which would emit
+     * <code>"packages": []</code> for a server that declared none. Null them so only supplied fields ship.
      */
     private void normalize(Server server) {
         if (server.getPackages() != null && server.getPackages().isEmpty()) {
@@ -503,8 +497,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         try {
             return objectMapper.readValue(content, Server.class);
         } catch (Exception e) {
-            // The content was validated on the way in, so this means the stored document has been
-            // corrupted or written past the API. Do not leak the parser message to the client.
+            // Validated on the way in, so the stored document was corrupted or written past the API.
+            // Do not leak the parser message to the client.
             log.error("Stored MCP server definition {} version {} could not be parsed", name.full(),
                     version, e);
             throw new NotFoundException("MCP server '" + name.full() + "' version '" + version

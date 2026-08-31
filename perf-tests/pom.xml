@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry</artifactId>
+    <version>3.3.2-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-perf-tests</artifactId>
+  <packaging>jar</packaging>
+  <name>Registry :: Performance Tests</name>
+  <description>
+    Load/performance test suite for Apicurio Registry. Not part of the default Maven build
+    (activated via the "perf-tests" profile). Intended to run against a realistic deployment
+    (operator + Keycloak + Kafka) rather than a bare dev instance, driven by the
+    perf-main GitHub Actions workflow on merges to main.
+  </description>
+
+  <properties>
+    <projectRoot>${project.basedir}/..</projectRoot>
+    <gatling.version>3.15.1</gatling.version>
+    <maven.javadoc.skip>true</maven.javadoc.skip>
+    <maven.source.skip>true</maven.source.skip>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.gatling.highcharts</groupId>
+      <artifactId>gatling-charts-highcharts</artifactId>
+      <version>${gatling.version}</version>
+    </dependency>
+    <!-- gatling-charts-highcharts declares this as scope=test upstream, which Maven does not
+         propagate transitively as compile/runtime - needed explicitly since Gatling is run as
+         a plain "java -jar" subprocess here, not via gatling-maven-plugin/the official bundle
+         scripts which manage this classpath detail themselves. The root pom's
+         dependencyManagement also pins this artifact to scope=test (for other, unrelated,
+         test-only usages elsewhere in the build), so the scope must be overridden here too. -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>2.13.18</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>${kafka-clients.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.6.3</version>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <archive>
+            <manifest>
+              <mainClass>io.apicurio.registry.perftest.PerfTestRunner</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

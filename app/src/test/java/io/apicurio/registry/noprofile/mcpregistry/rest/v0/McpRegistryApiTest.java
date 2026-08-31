@@ -5,6 +5,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -656,6 +660,40 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .statusCode(400);
     }
 
+    /**
+     * Servers in different namespaces may share a server id, which ties on artifactId. Ordering by a
+     * field that ties makes offset paging skip and repeat rows, so every server must appear exactly once.
+     */
+    @Test
+    public void testCursorPaginationAcrossNamespacesSharingAServerId() {
+        String marker = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String serverId = "srv" + marker;
+
+        Set<String> published = new HashSet<>();
+        for (String prefix : List.of("aaa", "bbb", "ccc")) {
+            String name = "io.github." + prefix + marker + "/" + serverId;
+            publish(name, "1.0.0", "Server " + prefix);
+            published.add(name);
+        }
+
+        List<String> seen = new ArrayList<>();
+        String cursor = null;
+        for (int page = 0; page < published.size(); page++) {
+            var request = given().when().contentType(CT_JSON).queryParam("search", serverId)
+                    .queryParam("limit", 1);
+            if (cursor != null) {
+                request = request.queryParam("cursor", cursor);
+            }
+            var response = request.get(BASE + "/servers").then().statusCode(200)
+                    .body("servers", hasSize(1)).extract();
+            seen.add(response.path("servers[0].name"));
+            cursor = response.path("metadata.nextCursor");
+        }
+
+        assertEquals(published.size(), seen.size());
+        assertEquals(published, new HashSet<>(seen), "paging must not skip or repeat a server");
+    }
+
     @Test
     public void testMalformedCursorIsRejected() {
         given()
@@ -686,6 +724,34 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + uniqueNamespace() + "/weather\"}")
+                .post(BASE + "/publish")
+                .then()
+                .statusCode(400);
+    }
+
+    /**
+     * The content validator runs on every publish, not only where an operator configured a validity rule.
+     * A malformed 'repository' survives bean deserialization, so nothing else on the path rejects it.
+     */
+    @Test
+    public void testPublishRejectsRepositoryWithoutUrl() {
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"name\":\"" + uniqueNamespace() + "/weather\",\"version\":\"1.0.0\","
+                        + "\"repository\":{\"source\":\"github\"}}")
+                .post(BASE + "/publish")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    public void testPublishRejectsRemoteWithNonHttpUrl() {
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"name\":\"" + uniqueNamespace() + "/weather\",\"version\":\"1.0.0\","
+                        + "\"remotes\":[{\"type\":\"streamable-http\",\"url\":\"not-a-url\"}]}")
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(400);

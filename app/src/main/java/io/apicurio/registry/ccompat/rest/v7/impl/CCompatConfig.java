@@ -35,9 +35,8 @@ public class CCompatConfig {
     @Info(category = CATEGORY_CCOMPAT, description = "Separator to use when group concatenation is enabled (compatibility API)", availableSince = "2.6.2.Final")
     String groupConcatSeparator;
 
-    @Dynamic(label = "Subject versions page size (compatibility API)", description = "Page size used when the compatibility API internally collects all versions of a subject. Subjects are never truncated: versions are fetched page by page until exhausted.")
     @ConfigProperty(name = "apicurio.ccompat.subject-versions-page-size", defaultValue = "1000")
-    @Info(category = CATEGORY_CCOMPAT, description = "Page size used when the compatibility API internally collects all versions of a subject", availableSince = "3.3.2")
-    Supplier<Integer> subjectVersionsPageSize;
+    @Info(category = CATEGORY_CCOMPAT, description = "Page size used when the compatibility API internally collects all versions of a subject. Subjects are never truncated: versions are fetched page by page until exhausted.", availableSince = "3.3.3")
+    int subjectVersionsPageSize;
 
 }

@@ -6,10 +6,13 @@ import io.apicurio.registry.ccompat.rest.ContentTypes;
 import io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -21,23 +24,26 @@ import static org.hamcrest.Matchers.hasSize;
  * deleting a subject must disable all of its versions so that the subject can be permanently
  * deleted afterwards.
  *
- * <p>A small page size is configured via {@link SmallPageSizeProfile} so that registering a
- * handful of versions is enough to span two pages and exercise the multi-page collection loop.
+ * <p>The page size is configured to an invalid 0 by {@link ClampedPageSizeProfile}, which
+ * covers two things at once: the configured value is clamped to a minimum of 1 (0 would leave
+ * the collection loop unable to advance), and a page size of 1 means every registered version
+ * lands on its own page, so a handful of versions is enough to exercise multi-page collection.
  */
 @QuarkusTest
-@TestProfile(CCompatV7LargeSubjectTest.SmallPageSizeProfile.class)
+@TestProfile(CCompatV7LargeSubjectTest.ClampedPageSizeProfile.class)
 public class CCompatV7LargeSubjectTest extends AbstractResourceTestBase {
 
     /**
-     * Test profile that sets a small page size so that multi-page collection is exercised
-     * with only a handful of versions instead of thousands.
+     * Test profile configuring an out-of-range page size, which the resource clamps to 1.
      */
-    public static class SmallPageSizeProfile implements io.quarkus.test.junit.QuarkusTestProfile {
+    public static class ClampedPageSizeProfile implements QuarkusTestProfile {
         @Override
         public Map<String, String> getConfigOverrides() {
-            return Map.of("apicurio.ccompat.subject-versions-page-size", "5");
+            return Map.of("apicurio.ccompat.subject-versions-page-size", "0");
         }
     }
+
+    private static final int VERSION_COUNT = 6;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -53,46 +59,44 @@ public class CCompatV7LargeSubjectTest extends AbstractResourceTestBase {
                 .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
     }
 
+    // A page size that never advances would hang instead of failing, so bound the test.
+    @Timeout(value = 5, unit = TimeUnit.MINUTES)
     @Test
     public void testListAndDeleteSubjectWithMoreVersionsThanPageSize() throws Exception {
         var subject = TestUtils.generateSubject();
 
-        // One more than the configured page size (5), so collecting the versions genuinely
-        // spans two pages and the second page must be read.
-        final int pageSize = 5;
-        final int count = pageSize + 1;
-        for (int i = 1; i <= count; i++) {
+        for (int i = 1; i <= VERSION_COUNT; i++) {
             registerVersion(subject, i);
         }
 
-        // Full listing contains every version number, including those on the second page.
+        // Full listing contains every version number, including those past the first page.
         given().when().get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200)
-                .body("$", hasSize(count))
-                .body("$", hasItems(1, pageSize, count));
+                .body("$", hasSize(VERSION_COUNT))
+                .body("$", hasItems(1, VERSION_COUNT));
 
-        // Offsets reaching into the second collected page return the correct remaining versions.
-        given().when().queryParam("offset", pageSize).queryParam("limit", 2)
+        // Client-side offset/limit is applied to the complete set, not to the first page.
+        given().when().queryParam("offset", VERSION_COUNT - 1).queryParam("limit", 2)
                 .get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200)
                 .body("$", hasSize(1))
-                .body("$", hasItems(count));
+                .body("$", hasItems(VERSION_COUNT));
 
         // Same behaviour through the v8 API, which delegates to v7.
         given().when().get("/ccompat/v8/subjects/{subject}/versions", subject).then().statusCode(200)
-                .body("$", hasSize(count));
+                .body("$", hasSize(VERSION_COUNT));
 
         // Soft delete disables every version, so the default listing no longer finds the subject.
         given().when().delete("/ccompat/v7/subjects/{subject}", subject).then().statusCode(200)
-                .body("$", hasSize(count));
+                .body("$", hasSize(VERSION_COUNT));
 
         given().when().get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(404);
 
         given().when().queryParam("deleted", true)
                 .get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200)
-                .body("$", hasSize(count));
+                .body("$", hasSize(VERSION_COUNT));
 
         // Permanent delete succeeds and reports every removed version.
         given().when().queryParam("permanent", true)
                 .delete("/ccompat/v7/subjects/{subject}", subject).then().statusCode(200)
-                .body("$", hasSize(count));
+                .body("$", hasSize(VERSION_COUNT));
     }
 }

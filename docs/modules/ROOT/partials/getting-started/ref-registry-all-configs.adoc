@@ -429,7 +429,7 @@ The following {registry} configuration options are available for each component 
 |`apicurio.ccompat.subject-versions-page-size`
 |`int`
 |`1000`
-|`3.3.2`
+|`3.3.3`
 |Page size used when the compatibility API internally collects all versions of a subject. Subjects are never truncated: versions are fetched page by page until exhausted.
 |`apicurio.ccompat.use-canonical-hash`
 |`boolean [dynamic]`

@@ -78,10 +78,11 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
      * Page size used to collect ALL versions of a subject through searchVersions. The compat API
      * must never truncate a subject (listing or deletion) at an arbitrary limit, so results are
      * collected in pages and concatenated. Configurable via
-     * {@code apicurio.ccompat.subject-versions-page-size}.
+     * {@code apicurio.ccompat.subject-versions-page-size}; a configured value below 1 is clamped
+     * because a page size of 0 would leave the collection loop unable to advance.
      */
-    private int getMaxPageSize() {
-        return cconfig.subjectVersionsPageSize.get();
+    private int getSubjectVersionsPageSize() {
+        return Math.max(1, cconfig.subjectVersionsPageSize);
     }
 
     @Override
@@ -597,7 +598,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     private List<SearchedVersionDto> getAllSubjectVersions(Set<SearchFilter> filters) {
         List<SearchedVersionDto> versions = new ArrayList<>();
         int offset = 0;
-        int pageSize = getMaxPageSize();
+        int pageSize = getSubjectVersionsPageSize();
         List<SearchedVersionDto> page;
         do {
             // Ordered by globalId (unique) so that paging over ties on createdOn stays stable.

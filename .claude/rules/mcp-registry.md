@@ -103,8 +103,16 @@ The spec mandates cursor pagination; storage offers offset/limit. `McpRegistryCu
 encoding `offset + SHA-256 fingerprint of the active filters`. A cursor presented with different
 filters is rejected with 400 rather than silently returning a page of an unrelated result set.
 
+**Ordering must be a total order, or offset paging breaks.** `listServers` orders by `OrderBy.name`,
+which holds the full server name and is unique. It must *not* order by `artifactId`: that is only the
+server id half, so `io.github.alice/weather` and `io.github.bob/weather` tie, and paging over a tie
+silently skips some rows and repeats others. `listServerVersions` orders by `globalId` for the same
+reason — `createdOn` ties for versions published in the same millisecond.
+
 `updated_since` switches the sort to `modifiedOn desc` so everything at or after the cutoff forms a
-prefix and the scan stops at the first older row.
+prefix and the scan stops at the first older row. ⚠️ **That branch still has the tie exposure above** —
+servers published in bulk share a `modifiedOn`. Not fixed; fixing it needs a secondary sort key in the
+storage layer, which is a cross-variant change.
 
 **`listServers` is N+1.** Each row costs ~3 storage round-trips (branch tip, version metadata,
 content) on top of the search. The page cap is what bounds the blast radius — do not remove it, and
@@ -122,6 +130,22 @@ the path, so it must use `AuthorizedStyle.None` — and `AbstractAccessControlle
 `verifyPublishOwnership()`, mirroring `AuthorizedInterceptor`: admins exempt, unknown artifact allowed
 (nothing to own yet), null owner allowed. **If you add another body-addressed write endpoint, it needs
 the same treatment.**
+
+## Content validation
+
+`publishServer` calls `validateServerDefinition()`, which invokes `McpServerContentValidator` directly
+via `ArtifactTypeUtilProviderFactory` at `ValidityLevel.FULL`, mapping `RuleViolationException` to 400
+with the violations joined into the message.
+
+**Do not replace this with `rulesService.applyRules()`.** That path only fires when an operator has
+configured a VALIDITY rule, which is not the default — the validator was originally unreachable from
+publish for exactly that reason, and a `server.json` with a malformed `repository` was accepted with a
+200. A well-formed document is a precondition of publishing, not something a deployment opts into.
+
+Note the validator sees the *re-serialized bean*, not the raw request body, so Jackson coercion has
+already happened: `"identifier": 123` arrives as `"123"` and is legitimately valid. The validator
+catches structural problems that survive deserialization (missing required fields, bad URL strings),
+not type mismatches.
 
 ## Feature gating
 
@@ -143,6 +167,8 @@ forbidden. After touching either property, regenerate the config docs:
 | Class | Profile | Covers |
 |---|---|---|
 | `McpRegistryApiTest` | experimental on, no auth | publish/read/list/versions/status/delete, cursor, validation |
+| ↳ `testCursorPaginationAcrossNamespacesSharingAServerId` | | regression: paging must not skip or repeat when server ids tie |
+| ↳ `testPublishRejectsRepositoryWithoutUrl` / `...RemoteWithNonHttpUrl` | | regression: the validator actually runs on publish |
 | `McpRegistryAuthTest` | RBAC + owner-only, basic auth | ownership on publish, admin exemption, anonymous |
 | `McpRegistryFeatureGateTest` | defaults | endpoints 404 when disabled |
 | `McpRegistryCursorTest` | plain JUnit | cursor encode/decode/tamper |
@@ -155,6 +181,11 @@ without credentials every method in the class fails in setup and each one burns 
 
 `@QuarkusTest` methods share one registry instance, so tests generate unique namespaces and search
 markers to avoid colliding with each other's artifacts.
+
+**A pagination test that publishes into one namespace proves nothing about ordering.** `testCursorPagination`
+uses distinct server ids in a single namespace, so nothing ties and it passed throughout the period when
+paging was demonstrably skipping rows. Ordering regressions only surface when server ids collide across
+namespaces — vary the namespace, hold the server id fixed.
 
 ## Known gaps
 
@@ -169,8 +200,13 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
 - **`PATCH /{name}/status` is not atomic.** No bulk state change exists in `RegistryStorage`, and a
   REST-level transaction would not span the Kafka-backed variants. It loops; a mid-loop failure leaves
   earlier versions changed. Safe to retry — setting an already-set state is a no-op.
-- **Only verified against SQL storage.** kafkasql / gitops / kubernetesops are untested, and the
-  project requires storage-touching features to work across all four.
+- **Storage variants.** Verified end-to-end against **sql** and **kafkasql** (full lifecycle: publish,
+  read, list, versions, status, soft-delete/restore, hard delete). All four variants route artifact
+  search through `SqlSearchRepository` — kafkasql via `ReadOnlyDelegatingStorage`, gitops and
+  kubernetesops via `Blue`/`GreenSqlStorage`, both `extends AbstractSqlRegistryStorage` — so
+  `OrderBy.name` resolves identically everywhere. **Untested and open:** gitops / kubernetesops extend
+  `AbstractReadOnlyRegistryStorage`, so publish, delete and the status PATCHes cannot work there at
+  all. Confirm those endpoints fail cleanly rather than with a 500 on read-only backends.
 - **`GET /servers/{namespace}/{server_id}`** exists beyond the endpoint table in #7763. It is in the
   official spec, but call it out in review so it does not read as scope drift.
 - **`%2F`-encoded names are not accepted.** See the callout under Identity mapping — the official
@@ -182,4 +218,12 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
   and `include_deleted` (on the list endpoints) are also unimplemented — both are spec-optional, so
   neither blocks compatibility, but `include_deleted` semantics are worth confirming against the
   *official* registry specifically before deciding whether to add it, since the generic sub-registry
-  spec leaves default behavior for deleted servers unstated.
+  spec leaves default behavior for deleted servers unstated. Confirmed by hand: `PUT` returns 405, and
+  `include_deleted=true` and `=false` return byte-identical results — the parameter is accepted and
+  silently ignored, which is worth deciding on rather than leaving as a no-op.
+- **`updated_since` paging can still skip or repeat.** See the warning under Pagination: that branch
+  orders by `modifiedOn`, which ties for servers published together. The default branch was fixed by
+  ordering on `name`; this one needs a secondary sort key in the storage layer.
+- **Error responses expose exception class names**, e.g. `"detail": "BadRequestException: ..."` and
+  `"NotAllowedException: RESTEASY003650..."`. CLAUDE.md forbids exposing class names to API clients.
+  Pre-existing across the whole MCP surface, from the default JAX-RS exception mapping.

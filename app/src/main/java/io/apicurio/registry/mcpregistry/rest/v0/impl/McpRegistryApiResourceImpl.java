@@ -110,6 +110,13 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     private static final String LATEST_VERSION = "latest";
     private static final int DEFAULT_PAGE_SIZE = 30;
 
+    /**
+     * Sentinel distinguishing "the caller did not resolve a latest version" from "the caller resolved it,
+     * and it is genuinely null" (every version of the server is disabled). Compared by reference, not
+     * {@code equals}, precisely so a real {@code null} can never be mistaken for it.
+     */
+    private static final String UNKNOWN_LATEST_VERSION = new String("unknown-latest-version"); // NOSONAR
+
     @Inject
     @Current
     RegistryStorage storage;
@@ -222,10 +229,12 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.globalId,
                 OrderDirection.asc, offset, pageSize, false);
 
+        // Resolved once: the server name is fixed for the whole page, so every version would otherwise
+        // repeat an identical storage.getBranchTip() lookup inside loadServer/decorate.
         String latestVersion = latestVersionOrNull(name);
         List<Server> servers = new ArrayList<>();
         for (SearchedVersionDto searched : results.getVersions()) {
-            Server server = tryLoadServer(name, searched.getVersion());
+            Server server = tryLoadServer(name, searched.getVersion(), latestVersion);
             if (server != null) {
                 servers.add(server);
             }
@@ -408,6 +417,18 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     /** @throws NotFoundException if no such server or version exists */
     private Server loadServer(McpServerName name, String version) {
+        return loadServer(name, version, UNKNOWN_LATEST_VERSION);
+    }
+
+    /**
+     * @param knownLatestVersion the server's latest version, if the caller already resolved it (e.g. once
+     *                           per page, in a loop over the same server's versions) - pass
+     *                           {@link #UNKNOWN_LATEST_VERSION} to have it resolved here instead. A caller
+     *                           holding a genuinely absent latest version (every version disabled) may pass
+     *                           {@code null} directly; resolving it again yields the same {@code null}.
+     * @throws NotFoundException if no such server or version exists
+     */
+    private Server loadServer(McpServerName name, String version, String knownLatestVersion) {
         String resolved = resolveVersion(name, version);
         ArtifactVersionMetaDataDto meta = storage.getArtifactVersionMetaData(name.namespace(),
                 name.serverId(), resolved);
@@ -415,15 +436,22 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 name.serverId(), resolved);
 
         Server server = deserialize(stored.getContent().content(), name, resolved);
-        decorate(server, meta, resolved.equals(latestVersionOrNull(name)));
+        String latest = knownLatestVersion == UNKNOWN_LATEST_VERSION ? latestVersionOrNull(name)
+                : knownLatestVersion;
+        decorate(server, meta, resolved.equals(latest));
         normalize(server);
         return server;
     }
 
     /** Null instead of throwing, so one unresolvable server does not fail a whole page. */
     private Server tryLoadServer(McpServerName name, String version) {
+        return tryLoadServer(name, version, UNKNOWN_LATEST_VERSION);
+    }
+
+    /** @see #loadServer(McpServerName, String, String) */
+    private Server tryLoadServer(McpServerName name, String version, String knownLatestVersion) {
         try {
-            return loadServer(name, version);
+            return loadServer(name, version, knownLatestVersion);
         } catch (ArtifactNotFoundException | VersionNotFoundException | NotFoundException e) {
             return null;
         }

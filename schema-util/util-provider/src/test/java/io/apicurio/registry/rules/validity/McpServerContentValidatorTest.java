@@ -87,6 +87,19 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
     }
 
     @Test
+    public void testRepositorySourceWrongTypeReportsANestedPointer() throws Exception {
+        // The violation's JSON pointer is a published field that reaches API clients - it must point at
+        // '/repository/source', not '/source', since 'source' only exists nested under 'repository'.
+        TypedContent content = resourceToTypedContentHandle("mcpserver-bad-repository-source-type.json");
+        McpServerContentValidator validator = new McpServerContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.FULL, content, Collections.emptyMap()));
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> "/repository/source".equals(v.getContext())),
+                "Expected a violation at '/repository/source', got: " + error.getCauses());
+    }
+
+    @Test
     public void testReferencesAreNotSupported() throws Exception {
         TypedContent content = resourceToTypedContentHandle("mcpserver-valid.json");
         McpServerContentValidator validator = new McpServerContentValidator();

@@ -135,9 +135,25 @@ public class McpServerContentValidator implements ContentValidator {
             JsonValidationUtils.validateHttpUrl(repository.get("url").asText(), "/repository/url",
                     violations);
         }
-        JsonValidationUtils.validateOptionalString(repository, "source", violations);
-        JsonValidationUtils.validateOptionalString(repository, "id", violations);
-        JsonValidationUtils.validateOptionalString(repository, "subfolder", violations);
+        validateOptionalStringAt(repository, "source", "/repository", violations);
+        validateOptionalStringAt(repository, "id", "/repository", violations);
+        validateOptionalStringAt(repository, "subfolder", "/repository", violations);
+    }
+
+    /**
+     * {@link JsonValidationUtils#validateOptionalString} hardcodes {@code "/" + fieldName} as the
+     * violation's JSON pointer, which is only correct when {@code node} is the document root. For a nested
+     * object like {@code repository}, that reports e.g. {@code /source} instead of {@code /repository/source}
+     * - wrong, and user-visible, since the pointer is a published field on {@code RuleViolationCause} that
+     * reaches API clients. This takes the parent path explicitly, the same way {@link #requireTextualField}
+     * already does for packages, remotes and icons.
+     */
+    private void validateOptionalStringAt(JsonNode node, String field, String parentPath,
+            Set<RuleViolation> violations) {
+        if (node.has(field) && !node.get(field).isTextual()) {
+            violations.add(
+                    new RuleViolation("'" + field + "' field must be a string", parentPath + "/" + field));
+        }
     }
 
     private void validatePackagesField(JsonNode tree, Set<RuleViolation> violations) {

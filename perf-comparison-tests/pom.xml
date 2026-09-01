@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.2-SNAPSHOT</version>
+    <version>3.3.3-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>apicurio-registry-perf-comparison-tests</artifactId>
@@ -12,7 +12,7 @@
   <description>Opt-in Confluent-compatible API benchmark for schema registry products.</description>
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
-    <gatling.version>3.13.5</gatling.version>
+    <gatling.version>3.15.1</gatling.version>
     <maven.javadoc.skip>true</maven.javadoc.skip>
     <maven.source.skip>true</maven.source.skip>
   </properties>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.5.18</version>
+      <version>1.6.3</version>
       <scope>runtime</scope>
     </dependency>
   </dependencies>

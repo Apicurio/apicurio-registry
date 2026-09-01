@@ -55,11 +55,11 @@ jobs:
           distribution: temurin
           cache: maven
 
-      # -Dfull: include the operator module needed for the operator image build.
+      # Select the controller explicitly because selecting the operator aggregator does not build its children.
       - name: Build app, operator, and perf-tests artifacts
         run: |
           ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull \
-            -pl app,distro/docker,operator,perf-tests -am -Pprod,perf-tests -DskipTests -Dmaven.javadoc.skip \
+            -pl app,distro/docker,operator/controller,perf-tests -am -Pprod,perf-tests -DskipTests -Dmaven.javadoc.skip \
             -Daether.syncContext.named.factory=noop
 
       - name: Build app image
@@ -224,4 +224,3 @@ jobs:
       job-name: "perf-test"
       job-status: "failure"
     secrets: inherit
-

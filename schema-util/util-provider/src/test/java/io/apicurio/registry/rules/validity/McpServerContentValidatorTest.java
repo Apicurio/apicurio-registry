@@ -55,6 +55,33 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
     }
 
     @Test
+    public void testBareStringTransportIsValid() throws Exception {
+        // 'transport' may be a bare string or an object with a 'type' - both forms appear in the wild.
+        // mcpserver-valid.json only exercises the object form, so this covers the string form separately.
+        TypedContent content = resourceToTypedContentHandle("mcpserver-bare-transport.json");
+        new McpServerContentValidator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testUnknownRemoteTypeIsRejected() throws Exception {
+        // validateRemotesField has its own type-enum check, independent of validateTransport for packages.
+        assertViolationMentions("mcpserver-bad-remote-type.json", "type");
+    }
+
+    @Test
+    public void testVersionWrongTypeIsRejected() throws Exception {
+        assertViolationMentions("mcpserver-bad-version-type.json", "version");
+    }
+
+    @Test
+    public void testMalformedJsonIsRejected() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcpserver-invalid-json.json");
+        McpServerContentValidator validator = new McpServerContentValidator();
+        Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.FULL, content, Collections.emptyMap()));
+    }
+
+    @Test
     public void testRepositoryWithoutUrlIsRejected() throws Exception {
         assertViolationMentions("mcpserver-bad-repository.json", "url");
     }
@@ -68,6 +95,14 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
         reference.setName("ref");
         Assertions.assertThrows(RuleViolationException.class,
                 () -> validator.validateReferences(content, List.of(reference)));
+    }
+
+    @Test
+    public void testNoReferencesIsAccepted() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcpserver-valid.json");
+        McpServerContentValidator validator = new McpServerContentValidator();
+        Assertions.assertDoesNotThrow(() -> validator.validateReferences(content, Collections.emptyList()));
+        Assertions.assertDoesNotThrow(() -> validator.validateReferences(content, null));
     }
 
     // === Accepter ===

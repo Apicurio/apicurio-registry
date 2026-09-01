@@ -99,28 +99,28 @@ rules:
       - list
       - watch
 
-  # Kept in sync with the operator's runtime permissions in
-  # controller/src/main/deploy/rbac/namespaced: cluster-role.yaml grants get/list/watch on the parent
-  # CR (informer discovery), role.yaml grants patch/update on the CR and its /status. There is no
-  # list/watch endpoint for /status, so it only carries patch/update here. The operator never creates
-  # or deletes the CR.
+  # Kept in sync with the operator's runtime permissions on the parent CR and its /status. OLM v1
+  # always installs AllNamespaces (cluster-scoped), so the resolved bundle carries the *cluster*
+  # overlay's ClusterRole (controller/src/main/deploy/rbac/cluster/cluster-role.yaml), which grants
+  # the full verb set on both apicurioregistries3 and apicurioregistries3/status -- not the narrower
+  # namespaced overlay. Under escalation prevention the installer SA can only create that ClusterRole
+  # if it holds every verb in it, so this must mirror the cluster overlay's grant, not the namespaced
+  # subset. (The productized downstream bundle exposed this: the installer, holding only get/list/
+  # patch/update/watch on the CR and patch/update on /status, could not grant the bundle's
+  # create/delete on the CR or create/delete/get/list/watch on /status.)
   - apiGroups:
       - registry.apicur.io
     resources:
       - apicurioregistries3
+      - apicurioregistries3/status
     verbs:
+      - create
+      - delete
       - get
       - list
       - patch
       - update
       - watch
-  - apiGroups:
-      - registry.apicur.io
-    resources:
-      - apicurioregistries3/status
-    verbs:
-      - patch
-      - update
 
   - apiGroups:
       - apps

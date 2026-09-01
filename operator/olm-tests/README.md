@@ -157,11 +157,11 @@ upgrade. OLM v1's `ClusterExtension` has no `InstallPlan`/approval concept: reso
 yourself), with no intermediate "pending approval" object to approve. `testManualApprovalUpgrade` therefore
 stays OLM v0-only, gated off entirely for v1 the same way the rest of `UpgradeOLMITTest` already is.
 
-For "fresh install on a minor channel," `UpgradeOLMv1ITTest` pins `spec.source.catalog.version` explicitly
-to the discovered channel head, rather than omitting the field the way OLM v0's `startingCSV`-less
-Subscription does. Whether an unset `version` field reliably resolves to the channel head under OLM v1
-could not be verified against a live cluster in the environment this was developed in, so the test
-validates the pinned-head-install path instead of relying on that unconfirmed default.
+For "fresh install on a minor channel," `UpgradeOLMv1ITTest` deploys a channel-only `ClusterExtension`
+with no `spec.source.catalog.version` — the same shape as OLM v0's `startingCSV`-less Subscription — and
+asserts that OLM v1 resolves it to the discovered channel head. The resolved version is read back from
+the installed operator deployment, so the test exercises OLM v1's default channel-head resolution rather
+than re-checking a version it pinned itself.
 
 ### How tests determine applicability
 

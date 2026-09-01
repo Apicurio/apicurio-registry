@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static io.apicurio.registry.operator.it.ITBase.MEDIUM_DURATION;
@@ -57,6 +58,8 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMv1ITTest.class);
 
     private static final String CLUSTER_EXTENSION_NAME = "apicurio-registry-operator-ce";
+
+    private static final String OPERATOR_DEPLOYMENT_PREFIX = "apicurio-registry-operator-v";
 
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
             Integer.getInteger("test.operator.timeout.olm-upgrade", 1200));
@@ -407,12 +410,11 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
     /**
      * Verifies fresh install on the minor channel lands on the channel head.
      * <p>
-     * Note: unlike the OLM v0 equivalent (which omits {@code startingCSV} and relies on Subscription's
-     * always-resolve-to-newest-in-channel behavior), this pins {@code spec.source.catalog.version}
-     * explicitly to the discovered channel head. Whether an unset {@code version} field reliably resolves
-     * to the channel head under OLM v1 could not be verified against a live cluster in the environment
-     * this was developed in, so this test validates the pinned-head-install path instead of relying on
-     * that unconfirmed default.
+     * Like the OLM v0 equivalent (which omits {@code startingCSV} and relies on the Subscription's
+     * always-resolve-to-newest-in-channel behavior), this deploys a channel-only {@code ClusterExtension}
+     * with no {@code spec.source.catalog.version} and lets OLM v1 resolve the version itself. The test
+     * then reads the version OLM actually installed (from the ready operator deployment) and asserts it
+     * equals the discovered channel head, genuinely exercising OLM v1's default channel-head resolution.
      */
     @RetryTest
     @EnabledIf("minorChannelExists")
@@ -421,14 +423,19 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
         var minorHeadVersion = catalog.getChannelHeadVersion(minorChannel());
 
-        log.info("Testing fresh install on {} channel, pinned to head {}", minorChannel(),
-                minorHeadVersion);
+        log.info("Testing fresh install on {} channel with a version-less ClusterExtension "
+                + "(expecting OLM to resolve to channel head {})", minorChannel(), minorHeadVersion);
 
-        deployClusterExtension(minorChannel(), minorHeadVersion);
-        verifyUpgradeTo(minorHeadVersion);
+        deployClusterExtensionChannelOnly(minorChannel());
 
-        log.info("Fresh install on {} channel got version {} as expected",
-                minorChannel(), minorHeadVersion);
+        var resolvedVersion = waitForResolvedOperatorVersion();
+        log.info("Version-less ClusterExtension on {} resolved to {} (channel head is {})",
+                minorChannel(), resolvedVersion, minorHeadVersion);
+
+        assertThat(resolvedVersion)
+                .as("A version-less ClusterExtension on channel %s should resolve to the channel head",
+                        minorChannel())
+                .isEqualTo(minorHeadVersion);
     }
 
     /**
@@ -480,9 +487,23 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
     // ---- Infrastructure methods ----
 
     private static String deploymentName(Semver version) {
-        return "apicurio-registry-operator-v" + version;
+        return OPERATOR_DEPLOYMENT_PREFIX + version;
     }
 
+    /**
+     * Deploys the catalog, RBAC and a {@code ClusterExtension} on {@code channel} with no
+     * {@code spec.source.catalog.version}, leaving the version for OLM v1 to resolve (expected: the
+     * channel head).
+     */
+    private void deployClusterExtensionChannelOnly(String channel) throws Exception {
+        deployClusterExtension(channel, null);
+    }
+
+    /**
+     * Deploys the catalog, RBAC and a {@code ClusterExtension} on {@code channel}. When {@code version}
+     * is non-null it is pinned as {@code spec.source.catalog.version}; when null, the version constraint
+     * line is dropped so OLM v1 resolves the version itself.
+     */
     private void deployClusterExtension(String channel, Semver version) throws Exception {
         try {
             createResource(client, namespace, "olmv1/cluster-catalog.yaml");
@@ -491,16 +512,45 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
             createResource(client, namespace, "olmv1/cluster-role.yaml");
             createResource(client, namespace, "olmv1/cluster-role-binding.yaml");
 
-            var extraVars = Map.of(
-                    "${PLACEHOLDER_UPGRADE_CHANNEL}", channel,
-                    "${PLACEHOLDER_UPGRADE_VERSION}", version.toString());
             var raw = loadRawResource("olmv1/cluster-extension-upgrade.yaml");
+            Map<String, String> extraVars;
+            if (version == null) {
+                // Drop only the version-constraint line so OLM resolves spec.source.catalog.version
+                // itself. The ${PLACEHOLDER_VERSION} label line is left untouched.
+                raw = raw.replaceAll("(?m)^.*\\$\\{PLACEHOLDER_UPGRADE_VERSION}.*\\R?", "");
+                extraVars = Map.of("${PLACEHOLDER_UPGRADE_CHANNEL}", channel);
+            } else {
+                extraVars = Map.of(
+                        "${PLACEHOLDER_UPGRADE_CHANNEL}", channel,
+                        "${PLACEHOLDER_UPGRADE_VERSION}", version.toString());
+            }
             client.resource(replaceVars(raw, namespace, extraVars)).create();
         } catch (Exception e) {
             log.error("OLM v1 catalog/ClusterExtension setup failed, dumping cluster diagnostics", e);
             ClusterDiagnostics.dump(client, namespace, true);
             throw e;
         }
+    }
+
+    /**
+     * Waits until a registry operator deployment ({@code apicurio-registry-operator-v*}) is ready and
+     * returns the version OLM actually resolved, parsed from that deployment's name.
+     */
+    private Semver waitForResolvedOperatorVersion() {
+        var resolved = new AtomicReference<Semver>();
+        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+            var ready = client.apps().deployments().inNamespace(namespace).list().getItems().stream()
+                    .filter(d -> d.getMetadata().getName().startsWith(OPERATOR_DEPLOYMENT_PREFIX))
+                    .filter(d -> Integer.valueOf(1).equals(d.getStatus().getReadyReplicas()))
+                    .findFirst();
+            assertThat(ready)
+                    .as("A registry operator deployment (%s*) should become ready",
+                            OPERATOR_DEPLOYMENT_PREFIX)
+                    .isPresent();
+            resolved.set(CatalogInfo.parseVersion(ready.get().getMetadata().getName()
+                    .substring(OPERATOR_DEPLOYMENT_PREFIX.length())));
+        });
+        return resolved.get();
     }
 
     private void waitForOperatorVersion(Semver version) {

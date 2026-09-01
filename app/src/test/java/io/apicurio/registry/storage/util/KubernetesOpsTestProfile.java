@@ -12,7 +12,8 @@ public class KubernetesOpsTestProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         return Map.of(
                 "apicurio.storage.sql.kind", "h2",
-                "apicurio.storage.kind", "kubernetesops"
+                "apicurio.storage.kind", "kubernetesops",
+                "apicurio.features.experimental.enabled", "true"
         );
     }
 

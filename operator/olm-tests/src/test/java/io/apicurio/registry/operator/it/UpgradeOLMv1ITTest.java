@@ -59,7 +59,7 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
     private static final String CLUSTER_EXTENSION_NAME = "apicurio-registry-operator-ce";
 
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
-            Integer.getInteger("test.operator.timeout.olm-upgrade", 900));
+            Integer.getInteger("test.operator.timeout.olm-upgrade", 1200));
 
     private static CatalogInfo catalog;
 

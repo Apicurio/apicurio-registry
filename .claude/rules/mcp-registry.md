@@ -191,6 +191,15 @@ namespaces — vary the namespace, hold the server id fixed.
 
 Open questions for maintainers rather than settled decisions — raise on #7763, don't quietly pick:
 
+- **`listServers`'s `updated_since` ordering has no tiebreaker.** The `byModifiedOn` branch sorts on
+  `OrderBy.modifiedOn` alone; two servers touched in the same millisecond can land in either relative
+  order, and if a tie sits exactly at the cutoff, the scan stops on the first of them and reports
+  `hasMore=false` — ending a polling client's incremental sync a page early rather than just
+  skipping/repeating one row. The versions path avoids this by ordering on `OrderBy.globalId`, but
+  `SearchedArtifactDto` (what `searchArtifacts` returns) carries no `globalId`, and `searchArtifacts`
+  only accepts one `OrderBy` — there's no compound sort key to break the tie without a storage-layer
+  change. Documented at the cutoff check in `listServers`; not fixed.
+
 - ~~**`_meta.id` is the artifact `globalId`, not a UUID.**~~ **Resolved.** A UUID is minted at publish
   time and persisted as an artifact-version label (`SERVER_VERSION_ID_LABEL`), the same pattern the
   Iceberg REST Catalog uses for `table-uuid`. `serverVersionId()` reads the label back on every

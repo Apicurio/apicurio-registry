@@ -138,6 +138,16 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
     }
 
+    /**
+     * Report a clean 403 before a read-only backend throws an internal error.
+     */
+    private void requireWritable() {
+        if (storage.isReadOnly()) {
+            throw new ForbiddenException(
+                    "The MCP Registry API does not support publishing on a read-only storage backend.");
+        }
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ServerList listServers(String cursor, BigInteger limit, String search, Date updatedSince,
@@ -155,8 +165,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             filters.add(SearchFilter.ofPartialName(search));
         }
 
-        // 'updated_since' needs modifiedOn order so the scan can stop at the first older entry. Otherwise
-        // order by name: artifactId is only the server id, and ties across namespaces break offset paging.
+        // Order by modifiedOn for updated_since pagination; otherwise name-order paging can break
+        // on namespace ties.
         boolean byModifiedOn = updatedSince != null;
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
                 byModifiedOn ? OrderBy.modifiedOn : OrderBy.name,
@@ -165,6 +175,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         List<Server> servers = new ArrayList<>();
         boolean reachedCutoff = false;
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            // modifiedOn has no tiebreaker, so an exact cutoff can silently stop one page early.
+            // null modifiedOn is kept, which should not happen for published MCP servers.
             if (byModifiedOn && artifact.getModifiedOn() != null
                     && artifact.getModifiedOn().before(updatedSince)) {
                 reachedCutoff = true;
@@ -237,6 +249,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteServerVersion(String namespace, String serverId, String version) {
         requireEnabled();
+        requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
         storage.deleteArtifactVersion(name.namespace(), name.serverId(), resolveVersion(name, version));
     }
@@ -247,6 +260,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     public Server updateServerVersionStatus(String namespace, String serverId, String version,
             StatusUpdate data) {
         requireEnabled();
+        requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
         String resolved = resolveVersion(name, version);
         storage.updateArtifactVersionState(name.namespace(), name.serverId(), resolved,
@@ -259,6 +273,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Server updateServerStatus(String namespace, String serverId, StatusUpdate data) {
         requireEnabled();
+        requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
         VersionState newState = toVersionState(requireStatus(data));
 
@@ -284,6 +299,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
     public Server publishServer(Server data) {
         requireEnabled();
+        requireWritable();
 
         McpServerName name = McpServerName.parse(data.getName());
         verifyPublishOwnership(name);

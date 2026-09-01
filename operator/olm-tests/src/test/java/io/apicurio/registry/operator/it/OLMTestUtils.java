@@ -11,6 +11,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static org.awaitility.Awaitility.await;
+
 public final class OLMTestUtils {
 
     public static final String PACKAGE_NAME = "apicurio-registry-3";
@@ -130,7 +132,7 @@ public final class OLMTestUtils {
     }
 
     public static void waitForCatalogPodReady(KubernetesClient client, String namespace) {
-        org.awaitility.Awaitility.await().ignoreExceptions()
+        await().ignoreExceptions()
                 .until(() -> client.pods().inNamespace(namespace).list().getItems().stream()
                         .filter(pod -> pod.getMetadata().getName()
                                 .startsWith("apicurio-registry-operator-catalog"))
@@ -138,7 +140,7 @@ public final class OLMTestUtils {
                                 c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()))));
         // A Ready pod is not immediately routable: the Service endpoints (and kube-proxy
         // rules) lag by a beat, and OLM's resolver otherwise fails with "no route to host".
-        org.awaitility.Awaitility.await().ignoreExceptions().until(() -> {
+        await().ignoreExceptions().until(() -> {
             var endpoints = client.endpoints().inNamespace(namespace)
                     .withName("apicurio-registry-operator-catalog").get();
             return endpoints != null && endpoints.getSubsets() != null
@@ -154,7 +156,7 @@ public final class OLMTestUtils {
     @SuppressWarnings("unchecked")
     public static void waitForClusterCatalogServing(KubernetesClient client, String namespace,
             String catalogName) {
-        org.awaitility.Awaitility.await().ignoreExceptions().until(() -> {
+        await().ignoreExceptions().until(() -> {
             var cc = client.genericKubernetesResources("olm.operatorframework.io/v1", "ClusterCatalog")
                     .inNamespace(namespace)
                     .withName(catalogName)

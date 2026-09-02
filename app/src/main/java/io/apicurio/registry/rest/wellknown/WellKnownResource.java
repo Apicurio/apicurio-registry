@@ -238,6 +238,18 @@ public interface WellKnownResource {
     AiCatalog getAiCatalog();
 
     /**
+     * Returns the ARD (Agentic Resource Discovery) manifest document for this registry
+     * instance. This is the ARD v0.91 normative discovery path; the payload is identical to
+     * {@link #getAiCatalog()}.
+     *
+     * @return the AI Catalog document
+     */
+    @GET
+    @Path("/ard.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog getArdManifest();
+
+    /**
      * ARD (Agentic Resource Discovery) search endpoint. Returns AI Catalog entries matching
      * the requested text query and structured filters.
      *

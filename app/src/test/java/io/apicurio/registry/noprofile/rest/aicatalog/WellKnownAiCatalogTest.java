@@ -193,6 +193,34 @@ public class WellKnownAiCatalogTest extends AbstractResourceTestBase {
                         hasSize(1));
     }
 
+    @Test
+    public void testGetArdManifestMatchesAiCatalog() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String agentId = "aicat-ard-" + TestUtils.generateArtifactId().replace("-", "");
+        String toolId = "aicat-ard-t-" + TestUtils.generateArtifactId().replace("-", "");
+
+        createAgentCard(groupId, agentId, AGENT_CARD_CONTENT);
+        createMcpTool(groupId, toolId, MCP_TOOL_CONTENT);
+
+        String aiCatalogBody = givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .get("/.well-known/ai-catalog.json")
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        String ardBody = givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .get("/.well-known/ard.json")
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        org.junit.jupiter.api.Assertions.assertEquals(aiCatalogBody, ardBody);
+    }
+
     private void createAgentCard(String groupId, String artifactId, String content) {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

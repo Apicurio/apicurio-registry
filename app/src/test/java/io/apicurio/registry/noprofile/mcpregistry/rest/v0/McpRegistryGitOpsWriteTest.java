@@ -16,12 +16,12 @@ import static org.hamcrest.CoreMatchers.not;
  */
 @QuarkusTest
 @TestProfile(McpRegistryGitOpsWriteProfile.class)
-public class McpRegistryGitOpsWriteTest {
+class McpRegistryGitOpsWriteTest {
 
     private static final String BASE = "/apis/mcp-registry/v0.1";
 
     @Test
-    public void testPublishOnReadOnlyStorageReturns403NotAnUnmappedException() {
+    void testPublishOnReadOnlyStorageReturns403NotAnUnmappedException() {
         given()
                 .when()
                 .contentType("application/json")
@@ -34,7 +34,7 @@ public class McpRegistryGitOpsWriteTest {
     }
 
     @Test
-    public void testDeleteOnReadOnlyStorageReturns403() {
+    void testDeleteOnReadOnlyStorageReturns403() {
         given()
                 .when()
                 .delete(BASE + "/servers/io.github.gitops/weather/versions/1.0.0")
@@ -43,7 +43,7 @@ public class McpRegistryGitOpsWriteTest {
     }
 
     @Test
-    public void testStatusUpdateOnReadOnlyStorageReturns403() {
+    void testStatusUpdateOnReadOnlyStorageReturns403() {
         given()
                 .when()
                 .contentType("application/json")
@@ -54,7 +54,7 @@ public class McpRegistryGitOpsWriteTest {
     }
 
     @Test
-    public void testStatusUpdateAllVersionsOnReadOnlyStorageReturns403() {
+    void testStatusUpdateAllVersionsOnReadOnlyStorageReturns403() {
         given()
                 .when()
                 .contentType("application/json")

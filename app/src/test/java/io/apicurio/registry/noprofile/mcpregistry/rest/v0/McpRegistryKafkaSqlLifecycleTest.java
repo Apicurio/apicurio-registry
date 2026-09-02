@@ -17,7 +17,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
  */
 @QuarkusTest
 @TestProfile(McpRegistryKafkaSqlProfile.class)
-public class McpRegistryKafkaSqlLifecycleTest {
+class McpRegistryKafkaSqlLifecycleTest {
 
     private static final String BASE = "/apis/mcp-registry/v0.1";
 
@@ -26,7 +26,7 @@ public class McpRegistryKafkaSqlLifecycleTest {
     }
 
     @Test
-    public void testPublishReadStatusAndDeleteRoundTripThroughKafka() {
+    void testPublishReadStatusAndDeleteRoundTripThroughKafka() {
         String namespace = uniqueNamespace();
         String name = namespace + "/weather";
 

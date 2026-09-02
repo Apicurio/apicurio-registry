@@ -4,6 +4,11 @@ import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
+import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
+import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
+import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
@@ -220,4 +225,59 @@ public interface WellKnownResource {
     Response getSchema(
             @PathParam("schemaType") String schemaType,
             @PathParam("version") String version);
+
+    /**
+     * Returns the AI Catalog (ai-catalog.io) document for this registry instance, projecting
+     * all visible Agent Card and MCP tool artifacts into AI Catalog entries.
+     *
+     * @return the AI Catalog document
+     */
+    @GET
+    @Path("/ai-catalog.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog getAiCatalog();
+
+    /**
+     * ARD (Agentic Resource Discovery) search endpoint. Returns AI Catalog entries matching
+     * the requested text query and structured filters.
+     *
+     * @param request the ARD search request
+     * @return the ARD search response
+     */
+    @POST
+    @Path("/ard/search")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    ArdSearchResponse ardSearch(ArdSearchRequest request);
+
+    /**
+     * ARD deterministic agent/tool listing endpoint, with optional filter, ordering, and
+     * pagination.
+     *
+     * @param filter EBNF-ish filter expression (e.g. {@code type=<value>})
+     * @param orderBy optional ordering hint (currently a no-op)
+     * @param pageSize page size
+     * @param pageToken opaque pagination token
+     * @return the AI Catalog document containing the (possibly filtered/paginated) entries
+     */
+    @GET
+    @Path("/ard/agents")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog ardListAgents(
+            @QueryParam("filter") String filter,
+            @QueryParam("orderBy") String orderBy,
+            @QueryParam("pageSize") @DefaultValue("20") Integer pageSize,
+            @QueryParam("pageToken") String pageToken);
+
+    /**
+     * ARD facet exploration endpoint.
+     *
+     * @param request the ARD explore request
+     * @return the ARD explore response containing the requested facets
+     */
+    @POST
+    @Path("/ard/explore")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    ArdExploreResponse ardExplore(ArdExploreRequest request);
 }

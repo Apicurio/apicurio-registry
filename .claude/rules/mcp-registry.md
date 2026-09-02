@@ -213,9 +213,27 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
   read, list, versions, status, soft-delete/restore, hard delete). All four variants route artifact
   search through `SqlSearchRepository` — kafkasql via `ReadOnlyDelegatingStorage`, gitops and
   kubernetesops via `Blue`/`GreenSqlStorage`, both `extends AbstractSqlRegistryStorage` — so
-  `OrderBy.name` resolves identically everywhere. **Untested and open:** gitops / kubernetesops extend
-  `AbstractReadOnlyRegistryStorage`, so publish, delete and the status PATCHes cannot work there at
-  all. Confirm those endpoints fail cleanly rather than with a 500 on read-only backends.
+  `OrderBy.name` resolves identically everywhere. Write-rejection is verified (403, not an unmapped
+  500) on both gitops and kubernetesops.
+
+  **Reads are confirmed broken, not just untested, on gitops and kubernetesops.** Every MCP read that
+  resolves "latest" (`GET /servers/{namespace}/{server_id}` with no version, `listServerVersions`'s
+  `isLatest` flag) goes through `getBranchTip(ga, BranchId.LATEST, ...)`, which is a pure
+  `branch_versions` table lookup with no fallback (`CommonSqlStatements.selectBranchTip()`). The
+  gitops/kubernetesops loader (`AbstractPollingDataSourceManager.processArtifact()`) imports each
+  version via `storage.importArtifactVersion(entity)` only — a raw insert into `versions` — and never
+  calls `appendVersionToBranch(ga, BranchId.LATEST, version)`. Confirmed by hand: a fixture loaded
+  through either backend shows up in `getArtifactIds()` and `getArtifactVersionContent()` (queried
+  directly, by explicit version) but `getBranchTip(..., LATEST, ...)` throws
+  `VersionNotFoundException` for it regardless of state. `GitOpsSmokeTest` / `KubernetesOpsSmokeTest`
+  never caught this because neither ever reads by "latest" — both only read by an explicit version
+  string. **This is not an MCP-specific bug** — it affects anything built on `BranchId.LATEST` against
+  gitops/kubernetesops-sourced content — but MCP is the first consumer that actually exercises that
+  path against those two backends. `SqlDataUpgrader` (the v2→v3 import path) hits the same
+  raw-import gap and works around it by calling `appendVersionToBranch` by hand right after
+  `importArtifactVersion`; `AbstractPollingDataSourceManager` never got the equivalent fix. Tracked
+  as a separate storage-layer issue, not fixed here — it's a shared-loader change with blast radius
+  across every artifact type on both backends, not something to bundle into the MCP feature.
 - **`GET /servers/{namespace}/{server_id}`** exists beyond the endpoint table in #7763. It is in the
   official spec, but call it out in review so it does not read as scope drift.
 - **`%2F`-encoded names are not accepted.** See the callout under Identity mapping — the official

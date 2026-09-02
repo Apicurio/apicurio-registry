@@ -1,6 +1,6 @@
 # ADR-0004: AI Catalog & ARD Convergence
 
-**Date:** 2026-08-22  
+**Date:** 2026-08-22 (updated 2026-09-02 — see [Amendment](#amendment-2026-09-02-ard-v091))  
 **Status:** Proposed  
 **Issue:** [#6991 — AI Agent Registry (MCP & A2A Support)](https://github.com/Apicurio/apicurio-registry/issues/6991)
 
@@ -61,14 +61,53 @@ governance tool, not a runtime platform**.
    `federation: none`, so this is compatible.
 6. **Ingestion (reverse direction)** — crawling external catalogs to register entries as
    artifacts; new scope, separate discussion.
+7. **No self-describing registry entry** — a crawler that only ingests
+   `/.well-known/ai-catalog.json` has no way to learn that this registry also exposes a live
+   `POST /search` API unless the catalog itself carries an entry of type
+   `application/ai-registry+json` pointing at that endpoint (ARD §5.3). **Fixed** in the
+   implementation (see Amendment below).
+8. **No `representativeQueries` support** — ARD's own publishing guide and every published
+   reference implementation (Hugging Face, Ora) treat this field — 2–5 sample natural-language
+   queries per entry — as the primary discovery signal for semantic search. Neither the
+   `AiCatalogEntry` schema nor the entry-building code populates it. Not fixed yet; tracked as
+   a gap below.
+9. **Wrong well-known path per ARD v0.91** — see Amendment.
+
+## Amendment (2026-09-02): ARD v0.91
+
+The ARD specification published v0.91 on 2026-08-26, four days after this ADR was first
+written, and it changes two things this ADR did not anticipate:
+
+- **The normative publishing/consumption path moved from `/.well-known/ai-catalog.json` to
+  `/.well-known/ard.json`.** Per the spec: *"A consumer resolving a domain's entries **MUST**
+  fetch `/.well-known/ard.json`... **MAY** additionally consult [the predecessor
+  `ai-catalog.json`]."* A strictly-conformant ARD crawler that only fetches `ard.json` will
+  never discover a registry that serves only the predecessor path. This is a known,
+  documented gap shared with at least one other reference implementation (MCP Gateway
+  Registry, per its listing on `agenticresourcediscovery.org/ref_implementations/`), but it
+  is still a gap: Step 1 below is revised to serve **both** paths, with `ard.json` as the
+  canonical target and `ai-catalog.json` retained as a courtesy to AI-Catalog-only consumers.
+- **The entry schema is now framed as JSON-LD** with an optional `@context` and namespaced
+  terms. This does not invalidate a plain (non-`@context`) entry — the spec states a
+  `@context`-less entry "is interpreted by any consumer that applies the base context, and
+  needs no changes" — so no immediate code change is required here, but future filter/facet
+  work should be aware that filter keys are resolved as IRIs under the ARD base context, not
+  matched as literal strings.
+
+These findings, plus the self-describing-entry fix and the `representativeQueries` gap
+above, came out of a review against two live community pages:
+[ai-catalog.io](https://ai-catalog.io/) and
+[agenticresourcediscovery.org/ref_implementations](https://agenticresourcediscovery.org/ref_implementations/).
+Tracked as follow-up work in #6991 (see child issues to be filed).
 
 ## Decision
 
 Implement convergence in two increments, followed by optional later work.
 
 ### Step 1 — Publishing / conformance (low risk)
-Add `GET /.well-known/ai-catalog.json`, projecting existing `AGENT_CARD` and `MCP_TOOL`
-artifacts into the AI Catalog envelope.
+Add `GET /.well-known/ai-catalog.json` **and** `GET /.well-known/ard.json` (same payload;
+see Amendment above), projecting existing `AGENT_CARD` and `MCP_TOOL` artifacts into the AI
+Catalog / ARD entry envelope.
 
 - Pure read-only projection over existing storage; no schema migration.
 - Identifier mapping: `urn:air:<configured-publisher-domain>:<groupId>:<artifactId>`.
@@ -76,6 +115,9 @@ artifacts into the AI Catalog envelope.
 - `url`: points to the existing `/.well-known/agents/{groupId}/{artifactId}` content
   endpoints.
 - Respects the existing visibility labels (`public`/`entitled`/`private`).
+- Includes a self-describing `application/ai-registry+json` entry pointing at
+  `/.well-known/ard/search` whenever `apicurio.ard.enabled=true`, so a crawler that only
+  ingests the static manifest can still discover the live search API (gap 7, fixed).
 - Result: Apicurio becomes crawlable and can be listed on the ai-catalog.io
   "Implementations" page.
 
@@ -98,10 +140,43 @@ Implement the ARD REST surface per its OpenAPI spec, exposed under `/.well-known
 - `POST /ard/explore` — optional; facet aggregation over `type` and `publisher`, optionally
   narrowed by the same `query` used by `/ard/search`.
 
-### Step 3 — Optional / later
-- MCP server tool wrapping ARD search (ARD §7.5 explicitly permits this).
-- Trust Manifest passthrough via artifact labels/metadata.
-- Catalog importer (crawl external `ai-catalog.json` and register entries).
+### Step 3 — Optional / later (revised)
+- ~~MCP server tool wrapping ARD search~~ — **re-prioritized, no longer "optional/later."**
+  Every reviewed reference implementation (Hugging Face Discover Tool, GitHub Agent Finder,
+  Ora Directory) exposes its ARD search as an MCP tool as a first-class feature, not an
+  afterthought. Apicurio already has an `mcp/` module; wrapping `POST /ard/search` there is
+  low-effort relative to its value for "looking like a real reference implementation." Moved
+  into Step 2 scope; tracked as a new child issue (see #6991 update).
+- Trust Manifest passthrough via artifact labels/metadata. Still deferred — optional in the
+  spec and not required for the initial listing goal.
+- Catalog importer (crawl external `ai-catalog.json`/`ard.json` and register entries). Still
+  new scope, separate discussion.
+
+### Step 4 — `representativeQueries` (new)
+Add an optional `representativeQueries` (2–5 strings) field to the `AiCatalogEntry` schema
+and populate it for `AGENT_CARD` entries from the Agent Card's `skills[].examples` (A2A
+already carries example utterances per skill) and, where absent, a generated fallback from
+`displayName`/`description`. Not populated for `MCP_TOOL` entries in the first pass (no
+equivalent source field exists yet in the MCP Tool artifact schema — separate follow-up).
+This directly improves both conformance-tool scoring (§D.2 flags a missing/undersized
+`representativeQueries` as a warning) and real semantic-search relevance in any ARD registry
+that crawls Apicurio's catalog.
+
+### Step 5 — Get listed (new)
+The two target listing pages have different, concrete requirements neither previously had a
+tracked task:
+- **`ai-catalog.io/implementations/`** — low friction. "Community Projects" are added by
+  opening a PR against `Agent-Card/ai-catalog`'s docs. No live endpoint is required for this
+  list (it currently includes SDKs/libraries alongside one live testbed service).
+- **`agenticresourcediscovery.org/ref_implementations/`** — every entry on this page
+  (Hugging Face, GitHub, Cisco, Ora, ANS Finder, MCP Gateway Registry) is a live,
+  HTTPS-reachable endpoint, and at least one (ANS Finder) documents having run and passed the
+  official `ard-spec/conformance/bin/conformance-test registry <url>` CLI. Getting listed
+  here requires: (a) a publicly reachable demo/staging Apicurio instance with
+  `apicurio.ai-catalog.enabled`/`apicurio.ard.enabled` turned on (the feature currently
+  defaults to disabled Developer Preview, with no public instance), and (b) actually running
+  the conformance CLI against it and recording the result. Both are new, previously-untracked
+  work.
 
 ### Configuration
 New properties (all following `.claude/rules/config-properties.md`: `apicurio.*` prefix,
@@ -148,10 +223,16 @@ These are LF (not CNCF) efforts. Two distinct venues:
 
 ## Success criteria
 
-- `GET /.well-known/ai-catalog.json` returns a spec-valid catalog (passes the AI Catalog
-  JSON Schema / conformance checks) for the registered agents and tools.
-- ARD `POST /search` passes the official ARD conformance CLI in registry mode.
-- Apicurio listed on the ai-catalog.io implementations page.
+- `GET /.well-known/ai-catalog.json` and `GET /.well-known/ard.json` return a spec-valid
+  catalog (passes the AI Catalog JSON Schema / ARD conformance checks) for the registered
+  agents and tools.
+- The catalog includes a self-describing `application/ai-registry+json` entry when ARD is
+  enabled (done).
+- Agent Card entries carry `representativeQueries`.
+- ARD `POST /search` passes the official ARD conformance CLI in registry mode, run against a
+  live, publicly reachable demo instance (not just locally).
+- Apicurio listed on the ai-catalog.io implementations page (Community Projects).
+- Apicurio listed on the agenticresourcediscovery.org reference-implementations page.
 - Active participation in at least one working-group venue (Discord + one meeting or one
   accepted issue/PR).
 
@@ -159,7 +240,10 @@ These are LF (not CNCF) efforts. Two distinct venues:
 
 - Epic: https://github.com/Apicurio/apicurio-registry/issues/6991
 - AI Catalog: https://ai-catalog.io/ · https://github.com/Agent-Card/ai-catalog
+- AI Catalog implementations: https://ai-catalog.io/implementations/
 - ARD: https://agenticresourcediscovery.org/ · https://github.com/ards-project/ard-spec
+- ARD reference implementations: https://agenticresourcediscovery.org/ref_implementations/
+- ARD "how to publish" guide: https://agenticresourcediscovery.org/how_to_publish/
 - A2A Protocol v1.0: https://a2a-protocol.org/latest/specification/
 - A2A community Agent Registry proposal: https://github.com/a2aproject/A2A/discussions/741
 - Related open issues: #7230 (full-text search), #8058 (SQL structured search),

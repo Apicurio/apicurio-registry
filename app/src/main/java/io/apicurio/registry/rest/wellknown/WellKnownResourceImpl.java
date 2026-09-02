@@ -981,11 +981,34 @@ public class WellKnownResourceImpl implements WellKnownResource {
         String publisherDomain = resolvePublisherDomain();
 
         List<AiCatalogEntry> entries = new ArrayList<>();
+        if (ardConfig.isEnabled()) {
+            // Advertise this registry's own ARD search API so crawlers that ingest this
+            // catalog can discover /ard/search without prior configuration (ARD spec §5.3).
+            entries.add(buildSelfDescribingRegistryEntry(baseUrl, publisherDomain));
+        }
         for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, null)) {
             entries.add(candidate.entry);
         }
 
         return buildAiCatalog(publisherDomain, entries);
+    }
+
+    /**
+     * Builds the self-describing catalog entry that advertises this registry's own ARD search
+     * API. Per the ARD specification (&sect;5.3), a conforming client resolves a registry's
+     * search base URL by locating a catalog entry whose {@code type} is
+     * {@code application/ai-registry+json}; without this entry, a crawler that only ingests
+     * {@code /.well-known/ai-catalog.json} has no way to learn that {@code /ard/search} exists.
+     */
+    private AiCatalogEntry buildSelfDescribingRegistryEntry(String baseUrl, String publisherDomain) {
+        return AiCatalogEntry.builder()
+                .identifier(buildAirIdentifier(publisherDomain, "system",
+                        AiCatalogConstants.REGISTRY_SELF_ENTRY_NAME))
+                .displayName(aiCatalogConfig.getHostName())
+                .type(AiCatalogConstants.MEDIA_TYPE_AI_REGISTRY)
+                .url(baseUrl + "/.well-known/ard/search")
+                .description("ARD search API for this registry.")
+                .build();
     }
 
     @Override
@@ -1069,7 +1092,11 @@ public class WellKnownResourceImpl implements WellKnownResource {
             entries.add(candidate.entry);
         }
 
-        return buildAiCatalog(publisherDomain, entries);
+        String nextPageToken = toIndex < total ? encodePageToken(toIndex) : null;
+
+        AiCatalog catalog = buildAiCatalog(publisherDomain, entries);
+        catalog.setNextPageToken(nextPageToken);
+        return catalog;
     }
 
     @Override

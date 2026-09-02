@@ -21,7 +21,21 @@ public final class AiCatalogConstants {
     public static final String MEDIA_TYPE_MCP_SERVER_CARD = "application/mcp-server-card+json";
 
     /**
+     * IANA media type used for the self-describing entry that advertises this registry's own
+     * ARD search API. Per the ARD specification (&sect;5.3), a conforming client discovers a
+     * registry's search base URL by looking for a catalog entry whose {@code type} is this
+     * value.
+     */
+    public static final String MEDIA_TYPE_AI_REGISTRY = "application/ai-registry+json";
+
+    /**
      * Prefix for ARD {@code urn:air:<publisher>:<group>:<artifact>} identifiers.
      */
     public static final String URN_AIR_PREFIX = "urn:air:";
+
+    /**
+     * Suffix identifying the self-describing registry entry within its
+     * {@code urn:air:<publisher>:<namespace>:<name>} identifier.
+     */
+    public static final String REGISTRY_SELF_ENTRY_NAME = "registry";
 }

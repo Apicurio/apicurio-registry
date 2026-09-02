@@ -10250,6 +10250,10 @@
             "items": {
               "$ref": "#/components/schemas/AiCatalogEntry"
             }
+          },
+          "nextPageToken": {
+            "description": "Opaque pagination token for retrieving the next page of ARD list results. Only populated by the ARD `GET /agents` endpoint; absent from the static `/.well-known/ai-catalog.json` projection.",
+            "type": "string"
           }
         }
       },

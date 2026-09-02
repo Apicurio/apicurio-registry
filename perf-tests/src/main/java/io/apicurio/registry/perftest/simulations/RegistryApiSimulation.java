@@ -359,8 +359,8 @@ public class RegistryApiSimulation extends Simulation {
         setUp(scn.injectClosed(rampConcurrentUsers(1).to(USERS).during(Duration.ofSeconds(RAMP_SECONDS)),
                 constantConcurrentUsers(USERS).during(Duration.ofSeconds(DURATION_SECONDS))))
                 .protocols(httpProtocol)
+                .maxDuration(Duration.ofSeconds(RAMP_SECONDS + DURATION_SECONDS + 120))
                 .assertions(global().failedRequests().percent().lte(1.0));
     }
 }
-
 

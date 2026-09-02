@@ -87,6 +87,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Implementation of the well-known endpoint resource for A2A agents and MCP tools.
@@ -243,7 +244,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
                 filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-        warnIfTruncated(results);
+        warnIfTruncated(results, "Agent");
 
         // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
         List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -326,7 +327,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         if (a2aConfig.isEntitlementsEnabled()) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(
                     filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
+            warnIfTruncated(results, "Agent");
 
             // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
             List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
@@ -397,6 +398,16 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
     }
 
+    private record PagedResult<T>(List<T> items, int totalCount) {}
+
+    private boolean isA2aEntitlementsEnabled() {
+        return isAuthEnabled() && a2aConfig.isEntitlementsEnabled();
+    }
+    
+    private boolean isMcpEntitlementsEnabled() {
+        return isAuthEnabled() && mcpToolsConfig.isEntitlementsEnabled();
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
@@ -455,42 +466,68 @@ public class WellKnownResourceImpl implements WellKnownResource {
         int safeOffset = Math.max(0, offset);
         int safeLimit = Math.max(1, Math.min(limit, 500));
 
-        if (isAuthEnabled() && a2aConfig.isEntitlementsEnabled()) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(
-                    filters, OrderBy.createdOn, OrderDirection.desc,
-                    0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
-
-            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
-
-            int total = visible.size();
-            int fromIndex = Math.min(safeOffset, total);
-            int toIndex = Math.min(fromIndex + safeLimit, total);
-            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
-
-            List<AgentSearchResult> agents = new ArrayList<>();
-            for (SearchedArtifactDto artifact : page) {
-                agents.add(convertToAgentSearchResult(artifact));
-            }
-
+        if (isA2aEntitlementsEnabled()) {
+            PagedResult<AgentSearchResult> pageResult = executeVisibilityFilteredSearch(
+                    filters, "Agent", safeOffset, safeLimit,
+                    this::convertToAgentSearchResult
+            );
+            
             return AgentSearchResults.builder()
-                    .count(total)
-                    .agents(agents)
+                    .count(pageResult.totalCount())
+                    .agents(pageResult.items())
                     .build();
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(
                 filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
+        
+        List<SearchedArtifactDto> artifacts = results != null && results.getArtifacts() != null
+                ? results.getArtifacts()
+                : Collections.emptyList();
+
+        int count = results != null && results.getCount() != null ? (int) results.getCount() : artifacts.size();
 
         List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+        for (SearchedArtifactDto artifact : artifacts) {
             agents.add(convertToAgentSearchResult(artifact));
         }
 
         return AgentSearchResults.builder()
-                .count((int) results.getCount())
+                .count(count)
                 .agents(agents)
                 .build();
+    }
+
+    /**
+     * Executes an in-memory visibility-filtered search when entitlements are enabled.
+     * Fetches up to MAX_VISIBILITY_FILTER_RESULTS, filters by visibility on DTOs first,
+     * paginates, and converts to the target DTO type.
+     */
+    private <T> PagedResult<T> executeVisibilityFilteredSearch(Set<SearchFilter> filters, String resourceName,
+            int offset, int limit, Function<SearchedArtifactDto, T> mapper) {
+
+        ArtifactSearchResultsDto results = storage.searchArtifacts(
+            filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
+
+        warnIfTruncated(results, resourceName);
+    
+        List<SearchedArtifactDto> rawArtifacts = results != null && results.getArtifacts() != null
+                ? results.getArtifacts()
+                : Collections.emptyList();
+
+        List<SearchedArtifactDto> visible = filterDtosByVisibility(rawArtifacts);
+
+        int total = visible.size();
+        int fromIndex = Math.min(offset, total);
+        int toIndex = Math.min(fromIndex + limit, total);
+        List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
+    
+        List<T> items = new ArrayList<>(page.size());
+        for (SearchedArtifactDto artifact : page) {
+            items.add(mapper.apply(artifact));
+        }
+    
+        return new PagedResult<>(items, total);
     }
 
     /**
@@ -636,8 +673,19 @@ public class WellKnownResourceImpl implements WellKnownResource {
             ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                     OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
 
+            warnIfTruncated(results, "MCP tool");
+
+            // filter visibility before inspecting parameters
+            List<SearchedArtifactDto> rawArtifacts = results != null && results.getArtifacts() != null
+                    ? results.getArtifacts()
+                    : Collections.emptyList();
+            
+            List<SearchedArtifactDto> candidates = isMcpEntitlementsEnabled()
+                    ? filterDtosByVisibility(rawArtifacts)
+                    : rawArtifacts;
+
             List<McpToolSearchResult> matchingTools = new ArrayList<>();
-            for (SearchedArtifactDto artifact : results.getArtifacts()) {
+            for (SearchedArtifactDto artifact : candidates) {
                 McpToolSearchResult tool = convertToMcpToolSearchResult(artifact);
                 if (tool.getParameters() != null && tool.getParameters().containsAll(parameters)) {
                     matchingTools.add(tool);
@@ -647,20 +695,37 @@ public class WellKnownResourceImpl implements WellKnownResource {
             int total = matchingTools.size();
             int fromIndex = Math.min(safeOffset, total);
             int toIndex = Math.min(fromIndex + safeLimit, total);
-            List<McpToolSearchResult> page = matchingTools.subList(fromIndex, toIndex);
+            List<McpToolSearchResult> page = new ArrayList<>(matchingTools.subList(fromIndex, toIndex));
 
             return McpToolSearchResults.builder().count(total).tools(page).build();
         }
 
+        if (isMcpEntitlementsEnabled()) {
+            PagedResult<McpToolSearchResult> pageResult = executeVisibilityFilteredSearch(
+                    filters, "MCP tool", safeOffset, safeLimit,
+                    this::convertToMcpToolSearchResult
+            );
+            return McpToolSearchResults.builder()
+                    .count(pageResult.totalCount())
+                    .tools(pageResult.items())
+                    .build();
+        }
+
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.desc, safeOffset, safeLimit, false);
+        
+        List<SearchedArtifactDto> artifacts = results != null && results.getArtifacts() != null
+                ? results.getArtifacts()
+                : Collections.emptyList();
+
+        int count = results != null && results.getCount() != null ? (int) results.getCount() : artifacts.size();
 
         List<McpToolSearchResult> tools = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+        for (SearchedArtifactDto artifact : artifacts) {
             tools.add(convertToMcpToolSearchResult(artifact));
         }
 
-        return McpToolSearchResults.builder().count((int) results.getCount()).tools(tools).build();
+        return McpToolSearchResults.builder().count(count).tools(tools).build();
     }
 
     private int parsePaginationParam(String value, String name, int defaultValue) {
@@ -1554,11 +1619,11 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return authConfig.isOidcAuthEnabled() || authConfig.isBasicAuthEnabled();
     }
 
-    private void warnIfTruncated(ArtifactSearchResultsDto results) {
-        if (results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
-            log.warn("Agent visibility filtering may be incomplete: total agent count ({}) "
+    private void warnIfTruncated(ArtifactSearchResultsDto results, String resourceName) {
+        if (results != null && results.getCount() != null && results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
+            log.warn("{} visibility filtering may be incomplete: total count ({}) "
                     + "reached the in-memory limit of {}. Results beyond this limit are not included.",
-                    results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);
+                    resourceName, results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);
         }
     }
 

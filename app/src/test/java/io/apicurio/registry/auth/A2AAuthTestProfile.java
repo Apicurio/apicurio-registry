@@ -20,6 +20,10 @@ public class A2AAuthTestProfile implements QuarkusTestProfile {
         map.put("apicurio.features.experimental.enabled", "true");
         map.put("apicurio.a2a.enabled", "true");
 
+        // Enable MCP tools support and entitlement filtering
+        map.put("apicurio.mcp-tools.enabled", "true");
+        map.put("apicurio.mcp-tools.entitlements.enabled", "true");
+
         // Enable basic auth with embedded users
         map.put("quarkus.oidc.tenant-enabled", "false");
         map.put("quarkus.http.auth.basic", "true");

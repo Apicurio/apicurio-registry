@@ -1519,7 +1519,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         List<Map.Entry<String, Integer>> sorted = new ArrayList<>(counts.entrySet());
-        sorted.sort((a, b) -> b.getValue() - a.getValue());
+        sorted.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
 
         int limit = facetRequest.getLimit() != null ? facetRequest.getLimit() : Integer.MAX_VALUE;
         int minCount = facetRequest.getMinCount() != null ? facetRequest.getMinCount() : 0;

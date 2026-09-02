@@ -213,20 +213,59 @@ export function fileExtensionForDraft(draft: Draft, content: DraftContent): stri
         return "proto";
     }
 
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_JSON) {
+    return fileExtensionForDraftContentType(content.contentType);
+}
+
+const normalizeContentType = (contentType: string | undefined): string | undefined => {
+    return contentType?.split(";")[0].trim().toLowerCase();
+};
+
+const fileExtensionForDraftContentType = (contentType: string | undefined): string => {
+    const normalized = normalizeContentType(contentType);
+    if (normalized === ContentTypes.APPLICATION_JSON) {
         return "json";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_YAML) {
+    if (normalized === ContentTypes.APPLICATION_YAML) {
         return "yaml";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_XML) {
+    if (normalized === ContentTypes.APPLICATION_XML || normalized === ContentTypes.TEXT_XML) {
         return "xml";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_WSDL) {
+    if (normalized === ContentTypes.APPLICATION_WSDL) {
         return "wsdl";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_GRAPHQL) {
+    if (normalized === ContentTypes.APPLICATION_GRAPHQL) {
         return "graphql";
+    }
+
+    return "txt";
+};
+
+export function fileExtensionForContentType(contentType: string | undefined): string {
+    const normalized = normalizeContentType(contentType);
+    if (normalized === ContentTypes.APPLICATION_JSON) {
+        return "json";
+    }
+    if (normalized === ContentTypes.APPLICATION_YAML) {
+        return "yaml";
+    }
+    if (normalized === ContentTypes.APPLICATION_XML || normalized === ContentTypes.TEXT_XML) {
+        return "xml";
+    }
+    if (normalized === ContentTypes.APPLICATION_WSDL) {
+        return "wsdl";
+    }
+    if (normalized === ContentTypes.APPLICATION_GRAPHQL) {
+        return "graphql";
+    }
+    if (normalized === ContentTypes.APPLICATION_PROTOBUF) {
+        return "proto";
+    }
+    if (normalized === ContentTypes.APPLICATION_THRIFT) {
+        return "thrift";
+    }
+    if (normalized === ContentTypes.TEXT_PROMPT_TEMPLATE) {
+        return "txt";
     }
 
     return "txt";

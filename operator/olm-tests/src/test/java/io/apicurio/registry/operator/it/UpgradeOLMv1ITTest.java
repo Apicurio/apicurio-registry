@@ -61,6 +61,13 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     private static final String OPERATOR_DEPLOYMENT_PREFIX = "apicurio-registry-operator-v";
 
+    // The first operator release whose bundle ships the cluster-tier CSV RBAC an OLM v1
+    // ClusterExtension install needs (apicurio-registry#9035). Older bundles rely on an OLM v0
+    // OperatorGroup to scope the operator's watch; ClusterExtension has no equivalent, so they
+    // crash-loop on a forbidden cluster-scoped list when installed via OLM v1. Cross-minor upgrade
+    // coverage from those releases stays OLM v0-only (see UpgradeOLMITTest#testUpgradeAcrossMinors).
+    private static final String MIN_OLM_V1_OPERATOR_VERSION = "3.3.2";
+
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
             Integer.getInteger("test.operator.timeout.olm-upgrade", 1200));
 
@@ -172,6 +179,12 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
         var entry = catalog.getCrossMinorEntry(rollingChannel());
         if (entry == null) {
             log.info("Condition not met: no cross-minor entry found in {}", rollingChannel());
+            return false;
+        }
+        if (entry.getVersion().isLowerThan(MIN_OLM_V1_OPERATOR_VERSION)) {
+            log.info("Condition not met: cross-minor entry {} in {} predates OLM v1 bundle support "
+                    + "({}); cross-minor upgrade from it is covered by UpgradeOLMITTest (OLM v0)",
+                    entry.getVersion(), rollingChannel(), MIN_OLM_V1_OPERATOR_VERSION);
             return false;
         }
         return true;

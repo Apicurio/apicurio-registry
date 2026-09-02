@@ -163,6 +163,12 @@ asserts that OLM v1 resolves it to the discovered channel head. The resolved ver
 the installed operator deployment, so the test exercises OLM v1's default channel-head resolution rather
 than re-checking a version it pinned itself.
 
+The cross-minor upgrade test only runs when the rolling channel's cross-minor entry is at least
+`3.3.2`, the first release whose bundle carries the cluster-tier CSV RBAC an OLM v1 `ClusterExtension`
+install needs. Earlier bundles rely on an OLM v0 `OperatorGroup` to scope the operator's watch, which
+`ClusterExtension` has no equivalent for, so upgrades starting from them stay covered by
+`UpgradeOLMITTest` (OLM v0) only.
+
 ### How tests determine applicability
 
 Tests query the live catalog after the `CatalogSource`/`ClusterCatalog` is created: OLM v0 reads FBC

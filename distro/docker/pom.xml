@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-distro</artifactId>
-    <version>3.3.2-SNAPSHOT</version>
+    <version>3.3.3-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -16,6 +16,8 @@
   <properties>
     <projectRoot>${project.basedir}/../..</projectRoot>
     <docker.app.file>app-files/apicurio-registry-app-${project.version}-all.tar.gz</docker.app.file>
+    <!-- Re-augmentable distribution, only produced with -Dfull (see Dockerfile.mutable.jvm) -->
+    <docker.app.file.mutable>app-files/apicurio-registry-app-${project.version}-mutable.tar.gz</docker.app.file.mutable>
   </properties>
 
   <dependencies>

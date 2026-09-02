@@ -668,6 +668,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentAndArtifactTypeById()
+     */
+    @Override
+    public String selectContentAndArtifactTypeById() {
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash, a.type AS artifactType FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE c.contentId = ? LIMIT 1";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentByContentHash()
      */
     @Override

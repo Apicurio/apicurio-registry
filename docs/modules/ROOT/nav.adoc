@@ -14,6 +14,7 @@
 ** xref:getting-started/assembly-deploying-registry-secured-kafka.adoc[]
 ** xref:getting-started/assembly-implementing-multitenancy.adoc[]
 ** xref:getting-started/assembly-registry-high-availability.adoc[]
+** xref:getting-started/assembly-registry-sizing-guide.adoc[]
 * Versioning and support
 ** xref:getting-started/assembly-versioning-support-policy.adoc[]
 * Migration
@@ -21,6 +22,7 @@
 * Configuration
 ** xref:getting-started/assembly-configuring-registry-security.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
+** xref:getting-started/assembly-custom-artifact-types.adoc[]
 ** xref:getting-started/assembly-registry-events.adoc[]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]

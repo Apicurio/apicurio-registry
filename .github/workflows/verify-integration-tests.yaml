@@ -18,6 +18,10 @@ jobs:
   integration-tests:
     name: Integration Tests (${{ matrix.storage }}-${{ matrix.name || matrix.groups }})
     runs-on: ubuntu-latest
+    # Fail fast: the longest healthy job (serdes) finishes well under 30 minutes.
+    # Environmental stalls (dead registry pod, network hangs) previously kept jobs
+    # alive for hours; kill them instead of waiting.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -42,6 +46,10 @@ jobs:
           - { storage: kafkasql, groups: auth, remote-profile: remote-kafka }
           - { storage: kafkasql, groups: migration, remote-profile: remote-kafka }
           - { storage: kafkasql, groups: kafkasql-snapshotting, remote-profile: remote-kafka }
+          # Startup verification (topic config checks, v2/v3 journal reuse) deploys
+          # its own Kafka + registry containers; it does not use the deployed one.
+          # Moved here from utils/extra-tests.
+          - { storage: kafkasql, groups: kafkasql-startup, remote-profile: remote-kafka }
           # kubernetesops storage
           - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
     steps:
@@ -49,7 +57,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -58,6 +66,14 @@ jobs:
 
 
       - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        id: minikube-setup
+        continue-on-error: true
+
+      # medyagh/setup-minikube (invoked by the composite action) intermittently
+      # fails with transient HTTP 504s while downloading; one retry absorbs it
+      # instead of failing the whole job.
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        if: steps.minikube-setup.outcome == 'failure'
 
       - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
@@ -74,15 +90,22 @@ jobs:
           # -Dregistry-image: Docker image built by the Build job, loaded into Minikube
           # -Dfailsafe.rerunFailingTestsCount=1: automatically retry flaky integration tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Djunit.jupiter.execution.timeout.default=10m: fail hung tests fast; environmental stalls
+          #   previously kept a single test running for 30+ minutes (x2 with the flaky rerun)
+          # -Djunit.jupiter.execution.parallel.enabled=true: run test classes concurrently against the
+          #   deployed registry (see integration-tests/src/test/resources/junit-platform.properties)
           ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify -am --no-transfer-progress \
             -Pintegration-tests \
             -P${{ matrix.remote-profile }} \
             ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
             -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
+            -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
             -pl integration-tests \
             -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
-            -Dfailsafe.rerunFailingTestsCount=1
+            -Dfailsafe.rerunFailingTestsCount=1 \
+            -Djunit.jupiter.execution.timeout.default=10m \
+            -Djunit.jupiter.execution.parallel.enabled=true
 
       - name: Parse Flaky Tests
         if: always()

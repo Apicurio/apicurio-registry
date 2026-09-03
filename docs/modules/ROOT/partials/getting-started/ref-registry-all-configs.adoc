@@ -82,16 +82,6 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enable A2A protocol support _(experimental)_
-|`apicurio.a2a.entitlements.enabled`
-|`boolean`
-|`true`
-|`3.0.0`
-|Enable entitlement-based agent filtering
-|`apicurio.a2a.public-discovery.enabled`
-|`boolean`
-|`true`
-|`3.0.0`
-|Enable public (unauthenticated) agent discovery endpoint
 |===
 
 == aicatalog

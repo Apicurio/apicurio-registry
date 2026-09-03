@@ -219,10 +219,10 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.47</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.48</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
-    <lombok.version>1.18.46</lombok.version>
+    <lombok.version>1.18.48</lombok.version>
     <commons-codec.version>1.21.0</commons-codec.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>

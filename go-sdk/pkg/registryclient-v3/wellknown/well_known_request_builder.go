@@ -33,6 +33,24 @@ func (m *WellKnownRequestBuilder) Agents() *AgentsRequestBuilder {
 	return NewAgentsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// AiCatalogJson get AI Catalog.
+// returns a *AiCatalogJsonRequestBuilder when successful
+func (m *WellKnownRequestBuilder) AiCatalogJson() *AiCatalogJsonRequestBuilder {
+	return NewAiCatalogJsonRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Ard the ard property
+// returns a *ArdRequestBuilder when successful
+func (m *WellKnownRequestBuilder) Ard() *ArdRequestBuilder {
+	return NewArdRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// ArdJson get ARD manifest.
+// returns a *ArdJsonRequestBuilder when successful
+func (m *WellKnownRequestBuilder) ArdJson() *ArdJsonRequestBuilder {
+	return NewArdJsonRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // NewWellKnownRequestBuilderInternal instantiates a new WellKnownRequestBuilder and sets the default values.
 func NewWellKnownRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *WellKnownRequestBuilder {
 	m := &WellKnownRequestBuilder{

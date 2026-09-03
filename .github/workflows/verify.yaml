@@ -74,6 +74,9 @@ jobs:
       - name: Test PR lifecycle scripts
         run: node --test .github/scripts/pr-lifecycle.test.js
 
+      - name: Test performance comparison result parser
+        run: python3 -m unittest discover -s perf-comparison-tests/scripts -p 'test_*.py' -v
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
@@ -131,6 +134,16 @@ jobs:
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
             -t apicurio/apicurio-registry:${{ github.sha }} \
             ./distro/docker/target/docker
+
+      - name: Build Mutable Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.mutable.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }}-mutable \
+            ./distro/docker/target/docker
+
+      - name: Smoke Test Re-augmentation of the Mutable Docker Image
+        run: |
+          docker run --rm apicurio/apicurio-registry:${{ github.sha }}-mutable /deployments/build.sh --prune
 
       - name: Save Docker Image
         uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2

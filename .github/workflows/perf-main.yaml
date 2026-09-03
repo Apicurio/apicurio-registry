@@ -171,25 +171,35 @@ jobs:
 
       # A single Gatling process's own connection handling degrades well before the registry's
       # actual capacity does above roughly 250-300 concurrent connections (see
-      # perf-tests/k8s/README.md and perf-tests/k8s/common/run-external-load.sh) - so this runs at
-      # a concurrency safely below that, from *outside* the cluster, to validate a real
-      # higher-concurrency read-throughput number without either the load generator's own
-      # connection-handling limit or in-cluster resource sharing confounding the result. Runs for
-      # 3 minutes (not a short smoke-test duration) because throughput was found to be understated
-      # by more than 3x in short (20-30s) runs due to JVM/JIT warm-up - see
+      # perf-tests/k8s/README.md and perf-tests/k8s/common/run-external-load.sh) - so this runs
+      # from *outside* the cluster to validate a real higher-concurrency read-throughput number
+      # without the load generator's own connection-handling limit confounding the result. Runs
+      # for 3 minutes (not a short smoke-test duration) because throughput was found to be
+      # understated by more than 3x in short (20-30s) runs due to JVM/JIT warm-up - see
       # run-external-load.sh's usage comment. This is the same methodology used to produce the
       # sizing-guide numbers in
       # docs/modules/ROOT/pages/getting-started/assembly-registry-sizing-guide.adoc.
       #
-      # Informational only, like the baseline check above (see this workflow's top-of-file
-      # comment on why perf-main doesn't hard-gate on performance trends) - GitHub-hosted runners
-      # vary in underlying hardware/noisy-neighbor conditions run to run, so a single failed
-      # attempt here isn't treated as a hard signal.
+      # PERF_EXTERNAL_USERS is deliberately well below the 200 this used to run at. The "outside
+      # the cluster" premise in run-external-load.sh - that the generator gets the machine's own
+      # resources rather than competing with the workload - holds on a dedicated box, but *not*
+      # on a GitHub-hosted runner, where Minikube is that same machine. At 200 the registry,
+      # Postgres/Kafka, Keycloak, Toxiproxy, the operator and a 200-user Gatling JVM all
+      # contended for the runner's 4 vCPUs and the registry became repeatedly unavailable
+      # mid-run: ~95% of requests failed with ECONNREFUSED in bursts on a ~30-40s cycle, which is
+      # a restart loop, not a latency measurement. Raise this only on a dedicated machine.
+      #
+      # The measured *numbers* stay informational (continue-on-error) - GitHub-hosted runners
+      # vary in hardware and noisy-neighbour conditions, so a single slow attempt is not a hard
+      # signal. Whether the run happened at all is a different question and is gated below.
       - name: Run external high-concurrency read validation
         if: always()
         continue-on-error: true
         timeout-minutes: 10
         working-directory: perf-tests
+        env:
+          PERF_EXTERNAL_USERS: '50'
+          PERF_EXTERNAL_DURATION: '180'
         run: |
           JAR=$(find target -name 'apicurio-registry-perf-tests-*-jar-with-dependencies.jar' | head -1)
           if [ -z "$JAR" ]; then
@@ -197,16 +207,70 @@ jobs:
             exit 0
           fi
           mkdir -p /tmp/external-load-results
+          # No bare `|| true` here: a non-zero exit means the load run itself failed (for example
+          # Gatling's own <=1% failed-events assertion), and that has to stay visible. `|| RC=$?`
+          # captures it without `set -e` aborting the step first, so the summary below is still
+          # written; the step is continue-on-error, so re-raising it marks the step red without
+          # failing the job.
+          RC=0
           GATLING_RESULTS_FOLDER=/tmp/external-load-results/gatling \
-            ./k8s/common/run-external-load.sh "$JAR" 200 180 0 \
-            > /tmp/external-load-results/console.log 2>&1 || true
+            ./k8s/common/run-external-load.sh "$JAR" \
+            "$PERF_EXTERNAL_USERS" "$PERF_EXTERNAL_DURATION" 0 \
+            > /tmp/external-load-results/console.log 2>&1 || RC=$?
           tail -n 60 /tmp/external-load-results/console.log
           {
-            echo "### External high-concurrency read validation (${{ matrix.storage }}, 200 concurrent clients)"
+            echo "### External high-concurrency read validation (${{ matrix.storage }}, ${PERF_EXTERNAL_USERS} concurrent clients)"
             echo '```'
             grep -A11 "Global Information" /tmp/external-load-results/console.log | tail -11 || echo "(no summary captured - see uploaded artifact)"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          exit $RC
+
+      # Cluster-side state, captured whatever the outcome. Without this the only artefact of a
+      # collapsed run was a Gatling report full of ECONNREFUSED with nothing to say why, which is
+      # what made the failure above unexplainable for as long as it went unnoticed.
+      - name: Capture cluster diagnostics
+        if: always()
+        run: |
+          mkdir -p /tmp/external-load-results/diagnostics
+          cd /tmp/external-load-results/diagnostics
+          kubectl -n default get pods -o wide > pods.txt 2>&1 || true
+          kubectl -n default get events --sort-by=.lastTimestamp > events.txt 2>&1 || true
+          kubectl -n default describe deployment perf-test-app-deployment > app-deployment.txt 2>&1 || true
+          for p in $(kubectl -n default get pods -l app=perf-test-app -o name 2>/dev/null); do
+            n=$(basename "$p")
+            kubectl -n default describe "$p" > "describe-$n.txt" 2>&1 || true
+            kubectl -n default logs "$p" --tail=-1 > "logs-$n.txt" 2>&1 || true
+            # The interesting log when a pod is restarting is the one from the container that died.
+            kubectl -n default logs "$p" --previous --tail=-1 > "logs-previous-$n.txt" 2>&1 || true
+          done
+          RESTARTS=$(kubectl -n default get pods -l app=perf-test-app \
+            -o jsonpath='{.items[*].status.containerStatuses[*].restartCount}' 2>/dev/null || echo "")
+          echo "registry pod restartCount: ${RESTARTS:-unknown}" | tee restarts.txt
+
+      # The numbers being slow is informational; the target having been down is not a measurement
+      # at all, and silently reporting it as one is how a 95%-ECONNREFUSED run was published as a
+      # throughput figure. Gate on the run being *valid*, separately from what it measured.
+      - name: Verify the external load run was valid
+        if: always()
+        working-directory: perf-tests
+        run: |
+          LOG=/tmp/external-load-results/console.log
+          if [ ! -f "$LOG" ]; then
+            echo "No external load console log - the validation step did not run." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! grep -q "Global Information" "$LOG"; then
+            echo "::error::External load run produced no Gatling summary - the run did not complete."
+            exit 1
+          fi
+          # Capture rather than pipe: piping into tee would make tee's exit status the step's,
+          # which is the same class of mistake as the `|| true` this change removes.
+          RC=0
+          OUT=$(python3 scripts/check-external-validity.py "$LOG" --max-ko-percent 25) || RC=$?
+          printf '%s\n' "$OUT"
+          printf '%s\n' "$OUT" >> "$GITHUB_STEP_SUMMARY"
+          exit $RC
 
       - name: Upload external validation results
         if: always()

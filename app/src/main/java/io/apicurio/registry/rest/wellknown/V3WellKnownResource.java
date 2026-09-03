@@ -100,6 +100,11 @@ public class V3WellKnownResource implements WellResource {
     }
 
     @Override
+    public AiCatalog getArdManifest() {
+        return delegate.getArdManifest();
+    }
+
+    @Override
     public ArdSearchResponse ardSearch(ArdSearchRequest data) {
         return delegate.ardSearch(data);
     }

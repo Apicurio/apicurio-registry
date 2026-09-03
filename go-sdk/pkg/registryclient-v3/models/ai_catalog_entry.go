@@ -16,6 +16,8 @@ type AiCatalogEntry struct {
 	displayName *string
 	// The identifier property
 	identifier *string
+	// The representativeQueries property
+	representativeQueries []string
 	// The tags property
 	tags []string
 	// The type property
@@ -115,6 +117,22 @@ func (m *AiCatalogEntry) GetFieldDeserializers() map[string]func(i878a80d2330e89
 		}
 		return nil
 	}
+	res["representativeQueries"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetCollectionOfPrimitiveValues("string")
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			res := make([]string, len(val))
+			for i, v := range val {
+				if v != nil {
+					res[i] = *(v.(*string))
+				}
+			}
+			m.SetRepresentativeQueries(res)
+		}
+		return nil
+	}
 	res["tags"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetCollectionOfPrimitiveValues("string")
 		if err != nil {
@@ -180,6 +198,12 @@ func (m *AiCatalogEntry) GetIdentifier() *string {
 	return m.identifier
 }
 
+// GetRepresentativeQueries gets the representativeQueries property value. The representativeQueries property
+// returns a []string when successful
+func (m *AiCatalogEntry) GetRepresentativeQueries() []string {
+	return m.representativeQueries
+}
+
 // GetTags gets the tags property value. The tags property
 // returns a []string when successful
 func (m *AiCatalogEntry) GetTags() []string {
@@ -232,6 +256,12 @@ func (m *AiCatalogEntry) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a
 	}
 	{
 		err := writer.WriteStringValue("identifier", m.GetIdentifier())
+		if err != nil {
+			return err
+		}
+	}
+	if m.GetRepresentativeQueries() != nil {
+		err := writer.WriteCollectionOfStringValues("representativeQueries", m.GetRepresentativeQueries())
 		if err != nil {
 			return err
 		}
@@ -300,6 +330,11 @@ func (m *AiCatalogEntry) SetIdentifier(value *string) {
 	m.identifier = value
 }
 
+// SetRepresentativeQueries sets the representativeQueries property value. The representativeQueries property
+func (m *AiCatalogEntry) SetRepresentativeQueries(value []string) {
+	m.representativeQueries = value
+}
+
 // SetTags sets the tags property value. The tags property
 func (m *AiCatalogEntry) SetTags(value []string) {
 	m.tags = value
@@ -332,6 +367,7 @@ type AiCatalogEntryable interface {
 	GetDescription() *string
 	GetDisplayName() *string
 	GetIdentifier() *string
+	GetRepresentativeQueries() []string
 	GetTags() []string
 	GetTypeEscaped() *string
 	GetUpdatedAt() *string
@@ -341,6 +377,7 @@ type AiCatalogEntryable interface {
 	SetDescription(value *string)
 	SetDisplayName(value *string)
 	SetIdentifier(value *string)
+	SetRepresentativeQueries(value []string)
 	SetTags(value []string)
 	SetTypeEscaped(value *string)
 	SetUpdatedAt(value *string)

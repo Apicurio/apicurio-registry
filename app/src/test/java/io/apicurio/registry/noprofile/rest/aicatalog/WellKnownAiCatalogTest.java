@@ -3,10 +3,14 @@ package io.apicurio.registry.noprofile.rest.aicatalog;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
+
+import java.util.Collections;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
@@ -191,6 +195,132 @@ public class WellKnownAiCatalogTest extends AbstractResourceTestBase {
                         hasSize(1))
                 .body("entries.findAll { it.url.endsWith('" + groupId + "/" + toolId + "') }",
                         hasSize(1));
+    }
+
+    @Test
+    public void testGetArdManifestMatchesAiCatalog() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String agentId = "aicat-ard-" + TestUtils.generateArtifactId().replace("-", "");
+        String toolId = "aicat-ard-t-" + TestUtils.generateArtifactId().replace("-", "");
+
+        createAgentCard(groupId, agentId, AGENT_CARD_CONTENT);
+        createMcpTool(groupId, toolId, MCP_TOOL_CONTENT);
+
+        String aiCatalogBody = givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .get("/.well-known/ai-catalog.json")
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        String ardBody = givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .get("/.well-known/ard.json")
+                .then()
+                .statusCode(200)
+                .extract().asString();
+
+        org.junit.jupiter.api.Assertions.assertEquals(aiCatalogBody, ardBody);
+    }
+
+    private static final String AGENT_CARD_WITH_EXAMPLES_CONTENT = """
+            {
+                "name": "ExamplesAgent",
+                "description": "An agent whose skills declare example queries",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {
+                    "streaming": true
+                },
+                "skills": [
+                    {
+                        "id": "skill-one",
+                        "name": "Skill One",
+                        "description": "First skill",
+                        "tags": ["one"],
+                        "examples": ["What is the weather today?", "Forecast for tomorrow"]
+                    },
+                    {
+                        "id": "skill-two",
+                        "name": "Skill Two",
+                        "description": "Second skill",
+                        "tags": ["two"],
+                        "examples": ["Book a flight", "Cancel my reservation", "Change seat", "Add luggage"]
+                    }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+            """;
+
+    @Test
+    public void testGetAiCatalogRepresentativeQueriesFromSkillExamples() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String agentId = "aicat-examples-" + TestUtils.generateArtifactId().replace("-", "");
+
+        createAgentCard(groupId, agentId, AGENT_CARD_WITH_EXAMPLES_CONTENT);
+
+        // Six examples exist across the two skills; output is capped at 5.
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .get("/.well-known/ai-catalog.json")
+                .then()
+                .statusCode(200)
+                .body("entries.find { it.url.endsWith('" + groupId + "/" + agentId + "') }.representativeQueries",
+                        hasSize(5))
+                .body("entries.find { it.url.endsWith('" + groupId + "/" + agentId + "') }.representativeQueries",
+                        hasItem("What is the weather today?"));
+    }
+
+    @Test
+    public void testGetAiCatalogNoRepresentativeQueriesWhenNoExamples() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String agentId = "aicat-noexamples-" + TestUtils.generateArtifactId().replace("-", "");
+        String toolId = "aicat-noexamples-t-" + TestUtils.generateArtifactId().replace("-", "");
+
+        createAgentCard(groupId, agentId, AGENT_CARD_CONTENT);
+        createMcpTool(groupId, toolId, MCP_TOOL_CONTENT);
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .get("/.well-known/ai-catalog.json")
+                .then()
+                .statusCode(200)
+                .body("entries.find { it.url.endsWith('" + groupId + "/" + agentId + "') }.representativeQueries",
+                        equalTo(null))
+                .body("entries.find { it.url.endsWith('" + groupId + "/" + toolId + "') }.representativeQueries",
+                        equalTo(null));
+    }
+
+    @Test
+    public void testGetAiCatalogUpdatedAtAndTagsPopulated() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String agentId = "aicat-meta-" + TestUtils.generateArtifactId().replace("-", "");
+
+        createAgentCard(groupId, agentId, AGENT_CARD_CONTENT);
+
+        EditableArtifactMetaData metaData = new EditableArtifactMetaData();
+        Labels labels = new Labels();
+        labels.setAdditionalData(Collections.singletonMap("team", "platform"));
+        metaData.setLabels(labels);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(agentId).put(metaData);
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .get("/.well-known/ai-catalog.json")
+                .then()
+                .statusCode(200)
+                .body("entries.find { it.url.endsWith('" + groupId + "/" + agentId + "') }.updatedAt",
+                        notNullValue())
+                .body("entries.find { it.url.endsWith('" + groupId + "/" + agentId + "') }.tags",
+                        hasItem("team=platform"));
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) {

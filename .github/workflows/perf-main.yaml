@@ -187,6 +187,8 @@ jobs:
       # attempt here isn't treated as a hard signal.
       - name: Run external high-concurrency read validation
         if: always()
+        continue-on-error: true
+        timeout-minutes: 10
         working-directory: perf-tests
         run: |
           JAR=$(find target -name 'apicurio-registry-perf-tests-*-jar-with-dependencies.jar' | head -1)

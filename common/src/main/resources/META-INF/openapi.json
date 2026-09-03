@@ -6853,6 +6853,37 @@
         "summary": "Get AI Catalog"
       }
     },
+    "/well-known/ard.json": {
+      "summary": "Get ARD manifest.",
+      "get": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCatalog"
+                }
+              }
+            },
+            "description": "The AI Catalog document (ARD v0.91 normative path)."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getArdManifest",
+        "summary": "Get ARD manifest"
+      }
+    },
     "/well-known/ard/search": {
       "summary": "ARD search.",
       "post": {
@@ -10315,6 +10346,12 @@
           },
           "updatedAt": {
             "type": "string"
+          },
+          "representativeQueries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

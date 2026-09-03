@@ -1475,6 +1475,21 @@ The following {registry} configuration options are available for each component 
 |`30000`
 |`3.1.4`
 |Maximum delay in milliseconds between retry attempts
+|`apicurio.storage.content-cache.enabled`
+|`boolean`
+|`true`
+|`3.3.3`
+|Enable an in-memory, byte-weighted cache of immutable artifact content (keyed by content ID and content hash) in front of the storage layer
+|`apicurio.storage.content-cache.hot-path.ttl-seconds`
+|`long`
+|`30`
+|`3.3.3`
+|Bounded staleness window, in seconds, for the content cache entry used by the ccompat 'get schema by ID' hot path (content + artifact type keyed by content ID). This entry can go stale if the content becomes orphaned (or un-orphaned) within the TTL window; set to 0 to disable caching this entry entirely
+|`apicurio.storage.content-cache.max-size`
+|`long`
+|`67108864`
+|`3.3.3`
+|Maximum total weight (approximate size in bytes) of the content cache described by apicurio.storage.content-cache.enabled
 |`apicurio.storage.enable-automatic-group-creation`
 |`boolean`
 |`true`

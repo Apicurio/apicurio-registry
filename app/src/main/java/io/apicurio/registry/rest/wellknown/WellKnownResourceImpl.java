@@ -75,6 +75,7 @@ import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -103,6 +104,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
+    private static final int MAX_REPRESENTATIVE_QUERIES = 5;
     private static final String PROPERTIES_FIELD = "properties";
 
     /**
@@ -993,6 +995,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return buildAiCatalog(publisherDomain, entries);
     }
 
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public AiCatalog getArdManifest() {
+        return getAiCatalog();
+    }
+
     /**
      * Builds the self-describing catalog entry that advertises this registry's own ARD search
      * API. Per the ARD specification (&sect;5.3), a conforming client resolves a registry's
@@ -1217,6 +1225,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         String displayName = textOrDefault(root, "name", artifact.getName());
         String version = textOrDefault(root, "version", null);
         List<String> capabilities = extractAgentCardSkillIds(root);
+        List<String> representativeQueries = extractRepresentativeQueries(root);
         String groupSegment = groupIdSegment(artifact.getGroupId());
 
         AiCatalogEntry entry = AiCatalogEntry.builder()
@@ -1227,6 +1236,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .description(artifact.getDescription())
                 .capabilities(capabilities)
                 .version(version)
+                .updatedAt(formatUpdatedAt(artifact))
+                .tags(formatTags(artifact.getLabels()))
+                .representativeQueries(representativeQueries)
                 .build();
         return new AiCatalogCandidate(entry, artifact.getLabels());
     }
@@ -1246,8 +1258,66 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .description(artifact.getDescription())
                 .capabilities(Collections.emptyList())
                 .version(version)
+                .updatedAt(formatUpdatedAt(artifact))
+                .tags(formatTags(artifact.getLabels()))
                 .build();
         return new AiCatalogCandidate(entry, artifact.getLabels());
+    }
+
+    /**
+     * Formats an artifact's modification timestamp as an ISO-8601 instant string for the
+     * {@code AiCatalogEntry.updatedAt} field. Returns {@code null} if the artifact has no
+     * recorded modification timestamp.
+     */
+    private String formatUpdatedAt(SearchedArtifactDto artifact) {
+        if (artifact.getModifiedOn() == null) {
+            return null;
+        }
+        return DateTimeFormatter.ISO_INSTANT.format(artifact.getModifiedOn().toInstant());
+    }
+
+    /**
+     * Formats an artifact's labels as {@code key=value} strings for the
+     * {@code AiCatalogEntry.tags} field, consistent with the exact-match form that
+     * {@link #matchesTag(Map, String)} accepts for the ARD {@code tags} filter. Returns an
+     * empty list if the artifact has no labels.
+     */
+    private List<String> formatTags(Map<String, String> labels) {
+        if (labels == null || labels.isEmpty()) {
+            return null;
+        }
+        List<String> tags = new ArrayList<>();
+        for (Map.Entry<String, String> label : labels.entrySet()) {
+            tags.add(label.getKey() + "=" + label.getValue());
+        }
+        return tags;
+    }
+
+    /**
+     * Extracts up to {@value #MAX_REPRESENTATIVE_QUERIES} sample natural-language queries
+     * from an Agent Card's {@code skills[].examples} field, per ARD §4.2/§D.2. Returns
+     * {@code null} (leaving {@code representativeQueries} unset) if no skill declares any
+     * examples, rather than fabricating queries from the display name or description.
+     */
+    private List<String> extractRepresentativeQueries(JsonNode root) {
+        List<String> queries = new ArrayList<>();
+        JsonNode skillsNode = root.path("skills");
+        if (skillsNode.isArray()) {
+            for (JsonNode skill : skillsNode) {
+                JsonNode examplesNode = skill.path("examples");
+                if (examplesNode.isArray()) {
+                    for (JsonNode example : examplesNode) {
+                        if (example.isTextual()) {
+                            queries.add(example.asText());
+                            if (queries.size() >= MAX_REPRESENTATIVE_QUERIES) {
+                                return queries;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return queries.isEmpty() ? null : queries;
     }
 
     /**

@@ -18,7 +18,7 @@ import java.util.Set;
 /**
  * Content validator for A2A Agent Card artifacts, aligned with A2A Protocol v1.0.
  */
-public class AgentCardContentValidator implements ContentValidator {
+public class AgentCardContentValidator extends AbstractContentValidator {
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -428,11 +428,9 @@ public class AgentCardContentValidator implements ContentValidator {
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
-        if (references != null && !references.isEmpty()) {
-            throw new RuleViolationException("Agent Cards do not support references",
-                    RuleType.INTEGRITY, "NONE",
-                    Collections.singleton(
-                            new RuleViolation("References are not supported for Agent Cards", "")));
+        Set<String> allRefs = extractExternalJsonRefs(content);
+        if (!allRefs.isEmpty()) {
+            validateMappedReferences(references, allRefs, "Unmapped reference detected.");
         }
     }
 }

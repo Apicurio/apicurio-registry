@@ -19,6 +19,8 @@ public final class JsonSchemaFlinkTypeConverter {
 
     /** JSON object mapper instance. */
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String TYPE_OBJECT = "object";
+    private static final String TYPE_ONE_OF = "oneOf";
 
     /** Precision for time types. */
     private static final int TIME_PRECISION = 3;
@@ -44,7 +46,7 @@ public final class JsonSchemaFlinkTypeConverter {
 
     private static ResolvedSchema convertObject(final JsonNode schemaNode) {
         final String type = getType(schemaNode);
-        if (!"object".equals(type)) {
+        if (!TYPE_OBJECT.equals(type)) {
             throw new IllegalArgumentException(
                     "Expected 'object' type at root, got: " + type);
         }
@@ -91,9 +93,9 @@ public final class JsonSchemaFlinkTypeConverter {
         if (schemaNode.has("$ref")) {
             return DataTypes.STRING();
         }
-        if (schemaNode.has("oneOf") || schemaNode.has("anyOf")) {
-            final JsonNode unionNode = schemaNode.has("oneOf")
-                    ? schemaNode.get("oneOf")
+        if (schemaNode.has(TYPE_ONE_OF) || schemaNode.has("anyOf")) {
+            final JsonNode unionNode = schemaNode.has(TYPE_ONE_OF)
+                    ? schemaNode.get(TYPE_ONE_OF)
                     : schemaNode.get("anyOf");
             return convertUnion(unionNode);
         }
@@ -125,7 +127,7 @@ public final class JsonSchemaFlinkTypeConverter {
                 return convertStringType(format);
             case "array":
                 return convertArrayType(schemaNode);
-            case "object":
+            case TYPE_OBJECT:
                 return convertObjectToRow(schemaNode);
             default:
                 return DataTypes.STRING();
@@ -135,7 +137,7 @@ public final class JsonSchemaFlinkTypeConverter {
     private static String getType(final JsonNode schemaNode) {
         final JsonNode typeNode = schemaNode.get("type");
         if (typeNode == null) {
-            return "object";
+            return TYPE_OBJECT;
         }
         if (typeNode.isArray()) {
             for (JsonNode t : typeNode) {

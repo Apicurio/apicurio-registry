@@ -23,6 +23,19 @@ import java.util.List;
  */
 public class IcebergStructuredContentExtractor implements StructuredContentExtractor {
 
+    private static final String FIELD_SCHEMAS = "schemas";
+    private static final String FIELD_SCHEMA = "schema";
+    private static final String FIELD_CURRENT_SCHEMA_ID = "current-schema-id";
+    private static final String FIELD_FIELDS = "fields";
+    private static final String FIELD_PARTITION_SPECS = "partition-specs";
+    private static final String FIELD_DEFAULT_SPEC_ID = "default-spec-id";
+    private static final String FIELD_SORT_ORDERS = "sort-orders";
+    private static final String FIELD_DEFAULT_SORT_ORDER_ID = "default-sort-order-id";
+    private static final String FIELD_TRANSFORM = "transform";
+    private static final String FIELD_VERSIONS = "versions";
+    private static final String FIELD_CURRENT_VERSION_ID = "current-version-id";
+    private static final String FIELD_REPRESENTATIONS = "representations";
+
     private static final Logger log = LoggerFactory.getLogger(IcebergStructuredContentExtractor.class);
 
     private final boolean isTable;
@@ -74,18 +87,18 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
      * specified, otherwise extracts columns from all schemas.
      */
     private void extractColumns(JsonNode tree, List<StructuredElement> elements) {
-        if (!tree.has("schemas") || !tree.get("schemas").isArray()) {
+        if (!tree.has(FIELD_SCHEMAS) || !tree.get(FIELD_SCHEMAS).isArray()) {
             // Fall back to single "schema" field (format version 1)
-            if (tree.has("schema") && tree.get("schema").isObject()) {
-                extractFieldsFromSchema(tree.get("schema"), elements);
+            if (tree.has(FIELD_SCHEMA) && tree.get(FIELD_SCHEMA).isObject()) {
+                extractFieldsFromSchema(tree.get(FIELD_SCHEMA), elements);
             }
             return;
         }
 
-        JsonNode schemas = tree.get("schemas");
+        JsonNode schemas = tree.get(FIELD_SCHEMAS);
         int currentSchemaId = -1;
-        if (tree.has("current-schema-id") && tree.get("current-schema-id").isInt()) {
-            currentSchemaId = tree.get("current-schema-id").intValue();
+        if (tree.has(FIELD_CURRENT_SCHEMA_ID) && tree.get(FIELD_CURRENT_SCHEMA_ID).isInt()) {
+            currentSchemaId = tree.get(FIELD_CURRENT_SCHEMA_ID).intValue();
         }
 
         // If we have a current-schema-id, only extract from the current schema
@@ -108,8 +121,8 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
      * Extracts field names from a single schema node.
      */
     private void extractFieldsFromSchema(JsonNode schema, List<StructuredElement> elements) {
-        if (schema.has("fields") && schema.get("fields").isArray()) {
-            for (JsonNode field : schema.get("fields")) {
+        if (schema.has(FIELD_FIELDS) && schema.get(FIELD_FIELDS).isArray()) {
+            for (JsonNode field : schema.get(FIELD_FIELDS)) {
                 if (field.has("name") && field.get("name").isTextual()) {
                     elements.add(new StructuredElement("column", field.get("name").asText()));
                 }
@@ -121,24 +134,24 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
      * Extracts partition field names from the partition-specs array (table only).
      */
     private void extractPartitionFields(JsonNode tree, List<StructuredElement> elements) {
-        if (!tree.has("partition-specs") || !tree.get("partition-specs").isArray()) {
+        if (!tree.has(FIELD_PARTITION_SPECS) || !tree.get(FIELD_PARTITION_SPECS).isArray()) {
             return;
         }
 
         int defaultSpecId = -1;
-        if (tree.has("default-spec-id") && tree.get("default-spec-id").isInt()) {
-            defaultSpecId = tree.get("default-spec-id").intValue();
+        if (tree.has(FIELD_DEFAULT_SPEC_ID) && tree.get(FIELD_DEFAULT_SPEC_ID).isInt()) {
+            defaultSpecId = tree.get(FIELD_DEFAULT_SPEC_ID).intValue();
         }
 
-        for (JsonNode spec : tree.get("partition-specs")) {
+        for (JsonNode spec : tree.get(FIELD_PARTITION_SPECS)) {
             // Only extract from the default partition spec if specified
             if (defaultSpecId >= 0 && spec.has("spec-id")
                     && spec.get("spec-id").intValue() != defaultSpecId) {
                 continue;
             }
 
-            if (spec.has("fields") && spec.get("fields").isArray()) {
-                for (JsonNode field : spec.get("fields")) {
+            if (spec.has(FIELD_FIELDS) && spec.get(FIELD_FIELDS).isArray()) {
+                for (JsonNode field : spec.get(FIELD_FIELDS)) {
                     if (field.has("name") && field.get("name").isTextual()) {
                         elements.add(new StructuredElement("partition", field.get("name").asText()));
                     }
@@ -151,26 +164,26 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
      * Extracts sort field names from the sort-orders array (table only).
      */
     private void extractSortFields(JsonNode tree, List<StructuredElement> elements) {
-        if (!tree.has("sort-orders") || !tree.get("sort-orders").isArray()) {
+        if (!tree.has(FIELD_SORT_ORDERS) || !tree.get(FIELD_SORT_ORDERS).isArray()) {
             return;
         }
 
         int defaultSortOrderId = -1;
-        if (tree.has("default-sort-order-id") && tree.get("default-sort-order-id").isInt()) {
-            defaultSortOrderId = tree.get("default-sort-order-id").intValue();
+        if (tree.has(FIELD_DEFAULT_SORT_ORDER_ID) && tree.get(FIELD_DEFAULT_SORT_ORDER_ID).isInt()) {
+            defaultSortOrderId = tree.get(FIELD_DEFAULT_SORT_ORDER_ID).intValue();
         }
 
-        for (JsonNode order : tree.get("sort-orders")) {
+        for (JsonNode order : tree.get(FIELD_SORT_ORDERS)) {
             // Only extract from the default sort order if specified
             if (defaultSortOrderId >= 0 && order.has("order-id")
                     && order.get("order-id").intValue() != defaultSortOrderId) {
                 continue;
             }
 
-            if (order.has("fields") && order.get("fields").isArray()) {
-                for (JsonNode field : order.get("fields")) {
-                    if (field.has("transform") && field.get("transform").isTextual()) {
-                        elements.add(new StructuredElement("sort", field.get("transform").asText()));
+            if (order.has(FIELD_FIELDS) && order.get(FIELD_FIELDS).isArray()) {
+                for (JsonNode field : order.get(FIELD_FIELDS)) {
+                    if (field.has(FIELD_TRANSFORM) && field.get(FIELD_TRANSFORM).isTextual()) {
+                        elements.add(new StructuredElement("sort", field.get(FIELD_TRANSFORM).asText()));
                     }
                 }
             }
@@ -181,23 +194,23 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
      * Extracts SQL representations from the versions array (view only).
      */
     private void extractSqlRepresentations(JsonNode tree, List<StructuredElement> elements) {
-        if (!tree.has("versions") || !tree.get("versions").isArray()) {
+        if (!tree.has(FIELD_VERSIONS) || !tree.get(FIELD_VERSIONS).isArray()) {
             return;
         }
 
         // Extract from the current version if specified
         int currentVersionId = -1;
-        if (tree.has("current-version-id") && tree.get("current-version-id").isInt()) {
-            currentVersionId = tree.get("current-version-id").intValue();
+        if (tree.has(FIELD_CURRENT_VERSION_ID) && tree.get(FIELD_CURRENT_VERSION_ID).isInt()) {
+            currentVersionId = tree.get(FIELD_CURRENT_VERSION_ID).intValue();
         }
 
-        for (JsonNode version : tree.get("versions")) {
+        for (JsonNode version : tree.get(FIELD_VERSIONS)) {
             if (currentVersionId >= 0 && version.has("version-id")
                     && version.get("version-id").intValue() != currentVersionId) {
                 continue;
             }
 
-            if (version.has("representations") && version.get("representations").isArray()) {
+            if (version.has(FIELD_REPRESENTATIONS) && version.get(FIELD_REPRESENTATIONS).isArray()) {
                 for (JsonNode rep : version.get("representations")) {
                     if (rep.has("sql") && rep.get("sql").isTextual()) {
                         elements.add(new StructuredElement("sql", rep.get("sql").asText()));

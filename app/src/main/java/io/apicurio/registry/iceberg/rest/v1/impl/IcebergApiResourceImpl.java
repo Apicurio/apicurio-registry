@@ -92,6 +92,12 @@ public class IcebergApiResourceImpl implements ApisResource {
     private static final Logger log = LoggerFactory.getLogger(IcebergApiResourceImpl.class);
 
     private static final String NAMESPACE_SEPARATOR = "\u0000";
+    private static final String COMMENT = "comment";
+    private static final String WAREHOUSE_PATH = "/warehouse";
+    private static final String TABLE_UUID = "table-uuid";
+    private static final String LOCATION = "location";
+    private static final String METADATA_PATH = "/metadata/v1.metadata.json";
+    private static final String VIEW_UUID = "view-uuid";
 
     @Inject
     @Current
@@ -193,7 +199,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         GroupMetaDataDto dto = GroupMetaDataDto.builder()
                 .groupId(groupId)
-                .description(propsMap.get("comment"))
+                .description(propsMap.get(COMMENT))
                 .labels(propsMap)
                 .owner(getCurrentUser())
                 .createdOn(System.currentTimeMillis())
@@ -228,7 +234,7 @@ public class IcebergApiResourceImpl implements ApisResource {
             }
         }
         if (group.getDescription() != null) {
-            properties.setAdditionalProperty("comment", group.getDescription());
+            properties.setAdditionalProperty(COMMENT, group.getDescription());
         }
         response.setProperties(properties);
 
@@ -299,7 +305,7 @@ public class IcebergApiResourceImpl implements ApisResource {
             }
         }
 
-        String description = currentLabels.get("comment");
+        String description = currentLabels.get(COMMENT);
         io.apicurio.registry.storage.dto.EditableGroupMetaDataDto editableDto =
                 io.apicurio.registry.storage.dto.EditableGroupMetaDataDto.builder()
                         .description(description)
@@ -375,15 +381,15 @@ public class IcebergApiResourceImpl implements ApisResource {
         if (location == null || location.isEmpty()) {
             String warehouse = icebergConfig.getDefaultWarehouse();
             if (warehouse == null || warehouse.isEmpty()) {
-                warehouse = "/warehouse";
+                warehouse = WAREHOUSE_PATH;
             }
             location = warehouse + "/" + groupId.replace(".", "/") + "/" + tableName;
         }
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("format-version", 2);
-        metadata.put("table-uuid", tableUuid);
-        metadata.put("location", location);
+        metadata.put(TABLE_UUID, tableUuid);
+        metadata.put(LOCATION, location);
         metadata.put("last-sequence-number", 0);
         metadata.put("last-updated-ms", System.currentTimeMillis());
         metadata.put("current-schema-id", 0);
@@ -421,8 +427,8 @@ public class IcebergApiResourceImpl implements ApisResource {
         }
 
         Map<String, String> labels = new HashMap<>();
-        labels.put("table-uuid", tableUuid);
-        labels.put("location", location);
+        labels.put(TABLE_UUID, tableUuid);
+        labels.put(LOCATION, location);
         if (data.getProperties() != null) {
             for (Map.Entry<String, Object> entry : data.getProperties().getAdditionalProperties().entrySet()) {
                 labels.put(entry.getKey(), String.valueOf(entry.getValue()));
@@ -452,7 +458,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         }
 
         LoadTableResponse response = new LoadTableResponse();
-        response.setMetadataLocation(location + "/metadata/v1.metadata.json");
+        response.setMetadataLocation(location + METADATA_PATH);
         response.setMetadata(tableMetadata);
         response.setConfig(new Config());
 
@@ -482,7 +488,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         LoadTableResponse response = new LoadTableResponse();
         response.setMetadata(metadata);
-        response.setMetadataLocation(metadata.getLocation() + "/metadata/v1.metadata.json");
+        response.setMetadataLocation(metadata.getLocation() + METADATA_PATH);
         response.setConfig(new Config());
 
         return response;
@@ -608,9 +614,9 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         LoadTableResponse response = new LoadTableResponse();
         response.setMetadata(tableMetadata);
-        String location = (String) metadata.get("location");
+        String location = (String) metadata.get(LOCATION);
         if (location != null) {
-            response.setMetadataLocation(location + "/metadata/v1.metadata.json");
+            response.setMetadataLocation(location + METADATA_PATH);
         }
         response.setConfig(new Config());
         return response;
@@ -624,10 +630,10 @@ public class IcebergApiResourceImpl implements ApisResource {
      */
     private EditableArtifactMetaDataDto buildArtifactMetaDataIfNeeded(
             Map<String, Object> oldMetadata, Map<String, Object> newMetadata) {
-        String oldUuid = (String) oldMetadata.get("table-uuid");
-        String newUuid = (String) newMetadata.get("table-uuid");
-        String oldLocation = (String) oldMetadata.get("location");
-        String newLocation = (String) newMetadata.get("location");
+        String oldUuid = (String) oldMetadata.get(TABLE_UUID);
+        String newUuid = (String) newMetadata.get(TABLE_UUID);
+        String oldLocation = (String) oldMetadata.get(LOCATION);
+        String newLocation = (String) newMetadata.get(LOCATION);
 
         boolean needsUpdate = false;
         if (newUuid != null && !newUuid.equals(oldUuid)) {
@@ -640,10 +646,10 @@ public class IcebergApiResourceImpl implements ApisResource {
         if (needsUpdate) {
             Map<String, String> labels = new HashMap<>();
             if (newUuid != null) {
-                labels.put("table-uuid", newUuid);
+                labels.put(TABLE_UUID, newUuid);
             }
             if (newLocation != null) {
-                labels.put("location", newLocation);
+                labels.put(LOCATION, newLocation);
             }
             return EditableArtifactMetaDataDto.builder().labels(labels).build();
         }
@@ -673,14 +679,14 @@ public class IcebergApiResourceImpl implements ApisResource {
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> metadata = objectMapper.readValue(metadataJson, Map.class);
-                String oldLocation = (String) metadata.get("location");
+                String oldLocation = (String) metadata.get(LOCATION);
                 if (oldLocation != null) {
                     String warehouse = icebergConfig.getDefaultWarehouse();
                     if (warehouse == null || warehouse.isEmpty()) {
-                        warehouse = "/warehouse";
+                        warehouse = WAREHOUSE_PATH;
                     }
                     String newLocation = warehouse + "/" + destGroupId.replace(".", "/") + "/" + destTable;
-                    metadata.put("location", newLocation);
+                    metadata.put(LOCATION, newLocation);
                     metadataJson = objectMapper.writeValueAsString(metadata);
                 }
             } catch (Exception e) {
@@ -767,7 +773,7 @@ public class IcebergApiResourceImpl implements ApisResource {
         if (location == null || location.isEmpty()) {
             String warehouse = icebergConfig.getDefaultWarehouse();
             if (warehouse == null || warehouse.isEmpty()) {
-                warehouse = "/warehouse";
+                warehouse = WAREHOUSE_PATH;
             }
             location = warehouse + "/" + groupId.replace(".", "/") + "/" + viewName;
         }
@@ -799,8 +805,8 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("format-version", 1);
-        metadata.put("view-uuid", viewUuid);
-        metadata.put("location", location);
+        metadata.put(VIEW_UUID, viewUuid);
+        metadata.put(LOCATION, location);
         metadata.put("current-version-id", 1);
         metadata.put("versions", List.of(viewVersion));
         metadata.put("version-log", List.of(Map.of("version-id", 1, "timestamp-ms", now)));
@@ -820,8 +826,8 @@ public class IcebergApiResourceImpl implements ApisResource {
         }
 
         Map<String, String> labels = new HashMap<>();
-        labels.put("view-uuid", viewUuid);
-        labels.put("location", location);
+        labels.put(VIEW_UUID, viewUuid);
+        labels.put(LOCATION, location);
         if (data.getProperties() != null) {
             for (Map.Entry<String, Object> entry : data.getProperties().getAdditionalProperties().entrySet()) {
                 labels.put(entry.getKey(), String.valueOf(entry.getValue()));
@@ -868,7 +874,7 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         LoadViewResponse response = new LoadViewResponse();
         response.setMetadata(metadata);
-        response.setMetadataLocation(metadata.getLocation() + "/metadata/v1.metadata.json");
+        response.setMetadataLocation(metadata.getLocation() + METADATA_PATH);
         response.setConfig(new Config());
 
         return response;
@@ -991,14 +997,14 @@ public class IcebergApiResourceImpl implements ApisResource {
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> metadata = objectMapper.readValue(metadataJson, Map.class);
-                String oldLocation = (String) metadata.get("location");
+                String oldLocation = (String) metadata.get(LOCATION);
                 if (oldLocation != null) {
                     String warehouse = icebergConfig.getDefaultWarehouse();
                     if (warehouse == null || warehouse.isEmpty()) {
-                        warehouse = "/warehouse";
+                        warehouse = WAREHOUSE_PATH;
                     }
                     String newLocation = warehouse + "/" + destGroupId.replace(".", "/") + "/" + destView;
-                    metadata.put("location", newLocation);
+                    metadata.put(LOCATION, newLocation);
                     metadataJson = objectMapper.writeValueAsString(metadata);
                 }
             } catch (Exception e) {
@@ -1030,9 +1036,9 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         LoadViewResponse response = new LoadViewResponse();
         response.setMetadata(viewMetadata);
-        String location = (String) metadata.get("location");
+        String location = (String) metadata.get(LOCATION);
         if (location != null) {
-            response.setMetadataLocation(location + "/metadata/v1.metadata.json");
+            response.setMetadataLocation(location + METADATA_PATH);
         }
         response.setConfig(new Config());
         return response;
@@ -1040,10 +1046,10 @@ public class IcebergApiResourceImpl implements ApisResource {
 
     private EditableArtifactMetaDataDto buildViewArtifactMetaDataIfNeeded(
             Map<String, Object> oldMetadata, Map<String, Object> newMetadata) {
-        String oldUuid = (String) oldMetadata.get("view-uuid");
-        String newUuid = (String) newMetadata.get("view-uuid");
-        String oldLocation = (String) oldMetadata.get("location");
-        String newLocation = (String) newMetadata.get("location");
+        String oldUuid = (String) oldMetadata.get(VIEW_UUID);
+        String newUuid = (String) newMetadata.get(VIEW_UUID);
+        String oldLocation = (String) oldMetadata.get(LOCATION);
+        String newLocation = (String) newMetadata.get(LOCATION);
 
         boolean needsUpdate = false;
         if (newUuid != null && !newUuid.equals(oldUuid)) {
@@ -1056,10 +1062,10 @@ public class IcebergApiResourceImpl implements ApisResource {
         if (needsUpdate) {
             Map<String, String> labels = new HashMap<>();
             if (newUuid != null) {
-                labels.put("view-uuid", newUuid);
+                labels.put(VIEW_UUID, newUuid);
             }
             if (newLocation != null) {
-                labels.put("location", newLocation);
+                labels.put(LOCATION, newLocation);
             }
             return EditableArtifactMetaDataDto.builder().labels(labels).build();
         }

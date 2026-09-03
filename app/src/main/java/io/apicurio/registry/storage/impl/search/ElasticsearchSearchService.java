@@ -57,6 +57,11 @@ public class ElasticsearchSearchService {
     private static final String FIELD_DESCRIPTION = "description";
     private static final String FIELD_CREATED_ON = "createdOn";
     private static final String FIELD_MODIFIED_ON = "modifiedOn";
+    private static final String FIELD_GROUP_ID = "groupId";
+    private static final String FIELD_ARTIFACT_ID = "artifactId";
+    private static final String FIELD_VERSION = "version";
+    private static final String FIELD_ARTIFACT_TYPE = "artifactType";
+    private static final String FIELD_GLOBAL_ID = "globalId";
 
     @Inject
     ElasticsearchClient client;
@@ -256,18 +261,18 @@ public class ElasticsearchSearchService {
         case groupId:
             String groupValue = filter.getStringValue() == null ? "default"
                     : filter.getStringValue();
-            return buildTermOrWildcardQuery("groupId", groupValue);
+            return buildTermOrWildcardQuery(FIELD_GROUP_ID, groupValue);
 
         case artifactId:
-            return buildTermOrWildcardQuery("artifactId", filter.getStringValue());
+            return buildTermOrWildcardQuery(FIELD_ARTIFACT_ID, filter.getStringValue());
 
         case version:
             return Query.of(q -> q.term(t -> t
-                    .field("version").value(filter.getStringValue())));
+                    .field(FIELD_VERSION).value(filter.getStringValue())));
 
         case artifactType:
             return Query.of(q -> q.term(t -> t
-                    .field("artifactType").value(filter.getStringValue())));
+                    .field(FIELD_ARTIFACT_TYPE).value(filter.getStringValue())));
 
         case state:
             return Query.of(q -> q.term(t -> t
@@ -275,7 +280,7 @@ public class ElasticsearchSearchService {
 
         case globalId:
             return Query.of(q -> q.term(t -> t
-                    .field("globalId").value(filter.getNumberValue().longValue())));
+                    .field(FIELD_GLOBAL_ID).value(filter.getNumberValue().longValue())));
 
         case contentId:
             return Query.of(q -> q.term(t -> t

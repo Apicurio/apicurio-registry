@@ -21,6 +21,8 @@ import static java.util.Objects.requireNonNull;
 
 public class ProtobufCompatibilityChecker implements CompatibilityChecker {
 
+    private static final String MESSAGE_PREFIX = "message ";
+
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel,
             List<TypedContent> existingArtifacts, TypedContent proposedArtifact,
@@ -158,8 +160,8 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
      * additional location information in the error response.
      */
     private String extractContext(String message) {
-        if (message != null && message.contains("message ")) {
-            int startIndex = message.indexOf("message ") + "message ".length();
+        if (message != null && message.contains(MESSAGE_PREFIX)) {
+            int startIndex = message.indexOf(MESSAGE_PREFIX) + MESSAGE_PREFIX.length();
             int endIndex = message.indexOf(",", startIndex);
             if (endIndex == -1) {
                 endIndex = message.length();

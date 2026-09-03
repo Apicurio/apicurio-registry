@@ -20,6 +20,7 @@ import static java.util.Optional.ofNullable;
 public class KubernetesOps {
 
     private static final Logger log = LoggerFactory.getLogger(KubernetesOps.class);
+    private static final String KUBEOPS_SUFFIX = "-kubeops";
 
     public static void configureKubernetesOps(ApicurioRegistry3 primary, Map<String, EnvVar> env) {
         ofNullable(primary.getSpec()).map(ApicurioRegistry3Spec::getApp).map(AppSpec::getStorage)
@@ -89,20 +90,20 @@ public class KubernetesOps {
      * Get the service account name for the KubernetesOps storage.
      */
     public static String getServiceAccountName(ApicurioRegistry3 primary) {
-        return primary.getMetadata().getName() + "-kubeops";
+        return primary.getMetadata().getName() + KUBEOPS_SUFFIX;
     }
 
     /**
      * Get the role name for the KubernetesOps storage.
      */
     public static String getRoleName(ApicurioRegistry3 primary) {
-        return primary.getMetadata().getName() + "-kubeops";
+        return primary.getMetadata().getName() + KUBEOPS_SUFFIX;
     }
 
     /**
      * Get the role binding name for the KubernetesOps storage.
      */
     public static String getRoleBindingName(ApicurioRegistry3 primary) {
-        return primary.getMetadata().getName() + "-kubeops";
+        return primary.getMetadata().getName() + KUBEOPS_SUFFIX;
     }
 }

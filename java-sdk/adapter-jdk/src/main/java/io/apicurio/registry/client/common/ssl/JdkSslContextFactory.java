@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 public class JdkSslContextFactory {
 
     private static final Logger log = Logger.getLogger(JdkSslContextFactory.class.getName());
+    private static final String CLASSPATH_PREFIX = "classpath:";
 
     private static final Pattern PEM_CERT_PATTERN = Pattern.compile(
             "-----BEGIN CERTIFICATE-----\\s*([A-Za-z0-9+/=\\s]+?)\\s*-----END CERTIFICATE-----",
@@ -262,8 +263,8 @@ public class JdkSslContextFactory {
     }
 
     private static InputStream openResource(String path) throws IOException {
-        if (path.startsWith("classpath:")) {
-            String resourcePath = path.substring("classpath:".length());
+        if (path.startsWith(CLASSPATH_PREFIX)) {
+            String resourcePath = path.substring(CLASSPATH_PREFIX.length());
             InputStream is = JdkSslContextFactory.class.getClassLoader().getResourceAsStream(resourcePath);
             if (is == null) {
                 throw new IOException("Classpath resource not found: " + resourcePath);
@@ -274,8 +275,8 @@ public class JdkSslContextFactory {
     }
 
     private static String readFile(String path) throws IOException {
-        if (path.startsWith("classpath:")) {
-            String resourcePath = path.substring("classpath:".length());
+        if (path.startsWith(CLASSPATH_PREFIX)) {
+            String resourcePath = path.substring(CLASSPATH_PREFIX.length());
             try (InputStream is = JdkSslContextFactory.class.getClassLoader().getResourceAsStream(resourcePath)) {
                 if (is == null) {
                     throw new IOException("Classpath resource not found: " + resourcePath);

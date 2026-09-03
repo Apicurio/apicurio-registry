@@ -14,15 +14,16 @@ import java.util.stream.Stream;
 
 public class DebeziumContainerResource implements QuarkusTestResourceLifecycleManager {
 
+    private static final String DB_USER_POSTGRES = "postgres";
     private static final Network network = Network.newNetwork();
 
     private static final KafkaContainer kafkaContainer = DebeziumKafkaContainer
             .defaultKafkaContainer(network);
 
     public static PostgreSQLContainer postgresContainer = new PostgreSQLContainer(
-            DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor("postgres"))
-            .withDatabaseName("registry").withUsername("postgres").withPassword("postgres")
-            .withNetwork(network).withNetworkAliases("postgres");
+            DockerImageName.parse("quay.io/debezium/postgres:15").asCompatibleSubstituteFor(DB_USER_POSTGRES))
+            .withDatabaseName("registry").withUsername(DB_USER_POSTGRES).withPassword(DB_USER_POSTGRES)
+            .withNetwork(network).withNetworkAliases(DB_USER_POSTGRES);
 
     public static DebeziumContainer debeziumContainer = new DebeziumContainer(
             "quay.io/debezium/connect:2.6.2.Final").withNetwork(network)
@@ -53,7 +54,7 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
         System.setProperty("bootstrap.servers", kafkaContainer.getBootstrapServers());
 
         return Map.of("apicurio.datasource.url", postgresContainer.getJdbcUrl(),
-                "apicurio.datasource.username", "postgres", "apicurio.datasource.password", "postgres");
+                "apicurio.datasource.username", DB_USER_POSTGRES, "apicurio.datasource.password", DB_USER_POSTGRES);
     }
 
     @Override

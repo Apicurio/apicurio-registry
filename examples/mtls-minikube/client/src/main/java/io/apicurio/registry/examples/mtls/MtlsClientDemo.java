@@ -26,6 +26,8 @@ import java.util.UUID;
  */
 public class MtlsClientDemo {
 
+    private static final String DEFAULT_GROUP = "default";
+
     private static final String SAMPLE_JSON_SCHEMA = "{\n" +
             "    \"$id\": \"https://example.com/person.schema.json\",\n" +
             "    \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" +
@@ -104,7 +106,7 @@ public class MtlsClientDemo {
             createArtifact.getFirstVersion().getContent().setContent(SAMPLE_JSON_SCHEMA);
             createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
-            CreateArtifactResponse response = client.groups().byGroupId("default")
+            CreateArtifactResponse response = client.groups().byGroupId(DEFAULT_GROUP)
                     .artifacts().post(createArtifact, config -> {
                         config.queryParameters.ifExists = IfArtifactExists.FAIL;
                     });
@@ -118,7 +120,7 @@ public class MtlsClientDemo {
 
             // Retrieve the artifact
             System.out.println("4. Retrieving artifact...");
-            var contentStream = client.groups().byGroupId("default")
+            var contentStream = client.groups().byGroupId(DEFAULT_GROUP)
                     .artifacts().byArtifactId(artifactId)
                     .versions().byVersionExpression("branch=latest")
                     .content().get();
@@ -130,7 +132,7 @@ public class MtlsClientDemo {
 
             // Delete the artifact
             System.out.println("5. Deleting artifact...");
-            client.groups().byGroupId("default")
+            client.groups().byGroupId(DEFAULT_GROUP)
                     .artifacts().byArtifactId(artifactId)
                     .delete();
             System.out.println("   Artifact deleted successfully");

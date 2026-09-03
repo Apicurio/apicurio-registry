@@ -9,6 +9,9 @@ import java.util.regex.Pattern;
 
 public class StringSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
+    private static final String CONTENT_ENCODING = "contentEncoding";
+    private static final String CONTENT_MEDIA_TYPE = "contentMediaType";
+
     private final DiffContext ctx;
     private final StringSchema original;
 
@@ -26,15 +29,15 @@ public class StringSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         Map<String, Object> originalUnprocessed = original.getUnprocessedProperties();
         Map<String, Object> updatedUnprocessed = stringSchema.getUnprocessedProperties();
         // "contentEncoding"
-        DiffContext subCtx = ctx.sub("contentEncoding");
-        DiffUtil.diffObject(subCtx, DiffUtil.getExceptionally(subCtx, () -> originalUnprocessed.get("contentEncoding")),
-                DiffUtil.getExceptionally(subCtx, () -> updatedUnprocessed.get("contentEncoding")),
+        DiffContext subCtx = ctx.sub(CONTENT_ENCODING);
+        DiffUtil.diffObject(subCtx, DiffUtil.getExceptionally(subCtx, () -> originalUnprocessed.get(CONTENT_ENCODING)),
+                DiffUtil.getExceptionally(subCtx, () -> updatedUnprocessed.get(CONTENT_ENCODING)),
                 DiffType.STRING_TYPE_CONTENT_ENCODING_ADDED, DiffType.STRING_TYPE_CONTENT_ENCODING_REMOVED,
                 DiffType.STRING_TYPE_CONTENT_ENCODING_CHANGED);
         // "contentMediaType"
-        subCtx = ctx.sub("contentMediaType");
-        DiffUtil.diffObject(subCtx, DiffUtil.getExceptionally(subCtx, () -> originalUnprocessed.get("contentMediaType")),
-                DiffUtil.getExceptionally(subCtx, () -> updatedUnprocessed.get("contentMediaType")),
+        subCtx = ctx.sub(CONTENT_MEDIA_TYPE);
+        DiffUtil.diffObject(subCtx, DiffUtil.getExceptionally(subCtx, () -> originalUnprocessed.get(CONTENT_MEDIA_TYPE)),
+                DiffUtil.getExceptionally(subCtx, () -> updatedUnprocessed.get(CONTENT_MEDIA_TYPE)),
                 DiffType.STRING_TYPE_CONTENT_MEDIA_TYPE_ADDED, DiffType.STRING_TYPE_CONTENT_MEDIA_TYPE_REMOVED,
                 DiffType.STRING_TYPE_CONTENT_MEDIA_TYPE_CHANGED);
 

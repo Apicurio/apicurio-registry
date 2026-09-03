@@ -22,6 +22,10 @@ import java.util.Set;
  */
 public class ModelSchemaContentValidator extends AbstractContentValidator {
 
+    private static final String FIELD_MODEL_ID = "modelId";
+    private static final String FIELD_INPUT = "input";
+    private static final String FIELD_OUTPUT = "output";
+
     @Override
     public void validate(ValidityLevel level, TypedContent content,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
@@ -62,26 +66,26 @@ public class ModelSchemaContentValidator extends AbstractContentValidator {
     }
 
     private void validateRequiredFields(JsonNode tree, Set<RuleViolation> violations) {
-        if (!tree.has("modelId") || !tree.get("modelId").isTextual()
-                || tree.get("modelId").asText().trim().isEmpty()) {
+        if (!tree.has(FIELD_MODEL_ID) || !tree.get(FIELD_MODEL_ID).isTextual()
+                || tree.get(FIELD_MODEL_ID).asText().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "Missing or invalid required field 'modelId'. Must be a non-empty string.",
                     "/modelId"));
         }
 
-        if (!tree.has("input") && !tree.has("output")) {
+        if (!tree.has(FIELD_INPUT) && !tree.has(FIELD_OUTPUT)) {
             violations.add(new RuleViolation(
                     "At least one of 'input' or 'output' schema must be defined.", "/"));
         }
     }
 
     private void validateFieldTypes(JsonNode tree, Set<RuleViolation> violations) {
-        if (tree.has("input") && !tree.get("input").isObject()) {
+        if (tree.has(FIELD_INPUT) && !tree.get(FIELD_INPUT).isObject()) {
             violations.add(new RuleViolation(
                     "Field 'input' must be an object (JSON Schema).", "/input"));
         }
 
-        if (tree.has("output") && !tree.get("output").isObject()) {
+        if (tree.has(FIELD_OUTPUT) && !tree.get(FIELD_OUTPUT).isObject()) {
             violations.add(new RuleViolation(
                     "Field 'output' must be an object (JSON Schema).", "/output"));
         }

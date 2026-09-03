@@ -47,6 +47,9 @@ import java.util.Optional;
  */
 public class AvroValidator {
 
+    private static final String SCHEMA_RESOLUTION_ERROR = "SCHEMA_RESOLUTION_ERROR";
+    private static final String FAILED_TO_RESOLVE_SCHEMA = "Failed to resolve schema from registry: ";
+
     private SchemaResolver<Schema, GenericRecord> schemaResolver;
     private ArtifactReference artifactReference;
 
@@ -82,7 +85,7 @@ public class AvroValidator {
             return validate(schema.getParsedSchema().getParsedSchema(), record);
         } catch (Exception e) {
             return ValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+                new ValidationError(FAILED_TO_RESOLVE_SCHEMA + ErrorMessageExtractor.extractErrorMessage(e), SCHEMA_RESOLUTION_ERROR)
             ));
         }
     }
@@ -102,7 +105,7 @@ public class AvroValidator {
             return validateJson(schema.getParsedSchema().getParsedSchema(), json);
         } catch (Exception e) {
             return ValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+                new ValidationError(FAILED_TO_RESOLVE_SCHEMA + ErrorMessageExtractor.extractErrorMessage(e), SCHEMA_RESOLUTION_ERROR)
             ));
         }
     }
@@ -122,7 +125,7 @@ public class AvroValidator {
             return validate(schema.getParsedSchema().getParsedSchema(), record.payload());
         } catch (Exception e) {
             return ValidationResult.fromErrors(List.of(
-                new ValidationError("Failed to resolve schema from registry: " + ErrorMessageExtractor.extractErrorMessage(e), "SCHEMA_RESOLUTION_ERROR")
+                new ValidationError(FAILED_TO_RESOLVE_SCHEMA + ErrorMessageExtractor.extractErrorMessage(e), SCHEMA_RESOLUTION_ERROR)
             ));
         }
     }

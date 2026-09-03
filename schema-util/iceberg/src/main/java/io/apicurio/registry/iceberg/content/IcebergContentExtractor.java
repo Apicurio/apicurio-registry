@@ -13,6 +13,10 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
  */
 public class IcebergContentExtractor implements ContentExtractor {
 
+    private static final String FIELD_LOCATION = "location";
+    private static final String FIELD_PROPERTIES = "properties";
+    private static final String FIELD_COMMENT = "comment";
+
     private final boolean isTable;
 
     public IcebergContentExtractor(boolean isTable) {
@@ -33,15 +37,15 @@ public class IcebergContentExtractor implements ContentExtractor {
             }
 
             // Extract location as description
-            if (tree.has("location") && tree.get("location").isTextual()) {
-                metaData.setDescription("Location: " + tree.get("location").asText());
+            if (tree.has(FIELD_LOCATION) && tree.get(FIELD_LOCATION).isTextual()) {
+                metaData.setDescription("Location: " + tree.get(FIELD_LOCATION).asText());
             }
 
             // Try to extract properties.comment as description if available
-            if (tree.has("properties") && tree.get("properties").isObject()) {
-                JsonNode properties = tree.get("properties");
-                if (properties.has("comment") && properties.get("comment").isTextual()) {
-                    metaData.setDescription(properties.get("comment").asText());
+            if (tree.has(FIELD_PROPERTIES) && tree.get(FIELD_PROPERTIES).isObject()) {
+                JsonNode properties = tree.get(FIELD_PROPERTIES);
+                if (properties.has(FIELD_COMMENT) && properties.get(FIELD_COMMENT).isTextual()) {
+                    metaData.setDescription(properties.get(FIELD_COMMENT).asText());
                 }
             }
 

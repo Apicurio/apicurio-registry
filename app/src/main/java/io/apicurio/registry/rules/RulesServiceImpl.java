@@ -5,6 +5,7 @@ import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.LazyContentList;
+import io.apicurio.registry.storage.dto.RuleAction;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.cdi.Current;
@@ -13,6 +14,8 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +29,8 @@ import java.util.Set;
  */
 @ApplicationScoped
 public class RulesServiceImpl implements RulesService {
+
+    private static final Logger log = LoggerFactory.getLogger(RulesServiceImpl.class);
 
     @Inject
     @Current
@@ -118,8 +123,7 @@ public class RulesServiceImpl implements RulesService {
         // Apply rules (metrics are recorded per-rule in applyRule)
         for (RuleType ruleType : allRules.keySet()) {
             applyRule(storageToUse, groupId, artifactId, artifactType, currentContent, updatedContent,
-                    ruleType, allRules.get(ruleType).getConfiguration(), references,
-                    resolvedReferences);
+                    ruleType, allRules.get(ruleType), references, resolvedReferences);
         }
     }
 
@@ -134,19 +138,19 @@ public class RulesServiceImpl implements RulesService {
                     storage.getEnabledArtifactContentIds(groupId, artifactId));
         }
         applyRule(storage, groupId, artifactId, artifactType, currentContent, content, ruleType,
-                ruleConfiguration, references, resolvedReferences);
+                new RuleConfigurationDto(ruleConfiguration), references, resolvedReferences);
     }
 
     // Metrics are recorded here even during dry-run requests because rule evaluation genuinely
     // executes during dry-run — only artifact/version creation metrics are suppressed.
     private void applyRule(RegistryStorage storageToUse, String groupId, String artifactId,
             String artifactType, List<TypedContent> currentContent, TypedContent updatedContent,
-            RuleType ruleType, String ruleConfiguration, List<ArtifactReference> references,
+            RuleType ruleType, RuleConfigurationDto ruleConfiguration, List<ArtifactReference> references,
             Map<String, TypedContent> resolvedReferences) {
         RuleExecutor executor = factory.createExecutor(ruleType);
         RuleContext context = RuleContext.builder().groupId(groupId).artifactId(artifactId)
                 .artifactType(artifactType).currentContent(currentContent).updatedContent(updatedContent)
-                .configuration(ruleConfiguration).references(references)
+                .configuration(ruleConfiguration.getConfiguration()).references(references)
                 .resolvedReferences(resolvedReferences).storage(storageToUse).build();
         try {
             executor.execute(context);
@@ -154,6 +158,18 @@ public class RulesServiceImpl implements RulesService {
             if (ruleType == RuleType.VALIDITY) {
                 otelMetrics.recordSchemaValidation(artifactType, true);
             }
+        } catch (RuleViolationException e) {
+            otelMetrics.recordRuleEvaluation(ruleType.value(), false);
+            if (ruleType == RuleType.VALIDITY) {
+                otelMetrics.recordSchemaValidation(artifactType, false);
+            }
+            if (ruleConfiguration.getOnFailure() == RuleAction.NONE) {
+                log.warn("Ignoring {} rule violation for artifact {}/{} because onFailure is {}: {}",
+                        ruleType, groupId, artifactId, ruleConfiguration.getOnFailure(),
+                        e.getDetailMessage());
+                return;
+            }
+            throw e;
         } catch (Exception e) {
             otelMetrics.recordRuleEvaluation(ruleType.value(), false);
             if (ruleType == RuleType.VALIDITY) {

@@ -41,6 +41,7 @@ CREATE INDEX IDX_down_1 ON downloads (expires);
 CREATE TABLE global_rules (
     type          VARCHAR(32) NOT NULL,
     configuration TEXT        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    onFailure     VARCHAR(32) NOT NULL DEFAULT 'ERROR',
     PRIMARY KEY (type)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 
@@ -93,6 +94,7 @@ CREATE TABLE group_rules (
     groupId       VARCHAR(512)  NOT NULL,
     type          VARCHAR(32)   NOT NULL,
     configuration VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    onFailure     VARCHAR(32) NOT NULL DEFAULT 'ERROR',
     PRIMARY KEY (groupId, type)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFERENCES `groups` (groupId) ON DELETE CASCADE;
@@ -132,6 +134,7 @@ CREATE TABLE artifact_rules (
     artifactId    VARCHAR(512)  NOT NULL,
     type          VARCHAR(32)   NOT NULL,
     configuration VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    onFailure     VARCHAR(32) NOT NULL DEFAULT 'ERROR',
     PRIMARY KEY (groupId, artifactId, type)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 

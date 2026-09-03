@@ -94,6 +94,37 @@ The following {registry} configuration options are available for each component 
 |Enable public (unauthenticated) agent discovery endpoint
 |===
 
+== aicatalog
+.aicatalog configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.ai-catalog.enabled`
+|`boolean`
+|`false`
+|`3.3.2`
+|Enable the AI Catalog well-known discovery endpoint _(experimental)_
+|`apicurio.ai-catalog.host-name`
+|`string`
+|`Apicurio Registry`
+|`3.3.2`
+|Display name for this registry instance, reported as the AI Catalog host
+|`apicurio.ai-catalog.publisher-domain`
+|`optional<string>`
+|
+|`3.3.2`
+|The publisher domain segment used when building 'urn:air:' identifiers for AI Catalog entries. When not configured, the domain is derived from the incoming request's host and port.
+|`apicurio.ai-catalog.spec-version`
+|`string`
+|`1.0`
+|`3.3.2`
+|The AI Catalog specification version reported in the catalog document
+|===
+
 == api
 .api configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
@@ -128,6 +159,27 @@ The following {registry} configuration options are available for each component 
 |
 |`2.0.0.Final`
 |Disable APIs
+|===
+
+== ard
+.ard configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.ard.enabled`
+|`boolean`
+|`false`
+|`3.3.2`
+|Enable the ARD (Agentic Resource Discovery) well-known API endpoints _(experimental)_
+|`apicurio.ard.federation.default`
+|`string`
+|`none`
+|`3.3.2`
+|Default ARD federation mode advertised by this registry. Only 'none' (no federation) is currently implemented.
 |===
 
 == auth
@@ -1423,6 +1475,21 @@ The following {registry} configuration options are available for each component 
 |`30000`
 |`3.1.4`
 |Maximum delay in milliseconds between retry attempts
+|`apicurio.storage.content-cache.enabled`
+|`boolean`
+|`true`
+|`3.3.3`
+|Enable an in-memory, byte-weighted cache of immutable artifact content (keyed by content ID and content hash) in front of the storage layer
+|`apicurio.storage.content-cache.hot-path.ttl-seconds`
+|`long`
+|`30`
+|`3.3.3`
+|Bounded staleness window, in seconds, for the content cache entry used by the ccompat 'get schema by ID' hot path (content + artifact type keyed by content ID). This entry can go stale if the content becomes orphaned (or un-orphaned) within the TTL window; set to 0 to disable caching this entry entirely
+|`apicurio.storage.content-cache.max-size`
+|`long`
+|`67108864`
+|`3.3.3`
+|Maximum total weight (approximate size in bytes) of the content cache described by apicurio.storage.content-cache.enabled
 |`apicurio.storage.enable-automatic-group-creation`
 |`boolean`
 |`true`

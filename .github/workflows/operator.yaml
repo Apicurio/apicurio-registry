@@ -63,7 +63,10 @@ jobs:
         working-directory: operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+          # base_ref is empty on pull_request_review events; check the PR payload's base
+          # ref too so review-triggered runs still include the rolling (3.x) channel.
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ] \
+             || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make $ROLLING_CHANNEL_ARG bundle
@@ -72,7 +75,10 @@ jobs:
         working-directory: operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+          # base_ref is empty on pull_request_review events; check the PR payload's base
+          # ref too so review-triggered runs still include the rolling (3.x) channel.
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ] \
+             || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make $ROLLING_CHANNEL_ARG catalog

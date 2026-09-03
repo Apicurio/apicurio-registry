@@ -144,6 +144,10 @@
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
+    <!-- Re-augmentable (Quarkus mutable-jar) variant of the app distribution, used by the
+         "-mutable" container image. Skipped by default, enabled by -Dfull. -->
+    <apicurio.mutable-jar.skip>true</apicurio.mutable-jar.skip>
+
     <projectRoot>${project.basedir}</projectRoot>
 
     <!--
@@ -250,7 +254,7 @@
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.26.2</nats.version>
-    <snakeyaml.version>2.6</snakeyaml.version>
+    <snakeyaml.version>2.7</snakeyaml.version>
     <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
@@ -311,7 +315,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.1.0</groovy.version>
+    <groovy.version>5.1.1</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -1422,6 +1426,10 @@
           <name>full</name>
         </property>
       </activation>
+      <properties>
+        <!-- Also build the re-augmentable app distribution (see app/pom.xml, build-mutable) -->
+        <apicurio.mutable-jar.skip>false</apicurio.mutable-jar.skip>
+      </properties>
       <modules>
         <!-- Include non-essential modules so -Dfull is a true superset -->
         <module>cli</module>

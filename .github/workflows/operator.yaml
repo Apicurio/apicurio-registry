@@ -45,11 +45,23 @@ jobs:
 
       - name: Build operand image
         run: |
-          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
+            --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            --label org.opencontainers.image.version="latest-snapshot" \
+            --label org.opencontainers.image.created="$BUILD_DATE" \
+            -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
 
       - name: Build GitOps sync sidecar image
         run: |
-          docker build -t "$REGISTRY_GITOPS_SYNC_IMAGE" ./distro/gitops
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          docker build \
+            --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            --label org.opencontainers.image.version="latest-snapshot" \
+            --label org.opencontainers.image.created="$BUILD_DATE" \
+            -t "$REGISTRY_GITOPS_SYNC_IMAGE" ./distro/gitops
 
       - name: Build operator image
         working-directory: operator

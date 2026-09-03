@@ -131,7 +131,12 @@ jobs:
 
       - name: Build Docker Image
         run: |
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
+            --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            --label org.opencontainers.image.version="latest-snapshot" \
+            --label org.opencontainers.image.created="$BUILD_DATE" \
             -t apicurio/apicurio-registry:${{ github.sha }} \
             ./distro/docker/target/docker
 
@@ -229,7 +234,13 @@ jobs:
       - name: Build UI Docker Image
         working-directory: ui
         run: |
-          docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          docker build \
+            --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+            --label org.opencontainers.image.revision="${{ github.sha }}" \
+            --label org.opencontainers.image.version="latest-snapshot" \
+            --label org.opencontainers.image.created="$BUILD_DATE" \
+            -t apicurio/apicurio-registry-ui:${{ github.sha }} .
 
       - name: Save UI Docker Image
         uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2

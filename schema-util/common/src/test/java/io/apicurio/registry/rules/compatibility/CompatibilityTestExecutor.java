@@ -60,7 +60,7 @@ public class CompatibilityTestExecutor {
                     .map(testCaseData::getString)
                     .findFirst();
             if (skipReason.isPresent()) {
-                log.warn("Skipping test case {}: {}", caseId, skipReason.get());
+                log.warn("Skipping test case {}: {}", caseId, skipReason.orElseThrow());
                 continue;
             }
 

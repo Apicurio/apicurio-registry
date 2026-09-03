@@ -123,7 +123,7 @@ public class SqlContentRepository {
                     return null;
                 }
 
-                ArtifactVersionMetaDataDto meta = metaRes.get();
+                ArtifactVersionMetaDataDto meta = metaRes.orElseThrow();
                 ContentWrapperDto content = getContentByIdRaw(handle, meta.getContentId());
                 content.setArtifactType(meta.getArtifactType());
                 return content;

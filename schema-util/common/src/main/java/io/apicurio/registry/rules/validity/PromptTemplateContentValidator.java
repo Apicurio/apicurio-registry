@@ -27,6 +27,9 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
 
     private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
             "string", "integer", "number", "boolean", "array", "object");
+            
+    private static final String FIELD_MINIMUM = "minimum";
+    private static final String FIELD_MAXIMUM = "maximum";
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -136,15 +139,29 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
                 }
             }
 
-            if (varSchema.has("minimum") && !varSchema.get("minimum").isNumber()) {
+            if (varSchema.has(FIELD_MINIMUM) && !varSchema.get(FIELD_MINIMUM).isNumber()) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid 'minimum' value. Must be a number.",
-                        "/variables/" + varName + "/minimum"));
+                        "Variable '" + varName + "' has invalid '" + FIELD_MINIMUM + "' value. Must be a number.",
+                        "/variables/" + varName + "/" + FIELD_MINIMUM));
             }
-            if (varSchema.has("maximum") && !varSchema.get("maximum").isNumber()) {
+            if (varSchema.has(FIELD_MAXIMUM) && !varSchema.get(FIELD_MAXIMUM).isNumber()) {
                 violations.add(new RuleViolation(
-                        "Variable '" + varName + "' has invalid 'maximum' value. Must be a number.",
-                        "/variables/" + varName + "/maximum"));
+                        "Variable '" + varName + "' has invalid '" + FIELD_MAXIMUM + "' value. Must be a number.",
+                        "/variables/" + varName + "/" + FIELD_MAXIMUM));
+            }
+
+            if (varSchema.has(FIELD_MINIMUM) && varSchema.get(FIELD_MINIMUM).isNumber()
+                    && varSchema.has(FIELD_MAXIMUM) && varSchema.get(FIELD_MAXIMUM).isNumber()) {
+                double minimum = varSchema.get(FIELD_MINIMUM).asDouble();
+                double maximum = varSchema.get(FIELD_MAXIMUM).asDouble();
+                if (minimum > maximum) {
+                    violations.add(new RuleViolation(
+                            "Variable '" + varName + "' has '" + FIELD_MINIMUM + "' ("
+                                    + varSchema.get(FIELD_MINIMUM).asText() + ") greater than '" + FIELD_MAXIMUM
+                                    + "' (" + varSchema.get(FIELD_MAXIMUM).asText()
+                                    + "). No value could ever satisfy this constraint.",
+                            "/variables/" + varName + "/" + FIELD_MINIMUM));
+                }
             }
 
             if (varSchema.has("enum") && !varSchema.get("enum").isArray()) {
@@ -185,33 +202,14 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
             Set<String> refs = new HashSet<>();
             if (tree.has("variables")) {
-                findRefs(tree.get("variables"), refs);
+                findExternalRefs(tree.get("variables"), refs);
             }
             if (tree.has("outputSchema")) {
-                findRefs(tree.get("outputSchema"), refs);
+                findExternalRefs(tree.get("outputSchema"), refs);
             }
             return refs;
         } catch (Exception e) {
             return Collections.emptySet();
-        }
-    }
-
-    private void findRefs(JsonNode node, Set<String> refs) {
-        if (node.isObject()) {
-            if (node.has("$ref")) {
-                String ref = node.get("$ref").asText(null);
-                if (ref != null && !ref.startsWith("#/")) {
-                    refs.add(ref);
-                }
-            }
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-            while (fields.hasNext()) {
-                findRefs(fields.next().getValue(), refs);
-            }
-        } else if (node.isArray()) {
-            for (JsonNode element : node) {
-                findRefs(element, refs);
-            }
         }
     }
 }

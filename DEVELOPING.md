@@ -147,7 +147,7 @@ modes, and detailed usage instructions.
 
 Run Apicurio Registry with Postgres:
 
- - Compile using `mvn clean install -DskipTests -Pprod -Ddocker`
+ - Compile using `mvn clean install -DskipTests -Pprod` (see `distro/docker/README.md` for building the image)
 
  - Then create a docker-compose file `test.yml`:
 ```yaml

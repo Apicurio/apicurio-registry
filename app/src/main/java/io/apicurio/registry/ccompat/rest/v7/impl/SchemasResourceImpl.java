@@ -57,15 +57,10 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
             artifactType = vmd.getArtifactType();
         } else {
-            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
+            ContentWrapperDto contentWrapper = storage.getContentAndArtifactTypeById(id.longValue());
             contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
-            if (versions == null || versions.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = contentWrapper.getArtifactType();
         }
 
         // Apply default format if configured and no format was explicitly provided
@@ -91,6 +86,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public String getSchemaContentById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
@@ -102,15 +98,10 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
             artifactType = vmd.getArtifactType();
         } else {
-            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
+            ContentWrapperDto contentWrapper = storage.getContentAndArtifactTypeById(id.longValue());
             contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
-            if (versions == null || versions.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = contentWrapper.getArtifactType();
         }
 
         // Apply default format if configured and no format was explicitly provided

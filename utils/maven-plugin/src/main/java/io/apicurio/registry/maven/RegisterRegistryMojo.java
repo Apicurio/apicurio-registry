@@ -619,11 +619,12 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
-                                             List<ArtifactReference> references) throws FileNotFoundException, ExecutionException,
+                                             List<ArtifactReference> references) throws IOException, ExecutionException,
             InterruptedException, MojoExecutionException, MojoFailureException {
         if (artifact.getFile() != null) {
-            return registerArtifact(registryClient, artifact, new FileInputStream(artifact.getFile()),
-                    references);
+            try (InputStream artifactContent = new FileInputStream(artifact.getFile())) {
+                return registerArtifact(registryClient, artifact, artifactContent, references);
+            }
         } else {
             return getArtifactVersionMetadata(registryClient, artifact);
         }
@@ -840,7 +841,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private List<ArtifactReference> processArtifactReferences(RegistryClient registryClient,
-                                                              List<RegisterArtifactReference> referencedArtifacts) throws FileNotFoundException,
+                                                              List<RegisterArtifactReference> referencedArtifacts) throws IOException,
             ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         List<ArtifactReference> references = new ArrayList<>();
         for (RegisterArtifactReference artifact : referencedArtifacts) {

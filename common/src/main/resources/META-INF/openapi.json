@@ -7,7 +7,7 @@
     "contact": {
       "name": "Apicurio",
       "url": "https://github.com/apicurio/apicurio-registry",
-      "email": "apicurio@lists.jboss.org"
+      "email": "cncf-apicurio-registry-dev@lists.cncf.io"
     },
     "license": {
       "name": "Apache 2.0",
@@ -809,7 +809,7 @@
         },
         "operationId": "deleteArtifactVersion",
         "summary": "Delete artifact version",
-        "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
+        "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `apicurio.rest.deletion.artifact-version.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
       },
       "parameters": [
         {
@@ -6821,6 +6821,222 @@
           "required": true
         }
       ]
+    },
+    "/well-known/ai-catalog.json": {
+      "summary": "Get AI Catalog.",
+      "get": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCatalog"
+                }
+              }
+            },
+            "description": "The AI Catalog document."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getAiCatalog",
+        "summary": "Get AI Catalog"
+      }
+    },
+    "/well-known/ard.json": {
+      "summary": "Get ARD manifest.",
+      "get": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCatalog"
+                }
+              }
+            },
+            "description": "The AI Catalog document (ARD v0.91 normative path)."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getArdManifest",
+        "summary": "Get ARD manifest"
+      }
+    },
+    "/well-known/ard/search": {
+      "summary": "ARD search.",
+      "post": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArdSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArdSearchResponse"
+                }
+              }
+            },
+            "description": "ARD search results."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "ardSearch",
+        "summary": "ARD search"
+      }
+    },
+    "/well-known/ard/agents": {
+      "summary": "ARD list agents.",
+      "get": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "orderBy",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "pageSize",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "pageToken",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCatalog"
+                }
+              }
+            },
+            "description": "ARD agent listing."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "ardListAgents",
+        "summary": "ARD list agents"
+      }
+    },
+    "/well-known/ard/explore": {
+      "summary": "ARD explore.",
+      "post": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArdExploreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArdExploreResponse"
+                }
+              }
+            },
+            "description": "ARD facet exploration results."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "ardExplore",
+        "summary": "ARD explore"
+      }
     }
   },
   "components": {
@@ -7653,8 +7869,8 @@
           }
         ],
         "example": {
-          "error_code": 409,
-          "message": "Artifact failed validation",
+          "status": 409,
+          "title": "Artifact failed validation",
           "causes": [
             {
               "description": "API is missing a title",
@@ -10045,6 +10261,304 @@
             }
           }
         }
+      },
+      "AiCatalog": {
+        "description": "AI Catalog document per the ai-catalog.io specification, listing agent and tool entries hosted by this registry.",
+        "required": [
+          "specVersion",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "specVersion": {
+            "type": "string"
+          },
+          "host": {
+            "$ref": "#/components/schemas/AiCatalogHost"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiCatalogEntry"
+            }
+          },
+          "nextPageToken": {
+            "description": "Opaque pagination token for retrieving the next page of ARD list results. Only populated by the ARD `GET /agents` endpoint; absent from the static `/.well-known/ai-catalog.json` projection.",
+            "type": "string"
+          }
+        }
+      },
+      "AiCatalogHost": {
+        "description": "Information about the AI Catalog host (this registry instance).",
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "documentationUrl": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AiCatalogEntry": {
+        "description": "An entry in the AI Catalog, representing an A2A agent card or an MCP server card.",
+        "required": [
+          "identifier",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "representativeQueries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ArdFilter": {
+        "description": "ARD search filter map; keys are filter names (type, tags, capabilities, publisher) and values are the list of accepted values for that filter (OR semantics within a key, AND semantics across keys).",
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdSearchQuery": {
+        "description": "ARD search query.",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/ArdFilter"
+          }
+        }
+      },
+      "ArdSearchRequest": {
+        "description": "Request body for the ARD POST /search endpoint.",
+        "required": [
+          "query"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/ArdSearchQuery"
+          },
+          "federation": {
+            "type": "string"
+          },
+          "pageSize": {
+            "default": 10,
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdSearchResultEntry": {
+        "description": "A single ARD search result entry (an AiCatalogEntry plus ARD-specific ranking fields).",
+        "required": [
+          "identifier",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdSearchResponse": {
+        "description": "Response body for the ARD POST /search endpoint.",
+        "required": [
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArdSearchResultEntry"
+            }
+          },
+          "pageToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdFacetRequest": {
+        "description": "A single facet request for the ARD POST /explore endpoint.",
+        "required": [
+          "field"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "minCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "ArdResultType": {
+        "description": "Requested result type for the ARD POST /explore endpoint.",
+        "required": [
+          "facets"
+        ],
+        "type": "object",
+        "properties": {
+          "facets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArdFacetRequest"
+            }
+          }
+        }
+      },
+      "ArdExploreRequest": {
+        "description": "Request body for the ARD POST /explore endpoint.",
+        "required": [
+          "resultType"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/ArdSearchQuery"
+          },
+          "resultType": {
+            "$ref": "#/components/schemas/ArdResultType"
+          }
+        }
+      },
+      "ArdFacetBucket": {
+        "description": "A single facet bucket.",
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "ArdFacet": {
+        "description": "A single facet's buckets.",
+        "type": "object",
+        "properties": {
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArdFacetBucket"
+            }
+          },
+          "otherCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "ArdFacets": {
+        "description": "Facets keyed by the requested facet field name.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/ArdFacet"
+        }
+      },
+      "ArdExploreResponse": {
+        "description": "Response body for the ARD POST /explore endpoint.",
+        "type": "object",
+        "properties": {
+          "resultType": {
+            "type": "string"
+          },
+          "facets": {
+            "$ref": "#/components/schemas/ArdFacets"
+          }
+        }
       }
     },
     "responses": {
@@ -10057,8 +10571,10 @@
             "examples": {
               "NotFoundExample": {
                 "value": {
-                  "error_code": 404,
-                  "message": "No artifact with id 'Topic-1/Inbound' could be found."
+                  "detail": "ArtifactNotFoundException: No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "title": "No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "status": 404,
+                  "name": "ArtifactNotFoundException"
                 }
               }
             }
@@ -10075,8 +10591,10 @@
             "examples": {
               "MethodNotAllowedExample": {
                 "value": {
-                  "error_code": 405,
-                  "message": "Method is currently not supported or disabled."
+                  "detail": "NotAllowedException: The requested HTTP method is not allowed for this resource.",
+                  "title": "Method Not Allowed.",
+                  "status": 405,
+                  "name": "NotAllowedException"
                 }
               }
             }
@@ -10091,10 +10609,12 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "examples": {
-              "ErrorExample": {
+              "ServerErrorExample": {
                 "value": {
-                  "error_code": 500,
-                  "message": "Lost connection to the database."
+                  "detail": "StorageException: Lost connection to the database.",
+                  "title": "Lost connection to the database.",
+                  "status": 500,
+                  "name": "StorageException"
                 }
               }
             }
@@ -10107,6 +10627,16 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "BadRequestExample": {
+                "value": {
+                  "detail": "BadRequestException: The request contains invalid or missing parameters.",
+                  "title": "Bad Request.",
+                  "status": 400,
+                  "name": "BadRequestException"
+                }
+              }
             }
           }
         },
@@ -10121,8 +10651,10 @@
             "examples": {
               "ConflictExample": {
                 "value": {
-                  "error_code": 409,
-                  "message": "The artifact content was invalid."
+                  "detail": "ArtifactAlreadyExistsException: An artifact with ID 'artifact-ID' in group 'group-ID' already exists.",
+                  "title": "An artifact with ID 'artifact-ID' in group 'group-ID' already exists.",
+                  "status": 409,
+                  "name": "ArtifactAlreadyExistsException"
                 }
               }
             }
@@ -10139,8 +10671,8 @@
             "examples": {
               "RuleViolationConflictExample": {
                 "value": {
-                  "error_code": 409,
-                  "message": "The artifact content was invalid",
+                  "status": 409,
+                  "title": "The artifact content was invalid",
                   "causes": [
                     {
                       "description": "API is missing a title",
@@ -10167,8 +10699,8 @@
             "examples": {
               "RuleViolationBadRequestExample": {
                 "value": {
-                  "error_code": 400,
-                  "message": "The artifact content was invalid",
+                  "status": 400,
+                  "title": "The artifact content was invalid",
                   "causes": [
                     {
                       "description": "API is missing a title",
@@ -10224,9 +10756,10 @@
             "examples": {
               "UnprocessableEntityExample": {
                 "value": {
-                  "error_code": 422,
-                  "message": "The artifact content is invalid: Schema validation failed",
-                  "name": "SchemaValidationException"
+                  "detail": "UnprocessableSchemaException: Could not execute compatibility rule on invalid Avro schema.",
+                  "title": "The artifact content is invalid: Schema validation failed.",
+                  "status": 422,
+                  "name": "UnprocessableSchemaException"
                 }
               }
             }
@@ -10336,6 +10869,10 @@
     {
       "name": "WellKnown",
       "description": "Well-known discovery endpoints for A2A agents, MCP tools, and JSON schemas."
+    },
+    {
+      "name": "AiCatalog",
+      "description": "AI Catalog (ai-catalog.io) and ARD (Agentic Resource Discovery) convergence endpoints."
     }
   ],
   "x-codegen": {

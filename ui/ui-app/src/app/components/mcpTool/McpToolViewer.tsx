@@ -118,6 +118,8 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                                         <Th>Parameter</Th>
                                         <Th>Type</Th>
                                         <Th>Required</Th>
+                                        <Th>Default</Th>
+                                        <Th>Allowed Values</Th>
                                         <Th>Description</Th>
                                     </Tr>
                                 </Thead>
@@ -135,6 +137,18 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                                                     ) : (
                                                         <Label color="grey" isCompact>optional</Label>
                                                     )}
+                                                </Td>
+                                                <Td dataLabel="Default">{param.default !== undefined ? (
+                                                    <code>{String(param.default)}</code>
+                                                ) : "-"}</Td>
+                                                <Td dataLabel="Allowed Values">
+                                                    {param.enum && Array.isArray(param.enum) && param.enum.length > 0 ? (
+                                                        <LabelGroup>
+                                                            {param.enum.map((val: any, i: number) => (
+                                                                <Label key={i} color="grey" isCompact>{String(val)}</Label>
+                                                            ))}
+                                                        </LabelGroup>
+                                                    ) : "-"}
                                                 </Td>
                                                 <Td dataLabel="Description">{param.description || "-"}</Td>
                                             </Tr>
@@ -164,6 +178,8 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                                         <Th>Field</Th>
                                         <Th>Type</Th>
                                         <Th>Required</Th>
+                                        <Th>Default</Th>
+                                        <Th>Allowed Values</Th>
                                         <Th>Description</Th>
                                     </Tr>
                                 </Thead>
@@ -181,6 +197,18 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                                                     ) : (
                                                         <Label color="grey" isCompact>optional</Label>
                                                     )}
+                                                </Td>
+                                                <Td dataLabel="Default">{field.default !== undefined ? (
+                                                    <code>{String(field.default)}</code>
+                                                ) : "-"}</Td>
+                                                <Td dataLabel="Allowed Values">
+                                                    {field.enum && Array.isArray(field.enum) && field.enum.length > 0 ? (
+                                                        <LabelGroup>
+                                                            {field.enum.map((val: any, i: number) => (
+                                                                <Label key={i} color="grey" isCompact>{String(val)}</Label>
+                                                            ))}
+                                                        </LabelGroup>
+                                                    ) : "-"}
                                                 </Td>
                                                 <Td dataLabel="Description">{field.description || "-"}</Td>
                                             </Tr>

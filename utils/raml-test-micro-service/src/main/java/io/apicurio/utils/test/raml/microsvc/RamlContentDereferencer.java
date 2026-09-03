@@ -17,6 +17,7 @@ import java.util.Map;
 public class RamlContentDereferencer implements ContentDereferencer {
 
     private static final ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    private static final String INCLUDE_PREFIX = "~include ";
 
     @Override
     public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
@@ -41,7 +42,7 @@ public class RamlContentDereferencer implements ContentDereferencer {
                 if (fieldNode.isTextual()) {
                     String textValue = fieldNode.textValue();
                     if (textValue.startsWith("~include")) {
-                        String includeName = textValue.substring("~include ".length());
+                        String includeName = textValue.substring(INCLUDE_PREFIX.length());
                         if (resolvedReferences.containsKey(includeName)) {
                             TypedContent includeContent = resolvedReferences.get(includeName);
                             objectNode.put(fieldName, includeContent.getContent().content());
@@ -85,10 +86,10 @@ public class RamlContentDereferencer implements ContentDereferencer {
                 if (fieldNode.isTextual()) {
                     String textValue = fieldNode.textValue();
                     if (textValue.startsWith("~include")) {
-                        String includeName = textValue.substring("~include ".length());
+                        String includeName = textValue.substring(INCLUDE_PREFIX.length());
                         if (resolvedReferenceUrls.containsKey(includeName)) {
                             String refUrl = resolvedReferenceUrls.get(includeName);
-                            objectNode.put(fieldName, "~include " + refUrl);
+                            objectNode.put(fieldName, INCLUDE_PREFIX + refUrl);
                         }
                     }
                 } else {

@@ -33,6 +33,9 @@ import static io.gatling.javaapi.http.HttpDsl.status;
 
 public class ConfluentApiSimulation extends Simulation {
 
+    private static final String HEADER_AUTHORIZATION = "Authorization";
+    private static final String FEEDER_SUBJECT = "subject";
+    private static final String FEEDER_SCHEMA = "schema";
     private static final String URL = env("SCHEMA_REGISTRY_URL", "http://localhost:8081");
     private static final String OPERATION = env("PERF_OPERATION", "READ_ID");
     private static final int USERS = integer("PERF_USERS", 100);
@@ -74,9 +77,9 @@ public class ConfluentApiSimulation extends Simulation {
             case "READ_ID" -> feed(feeder).exec(http(phase + " READ_ID").get("/schemas/ids/#{schemaId}")
                     .check(status().is(200)));
             case "READ_VERSION" -> feed(feeder).exec(http(phase + " READ_VERSION")
-                    .get("/subjects/#{subject}/versions/#{version}").check(status().is(200)));
+                    .get("/subjects/#{" + FEEDER_SUBJECT + "}/versions/#{version}").check(status().is(200)));
             case "REGISTER_IDEMPOTENT" -> feed(feeder).exec(http(phase + " REGISTER_IDEMPOTENT")
-                    .post("/subjects/#{subject}/versions").body(StringBody(session -> body((String) session.get("schema"))))
+                    .post("/subjects/#{" + FEEDER_SUBJECT + "}/versions").body(StringBody(session -> body((String) session.get(FEEDER_SCHEMA))))
                     .asJson().check(status().is(200)));
             case "COMPATIBILITY" -> feed(feeder).exec(http(phase + " COMPATIBILITY")
                     .post("/compatibility/subjects/#{subject}/versions/latest")
@@ -101,7 +104,7 @@ public class ConfluentApiSimulation extends Simulation {
         HttpProtocolBuilder result = http.baseUrl(URL).acceptHeader(MEDIA_TYPE).contentTypeHeader(MEDIA_TYPE)
                 .userAgentHeader("apicurio-product-neutral-benchmark/1");
         if (!AUTHORIZATION.isEmpty()) {
-            result = result.header("Authorization", AUTHORIZATION);
+            result = result.header(HEADER_AUTHORIZATION, AUTHORIZATION);
         }
         return result;
     }
@@ -117,7 +120,7 @@ public class ConfluentApiSimulation extends Simulation {
             if (response.statusCode() / 100 != 2 || !matcher.find()) {
                 throw new IllegalStateException("Seed failed: HTTP " + response.statusCode() + " " + response.body());
             }
-            result.add(Map.of("subject", subject, "version", 1, "schemaId", matcher.group(1), "schema", schema,
+            result.add(Map.of(FEEDER_SUBJECT, subject, "version", 1, "schemaId", matcher.group(1), FEEDER_SCHEMA, schema,
                     "compatibleSchema", compatibleSchema(i)));
         }
         return result;
@@ -156,7 +159,7 @@ public class ConfluentApiSimulation extends Simulation {
             HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(URL + path)).timeout(Duration.ofSeconds(30))
                     .header("Accept", MEDIA_TYPE).header("Content-Type", MEDIA_TYPE);
             if (!AUTHORIZATION.isEmpty()) {
-                builder.header("Authorization", AUTHORIZATION);
+                builder.header(HEADER_AUTHORIZATION, AUTHORIZATION);
             }
             builder.method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
             return SETUP_CLIENT.send(builder.build(), HttpResponse.BodyHandlers.ofString());

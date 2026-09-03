@@ -37,6 +37,11 @@ import static io.apicurio.registry.metrics.MetricsConstants.ICEBERG_VIEW_OPERATI
 @ApplicationScoped
 public class IcebergMetricsService {
 
+    private static final String SUCCESS = "success";
+    private static final String CREATED = "created";
+    private static final String DELETED = "deleted";
+    private static final String RENAMED = "renamed";
+
     @Inject
     MeterRegistry registry;
 
@@ -58,71 +63,71 @@ public class IcebergMetricsService {
 
     public void recordNamespaceCreated() {
         incrementOperationCounter(ICEBERG_NAMESPACE_OPERATIONS, ICEBERG_NAMESPACE_OPERATIONS_DESCRIPTION,
-                "created", "success");
-        otelMetrics.recordIcebergNamespaceOperation("created");
+                CREATED, SUCCESS);
+        otelMetrics.recordIcebergNamespaceOperation(CREATED);
     }
 
     public void recordNamespaceDeleted() {
         incrementOperationCounter(ICEBERG_NAMESPACE_OPERATIONS, ICEBERG_NAMESPACE_OPERATIONS_DESCRIPTION,
-                "deleted", "success");
-        otelMetrics.recordIcebergNamespaceOperation("deleted");
+                DELETED, SUCCESS);
+        otelMetrics.recordIcebergNamespaceOperation(DELETED);
     }
 
     public void recordNamespaceUpdated() {
         incrementOperationCounter(ICEBERG_NAMESPACE_OPERATIONS, ICEBERG_NAMESPACE_OPERATIONS_DESCRIPTION,
-                "updated", "success");
+                "updated", SUCCESS);
         otelMetrics.recordIcebergNamespaceOperation("updated");
     }
 
     // Table operations
 
     public void recordTableCreated() {
-        incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, "created",
-                "success");
-        otelMetrics.recordIcebergTableOperation("created");
+        incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, CREATED,
+                SUCCESS);
+        otelMetrics.recordIcebergTableOperation(CREATED);
     }
 
     public void recordTableDeleted() {
-        incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, "deleted",
-                "success");
-        otelMetrics.recordIcebergTableOperation("deleted");
+        incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, DELETED,
+                SUCCESS);
+        otelMetrics.recordIcebergTableOperation(DELETED);
     }
 
     public void recordTableRenamed() {
-        incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, "renamed",
-                "success");
-        otelMetrics.recordIcebergTableOperation("renamed");
+        incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION, RENAMED,
+                SUCCESS);
+        otelMetrics.recordIcebergTableOperation(RENAMED);
     }
 
     public void recordTableCommitted() {
         incrementOperationCounter(ICEBERG_TABLE_OPERATIONS, ICEBERG_TABLE_OPERATIONS_DESCRIPTION,
-                "committed", "success");
+                "committed", SUCCESS);
         otelMetrics.recordIcebergTableOperation("committed");
     }
 
     // View operations
 
     public void recordViewCreated() {
-        incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "created",
-                "success");
-        otelMetrics.recordIcebergViewOperation("created");
+        incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, CREATED,
+                SUCCESS);
+        otelMetrics.recordIcebergViewOperation(CREATED);
     }
 
     public void recordViewDeleted() {
-        incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "deleted",
-                "success");
-        otelMetrics.recordIcebergViewOperation("deleted");
+        incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, DELETED,
+                SUCCESS);
+        otelMetrics.recordIcebergViewOperation(DELETED);
     }
 
     public void recordViewRenamed() {
-        incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "renamed",
-                "success");
-        otelMetrics.recordIcebergViewOperation("renamed");
+        incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, RENAMED,
+                SUCCESS);
+        otelMetrics.recordIcebergViewOperation(RENAMED);
     }
 
     public void recordViewReplaced() {
         incrementOperationCounter(ICEBERG_VIEW_OPERATIONS, ICEBERG_VIEW_OPERATIONS_DESCRIPTION, "replaced",
-                "success");
+                SUCCESS);
         otelMetrics.recordIcebergViewOperation("replaced");
     }
 

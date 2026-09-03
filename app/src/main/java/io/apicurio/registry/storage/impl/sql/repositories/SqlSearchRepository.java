@@ -38,6 +38,13 @@ public class SqlSearchRepository {
             "Content search requires the search index, which is not enabled. "
             + "Enable the search index to use content search.";
 
+    private static final String SQL_NOT_LIKE = "NOT LIKE";
+    private static final String SQL_ARTIFACT_ID_COL = "a.artifactId";
+    private static final String SQL_EXISTS_CONTENT_JOIN =
+            "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId"
+            + " WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ";
+    private static final String DB_MSSQL = "mssql";
+
     private final Logger log;
 
     private final SqlStatements sqlStatements;
@@ -76,7 +83,7 @@ public class SqlSearchRepository {
                 }
                 switch (filter.getType()) {
                     case description:
-                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        op = filter.isNot() ? SQL_NOT_LIKE : "LIKE";
                         where.append("a.description ");
                         where.append(op);
                         where.append(" ?");
@@ -85,7 +92,7 @@ public class SqlSearchRepository {
                         });
                         break;
                     case name:
-                        buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
+                        buildNameClause(where, "a.name", SQL_ARTIFACT_ID_COL, filter.getStringValue(),
                                 filter.isNot(), binders);
                         break;
                     case groupId:
@@ -93,7 +100,7 @@ public class SqlSearchRepository {
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
                     case artifactId:
-                        buildWildcardClause(where, "a.artifactId",
+                        buildWildcardClause(where, SQL_ARTIFACT_ID_COL,
                                 filter.getStringValue(), filter.isNot(), binders);
                         break;
                     case artifactType:
@@ -105,8 +112,7 @@ public class SqlSearchRepository {
                         break;
                     case contentHash:
                         op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append(SQL_EXISTS_CONTENT_JOIN);
                         where.append("c.contentHash " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
@@ -115,8 +121,7 @@ public class SqlSearchRepository {
                         break;
                     case canonicalHash:
                         op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append(SQL_EXISTS_CONTENT_JOIN);
                         where.append("c.canonicalHash " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getStringValue());
@@ -150,8 +155,7 @@ public class SqlSearchRepository {
                         break;
                     case contentId:
                         op = filter.isNot() ? "!=" : "=";
-                        where.append(
-                                "EXISTS(SELECT c.* FROM content c JOIN versions v ON c.contentId = v.contentId WHERE v.groupId = a.groupId AND v.artifactId = a.artifactId AND ");
+                        where.append(SQL_EXISTS_CONTENT_JOIN);
                         where.append("v.contentId " + op + " ?");
                         binders.add((query, idx) -> {
                             query.bind(idx, filter.getNumberValue().longValue());
@@ -202,7 +206,7 @@ public class SqlSearchRepository {
 
             Query countQuery = null;
             if (!skipCount) {
-                String countQuerySql = sqlStatements.selectCountTableTemplate("a.artifactId", "artifacts",
+                String countQuerySql = sqlStatements.selectCountTableTemplate(SQL_ARTIFACT_ID_COL, "artifacts",
                         "a", where.toString());
                 countQuery = handle.createQuery(countQuerySql);
             }
@@ -216,7 +220,7 @@ public class SqlSearchRepository {
                 }
                 idx++;
             }
-            if ("mssql".equals(sqlStatements.dbType())) {
+            if (DB_MSSQL.equals(sqlStatements.dbType())) {
                 artifactsQuery.bind(idx++, offset);
                 artifactsQuery.bind(idx++, limit);
             } else {
@@ -308,7 +312,7 @@ public class SqlSearchRepository {
                                 filter.isNot(), binders);
                         break;
                     case description:
-                        op = filter.isNot() ? "NOT LIKE" : "LIKE";
+                        op = filter.isNot() ? SQL_NOT_LIKE : "LIKE";
                         where.append("v.description ");
                         where.append(op);
                         where.append(" ?");
@@ -380,7 +384,7 @@ public class SqlSearchRepository {
             orderByQuery.append(" ").append(orderDirection.name());
 
             // Add limit and offset to artifact query
-            if ("mssql".equals(sqlStatements.dbType())) {
+            if (DB_MSSQL.equals(sqlStatements.dbType())) {
                 limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
             } else {
                 limitOffset.append(" LIMIT ? OFFSET ?");
@@ -408,7 +412,7 @@ public class SqlSearchRepository {
                 idx++;
             }
 
-            if ("mssql".equals(sqlStatements.dbType())) {
+            if (DB_MSSQL.equals(sqlStatements.dbType())) {
                 versionsQuery.bind(idx++, offset);
                 versionsQuery.bind(idx++, limit);
             } else {
@@ -432,7 +436,7 @@ public class SqlSearchRepository {
     private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,
             List<SqlStatementVariableBinder> binders) {
         if (value.contains("*")) {
-            String op = not ? "NOT LIKE" : "LIKE";
+            String op = not ? SQL_NOT_LIKE : "LIKE";
             where.append(column).append(" ").append(op).append(" ?");
             String pattern = value.replace('*', '%');
             binders.add((query, idx) -> {
@@ -481,7 +485,7 @@ public class SqlSearchRepository {
 
         String op;
         if (wildcard) {
-            op = not ? "NOT LIKE" : "LIKE";
+            op = not ? SQL_NOT_LIKE : "LIKE";
         } else {
             op = not ? "!=" : "=";
         }

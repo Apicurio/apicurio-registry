@@ -48,6 +48,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Consumes(MediaType.APPLICATION_JSON)
 public class SupportChatResource {
 
+    private static final String SUPPORT_SYSTEM_PROMPT = "apicurio-support-system-prompt";
+    private static final String STATUS_KEY = "status";
+
     @Inject
     ApicurioSupportService supportService;
 
@@ -69,7 +72,7 @@ public class SupportChatResource {
     public Map<String, Object> health() {
         DocumentIngestionService.IngestionStatus ragStatus = documentIngestionService.getStatus();
         return Map.of(
-            "status", "UP",
+            STATUS_KEY, "UP",
             "service", "Apicurio Registry Support Chat",
             "features", List.of(
                 "PROMPT_TEMPLATE integration via /render endpoint",
@@ -140,7 +143,7 @@ public class SupportChatResource {
         }
         supportService.clearConversation(sessionId);
         return Map.of(
-            "status", "Session ended",
+            STATUS_KEY, "Session ended",
             "sessionId", sessionId
         );
     }
@@ -192,7 +195,7 @@ public class SupportChatResource {
             request.message(),
             response,
             responseTime,
-            "apicurio-support-system-prompt",
+            SUPPORT_SYSTEM_PROMPT,
             "apicurio-support-chat-prompt"
         );
     }
@@ -231,11 +234,11 @@ public class SupportChatResource {
     public PromptTemplateResponse getSystemPrompt(
             @QueryParam("version") String version) {
 
-        String template = supportService.getTemplateContent("apicurio-support-system-prompt");
+        String template = supportService.getTemplateContent(SUPPORT_SYSTEM_PROMPT);
         String rendered = supportService.getSystemPrompt(version);
 
         return new PromptTemplateResponse(
-            "apicurio-support-system-prompt",
+            SUPPORT_SYSTEM_PROMPT,
             version != null ? version : "latest",
             template,
             rendered
@@ -275,7 +278,7 @@ public class SupportChatResource {
         return new PromptPreviewResponse(
             request.question(),
             rendered,
-            "apicurio-support-system-prompt",
+            SUPPORT_SYSTEM_PROMPT,
             "apicurio-support-chat-prompt"
         );
     }

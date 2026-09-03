@@ -23,6 +23,8 @@ import java.util.Set;
 public class ModelSchemaCompatibilityChecker
         extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
+    private static final String FIELD_INPUT = "input";
+    private static final String FIELD_OUTPUT = "output";
     private static final String CONTEXT_INPUT = "/input";
     private static final String CONTEXT_INPUT_REQUIRED = "/input/required";
     private static final String CONTEXT_OUTPUT = "/output";
@@ -61,8 +63,8 @@ public class ModelSchemaCompatibilityChecker
 
     private void checkInputSchemaCompatibility(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
-        JsonNode existingInput = existing.get("input");
-        JsonNode proposedInput = proposed.get("input");
+        JsonNode existingInput = existing.get(FIELD_INPUT);
+        JsonNode proposedInput = proposed.get(FIELD_INPUT);
 
         if (existingInput != null && existingInput.isObject()) {
             if (proposedInput == null || !proposedInput.isObject()) {
@@ -72,15 +74,15 @@ public class ModelSchemaCompatibilityChecker
             }
 
             checkRequiredFieldChanges(existingInput, proposedInput, differences);
-            checkPropertyRemovals(existingInput, proposedInput, "input", differences);
-            checkPropertyTypeChanges(existingInput, proposedInput, "input", differences);
+            checkPropertyRemovals(existingInput, proposedInput, FIELD_INPUT, differences);
+            checkPropertyTypeChanges(existingInput, proposedInput, FIELD_INPUT, differences);
         }
     }
 
     private void checkOutputSchemaCompatibility(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
-        JsonNode existingOutput = existing.get("output");
-        JsonNode proposedOutput = proposed.get("output");
+        JsonNode existingOutput = existing.get(FIELD_OUTPUT);
+        JsonNode proposedOutput = proposed.get(FIELD_OUTPUT);
 
         if (existingOutput != null && existingOutput.isObject()) {
             if (proposedOutput == null || !proposedOutput.isObject()) {
@@ -89,8 +91,8 @@ public class ModelSchemaCompatibilityChecker
                 return;
             }
 
-            checkPropertyRemovals(existingOutput, proposedOutput, "output", differences);
-            checkPropertyTypeChanges(existingOutput, proposedOutput, "output", differences);
+            checkPropertyRemovals(existingOutput, proposedOutput, FIELD_OUTPUT, differences);
+            checkPropertyTypeChanges(existingOutput, proposedOutput, FIELD_OUTPUT, differences);
         }
     }
 

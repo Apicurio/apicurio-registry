@@ -23,6 +23,8 @@ import java.util.Set;
 public class McpToolCompatibilityChecker
         extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
+    private static final String FIELD_INPUT_SCHEMA = "inputSchema";
+
     private static final String CONTEXT_REQUIRED = "/inputSchema/required";
     private static final String CONTEXT_TYPE = "/inputSchema/type";
     private static final String CONTEXT_PROPERTIES = "/inputSchema/properties";
@@ -111,7 +113,7 @@ public class McpToolCompatibilityChecker
     }
 
     private String getInputSchemaType(JsonNode node) {
-        JsonNode inputSchema = node.get("inputSchema");
+        JsonNode inputSchema = node.get(FIELD_INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
             JsonNode type = inputSchema.get("type");
             if (type != null && type.isTextual()) {
@@ -123,7 +125,7 @@ public class McpToolCompatibilityChecker
 
     private Set<String> extractPropertyNames(JsonNode node) {
         Set<String> properties = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
+        JsonNode inputSchema = node.get(FIELD_INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
             JsonNode props = inputSchema.get("properties");
             if (props != null && props.isObject()) {
@@ -138,7 +140,7 @@ public class McpToolCompatibilityChecker
 
     private Set<String> extractRequiredParams(JsonNode node) {
         Set<String> required = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
+        JsonNode inputSchema = node.get(FIELD_INPUT_SCHEMA);
         if (inputSchema != null && inputSchema.isObject()) {
             JsonNode requiredNode = inputSchema.get("required");
             if (requiredNode != null && requiredNode.isArray()) {

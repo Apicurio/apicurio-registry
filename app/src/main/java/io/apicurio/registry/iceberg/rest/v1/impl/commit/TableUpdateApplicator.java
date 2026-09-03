@@ -13,6 +13,20 @@ import java.util.Map;
  */
 public final class TableUpdateApplicator {
 
+    private static final String FORMAT_VERSION = "format-version";
+    private static final String SCHEMAS = "schemas";
+    private static final String SCHEMA_ID = "schema-id";
+    private static final String LAST_COLUMN_ID = "last-column-id";
+    private static final String SPEC_ID = "spec-id";
+    private static final String PARTITION_SPECS = "partition-specs";
+    private static final String SORT_ORDERS = "sort-orders";
+    private static final String SNAPSHOTS = "snapshots";
+    private static final String SNAPSHOT_ID = "snapshot-id";
+    private static final String MAX_REF_AGE_MS = "max-ref-age-ms";
+    private static final String MAX_SNAPSHOT_AGE_MS = "max-snapshot-age-ms";
+    private static final String MIN_SNAPSHOTS_TO_KEEP = "min-snapshots-to-keep";
+    private static final String PROPERTIES = "properties";
+
     private TableUpdateApplicator() {
     }
 
@@ -90,10 +104,10 @@ public final class TableUpdateApplicator {
 
     private static void applyUpgradeFormatVersion(Map<String, Object> update,
             Map<String, Object> metadata) {
-        int newVersion = toInt(update.get("format-version"));
-        int currentVersion = toInt(metadata.getOrDefault("format-version", 1));
+        int newVersion = toInt(update.get(FORMAT_VERSION));
+        int currentVersion = toInt(metadata.getOrDefault(FORMAT_VERSION, 1));
         if (newVersion >= currentVersion) {
-            metadata.put("format-version", newVersion);
+            metadata.put(FORMAT_VERSION, newVersion);
         }
     }
 
@@ -104,13 +118,13 @@ public final class TableUpdateApplicator {
             throw new IllegalArgumentException("add-schema update is missing 'schema' field");
         }
 
-        List<Object> schemas = getMutableList(metadata, "schemas");
+        List<Object> schemas = getMutableList(metadata, SCHEMAS);
 
         // Compute next schema-id: max existing + 1
         int nextSchemaId = 0;
         for (Object s : schemas) {
             if (s instanceof Map) {
-                int sid = toInt(((Map<String, Object>) s).get("schema-id"));
+                int sid = toInt(((Map<String, Object>) s).get(SCHEMA_ID));
                 if (sid >= nextSchemaId) {
                     nextSchemaId = sid + 1;
                 }
@@ -119,23 +133,23 @@ public final class TableUpdateApplicator {
 
         // Auto-assign schema-id if not present or if -1 (sentinel)
         int schemaId;
-        if (!schema.containsKey("schema-id") || toInt(schema.get("schema-id")) < 0) {
+        if (!schema.containsKey(SCHEMA_ID) || toInt(schema.get(SCHEMA_ID)) < 0) {
             schemaId = nextSchemaId;
             schema = new HashMap<>(schema);
-            schema.put("schema-id", schemaId);
+            schema.put(SCHEMA_ID, schemaId);
         } else {
-            schemaId = toInt(schema.get("schema-id"));
+            schemaId = toInt(schema.get(SCHEMA_ID));
         }
 
         schemas.add(schema);
-        metadata.put("schemas", schemas);
+        metadata.put(SCHEMAS, schemas);
 
         // Update last-column-id from the update's last-column-id or from field IDs
-        if (update.containsKey("last-column-id")) {
-            int updateLastColumnId = toInt(update.get("last-column-id"));
-            int currentLastColumnId = toInt(metadata.getOrDefault("last-column-id", 0));
+        if (update.containsKey(LAST_COLUMN_ID)) {
+            int updateLastColumnId = toInt(update.get(LAST_COLUMN_ID));
+            int currentLastColumnId = toInt(metadata.getOrDefault(LAST_COLUMN_ID, 0));
             if (updateLastColumnId > currentLastColumnId) {
-                metadata.put("last-column-id", updateLastColumnId);
+                metadata.put(LAST_COLUMN_ID, updateLastColumnId);
             }
         } else {
             updateLastColumnId(schema, metadata);
@@ -144,22 +158,22 @@ public final class TableUpdateApplicator {
 
     private static void updateLastColumnId(Map<String, Object> schema, Map<String, Object> metadata) {
         int schemaMaxId = IcebergSchemaUtil.computeMaxFieldId(schema);
-        int currentLastColumnId = toInt(metadata.getOrDefault("last-column-id", 0));
+        int currentLastColumnId = toInt(metadata.getOrDefault(LAST_COLUMN_ID, 0));
         if (schemaMaxId > currentLastColumnId) {
-            metadata.put("last-column-id", schemaMaxId);
+            metadata.put(LAST_COLUMN_ID, schemaMaxId);
         }
     }
 
     @SuppressWarnings("unchecked")
     private static void applySetCurrentSchema(Map<String, Object> update, Map<String, Object> metadata) {
-        int schemaId = toInt(update.get("schema-id"));
+        int schemaId = toInt(update.get(SCHEMA_ID));
         if (schemaId == -1) {
             // Sentinel: resolve to the last schema in the list
-            List<Object> schemas = getMutableList(metadata, "schemas");
+            List<Object> schemas = getMutableList(metadata, SCHEMAS);
             if (!schemas.isEmpty()) {
                 Object lastSchema = schemas.get(schemas.size() - 1);
                 if (lastSchema instanceof Map) {
-                    schemaId = toInt(((Map<String, Object>) lastSchema).get("schema-id"));
+                    schemaId = toInt(((Map<String, Object>) lastSchema).get(SCHEMA_ID));
                 }
             }
         }
@@ -168,14 +182,14 @@ public final class TableUpdateApplicator {
 
     @SuppressWarnings("unchecked")
     private static void applySetDefaultSpec(Map<String, Object> update, Map<String, Object> metadata) {
-        int specId = toInt(update.get("spec-id"));
+        int specId = toInt(update.get(SPEC_ID));
         if (specId == -1) {
             // Sentinel: resolve to the last partition spec in the list
-            List<Object> specs = getMutableList(metadata, "partition-specs");
+            List<Object> specs = getMutableList(metadata, PARTITION_SPECS);
             if (!specs.isEmpty()) {
                 Object lastSpec = specs.get(specs.size() - 1);
                 if (lastSpec instanceof Map) {
-                    specId = toInt(((Map<String, Object>) lastSpec).get("spec-id"));
+                    specId = toInt(((Map<String, Object>) lastSpec).get(SPEC_ID));
                 }
             }
         }
@@ -187,7 +201,7 @@ public final class TableUpdateApplicator {
         int orderId = toInt(update.get("order-id"));
         if (orderId == -1) {
             // Sentinel: resolve to the last sort order in the list
-            List<Object> sortOrders = getMutableList(metadata, "sort-orders");
+            List<Object> sortOrders = getMutableList(metadata, SORT_ORDERS);
             if (!sortOrders.isEmpty()) {
                 Object lastOrder = sortOrders.get(sortOrders.size() - 1);
                 if (lastOrder instanceof Map) {
@@ -205,25 +219,25 @@ public final class TableUpdateApplicator {
             throw new IllegalArgumentException("add-spec update is missing 'spec' field");
         }
 
-        List<Object> specs = getMutableList(metadata, "partition-specs");
+        List<Object> specs = getMutableList(metadata, PARTITION_SPECS);
 
         // Auto-assign spec-id if -1 (sentinel) or not present
-        if (!spec.containsKey("spec-id") || toInt(spec.get("spec-id")) < 0) {
+        if (!spec.containsKey(SPEC_ID) || toInt(spec.get(SPEC_ID)) < 0) {
             int nextSpecId = 0;
             for (Object s : specs) {
                 if (s instanceof Map) {
-                    int sid = toInt(((Map<String, Object>) s).get("spec-id"));
+                    int sid = toInt(((Map<String, Object>) s).get(SPEC_ID));
                     if (sid >= nextSpecId) {
                         nextSpecId = sid + 1;
                     }
                 }
             }
             spec = new HashMap<>(spec);
-            spec.put("spec-id", nextSpecId);
+            spec.put(SPEC_ID, nextSpecId);
         }
 
         specs.add(spec);
-        metadata.put("partition-specs", specs);
+        metadata.put(PARTITION_SPECS, specs);
 
         // Update last-partition-id
         List<Map<String, Object>> fields = (List<Map<String, Object>>) spec.get("fields");
@@ -248,9 +262,9 @@ public final class TableUpdateApplicator {
             throw new IllegalArgumentException("add-sort-order update is missing 'sort-order' field");
         }
 
-        List<Object> sortOrders = getMutableList(metadata, "sort-orders");
+        List<Object> sortOrders = getMutableList(metadata, SORT_ORDERS);
         sortOrders.add(sortOrder);
-        metadata.put("sort-orders", sortOrders);
+        metadata.put(SORT_ORDERS, sortOrders);
     }
 
     @SuppressWarnings("unchecked")
@@ -260,14 +274,14 @@ public final class TableUpdateApplicator {
             throw new IllegalArgumentException("add-snapshot update is missing 'snapshot' field");
         }
 
-        List<Object> snapshots = getMutableList(metadata, "snapshots");
+        List<Object> snapshots = getMutableList(metadata, SNAPSHOTS);
         snapshots.add(snapshot);
-        metadata.put("snapshots", snapshots);
+        metadata.put(SNAPSHOTS, snapshots);
 
         // Update snapshot-log
         List<Object> snapshotLog = getMutableList(metadata, "snapshot-log");
         Map<String, Object> logEntry = new HashMap<>();
-        logEntry.put("snapshot-id", snapshot.get("snapshot-id"));
+        logEntry.put(SNAPSHOT_ID, snapshot.get(SNAPSHOT_ID));
         logEntry.put("timestamp-ms", snapshot.get("timestamp-ms"));
         snapshotLog.add(logEntry);
         metadata.put("snapshot-log", snapshotLog);
@@ -292,16 +306,16 @@ public final class TableUpdateApplicator {
         }
 
         Map<String, Object> refData = new HashMap<>();
-        refData.put("snapshot-id", update.get("snapshot-id"));
+        refData.put(SNAPSHOT_ID, update.get(SNAPSHOT_ID));
         refData.put("type", update.getOrDefault("type", "branch"));
-        if (update.containsKey("max-ref-age-ms")) {
-            refData.put("max-ref-age-ms", update.get("max-ref-age-ms"));
+        if (update.containsKey(MAX_REF_AGE_MS)) {
+            refData.put(MAX_REF_AGE_MS, update.get(MAX_REF_AGE_MS));
         }
-        if (update.containsKey("max-snapshot-age-ms")) {
-            refData.put("max-snapshot-age-ms", update.get("max-snapshot-age-ms"));
+        if (update.containsKey(MAX_SNAPSHOT_AGE_MS)) {
+            refData.put(MAX_SNAPSHOT_AGE_MS, update.get(MAX_SNAPSHOT_AGE_MS));
         }
-        if (update.containsKey("min-snapshots-to-keep")) {
-            refData.put("min-snapshots-to-keep", update.get("min-snapshots-to-keep"));
+        if (update.containsKey(MIN_SNAPSHOTS_TO_KEEP)) {
+            refData.put(MIN_SNAPSHOTS_TO_KEEP, update.get(MIN_SNAPSHOTS_TO_KEEP));
         }
 
         refs.put(refName, refData);
@@ -309,7 +323,7 @@ public final class TableUpdateApplicator {
 
         // If the ref is "main", also set current-snapshot-id
         if ("main".equals(refName)) {
-            metadata.put("current-snapshot-id", update.get("snapshot-id"));
+            metadata.put("current-snapshot-id", update.get(SNAPSHOT_ID));
         }
     }
 
@@ -320,7 +334,7 @@ public final class TableUpdateApplicator {
             return;
         }
 
-        List<Object> snapshots = getMutableList(metadata, "snapshots");
+        List<Object> snapshots = getMutableList(metadata, SNAPSHOTS);
         List<Long> removeIds = new ArrayList<>();
         for (Object id : snapshotIdsToRemove) {
             removeIds.add(toLong(id));
@@ -328,12 +342,12 @@ public final class TableUpdateApplicator {
 
         snapshots.removeIf(s -> {
             if (s instanceof Map) {
-                Long snapshotId = toLong(((Map<String, Object>) s).get("snapshot-id"));
+                Long snapshotId = toLong(((Map<String, Object>) s).get(SNAPSHOT_ID));
                 return removeIds.contains(snapshotId);
             }
             return false;
         });
-        metadata.put("snapshots", snapshots);
+        metadata.put(SNAPSHOTS, snapshots);
     }
 
     @SuppressWarnings("unchecked")
@@ -358,14 +372,14 @@ public final class TableUpdateApplicator {
             return;
         }
 
-        Map<String, Object> properties = (Map<String, Object>) metadata.get("properties");
+        Map<String, Object> properties = (Map<String, Object>) metadata.get(PROPERTIES);
         if (properties == null) {
             properties = new HashMap<>();
         } else {
             properties = new HashMap<>(properties);
         }
         properties.putAll(updates);
-        metadata.put("properties", properties);
+        metadata.put(PROPERTIES, properties);
     }
 
     @SuppressWarnings("unchecked")
@@ -375,13 +389,13 @@ public final class TableUpdateApplicator {
             return;
         }
 
-        Map<String, Object> properties = (Map<String, Object>) metadata.get("properties");
+        Map<String, Object> properties = (Map<String, Object>) metadata.get(PROPERTIES);
         if (properties != null) {
             properties = new HashMap<>(properties);
             for (String key : removals) {
                 properties.remove(key);
             }
-            metadata.put("properties", properties);
+            metadata.put(PROPERTIES, properties);
         }
     }
 

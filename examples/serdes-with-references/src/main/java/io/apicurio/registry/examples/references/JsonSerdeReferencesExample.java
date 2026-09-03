@@ -35,6 +35,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 public class JsonSerdeReferencesExample {
+    private static final String DEFAULT_GROUP = "default";
     private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String SERVERS = "localhost:9092";
     private static final String TOPIC_NAME = JsonSerdeReferencesExample.class.getSimpleName();
@@ -64,7 +65,7 @@ public class JsonSerdeReferencesExample {
         createArtifact.getFirstVersion().getContent().setContentType("application/json");
 
         final io.apicurio.registry.rest.client.models.VersionMetaData amdCity = client.groups()
-                .byGroupId("default").artifacts().post(createArtifact, config -> {
+                .byGroupId(DEFAULT_GROUP).artifacts().post(createArtifact, config -> {
                     config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION;
                 }).getVersion();
 
@@ -88,7 +89,7 @@ public class JsonSerdeReferencesExample {
         citizenCreateArtifact.getFirstVersion().getContent()
                 .setReferences(Collections.singletonList(reference));
 
-        client.groups().byGroupId("default").artifacts().post(citizenCreateArtifact, config -> {
+        client.groups().byGroupId(DEFAULT_GROUP).artifacts().post(citizenCreateArtifact, config -> {
             config.queryParameters.ifExists = io.apicurio.registry.rest.client.models.IfArtifactExists.FIND_OR_CREATE_VERSION;
         });
 
@@ -170,7 +171,7 @@ public class JsonSerdeReferencesExample {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 JsonSchemaKafkaSerializer.class.getName());
         props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
-        props.putIfAbsent(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, "default");
+        props.putIfAbsent(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, DEFAULT_GROUP);
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
@@ -200,7 +201,7 @@ public class JsonSerdeReferencesExample {
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 JsonSchemaKafkaDeserializer.class.getName());
         props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
-        props.putIfAbsent(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, "default");
+        props.putIfAbsent(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, DEFAULT_GROUP);
         props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, true);
 
         // Configure Service Registry location

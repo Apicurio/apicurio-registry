@@ -26,6 +26,10 @@ import java.util.Set;
 public class PromptTemplateCompatibilityChecker
         extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
+    private static final String FIELD_VARIABLES = "variables";
+    private static final String FIELD_TEMPLATE = "template";
+    private static final String FIELD_OUTPUT_SCHEMA = "outputSchema";
+    private static final String FIELD_REQUIRED = "required";
     private static final String CONTEXT_VARIABLES = "/variables";
     private static final String CONTEXT_OUTPUT_SCHEMA = "/outputSchema";
     private static final String CONTEXT_OUTPUT_SCHEMA_PROPERTIES = "/outputSchema/properties";
@@ -65,17 +69,17 @@ public class PromptTemplateCompatibilityChecker
 
     private void checkVariableCompatibility(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
-        JsonNode existingVars = existing.get("variables");
-        JsonNode proposedVars = proposed.get("variables");
+        JsonNode existingVars = existing.get(FIELD_VARIABLES);
+        JsonNode proposedVars = proposed.get(FIELD_VARIABLES);
 
         if (existingVars == null || !existingVars.isObject()) {
             return;
         }
 
         List<String> proposedTemplateVars = List.of();
-        if (proposed.has("template") && proposed.get("template").isTextual()) {
+        if (proposed.has(FIELD_TEMPLATE) && proposed.get(FIELD_TEMPLATE).isTextual()) {
             proposedTemplateVars = PromptTemplateContentValidator.extractTemplateVariables(
-                    proposed.get("template").asText());
+                    proposed.get(FIELD_TEMPLATE).asText());
         }
 
         Iterator<String> existingVarNames = existingVars.fieldNames();
@@ -115,8 +119,8 @@ public class PromptTemplateCompatibilityChecker
 
     private void checkVariableBecameRequired(String varName, JsonNode existingVar, JsonNode proposedVar,
             Set<SimpleCompatibilityDifference> differences) {
-        boolean wasRequired = existingVar.has("required") && existingVar.get("required").asBoolean(false);
-        boolean isRequired = proposedVar.has("required") && proposedVar.get("required").asBoolean(false);
+        boolean wasRequired = existingVar.has(FIELD_REQUIRED) && existingVar.get(FIELD_REQUIRED).asBoolean(false);
+        boolean isRequired = proposedVar.has(FIELD_REQUIRED) && proposedVar.get(FIELD_REQUIRED).asBoolean(false);
 
         if (!wasRequired && isRequired) {
             differences.add(new SimpleCompatibilityDifference(
@@ -150,8 +154,8 @@ public class PromptTemplateCompatibilityChecker
 
     private void checkOutputSchemaCompatibility(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
-        JsonNode existingSchema = existing.get("outputSchema");
-        JsonNode proposedSchema = proposed.get("outputSchema");
+        JsonNode existingSchema = existing.get(FIELD_OUTPUT_SCHEMA);
+        JsonNode proposedSchema = proposed.get(FIELD_OUTPUT_SCHEMA);
 
         if (existingSchema == null || !existingSchema.isObject()) {
             return;

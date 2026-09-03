@@ -26,6 +26,7 @@ import java.util.concurrent.CompletionStage;
 public class RegistryProxyResource {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryProxyResource.class);
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
 
     @ConfigProperty(name = "registry.api.url", defaultValue = "http://localhost:8080")
     String registryApiUrl;
@@ -102,7 +103,7 @@ public class RegistryProxyResource {
             requestBuilder.header("Authorization", authorization);
         }
         if (contentType != null && !contentType.isEmpty()) {
-            requestBuilder.header("Content-Type", contentType);
+            requestBuilder.header(HEADER_CONTENT_TYPE, contentType);
         }
         if (accept != null && !accept.isEmpty()) {
             requestBuilder.header("Accept", accept);
@@ -122,8 +123,8 @@ public class RegistryProxyResource {
                                 .entity("Response body too large").build();
                     }
                     Response.ResponseBuilder builder = Response.status(resp.statusCode());
-                    resp.headers().firstValue("Content-Type")
-                            .ifPresent(ct -> builder.header("Content-Type", ct));
+                    resp.headers().firstValue(HEADER_CONTENT_TYPE)
+                            .ifPresent(ct -> builder.header(HEADER_CONTENT_TYPE, ct));
                     builder.entity(resp.body());
                     return builder.build();
                 })

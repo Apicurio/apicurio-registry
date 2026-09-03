@@ -37,6 +37,9 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 @ApplicationScoped
 public class PromptRenderingService {
 
+    private static final String TYPE_STRING = "string";
+    private static final String TYPE_INTEGER = "integer";
+    private static final String TYPE_NUMBER = "number";
 
     /**
      * Matches {{#if var}} ... {{/if}} blocks, including multi-line content.
@@ -231,7 +234,7 @@ public class PromptRenderingService {
      */
     private void validateValue(String varName, Object value, JsonNode varSchema,
             List<RenderValidationError> errors) {
-        String expectedType = varSchema.path("type").asText("string");
+        String expectedType = varSchema.path("type").asText(TYPE_STRING);
         RenderValidationError typeError = validateType(varName, value, expectedType);
         if (typeError != null) {
             errors.add(typeError);
@@ -247,7 +250,7 @@ public class PromptRenderingService {
         }
 
         // Validate range for numeric types
-        if ("integer".equals(expectedType) || "number".equals(expectedType)) {
+        if (TYPE_INTEGER.equals(expectedType) || TYPE_NUMBER.equals(expectedType)) {
             RenderValidationError rangeError = validateRange(varName, value, varSchema);
             if (rangeError != null) {
                 errors.add(rangeError);
@@ -291,9 +294,9 @@ public class PromptRenderingService {
         String actualType = getTypeName(value);
 
         boolean valid = switch (expectedType) {
-            case "string" -> value instanceof String;
-            case "integer" -> value instanceof Integer || value instanceof Long;
-            case "number" -> value instanceof Number;
+            case TYPE_STRING -> value instanceof String;
+            case TYPE_INTEGER -> value instanceof Integer || value instanceof Long;
+            case TYPE_NUMBER -> value instanceof Number;
             case "boolean" -> value instanceof Boolean;
             case "array" -> value instanceof List;
             case "object" -> value instanceof Map;
@@ -375,9 +378,9 @@ public class PromptRenderingService {
      */
     private String getTypeName(Object value) {
         if (value == null) return "null";
-        if (value instanceof String) return "string";
-        if (value instanceof Integer || value instanceof Long) return "integer";
-        if (value instanceof Number) return "number";
+        if (value instanceof String) return TYPE_STRING;
+        if (value instanceof Integer || value instanceof Long) return TYPE_INTEGER;
+        if (value instanceof Number) return TYPE_NUMBER;
         if (value instanceof Boolean) return "boolean";
         if (value instanceof List) return "array";
         if (value instanceof Map) return "object";

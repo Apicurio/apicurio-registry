@@ -135,6 +135,16 @@ jobs:
             -t apicurio/apicurio-registry:${{ github.sha }} \
             ./distro/docker/target/docker
 
+      - name: Build Mutable Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.mutable.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }}-mutable \
+            ./distro/docker/target/docker
+
+      - name: Smoke Test Re-augmentation of the Mutable Docker Image
+        run: |
+          docker run --rm apicurio/apicurio-registry:${{ github.sha }}-mutable /deployments/build.sh --prune
+
       - name: Save Docker Image
         uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         with:
@@ -410,11 +420,28 @@ jobs:
 
   # ============================================================================
   # PUBLISH: Push images (only on push to main)
+  #
+  # always() is required, not cosmetic. gate runs under always() so that it can
+  # report on a run in which Decide legitimately skipped some of its needs
+  # (cli-verify and go-sdk-freshness are skipped on most pushes, by design).
+  # A skipped ancestor propagates "skipped" down to every descendant that does
+  # not opt out with always(), so without it this job is skipped on every push
+  # to main even when build-java and gate both succeed — which is exactly what
+  # happened between 2026-08-22 and 2026-09-03, leaving latest-snapshot stale
+  # on quay.io for twelve days and latest-snapshot-mutable never published at
+  # all. The explicit result checks below restore the safety property that the
+  # implicit success() was providing: publish only a commit that built cleanly
+  # and passed the Verification Gate.
   # ============================================================================
   publish:
     name: Publish Images
     needs: [build-java, gate]
-    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    if: >-
+      always()
+      && github.event_name == 'push'
+      && github.repository_owner == 'Apicurio'
+      && needs.build-java.result == 'success'
+      && needs.gate.result == 'success'
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}

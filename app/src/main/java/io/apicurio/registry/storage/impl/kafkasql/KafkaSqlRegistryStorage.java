@@ -277,10 +277,22 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 // Restore database from snapshot
                 try {
                     String path = snapshotFound.value();
-                    if (null != path && !path.isBlank() && Files.exists(Path.of(snapshotFound.value()))) {
-                        log.debug("Snapshot with path {} found.", snapshotFound.value());
+                    if (null == path || path.isBlank()) {
+                        continue;
+                    }
+                    // Defense-in-depth: the path is read off the internal snapshots topic and drives
+                    // an H2 RUNSCRIPT at startup, so a value pointing outside the configured snapshot
+                    // store (absolute, or via "..") must not be used to load/execute an arbitrary
+                    // local SQL script.
+                    if (!isWithinSnapshotStore(configuration.getSnapshotStoreLocation(), path)) {
+                        log.warn("Snapshot with path {} ignored: it is outside the configured snapshot "
+                                + "store location {}.", path, configuration.getSnapshotStoreLocation());
+                        continue;
+                    }
+                    if (Files.exists(Path.of(path))) {
+                        log.debug("Snapshot with path {} found.", path);
                         snapshotRecordKey = snapshotFound.key();
-                        mostRecentSnapshotPath = Path.of(snapshotFound.value());
+                        mostRecentSnapshotPath = Path.of(path);
                     }
                 } catch (IllegalArgumentException ex) {
                     log.warn(
@@ -298,6 +310,25 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         }
 
         return snapshotRecordKey;
+    }
+
+    /**
+     * Checks whether a snapshot path read off the internal {@code snapshots} topic is contained
+     * within the configured snapshot store location ({@code apicurio.storage.snapshot.location}).
+     * Snapshots are written by the registry as {@code <store>/<uuid>.sql.gz}; on restore the value
+     * is used verbatim to drive an H2 {@code RUNSCRIPT}, so this rejects any value that resolves
+     * outside the store (absolute paths, {@code ..} traversal) as defense-in-depth.
+     *
+     * @return {@code true} only if {@code snapshotPath} resolves within {@code snapshotStoreLocation}
+     */
+    static boolean isWithinSnapshotStore(String snapshotStoreLocation, String snapshotPath) {
+        if (snapshotStoreLocation == null || snapshotStoreLocation.isBlank()
+                || snapshotPath == null || snapshotPath.isBlank()) {
+            return false;
+        }
+        Path store = Path.of(snapshotStoreLocation).toAbsolutePath().normalize();
+        Path candidate = Path.of(snapshotPath).toAbsolutePath().normalize();
+        return candidate.startsWith(store);
     }
 
     /**

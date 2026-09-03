@@ -2702,7 +2702,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             map.put("auditId", e.getAuditId());
             map.put(PARAM_GROUP_ID, e.getGroupId());
             map.put(PARAM_ARTIFACT_ID, e.getArtifactId());
-            map.put("version", e.getVersion());
+            map.put(PARAM_VERSION, e.getVersion());
             map.put("action", e.getAction());
             map.put("principal", e.getPrincipal());
             map.put("details", e.getDetails());

@@ -82,7 +82,7 @@ public class SupportChatResource {
             ),
             "activeSessions", activeSessions.size(),
             "rag", Map.of(
-                "status", ragStatus.complete() ? "ready" : "ingesting",
+                STATUS_KEY, ragStatus.complete() ? "ready" : "ingesting",
                 "documentsIngested", ragStatus.ingested(),
                 "totalDocuments", ragStatus.total()
             )

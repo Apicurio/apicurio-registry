@@ -20,6 +20,7 @@ import java.util.Set;
  */
 public class AgentCardContentValidator extends AbstractContentValidator {
 
+    private static final String PATH_SEP = "/";
     private static final String FIELD_DESCRIPTION = "description";
     private static final String FIELD_SUPPORTED_INTERFACES = "supportedInterfaces";
     private static final String PATH_SUPPORTED_INTERFACES = "/supportedInterfaces";
@@ -189,7 +190,7 @@ public class AgentCardContentValidator extends AbstractContentValidator {
         JsonNode interfaces = tree.get(FIELD_SUPPORTED_INTERFACES);
         int index = 0;
         for (JsonNode iface : interfaces) {
-            String basePath = PATH_SUPPORTED_INTERFACES + "/" + index;
+            String basePath = PATH_SUPPORTED_INTERFACES + PATH_SEP + index;
 
             if (!iface.isObject()) {
                 violations.add(new RuleViolation(
@@ -270,7 +271,7 @@ public class AgentCardContentValidator extends AbstractContentValidator {
         JsonNode skills = tree.get(FIELD_SKILLS);
         int index = 0;
         for (JsonNode skill : skills) {
-            String basePath = PATH_SKILLS + "/" + index;
+            String basePath = PATH_SKILLS + PATH_SEP + index;
 
             if (!skill.isObject()) {
                 violations.add(new RuleViolation(
@@ -328,12 +329,10 @@ public class AgentCardContentValidator extends AbstractContentValidator {
             validateOptionalSkillStringArray(skill, "inputModes", basePath, violations);
             validateOptionalSkillStringArray(skill, "outputModes", basePath, violations);
 
-            if (skill.has(FIELD_SECURITY_REQUIREMENTS)) {
-                if (!skill.get(FIELD_SECURITY_REQUIREMENTS).isArray()) {
-                    violations.add(new RuleViolation(
-                            "Skill 'securityRequirements' must be an array",
-                            basePath + "/" + FIELD_SECURITY_REQUIREMENTS));
-                }
+            if (skill.has(FIELD_SECURITY_REQUIREMENTS) && !skill.get(FIELD_SECURITY_REQUIREMENTS).isArray()) {
+                violations.add(new RuleViolation(
+                        "Skill 'securityRequirements' must be an array",
+                        basePath + "/" + FIELD_SECURITY_REQUIREMENTS));
             }
 
             index++;
@@ -422,7 +421,7 @@ public class AgentCardContentValidator extends AbstractContentValidator {
             String basePath = "/signatures/" + index;
             if (!sig.isObject()) {
                 violations.add(new RuleViolation(
-                        "Signature at index " + index + " must be an object", basePath));
+                        "Signature at index " + index + MSG_MUST_BE_OBJECT, basePath));
             } else {
                 if (!sig.has("protected") || !sig.get("protected").isTextual()) {
                     violations.add(new RuleViolation(

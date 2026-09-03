@@ -802,7 +802,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     private String extractApiInfoVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
         try {
             JsonNode root = getVersionExtractionMapper(artifact).readTree(data);
-            JsonNode versionNode = root.path("info").path("version");
+            JsonNode versionNode = root.path("info").path(CASE_VERSION);
             if (versionNode.isTextual()) {
                 String version = versionNode.asText();
                 if (!version.isBlank()) {

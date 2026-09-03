@@ -10,6 +10,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaDeserializer;
 import io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer;
@@ -171,7 +172,7 @@ public class JsonSerdeReferencesExample {
         props.putIfAbsent(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 JsonSchemaKafkaSerializer.class.getName());
         props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
-        props.putIfAbsent(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, DEFAULT_GROUP);
+        props.putIfAbsent(SchemaResolverConfig.EXPLICIT_ARTIFACT_GROUP_ID, DEFAULT_GROUP);
 
         // Configure Service Registry location
         props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
@@ -201,7 +202,7 @@ public class JsonSerdeReferencesExample {
         props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 JsonSchemaKafkaDeserializer.class.getName());
         props.putIfAbsent(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, SimpleTopicIdStrategy.class.getName());
-        props.putIfAbsent(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, DEFAULT_GROUP);
+        props.putIfAbsent(SchemaResolverConfig.EXPLICIT_ARTIFACT_GROUP_ID, DEFAULT_GROUP);
         props.putIfAbsent(SerdeConfig.VALIDATION_ENABLED, true);
 
         // Configure Service Registry location

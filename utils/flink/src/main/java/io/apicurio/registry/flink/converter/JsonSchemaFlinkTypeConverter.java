@@ -93,11 +93,11 @@ public final class JsonSchemaFlinkTypeConverter {
         if (schemaNode.has("$ref")) {
             return DataTypes.STRING();
         }
-        if (schemaNode.has(TYPE_ONE_OF) || schemaNode.has("anyOf")) {
-            final JsonNode unionNode = schemaNode.has(TYPE_ONE_OF)
-                    ? schemaNode.get(TYPE_ONE_OF)
-                    : schemaNode.get("anyOf");
-            return convertUnion(unionNode);
+        if (schemaNode.has(TYPE_ONE_OF)) {
+            return convertUnion(schemaNode.get(TYPE_ONE_OF));
+        }
+        if (schemaNode.has("anyOf")) {
+            return convertUnion(schemaNode.get("anyOf"));
         }
         final String type = getType(schemaNode);
         final String format = schemaNode.has("format")

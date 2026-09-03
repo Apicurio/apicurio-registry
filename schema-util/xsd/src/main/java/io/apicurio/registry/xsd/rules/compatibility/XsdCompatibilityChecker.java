@@ -30,8 +30,8 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
     private static final String ATTRIBUTE_LABEL = "Attribute '";
     private static final String MSG_ELEMENT_PREFIX = "Element '";
     private static final String MSG_WAS_REMOVED = "' was removed";
-    private static final String PATH_ELEMENT_PREFIX = "/element[";
-    private static final String PATH_ATTRIBUTE_PREFIX = "/attribute[";
+    private static final String PATH_ELEMENT_PREFIX = "/element["; // NOSONAR - XSD path fragment
+    private static final String PATH_ATTRIBUTE_PREFIX = "/attribute["; // NOSONAR - XSD path fragment
     private static final String MSG_TYPE_PREFIX = "Type '";
 
     @Override

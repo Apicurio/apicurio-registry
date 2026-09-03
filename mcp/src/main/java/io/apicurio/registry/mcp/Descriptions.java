@@ -133,6 +133,34 @@ public final class Descriptions {
              Global ID is a numeric identifier unique within an Apicurio Registry instance. \
              It is assigned by incrementing a counter each time an artifact version is created.""";
 
+    public static final String ARD_SEARCH_TEXT = """
+            Natural-language search query, describing the agent, tool, or capability you are looking for. \
+            This is matched against the name, description, and other metadata of registered A2A agents and MCP tools.""";
+
+    public static final String ARD_SEARCH_TYPE = """
+            Restrict results to one or more ARD entry types. \
+            Provide a comma-separated list, e.g. "application/agent-card+json,application/mcp-server-card+json". \
+            Leave empty to search across all types.""";
+
+    public static final String ARD_SEARCH_TAGS = """
+            Restrict results to entries carrying any of the given tags. \
+            Provide a comma-separated list, e.g. "streaming,production".""";
+
+    public static final String ARD_SEARCH_CAPABILITIES = """
+            Restrict results to entries advertising any of the given capabilities. \
+            Provide a comma-separated list, e.g. "java,pushNotifications".""";
+
+    public static final String ARD_SEARCH_PUBLISHER = """
+            Restrict results to entries published by any of the given publisher domains. \
+            Provide a comma-separated list.""";
+
+    public static final String ARD_SEARCH_PAGE_TOKEN = """
+            Opaque pagination token returned by a previous "ard_search" call, used to fetch the next page of results. \
+            Leave empty to fetch the first page.""";
+
+    public static final String ARD_SEARCH_PAGE_SIZE = """
+            Maximum number of results to return in a single page (defaults to 10 if not provided).""";
+
     private Descriptions() {
     }
 }

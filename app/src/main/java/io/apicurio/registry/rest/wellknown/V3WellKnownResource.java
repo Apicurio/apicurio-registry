@@ -2,7 +2,6 @@ package io.apicurio.registry.rest.wellknown;
 
 import io.apicurio.registry.rest.v3.WellResource;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
-import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
 import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
@@ -34,11 +33,6 @@ public class V3WellKnownResource implements WellResource {
     }
 
     @Override
-    public AgentCard getAgentCardV1() {
-        return delegate.getAgentCardV1();
-    }
-
-    @Override
     public AgentCard getAgentCardForOrchestrate() {
         return delegate.getAgentCardForOrchestrate();
     }
@@ -50,25 +44,6 @@ public class V3WellKnownResource implements WellResource {
         int off = offset != null ? offset.intValue() : 0;
         int lim = limit != null ? limit.intValue() : 20;
         return delegate.searchAgents(name, skill, capability, inputMode, outputMode, off, lim);
-    }
-
-    @Override
-    public AgentSearchResults searchPublicAgents(BigInteger offset, BigInteger limit) {
-        int off = offset != null ? offset.intValue() : 0;
-        int lim = limit != null ? limit.intValue() : 20;
-        return delegate.getPublicAgents(off, lim);
-    }
-
-    @Override
-    public AgentSearchResults searchEntitledAgents(BigInteger offset, BigInteger limit) {
-        int off = offset != null ? offset.intValue() : 0;
-        int lim = limit != null ? limit.intValue() : 20;
-        return delegate.getEntitledAgents(off, lim);
-    }
-
-    @Override
-    public AgentSearchResults searchAgentsAdvanced(AgentSearchRequest data) {
-        return delegate.searchAgentsAdvanced(data);
     }
 
     @Override

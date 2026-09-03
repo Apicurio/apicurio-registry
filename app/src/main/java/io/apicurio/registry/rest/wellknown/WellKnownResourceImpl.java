@@ -12,8 +12,6 @@ import io.apicurio.registry.ard.ArdConfig;
 import io.apicurio.registry.rest.v3.beans.AgentCapabilities;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentInterface;
-import io.apicurio.registry.rest.v3.beans.AgentSearchFilters;
-import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
@@ -185,182 +183,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
-    public AgentCard getAgentCardV1() {
-        return getAgentCard();
-    }
-
-    @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public AgentCard getAgentCardForOrchestrate() {
         return getAgentCard();
-    }
-
-    @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
-    public AgentSearchResults getPublicAgents(Integer offset, Integer limit) {
-        if (!a2aConfig.isEnabled() || !a2aConfig.isPublicDiscoveryEnabled()) {
-            throw new NotFoundException("Public agent discovery is disabled");
-        }
-
-        Set<SearchFilter> filters = new HashSet<>();
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
-
-        // Agent Cards without an explicit visibility label fall back to the configured default
-        // visibility (see resolveVisibility), so when that default is "public" they belong in
-        // these results even though no label filter can match them. Resolve visibility in memory
-        // in that case, as getEntitledAgents does. Otherwise keep the cheaper indexed label query.
-        if (A2AConstants.VISIBILITY_PUBLIC
-                .equals(a2aConfig.getDefaultVisibility().toLowerCase(Locale.ROOT))) {
-            return publicAgentsByResolvedVisibility(filters, offset, limit);
-        }
-
-        filters.add(SearchFilter.ofLabel(A2AConstants.LABEL_AGENT_VISIBILITY, A2AConstants.VISIBILITY_PUBLIC));
-
-        int safeOffset = Math.max(0, offset);
-        int safeLimit = Math.max(1, Math.min(limit, 500));
-
-        ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
-
-        List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
-            agents.add(convertToAgentSearchResult(artifact));
-        }
-
-        return AgentSearchResults.builder()
-                .count((int) results.getCount())
-                .agents(agents)
-                .build();
-    }
-
-    @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public AgentSearchResults getEntitledAgents(Integer offset, Integer limit) {
-        if (!a2aConfig.isEnabled() || !a2aConfig.isEntitlementsEnabled()) {
-            throw new NotFoundException("Agent entitlements endpoint is disabled");
-        }
-
-        Set<SearchFilter> filters = new HashSet<>();
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
-
-        ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-        warnIfTruncated(results);
-
-        // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
-        List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
-
-        int total = visible.size();
-        int safeOffset = Math.max(0, Math.min(offset, total));
-        int safeLimit = Math.max(0, Math.min(limit, 500));
-        int toIndex = Math.min(safeOffset + safeLimit, total);
-        List<SearchedArtifactDto> page = visible.subList(safeOffset, toIndex);
-
-        List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : page) {
-            agents.add(convertToAgentSearchResult(artifact));
-        }
-
-        return AgentSearchResults.builder()
-                .count(total)
-                .agents(agents)
-                .build();
-    }
-
-    @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public AgentSearchResults searchAgentsAdvanced(AgentSearchRequest request) {
-        if (!a2aConfig.isEnabled()) {
-            throw new NotFoundException("A2A support is disabled");
-        }
-
-        Set<SearchFilter> filters = new HashSet<>();
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
-
-        // Query matches artifact metadata name and artifactId (not Agent Card JSON content).
-        // Full-text content search is tracked in #7230.
-        if (!StringUtil.isEmpty(request.getQuery())) {
-            filters.add(SearchFilter.ofPartialName(request.getQuery()));
-        }
-
-        AgentSearchFilters f = request.getFilters();
-        if (f != null) {
-            if (f.getSkills() != null) {
-                for (String skill : f.getSkills()) {
-                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
-                }
-            }
-            if (f.getCapabilities() != null) {
-                for (Map.Entry<String, Object> entry : f.getCapabilities().getAdditionalProperties().entrySet()) {
-                    SearchFilter filter = SearchFilter.ofStructure(
-                            A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + entry.getKey());
-                    if (!Boolean.TRUE.equals(entry.getValue())) {
-                        filter = filter.negated();
-                    }
-                    filters.add(filter);
-                }
-            }
-            if (f.getLabels() != null) {
-                for (Map.Entry<String, Object> entry : f.getLabels().getAdditionalProperties().entrySet()) {
-                    filters.add(SearchFilter.ofLabel(entry.getKey(), String.valueOf(entry.getValue())));
-                }
-            }
-            if (f.getInputModes() != null) {
-                for (String mode : f.getInputModes()) {
-                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
-                }
-            }
-            if (f.getOutputModes() != null) {
-                for (String mode : f.getOutputModes()) {
-                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
-                }
-            }
-            if (f.getProtocolBindings() != null) {
-                for (String binding : f.getProtocolBindings()) {
-                    filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_PROTOCOL_BINDING + binding));
-                }
-            }
-        }
-
-        int safeOffset = Math.max(0, request.getOffset() != null ? request.getOffset() : 0);
-        int safeLimit = Math.max(1, Math.min(request.getLimit() != null ? request.getLimit() : 20, 500));
-
-        if (a2aConfig.isEntitlementsEnabled()) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(
-                    filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
-
-            // Filter by visibility on DTOs first (cheap), then paginate, then convert (expensive)
-            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
-
-            int total = visible.size();
-            int fromIndex = Math.min(safeOffset, total);
-            int toIndex = Math.min(fromIndex + safeLimit, total);
-            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
-
-            List<AgentSearchResult> agents = new ArrayList<>();
-            for (SearchedArtifactDto artifact : page) {
-                agents.add(convertToAgentSearchResult(artifact));
-            }
-
-            return AgentSearchResults.builder()
-                    .count(total)
-                    .agents(agents)
-                    .build();
-        }
-
-        ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
-
-        List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
-            agents.add(convertToAgentSearchResult(artifact));
-        }
-
-        return AgentSearchResults.builder()
-                .count((int) results.getCount())
-                .agents(agents)
-                .build();
     }
 
     @Override
@@ -400,99 +224,114 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
             List<String> inputModes, List<String> outputModes, Integer offset, Integer limit) {
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
         }
 
-        Set<SearchFilter> filters = new HashSet<>();
+        String baseUrl = getBaseUrl();
+        String publisherDomain = resolvePublisherDomain();
 
-        // Always filter by AGENT_CARD artifact type
-        filters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
-
-        // Filter by name if provided. The name filter is documented as a partial match, so
-        // wrap the value in wildcards unless the caller supplied their own.
-        if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofPartialName(name));
-        }
-
-        // Filter by skills (indexed as structured content: agent_card:skill:<id>)
-        if (skills != null && !skills.isEmpty()) {
-            for (String skill : skills) {
-                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_SKILL + skill));
+        // Delegate candidate collection (including the single, shared visibility-filtering
+        // implementation) to the same core that backs the AI Catalog / ARD endpoints.
+        // Structured skill/capability/input-mode/output-mode filters have no equivalent in
+        // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
+        // Agent Card content.
+        List<SearchedArtifactDto> matched = new ArrayList<>();
+        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name)) {
+            if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
+                continue;
+            }
+            if (matchesAgentStructuredFilters(candidate.artifact, skills, capabilities, inputModes, outputModes)) {
+                matched.add(candidate.artifact);
             }
         }
 
-        // Filter by capabilities (indexed as structured content: agent_card:capability:<name>)
-        if (capabilities != null && !capabilities.isEmpty()) {
-            for (String capability : capabilities) {
-                // Parse capability:value format (e.g., "streaming:true")
-                String[] parts = capability.split(":", 2);
-                String capKey = parts[0];
-                String capValue = parts.length > 1 ? parts[1] : "true";
-                SearchFilter filter = SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_CAPABILITY + capKey);
-                if ("false".equals(capValue)) {
-                    filter = filter.negated();
-                }
-                filters.add(filter);
-            }
-        }
-
-        // Filter by input modes (indexed as structured content: agent_card:inputmode:<mode>)
-        if (inputModes != null && !inputModes.isEmpty()) {
-            for (String mode : inputModes) {
-                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_INPUT_MODE + mode));
-            }
-        }
-
-        // Filter by output modes (indexed as structured content: agent_card:outputmode:<mode>)
-        if (outputModes != null && !outputModes.isEmpty()) {
-            for (String mode : outputModes) {
-                filters.add(SearchFilter.ofStructure(A2AConstants.PREFIX_AGENT_CARD_OUTPUT_MODE + mode));
-            }
-        }
-
-        int safeOffset = Math.max(0, offset);
+        int total = matched.size();
+        int safeOffset = Math.max(0, Math.min(offset, total));
         int safeLimit = Math.max(1, Math.min(limit, 500));
-
-        if (isAuthEnabled() && a2aConfig.isEntitlementsEnabled()) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(
-                    filters, OrderBy.createdOn, OrderDirection.desc,
-                    0, MAX_VISIBILITY_FILTER_RESULTS, false);
-            warnIfTruncated(results);
-
-            List<SearchedArtifactDto> visible = filterDtosByVisibility(results.getArtifacts());
-
-            int total = visible.size();
-            int fromIndex = Math.min(safeOffset, total);
-            int toIndex = Math.min(fromIndex + safeLimit, total);
-            List<SearchedArtifactDto> page = visible.subList(fromIndex, toIndex);
-
-            List<AgentSearchResult> agents = new ArrayList<>();
-            for (SearchedArtifactDto artifact : page) {
-                agents.add(convertToAgentSearchResult(artifact));
-            }
-
-            return AgentSearchResults.builder()
-                    .count(total)
-                    .agents(agents)
-                    .build();
-        }
-
-        ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, safeOffset, safeLimit, false);
+        int toIndex = Math.min(safeOffset + safeLimit, total);
+        List<SearchedArtifactDto> page = matched.subList(safeOffset, toIndex);
 
         List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
+        for (SearchedArtifactDto artifact : page) {
             agents.add(convertToAgentSearchResult(artifact));
         }
 
         return AgentSearchResults.builder()
-                .count((int) results.getCount())
+                .count(total)
                 .agents(agents)
                 .build();
+    }
+
+    /**
+     * Evaluates the {@code skill}/{@code capability}/{@code inputMode}/{@code outputMode}
+     * structured filters accepted by {@link #searchAgents} against an artifact's Agent Card
+     * content. All requested values must match (AND semantics), mirroring the previous
+     * per-filter storage-index semantics. A {@code capability} value may be suffixed with
+     * {@code :false} to require the capability be absent/disabled (default {@code true}).
+     */
+    private boolean matchesAgentStructuredFilters(SearchedArtifactDto artifact, List<String> skills,
+            List<String> capabilities, List<String> inputModes, List<String> outputModes) {
+        boolean hasSkills = skills != null && !skills.isEmpty();
+        boolean hasCapabilities = capabilities != null && !capabilities.isEmpty();
+        boolean hasInputModes = inputModes != null && !inputModes.isEmpty();
+        boolean hasOutputModes = outputModes != null && !outputModes.isEmpty();
+        if (!hasSkills && !hasCapabilities && !hasInputModes && !hasOutputModes) {
+            return true;
+        }
+
+        JsonNode root = readLatestContent(artifact);
+
+        if (hasSkills) {
+            List<String> skillIds = extractAgentCardSkillIds(root);
+            for (String skill : skills) {
+                if (!skillIds.contains(skill)) {
+                    return false;
+                }
+            }
+        }
+
+        if (hasCapabilities) {
+            JsonNode capabilitiesNode = root.path("capabilities");
+            for (String capability : capabilities) {
+                String[] parts = capability.split(":", 2);
+                String capKey = parts[0];
+                String capValue = parts.length > 1 ? parts[1] : "true";
+                boolean expected = !"false".equals(capValue);
+                if (capabilitiesNode.path(capKey).asBoolean(false) != expected) {
+                    return false;
+                }
+            }
+        }
+
+        if (hasInputModes && !containsAllTextValues(root.path("defaultInputModes"), inputModes)) {
+            return false;
+        }
+
+        if (hasOutputModes && !containsAllTextValues(root.path("defaultOutputModes"), outputModes)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns {@code true} if every value in {@code required} is present among the textual
+     * elements of {@code arrayNode}.
+     */
+    private boolean containsAllTextValues(JsonNode arrayNode, List<String> required) {
+        List<String> values = new ArrayList<>();
+        if (arrayNode.isArray()) {
+            for (JsonNode value : arrayNode) {
+                if (value.isTextual()) {
+                    values.add(value.asText());
+                }
+            }
+        }
+        return values.containsAll(required);
     }
 
     /**
@@ -1163,10 +1002,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private static final class AiCatalogCandidate {
         private final AiCatalogEntry entry;
         private final Map<String, String> labels;
+        private final SearchedArtifactDto artifact;
 
-        private AiCatalogCandidate(AiCatalogEntry entry, Map<String, String> labels) {
+        private AiCatalogCandidate(AiCatalogEntry entry, Map<String, String> labels,
+                SearchedArtifactDto artifact) {
             this.entry = entry;
             this.labels = labels;
+            this.artifact = artifact;
         }
     }
 
@@ -1184,9 +1026,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
     /**
      * Collects AI Catalog entries for all visible {@code AGENT_CARD} and {@code MCP_TOOL}
      * artifacts, optionally narrowed by a partial-name text filter applied at the storage
-     * layer. Agent Card visibility labels are respected (mirroring {@code searchAgents} /
-     * {@code getEntitledAgents}); MCP tools carry no visibility label, so read-level
-     * authorization is the sole gate (mirroring {@code searchMcpTools}).
+     * layer. Agent Card visibility labels are respected (this is the sole visibility-filtering
+     * implementation in this class, also backing {@code searchAgents}); MCP tools carry no
+     * visibility label, so read-level authorization is the sole gate (mirroring
+     * {@code searchMcpTools}).
      */
     private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter) {
@@ -1240,7 +1083,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .tags(formatTags(artifact.getLabels()))
                 .representativeQueries(representativeQueries)
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels());
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact);
     }
 
     private AiCatalogCandidate buildToolCandidate(SearchedArtifactDto artifact, String baseUrl,
@@ -1261,7 +1104,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 .updatedAt(formatUpdatedAt(artifact))
                 .tags(formatTags(artifact.getLabels()))
                 .build();
-        return new AiCatalogCandidate(entry, artifact.getLabels());
+        return new AiCatalogCandidate(entry, artifact.getLabels(), artifact);
     }
 
     /**
@@ -1692,42 +1535,6 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
         }
         return result;
-    }
-
-    /**
-     * Returns public agents by resolving each artifact's effective visibility in memory, rather
-     * than filtering on the {@code apicurio.agent.visibility} label. Used when the configured
-     * default visibility is {@code public}, because artifacts relying on that default carry no
-     * visibility label and so cannot be matched by a label search filter.
-     */
-    private AgentSearchResults publicAgentsByResolvedVisibility(Set<SearchFilter> filters,
-            Integer offset, Integer limit) {
-        ArtifactSearchResultsDto results = storage.searchArtifacts(
-                filters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
-        warnIfTruncated(results);
-
-        // Filter by resolved visibility on DTOs first (cheap), then paginate, then convert (expensive)
-        List<SearchedArtifactDto> visible = new ArrayList<>();
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
-            if (A2AConstants.VISIBILITY_PUBLIC.equals(resolveVisibility(artifact.getLabels()))) {
-                visible.add(artifact);
-            }
-        }
-
-        int total = visible.size();
-        int safeOffset = Math.max(0, Math.min(offset, total));
-        int safeLimit = Math.max(0, Math.min(limit, 500));
-        int toIndex = Math.min(safeOffset + safeLimit, total);
-
-        List<AgentSearchResult> agents = new ArrayList<>();
-        for (SearchedArtifactDto artifact : visible.subList(safeOffset, toIndex)) {
-            agents.add(convertToAgentSearchResult(artifact));
-        }
-
-        return AgentSearchResults.builder()
-                .count(total)
-                .agents(agents)
-                .build();
     }
 
     /**

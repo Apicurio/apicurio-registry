@@ -60,12 +60,6 @@ func NewAgentsRequestBuilder(rawUrl string, requestAdapter i2ae4187f7daee263371c
 	return NewAgentsRequestBuilderInternal(urlParams, requestAdapter)
 }
 
-// Entitled search entitled agents.
-// returns a *AgentsEntitledRequestBuilder when successful
-func (m *AgentsRequestBuilder) Entitled() *AgentsEntitledRequestBuilder {
-	return NewAgentsEntitledRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
-}
-
 // Get search agents
 // returns a AgentSearchResultsable when successful
 // returns a ProblemDetails error when the service returns a 401 status code
@@ -89,18 +83,6 @@ func (m *AgentsRequestBuilder) Get(ctx context.Context, requestConfiguration *Ag
 		return nil, nil
 	}
 	return res.(iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.AgentSearchResultsable), nil
-}
-
-// Public search public agents.
-// returns a *AgentsPublicRequestBuilder when successful
-func (m *AgentsRequestBuilder) Public() *AgentsPublicRequestBuilder {
-	return NewAgentsPublicRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
-}
-
-// Search advanced agent search.
-// returns a *AgentsSearchRequestBuilder when successful
-func (m *AgentsRequestBuilder) Search() *AgentsSearchRequestBuilder {
-	return NewAgentsSearchRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // ToGetRequestInformation search agents

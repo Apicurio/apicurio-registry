@@ -993,6 +993,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return buildAiCatalog(publisherDomain, entries);
     }
 
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public AiCatalog getArdManifest() {
+        return getAiCatalog();
+    }
+
     /**
      * Builds the self-describing catalog entry that advertises this registry's own ARD search
      * API. Per the ARD specification (&sect;5.3), a conforming client resolves a registry's

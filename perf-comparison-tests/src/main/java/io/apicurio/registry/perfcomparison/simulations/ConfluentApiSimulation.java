@@ -36,6 +36,7 @@ public class ConfluentApiSimulation extends Simulation {
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String FEEDER_SUBJECT = "subject";
     private static final String FEEDER_SCHEMA = "schema";
+    private static final String FEEDER_SCHEMA_ID = "schemaId";
     private static final String URL = env("SCHEMA_REGISTRY_URL", "http://localhost:8081");
     private static final String OPERATION = env("PERF_OPERATION", "READ_ID");
     private static final int USERS = integer("PERF_USERS", 100);
@@ -120,7 +121,7 @@ public class ConfluentApiSimulation extends Simulation {
             if (response.statusCode() / 100 != 2 || !matcher.find()) {
                 throw new IllegalStateException("Seed failed: HTTP " + response.statusCode() + " " + response.body());
             }
-            result.add(Map.of(FEEDER_SUBJECT, subject, "version", 1, "schemaId", matcher.group(1), FEEDER_SCHEMA, schema,
+            result.add(Map.of(FEEDER_SUBJECT, subject, "version", 1, FEEDER_SCHEMA_ID, matcher.group(1), FEEDER_SCHEMA, schema,
                     "compatibleSchema", compatibleSchema(i)));
         }
         return result;
@@ -128,24 +129,24 @@ public class ConfluentApiSimulation extends Simulation {
 
     private void verifyConformance() {
         Map<String, Object> sample = seeds.get(0);
-        requireSuccess(send("GET", "/schemas/ids/" + sample.get("schemaId"), null), "ID lookup");
-        requireSuccess(send("GET", "/subjects/" + sample.get("subject") + "/versions/1", null), "version lookup");
-        HttpResponse<String> compatibility = send("POST", "/compatibility/subjects/" + sample.get("subject")
+        requireSuccess(send("GET", "/schemas/ids/" + sample.get(FEEDER_SCHEMA_ID), null), "ID lookup");
+        requireSuccess(send("GET", "/subjects/" + sample.get(FEEDER_SUBJECT) + "/versions/1", null), "version lookup");
+        HttpResponse<String> compatibility = send("POST", "/compatibility/subjects/" + sample.get(FEEDER_SUBJECT)
                 + "/versions/latest", body((String) sample.get("compatibleSchema")));
         requireSuccess(compatibility, "compatibility");
         if (!compatibility.body().contains("true")) {
             throw new IllegalStateException("Compatibility response was not true: " + compatibility.body());
         }
         if (OPERATION.equals("REGISTER_IDEMPOTENT")) {
-            HttpResponse<String> response = send("POST", "/subjects/" + sample.get("subject") + "/versions",
-                    body((String) sample.get("schema")));
+            HttpResponse<String> response = send("POST", "/subjects/" + sample.get(FEEDER_SUBJECT) + "/versions",
+                    body((String) sample.get(FEEDER_SCHEMA)));
             requireSuccess(response, "idempotent registration");
-            if (!response.body().contains(sample.get("schemaId").toString())) {
+            if (!response.body().contains(sample.get(FEEDER_SCHEMA_ID).toString())) {
                 throw new IllegalStateException("Idempotent registration returned a different schema ID: "
                         + response.body());
             }
         } else if (OPERATION.equals("REGISTER_NEW_VERSION")) {
-            requireSuccess(send("POST", "/subjects/" + sample.get("subject") + "/versions",
+            requireSuccess(send("POST", "/subjects/" + sample.get(FEEDER_SUBJECT) + "/versions",
                     body(uniqueSchema(COUNTER.incrementAndGet()))), "new-version registration");
         } else if (OPERATION.equals("REGISTER_NEW_SUBJECT")) {
             long id = COUNTER.incrementAndGet();

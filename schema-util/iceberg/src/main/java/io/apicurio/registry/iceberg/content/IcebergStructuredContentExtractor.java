@@ -211,7 +211,7 @@ public class IcebergStructuredContentExtractor implements StructuredContentExtra
             }
 
             if (version.has(FIELD_REPRESENTATIONS) && version.get(FIELD_REPRESENTATIONS).isArray()) {
-                for (JsonNode rep : version.get("representations")) {
+                for (JsonNode rep : version.get(FIELD_REPRESENTATIONS)) {
                     if (rep.has("sql") && rep.get("sql").isTextual()) {
                         elements.add(new StructuredElement("sql", rep.get("sql").asText()));
                     }

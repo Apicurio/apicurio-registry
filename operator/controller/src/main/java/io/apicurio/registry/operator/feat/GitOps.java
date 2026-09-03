@@ -221,8 +221,12 @@ public class GitOps {
                         .withPeriodSeconds(10)
                         .build());
             } else {
-                var firstRepoDir = repos.isEmpty() ? DEFAULT_REPO_DIR
-                        : (!isBlank(repos.get(0).getDir()) ? repos.get(0).getDir() : DEFAULT_REPO_DIR);
+                String firstRepoDir;
+                if (repos.isEmpty() || isBlank(repos.get(0).getDir())) {
+                    firstRepoDir = DEFAULT_REPO_DIR;
+                } else {
+                    firstRepoDir = repos.get(0).getDir();
+                }
                 sidecar.setReadinessProbe(new ProbeBuilder()
                         .withExec(new ExecActionBuilder()
                                 .withCommand("test", "-d",

@@ -334,7 +334,7 @@ public class ElasticsearchSearchService {
                 .should(Query.of(sq -> sq.match(m -> m
                         .field("name").query(value).operator(Operator.And))))
                 .should(Query.of(sq -> sq.term(t -> t
-                        .field("artifactId").value(value))))
+                        .field(FIELD_ARTIFACT_ID).value(value))))
         ));
     }
 
@@ -448,19 +448,19 @@ public class ElasticsearchSearchService {
             fieldName = FIELD_MODIFIED_ON;
             break;
         case globalId:
-            fieldName = "globalId";
+            fieldName = FIELD_GLOBAL_ID;
             break;
         case version:
-            fieldName = "version";
+            fieldName = FIELD_VERSION;
             break;
         case groupId:
-            fieldName = "groupId";
+            fieldName = FIELD_GROUP_ID;
             break;
         case artifactId:
-            fieldName = "artifactId";
+            fieldName = FIELD_ARTIFACT_ID;
             break;
         case artifactType:
-            fieldName = "artifactType";
+            fieldName = FIELD_ARTIFACT_TYPE;
             break;
         default:
             return List.of(SortOptions.of(s -> s.score(sc -> sc)));

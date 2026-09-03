@@ -131,8 +131,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
         }
         if (refreshLock.tryLock()) {
             try {
-                log.trace("Running {} refresh. Active database is {} and state is {}.",
-                        storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                if (log.isTraceEnabled()) {
+                    log.trace("Running {} refresh. Active database is {} and state is {}.",
+                            storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                }
 
                 switch (state) {
                     case READY_TO_SWITCH -> {
@@ -189,8 +191,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                             status = status.toBuilder()
                                     .lastSyncAttempt(now)
                                     .build();
-                            log.debug("Running {} poll. Active database is {} and state is {}.",
-                                    storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Running {} poll. Active database is {} and state is {}.",
+                                        storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                            }
                             try {
                                 var pollResult = pollingDataSourceManager.poll();
                                 if (pollResult.isHasChanges()) {
@@ -206,8 +210,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                         }
                     }
                 }
-                log.trace("{} refresh finished. Active database is {} and state is {}.",
-                        storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                if (log.isTraceEnabled()) {
+                    log.trace("{} refresh finished. Active database is {} and state is {}.",
+                            storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                }
             } finally {
                 refreshLock.unlock();
             }

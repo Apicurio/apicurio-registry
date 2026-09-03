@@ -32,7 +32,7 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
     private static final String FIELD_TEMPLATE_ID = "templateId";
     private static final String FIELD_VARIABLES = "variables";
     private static final String FIELD_OUTPUT_SCHEMA = "outputSchema";
-    private static final String VARIABLES_PATH_PREFIX = "/variables/";
+    private static final String VARIABLES_PATH_PREFIX = "/variables/"; // NOSONAR - JSON Pointer path prefix
     private static final String MSG_VARIABLE_PREFIX = "Variable '";
     private static final String FIELD_MINIMUM = "minimum";
     private static final String FIELD_MAXIMUM = "maximum";
@@ -207,11 +207,11 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
         try {
             JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
             Set<String> refs = new HashSet<>();
-            if (tree.has("variables")) {
-                findExternalRefs(tree.get("variables"), refs);
+            if (tree.has(FIELD_VARIABLES)) {
+                findExternalRefs(tree.get(FIELD_VARIABLES), refs);
             }
-            if (tree.has("outputSchema")) {
-                findExternalRefs(tree.get("outputSchema"), refs);
+            if (tree.has(FIELD_OUTPUT_SCHEMA)) {
+                findExternalRefs(tree.get(FIELD_OUTPUT_SCHEMA), refs);
             }
             return refs;
         } catch (Exception e) {

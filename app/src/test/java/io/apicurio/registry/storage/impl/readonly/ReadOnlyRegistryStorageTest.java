@@ -92,6 +92,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("forEachVersion2", new State(false, s -> s.forEachVersion(System.currentTimeMillis(), null))),
                 entry("getContentByHash1", new State(false, s -> s.getContentByHash(null))),
                 entry("getContentById1", new State(false, s -> s.getContentById(0))),
+                entry("getContentAndArtifactTypeById1",
+                        new State(false, s -> s.getContentAndArtifactTypeById(0))),
                 entry("getBranchMetaData2", new State(false, s -> s.getBranchMetaData(null, null))),
                 entry("getBranches3", new State(false, s -> s.getBranches(null, 0, 0))),
                 entry("getBranchVersions4", new State(false, s -> s.getBranchVersions(null, null, 0, 0))),

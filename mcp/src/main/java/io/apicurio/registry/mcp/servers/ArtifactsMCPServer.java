@@ -99,7 +99,7 @@ public class ArtifactsMCPServer {
 
     @Tool(description = """
             Search for artifacts in the Apicurio Registry server. \
-            Returns metadata of the groups that fit the search criteria.""")
+            Returns metadata of the artifacts that fit the search criteria.""")
     List<SearchedArtifact> search_artifacts(
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID, required = false) String artifactId,

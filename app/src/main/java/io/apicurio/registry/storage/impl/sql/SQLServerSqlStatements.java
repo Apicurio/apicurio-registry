@@ -110,6 +110,14 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String selectContentAndArtifactTypeById() {
+        return "SELECT TOP (1) c.content, c.contentType, c.refs, c.contentHash, a.type AS artifactType FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE c.contentId = ?";
+    }
+
+    @Override
     public String selectBranchTipFilteredByState() {
         return "SELECT bv.groupId, bv.artifactId, bv.version FROM branch_versions bv "
                 + "JOIN versions v ON bv.groupId = v.groupId AND bv.artifactId = v.artifactId AND bv.version = v.version "

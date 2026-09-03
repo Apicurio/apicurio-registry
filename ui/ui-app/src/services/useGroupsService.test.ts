@@ -112,7 +112,6 @@ describe("useGroupsService pagination", () => {
         assertConstantLimit(get);
     });
 });
-
 describe("useGroupsService testArtifactVersion", () => {
     it("posts the content with dryRun: true in the query parameters", async () => {
         const post = vi.fn().mockResolvedValue(undefined);

@@ -109,7 +109,12 @@ public class RegistryApiSimulation extends Simulation {
 
     // Cached, shared across all virtual users - see class Javadoc "Token handling".
     private static final AtomicReference<String> CACHED_TOKEN = new AtomicReference<>();
-    private static final HttpClient SETUP_HTTP_CLIENT = HttpClient.newHttpClient();
+    // Bounded connect timeout: without one, a stuck connection during setup (token fetch/seeding)
+    // can block the calling thread indefinitely, which previously turned an early, already-logged
+    // failure into a silent hang until an external (e.g. CI step) timeout killed the process.
+    private static final HttpClient SETUP_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10)).build();
+    private static final Duration SETUP_REQUEST_TIMEOUT = Duration.ofSeconds(15);
     private static final Pattern ACCESS_TOKEN_PATTERN = Pattern
             .compile("\"access_token\"\\s*:\\s*\"([^\"]+)\"");
 
@@ -160,7 +165,18 @@ public class RegistryApiSimulation extends Simulation {
                                 + "failed - see logs above. Aborting rather than running the whole "
                                 + "load test unauthenticated.");
             }
-            ScheduledExecutorService refreshExecutor = Executors.newSingleThreadScheduledExecutor();
+            ScheduledExecutorService refreshExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+                // Daemon: if the JVM's main thread exits (normally, or via an uncaught exception -
+                // e.g. Gatling's Runner crashing during setup, before this executor is ever
+                // explicitly shut down anywhere), this background token-refresh thread must not be
+                // the only thing keeping the process alive. A non-daemon thread here previously
+                // caused runs that crashed early (e.g. all seed requests failing auth) to hang
+                // until an external timeout killed the process, rather than exiting promptly with
+                // the real error already printed.
+                Thread thread = new Thread(runnable, "oauth-token-refresh");
+                thread.setDaemon(true);
+                return thread;
+            });
             // Refresh well before the realm's access-token lifespan (300s in the perf-main
             // Keycloak realm) expires - a fixed conservative interval rather than parsing
             // expires_in per-refresh keeps this simple and safe for typical realm configs.
@@ -265,7 +281,7 @@ public class RegistryApiSimulation extends Simulation {
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(REGISTRY_URL + "/groups/" + SEED_GROUP
                             + "/artifacts?ifExists=FIND_OR_CREATE_VERSION"))
-                    .header("Content-Type", "application/json")
+                    .header("Content-Type", "application/json").timeout(SETUP_REQUEST_TIMEOUT)
                     .POST(HttpRequest.BodyPublishers.ofString(body));
             String token = CACHED_TOKEN.get();
             if (token != null) {
@@ -305,7 +321,7 @@ public class RegistryApiSimulation extends Simulation {
                     + CLIENT_SECRET;
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(TOKEN_ENDPOINT))
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(form)).build();
+                    .timeout(SETUP_REQUEST_TIMEOUT).POST(HttpRequest.BodyPublishers.ofString(form)).build();
             HttpResponse<String> response = SETUP_HTTP_CLIENT.send(request,
                     HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {

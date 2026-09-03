@@ -10346,6 +10346,12 @@
           },
           "updatedAt": {
             "type": "string"
+          },
+          "representativeQueries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

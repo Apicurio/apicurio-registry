@@ -43,7 +43,10 @@
         "messages": {
             "UserEventMessage": {
                 "payload": {
-                    "$ref": "#/components/schemas/UserEvent"
+                    "schemaFormat": "application/vnd.apache.avro+json;version=1.9.0",
+                    "schema": {
+                        "$ref": "#/components/schemas/UserEvent"
+                    }
                 }
             }
         }

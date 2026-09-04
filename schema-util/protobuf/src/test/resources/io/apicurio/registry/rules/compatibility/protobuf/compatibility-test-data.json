@@ -1,0 +1,20 @@
+{
+  "tests": [
+    {
+      "id": "adding-field-is-compatible",
+      "enabled": true,
+      "compatibility": "backward",
+      "original": "syntax = \"proto3\";\npackage com.example;\n\nmessage Person {\n    int32 id = 1;\n    string name = 2;\n}\n",
+      "originalContentType": "application/x-protobuf",
+      "updated": "syntax = \"proto3\";\npackage com.example;\n\nmessage Person {\n    int32 id = 1;\n    string name = 2;\n    string email = 3;\n}\n",
+      "updatedContentType": "application/x-protobuf"
+    },
+    {
+      "id": "no-existing-schemas-is-compatible",
+      "enabled": true,
+      "compatibility": "both",
+      "updated": "syntax = \"proto3\";\npackage com.example;\n\nmessage Person {\n    int32 id = 1;\n}\n",
+      "updatedContentType": "application/x-protobuf"
+    }
+  ]
+}

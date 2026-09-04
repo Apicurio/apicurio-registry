@@ -1,0 +1,431 @@
+{
+    "tests": [
+        {
+            "enabled": true,
+            "id": "Compatible when no existing artifacts",
+            "compatibility": "both",
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding skill",
+            "compatibility": "backward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] },
+                    { "id": "skill2", "name": "Skill 2", "description": "Another skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing skill",
+            "compatibility": "forward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] },
+                    { "id": "skill2", "name": "Skill 2", "description": "Another skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: interface removal",
+            "compatibility": "forward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" },
+                    { "url": "https://example.com/agent", "protocolBinding": "jsonrpc", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding capability",
+            "compatibility": "backward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": { "streaming": false },
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": { "streaming": true, "pushNotifications": true },
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: disabling capability",
+            "compatibility": "forward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": { "streaming": true, "pushNotifications": true },
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": { "streaming": true, "pushNotifications": false },
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing security scheme",
+            "compatibility": "forward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"],
+                "securitySchemes": {
+                    "bearer": { "type": "httpAuth", "scheme": "Bearer" },
+                    "apikey": { "type": "apiKey", "name": "X-API-Key", "location": "header" }
+                }
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"],
+                "securitySchemes": {
+                    "bearer": { "type": "httpAuth", "scheme": "Bearer" }
+                }
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding input mode",
+            "compatibility": "backward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text", "image"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing input mode",
+            "compatibility": "forward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text", "image"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing output mode",
+            "compatibility": "forward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text", "json"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Fully compatible: name change",
+            "compatibility": "both",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "NewName",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: multiple incompatibilities",
+            "compatibility": "forward",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" },
+                    { "url": "https://example.com/agent", "protocolBinding": "jsonrpc", "protocolVersion": "1.0" }
+                ],
+                "capabilities": { "streaming": true },
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] },
+                    { "id": "skill2", "name": "Skill 2", "description": "Another skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": { "streaming": false },
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward incompatible: protocol version change",
+            "compatibility": "none",
+            "original": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            },
+            "updated": {
+                "name": "TestAgent",
+                "description": "Test agent",
+                "version": "1.0.0",
+                "supportedInterfaces": [
+                    { "url": "https://example.com/agent", "protocolBinding": "http+json", "protocolVersion": "2.0" }
+                ],
+                "capabilities": {},
+                "skills": [
+                    { "id": "skill1", "name": "Skill 1", "description": "A skill", "tags": ["test"] }
+                ],
+                "defaultInputModes": ["text"],
+                "defaultOutputModes": ["text"]
+            }
+        }
+    ]
+}

@@ -1,0 +1,85 @@
+{
+    "tests": [
+        {
+            "enabled": true,
+            "id": "Backward compatible: adding optional elements and attributes",
+            "compatibility": "backward",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n            <xs:element name=\"email\" type=\"xs:string\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n        <xs:attribute name=\"status\" type=\"xs:string\" use=\"optional\"/>\n    </xs:complexType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible: adding required element",
+            "compatibility": "none",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n            <xs:element name=\"email\" type=\"xs:string\" minOccurs=\"1\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward incompatible: removing required element",
+            "compatibility": "none",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: increasing minOccurs",
+            "compatibility": "forward",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"1\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: tightening restriction",
+            "compatibility": "forward",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"product\" type=\"ProductType\"/>\n    <xs:simpleType name=\"PriceType\">\n        <xs:restriction base=\"xs:decimal\">\n            <xs:minInclusive value=\"0\"/>\n            <xs:maxInclusive value=\"1000\"/>\n        </xs:restriction>\n    </xs:simpleType>\n    <xs:complexType name=\"ProductType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"price\" type=\"PriceType\"/>\n        </xs:sequence>\n    </xs:complexType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"product\" type=\"ProductType\"/>\n    <xs:simpleType name=\"PriceType\">\n        <xs:restriction base=\"xs:decimal\">\n            <xs:minInclusive value=\"10\"/>\n            <xs:maxInclusive value=\"500\"/>\n        </xs:restriction>\n    </xs:simpleType>\n    <xs:complexType name=\"ProductType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"price\" type=\"PriceType\"/>\n        </xs:sequence>\n    </xs:complexType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible / forward incompatible: loosening restriction",
+            "compatibility": "backward",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"product\" type=\"ProductType\"/>\n    <xs:simpleType name=\"PriceType\">\n        <xs:restriction base=\"xs:decimal\">\n            <xs:minInclusive value=\"0\"/>\n            <xs:maxInclusive value=\"1000\"/>\n        </xs:restriction>\n    </xs:simpleType>\n    <xs:complexType name=\"ProductType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"price\" type=\"PriceType\"/>\n        </xs:sequence>\n    </xs:complexType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"product\" type=\"ProductType\"/>\n    <xs:simpleType name=\"PriceType\">\n        <xs:restriction base=\"xs:decimal\">\n            <xs:minInclusive value=\"0\"/>\n            <xs:maxInclusive value=\"2000\"/>\n        </xs:restriction>\n    </xs:simpleType>\n    <xs:complexType name=\"ProductType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"price\" type=\"PriceType\"/>\n        </xs:sequence>\n    </xs:complexType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Backward incompatible / forward compatible: removing enum value",
+            "compatibility": "forward",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"status\" type=\"StatusType\"/>\n    <xs:simpleType name=\"StatusType\">\n        <xs:restriction base=\"xs:string\">\n            <xs:enumeration value=\"ACTIVE\"/>\n            <xs:enumeration value=\"INACTIVE\"/>\n            <xs:enumeration value=\"PENDING\"/>\n        </xs:restriction>\n    </xs:simpleType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"status\" type=\"StatusType\"/>\n    <xs:simpleType name=\"StatusType\">\n        <xs:restriction base=\"xs:string\">\n            <xs:enumeration value=\"ACTIVE\"/>\n            <xs:enumeration value=\"INACTIVE\"/>\n        </xs:restriction>\n    </xs:simpleType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Backward compatible / forward incompatible: adding enum value",
+            "compatibility": "backward",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"status\" type=\"StatusType\"/>\n    <xs:simpleType name=\"StatusType\">\n        <xs:restriction base=\"xs:string\">\n            <xs:enumeration value=\"ACTIVE\"/>\n            <xs:enumeration value=\"INACTIVE\"/>\n            <xs:enumeration value=\"PENDING\"/>\n        </xs:restriction>\n    </xs:simpleType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"status\" type=\"StatusType\"/>\n    <xs:simpleType name=\"StatusType\">\n        <xs:restriction base=\"xs:string\">\n            <xs:enumeration value=\"ACTIVE\"/>\n            <xs:enumeration value=\"INACTIVE\"/>\n            <xs:enumeration value=\"PENDING\"/>\n            <xs:enumeration value=\"COMPLETED\"/>\n        </xs:restriction>\n    </xs:simpleType>\n</xs:schema>\n"
+        },
+        {
+            "enabled": true,
+            "id": "Fully compatible: identical schemas",
+            "compatibility": "both",
+            "originalContentType": "application/xml",
+            "updatedContentType": "application/xml",
+            "original": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n",
+            "updated": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">\n    <xs:element name=\"person\" type=\"PersonType\"/>\n    <xs:complexType name=\"PersonType\">\n        <xs:sequence>\n            <xs:element name=\"name\" type=\"xs:string\"/>\n            <xs:element name=\"age\" type=\"xs:int\" minOccurs=\"0\"/>\n        </xs:sequence>\n        <xs:attribute name=\"id\" type=\"xs:string\" use=\"required\"/>\n    </xs:complexType>\n</xs:schema>\n"
+        }
+    ]
+}

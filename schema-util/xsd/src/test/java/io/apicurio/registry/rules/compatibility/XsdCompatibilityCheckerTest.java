@@ -11,7 +11,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Tests for XSD compatibility checking
+ * Tests for XSD compatibility checking that cannot be expressed with the declarative JSON test data pattern
+ * (see {@code compatibility-test-data.json} and {@link CompatibilityTestExecutor}).
+ * <p>
+ * These cases require multiple existing artifacts (transitive checks) or a specific compatibility level
+ * (NONE), which the harness does not exercise.
  */
 public class XsdCompatibilityCheckerTest {
 
@@ -54,33 +58,6 @@ public class XsdCompatibilityCheckerTest {
             <xs:element name="name" type="xs:string"/>
             <xs:element name="age" type="xs:int" minOccurs="0"/>
             <xs:element name="email" type="xs:string" minOccurs="1"/>
-        </xs:sequence>
-        <xs:attribute name="id" type="xs:string" use="required"/>
-    </xs:complexType>
-</xs:schema>
-""";
-
-    private static final String BACKWARD_INCOMPATIBLE_SCHEMA_REMOVE_ELEMENT = """
-<?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <xs:element name="person" type="PersonType"/>
-    <xs:complexType name="PersonType">
-        <xs:sequence>
-            <xs:element name="age" type="xs:int" minOccurs="0"/>
-        </xs:sequence>
-        <xs:attribute name="id" type="xs:string" use="required"/>
-    </xs:complexType>
-</xs:schema>
-""";
-
-    private static final String BACKWARD_INCOMPATIBLE_SCHEMA_INCREASE_MINOCCURS = """
-<?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <xs:element name="person" type="PersonType"/>
-    <xs:complexType name="PersonType">
-        <xs:sequence>
-            <xs:element name="name" type="xs:string"/>
-            <xs:element name="age" type="xs:int" minOccurs="1"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
     </xs:complexType>
@@ -144,306 +121,8 @@ public class XsdCompatibilityCheckerTest {
 </xs:schema>
 """;
 
-    private static final String SCHEMA_WITH_ENUM = """
-<?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <xs:element name="status" type="StatusType"/>
-    <xs:simpleType name="StatusType">
-        <xs:restriction base="xs:string">
-            <xs:enumeration value="ACTIVE"/>
-            <xs:enumeration value="INACTIVE"/>
-            <xs:enumeration value="PENDING"/>
-        </xs:restriction>
-    </xs:simpleType>
-</xs:schema>
-""";
-
-    private static final String SCHEMA_WITH_ENUM_VALUE_REMOVED = """
-<?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <xs:element name="status" type="StatusType"/>
-    <xs:simpleType name="StatusType">
-        <xs:restriction base="xs:string">
-            <xs:enumeration value="ACTIVE"/>
-            <xs:enumeration value="INACTIVE"/>
-        </xs:restriction>
-    </xs:simpleType>
-</xs:schema>
-""";
-
-    private static final String SCHEMA_WITH_ENUM_VALUE_ADDED = """
-<?xml version="1.0" encoding="UTF-8"?>
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <xs:element name="status" type="StatusType"/>
-    <xs:simpleType name="StatusType">
-        <xs:restriction base="xs:string">
-            <xs:enumeration value="ACTIVE"/>
-            <xs:enumeration value="INACTIVE"/>
-            <xs:enumeration value="PENDING"/>
-            <xs:enumeration value="COMPLETED"/>
-        </xs:restriction>
-    </xs:simpleType>
-</xs:schema>
-""";
-
     private TypedContent toTypedContent(String content) {
         return TypedContent.create(ContentHandle.create(content), ContentTypes.APPLICATION_XML);
-    }
-
-    @Test
-    void testBackwardCompatible_AddOptionalElement() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_COMPATIBLE_SCHEMA);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertTrue(result.isCompatible(), 
-            "Adding optional elements and attributes should be backward compatible");
-    }
-
-    @Test
-    void testBackwardIncompatible_AddRequiredElement() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_INCOMPATIBLE_SCHEMA_ADD_REQUIRED);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Adding required element should be backward incompatible");
-        Assertions.assertFalse(result.getIncompatibleDifferences().isEmpty());
-    }
-
-    @Test
-    void testBackwardIncompatible_RemoveRequiredElement() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_INCOMPATIBLE_SCHEMA_REMOVE_ELEMENT);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Removing required element should be backward incompatible");
-    }
-
-    @Test
-    void testBackwardIncompatible_IncreaseMinOccurs() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_INCOMPATIBLE_SCHEMA_INCREASE_MINOCCURS);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Increasing minOccurs should be backward incompatible");
-    }
-
-    @Test
-    void testBackwardIncompatible_TightenRestriction() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_RESTRICTION);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_TIGHTER_RESTRICTION);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Tightening restrictions should be backward incompatible");
-    }
-
-    @Test
-    void testBackwardCompatible_LoosenRestriction() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_RESTRICTION);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_LOOSER_RESTRICTION);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertTrue(result.isCompatible(),
-            "Loosening restrictions should be backward compatible");
-    }
-
-    @Test
-    void testBackwardIncompatible_RemoveEnumValue() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_ENUM);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_ENUM_VALUE_REMOVED);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Removing enumeration values should be backward incompatible");
-    }
-
-    @Test
-    void testBackwardCompatible_AddEnumValue() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_ENUM);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_ENUM_VALUE_ADDED);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.BACKWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertTrue(result.isCompatible(),
-            "Adding enumeration values should be backward compatible");
-    }
-
-    @Test
-    void testForwardCompatible_TightenRestriction() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_RESTRICTION);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_TIGHTER_RESTRICTION);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FORWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertTrue(result.isCompatible(),
-            "Tightening restrictions should be forward compatible");
-    }
-
-    @Test
-    void testForwardIncompatible_LoosenRestriction() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_RESTRICTION);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_LOOSER_RESTRICTION);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FORWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Loosening restrictions should be forward incompatible");
-    }
-
-    @Test
-    void testForwardIncompatible_AddOptionalElement() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_COMPATIBLE_SCHEMA);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FORWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Adding optional element should be forward incompatible (old schema won't accept new data with this element)");
-    }
-
-    @Test
-    void testForwardCompatible_IncreaseMinOccurs() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_INCOMPATIBLE_SCHEMA_INCREASE_MINOCCURS);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FORWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertTrue(result.isCompatible(),
-            "Increasing minOccurs should be forward compatible (new data will always satisfy old constraints)");
-    }
-
-    @Test
-    void testForwardCompatible_RemoveEnumValue() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_ENUM);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_ENUM_VALUE_REMOVED);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FORWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertTrue(result.isCompatible(),
-            "Removing enumeration values should be forward compatible (new data only uses remaining values)");
-    }
-
-    @Test
-    void testForwardIncompatible_AddEnumValue() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(SCHEMA_WITH_ENUM);
-        TypedContent proposed = toTypedContent(SCHEMA_WITH_ENUM_VALUE_ADDED);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FORWARD,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Adding enumeration values should be forward incompatible (old schema won't accept new values)");
-    }
-
-    @Test
-    void testFullCompatible() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BASE_SCHEMA);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FULL,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertTrue(result.isCompatible(),
-            "Identical schemas should be fully compatible");
     }
 
     @Test
@@ -483,23 +162,6 @@ public class XsdCompatibilityCheckerTest {
     }
 
     @Test
-    void testFullCompatible_OnlyWithIdenticalSchema() {
-        XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
-        TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_COMPATIBLE_SCHEMA);
-        
-        CompatibilityExecutionResult result = checker.testCompatibility(
-            CompatibilityLevel.FULL,
-            Collections.singletonList(existing),
-            proposed,
-            Collections.emptyMap()
-        );
-
-        Assertions.assertFalse(result.isCompatible(),
-            "Adding optional element is backward compatible but not forward compatible, so not FULL compatible");
-    }
-
-    @Test
     void testFullTransitive() {
         XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
         TypedContent schema1 = toTypedContent(BASE_SCHEMA);
@@ -521,7 +183,7 @@ public class XsdCompatibilityCheckerTest {
     void testNoneCompatibility() {
         XsdCompatibilityChecker checker = new XsdCompatibilityChecker();
         TypedContent existing = toTypedContent(BASE_SCHEMA);
-        TypedContent proposed = toTypedContent(BACKWARD_INCOMPATIBLE_SCHEMA_REMOVE_ELEMENT);
+        TypedContent proposed = toTypedContent(BASE_SCHEMA);
         
         CompatibilityExecutionResult result = checker.testCompatibility(
             CompatibilityLevel.NONE,

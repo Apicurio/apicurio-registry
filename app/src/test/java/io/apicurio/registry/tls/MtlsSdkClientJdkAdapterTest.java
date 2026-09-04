@@ -51,6 +51,7 @@ public class MtlsSdkClientJdkAdapterTest extends MtlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithJksKeystore() throws Exception {
         var truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.jks");
         var keystoreUrl = getClass().getClassLoader().getResource("tls/client-keystore.jks");
@@ -101,6 +102,7 @@ public class MtlsSdkClientJdkAdapterTest extends MtlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithPkcs12Keystore() throws Exception {
         var truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.p12");
         var keystoreUrl = getClass().getClassLoader().getResource("tls/client-keystore.p12");
@@ -151,6 +153,7 @@ public class MtlsSdkClientJdkAdapterTest extends MtlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemKeystore() throws Exception {
         var truststoreUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
         var clientCertUrl = getClass().getClassLoader().getResource("tls/client-cert.pem");
@@ -208,6 +211,7 @@ public class MtlsSdkClientJdkAdapterTest extends MtlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemKeystoreContent() throws Exception {
         var truststoreUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
         var clientCertUrl = getClass().getClassLoader().getResource("tls/client-cert.pem");
@@ -275,6 +279,7 @@ public class MtlsSdkClientJdkAdapterTest extends MtlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithoutClientCertificate() {
         var truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.jks");
         Assertions.assertNotNull(truststoreUrl, "Truststore file not found");

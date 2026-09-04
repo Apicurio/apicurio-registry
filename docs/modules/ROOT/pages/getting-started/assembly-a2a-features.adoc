@@ -75,7 +75,7 @@ You can control A2A features by using the following configuration properties.
 |Name of the registry as an A2A agent
 
 |`apicurio.a2a.agent.description`
-|_varies_
+|`API and Schema Registry with A2A Agent support`
 |Description of the registry agent
 
 |`apicurio.a2a.agent.version`
@@ -83,8 +83,8 @@ You can control A2A features by using the following configuration properties.
 |Agent version (defaults to application version)
 
 |`apicurio.a2a.agent.url`
-|_base URL_
-|Base URL for A2A endpoint
+|_registry base URL_
+|URL reported in the Agent Card `supportedInterfaces` entry. Defaults to the base URL of the registry.
 
 |`apicurio.a2a.agent.provider.organization`
 |`Apicurio`
@@ -101,6 +101,22 @@ You can control A2A features by using the following configuration properties.
 |`apicurio.a2a.agent.capabilities.push-notifications`
 |`false`
 |Whether push notifications are supported
+
+|`apicurio.a2a.agent.protocol-version`
+|`1.0`
+|A2A protocol version reported in the Agent Card and in its supported interfaces
+
+|`apicurio.a2a.agent.documentation-url`
+|_not set_
+|URL of the registry agent documentation, reported as `documentationUrl` when set
+
+|`apicurio.a2a.agent.icon-url`
+|_not set_
+|URL of the registry agent icon, reported as `iconUrl` when set
+
+|`apicurio.a2a.agent.auth.api-key.enabled`
+|`false`
+|Advertise API key authentication with the `X-API-Key` header in the Agent Card security schemes
 |===
 
 // ref-a2a-well-known-endpoints
@@ -113,7 +129,7 @@ You can control A2A features by using the following configuration properties.
 {registry} provides the following well-known endpoints for A2A agent discovery and retrieval.
 
 GET /.well-known/agent.json::
-Retrieves the Agent Card for the {registry} instance.
+Retrieves the Agent Card for the {registry} instance. This endpoint requires no authentication. The same card is available at `/.well-known/agent-card.json`.
 +
 Response: Agent Card JSON document
 +
@@ -121,36 +137,54 @@ Response: Agent Card JSON document
 ----
 {
   "name": "Apicurio Registry",
-  "description": "Central registry for AI agents and schemas",
-  "version": "3.1.0",
-  "url": "http://localhost:8080",
+  "description": "API and Schema Registry with A2A Agent support",
+  "version": "3.3.3",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    {
+      "url": "http://localhost:8080",
+      "protocolBinding": "http+json",
+      "protocolVersion": "1.0"
+    }
+  ],
   "provider": {
     "organization": "Apicurio",
     "url": "https://www.apicur.io"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "extendedAgentCard": false
   },
   "skills": [
     {
       "id": "schema-validation",
       "name": "Schema Validation",
-      "description": "Validate schemas against format specifications"
+      "description": "Validate schemas against format specifications (Avro, JSON Schema, Protobuf, OpenAPI, etc.)",
+      "tags": ["schema", "validation", "avro", "json-schema", "protobuf", "openapi"]
     },
     {
       "id": "schema-search",
       "name": "Schema Search",
-      "description": "Search for schemas and APIs in the registry"
+      "description": "Search for schemas and APIs in the registry by name, description, labels, or content",
+      "tags": ["schema", "search", "discovery"]
     }
   ],
-  "capabilities": {
-    "streaming": false,
-    "pushNotifications": false
-  },
-  "defaultInputModes": ["text"],
-  "defaultOutputModes": ["text"]
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "securitySchemes": {
+    "bearer": {
+      "type": "httpAuth",
+      "scheme": "Bearer"
+    }
+  }
 }
 ----
++
+The example shows two of the five built-in skills. The `securitySchemes` object lists only the mechanisms that are enabled: `bearer` when OIDC authentication is enabled, `basic` when basic authentication is enabled, and `apiKey` when `apicurio.a2a.agent.auth.api-key.enabled` is `true`. The `documentationUrl` and `iconUrl` fields are set only when the corresponding properties are configured.
 
 GET /.well-known/agents::
-Searches for registered Agent Cards with filtering support.
+Searches for registered Agent Cards with filtering support. This endpoint requires no authentication. When authentication is enabled, the results include only the Agent Cards that the caller is allowed to see, based on the `apicurio.agent.visibility` label.
 +
 .Query parameters for /.well-known/agents
 [cols="1,1,3"]
@@ -166,15 +200,15 @@ Searches for registered Agent Cards with filtering support.
 |Filter by skill ID
 
 |`capability`
-|string
-|Filter by capability (for example, `streaming:true`)
+|string (repeatable)
+|Filter by capability (for example, `streaming:true`). Append `:false` to require that a capability is absent or disabled.
 
 |`inputMode`
-|string
+|string (repeatable)
 |Filter by input mode (for example, `text`, `image`)
 
 |`outputMode`
-|string
+|string (repeatable)
 |Filter by output mode
 
 |`offset`
@@ -183,7 +217,7 @@ Searches for registered Agent Cards with filtering support.
 
 |`limit`
 |integer
-|Pagination limit (default: 20)
+|Pagination limit (default: 20, maximum: 500)
 |===
 +
 .Example request
@@ -196,21 +230,33 @@ curl "http://localhost:8080/.well-known/agents?skill=translation&capability=stre
 [source,json]
 ----
 {
-  "count": 2,
+  "count": 1,
   "agents": [
     {
       "groupId": "ai-agents",
       "artifactId": "translator-agent",
       "name": "Translation Agent",
       "description": "Translates text between languages",
-      "version": "1.0.0",
-      "url": "http://translator:9001",
-      "skills": [{"id": "translation", "name": "Translation"}],
-      "capabilities": {"streaming": true}
+      "owner": "alice",
+      "createdOn": 1756720530000,
+      "supportedInterfaces": [
+        {
+          "url": "http://translator:9001",
+          "protocolBinding": "http+json",
+          "protocolVersion": "1.0"
+        }
+      ],
+      "skills": ["translation"],
+      "capabilities": {
+        "streaming": true,
+        "pushNotifications": false
+      }
     }
   ]
 }
 ----
++
+The `count` field is the total number of matching Agent Cards, not the number of entries in the current page. The `skills` array lists skill IDs only. To get skill names and descriptions, retrieve the full Agent Card from `/.well-known/agents/\{groupId}/\{artifactId}`.
 
 GET /.well-known/agents/\{groupId}/\{artifactId}::
 Retrieves a specific registered Agent Card.

@@ -67,13 +67,13 @@ The following table lists all available well-known endpoints.
 
 The `/.well-known/agent.json` endpoint returns the {registry} instance agent card, which represents the registry itself as an A2A agent. This endpoint requires no authentication.
 
-The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. These endpoints require read-level authorization.
+The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. The search endpoint requires no authentication. When authentication is enabled, it returns only the agent cards that the caller is allowed to see, based on the `apicurio.agent.visibility` label. The `/.well-known/agents/\{groupId}/\{artifactId}` endpoint requires read-level authorization.
 
 The `/.well-known/mcp-tools` and `/.well-known/mcp-tools/\{groupId}/\{artifactId}` endpoints operate on MCP tool definitions that you store in {registry} as `MCP_TOOL` artifacts. These endpoints require read-level authorization and are available only when MCP tools support is enabled.
 
 The `/.well-known/schemas/\{type}/\{version}` endpoint serves built-in JSON schemas that you can use for IDE autocompletion and validation of `PROMPT_TEMPLATE`, `MODEL_SCHEMA`, and `MCP_TOOL` artifacts. This endpoint requires no authentication.
 
-The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require no authentication for public entries; visibility labels apply the same way as for `/.well-known/agents`. See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
+The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require read-level authorization when authentication is enabled. Anonymous clients can read them only if anonymous read access is enabled. Agent card entries are filtered by the same visibility labels as `/.well-known/agents`. See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
 
 [role="_additional-resources"]
 .Additional resources

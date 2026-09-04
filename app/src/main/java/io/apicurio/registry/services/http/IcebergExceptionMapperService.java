@@ -17,6 +17,11 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import io.apicurio.common.apps.config.Info;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
+
 /**
  * Exception mapper service for Iceberg REST API errors.
  * Maps storage exceptions to Iceberg-formatted error responses.
@@ -26,6 +31,10 @@ public class IcebergExceptionMapperService {
 
     @Inject
     IcebergMetricsService metricsService;
+
+    @ConfigProperty(name = "apicurio.api.errors.include-stack-in-response", defaultValue = "false")
+    @Info(category = CATEGORY_API, description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
+    boolean includeStackTrace;
 
     public Response mapException(Throwable t) {
         if (t instanceof NotFoundException) {
@@ -79,8 +88,8 @@ public class IcebergExceptionMapperService {
         }
 
         // Default to internal server error
-        return buildErrorResponse(500, "InternalServerError",
-                t.getMessage() != null ? t.getMessage() : "An unexpected error occurred");
+        String message = (includeStackTrace && t.getMessage() != null) ? t.getMessage() : "An unexpected error occurred";
+        return buildErrorResponse(500, "InternalServerError", message);
     }
 
     private Response buildErrorResponse(int code, String type, String message) {

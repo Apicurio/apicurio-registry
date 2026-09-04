@@ -30,6 +30,9 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 
+import io.apicurio.common.apps.config.Info;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
@@ -78,6 +82,10 @@ public class CCompatExceptionMapperService {
     @Inject
     HttpStatusCodeMap codeMap;
 
+    @ConfigProperty(name = "apicurio.api.errors.include-stack-in-response", defaultValue = "false")
+    @Info(category = CATEGORY_API, description = "Include stack trace in errors responses", availableSince = "2.1.4.Final")
+    boolean includeStackTrace;
+
     public Response mapException(Throwable t) {
         int code = 0;
         Response response = null;
@@ -87,6 +95,10 @@ public class CCompatExceptionMapperService {
             code = response.getStatus();
         } else {
             code = codeMap.getCode(t.getClass());
+        }
+
+        if (code <= 0) {
+            code = HTTP_INTERNAL_ERROR;
         }
 
         if (code == HTTP_INTERNAL_ERROR) {
@@ -102,14 +114,14 @@ public class CCompatExceptionMapperService {
         if (response != null) {
             builder = Response.fromResponse(response);
         } else {
-            Error error = toError(t);
+            Error error = toError(t, code);
             builder = Response.status(code).entity(error);
         }
 
         return builder.type(MediaType.APPLICATION_JSON).build();
     }
 
-    private Error toError(Throwable t) {
+    private Error toError(Throwable t, int code) {
         Error error;
 
         if (t instanceof RuleViolationException) {
@@ -121,11 +133,14 @@ public class CCompatExceptionMapperService {
         }
 
         error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
-        error.setMessage(toConfluentMessage(t));
+        error.setMessage(toConfluentMessage(t, code));
         return error;
     }
 
-    private String toConfluentMessage(Throwable t) {
+    private String toConfluentMessage(Throwable t, int code) {
+        if (code >= 500 && !includeStackTrace) {
+            return "An unexpected error occurred.";
+        }
         if (t instanceof ArtifactNotFoundException anfe) {
             String artifactId = anfe.getArtifactId();
             if (artifactId != null) {

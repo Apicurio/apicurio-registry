@@ -7,7 +7,7 @@
     "contact": {
       "name": "Apicurio",
       "url": "https://github.com/apicurio/apicurio-registry",
-      "email": "apicurio@lists.jboss.org"
+      "email": "cncf-apicurio-registry-dev@lists.cncf.io"
     },
     "license": {
       "name": "Apache 2.0",
@@ -367,7 +367,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -809,7 +809,7 @@
         },
         "operationId": "deleteArtifactVersion",
         "summary": "Delete artifact version",
-        "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `registry.rest.artifact.deletion.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
+        "description": "Deletes a single version of the artifact. Parameters `groupId`, `artifactId` and the unique `version`\nare needed. If this is the only version of the artifact, this operation is the same as \ndeleting the entire artifact.\n\nThis feature is disabled by default and it's discouraged for normal usage. To enable it, set the `apicurio.rest.deletion.artifact-version.enabled` property to true. This operation can fail for the following reasons:\n\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* No version with this `version` exists (HTTP error `404`)\n * Feature is disabled (HTTP error `405`)\n * A server error occurred (HTTP error `500`)\n"
       },
       "parameters": [
         {
@@ -3662,7 +3662,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -3768,7 +3768,7 @@
           },
           {
             "name": "labels",
-            "description": "Filter by one or more name/value label.  Separate each name/value pair using a colon.  For\nexample `labels=foo:bar` will return only artifacts with a label named `foo`\nand value `bar`.",
+            "description": "Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).",
             "schema": {
               "type": "array",
               "items": {
@@ -3978,6 +3978,14 @@
             "description": "Filter by artifact Id.",
             "schema": {
               "$ref": "#/components/schemas/ArtifactId"
+            },
+            "in": "query"
+          },
+          {
+            "name": "state",
+            "description": "Filter by version state.",
+            "schema": {
+              "$ref": "#/components/schemas/VersionState"
             },
             "in": "query"
           },
@@ -6252,6 +6260,612 @@
           }
         }
       }
+    },
+    "/well-known/agent.json": {
+      "summary": "Get Agent Card.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The Agent Card."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getAgentCard",
+        "summary": "Get Agent Card"
+      }
+    },
+    "/well-known/agent-card.json": {
+      "summary": "Get Agent Card (Orchestrate).",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentCard"
+                }
+              }
+            },
+            "description": "The Agent Card."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getAgentCardForOrchestrate",
+        "summary": "Get Agent Card (Orchestrate)"
+      }
+    },
+    "/well-known/agents": {
+      "summary": "Search agents.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "skill",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "capability",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "inputMode",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "outputMode",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSearchResults"
+                }
+              }
+            },
+            "description": "Agent search results."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchAgents",
+        "summary": "Search agents"
+      }
+    },
+    "/well-known/agents/{groupId}/{artifactId}": {
+      "summary": "Get registered agent card.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "Agent Card JSON."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getRegisteredAgentCard",
+        "summary": "Get registered agent card"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/mcp-tools": {
+      "summary": "Search MCP tools.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "name",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "parameter",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolSearchResults"
+                }
+              }
+            },
+            "description": "MCP tool search results."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchMcpTools",
+        "summary": "Search MCP tools"
+      }
+    },
+    "/well-known/mcp-tools/{groupId}/{artifactId}": {
+      "summary": "Get registered MCP tool.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "MCP tool JSON."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getRegisteredMcpTool",
+        "summary": "Get registered MCP tool"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/schemas/{schemaType}/{version}": {
+      "summary": "Get JSON Schema.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {}
+            },
+            "description": "The JSON Schema."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getSchema",
+        "summary": "Get JSON Schema"
+      },
+      "parameters": [
+        {
+          "name": "schemaType",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "version",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/ai-catalog.json": {
+      "summary": "Get AI Catalog.",
+      "get": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCatalog"
+                }
+              }
+            },
+            "description": "The AI Catalog document."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getAiCatalog",
+        "summary": "Get AI Catalog"
+      }
+    },
+    "/well-known/ard.json": {
+      "summary": "Get ARD manifest.",
+      "get": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCatalog"
+                }
+              }
+            },
+            "description": "The AI Catalog document (ARD v0.91 normative path)."
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getArdManifest",
+        "summary": "Get ARD manifest"
+      }
+    },
+    "/well-known/ard/search": {
+      "summary": "ARD search.",
+      "post": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArdSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArdSearchResponse"
+                }
+              }
+            },
+            "description": "ARD search results."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "ardSearch",
+        "summary": "ARD search"
+      }
+    },
+    "/well-known/ard/agents": {
+      "summary": "ARD list agents.",
+      "get": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "parameters": [
+          {
+            "name": "filter",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "orderBy",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "pageSize",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "pageToken",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiCatalog"
+                }
+              }
+            },
+            "description": "ARD agent listing."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "ardListAgents",
+        "summary": "ARD list agents"
+      }
+    },
+    "/well-known/ard/explore": {
+      "summary": "ARD explore.",
+      "post": {
+        "tags": [
+          "AiCatalog"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArdExploreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArdExploreResponse"
+                }
+              }
+            },
+            "description": "ARD facet exploration results."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "ardExplore",
+        "summary": "ARD explore"
+      }
     }
   },
   "components": {
@@ -7084,8 +7698,8 @@
           }
         ],
         "example": {
-          "error_code": 409,
-          "message": "Artifact failed validation",
+          "status": 409,
+          "title": "Artifact failed validation",
           "causes": [
             {
               "description": "API is missing a title",
@@ -9047,6 +9661,671 @@
             "type": "boolean"
           }
         }
+      },
+      "AgentCard": {
+        "description": "Represents an A2A Agent Card.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "protocolVersion": {
+            "type": "string"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/AgentProvider"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSkill"
+            }
+          },
+          "defaultInputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "defaultOutputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "supportedInterfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "securitySchemes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AgentSecurityScheme"
+            }
+          },
+          "securityRequirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSecurityRequirement"
+            }
+          },
+          "iconUrl": {
+            "type": "string"
+          },
+          "documentationUrl": {
+            "type": "string"
+          },
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentCardSignature"
+            }
+          }
+        }
+      },
+      "AgentProvider": {
+        "description": "Provider of an A2A agent.",
+        "type": "object",
+        "properties": {
+          "organization": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentCapabilities": {
+        "description": "Capabilities of an A2A agent.",
+        "type": "object",
+        "properties": {
+          "streaming": {
+            "type": "boolean"
+          },
+          "pushNotifications": {
+            "type": "boolean"
+          },
+          "extendedAgentCard": {
+            "type": "boolean"
+          },
+          "extensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentExtension"
+            }
+          }
+        }
+      },
+      "AgentExtension": {
+        "description": "Extension for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "AgentSkill": {
+        "description": "A skill an A2A agent can perform.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "securityRequirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSecurityRequirement"
+            }
+          }
+        }
+      },
+      "AgentInterface": {
+        "description": "Interface endpoint for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "protocolBinding": {
+            "type": "string"
+          },
+          "protocolVersion": {
+            "type": "string"
+          },
+          "tenant": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentSecurityScheme": {
+        "description": "Security scheme for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "scheme": {
+            "type": "string"
+          },
+          "bearerFormat": {
+            "type": "string"
+          },
+          "flows": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "oauth2MetadataUrl": {
+            "type": "string"
+          },
+          "openIdConnectUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentSecurityRequirement": {
+        "description": "Security requirement for an A2A agent.",
+        "type": "object",
+        "properties": {
+          "schemes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "AgentCardSignature": {
+        "description": "Signature on an agent card.",
+        "type": "object",
+        "properties": {
+          "protected": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          },
+          "header": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "AgentSearchResult": {
+        "description": "Agent card search result.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "supportedInterfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities"
+          },
+          "createdOn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string"
+          }
+        }
+      },
+      "AgentSearchResults": {
+        "description": "Search results for agent cards.",
+        "required": [
+          "count",
+          "agents"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentSearchResult"
+            }
+          }
+        }
+      },
+      "McpToolSearchResult": {
+        "description": "MCP tool search result.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "createdOn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "McpToolSearchResults": {
+        "description": "Search results for MCP tools.",
+        "required": [
+          "count",
+          "tools"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolSearchResult"
+            }
+          }
+        }
+      },
+      "AiCatalog": {
+        "description": "AI Catalog document per the ai-catalog.io specification, listing agent and tool entries hosted by this registry.",
+        "required": [
+          "specVersion",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "specVersion": {
+            "type": "string"
+          },
+          "host": {
+            "$ref": "#/components/schemas/AiCatalogHost"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiCatalogEntry"
+            }
+          },
+          "nextPageToken": {
+            "description": "Opaque pagination token for retrieving the next page of ARD list results. Only populated by the ARD `GET /agents` endpoint; absent from the static `/.well-known/ai-catalog.json` projection.",
+            "type": "string"
+          }
+        }
+      },
+      "AiCatalogHost": {
+        "description": "Information about the AI Catalog host (this registry instance).",
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "documentationUrl": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "AiCatalogEntry": {
+        "description": "An entry in the AI Catalog, representing an A2A agent card or an MCP server card.",
+        "required": [
+          "identifier",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "representativeQueries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ArdFilter": {
+        "description": "ARD search filter map; keys are filter names (type, tags, capabilities, publisher) and values are the list of accepted values for that filter (OR semantics within a key, AND semantics across keys).",
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdSearchQuery": {
+        "description": "ARD search query.",
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "filter": {
+            "$ref": "#/components/schemas/ArdFilter"
+          }
+        }
+      },
+      "ArdSearchRequest": {
+        "description": "Request body for the ARD POST /search endpoint.",
+        "required": [
+          "query"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/ArdSearchQuery"
+          },
+          "federation": {
+            "type": "string"
+          },
+          "pageSize": {
+            "default": 10,
+            "type": "integer"
+          },
+          "pageToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdSearchResultEntry": {
+        "description": "A single ARD search result entry (an AiCatalogEntry plus ARD-specific ranking fields).",
+        "required": [
+          "identifier",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdSearchResponse": {
+        "description": "Response body for the ARD POST /search endpoint.",
+        "required": [
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArdSearchResultEntry"
+            }
+          },
+          "pageToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ArdFacetRequest": {
+        "description": "A single facet request for the ARD POST /explore endpoint.",
+        "required": [
+          "field"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "minCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "ArdResultType": {
+        "description": "Requested result type for the ARD POST /explore endpoint.",
+        "required": [
+          "facets"
+        ],
+        "type": "object",
+        "properties": {
+          "facets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArdFacetRequest"
+            }
+          }
+        }
+      },
+      "ArdExploreRequest": {
+        "description": "Request body for the ARD POST /explore endpoint.",
+        "required": [
+          "resultType"
+        ],
+        "type": "object",
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/ArdSearchQuery"
+          },
+          "resultType": {
+            "$ref": "#/components/schemas/ArdResultType"
+          }
+        }
+      },
+      "ArdFacetBucket": {
+        "description": "A single facet bucket.",
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "ArdFacet": {
+        "description": "A single facet's buckets.",
+        "type": "object",
+        "properties": {
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArdFacetBucket"
+            }
+          },
+          "otherCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "ArdFacets": {
+        "description": "Facets keyed by the requested facet field name.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/ArdFacet"
+        }
+      },
+      "ArdExploreResponse": {
+        "description": "Response body for the ARD POST /explore endpoint.",
+        "type": "object",
+        "properties": {
+          "resultType": {
+            "type": "string"
+          },
+          "facets": {
+            "$ref": "#/components/schemas/ArdFacets"
+          }
+        }
       }
     },
     "responses": {
@@ -9059,8 +10338,10 @@
             "examples": {
               "NotFoundExample": {
                 "value": {
-                  "error_code": 404,
-                  "message": "No artifact with id 'Topic-1/Inbound' could be found."
+                  "detail": "ArtifactNotFoundException: No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "title": "No artifact with ID 'artifact-ID' in group 'group-ID' was found.",
+                  "status": 404,
+                  "name": "ArtifactNotFoundException"
                 }
               }
             }
@@ -9077,8 +10358,10 @@
             "examples": {
               "MethodNotAllowedExample": {
                 "value": {
-                  "error_code": 405,
-                  "message": "Method is currently not supported or disabled."
+                  "detail": "NotAllowedException: The requested HTTP method is not allowed for this resource.",
+                  "title": "Method Not Allowed.",
+                  "status": 405,
+                  "name": "NotAllowedException"
                 }
               }
             }
@@ -9093,10 +10376,12 @@
               "$ref": "#/components/schemas/ProblemDetails"
             },
             "examples": {
-              "ErrorExample": {
+              "ServerErrorExample": {
                 "value": {
-                  "error_code": 500,
-                  "message": "Lost connection to the database."
+                  "detail": "StorageException: Lost connection to the database.",
+                  "title": "Lost connection to the database.",
+                  "status": 500,
+                  "name": "StorageException"
                 }
               }
             }
@@ -9109,6 +10394,16 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "examples": {
+              "BadRequestExample": {
+                "value": {
+                  "detail": "BadRequestException: The request contains invalid or missing parameters.",
+                  "title": "Bad Request.",
+                  "status": 400,
+                  "name": "BadRequestException"
+                }
+              }
             }
           }
         },
@@ -9123,8 +10418,10 @@
             "examples": {
               "ConflictExample": {
                 "value": {
-                  "error_code": 409,
-                  "message": "The artifact content was invalid."
+                  "detail": "ArtifactAlreadyExistsException: An artifact with ID 'artifact-ID' in group 'group-ID' already exists.",
+                  "title": "An artifact with ID 'artifact-ID' in group 'group-ID' already exists.",
+                  "status": 409,
+                  "name": "ArtifactAlreadyExistsException"
                 }
               }
             }
@@ -9141,8 +10438,8 @@
             "examples": {
               "RuleViolationConflictExample": {
                 "value": {
-                  "error_code": 409,
-                  "message": "The artifact content was invalid",
+                  "status": 409,
+                  "title": "The artifact content was invalid",
                   "causes": [
                     {
                       "description": "API is missing a title",
@@ -9169,8 +10466,8 @@
             "examples": {
               "RuleViolationBadRequestExample": {
                 "value": {
-                  "error_code": 400,
-                  "message": "The artifact content was invalid",
+                  "status": 400,
+                  "title": "The artifact content was invalid",
                   "causes": [
                     {
                       "description": "API is missing a title",
@@ -9226,9 +10523,10 @@
             "examples": {
               "UnprocessableEntityExample": {
                 "value": {
-                  "error_code": 422,
-                  "message": "The artifact content is invalid: Schema validation failed",
-                  "name": "SchemaValidationException"
+                  "detail": "UnprocessableSchemaException: Could not execute compatibility rule on invalid Avro schema.",
+                  "title": "The artifact content is invalid: Schema validation failed.",
+                  "status": 422,
+                  "name": "UnprocessableSchemaException"
                 }
               }
             }
@@ -9334,6 +10632,14 @@
     {
       "name": "GitOps",
       "description": "Experimental. Management and status endpoints for the GitOps storage backend. These endpoints are only available when the registry is configured with `apicurio.storage.kind=gitops`."
+    },
+    {
+      "name": "WellKnown",
+      "description": "Well-known discovery endpoints for A2A agents, MCP tools, and JSON schemas."
+    },
+    {
+      "name": "AiCatalog",
+      "description": "AI Catalog (ai-catalog.io) and ARD (Agentic Resource Discovery) convergence endpoints."
     }
   ],
   "x-codegen": {

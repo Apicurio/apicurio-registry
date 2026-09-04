@@ -1,7 +1,8 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useMatch, useParams } from "react-router";
 import {
     ContentTabContent,
     DocumentationTabContent,
@@ -23,10 +24,12 @@ import {
     IfFeature,
     InvalidContentModal,
     MetaData,
-    RootPageHeader
+    RootPageHeader,
+    TestVersionModal,
+    TestVersionSuccessModal
 } from "@app/components";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
@@ -34,6 +37,7 @@ import { DownloadService, useDownloadService } from "@services/useDownloadServic
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import {
     ArtifactMetaData,
+    CreateVersion,
     Labels,
     RuleViolationProblemDetails,
     SearchedVersion,
@@ -49,6 +53,7 @@ import {
 } from "@app/pages/drafts/components/modals";
 import { EditAgentModal } from "@app/pages/agents/components";
 import { AgentCard } from "@app/components/agentCard";
+import { isErrorStatus } from "@utils/rest.utils.ts";
 
 
 /**
@@ -71,6 +76,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
+    const [isTestVersionModalOpen, setIsTestVersionModalOpen] = useState(false);
+    const [isTestVersionSuccessModalOpen, setIsTestVersionSuccessModalOpen] = useState(false);
     const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
     const [isEditAgentCardModalOpen, setIsEditAgentCardModalOpen] = useState(false);
 
@@ -80,32 +87,25 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const draftsService: DraftsService = useDraftsService();
     const download: DownloadService = useDownloadService();
     const { groupId, artifactId, version }= useParams();
-    const location = useLocation();
+    const contentMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/content");
+    const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
+    const documentationMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/documentation");
 
     let activeTabKey: string = "overview";
-    if (location.pathname.indexOf("/content") !== -1) {
+    if (contentMatch) {
         activeTabKey = "content";
-    } else if (location.pathname.indexOf("/references") !== -1) {
+    } else if (referencesMatch) {
         activeTabKey = "references";
-    } else if (location.pathname.indexOf("/documentation") !== -1) {
+    } else if (documentationMatch) {
         activeTabKey = "documentation";
     }
 
-    const is404 = (e: any) => {
-        if (typeof e === "string") {
-            try {
-                const eo: any = JSON.parse(e);
-                if (eo && eo.status && eo.status === 404) {
-                    return true;
-                }
-            } catch {
-                // Do nothing
-            }
-        }
-        return false;
-    };
+    // Note: the SDK's generated client throws structured error objects (with a
+    // `responseStatusCode` or `status` field), not JSON strings, so status checks
+    // must go through the shared isErrorStatus() helper rather than JSON.parse().
+    const is404 = (e: any) => isErrorStatus(e, 404);
 
-    const createLoaders = (): Promise<any>[] => {
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
         if (gid == "default") {
             gid = null;
@@ -113,18 +113,18 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         logger.info("Loading data for artifact: ", artifactId);
         return [
             groups.getArtifactMetaData(gid, artifactId as string)
-                .then(setArtifact)
-                .catch(error => {
+                .then(guard.wrap(setArtifact))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getArtifactVersionMetaData(gid, artifactId as string, version as string)
-                .then(setArtifactVersion)
-                .catch(error => {
+                .then(guard.wrap(setArtifactVersion))
+                .catch(guard.wrap((error: any) => {
                     setPageError(toPageError(error, "Error loading page data."));
-                }),
+                })),
             groups.getArtifactVersionContent(gid, artifactId as string, version as string)
-                .then(setArtifactContent)
-                .catch(e => {
+                .then(guard.wrap(setArtifactContent))
+                .catch(guard.wrap((e: any) => {
                     logger.warn("Failed to get artifact content: ", e);
                     if (is404(e)) {
                         setArtifactContent("Artifact version content not available (404 Not Found).");
@@ -132,7 +132,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         const pageError: PageError = toPageError(e, "Error loading page data.");
                         setPageError(pageError);
                     }
-                }),
+                })),
         ];
     };
 
@@ -272,7 +272,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             pleaseWait(false);
             const gid: string = encodeURIComponent(groupId || "default");
             const aid: string = encodeURIComponent(artifactId as string);
-            appNavigation.navigateTo(`/explore/${gid}/${aid}/versions`);
+            appNavigation.navigateTo(`/explore/${gid}/${aid}`);
         }).catch(error => {
             setPageError(toPageError(error, "Error deleting a version."));
         });
@@ -331,6 +331,23 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         console.info("[DraftsPage] Invalid content error:", error);
         setInvalidContentError(error);
         setIsInvalidContentModalOpen(true);
+    };
+
+    const doTestVersion = (data: CreateVersion): void => {
+        setIsTestVersionModalOpen(false);
+        pleaseWait(true, "Testing content, please wait...");
+        const gid: string | null = (groupId === "default") ? null : (groupId as string);
+        groups.testArtifactVersion(gid, artifactId as string, data).then(() => {
+            pleaseWait(false);
+            setIsTestVersionSuccessModalOpen(true);
+        }).catch(error => {
+            pleaseWait(false);
+            if (error && (error.status === 400 || error.status === 409) && Array.isArray(error.causes)) {
+                handleInvalidContentError(error);
+            } else {
+                setPageError(toPageError(error, "Error testing content."));
+            }
+        });
     };
 
     const doFinalizeDraft = (draft: Draft, dryRun?: boolean): void => {
@@ -401,7 +418,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
-        setLoaders(createLoaders());
+        setPageError(undefined);
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
     }, [groupId, artifactId, version]);
 
     useEffect(() => {
@@ -489,6 +509,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         onCreateDraftFrom={() => {
                             setIsCreateDraftFromModalOpen(true);
                         }}
+                        onTest={() => setIsTestVersionModalOpen(true)}
                         artifact={artifact}
                         version={artifactVersion}
                         codegenEnabled={true}
@@ -538,6 +559,16 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                     setInvalidContentError(undefined);
                     setIsInvalidContentModalOpen(false);
                 }} />
+            <TestVersionModal
+                artifactType={artifact?.artifactType as string}
+                isOpen={isTestVersionModalOpen}
+                onClose={() => setIsTestVersionModalOpen(false)}
+                onTest={doTestVersion}
+            />
+            <TestVersionSuccessModal
+                isOpen={isTestVersionSuccessModalOpen}
+                onClose={() => setIsTestVersionSuccessModalOpen(false)}
+            />
             <NewDraftFromModal
                 isOpen={isCreateDraftFromModalOpen}
                 onClose={() => setIsCreateDraftFromModalOpen(false)}

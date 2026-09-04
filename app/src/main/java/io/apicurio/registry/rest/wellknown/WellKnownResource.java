@@ -1,9 +1,14 @@
 package io.apicurio.registry.rest.wellknown;
 
-import io.apicurio.registry.a2a.rest.beans.AgentCard;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchRequest;
-import io.apicurio.registry.a2a.rest.beans.AgentSearchResults;
-import io.apicurio.registry.mcptools.rest.beans.McpToolSearchResults;
+import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
+import io.apicurio.registry.rest.v3.beans.AgentCard;
+import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
+import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
+import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
+import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
+import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -24,7 +29,7 @@ import java.util.List;
  * /.well-known/agent.json for discovery purposes.
  *
  * This resource also serves JSON Schemas for LLM artifact types at
- * /.well-known/schemas/{type}/{version} for IDE autocompletion and validation.
+ * /.well-known/schemas/{schemaType}/{version} for IDE autocompletion and validation.
  *
  * @see <a href="https://a2a-protocol.org/">A2A Protocol</a>
  * @see <a href="https://json-schema.org/">JSON Schema</a>
@@ -42,15 +47,6 @@ public interface WellKnownResource {
     @Path("/agent.json")
     @Produces(MediaType.APPLICATION_JSON)
     AgentCard getAgentCard();
-
-    /**
-     * Returns the Agent Card for this Apicurio Registry instance.
-     * This is the canonical A2A v1.0 discovery endpoint.
-     */
-    @GET
-    @Path("/a2a")
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentCard getAgentCardV1();
 
     /**
      * Returns the Agent Card for this Apicurio Registry instance.
@@ -78,37 +74,6 @@ public interface WellKnownResource {
             @PathParam("groupId") String groupId,
             @PathParam("artifactId") String artifactId,
             @QueryParam("version") String version);
-
-    /**
-     * Returns agents marked as public. No authentication required.
-     */
-    @GET
-    @Path("/agents/public")
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentSearchResults getPublicAgents(
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
-
-    /**
-     * Returns agents the authenticated caller is entitled to access.
-     * Includes public agents plus agents in groups the caller can read.
-     */
-    @GET
-    @Path("/agents/entitled")
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentSearchResults getEntitledAgents(
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
-
-    /**
-     * Advanced agent search with combined text query and structured filters.
-     * Respects the caller's entitlements.
-     */
-    @POST
-    @Path("/agents/search")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentSearchResults searchAgentsAdvanced(AgentSearchRequest request);
 
     /**
      * Search for registered Agent Cards by various criteria.
@@ -166,6 +131,36 @@ public interface WellKnownResource {
     McpToolSearchResults searchMcpTools(
             @QueryParam("name") String name,
             @QueryParam("parameter") List<String> parameters,
+            @QueryParam("offset") @DefaultValue("0") String offset,
+            @QueryParam("limit") @DefaultValue("20") String limit);
+
+    /**
+     * Returns all registered MCP tools whose {@code inputSchema} can accept the output
+     * produced by the given source tool's {@code outputSchema}.
+     *
+     * <p>Two tools are considered compatible when every property declared in the source
+     * tool's {@code outputSchema.properties} is also present in the candidate tool's
+     * {@code inputSchema.properties} with the same JSON Schema type. This models the
+     * pipeline chaining contract: the candidate tool can consume what the source tool
+     * produces.</p>
+     *
+     * <p>If the source tool has no {@code outputSchema}, an empty result is returned.
+     * The source tool itself is never included in the results.</p>
+     *
+     * @param groupId    the group ID of the source MCP tool artifact
+     * @param artifactId the artifact ID of the source MCP tool
+     * @param version    optional version expression (defaults to latest)
+     * @param offset     pagination offset
+     * @param limit      pagination limit
+     * @return the compatible MCP tools
+     */
+    @GET
+    @Path("/mcp-tools/{groupId}/{artifactId}/compatible")
+    @Produces(MediaType.APPLICATION_JSON)
+    McpCompatibleToolsResults findCompatibleTools(
+            @PathParam("groupId") String groupId,
+            @PathParam("artifactId") String artifactId,
+            @QueryParam("version") String version,
             @QueryParam("offset") @DefaultValue("0") Integer offset,
             @QueryParam("limit") @DefaultValue("20") Integer limit);
 
@@ -179,14 +174,81 @@ public interface WellKnownResource {
      * - model-schema (versions: v1)
      * - mcp-tool (versions: v1)
      *
-     * @param type the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
+     * @param schemaType the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
      * @param version the schema version (e.g., "v1")
      * @return the JSON Schema
      */
     @GET
-    @Path("/schemas/{type}/{version}")
+    @Path("/schemas/{schemaType}/{version}")
     @Produces(MediaType.APPLICATION_JSON)
     Response getSchema(
-            @PathParam("type") String type,
+            @PathParam("schemaType") String schemaType,
             @PathParam("version") String version);
+
+    /**
+     * Returns the AI Catalog (ai-catalog.io) document for this registry instance, projecting
+     * all visible Agent Card and MCP tool artifacts into AI Catalog entries.
+     *
+     * @return the AI Catalog document
+     */
+    @GET
+    @Path("/ai-catalog.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog getAiCatalog();
+
+    /**
+     * Returns the ARD (Agentic Resource Discovery) manifest document for this registry
+     * instance. This is the ARD v0.91 normative discovery path; the payload is identical to
+     * {@link #getAiCatalog()}.
+     *
+     * @return the AI Catalog document
+     */
+    @GET
+    @Path("/ard.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog getArdManifest();
+
+    /**
+     * ARD (Agentic Resource Discovery) search endpoint. Returns AI Catalog entries matching
+     * the requested text query and structured filters.
+     *
+     * @param request the ARD search request
+     * @return the ARD search response
+     */
+    @POST
+    @Path("/ard/search")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    ArdSearchResponse ardSearch(ArdSearchRequest request);
+
+    /**
+     * ARD deterministic agent/tool listing endpoint, with optional filter, ordering, and
+     * pagination.
+     *
+     * @param filter EBNF-ish filter expression (e.g. {@code type=<value>})
+     * @param orderBy optional ordering hint (currently a no-op)
+     * @param pageSize page size
+     * @param pageToken opaque pagination token
+     * @return the AI Catalog document containing the (possibly filtered/paginated) entries
+     */
+    @GET
+    @Path("/ard/agents")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog ardListAgents(
+            @QueryParam("filter") String filter,
+            @QueryParam("orderBy") String orderBy,
+            @QueryParam("pageSize") @DefaultValue("20") Integer pageSize,
+            @QueryParam("pageToken") String pageToken);
+
+    /**
+     * ARD facet exploration endpoint.
+     *
+     * @param request the ARD explore request
+     * @return the ARD explore response containing the requested facets
+     */
+    @POST
+    @Path("/ard/explore")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    ArdExploreResponse ardExplore(ArdExploreRequest request);
 }

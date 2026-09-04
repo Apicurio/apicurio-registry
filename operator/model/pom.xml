@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-operator</artifactId>
-    <version>3.3.1-SNAPSHOT</version>
+    <version>3.3.3-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>apicurio-registry-operator-model</artifactId>
@@ -47,7 +47,7 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
+      <artifactId>quarkus-junit</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

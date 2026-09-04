@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:b55a353cc6b3c2ad1ba0d78a036bb820dbf6a138f45d11c38d6f0a30bd9e1fb9
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:07122e5a2806f4d570fe3dfadeacd2d55b440b05f23e4639d1ae4966941431bb
 
 ENV APP_URL="${docker.app.file}" \
     JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"

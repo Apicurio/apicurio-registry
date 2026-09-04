@@ -4,8 +4,6 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
-import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
-import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -13,13 +11,10 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -103,6 +98,20 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String MCP_TOOL_CONTENT = """
+            {
+                "name": "get_weather",
+                "description": "Get the current weather for a city",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "city": { "type": "string" }
+                    },
+                    "required": ["city"]
+                }
+            }
+            """;
+
     @Test
     public void testGetAgentCard() {
         givenAtRoot()
@@ -128,23 +137,9 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .body("skills.id", hasItem("artifact-management"))
                 .body("skills.id", hasItem("compatibility-check"))
                 .body("skills.id", hasItem("agent-discovery"))
-                .body("capabilities.stateTransitionHistory", equalTo(false))
                 .body("defaultInputModes", hasItem("text/plain"))
                 .body("defaultOutputModes", hasItem("text/plain"))
                 .body("securitySchemes", notNullValue());
-    }
-
-    @Test
-    public void testGetAgentCardViaA2APath() {
-        givenAtRoot()
-                .when()
-                .contentType(CT_JSON)
-                .get("/.well-known/a2a")
-                .then()
-                .statusCode(200)
-                .body("name", equalTo("Apicurio Registry"))
-                .body("supportedInterfaces", hasSize(1))
-                .body("capabilities.extendedAgentCard", equalTo(false));
     }
 
     @Test
@@ -248,6 +243,104 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchAgentsPartialNameMatch() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "partialmatchagent-alpha", AGENT_CARD_CONTENT);
+
+        // The name filter is documented as a partial match, so a substring should match even
+        // though the caller did not supply any wildcards.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "partialmatchagent")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("partialmatchagent-alpha"));
+    }
+
+    @Test
+    public void testSearchAgentsExplicitWildcardIsPreserved() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "explicitwildcardagent-alpha", AGENT_CARD_CONTENT);
+
+        // A caller-supplied wildcard must still work (the value is not wrapped a second time).
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "*explicitwildcardagent*")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("agents.artifactId", hasItem("explicitwildcardagent-alpha"));
+    }
+
+    @Test
+    public void testSearchAgentsPartialWildcardIsPreserved() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createAgentCard(groupId, "boundedwildcardagent-alpha", AGENT_CARD_CONTENT);
+        createAgentCard(groupId, "zzz-boundedwildcardagent-beta", AGENT_CARD_CONTENT);
+
+        // A prefix-only search stays a prefix search - if the value were wrapped again it would
+        // also match the agent that only contains the term in the middle.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "boundedwildcardagent*")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem("boundedwildcardagent-alpha"))
+                .body("agents.artifactId", not(hasItem("zzz-boundedwildcardagent-beta")));
+
+        // Same for a suffix-only search.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "*boundedwildcardagent-beta")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem("zzz-boundedwildcardagent-beta"))
+                .body("agents.artifactId", not(hasItem("boundedwildcardagent-alpha")));
+    }
+
+    @Test
+    public void testSearchMcpToolsPartialNameMatch() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        createMcpTool(groupId, "partialmatchtool-alpha", MCP_TOOL_CONTENT);
+
+        // Same partial-match behaviour is documented for the MCP tool discovery endpoint.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "partialmatchtool")
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("tools.artifactId", hasItem("partialmatchtool-alpha"));
+    }
+
+    @Test
+    public void testSearchAgentsWhitespaceNameDoesNotMatchAll() throws Exception {
+        // Whitespace-only name should be trimmed to empty string rather than wrapped into "**".
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("name", "   ")
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200);
+    }
+
+    @Test
     public void testSearchAgentsWithPagination() throws Exception {
         String groupId = TestUtils.generateGroupId();
 
@@ -283,239 +376,6 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testGetPublicAgents() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-
-        // Create an agent card and mark it as public
-        createAgentCard(groupId, "public-agent", AGENT_CARD_CONTENT);
-        setVisibility(groupId, "public-agent", "public");
-
-        // Create an agent card without public label
-        createAgentCard(groupId, "private-agent", STREAMING_AGENT_CARD);
-
-        // Public endpoint should return only the public agent
-        givenAtRoot()
-                .when()
-                .get("/.well-known/agents/public")
-                .then()
-                .statusCode(200)
-                .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("public-agent"));
-    }
-
-    @Test
-    public void testGetPublicAgentsNoAuthRequired() {
-        givenAtRoot()
-                .when()
-                .get("/.well-known/agents/public")
-                .then()
-                .statusCode(200)
-                .body("count", notNullValue())
-                .body("agents", notNullValue());
-    }
-
-    @Test
-    public void testGetEntitledAgents() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-
-        createAgentCard(groupId, "entitled-agent-1", AGENT_CARD_CONTENT);
-        createAgentCard(groupId, "entitled-agent-2", STREAMING_AGENT_CARD);
-
-        givenAtRoot()
-                .when()
-                .contentType(CT_JSON)
-                .get("/.well-known/agents/entitled")
-                .then()
-                .statusCode(200)
-                .body("count", greaterThanOrEqualTo(2))
-                .body("agents", notNullValue());
-    }
-
-    @Test
-    public void testSearchAgentsAdvanced() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-
-        createAgentCard(groupId, "search-agent-1", AGENT_CARD_CONTENT);
-        createAgentCard(groupId, "search-agent-2", STREAMING_AGENT_CARD);
-
-        String requestBody = """
-                {
-                    "limit": 50,
-                    "offset": 0
-                }
-                """;
-
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(200)
-                .body("count", greaterThanOrEqualTo(2))
-                .body("agents", notNullValue());
-    }
-
-    @Test
-    public void testSearchAgentsAdvancedWithFilters() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-
-        createAgentCard(groupId, "filter-agent", AGENT_CARD_CONTENT);
-        setVisibility(groupId, "filter-agent", "public");
-
-        String requestBody = """
-                {
-                    "filters": {
-                        "labels": {
-                            "apicurio.agent.visibility": "public"
-                        }
-                    },
-                    "limit": 20,
-                    "offset": 0
-                }
-                """;
-
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(200)
-                .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("filter-agent"));
-    }
-
-    @Test
-    public void testSearchAgentsAdvancedWithQueryByArtifactId() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-
-        createAgentCard(groupId, "my-search-target", AGENT_CARD_CONTENT);
-
-        String requestBody = """
-                {
-                    "query": "my-search-target",
-                    "limit": 10,
-                    "offset": 0
-                }
-                """;
-
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(200)
-                .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("my-search-target"));
-    }
-
-    @Test
-    public void testSearchAgentsAdvancedEmptyBody() {
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body("{}")
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(200)
-                .body("count", notNullValue())
-                .body("agents", notNullValue());
-    }
-
-    @Test
-    public void testGetPublicAgentsWithPagination() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-
-        for (int i = 0; i < 3; i++) {
-            createAgentCard(groupId, "pub-page-" + i, AGENT_CARD_CONTENT);
-            setVisibility(groupId, "pub-page-" + i, "public");
-        }
-
-        givenAtRoot()
-                .when()
-                .queryParam("offset", 0)
-                .queryParam("limit", 2)
-                .get("/.well-known/agents/public")
-                .then()
-                .statusCode(200)
-                .body("count", greaterThanOrEqualTo(3))
-                .body("agents", hasSize(2));
-    }
-
-    @Test
-    public void testSearchAgentsAdvancedWithQueryWildcard() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-        createAgentCard(groupId, "wildcard-target-agent", AGENT_CARD_CONTENT);
-
-        String requestBody = """
-                {
-                    "query": "*wildcard-target*",
-                    "limit": 10,
-                    "offset": 0
-                }
-                """;
-
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(200)
-                .body("count", greaterThanOrEqualTo(1))
-                .body("agents.artifactId", hasItem("wildcard-target-agent"));
-    }
-
-    @Test
-    public void testSearchAgentsAdvancedNegativeOffsetLimit() {
-        String requestBody = """
-                {
-                    "limit": -5,
-                    "offset": -10
-                }
-                """;
-
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(200)
-                .body("count", notNullValue())
-                .body("agents", notNullValue());
-    }
-
-    @Test
-    public void testSearchAgentsAdvancedMalformedJson() {
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body("{broken json")
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(400);
-    }
-
-    @Test
-    public void testDefaultVisibilityExcludesFromPublic() throws Exception {
-        String groupId = TestUtils.generateGroupId();
-
-        // Create agent without visibility label — defaults to "entitled"
-        createAgentCard(groupId, "default-vis-agent", AGENT_CARD_CONTENT);
-
-        // Should NOT appear on public endpoint (default is "entitled", not "public")
-        givenAtRoot()
-                .when()
-                .get("/.well-known/agents/public")
-                .then()
-                .statusCode(200)
-                .body("agents.artifactId", not(hasItem("default-vis-agent")));
-    }
-
-    @Test
     public void testExistingSearchAgentsStillWorks() throws Exception {
         givenAtRoot()
                 .when()
@@ -525,14 +385,6 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", notNullValue())
                 .body("agents", notNullValue());
-    }
-
-    private void setVisibility(String groupId, String artifactId, String visibility) {
-        EditableArtifactMetaData meta = new EditableArtifactMetaData();
-        Labels labels = new Labels();
-        labels.setAdditionalData(Map.of("apicurio.agent.visibility", visibility));
-        meta.setLabels(labels);
-        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(meta);
     }
 
     @Test
@@ -586,10 +438,40 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                         equalTo("1.0"));
     }
 
+    @Test
+    public void testGetSchemaWithRenamedParam() {
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/prompt-template/v1")
+                .then()
+                .statusCode(200);
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/nonexistent/v1")
+                .then()
+                .statusCode(404);
+    }
+
     private void createAgentCard(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
+
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        createArtifact.setFirstVersion(createVersion);
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+    }
+
+    private void createMcpTool(String groupId, String artifactId, String content) throws Exception {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
 
         CreateVersion createVersion = new CreateVersion();
         VersionContent versionContent = new VersionContent();

@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.1-SNAPSHOT</version>
+    <version>3.3.3-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -95,6 +95,18 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-protobuf-schema-utilities</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk-common</artifactId>
     </dependency>
 
     <!-- Test dependencies -->

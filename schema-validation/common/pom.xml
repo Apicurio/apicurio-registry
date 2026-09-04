@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry-schema-validation</artifactId>
-    <version>3.3.1-SNAPSHOT</version>
+    <version>3.3.3-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -19,6 +19,10 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-resolver</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk</artifactId>
     </dependency>
   </dependencies>
 

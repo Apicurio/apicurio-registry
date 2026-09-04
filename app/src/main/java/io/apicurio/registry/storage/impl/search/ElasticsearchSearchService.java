@@ -10,10 +10,12 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchFilterType;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,6 +51,12 @@ public class ElasticsearchSearchService {
      */
     private static final Set<SearchFilterType> INDEX_ONLY_FILTER_TYPES = EnumSet.of(
             SearchFilterType.content, SearchFilterType.structure);
+
+    private static final String FIELD_GA_KEY = "ga_key";
+    private static final String FIELD_ARTIFACT_COUNT = "artifact_count";
+    private static final String FIELD_DESCRIPTION = "description";
+    private static final String FIELD_CREATED_ON = "createdOn";
+    private static final String FIELD_MODIFIED_ON = "modifiedOn";
 
     @Inject
     ElasticsearchClient client;
@@ -145,6 +154,56 @@ public class ElasticsearchSearchService {
                 .build();
     }
 
+    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount) throws IOException {
+
+        Query query = buildEsQuery(filters);
+        List<SortOptions> sortOptions = buildSort(orderBy, orderDirection);
+
+        SearchResponse<Map> response = client.search(s -> {
+            s.index(config.getIndexName())
+                    .query(query)
+                    .collapse(c -> c.field(FIELD_GA_KEY))
+                    .from(offset)
+                    .size(limit);
+
+            for (SortOptions sortOption : sortOptions) {
+                s.sort(sortOption);
+            }
+            s.sort(SortOptions.of(so -> so.field(FieldSort.of(f -> f
+                    .field(FIELD_GA_KEY).order(SortOrder.Asc)))));
+
+            if (!skipCount) {
+                s.aggregations(FIELD_ARTIFACT_COUNT, a -> a
+                        .cardinality(ca -> ca.field(FIELD_GA_KEY).precisionThreshold(40000)));
+            }
+
+            return s;
+        }, Map.class);
+
+        long totalCount = 0;
+        if (!skipCount && response.aggregations() != null
+                && response.aggregations().containsKey(FIELD_ARTIFACT_COUNT)) {
+            totalCount = (long) response.aggregations()
+                    .get(FIELD_ARTIFACT_COUNT).cardinality().value();
+        }
+
+        List<SearchedArtifactDto> artifacts = new ArrayList<>();
+        for (Hit<Map> hit : response.hits().hits()) {
+            if (hit.source() != null) {
+                artifacts.add(mapToSearchedArtifactDto(hit.source()));
+            }
+        }
+
+        log.debug("Elasticsearch artifact search returned {} results (total: {}, offset: {}, limit: {})",
+                artifacts.size(), totalCount, offset, limit);
+
+        return ArtifactSearchResultsDto.builder()
+                .artifacts(artifacts)
+                .count(totalCount)
+                .build();
+    }
+
     /**
      * Builds an Elasticsearch Query from a set of SearchFilters.
      *
@@ -212,7 +271,7 @@ public class ElasticsearchSearchService {
 
         case state:
             return Query.of(q -> q.term(t -> t
-                    .field("state").value(filter.getStringValue().toUpperCase())));
+                    .field("state").value(filter.getStringValue().toUpperCase(Locale.ROOT))));
 
         case globalId:
             return Query.of(q -> q.term(t -> t
@@ -226,7 +285,7 @@ public class ElasticsearchSearchService {
             return buildNameQuery(filter.getStringValue());
 
         case description:
-            return buildTextQuery("description", filter.getStringValue());
+            return buildTextQuery(FIELD_DESCRIPTION, filter.getStringValue());
 
         case content:
             return buildTextQuery("content", filter.getStringValue());
@@ -289,10 +348,20 @@ public class ElasticsearchSearchService {
     /**
      * Builds a query for the structure field using the faceted format. Supports three formats:
      * <ul>
-     * <li>{@code type:kind:name} - exact match on the structure field</li>
+     * <li>{@code type:kind:name} - exact match on the structure field. The name segment may
+     * itself contain ':' (for example a namespaced Agent Card skill id, or an indexed URL), so
+     * any value with three or more segments is treated as this fully-qualified form and matched
+     * exactly against the indexed value.</li>
      * <li>{@code kind:name} - text search on structure_text</li>
      * <li>{@code name} - text search on structure_text</li>
      * </ul>
+     *
+     * <p>Structured values are indexed as {@code type:kind:name} where {@code type} and
+     * {@code kind} are colon-free identifiers, so counting segments to detect the fully-qualified
+     * form is only reliable when the name is allowed to keep its own colons. Detecting the exact
+     * form by an exact segment count of three silently dropped any value whose name contained a
+     * colon into a text search that could never match; see {@link ElasticsearchDocumentBuilder}
+     * for the indexing side.
      *
      * @param value the structure filter value
      * @return an Elasticsearch query for structured element search
@@ -302,11 +371,13 @@ public class ElasticsearchSearchService {
             return Query.of(q -> q.matchAll(m -> m));
         }
 
-        String lowered = value.toLowerCase().trim();
+        String lowered = value.toLowerCase(Locale.ROOT).trim();
         String[] parts = lowered.split(":", -1);
 
-        if (parts.length == 3) {
-            // Full format: type:kind:name - exact match on structure field
+        if (parts.length >= 3) {
+            // Full format: type:kind:name - exact match on structure field. The exact match uses
+            // the whole value, so a name that itself contains ':' (four or more segments) is still
+            // matched correctly against the indexed "type:kind:name" value.
             return Query.of(q -> q.term(t -> t
                     .field("structure").value(lowered)));
         } else if (parts.length == 2) {
@@ -366,10 +437,10 @@ public class ElasticsearchSearchService {
             fieldName = "name.keyword";
             break;
         case createdOn:
-            fieldName = "createdOn";
+            fieldName = FIELD_CREATED_ON;
             break;
         case modifiedOn:
-            fieldName = "modifiedOn";
+            fieldName = FIELD_MODIFIED_ON;
             break;
         case globalId:
             fieldName = "globalId";
@@ -422,7 +493,7 @@ public class ElasticsearchSearchService {
         builder.version(toStr(source.get("version")));
         builder.artifactType(toStr(source.get("artifactType")));
         builder.name(toStr(source.get("name")));
-        builder.description(toStr(source.get("description")));
+        builder.description(toStr(source.get(FIELD_DESCRIPTION)));
         builder.owner(toStr(source.get("owner")));
         builder.modifiedBy(toStr(source.get("modifiedBy")));
 
@@ -433,12 +504,12 @@ public class ElasticsearchSearchService {
         }
 
         // Timestamps
-        Object createdOn = source.get("createdOn");
+        Object createdOn = source.get(FIELD_CREATED_ON);
         if (createdOn != null) {
             builder.createdOn(new Date(toLong(createdOn)));
         }
 
-        Object modifiedOn = source.get("modifiedOn");
+        Object modifiedOn = source.get(FIELD_MODIFIED_ON);
         if (modifiedOn != null) {
             builder.modifiedOn(new Date(toLong(modifiedOn)));
         }
@@ -450,6 +521,34 @@ public class ElasticsearchSearchService {
         }
 
         // Labels
+        Map<String, String> labels = documentBuilder.extractLabels(source);
+        builder.labels(labels);
+
+        return builder.build();
+    }
+
+    @SuppressWarnings("unchecked")
+    SearchedArtifactDto mapToSearchedArtifactDto(Map<String, Object> source) {
+        SearchedArtifactDto.SearchedArtifactDtoBuilder builder = SearchedArtifactDto.builder();
+
+        builder.groupId(toStr(source.get("groupId")));
+        builder.artifactId(toStr(source.get("artifactId")));
+        builder.name(toStr(source.get("name")));
+        builder.description(toStr(source.get(FIELD_DESCRIPTION)));
+        builder.artifactType(toStr(source.get("artifactType")));
+        builder.owner(toStr(source.get("owner")));
+        builder.modifiedBy(toStr(source.get("modifiedBy")));
+
+        Object createdOn = source.get(FIELD_CREATED_ON);
+        if (createdOn != null) {
+            builder.createdOn(new Date(toLong(createdOn)));
+        }
+
+        Object modifiedOn = source.get(FIELD_MODIFIED_ON);
+        if (modifiedOn != null) {
+            builder.modifiedOn(new Date(toLong(modifiedOn)));
+        }
+
         Map<String, String> labels = documentBuilder.extractLabels(source);
         builder.labels(labels);
 

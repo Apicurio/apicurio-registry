@@ -132,8 +132,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     String effectiveFormat = format;
                     if (effectiveFormat == null || effectiveFormat.isBlank()) {
                         java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                        if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                             if (ArtifactType.AVRO.equals(amd.getArtifactType())
                                     || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
@@ -238,12 +238,12 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                 .sorted()
                 .collect(Collectors.toList());
 
-        // Apply pagination
-        int effectiveOffset = offset != null ? offset.intValue() : 0;
+        int effectiveOffset = Math.max(0, offset != null ? offset.intValue() : 0);
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue() : rval.size();
 
         if (effectiveOffset > 0 || effectiveLimit < rval.size()) {
-            int toIndex = Math.min(effectiveOffset + effectiveLimit, rval.size());
+            // Safe cast: Math.min bounds the result to rval.size(), which is an int
+            int toIndex = (int) Math.min((long) effectiveOffset + effectiveLimit, rval.size());
             if (effectiveOffset < rval.size()) {
                 rval = rval.subList(effectiveOffset, toIndex);
             } else {
@@ -506,8 +506,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     String effectiveFormat = format;
                     if (effectiveFormat == null || effectiveFormat.isBlank()) {
                         java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                        if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                             if (ArtifactType.AVRO.equals(amd.getArtifactType())
                                     || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {

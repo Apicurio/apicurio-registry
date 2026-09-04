@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -41,7 +41,7 @@ jobs:
       # -Dfull: include all optional modules needed for the Docker image
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build
-        run: ./mvnw -B clean package -Dfull -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull -pl app,distro/docker,operator/olm-tests -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
 
       - name: Build operand image
         run: |
@@ -63,7 +63,10 @@ jobs:
         working-directory: operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+          # base_ref is empty on pull_request_review events; check the PR payload's base
+          # ref too so review-triggered runs still include the rolling (3.x) channel.
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ] \
+             || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make $ROLLING_CHANNEL_ARG bundle
@@ -72,7 +75,10 @@ jobs:
         working-directory: operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+          # base_ref is empty on pull_request_review events; check the PR payload's base
+          # ref too so review-triggered runs still include the rolling (3.x) channel.
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ] \
+             || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make $ROLLING_CHANNEL_ARG catalog
@@ -108,22 +114,54 @@ jobs:
           retention-days: 1
 
   operator-test-local:
-    name: Local Tests
+    name: Local Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: operator-build
-    # Only run local tests on push to main
-    if: inputs.publish
+    # Same JUnit @Tag groups as Remote Tests below, minus the OLM ones — OLM
+    # install/upgrade is a remote-cluster-only concept (subscribing to a
+    # catalog), not applicable to the in-process "local" operator. Sharded
+    # into separate jobs/runners/Minikube instances rather than JVM-level
+    # parallelism: the Makefile deliberately forces -T1 because @QuarkusTest
+    # local-mode instances cannot safely share one JVM, but separate jobs
+    # have no such restriction — each gets its own JVM and its own cluster.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: smoke
+            groups: "smoke"
+          - name: kafka
+            groups: "kafka"
+          - name: auth
+            groups: "auth"
+            excluded-groups: "kafka"
+          - name: database
+            groups: "database"
+          - name: feature-a
+            groups: "feature-a"
+            excluded-groups: "feature-setup"
+          - name: feature-b
+            groups: "feature-b"
+            excluded-groups: "feature-setup"
+          - name: feature-setup
+            groups: "feature-setup"
     steps:
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: operator-build-artifacts
+          path: operator/
 
       - name: Download Docker images
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -131,7 +169,24 @@ jobs:
           name: operator-test-images
           path: /tmp/
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        id: minikube-setup
+        continue-on-error: true
+        timeout-minutes: 10
+        with:
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: 'false'
+          olm-v1-enable: 'false'
+
+      # medyagh/setup-minikube (invoked by the composite action) intermittently
+      # fails with transient HTTP 504s while downloading; one retry absorbs it
+      # instead of failing the whole job.
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        if: steps.minikube-setup.outcome == 'failure'
+        timeout-minutes: 10
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -157,12 +212,28 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
-      # Makefile enforces -T1 (single-threaded) because operator @QuarkusTest tests require sequential execution.
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-      - name: Build and run local tests on Minikube
+      # -Dfailsafe.rerunFailingTestsCount=1: retry failed tests once as a safety net for
+      #   transient resource-related flakes, same as Remote Tests below.
+      - name: Run ${{ matrix.name }} local tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" build
+          make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop -Dfailsafe.rerunFailingTestsCount=1" \
+            GROUPS="${{ matrix.groups }}" \
+            EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
+            test-local-group
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-operator-local-${{ matrix.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-operator-local-${{ matrix.name }}
+          path: flaky-tests-operator-local-${{ matrix.name }}.json
 
   operator-test:
     name: Remote Tests (${{ matrix.name }})
@@ -193,8 +264,14 @@ jobs:
             olm-enable: "false"
             olm-v1-enable: "false"
             extra-build-opts: ""
-          - name: feature
-            groups: "feature"
+          - name: feature-a
+            groups: "feature-a"
+            excluded-groups: "feature-setup"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: feature-b
+            groups: "feature-b"
             excluded-groups: "feature-setup"
             olm-enable: "false"
             olm-v1-enable: "false"
@@ -220,7 +297,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -238,9 +315,27 @@ jobs:
           name: operator-test-images
           path: /tmp/
 
+
+
       # driver=none: Kubernetes runs directly on the host, sharing all runner
       # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        id: minikube-setup
+        continue-on-error: true
+        timeout-minutes: 10
+        with:
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: ${{ matrix.olm-enable }}
+          olm-v1-enable: ${{ matrix.olm-v1-enable }}
+          start-args: '--alsologtostderr --v=2'
+
+      # medyagh/setup-minikube (invoked by the composite action) intermittently
+      # fails with transient HTTP 504s while downloading; one retry absorbs it
+      # instead of failing the whole job.
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        if: steps.minikube-setup.outcome == 'failure'
+        timeout-minutes: 10
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -271,6 +366,22 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
+      - name: Pre-pull OLM bundle and catalog images
+        run: |
+          # ttl.sh pulls occasionally stall for 10+ minutes mid-test (catalog pod stuck
+          # Pending until the setup timeout). Pull once up front with retries; with
+          # driver=none the kubelet shares the host docker image store, so pods using
+          # these (non-:latest) images get IfNotPresent semantics and never pull during
+          # tests.
+          for img in "$BUNDLE_IMAGE" "$CATALOG_IMAGE"; do
+            for i in 1 2 3; do
+              docker pull "$img" && break
+              echo "Pull failed for $img (attempt $i/3), retrying..."
+              sleep 5
+            done
+            docker image inspect "$img" > /dev/null || { echo "Could not pull $img"; exit 1; }
+          done
+
       # -Dtest.operator.timeout.long=600: extend default Awaitility timeout from 420s (7 min)
       #   to 600s (10 min) for slow Kafka/OLM startups on shared runners. This is read by
       #   ITBase.LONG_DURATION via Integer.getInteger().
@@ -285,6 +396,20 @@ jobs:
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
             test-remote-group
 
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-operator-${{ matrix.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-operator-${{ matrix.name }}
+          path: flaky-tests-operator-${{ matrix.name }}.json
+          retention-days: 1
+
+
   operator-check-install:
     name: Check Install File
     runs-on: ubuntu-latest
@@ -295,7 +420,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -305,7 +430,7 @@ jobs:
       # -Dfull: include all optional modules needed for a complete operator build
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
       - name: Build for install file generation
-        run: ./mvnw -B clean package -Dfull -pl operator/controller -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
+        run: ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull -pl operator/controller -am -Pprod -DskipTests -Dmaven.javadoc.skip -Daether.syncContext.named.factory=noop
 
       - name: Update install file
         working-directory: operator
@@ -318,12 +443,13 @@ jobs:
           unset BUNDLE_IMAGE
           unset CATALOG_IMAGE
           make IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
 
       - name: Check install file
         run: |
-          git add operator/install/install.yaml || true
+          git add operator/install/install.yaml operator/install/install-namespaced.yaml || true
           if ! git diff --staged --exit-code; then
-            echo 'Install file needs to be updated. Please run `pushd operator; make SKIP_TESTS=true build IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file; popd` and commit the result.';
+            echo 'Install file needs to be updated. Please run `pushd operator; make SKIP_TESTS=true build IMAGE_TAG=latest-snapshot INSTALL_FILE=install/install.yaml dist-install-file dist-install-file-namespaced INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml; popd` and commit the result.';
             exit 1;
           else
             echo "No changes to the install file.";
@@ -347,7 +473,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -360,10 +486,10 @@ jobs:
           make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" SKIP_TESTS=true build
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Login to quay.io registry
         run: |

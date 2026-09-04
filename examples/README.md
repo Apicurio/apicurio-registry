@@ -10,14 +10,16 @@ There are numerous options available when integrating with the registry, and the
 of examples found here may not cover every configuration permutation.
 
 These examples rely on an Apicurio Registry server being available, you can start one with the latest build by running:
-``
+
+```bash
 docker run -p 8080:8080 -it apicurio/apicurio-registry:latest-snapshot
-``
+```
+
 This command will start an Apicurio Registry server and make it available at the port 8080 of localhost.
 
-Some examples also require a Kafka Cluster available, you can very easily run one using the [docker-compose resources available in the tools folder](/tools/kafka-compose/kafka-compose.yaml)
+Some examples also require a Kafka Cluster available, you can very easily run one using the [docker-compose resources available in the tools folder](tools/kafka-compose/kafka-compose.yaml)
 
-Simply run ``docker-compose  -f examples/tools/kafka-compose/kafka-compose.yaml up`` and you'll have a Kafka broker available at the port 9092.
+Simply run `docker compose -f examples/tools/kafka-compose/kafka-compose.yaml up` from the repository root and you'll have a Kafka broker available at the port 9092.
 
 # List of Examples
 A list of examples is included below, with descriptions and explanations of each covered use-case.
@@ -82,6 +84,12 @@ and model capability search. Includes integration examples for Quarkus + LangCha
 
 See the [llm-artifact-types](llm-artifact-types/) directory for details.
 
+## MCP Server + Keycloak Example
+Docker Compose stack for testing the Apicurio Registry MCP server against a Keycloak-secured Registry.
+Includes stdio mode (client credentials) and HTTP mode (OAuth token forwarding).
+
+See the [mcp-keycloak](mcp-keycloak/) directory for details.
+
 ## Kafka Order Processing Example
 This example provides a complete, realistic Kafka architecture demonstrating both message production and
 consumption with Apicurio Registry as the schema registry. The example simulates an order processing
@@ -114,3 +122,11 @@ The demo includes a multi-agent workflow that processes customer complaints thro
 summarization, and translation agents - all using real HTTP communication.
 
 See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.
+
+## Custom Artifact Types (Java providers)
+
+Adds a custom `MARKDOWN` artifact type to the registry with Java implementations of the artifact
+type interfaces (content accepter, validator, compatibility checker, canonicalizer), configured
+through `apicurio.artifact-types.config-file`. The providers are loaded into the
+`apicurio/apicurio-registry:VERSION-mutable` container image by re-augmenting it, so no custom
+build of the registry is needed. See the [custom-artifact-types](custom-artifact-types/) directory for details.

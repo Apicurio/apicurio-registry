@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.1-SNAPSHOT</version>
+    <version>3.3.3-SNAPSHOT</version>
   </parent>
   <artifactId>apicurio-registry-integration-tests</artifactId>
   <name>Registry :: Integration Tests</name>
@@ -20,7 +20,7 @@
   <dependencies>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
+      <artifactId>quarkus-junit</artifactId>
     </dependency>
     <dependency>
       <groupId>io.fabric8</groupId>
@@ -213,6 +213,8 @@
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <maven.home>${maven.home}</maven.home>
             <groups>${groups}</groups>
+            <!-- Avro 1.12.2 requires reflection serde classes/packages to be trusted explicitly. -->
+            <org.apache.avro.SERIALIZABLE_PACKAGES>io.apicurio.tests.common.serdes</org.apache.avro.SERIALIZABLE_PACKAGES>
           </systemPropertyVariables>
         </configuration>
         <executions>

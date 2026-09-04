@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.utility.MountableFile;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Utility class for mounting locally built Apicurio converters into Debezium containers.
@@ -25,7 +26,12 @@ public class DebeziumLocalConvertersUtil {
      * @param container the Debezium container to mount converters into
      * @throws IllegalStateException if converters directory doesn't exist, is empty, or has validation errors
      */
+    private static final AtomicBoolean MOUNTED = new AtomicBoolean(false);
+
     public static void mountLocalConverters(DebeziumContainer container) {
+        if (!MOUNTED.compareAndSet(false, true)) {
+            return; // already mounted by a concurrently-running test class
+        }
         String projectDir = System.getProperty("user.dir");
         String convertersPath = projectDir + CONVERTERS_PATH_SUFFIX;
         File convertersDir = new File(convertersPath);

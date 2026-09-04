@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -124,13 +125,15 @@ public class SqlSearchRepository {
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase();
+                        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
                         where.append("EXISTS(SELECT l.* FROM artifact_labels l WHERE ");
                         buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
+                            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
                             where.append(" AND ");
-                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                            // Compare against LOWER(l.labelValue) because label values are not always
+                            // lowercased at write time (mergeArtifactLabels stores them verbatim).
+                            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
                                     binders);
                         }
                         where.append(" AND l.groupId = a.groupId AND l.artifactId = a.artifactId)");
@@ -277,6 +280,17 @@ public class SqlSearchRepository {
                         break;
                     case contentId:
                     case globalId:
+                        op = filter.isNot() ? "!=" : "=";
+                        where.append("v.");
+                        where.append(filter.getType().name());
+                        where.append(" ");
+                        where.append(op);
+                        where.append(" ?");
+                        // globalId/contentId map to numeric SQL columns, unlike state/version string filters.
+                        binders.add((query, idx) -> {
+                            query.bind(idx, getRequiredNumberValue(filter));
+                        });
+                        break;
                     case state:
                     case version:
                         op = filter.isNot() ? "!=" : "=";
@@ -304,13 +318,15 @@ public class SqlSearchRepository {
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase();
+                        String labelKey = label.getKey().toLowerCase(Locale.ROOT);
                         where.append("EXISTS(SELECT l.* FROM version_labels l WHERE ");
                         buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
+                            String labelValue = label.getValue().toLowerCase(Locale.ROOT);
                             where.append(" AND ");
-                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                            // Compare against LOWER(l.labelValue) because label values are not always
+                            // lowercased at write time (mergeVersionLabels stores them verbatim).
+                            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
                                     binders);
                         }
                         where.append(" AND l.globalId = v.globalId)");
@@ -346,9 +362,13 @@ public class SqlSearchRepository {
                 case name:
                     orderByQuery.append(" ORDER BY coalesce(v.name, v.version)");
                     break;
+                // NOTE: Falling back to lexical version ordering (v.version) when versionSortKey is null.
+                // Ordering may be unstable during the migration window until VersionSortKeyUpgrader completes.
+                case version:
+                    orderByQuery.append(" ORDER BY coalesce(v.versionSortKey, v.version)");
+                    break;
                 case groupId:
                 case artifactId:
-                case version:
                 case globalId:
                 case createdOn:
                 case modifiedOn:
@@ -425,6 +445,15 @@ public class SqlSearchRepository {
                 query.bind(idx, value);
             });
         }
+    }
+
+    private long getRequiredNumberValue(SearchFilter filter) {
+        Number value = filter.getNumberValue();
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    "Search filter " + filter.getType() + " requires a numeric value.");
+        }
+        return value.longValue();
     }
 
     /**

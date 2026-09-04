@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
@@ -229,8 +230,12 @@ public class GitOpsValidationTaskManager {
         taskState.setState(ValidationTaskStatus.VALIDATING);
         log.info("[validate:{}] Starting validation from checkout path", taskState.getTaskId());
 
-        Path checkoutPath = getCheckoutPath(taskState);
-        if (checkoutPath == null || !Files.exists(checkoutPath)) {
+        final Path checkoutPath = getCheckoutPath(taskState);
+        if (checkoutPath == null) {
+            failTask(taskState, "Invalid checkout path");
+            return;
+        }
+        if (!Files.exists(checkoutPath)) {
             failTask(taskState, "Checkout path does not exist: " + checkoutPath);
             return;
         }
@@ -459,7 +464,24 @@ public class GitOpsValidationTaskManager {
         if (taskState.getCheckoutPath() == null) {
             return null;
         }
-        return getValidateDir().resolve(taskState.getTaskId().value()).resolve(taskState.getCheckoutPath());
+
+        final Path taskDir = getValidateDir()
+                .resolve(taskState.getTaskId().value())
+                .toAbsolutePath()
+                .normalize();
+
+        final Path resolved = taskDir
+                .resolve(taskState.getCheckoutPath())
+                .toAbsolutePath()
+                .normalize();
+
+        if (!resolved.startsWith(taskDir)) {
+            log.warn("Rejected checkout path escaping task directory: {}",
+                    taskState.getCheckoutPath());
+            return null;
+        }
+
+        return resolved;
     }
 
     private boolean cleanupFiles(ValidationTaskState taskState) {
@@ -478,7 +500,7 @@ public class GitOpsValidationTaskManager {
     }
 
     private void deleteRecursive(Path path) throws IOException {
-        if (Files.isDirectory(path)) {
+        if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
             try (var entries = Files.list(path)) {
                 for (Path entry : entries.toList()) {
                     deleteRecursive(entry);

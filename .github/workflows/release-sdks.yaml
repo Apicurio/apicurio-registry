@@ -77,10 +77,21 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
             exit 1
@@ -89,7 +100,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: '3.14.6'
+          python-version: '3.14.7'
 
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
@@ -124,10 +135,21 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
             exit 1
@@ -136,7 +158,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26.5'
+          go-version: '1.27.0'
           cache: false
 
       - name: Release Go SDK
@@ -193,10 +215,21 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git clone --branch ${{ needs.prepare.outputs.release-version }} --single-branch https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git registry
 
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
       - name: Verify Project Version
         run: |
           cd registry
-          PROJECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          PROJECT_VERSION=$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [[ $PROJECT_VERSION != ${{ needs.prepare.outputs.release-version }} ]]; then
             echo "ERROR: Project Version '${PROJECT_VERSION}' does not match with Released Version '${{ needs.prepare.outputs.release-version }}'"
             exit 1
@@ -205,7 +238,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.18.0
+          node-version: 24.20.0
           registry-url: 'https://registry.npmjs.org'
 
       - name: Update npm

@@ -1,6 +1,6 @@
 {
   "name": "@apicurio/registry-ui-app",
-  "version": "3.3.1-Dev",
+  "version": "3.3.3-Dev",
   "description": "Apicurio Registry UI",
   "repository": "https://github.com/Apicurio/apicurio-registry.git",
   "license": "Apache-2.0",
@@ -11,7 +11,8 @@
     "clean": "rimraf dist",
     "dev": "vite",
     "build": "tsc && vite build",
-    "lint": "eslint . --report-unused-disable-directives"
+    "lint": "eslint . --report-unused-disable-directives",
+    "test": "vitest run"
   },
   "workspaces": [
     "../../typescript-sdk"
@@ -20,39 +21,40 @@
     "@apicurio/eslint-config": "1.0.0",
     "@kiota-community/kiota-wasm": "0.0.3",
     "@monaco-editor/react": "4.7.0",
-    "@types/luxon": "3.7.2",
+    "@types/luxon": "3.7.5",
     "@types/node": "25.9.5",
     "@types/pluralize": "0.0.33",
-    "@types/react": "19.2.17",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react-swc": "4.3.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react-swc": "4.3.3",
     "copyfiles": "2.4.1",
     "eslint": "9.39.5",
     "eslint-plugin-react-hooks": "7.1.1",
-    "eslint-plugin-react-refresh": "0.5.3",
+    "eslint-plugin-react-refresh": "0.5.6",
     "rimraf": "6.1.3",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.65.0",
+    "typescript-eslint": "8.69.0",
     "vite": "7.3.6",
-    "vite-tsconfig-paths": "6.1.1"
+    "vite-tsconfig-paths": "6.1.1",
+    "vitest": "4.1.11"
   },
   "dependencies": {
-    "@apicurio/apicurio-registry-sdk": "3.3.1-Dev",
-    "@apicurio/common-ui-components": "4.0.2",
+    "@apicurio/apicurio-registry-sdk": "3.3.3-Dev",
+    "@apitomy/common-ui-components": "4.1.2",
     "@apicurio/data-models": "1.1.33",
-    "@microsoft/kiota-abstractions": "1.0.0-preview.99",
-    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.99",
-    "@microsoft/kiota-serialization-form": "1.0.0-preview.99",
-    "@microsoft/kiota-serialization-json": "1.0.0-preview.99",
-    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.99",
-    "@microsoft/kiota-serialization-text": "1.0.0-preview.99",
-    "@patternfly/patternfly": "6.6.0",
-    "@patternfly/react-code-editor": "6.6.0",
-    "@patternfly/react-core": "6.6.0",
-    "@patternfly/react-icons": "6.6.0",
-    "@patternfly/react-table": "6.6.0",
-    "@xyflow/react": "12.11.2",
-    "axios": "1.18.1",
+    "@microsoft/kiota-abstractions": "1.0.0-preview.102",
+    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.102",
+    "@microsoft/kiota-serialization-form": "1.0.0-preview.102",
+    "@microsoft/kiota-serialization-json": "1.0.0-preview.102",
+    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.102",
+    "@microsoft/kiota-serialization-text": "1.0.0-preview.102",
+    "@patternfly/patternfly": "6.6.1",
+    "@patternfly/react-code-editor": "6.6.1",
+    "@patternfly/react-core": "6.6.1",
+    "@patternfly/react-icons": "6.6.1",
+    "@patternfly/react-table": "6.6.1",
+    "@xyflow/react": "12.11.6",
+    "axios": "1.20.0",
     "html-to-image": "1.11.13",
     "buffer": "6.0.3",
     "luxon": "3.7.2",
@@ -60,10 +62,10 @@
     "pluralize": "8.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-router": "7.18.1",
+    "react-router": "7.18.3",
     "yaml": "2.9.0"
   },
   "overrides": {
-    "dompurify": "3.4.12"
+    "dompurify": "3.4.14"
   }
 }

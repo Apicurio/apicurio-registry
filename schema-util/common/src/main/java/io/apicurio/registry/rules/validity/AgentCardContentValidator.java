@@ -18,7 +18,7 @@ import java.util.Set;
 /**
  * Content validator for A2A Agent Card artifacts, aligned with A2A Protocol v1.0.
  */
-public class AgentCardContentValidator implements ContentValidator {
+public class AgentCardContentValidator extends AbstractContentValidator {
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -135,6 +135,9 @@ public class AgentCardContentValidator implements ContentValidator {
 
     private void validateStringFields(JsonNode tree, Set<RuleViolation> violations) {
         JsonValidationUtils.validateOptionalString(tree, "protocolVersion", violations);
+        // iconUrl and documentationUrl are optional string fields; the A2A agent card spec does
+        // not restrict these to http(s) only (e.g. data: URIs are valid for inline icons),
+        // so we validate only that they are strings rather than enforcing a URL scheme.
         JsonValidationUtils.validateOptionalString(tree, "iconUrl", violations);
         JsonValidationUtils.validateOptionalString(tree, "documentationUrl", violations);
     }
@@ -159,6 +162,8 @@ public class AgentCardContentValidator implements ContentValidator {
         if (!provider.has("url") || !provider.get("url").isTextual()) {
             violations.add(new RuleViolation(
                     "'provider.url' is required and must be a string", "/provider/url"));
+        } else {
+            JsonValidationUtils.validateHttpUrl(provider.get("url").asText(), "/provider/url", violations);
         }
     }
 
@@ -182,6 +187,8 @@ public class AgentCardContentValidator implements ContentValidator {
             if (!iface.has("url") || !iface.get("url").isTextual()) {
                 violations.add(new RuleViolation(
                         "Interface 'url' is required and must be a string", basePath + "/url"));
+            } else {
+                JsonValidationUtils.validateHttpUrl(iface.get("url").asText(), basePath + "/url", violations);
             }
 
             if (!iface.has("protocolBinding") || !iface.get("protocolBinding").isTextual()) {
@@ -421,11 +428,9 @@ public class AgentCardContentValidator implements ContentValidator {
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
-        if (references != null && !references.isEmpty()) {
-            throw new RuleViolationException("Agent Cards do not support references",
-                    RuleType.INTEGRITY, "NONE",
-                    Collections.singleton(
-                            new RuleViolation("References are not supported for Agent Cards", "")));
+        Set<String> allRefs = extractExternalJsonRefs(content);
+        if (!allRefs.isEmpty()) {
+            validateMappedReferences(references, allRefs, "Unmapped reference detected.");
         }
     }
 }

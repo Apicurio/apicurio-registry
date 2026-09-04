@@ -1,6 +1,6 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { createAuthOptions, createEndpoint, getRegistryClient } from "@utils/rest.utils.ts";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { RenderPromptResponse } from "@models/RenderPromptResponse.ts";
 import axios from "axios";
 import { Paging } from "@models/Paging.ts";
@@ -67,9 +67,8 @@ const getGroupMetaData = async (config: ConfigService, auth: AuthService, groupI
 const getGroupArtifacts = async (config: ConfigService, auth: AuthService, groupId: string, sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -150,6 +149,16 @@ const createArtifact = async (config: ConfigService, auth: AuthService, groupId:
 const createArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData> => {
     groupId = normalizeGroupId(groupId);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions.post(data).then(v => v!);
+};
+
+const testArtifactVersion = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: CreateVersion): Promise<void> => {
+    groupId = normalizeGroupId(groupId);
+    console.info("[GroupsService] Testing new content for artifact: ", groupId, artifactId);
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions.post(data, {
+        queryParameters: {
+            dryRun: true
+        }
+    }).then(() => undefined);
 };
 
 const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<ArtifactMetaData> => {
@@ -253,9 +262,8 @@ const getArtifactVersionContentDereferenced = async (config: ConfigService, auth
 const getArtifactVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -299,9 +307,8 @@ const deleteArtifactVersionComment = async (config: ConfigService, auth: AuthSer
 const getArtifactBranches = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, paging: Paging): Promise<VersionSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start
     };
 
@@ -342,9 +349,8 @@ const updateArtifactBranchMetaData = async (config: ConfigService, auth: AuthSer
 const getArtifactBranchVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string, paging: Paging): Promise<VersionSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start
     };
 
@@ -498,6 +504,7 @@ export interface GroupsService {
 
     getArtifactVersions(groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults>;
     createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData>;
+    testArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<void>;
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
     getArtifactVersionContentDereferenced(groupId: string|null, artifactId: string, version: string): Promise<string>;
@@ -611,6 +618,9 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
 
         createArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<VersionMetaData> {
             return createArtifactVersion(config, auth, groupId, artifactId, data);
+        },
+        testArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<void> {
+            return testArtifactVersion(config, auth, groupId, artifactId, data);
         },
         getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData> {
             return getArtifactVersionMetaData(config, auth, groupId, artifactId, version);

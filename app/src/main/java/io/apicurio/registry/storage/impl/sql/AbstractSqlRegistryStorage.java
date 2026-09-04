@@ -7,6 +7,10 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.events.ArtifactCreated;
+import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.events.ContractMetadataUpdated;
+import io.apicurio.registry.events.ContractRulesetConfigured;
+import io.apicurio.registry.events.ContractStatusChanged;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -455,6 +459,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return contentRepository.getContentById(contentId);
     }
 
+    @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+
+        return contentRepository.getContentAndArtifactTypeById(contentId);
+    }
+
     public ContentWrapperDto getContentByIdRaw(Handle handle, long contentId)
             throws ContentNotFoundException, RegistryStorageException {
         return contentRepository.getContentByIdRaw(handle, contentId);
@@ -540,8 +551,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     labels.forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertArtifactLabel())
                                 .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                                .bind(2, limitStr(k.toLowerCase(), 256))
-                                .bind(3, limitStr(v.toLowerCase(), 512)).execute();
+                                .bind(2, limitStr(asLowerCase(k), 256))
+                                .bind(3, limitStr(asLowerCase(v), 512)).execute();
                     });
                 }
 
@@ -683,7 +694,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                         labels.forEach((k, v) -> {
                             handle.createUpdate(sqlStatements.insertArtifactLabel())
                                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                                    .bind(2, limitStr(k.toLowerCase(), 256))
+                                    .bind(2, limitStr(asLowerCase(k), 256))
                                     .bind(3, limitStr(asLowerCase(v), 512)).execute();
                         });
                     }
@@ -842,18 +853,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void setArtifactContractRuleset(String groupId, String artifactId,
             ContractRuleSetDto ruleset) throws RegistryStorageException {
         contractRuleRepository.setArtifactContractRuleset(groupId, artifactId, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, null, "SET")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
     public void deleteArtifactContractRuleset(String groupId, String artifactId)
             throws RegistryStorageException {
         contractRuleRepository.deleteArtifactContractRuleset(groupId, artifactId);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, null, "DELETE")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, null, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -866,18 +875,16 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void setVersionContractRuleset(String groupId, String artifactId, String version,
             ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException {
         contractRuleRepository.setVersionContractRuleset(groupId, artifactId, version, ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, version, "SET")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
     public void deleteVersionContractRuleset(String groupId, String artifactId, String version)
             throws VersionNotFoundException, RegistryStorageException {
         contractRuleRepository.deleteVersionContractRuleset(groupId, artifactId, version);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        groupId, artifactId, version, "DELETE")));
+        outboxEvent.fire(SqlOutboxEvent.of(ContractRulesetConfigured.of(
+                groupId, artifactId, version, ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -888,17 +895,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException {
         contractRuleRepository.setGlobalContractRuleset(ruleset);
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        "__GLOBAL__", "__GLOBAL__", null, "SET")));
+        outboxEvent.fire(SqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.SET)));
     }
 
     @Override
     public void deleteGlobalContractRuleset() throws RegistryStorageException {
         contractRuleRepository.deleteGlobalContractRuleset();
-        outboxEvent.fire(SqlOutboxEvent.of(
-                io.apicurio.registry.events.ContractRulesetConfigured.of(
-                        "__GLOBAL__", "__GLOBAL__", null, "DELETE")));
+        outboxEvent.fire(SqlOutboxEvent
+                .of(ContractRulesetConfigured.ofGlobal(ContractRulesetConfigured.Action.DELETE)));
     }
 
     @Override
@@ -943,6 +948,38 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                                     rebuildLabels(handle, normalizedGroup, artifactId)))
                             .bind(1, normalizedGroup).bind(2, artifactId).execute();
                 });
+    }
+
+    @Override
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        // Atomic merge scoped to the contract prefix.
+        mergeArtifactLabels(groupId, artifactId, prefix, labels);
+
+        outboxEvent.fire(SqlOutboxEvent.of(ContractMetadataUpdated.of(groupId, artifactId)));
+    }
+
+    @Override
+    public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        // Each merge is scoped to a single label key so that the other contract labels
+        // are left untouched.
+        String statusKey = prefix + ContractLabels.SUFFIX_STATUS;
+        mergeArtifactLabels(groupId, artifactId, statusKey, Map.of(statusKey, toStatus));
+
+        if (ContractStatus.STABLE.name().equals(toStatus)) {
+            String stableDateKey = prefix + ContractLabels.SUFFIX_STABLE_DATE;
+            mergeArtifactLabels(groupId, artifactId, stableDateKey,
+                    Map.of(stableDateKey, effectiveDate));
+        }
+        if (ContractStatus.DEPRECATED.name().equals(toStatus)) {
+            String deprecatedDateKey = prefix + ContractLabels.SUFFIX_DEPRECATED_DATE;
+            mergeArtifactLabels(groupId, artifactId, deprecatedDateKey,
+                    Map.of(deprecatedDateKey, effectiveDate));
+        }
+
+        outboxEvent.fire(SqlOutboxEvent
+                .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
     }
 
     private Map<String, String> rebuildLabels(

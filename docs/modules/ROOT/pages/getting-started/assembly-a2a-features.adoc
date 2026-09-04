@@ -193,7 +193,7 @@ Searches for registered Agent Cards with filtering support. This endpoint requir
 
 |`name`
 |string
-|Filter by agent name (partial match)
+|Filter by artifact name or artifact ID. A value without `*` matches anywhere in the name or ID. Use `*` as a prefix or suffix wildcard, for example `weather*`.
 
 |`skill`
 |string (repeatable)
@@ -320,6 +320,8 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 |`entitled`
 |Default visibility for new Agent Card artifacts (`public`, `entitled`, or `private`)
 |===
+
+Visibility labels control which Agent Cards appear in `/.well-known/agents` search results and in the AI Catalog and ARD responses. Retrieving a card by ID through `/.well-known/agents/\{groupId}/\{artifactId}` or the core REST API is governed by read authorization only and does not consult the visibility label.
 
 NOTE: When authentication is not configured, visibility filtering is skipped and all agents are visible to all users.
 

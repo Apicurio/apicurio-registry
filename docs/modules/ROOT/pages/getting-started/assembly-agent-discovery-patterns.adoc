@@ -129,7 +129,7 @@ To find agents that accept image input and produce text output:
 $ curl "http://localhost:8080/.well-known/agents?inputMode=image&outputMode=text"
 ----
 
-Name-based search:: You can filter agents by name by using partial matching. {registry} matches the `name` parameter against the artifact name:
+Name-based search:: You can filter agents by name by using partial matching. {registry} matches the `name` parameter against the artifact name or artifact ID. A value without `*` matches anywhere, and you can use `*` as a prefix or suffix wildcard:
 +
 [source,bash]
 ----

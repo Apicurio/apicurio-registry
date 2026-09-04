@@ -1,5 +1,8 @@
 package io.apicurio.registry.rules.validity;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
@@ -7,7 +10,10 @@ import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -57,5 +63,50 @@ public abstract class AbstractContentValidator implements ContentValidator {
      */
     protected String extractReferenceName(ArtifactReference ref) {
         return ref.getName();
+    }
+
+    /**
+     * Extracts external $ref values from JSON/YAML content, ignoring internal JSON Pointer references starting with "#/".
+     *
+     * @param content the typed content to extract references from
+     * @return set of external reference strings
+     */
+    protected Set<String> extractExternalJsonRefs(TypedContent content) {
+        try {
+            JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
+            Set<String> refs = new HashSet<>();
+            findExternalRefs(tree, refs);
+            return refs;
+        } catch (Exception e) {
+            return Collections.emptySet();
+        }
+    }
+
+    /**
+     * Recursively traverses a JSON node to collect external $ref values.
+     *
+     * @param node the current JSON node
+     * @param refs the set collecting external references
+     */
+    protected void findExternalRefs(JsonNode node, Set<String> refs) {
+        if (node == null) {
+            return;
+        }
+        if (node.isObject()) {
+            if (node.has("$ref")) {
+                String ref = node.get("$ref").asText(null);
+                if (ref != null && !ref.startsWith("#/")) {
+                    refs.add(ref);
+                }
+            }
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                findExternalRefs(fields.next().getValue(), refs);
+            }
+        } else if (node.isArray()) {
+            for (JsonNode element : node) {
+                findExternalRefs(element, refs);
+            }
+        }
     }
 }

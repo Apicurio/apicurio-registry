@@ -144,6 +144,10 @@
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
+    <!-- Re-augmentable (Quarkus mutable-jar) variant of the app distribution, used by the
+         "-mutable" container image. Skipped by default, enabled by -Dfull. -->
+    <apicurio.mutable-jar.skip>true</apicurio.mutable-jar.skip>
+
     <projectRoot>${project.basedir}</projectRoot>
 
     <!--
@@ -192,7 +196,7 @@
     <okio.version>3.18.1</okio.version>
     <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.36.0</protobuf.version>
+    <protobuf.version>4.36.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
     <protobuf.googleapi.types.version>2.75.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
@@ -237,20 +241,20 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.47</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.48</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
-    <lombok.version>1.18.46</lombok.version>
+    <lombok.version>1.18.48</lombok.version>
     <commons-codec.version>1.22.1</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
-    <debezium.version>3.6.1.Final</debezium.version>
+    <debezium.version>3.6.2.Final</debezium.version>
     <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
     <nats.version>2.26.2</nats.version>
-    <snakeyaml.version>2.6</snakeyaml.version>
+    <snakeyaml.version>2.7</snakeyaml.version>
     <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
@@ -311,7 +315,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.1.0</groovy.version>
+    <groovy.version>5.1.1</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -1353,7 +1357,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>10.0.0</version>
+        <version>10.0.1</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>
@@ -1422,6 +1426,10 @@
           <name>full</name>
         </property>
       </activation>
+      <properties>
+        <!-- Also build the re-augmentable app distribution (see app/pom.xml, build-mutable) -->
+        <apicurio.mutable-jar.skip>false</apicurio.mutable-jar.skip>
+      </properties>
       <modules>
         <!-- Include non-essential modules so -Dfull is a true superset -->
         <module>cli</module>

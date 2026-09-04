@@ -22,6 +22,7 @@
 * Configuration
 ** xref:getting-started/assembly-configuring-registry-security.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
+** xref:getting-started/assembly-custom-artifact-types.adoc[]
 ** xref:getting-started/assembly-registry-events.adoc[]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
@@ -48,6 +49,7 @@ endif::[]
 ** xref:getting-started/assembly-mcp-tool-features.adoc[]
 ** xref:getting-started/assembly-mcp-server-integration.adoc[]
 ** xref:getting-started/assembly-agent-discovery-patterns.adoc[]
+** xref:getting-started/assembly-ai-catalog-ard.adoc[]
 ** xref:getting-started/assembly-llm-artifact-types-implementation.adoc[]
 * Confluent Schema Registry Compatibility
 ** xref:getting-started/assembly-confluent-schema-registry-compatibility.adoc[]

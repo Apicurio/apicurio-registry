@@ -90,17 +90,17 @@ public class CombinedSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
                     .stream().min(comparingInt(a -> a.getValue().size()));
             while (first.isPresent()) {
                 // remove a value from the first set
-                Optional<SchemaWrapper> val = first.get().getValue().stream().findAny();
+                Optional<SchemaWrapper> val = first.orElseThrow().getValue().stream().findAny();
                 if (val.isPresent()) {
                     // ok
                     // remove it from all sets
-                    compatibilityMap.values().forEach(s -> s.remove(val.get()));
+                    compatibilityMap.values().forEach(s -> s.remove(val.orElseThrow()));
                 } else {
                     // bad
-                    ctx.addDifference(DiffType.COMBINED_TYPE_SUBSCHEMA_NOT_COMPATIBLE, first.get().getKey(), null);
+                    ctx.addDifference(DiffType.COMBINED_TYPE_SUBSCHEMA_NOT_COMPATIBLE, first.orElseThrow().getKey(), null);
                 }
-                if (first.get().getValue().isEmpty())
-                    compatibilityMap.remove(first.get().getKey());
+                if (first.orElseThrow().getValue().isEmpty())
+                    compatibilityMap.remove(first.orElseThrow().getKey());
 
                 first = compatibilityMap.entrySet().stream().min(comparingInt(a -> a.getValue().size()));
             }

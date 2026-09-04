@@ -49,6 +49,17 @@
   ],
   "packageRules": [
     {
+      "description": "Keep fat-JAR runners on Netty 4.1-compatible Gatling until #9967 is resolved",
+      "matchFileNames": [
+        "perf-comparison-tests/pom.xml",
+        "perf-tests/pom.xml"
+      ],
+      "matchPackageNames": [
+        "io.gatling.highcharts:gatling-charts-highcharts"
+      ],
+      "allowedVersions": "3.13.5"
+    },
+    {
       "groupName": "Dependencies: Maven App: All",
       "matchFileNames": [
         "**/pom.xml"

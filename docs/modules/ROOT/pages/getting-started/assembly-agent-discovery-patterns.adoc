@@ -32,10 +32,6 @@ The following table lists all available well-known endpoints.
 |GET
 |Returns the agent card for this {registry} instance. Use this endpoint for standard A2A protocol discovery.
 
-|`/.well-known/a2a`
-|GET
-|Returns the agent card for this {registry} instance. As the canonical A2A v1.0 discovery endpoint, it returns the same response as `/.well-known/agent.json`.
-
 |`/.well-known/agent-card.json`
 |GET
 |Returns the agent card for this {registry} instance. This alias exists for compatibility with IBM watsonx Orchestrate, which discovers agents at this path by default. It returns the same response as `/.well-known/agent.json`.
@@ -59,15 +55,25 @@ The following table lists all available well-known endpoints.
 |`/.well-known/schemas/\{type}/\{version}`
 |GET
 |Returns the JSON schema for a specific LLM artifact type. Supported types are `prompt-template`, `model-schema`, and `mcp-tool`, each with version `v1`.
+
+|`/.well-known/ai-catalog.json`
+|GET
+|Returns an AI Catalog document (see xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery]) projecting registered `AGENT_CARD` and `MCP_TOOL` artifacts.
+
+|`/.well-known/ard.json`
+|GET
+|Returns the same document as `/.well-known/ai-catalog.json`, at the path mandated by the ARD (Agentic Resource Discovery) specification.
 |===
 
-The `/.well-known/agent.json` and `/.well-known/a2a` endpoints return the {registry} instance agent card, which represents the registry itself as an A2A agent. These endpoints require no authentication.
+The `/.well-known/agent.json` endpoint returns the {registry} instance agent card, which represents the registry itself as an A2A agent. This endpoint requires no authentication.
 
 The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. These endpoints require read-level authorization.
 
 The `/.well-known/mcp-tools` and `/.well-known/mcp-tools/\{groupId}/\{artifactId}` endpoints operate on MCP tool definitions that you store in {registry} as `MCP_TOOL` artifacts. These endpoints require read-level authorization and are available only when MCP tools support is enabled.
 
 The `/.well-known/schemas/\{type}/\{version}` endpoint serves built-in JSON schemas that you can use for IDE autocompletion and validation of `PROMPT_TEMPLATE`, `MODEL_SCHEMA`, and `MCP_TOOL` artifacts. This endpoint requires no authentication.
+
+The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require no authentication for public entries; visibility labels apply the same way as for `/.well-known/agents`. See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
 
 [role="_additional-resources"]
 .Additional resources

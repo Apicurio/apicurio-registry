@@ -1347,6 +1347,16 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("test-value", stringProp.getValue());
         Assertions.assertEquals("true", boolProp.getValue());
         Assertions.assertEquals("12345", longProp.getValue());
+
+        // Set the same property again (UPSERT path): must update, not duplicate or error
+        storage().setConfigProperty(
+                new DynamicConfigPropertyDto("apicurio.test.property-string", "updated-value"));
+        properties = storage().getConfigProperties();
+        Assertions.assertEquals(3, properties.size(),
+                "Setting the same property again must update it, not create a duplicate");
+        DynamicConfigPropertyDto updatedProp = getProperty(properties, "apicurio.test.property-string");
+        Assertions.assertNotNull(updatedProp);
+        Assertions.assertEquals("updated-value", updatedProp.getValue());
     }
 
     private DynamicConfigPropertyDto getProperty(List<DynamicConfigPropertyDto> properties,

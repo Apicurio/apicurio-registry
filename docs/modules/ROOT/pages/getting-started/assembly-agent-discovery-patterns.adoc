@@ -1,7 +1,7 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 :dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
-[id="agent-discovery-patterns_{context}"]
+[id="assembly-agent-discovery-patterns_{context}"]
 = Agent discovery and multi-agent orchestration
 
 :_mod-docs-content-type: ASSEMBLY
@@ -22,8 +22,9 @@ endif::[]
 [role="_abstract"]
 {registry} exposes well-known endpoints for agent discovery, MCP tool discovery, and JSON schema retrieval. Each endpoint serves a specific role in the A2A and MCP ecosystems.
 
-The following table lists all available well-known endpoints.
+The following table lists the available well-known endpoints.
 
+.Well-known endpoints
 [cols="3,1,4",options="header"]
 |===
 |Path |Method |Description
@@ -52,6 +53,10 @@ The following table lists all available well-known endpoints.
 |GET
 |Returns a specific registered MCP tool definition by group ID and artifact ID. Accepts an optional `version` query parameter that defaults to the latest version.
 
+|`/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`
+|GET
+|Returns the registered MCP tool definitions whose `inputSchema` accepts every property that the specified tool declares in its `outputSchema`. Accepts an optional `version` query parameter and supports pagination with `offset` and `limit` parameters.
+
 |`/.well-known/schemas/\{type}/\{version}`
 |GET
 |Returns the JSON schema for a specific LLM artifact type. Supported types are `prompt-template`, `model-schema`, and `mcp-tool`, each with version `v1`.
@@ -67,17 +72,17 @@ The following table lists all available well-known endpoints.
 
 The `/.well-known/agent.json` endpoint returns the {registry} instance agent card, which represents the registry itself as an A2A agent. This endpoint requires no authentication.
 
-The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. The search endpoint requires no authentication. When authentication is enabled, it returns only the agent cards that the caller is allowed to see, based on the `apicurio.agent.visibility` label. The `/.well-known/agents/\{groupId}/\{artifactId}` endpoint requires read-level authorization.
+The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. The search endpoint requires no authentication. When OIDC or basic authentication is enabled, the search endpoint returns only the agent cards that the caller has permission to view, based on the `apicurio.agent.visibility` label. The `/.well-known/agents/\{groupId}/\{artifactId}` endpoint requires read-level authorization.
 
-The `/.well-known/mcp-tools` and `/.well-known/mcp-tools/\{groupId}/\{artifactId}` endpoints operate on MCP tool definitions that you store in {registry} as `MCP_TOOL` artifacts. These endpoints require read-level authorization and are available only when MCP tools support is enabled.
+The `/.well-known/mcp-tools`, `/.well-known/mcp-tools/\{groupId}/\{artifactId}`, and `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoints operate on MCP tool definitions that you store in {registry} as `MCP_TOOL` artifacts. These endpoints require read-level authorization and are available only when MCP tools support is enabled.
 
 The `/.well-known/schemas/\{type}/\{version}` endpoint serves built-in JSON schemas that you can use for IDE autocompletion and validation of `PROMPT_TEMPLATE`, `MODEL_SCHEMA`, and `MCP_TOOL` artifacts. This endpoint requires no authentication.
 
-The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require read-level authorization when authentication is enabled. Anonymous clients can read them only if anonymous read access is enabled. Agent card entries are filtered by the same visibility labels as `/.well-known/agents`. See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
+The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require read-level authorization when authentication is enabled. Anonymous clients can read them only if anonymous read access is enabled. {registry} filters agent card entries by the same visibility labels as `/.well-known/agents`. See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
 
 [role="_additional-resources"]
 .Additional resources
-* xref:assembly-a2a-features_{context}[]
+* xref:getting-started/assembly-a2a-features.adoc[A2A protocol features]
 
 // con-agent-discovery-patterns-overview
 [id="agent-discovery-patterns-overview_{context}"]
@@ -168,7 +173,7 @@ You can orchestrate multi-agent workflows by combining {registry} discovery endp
 [role="_abstract"]
 In a sequential pipeline, each agent receives the original message and the accumulated outputs from all previous agents. Each agent builds on the work of the agents that ran before it.
 
-Use a sequential pipeline when:
+Use a sequential pipeline in the following situations:
 
 * Each processing step depends on results from previous steps
 * You need to accumulate context across a multi-step workflow
@@ -181,7 +186,7 @@ The `examples/a2a-real-world-integration` example in the {registry} repository s
 . **Response generator**: receives the original message, sentiment, and analysis, then generates a response
 . **Translation agent**: receives the generated response and translates it
 
-Each step stores its output under a context key. Subsequent steps reference previous outputs by using `\{{variable}}` template placeholders. A `WorkflowContext` object tracks the original message and all agent outputs:
+Each step stores its output under a context key. Subsequent steps reference previous outputs by using `+{{variable}}+` template placeholders. A `WorkflowContext` object tracks the original message and all agent outputs:
 
 [source,java]
 ----
@@ -205,7 +210,7 @@ String prompt = context.buildPrompt("Original: {{original}}\nSentiment: {{sentim
 [role="_abstract"]
 In a parallel fan-out, you send the same input to multiple agents simultaneously and aggregate the results. You discover the agents by using `/.well-known/agents` with appropriate filters.
 
-Use parallel fan-out when:
+Use parallel fan-out in the following situations:
 
 * Multiple independent agents can process the same input
 * You want to reduce total processing time
@@ -222,7 +227,7 @@ In a typical parallel fan-out, the orchestrator discovers agents with a specific
 [role="_abstract"]
 In conditional routing, you use agent capabilities and skills to decide which agent handles a request. You inspect agent cards to select the best match.
 
-Use conditional routing when:
+Use conditional routing in the following situations:
 
 * Different request types require different agents
 * You want to select agents based on their reported capabilities
@@ -239,6 +244,7 @@ In a typical conditional routing flow, the orchestrator determines the required 
 [role="_abstract"]
 When you build multi-agent workflows, you must handle agent unavailability, version changes, and unexpected errors. The following table lists common error scenarios and recommended handling strategies.
 
+.Error scenarios and handling
 [cols="2,1,3",options="header"]
 |===
 |Scenario |HTTP status |Recommended handling

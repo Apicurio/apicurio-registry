@@ -62,7 +62,8 @@ Capabilities:
 [role="_abstract"]
 You can control A2A features by using the following configuration properties.
 
-[cols="2,1,3"]
+.A2A configuration properties
+[cols="2,1,3",options="header"]
 |===
 |Property |Default |Description
 
@@ -181,13 +182,13 @@ Response: Agent Card JSON document
 }
 ----
 +
-The example shows two of the five built-in skills. The `securitySchemes` object lists only the mechanisms that are enabled: `bearer` when OIDC authentication is enabled, `basic` when basic authentication is enabled, and `apiKey` when `apicurio.a2a.agent.auth.api-key.enabled` is `true`. The `documentationUrl` and `iconUrl` fields are set only when the corresponding properties are configured.
+The example shows two of the five built-in skills. The `securitySchemes` object lists only the mechanisms that are enabled: `bearer` when OIDC authentication is enabled, `basic` when basic authentication is enabled, and `apiKey` when `apicurio.a2a.agent.auth.api-key.enabled` is `true`. The Agent Card includes `documentationUrl` and `iconUrl` only when you configure the corresponding properties.
 
 GET /.well-known/agents::
-Searches for registered Agent Cards with filtering support. This endpoint requires no authentication. When authentication is enabled, the results include only the Agent Cards that the caller is allowed to see, based on the `apicurio.agent.visibility` label.
+Searches for registered Agent Cards with filtering support. This endpoint requires no authentication. When OIDC or basic authentication is enabled, the search returns only the Agent Cards that the caller has permission to view, based on the `apicurio.agent.visibility` label.
 +
 .Query parameters for /.well-known/agents
-[cols="1,1,3"]
+[cols="1,1,3",options="header"]
 |===
 |Parameter |Type |Description
 
@@ -279,10 +280,10 @@ Response: Agent Card JSON document
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label. Visibility is enforced by `GET /.well-known/agents` (and by the ARD-shaped `GET /ard/agents` and `POST /ard/search`, described in xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery]) whenever authentication is enabled.
+Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label. When OIDC or basic authentication is enabled, `GET /.well-known/agents` and the AI Catalog and ARD endpoints described in xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] enforce visibility.
 
 .Agent visibility levels
-[cols="1,3"]
+[cols="1,3",options="header"]
 |===
 |Visibility |Behavior
 
@@ -293,10 +294,10 @@ Agent Cards support three visibility levels, controlled by the `apicurio.agent.v
 |Visible to any authenticated user (this is the default)
 
 |`private`
-|Visible only to the artifact owner and registry admins
+|Visible only to the artifact owner and registry administrators
 |===
 
-.Setting visibility
+.Visibility label example
 [source,bash]
 ----
 curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/my-agent" \
@@ -308,11 +309,11 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 
 * *Groups* act as organizational namespaces
 * *Entitling a client* = granting read access to the group containing the Agent Card artifacts
-* *Client authentication* is delegated to the external IdP (Keycloak, OIDC)
+* *Client authentication* happens in an external identity provider, such as {keycloak} or another OIDC provider
 * No new authorization primitives are required
 
 .Discovery and entitlement configuration properties
-[cols="2,1,3"]
+[cols="2,1,3",options="header"]
 |===
 |Property |Default |Description
 
@@ -321,9 +322,9 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 |Default visibility for new Agent Card artifacts (`public`, `entitled`, or `private`)
 |===
 
-Visibility labels control which Agent Cards appear in `/.well-known/agents` search results and in the AI Catalog and ARD responses. Retrieving a card by ID through `/.well-known/agents/\{groupId}/\{artifactId}` or the core REST API is governed by read authorization only and does not consult the visibility label.
+Visibility labels control which Agent Cards appear in `/.well-known/agents` search results and in the AI Catalog and ARD responses. When you retrieve a card by ID through `/.well-known/agents/\{groupId}/\{artifactId}` or the core REST API, only read authorization applies. {registry} does not check the visibility label.
 
-NOTE: When authentication is not configured, visibility filtering is skipped and all agents are visible to all users.
+NOTE: When neither OIDC nor basic authentication is configured, {registry} skips visibility filtering and all agents are visible to all users.
 
 // ref-a2a-agent-card-artifact-type
 [id="a2a-agent-card-artifact-type_{context}"]
@@ -332,7 +333,7 @@ NOTE: When authentication is not configured, visibility filtering is skipped and
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Agent Cards are stored as artifacts with type `AGENT_CARD`. You can create Agent Cards by using the REST API and you can validate them against the A2A specification JSON schema.
+{registry} stores Agent Cards as artifacts with type `AGENT_CARD`. You can create Agent Cards by using the REST API and you can validate them against the A2A specification JSON schema.
 
 .Agent Card creation example
 [source,bash]
@@ -415,7 +416,7 @@ Agent Cards must conform to the A2A specification:
 [role="_abstract"]
 Agent Cards have three validation levels that control how much validation occurs when you create or update an Agent Card.
 
-[cols="1,3"]
+[cols="1,3",options="header"]
 |===
 |Level |Description
 
@@ -473,7 +474,7 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 [role="_abstract"]
 {registry} automatically extracts labels from Agent Cards for search. You can use these labels for efficient capability-based discovery by using the {registry} label search.
 
-[cols="2,3"]
+[cols="2,3",options="header"]
 |===
 |Label pattern |Source
 
@@ -508,7 +509,7 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 [role="_abstract"]
 {registry} operates as an A2A agent with the following built-in skills.
 
-[cols="1,2"]
+[cols="1,2",options="header"]
 |===
 |Skill ID |Description
 
@@ -619,19 +620,19 @@ You can chain context across multiple agents in a pipeline. The `a2a-real-world-
 |Output
 
 |1. Sentiment agent
-|`\{{original}}`
+|`+{{original}}+`
 |`{"sentiment": "very_negative", "urgency": "critical"}`
 
 |2. Issue analyzer
-|`\{{original}}` + `\{{sentiment}}`
+|`+{{original}}+` + `+{{sentiment}}+`
 |`{"priority": "P1", "issue_type": "delayed_delivery"}`
 
 |3. Response generator
-|`\{{original}}` + `\{{sentiment}}` + `\{{analysis}}`
+|`+{{original}}+` + `+{{sentiment}}+` + `+{{analysis}}+`
 |`{"response": "Dear customer, I sincerely apologize..."}`
 
 |4. Translation agent
-|`\{{response}}`
+|`+{{response}}+`
 |`{"translated": "Estimado cliente, le pido disculpas..."}`
 |===
 
@@ -649,12 +650,11 @@ mvn clean compile exec:java
 The Web UI is available at `localhost:9000`.
 endif::[]
 
-// ref-a2a-java-sdk-usage
-
 [role="_additional-resources"]
 .Additional resources
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/a2a-real-world-integration[a2a-real-world-integration example]
 
+// ref-a2a-java-sdk-usage
 [id="a2a-java-sdk-usage_{context}"]
 == Java SDK usage for A2A
 
@@ -713,7 +713,7 @@ client.groups().byGroupId("ai-agents").artifacts()
 [role="_abstract"]
 The following table describes the core A2A endpoints available in {registry}.
 
-[cols="2,1,4"]
+[cols="2,1,4",options="header"]
 |===
 |Endpoint |Method |Description
 
@@ -725,19 +725,19 @@ The following table describes the core A2A endpoints available in {registry}.
 |GET
 |Search registered Agent Cards
 
-|`/.well-known/agents/{groupId}/{artifactId}`
+|`/.well-known/agents/\{groupId}/\{artifactId}`
 |GET
 |Get a specific Agent Card by artifact ID
 
-|`/apis/registry/v3/groups/{groupId}/artifacts`
+|`/apis/registry/v3/groups/\{groupId}/artifacts`
 |POST
 |Create an Agent Card artifact (type: AGENT_CARD)
 
-|`/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`
+|`/apis/registry/v3/groups/\{groupId}/artifacts/\{artifactId}`
 |GET
 |Get Agent Card artifact metadata
 
-|`/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content`
+|`/apis/registry/v3/groups/\{groupId}/artifacts/\{artifactId}/versions/\{version}/content`
 |GET
 |Get Agent Card content
 |===
@@ -752,7 +752,7 @@ The following table describes the core A2A endpoints available in {registry}.
 Use the following information to troubleshoot common issues with A2A features in {registry}.
 
 A2A endpoints return 404::
-Ensure A2A is enabled in your configuration:
+Set `apicurio.a2a.enabled=true` in your configuration:
 +
 [source,properties]
 ----
@@ -777,5 +777,7 @@ Verify the following conditions:
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM Artifact Types]
+* xref:getting-started/assembly-agent-discovery-patterns.adoc[Agent discovery and multi-agent orchestration]
+* xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery]
 * link:https://google.github.io/A2A/[A2A Protocol Specification]
 * xref:getting-started/assembly-configuring-the-registry.adoc[{registry} configuration]

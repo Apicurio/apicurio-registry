@@ -7,7 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-{registry} can publish an AI Catalog document that conforms to the specification and expose the ARD (Agentic Resource Discovery) search API. Any client that understands AI Catalog or ARD can then discover the registered `AGENT_CARD` and `MCP_TOOL` artifacts without prior knowledge of the {registry} A2A and MCP discovery endpoints.
+{registry} can publish an AI Catalog document in the format defined by the specification and expose the ARD (Agentic Resource Discovery) search API. Any client that supports AI Catalog or ARD can then discover the registered `AGENT_CARD` and `MCP_TOOL` artifacts without depending on the {registry} A2A and MCP discovery endpoints.
 
 ifdef::service-registry-downstream[]
 WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
@@ -20,14 +20,14 @@ endif::[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-AI Catalog and ARD are two related, community-driven discovery standards for agentic AI artifacts, such as A2A agent cards and MCP servers. A Linux Foundation working group maintains both standards.
+AI Catalog and ARD are two related, community-driven discovery standards for agentic AI artifacts, such as A2A Agent Cards and MCP servers. A Linux Foundation working group maintains both standards.
 
-AI Catalog:: A static, artifact-agnostic JSON envelope, typically served at `/.well-known/ai-catalog.json`. It lists entries that identify an artifact by IANA media type and either link to it (`url`) or embed it (`data`).
+AI Catalog:: A static, artifact-independent JSON envelope, typically served at `/.well-known/ai-catalog.json`. It lists entries that identify an artifact by IANA media type and either link to it (`url`) or embed it (`data`).
 ARD:: Builds on AI Catalog by adding a domain-anchored identifier scheme (`urn:air:<publisher>:<namespace>:<name>`), a mandatory `POST /search` REST API for dynamic discovery, and optional `GET /agents` and `POST /explore` endpoints. The ARD specification defines `/.well-known/ard.json` as the normative path for publishing and consuming a catalog.
 
 {registry} projects its existing `AGENT_CARD` and `MCP_TOOL` artifacts into both formats as a read-only view over existing storage. No schema migration or new artifact types are required.
 
-// ref-ai-catalog-configuration
+// ref-ai-catalog-ard-configuration
 [id="ai-catalog-ard-configuration_{context}"]
 == AI Catalog and ARD configuration properties
 
@@ -36,7 +36,8 @@ ARD:: Builds on AI Catalog by adding a domain-anchored identifier scheme (`urn:a
 [role="_abstract"]
 Both features are disabled by default, and each has its own feature gate.
 
-[cols="2,1,3"]
+.AI Catalog and ARD configuration properties
+[cols="2,1,3",options="header"]
 |===
 |Property |Default |Description
 
@@ -46,7 +47,7 @@ Both features are disabled by default, and each has its own feature gate.
 
 |`apicurio.ai-catalog.publisher-domain`
 |_derived from request host_
-|The `<publisher>` segment used when building `urn:air:` identifiers. When not configured, it is derived from the incoming request's host and port.
+|The `<publisher>` segment used when building `urn:air:` identifiers. When not configured, {registry} takes the value from the `X-Forwarded-Host` header if present, otherwise from the request host and port.
 
 |`apicurio.ai-catalog.host-name`
 |`Apicurio Registry`
@@ -62,12 +63,12 @@ Both features are disabled by default, and each has its own feature gate.
 
 |`apicurio.ard.federation.default`
 |`none`
-|Default ARD federation mode advertised by this registry. Only `none` (no federation) is currently implemented; other values are accepted for forward compatibility but do not change behavior.
+|Reserved for the ARD federation mode. {registry} currently implements only `none` (no federation) and does not include the value in any response. {registry} accepts other values for compatibility with later versions, but they do not change behavior.
 |===
 
 // ref-ai-catalog-publishing
 [id="ai-catalog-publishing_{context}"]
-== AI Catalog publishing
+== AI Catalog document endpoints
 
 :_mod-docs-content-type: REFERENCE
 
@@ -75,7 +76,7 @@ Both features are disabled by default, and each has its own feature gate.
 When `apicurio.ai-catalog.enabled=true`, {registry} serves an AI Catalog document at two equivalent paths.
 
 GET /.well-known/ai-catalog.json::
-Returns the AI Catalog document. This is the predecessor path, retained for consumers that support only AI Catalog.
+Returns the AI Catalog document. {registry} retains this predecessor path for consumers that support only AI Catalog.
 
 GET /.well-known/ard.json::
 Returns the identical document at the path that the ARD specification requires conformant crawlers to fetch.
@@ -126,7 +127,7 @@ Returns the identical document at the path that the ARD specification requires c
 }
 ----
 
-Every entry `identifier` follows the `urn:air:<publisher>:<namespace>:<name>` form. Entries backed by `AGENT_CARD` artifacts use `application/a2a-agent-card+json`, and entries backed by `MCP_TOOL` artifacts use `application/mcp-server-card+json`. When `apicurio.ard.enabled=true`, the first entry in the catalog is a self-describing entry of type `application/ai-registry+json` that points at the `/.well-known/ard/search` endpoint of the same registry, so a crawler that only ingests the static catalog can still discover the live search API, as the ARD specification requires.
+Every entry `identifier` follows the `urn:air:<publisher>:<namespace>:<name>` form. Entries backed by `AGENT_CARD` artifacts use `application/a2a-agent-card+json`, and entries backed by `MCP_TOOL` artifacts use `application/mcp-server-card+json`. When `apicurio.ard.enabled=true`, the first entry in the catalog is a self-describing entry of type `application/ai-registry+json` that points at the `/.well-known/ard/search` endpoint of the same registry. As the ARD specification requires, this entry ensures that a crawler that ingests only the static catalog can still discover the live search API.
 
 .AI Catalog entry fields
 [cols="1,3",options="header"]
@@ -134,7 +135,7 @@ Every entry `identifier` follows the `urn:air:<publisher>:<namespace>:<name>` fo
 |Field |Source
 
 |`identifier`
-|`urn:air:<publisher>:<groupId>:<artifactId>`. The publisher segment is the value of `apicurio.ai-catalog.publisher-domain`, or the request host and port when the property is not set. Artifacts in the default group use `default` as the group segment.
+|`urn:air:<publisher>:<groupId>:<artifactId>`. The publisher segment is the value of `apicurio.ai-catalog.publisher-domain`. When the property is not set, {registry} uses the `X-Forwarded-Host` header if present, otherwise the request host and port. Artifacts in the default group use `default` as the group segment.
 
 |`displayName`
 |The `name` field of the Agent Card, or the `title` and then `name` field of the MCP tool definition. Falls back to the artifact name.
@@ -164,7 +165,7 @@ Every entry `identifier` follows the `urn:air:<publisher>:<namespace>:<name>` fo
 |Up to five sample queries taken from the `examples` arrays of the Agent Card skills. Omitted when no skill declares examples, and never set for MCP tool entries.
 |===
 
-Agent Card entries are filtered by the `apicurio.agent.visibility` label with the same rules as `/.well-known/agents`. MCP tool entries have no visibility label and are always included. When authentication is not configured, no visibility filtering is applied.
+{registry} filters Agent Card entries by the `apicurio.agent.visibility` label with the same rules as `/.well-known/agents`. MCP tool entries have no visibility label, so {registry} always includes them. When neither OIDC nor basic authentication is configured, {registry} applies no visibility filtering.
 
 Both endpoints require read-level authorization when authentication is enabled. Anonymous clients can read them only if `apicurio.auth.anonymous-read-access.enabled` is `true`. The same documents are also available at `/apis/registry/v3/well-known/ai-catalog.json` and `/apis/registry/v3/well-known/ard.json`.
 
@@ -178,7 +179,7 @@ Both endpoints require read-level authorization when authentication is enabled. 
 When `apicurio.ard.enabled=true`, {registry} exposes the ARD REST search API, mirrored under both `/.well-known/ard/*` and `/apis/registry/v3/well-known/ard/*`. All three endpoints require read-level authorization when authentication is enabled, and they apply the same visibility rules as the catalog documents.
 
 POST /ard/search::
-The search endpoint that the ARD specification requires. Accepts a `query` object with a required `text` field and an optional structured `filter` with the keys `type`, `tags`, `capabilities`, and `publisher`. The `text` value is matched against artifact names and artifact IDs as a partial match. A value without `*` matches anywhere, and you can use `*` as a prefix or suffix wildcard. Values within a filter key are combined with OR, and different keys are combined with AND. A `tags` value of the form `key=value` matches an artifact label exactly, and a value without `=` matches any artifact that has a label with that key. A `capabilities` value matches a skill ID of an Agent Card entry. A `type` value must be one of the two media types that {registry} emits. `pageSize` defaults to 10 and is capped at 100. To fetch the next page, pass the `pageToken` value from the previous response.
+The search endpoint that the ARD specification requires. Accepts a `query` object with a required `text` field and an optional structured `filter` with the keys `type`, `tags`, `capabilities`, and `publisher`. {registry} matches the `text` value against artifact names and artifact IDs as a partial match. A value without `*` matches anywhere, and you can use `*` as a prefix or suffix wildcard. {registry} combines values within a filter key with OR and different keys with AND. A `tags` value of the form `key=value` matches an artifact label exactly, and a value without `=` matches any artifact that has a label with that key. A `capabilities` value matches a skill ID of an Agent Card entry. A `type` value must match, or be a substring of, one of the two media types that {registry} emits. `pageSize` defaults to 10, and {registry} clamps larger values to 100. To fetch the next page, pass the `pageToken` value from the previous response. The last page has no `pageToken`.
 +
 .Example request
 [source,json]
@@ -212,15 +213,14 @@ The search endpoint that the ARD specification requires. Accepts a `query` objec
       "score": 100,
       "source": "http://registry.example.com:8080"
     }
-  ],
-  "pageToken": null
+  ]
 }
 ----
 +
-NOTE: Because only entries that satisfy every requested criterion are returned, every result has a `score` of `100` in this release. There is no fuzzy or semantic ranking yet. Only `federation: none` semantics are implemented. Other `federation` values are accepted for forward compatibility but do not change behavior.
+NOTE: Because {registry} returns only entries that satisfy every requested criterion, every result has a `score` of `100` in this release. This release has no fuzzy or semantic ranking. {registry} implements only `federation: none` semantics and accepts other `federation` values for compatibility with later versions, but they do not change behavior.
 
 GET /ard/agents::
-Optional browsing endpoint with deterministic ordering. Accepts a `filter` query parameter in the form `key=value[ AND key=value]*` with the same keys and matching rules as `POST /ard/search`, plus `orderBy`, `pageSize`, and `pageToken`. The `orderBy` parameter is accepted for compatibility with ARD clients but has no effect. Agent Card entries are returned before MCP tool entries, and each group is ordered newest first. `pageSize` defaults to 20 and is capped at 500. Returns an AI Catalog document. When more results remain, `nextPageToken` is populated so you can request the next page.
+Optional browsing endpoint with deterministic ordering. Accepts a `filter` query parameter in the form `key=value[ AND key=value]*` with the same keys and matching rules as `POST /ard/search`, plus `orderBy`, `pageSize`, and `pageToken`. {registry} accepts the `orderBy` parameter for compatibility with ARD clients, but it has no effect. {registry} returns Agent Card entries before MCP tool entries and orders each group newest first. `pageSize` defaults to 20, and {registry} clamps larger values to 500. Returns an AI Catalog document. When more results remain, the response includes `nextPageToken` so that you can request the next page.
 +
 .Example request
 [source,bash]
@@ -231,7 +231,7 @@ curl -G "http://localhost:8080/.well-known/ard/agents" \
 ----
 
 POST /ard/explore::
-Optional facet-aggregation endpoint. Accepts the same `query` as `POST /ard/search` plus a required `resultType.facets` array that names the fields to aggregate. The supported fields are `type` and `publisher`. Each facet request can also set `limit`, the maximum number of buckets to return, and `minCount`, the minimum count for a bucket to be included. Counts for buckets beyond `limit` are summed into `otherCount`. Returns bucketed counts, not ranked entries.
+Optional facet-aggregation endpoint. Accepts an optional `query` in the same form as `POST /ard/search` plus a required `resultType.facets` array that names the fields to aggregate. The supported fields are `type` and `publisher`. Each facet request can also set `limit` (the maximum number of buckets to return) and `minCount` (the minimum count for a bucket to appear). {registry} sums the counts of buckets beyond `limit` into `otherCount`. Returns bucketed counts, not ranked entries.
 +
 .Example request
 [source,json]
@@ -268,7 +268,16 @@ Optional facet-aggregation endpoint. Accepts the same `query` as `POST /ard/sear
 |Status |Cause
 
 |`400`
-|The `query.text` field is missing or empty, a filter key is not one of `type`, `tags`, `capabilities`, or `publisher`, a `type` value is not a media type that {registry} emits, `pageToken` is not a value from a previous response, or `resultType.facets` is missing or names a field other than `type` or `publisher`.
+a|One of the following conditions applies:
+
+* For `POST /ard/search`, the `query.text` field is missing or empty.
+* A filter key is not one of `type`, `tags`, `capabilities`, or `publisher`.
+* A `type` value does not match a media type that {registry} emits.
+* A `GET /ard/agents` filter clause is not in `key=value` form.
+* The `pageToken` value did not come from a previous response.
+* For `POST /ard/explore`, `resultType.facets` is missing or names a field other than `type` or `publisher`.
+
+{registry} clamps out-of-range `pageSize` values instead of rejecting them.
 
 |`401`
 |Authentication is enabled, the request is anonymous, and `apicurio.auth.anonymous-read-access.enabled` is `false`.
@@ -289,7 +298,7 @@ This implementation is a read-only projection over existing artifacts, consisten
 * No Trust Manifest support (optional in the specification; not yet implemented).
 * No federation. {registry} always searches only its own index (`federation: none`).
 * No catalog importer. {registry} does not crawl external `ai-catalog.json` or `ard.json` documents to register their entries as artifacts.
-* Relevance ranking is not yet semantic; `score` is always `100` for matching results. Full-text search (tracked separately) is expected to enable real relevance scoring in a future release.
+* No semantic ranking. `score` is always `100` for matching results. Full-text search (tracked separately) might provide real relevance scoring in a future release.
 
 [role="_additional-resources"]
 .Additional resources

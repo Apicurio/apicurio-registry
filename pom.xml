@@ -323,6 +323,7 @@
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
+    <mock-oauth2-server.version>2.2.1</mock-oauth2-server.version>
     <strimzi-test-container.version>0.116.0</strimzi-test-container.version>
 
     <!-- Iceberg -->
@@ -1011,6 +1012,11 @@
         <groupId>org.wiremock</groupId>
         <artifactId>wiremock</artifactId>
         <version>${wiremock.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>no.nav.security</groupId>
+        <artifactId>mock-oauth2-server</artifactId>
+        <version>${mock-oauth2-server.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.truth.extensions</groupId>

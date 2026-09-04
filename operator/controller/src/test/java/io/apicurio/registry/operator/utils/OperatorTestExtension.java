@@ -70,6 +70,14 @@ public class OperatorTestExtension implements InvocationInterceptor, AfterTestEx
                 lastException = e;
             }
 
+            // A JUnit assumption failure is a deliberate skip, not a failure: don't retry it and
+            // don't rethrow it as a failure -- let it propagate so the test is reported as aborted.
+            // This lets @RetryTest methods gate themselves at runtime with assumeTrue(...) on state
+            // that is only knowable after @BeforeAll has run (e.g. what the installed bundle grants).
+            if (lastException instanceof org.opentest4j.TestAbortedException) {
+                throw lastException;
+            }
+
             if (attempt < totalAttempts) {
                 log.warn("========================================");
                 log.warn("RETRY {}/{} for test: {}", attempt + 1, totalAttempts, method.getName());

@@ -6,9 +6,13 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static io.apicurio.registry.operator.Tags.OLM;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * Permission-boundary test for the OwnNamespace install mode: the default OperatorGroup targets the
@@ -36,6 +40,15 @@ import static org.awaitility.Awaitility.await;
  * assumption then aborted before the CRD was registered; {@code @RetryTest} retried the aborted test,
  * and {@code OLMITBase.afterEach()} 404'd trying to delete a CR of a type the cluster did not know
  * about yet, which surfaced as a real test failure instead of a clean skip.
+ * <p>
+ * Under OLM v0 the test additionally gates itself on whether the installed bundle actually carries the
+ * least-privilege split. A productized/cluster-tier bundle declares the workload verbs in
+ * {@code clusterPermissions}, so OLM promotes them to a ClusterRole and the OwnNamespace boundary this
+ * test asserts does not exist. That is detected at runtime (a namespace-scoped Role granting Deployment
+ * creation) and skipped with {@code assumeTrue}. Unlike the v1 pitfall above, this in-method assumption
+ * is safe: it runs on the v0 path where {@code @BeforeAll} has already completed the install
+ * synchronously (CRD registered, so {@code afterEach} cleanup succeeds), and {@code OperatorTestExtension}
+ * now treats assumption aborts as clean skips rather than retrying them as failures.
  */
 @QuarkusTest
 @Tag(OLM)
@@ -52,21 +65,33 @@ public class NamespacedPermissionsOLMITTest extends OLMITBase {
                     .getReadyReplicas()).isEqualTo(1);
         });
 
+        var serviceAccountUser = operatorServiceAccountUser();
+
+        // Allowed: creating a Deployment in the operator's own (target) namespace. Poll rather than
+        // asserting once: OLM may create the RoleBinding a moment after the operator Deployment reports
+        // ready, so the grant can converge slightly later. Once this holds, the operator's workload RBAC
+        // has been applied and we can reliably tell how it was scoped.
+        await().ignoreExceptions().untilAsserted(() -> assertThat(canCreateDeployment(serviceAccountUser, namespace))
+                .withFailMessage(
+                        "Operator ServiceAccount should be allowed to create Deployments in its target namespace '%s'",
+                        namespace)
+                .isTrue());
+
+        // Applicability gate: the OwnNamespace boundary only exists when the bundle carries the
+        // least-privilege split, i.e. grants workload verbs through a namespace-scoped Role. A bundle
+        // that declares those verbs in clusterPermissions instead promotes them to a ClusterRole and
+        // creates no such Role, so the negative assertion below would not hold. Detect the split by the
+        // presence of a namespaced Role granting Deployment creation -- checked only after the grant
+        // above has converged, so absence means "cluster-wide", not "not yet applied" -- and skip
+        // cleanly otherwise (OperatorTestExtension reports the abort as a skip, not a failure).
+        assumeTrue(namespacedWorkloadRoleExists(),
+                "Bundle grants workload RBAC cluster-wide (no least-privilege namespaced split); "
+                        + "the OwnNamespace boundary asserted here does not apply. Skipping.");
+
         // A namespace the operator does not target, so OLM creates no Role/RoleBinding there.
         var foreignNamespace = ITBase.calculateNamespace();
         ITBase.createNamespace(client, foreignNamespace);
         try {
-            var serviceAccountUser = operatorServiceAccountUser();
-
-            // Allowed: creating a Deployment in the operator's own (target) namespace. Poll rather
-            // than asserting once: OLM may create the RoleBinding a moment after the operator
-            // Deployment reports ready, so the grant can converge slightly later.
-            await().ignoreExceptions().untilAsserted(() -> assertThat(canCreateDeployment(serviceAccountUser, namespace))
-                    .withFailMessage(
-                            "Operator ServiceAccount should be allowed to create Deployments in its target namespace '%s'",
-                            namespace)
-                    .isTrue());
-
             // Forbidden: creating a Deployment in a namespace the operator does not target. This is
             // checked after the positive grant has converged above, so a false result here reflects
             // the least-privilege boundary rather than RBAC not yet being applied.
@@ -80,5 +105,23 @@ public class NamespacedPermissionsOLMITTest extends OLMITBase {
                 client.namespaces().withName(foreignNamespace).delete();
             }
         }
+    }
+
+    /**
+     * Whether a namespace-scoped Role in the operator's install namespace grants creation of
+     * Deployments -- how the least-privilege split scopes the operator's workload permissions. A bundle
+     * without the split promotes those verbs to a ClusterRole instead, so no such Role exists.
+     */
+    private boolean namespacedWorkloadRoleExists() {
+        return client.rbac().roles().inNamespace(namespace).list().getItems().stream()
+                .filter(r -> r.getRules() != null)
+                .flatMap(r -> r.getRules().stream())
+                .anyMatch(rule -> grants(rule.getApiGroups(), "apps", "*")
+                        && grants(rule.getResources(), "deployments", "*")
+                        && grants(rule.getVerbs(), "create", "*"));
+    }
+
+    private static boolean grants(List<String> values, String... wanted) {
+        return values != null && Arrays.stream(wanted).anyMatch(values::contains);
     }
 }

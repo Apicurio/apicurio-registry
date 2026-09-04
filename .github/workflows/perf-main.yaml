@@ -1,0 +1,292 @@
+name: Performance Tests (main)
+
+# Runs performance tests against topologies that resemble real installations: registry deployed
+# via the operator, secured with Keycloak (OAuth2 client-credentials), with a separate Kafka
+# client (using the Avro serde) driving realistic produce/consume traffic alongside a
+# Gatling-driven REST load test. Two storage backends are exercised (see perf-tests/k8s/README.md
+# for full details on each):
+#
+#   - postgresql: SQL storage, PostgreSQL behind Toxiproxy (~15ms +/- 5ms injected latency, to
+#     approximate a managed/remote DB rather than a same-node connection)
+#   - kafkasql: KafkaSQL storage, Kafka behind Toxiproxy with the same injected latency profile
+#
+# Deliberately scoped to push-to-main only (not PRs): standing up this topology (cluster, operator
+# install, Keycloak, Kafka, sustained load run) is too slow/expensive to run per-PR, and the goal
+# here is trend/regression detection over time, not gating individual changes.
+#
+# Regressions are surfaced via the job summary and a Slack notification, not as a hard failure of
+# this workflow, unless the load itself fails outright (Gatling assertion / excessive Kafka
+# produce failures) - see perf-tests/scripts/check-thresholds.py for the rationale.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY_APP_IMAGE: localhost:5000/apicurio-registry:${{ github.sha }}
+  OPERATOR_IMAGE: localhost:5000/apicurio-registry-3-operator:${{ github.sha }}
+  PERF_TEST_IMAGE: localhost:5000/apicurio-registry-perf-tests:${{ github.sha }}
+
+jobs:
+  perf-test:
+    name: Run Performance Tests (${{ matrix.storage }})
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - storage: postgresql
+            kafka-bootstrap-servers: kafka.default.svc:9092
+          - storage: kafkasql
+            kafka-bootstrap-servers: toxiproxy.default.svc:9094
+    steps:
+      - name: Checkout ${{ github.ref }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      # Select the controller explicitly because selecting the operator aggregator does not build its children.
+      - name: Build app, operator, and perf-tests artifacts
+        run: |
+          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml -B clean package -Dfull \
+            -pl app,distro/docker,operator/controller,perf-tests -am -Pprod,perf-tests -DskipTests -Dmaven.javadoc.skip \
+            -Daether.syncContext.named.factory=noop
+
+      - name: Build app image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.jvm -t "$REGISTRY_APP_IMAGE" ./distro/docker/target/docker
+
+      - name: Build operator image
+        working-directory: operator
+        run: make IMAGE="$OPERATOR_IMAGE" image-build
+
+      - name: Build perf-tests runner image
+        working-directory: perf-tests
+        run: docker build -t "$PERF_TEST_IMAGE" .
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        id: minikube-setup
+        continue-on-error: true
+        timeout-minutes: 10
+        with:
+          driver: 'none'
+          ingress-enable: 'false'
+          olm-enable: 'false'
+          olm-v1-enable: 'false'
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        if: steps.minikube-setup.outcome == 'failure'
+        timeout-minutes: 10
+        with:
+          driver: 'none'
+          ingress-enable: 'false'
+          olm-enable: 'false'
+          olm-v1-enable: 'false'
+
+      - name: Start local registry and push images
+        run: |
+          docker run -d -p 5000:5000 --restart=always ghcr.io/distribution/distribution:3.0
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:5000/v2/ >/dev/null 2>&1 && break
+            sleep 0.5
+          done
+          docker push "$REGISTRY_APP_IMAGE"
+          docker push "$OPERATOR_IMAGE"
+          docker push "$PERF_TEST_IMAGE"
+
+      - name: Deploy the operator
+        working-directory: operator
+        run: |
+          make IMAGE="$OPERATOR_IMAGE" REGISTRY_APP_IMAGE="$REGISTRY_APP_IMAGE" NAMESPACE=default deploy
+          # The operator Deployment name is version-suffixed by kustomize
+          # (apicurio-registry-operator-v<version>), so select by label instead of a fixed name.
+          kubectl -n default wait --for=condition=Available deployment \
+            -l app.kubernetes.io/name=apicurio-registry-operator --timeout=5m
+
+      - name: Deploy storage backend, Toxiproxy, and Keycloak
+        working-directory: perf-tests/k8s/${{ matrix.storage }}
+        run: ./deploy.sh
+
+      - name: Run the performance test Job
+        working-directory: perf-tests/k8s
+        run: |
+          sed -e "s|\${PERF_TEST_IMAGE}|$PERF_TEST_IMAGE|" \
+              -e "s|\${KAFKA_BOOTSTRAP_SERVERS}|${{ matrix.kafka-bootstrap-servers }}|" \
+              common/perf-job.yaml | kubectl -n default apply -f -
+          # The Job's container deliberately stays alive (sleeping) for a grace period after the
+          # actual test run finishes, writing its real exit code to /results/exit-code - `kubectl
+          # cp`/`exec` cannot target a pod that has already reached Succeeded/Failed, so we poll
+          # for that marker file (via the still-running container) rather than waiting on the
+          # Job's own condition=complete, then copy results out before letting the grace period
+          # elapse. See k8s/common/perf-job.yaml for the corresponding container-side wrapper.
+          for i in $(seq 1 270); do
+            POD=$(kubectl -n default get pods -l job-name=perf-test-runner -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+            if [ -n "$POD" ] && kubectl -n default exec "$POD" -- test -f /results/exit-code 2>/dev/null; then
+              break
+            fi
+            sleep 10
+          done
+          kubectl -n default logs job/perf-test-runner --tail=-1 > /tmp/perf-test-runner.log || true
+
+      - name: Copy results out of the cluster
+        if: always()
+        working-directory: perf-tests/k8s
+        run: |
+          POD=$(kubectl -n default get pods -l job-name=perf-test-runner -o jsonpath='{.items[0].metadata.name}')
+          mkdir -p /tmp/perf-results
+          kubectl -n default cp "$POD:/results" /tmp/perf-results || true
+          cp /tmp/perf-test-runner.log /tmp/perf-results/ || true
+          kubectl -n default delete job perf-test-runner --ignore-not-found || true
+          # Fail the step (and therefore the workflow) if the test run itself did not exit 0 -
+          # this is the "did the load run at all / stay under the error-rate assertion" signal.
+          test "$(cat /tmp/perf-results/exit-code 2>/dev/null || echo 1)" = "0"
+
+      - name: Check results against baseline
+        if: always()
+        run: |
+          STATS_FILE=$(find /tmp/perf-results -path '*/js/stats.js' | head -1)
+          if [ -n "$STATS_FILE" ]; then
+            python3 perf-tests/scripts/check-thresholds.py "$STATS_FILE" perf-tests/baseline.json || true
+          else
+            echo "No Gatling js/stats.js found under /tmp/perf-results - skipping threshold check." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload performance test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: perf-test-results-${{ matrix.storage }}-${{ github.sha }}
+          path: /tmp/perf-results
+          retention-days: 90
+
+      # A single Gatling process's own connection handling degrades well before the registry's
+      # actual capacity does above roughly 250-300 concurrent connections (see
+      # perf-tests/k8s/README.md and perf-tests/k8s/common/run-external-load.sh) - so this runs
+      # from *outside* the cluster to validate a real higher-concurrency read-throughput number
+      # without the load generator's own connection-handling limit confounding the result. Runs
+      # for 3 minutes (not a short smoke-test duration) because throughput was found to be
+      # understated by more than 3x in short (20-30s) runs due to JVM/JIT warm-up - see
+      # run-external-load.sh's usage comment. This is the same methodology used to produce the
+      # sizing-guide numbers in
+      # docs/modules/ROOT/pages/getting-started/assembly-registry-sizing-guide.adoc.
+      #
+      # PERF_EXTERNAL_USERS is deliberately well below the 200 this used to run at. The "outside
+      # the cluster" premise in run-external-load.sh - that the generator gets the machine's own
+      # resources rather than competing with the workload - holds on a dedicated box, but *not*
+      # on a GitHub-hosted runner, where Minikube is that same machine. At 200 the registry,
+      # Postgres/Kafka, Keycloak, Toxiproxy, the operator and a 200-user Gatling JVM all
+      # contended for the runner's 4 vCPUs and the registry became repeatedly unavailable
+      # mid-run: ~95% of requests failed with ECONNREFUSED in bursts on a ~30-40s cycle, which is
+      # a restart loop, not a latency measurement. Raise this only on a dedicated machine.
+      #
+      # The measured *numbers* stay informational (continue-on-error) - GitHub-hosted runners
+      # vary in hardware and noisy-neighbour conditions, so a single slow attempt is not a hard
+      # signal. Whether the run happened at all is a different question and is gated below.
+      - name: Run external high-concurrency read validation
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 10
+        working-directory: perf-tests
+        env:
+          PERF_EXTERNAL_USERS: '50'
+          PERF_EXTERNAL_DURATION: '180'
+        run: |
+          JAR=$(find target -name 'apicurio-registry-perf-tests-*-jar-with-dependencies.jar' | head -1)
+          if [ -z "$JAR" ]; then
+            echo "No perf-tests jar-with-dependencies found - skipping external validation." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          mkdir -p /tmp/external-load-results
+          # No bare `|| true` here: a non-zero exit means the load run itself failed (for example
+          # Gatling's own <=1% failed-events assertion), and that has to stay visible. `|| RC=$?`
+          # captures it without `set -e` aborting the step first, so the summary below is still
+          # written; the step is continue-on-error, so re-raising it marks the step red without
+          # failing the job.
+          RC=0
+          GATLING_RESULTS_FOLDER=/tmp/external-load-results/gatling \
+            ./k8s/common/run-external-load.sh "$JAR" \
+            "$PERF_EXTERNAL_USERS" "$PERF_EXTERNAL_DURATION" 0 \
+            > /tmp/external-load-results/console.log 2>&1 || RC=$?
+          tail -n 60 /tmp/external-load-results/console.log
+          {
+            echo "### External high-concurrency read validation (${{ matrix.storage }}, ${PERF_EXTERNAL_USERS} concurrent clients)"
+            echo '```'
+            grep -A11 "Global Information" /tmp/external-load-results/console.log | tail -11 || echo "(no summary captured - see uploaded artifact)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $RC
+
+      # Cluster-side state, captured whatever the outcome. Without this the only artefact of a
+      # collapsed run was a Gatling report full of ECONNREFUSED with nothing to say why, which is
+      # what made the failure above unexplainable for as long as it went unnoticed.
+      - name: Capture cluster diagnostics
+        if: always()
+        run: |
+          mkdir -p /tmp/external-load-results/diagnostics
+          cd /tmp/external-load-results/diagnostics
+          kubectl -n default get pods -o wide > pods.txt 2>&1 || true
+          kubectl -n default get events --sort-by=.lastTimestamp > events.txt 2>&1 || true
+          kubectl -n default describe deployment perf-test-app-deployment > app-deployment.txt 2>&1 || true
+          for p in $(kubectl -n default get pods -l app=perf-test-app -o name 2>/dev/null); do
+            n=$(basename "$p")
+            kubectl -n default describe "$p" > "describe-$n.txt" 2>&1 || true
+            kubectl -n default logs "$p" --tail=-1 > "logs-$n.txt" 2>&1 || true
+            # The interesting log when a pod is restarting is the one from the container that died.
+            kubectl -n default logs "$p" --previous --tail=-1 > "logs-previous-$n.txt" 2>&1 || true
+          done
+          RESTARTS=$(kubectl -n default get pods -l app=perf-test-app \
+            -o jsonpath='{.items[*].status.containerStatuses[*].restartCount}' 2>/dev/null || echo "")
+          echo "registry pod restartCount: ${RESTARTS:-unknown}" | tee restarts.txt
+
+      # The numbers being slow is informational; the target having been down is not a measurement
+      # at all, and silently reporting it as one is how a 95%-ECONNREFUSED run was published as a
+      # throughput figure. Gate on the run being *valid*, separately from what it measured.
+      - name: Verify the external load run was valid
+        if: always()
+        working-directory: perf-tests
+        run: |
+          LOG=/tmp/external-load-results/console.log
+          if [ ! -f "$LOG" ]; then
+            echo "No external load console log - the validation step did not run." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! grep -q "Global Information" "$LOG"; then
+            echo "::error::External load run produced no Gatling summary - the run did not complete."
+            exit 1
+          fi
+          # Capture rather than pipe: piping into tee would make tee's exit status the step's,
+          # which is the same class of mistake as the `|| true` this change removes.
+          RC=0
+          OUT=$(python3 scripts/check-external-validity.py "$LOG" --max-ko-percent 25) || RC=$?
+          printf '%s\n' "$OUT"
+          printf '%s\n' "$OUT" >> "$GITHUB_STEP_SUMMARY"
+          exit $RC
+
+      - name: Upload external validation results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: perf-test-external-results-${{ matrix.storage }}-${{ github.sha }}
+          path: /tmp/external-load-results
+          retention-days: 90
+
+  notify:
+    name: Notify on failure
+    needs: perf-test
+    if: failure()
+    uses: ./.github/workflows/reusable-notify-slack.yaml
+    with:
+      workflow-name: "Performance Tests (main)"
+      job-name: "perf-test"
+      job-status: "failure"
+    secrets: inherit

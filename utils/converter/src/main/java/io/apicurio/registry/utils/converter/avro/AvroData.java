@@ -36,7 +36,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
@@ -380,7 +379,7 @@ public class AvroData {
     private boolean discardTypeDocDefault;
     private boolean allowOptionalMapKey;
 
-    private final String namespace;
+    private final String configuredNamespace;
     private final String defaultSchemaFullName;
     private final String avroRecordDocProp;
     private final String avroEnumDocPrefixProp;
@@ -443,21 +442,21 @@ public class AvroData {
         // this.scrubInvalidNames = avroDataConfig.isScrubInvalidNames();
         // this.discardTypeDocDefault = avroDataConfig.isDiscardTypeDocDefault();
         // this.allowOptionalMapKey = avroDataConfig.isAllowOptionalMapKeys();
-        this.namespace = avroDataConfig.getAvroNamespace();
-        this.defaultSchemaFullName = namespace + "." + DEFAULT_SCHEMA_NAME;
-        this.avroRecordDocProp = namespace + ".record.doc";
-        this.avroEnumDocPrefixProp = namespace + ".enum.doc.";
-        this.avroFieldDocPrefixProp = namespace + ".field.doc.";
-        this.avroFieldDefaultFlagProp = namespace + ".field.default";
-        this.avroEnumDefaultPrefixProp = namespace + ".enum.default.";
-        this.avroTypeUnion = namespace + ".Union";
-        this.avroTypeEnum = namespace + ".Enum";
-        this.avroTypeAnything = namespace + ".Anything";
-        if (NAMESPACE.equals(namespace)) {
+        this.configuredNamespace = avroDataConfig.getAvroNamespace();
+        this.defaultSchemaFullName = configuredNamespace + "." + DEFAULT_SCHEMA_NAME;
+        this.avroRecordDocProp = configuredNamespace + ".record.doc";
+        this.avroEnumDocPrefixProp = configuredNamespace + ".enum.doc.";
+        this.avroFieldDocPrefixProp = configuredNamespace + ".field.doc.";
+        this.avroFieldDefaultFlagProp = configuredNamespace + ".field.default";
+        this.avroEnumDefaultPrefixProp = configuredNamespace + ".enum.default.";
+        this.avroTypeUnion = configuredNamespace + ".Union";
+        this.avroTypeEnum = configuredNamespace + ".Enum";
+        this.avroTypeAnything = configuredNamespace + ".Anything";
+        if (NAMESPACE.equals(configuredNamespace)) {
             this.anythingSchema = ANYTHING_SCHEMA;
             this.anythingSchemaMapElement = ANYTHING_SCHEMA_MAP_ELEMENT;
         } else {
-            this.anythingSchema = buildAnythingSchema(namespace, avroTypeAnything);
+            this.anythingSchema = buildAnythingSchema(configuredNamespace, avroTypeAnything);
             this.anythingSchemaMapElement = this.anythingSchema.getField("map").schema().getTypes().get(1)
                     .getElementType();
         }
@@ -942,8 +941,8 @@ public class AvroData {
                     List<org.apache.avro.Schema.Field> fields = new ArrayList<>();
                     final org.apache.avro.Schema mapSchema;
                     if (schema.name() == null) {
-                        mapSchema = org.apache.avro.Schema.createRecord(MAP_ENTRY_TYPE_NAME, null, namespace,
-                                false);
+                        mapSchema = org.apache.avro.Schema.createRecord(MAP_ENTRY_TYPE_NAME, null,
+                                configuredNamespace, false);
                     } else {
                         Pair<String, String> names = getNameOrDefault(fromConnectContext, schema.name());
                         String namespace = names.getKey();
@@ -1079,7 +1078,7 @@ public class AvroData {
             return new Pair<>(split[0], split[1]);
         } else {
             int nameIndex = ctx.incrementAndGetNameIndex();
-            return new Pair<>(namespace, DEFAULT_SCHEMA_NAME + (nameIndex > 1 ? nameIndex : ""));
+            return new Pair<>(configuredNamespace, DEFAULT_SCHEMA_NAME + (nameIndex > 1 ? nameIndex : ""));
         }
     }
 
@@ -1118,19 +1117,15 @@ public class AvroData {
 
     // Visible for testing
     protected static String doScrubName(String name) {
-        try {
-            if (name == null) {
-                return name;
-            }
-            String encoded = URLEncoder.encode(name, "UTF-8");
-            if (!NAME_START_CHAR.matcher(encoded).lookingAt()) {
-                encoded = "x" + encoded; // use an arbitrary valid prefix
-            }
-            encoded = NAME_INVALID_CHARS.matcher(encoded).replaceAll("_");
-            return encoded;
-        } catch (UnsupportedEncodingException e) {
+        if (name == null) {
             return name;
         }
+        String encoded = URLEncoder.encode(name, StandardCharsets.UTF_8);
+        if (!NAME_START_CHAR.matcher(encoded).lookingAt()) {
+            encoded = "x" + encoded; // use an arbitrary valid prefix
+        }
+        encoded = NAME_INVALID_CHARS.matcher(encoded).replaceAll("_");
+        return encoded;
     }
 
     public org.apache.avro.Schema fromConnectSchemaWithCycle(Schema schema,
@@ -1305,7 +1300,7 @@ public class AvroData {
         if (!elemSchema.getType().equals(org.apache.avro.Schema.Type.RECORD)) {
             return false;
         }
-        if (namespace.equals(elemSchema.getNamespace()) && MAP_ENTRY_TYPE_NAME.equals(elemSchema.getName())) {
+        if (configuredNamespace.equals(elemSchema.getNamespace()) && MAP_ENTRY_TYPE_NAME.equals(elemSchema.getName())) {
             return true;
         }
         if (Objects.equals(elemSchema.getProp(CONNECT_INTERNAL_TYPE_NAME), MAP_ENTRY_TYPE_NAME)) {

@@ -115,6 +115,13 @@ jobs:
         with:
           ref: 2.6.x
 
+      - name: Checkout log collector
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          sparse-checkout: .github/scripts/collect_logs.sh
+          path: .current-revision
+
       - name: Set up JDK ${{ inputs.java-version }}
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
@@ -139,7 +146,7 @@ jobs:
 
       - name: Collect logs
         if: failure()
-        run: sh ./.github/scripts/collect_logs.sh
+        run: sh ./.current-revision/.github/scripts/collect_logs.sh
 
       - name: Upload tests logs artifacts
         if: failure()

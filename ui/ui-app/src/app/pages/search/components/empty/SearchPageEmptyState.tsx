@@ -1,9 +1,9 @@
 import { FunctionComponent } from "react";
 import "./SearchPageEmptyState.css";
 import {
-    Button, 
+    Button,
     EmptyState,
-    EmptyStateActions, 
+    EmptyStateActions,
     EmptyStateBody,
     EmptyStateFooter,
     EmptyStateVariant
@@ -18,7 +18,8 @@ import { SearchType } from "@app/pages/search/SearchType.ts";
 export type SearchPageEmptyStateProps = {
     searchType: SearchType;
     isFiltered: boolean;
-    onAction?: () => void; 
+    onAction?: () => void;
+    onCreateArtifact?: () => void;
 };
 
 /**
@@ -56,7 +57,6 @@ export const SearchPageEmptyState: FunctionComponent<SearchPageEmptyStateProps> 
                 </EmptyStateBody>
             </If>
             <EmptyStateFooter>
-                
                 <If condition={() => !props.isFiltered && props.searchType === SearchType.GROUP}>
                     <EmptyStateActions>
                         <Button variant="primary" data-testid="empty-btn-create-group" onClick={props.onAction}>
@@ -64,7 +64,13 @@ export const SearchPageEmptyState: FunctionComponent<SearchPageEmptyStateProps> 
                         </Button>
                     </EmptyStateActions>
                 </If>
-                
+                <If condition={() => !!props.onCreateArtifact}>
+                    <EmptyStateActions>
+                        <Button className="empty-btn-create" variant="primary"
+                            icon={<PlusCircleIcon />}
+                            data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
+                    </EmptyStateActions>
+                </If>
             </EmptyStateFooter>
         </EmptyState>
     );

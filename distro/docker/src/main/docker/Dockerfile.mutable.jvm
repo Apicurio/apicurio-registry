@@ -8,7 +8,7 @@
 #   FROM apicurio/apicurio-registry:VERSION-mutable
 #   COPY --chown=1001:0 my-provider.jar /deployments/quarkus-app/providers/
 #   RUN /deployments/build.sh --prune
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:2056c5139666c5e52f01af5b80f0def423a94c3fe824321d74041c11e20c9b72
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:53fc57721acb1941bef7fcd400e35353dace05087309ff482bb6814714d3095d
 
 ENV APP_URL="${docker.app.file.mutable}" \
     JAVA_APP_JAR="quarkus-app/quarkus-run.jar" \

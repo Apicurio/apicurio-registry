@@ -20,6 +20,16 @@ status:
   - kind: <string>
     namespace: <string>
     name: <string>
+  metrics:
+    lastCollected: <string, RFC-3339 timestamp>
+    summary:
+      requestRate: <double>
+      errorRate: <double>
+      connectionPoolUtilization: <double>
+      scrapedPods: <int>
+      artifactCount: <int>
+      artifactVersionCount: <int>
+      kafkaConsumerLag: <int>
 ----
 
 .ApicurioRegistry3 CR status fields
@@ -74,4 +84,40 @@ status:
 | `managedResources/name`
 | string
 | Resource name.
+
+| `metrics`
+| -
+| Metrics collected by the Operator from the {registry} application Pods. Present only when `spec.app.metrics.enabled` is `true`.
+
+| `metrics/lastCollected`
+| string
+| The time of the last successful collection. A failed collection does not move it, so a timestamp that has stopped advancing means the Operator can no longer read the application Pods.
+
+| `metrics/summary/requestRate`
+| double
+| REST API requests per second, averaged over the interval between the last two collections, summed across all application Pods.
+
+| `metrics/summary/errorRate`
+| double
+| Fraction of REST API requests answered with a 5xx status, between 0.0 and 1.0.
+
+| `metrics/summary/connectionPoolUtilization`
+| double
+| Highest fraction of the database connection pool in use on any one application Pod, between 0.0 and 1.0.
+
+| `metrics/summary/scrapedPods`
+| int
+| How many application Pods the reported values were read from. At most 10 Pods are read per collection, so on a larger deployment, or when a Pod cannot be reached, the totals cover only the Pods that answered.
+
+| `metrics/summary/artifactCount`
+| int
+| Number of artifacts in storage. Every replica counts the same shared storage, so the highest value seen is reported rather than a sum.
+
+| `metrics/summary/artifactVersionCount`
+| int
+| Number of artifact versions in storage, taken the same way.
+
+| `metrics/summary/kafkaConsumerLag`
+| int
+| Highest KafkaSQL consumer lag, in records, reported by any application Pod. Present only when KafkaSQL storage is used.
 |===

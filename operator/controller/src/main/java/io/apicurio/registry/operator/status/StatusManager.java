@@ -3,6 +3,7 @@ package io.apicurio.registry.operator.status;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Status;
 import io.apicurio.registry.operator.api.v1.status.ConditionStatus;
+import io.apicurio.registry.operator.metrics.MetricsManager;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ public class StatusManager {
         conditionManagers = List.of(
                 new OperatorErrorConditionManager(),
                 new ValidationErrorConditionManager(),
+                new MetricsUnavailableConditionManager(),
                 new ReadyConditionManager()
         );
     }
@@ -69,6 +71,11 @@ public class StatusManager {
         }
 
         status.setObservedGeneration(primary.getMetadata().getGeneration());
+        // Metrics are collected by the reconciler before this point, when the feature is enabled. Skipping
+        // the call when it is disabled leaves the field null, which removes it from the resource.
+        if (MetricsManager.isEnabled(primary)) {
+            MetricsManager.get(primary).applyStatus(status);
+        }
 
         primary.setStatus(status);
         return primary;

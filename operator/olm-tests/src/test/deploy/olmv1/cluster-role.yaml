@@ -228,3 +228,16 @@ rules:
 # [1] We can't easily limit the permissions only to resources that are used to deploy the operator.
 #     OLM v1 adds hash-like suffixes to the resource names, but Kubernetes [does not support wildcards yet](https://github.com/kubernetes/kubernetes/issues/56582).
 #     We could try to figure out the hashes ahead of time, but it's complex and error-prone.
+
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - prometheusrules
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch

@@ -138,6 +138,12 @@ fi
 POD="$(kubectl get pod -n "$NAMESPACE" -l app=schema-registry -o jsonpath='{.items[0].metadata.name}')"
 IMAGE="$(kubectl get pod -n "$NAMESPACE" "$POD" -o jsonpath='{.spec.containers[0].image}')"
 IMAGE_ID="$(kubectl get pod -n "$NAMESPACE" "$POD" -o jsonpath='{.status.containerStatuses[0].imageID}')"
+REPLICAS=""
+if [[ "$PRODUCT" == redpanda ]]; then
+    REPLICAS="$(kubectl get statefulset -n "$NAMESPACE" schema-registry -o jsonpath='{.spec.replicas}')"
+else
+    REPLICAS="$(kubectl get deployment -n "$NAMESPACE" schema-registry -o jsonpath='{.spec.replicas}')"
+fi
 PROXY_IMAGE_ID="$(kubectl get pod -n "$NAMESPACE" -l app=benchmark-proxy -o jsonpath='{.items[0].status.containerStatuses[0].imageID}')"
 KAFKA_IMAGE_ID=""
 if [[ "$PRODUCT" != redpanda ]]; then
@@ -147,14 +153,14 @@ NODE_CAPACITY="$(kubectl get node -o json | python3 -c 'import json,sys; n=json.
 HOST="$(uname -a)" JAVA_VERSION="$(java -version 2>&1 | head -1)" \
 PRODUCT="$PRODUCT" OPERATION="$OPERATION" NAMESPACE="$NAMESPACE" URL="$URL" USERS="$USERS" \
 WARMUP="$WARMUP" DURATION="$DURATION" SEEDS="$SEEDS" IMAGE="$IMAGE" IMAGE_ID="$IMAGE_ID" \
-PROXY_IMAGE_ID="$PROXY_IMAGE_ID" KAFKA_IMAGE_ID="$KAFKA_IMAGE_ID" NODE_CAPACITY="$NODE_CAPACITY" \
+REPLICAS="$REPLICAS" PROXY_IMAGE_ID="$PROXY_IMAGE_ID" KAFKA_IMAGE_ID="$KAFKA_IMAGE_ID" NODE_CAPACITY="$NODE_CAPACITY" \
 python3 - <<'PY' > "$OUTPUT_DIR/deployment-metadata.json"
 import json
 import os
 
-keys = ["PRODUCT", "OPERATION", "NAMESPACE", "URL", "USERS", "WARMUP", "DURATION", "SEEDS", "IMAGE", "IMAGE_ID", "PROXY_IMAGE_ID", "KAFKA_IMAGE_ID", "HOST", "JAVA_VERSION"]
+keys = ["PRODUCT", "OPERATION", "NAMESPACE", "URL", "USERS", "WARMUP", "DURATION", "SEEDS", "IMAGE", "IMAGE_ID", "REPLICAS", "PROXY_IMAGE_ID", "KAFKA_IMAGE_ID", "HOST", "JAVA_VERSION"]
 data = {key.lower(): os.environ[key] for key in keys}
-for key in ["users", "warmup", "duration", "seeds"]:
+for key in ["users", "warmup", "duration", "seeds", "replicas"]:
     data[key] = int(data[key])
 data["nodecapacity"] = json.loads(os.environ["NODE_CAPACITY"])
 print(json.dumps(data, indent=2))

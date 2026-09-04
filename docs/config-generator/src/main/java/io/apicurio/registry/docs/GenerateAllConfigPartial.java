@@ -240,15 +240,15 @@ public class GenerateAllConfigPartial {
                         throw new IllegalArgumentException("The field: \"" + annotation.target() + "\" is annotated with @ConfigProperty but not with @io.apicurio.common.apps.config.Info");
                     }
 
-                    var variant = (String) info.get().value("category").value();
+                    var variant = (String) info.orElseThrow().value("category").value();
                     var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
-                    var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString().replaceAll("(?<=[^\\n \\t])[ \\t]{2,}", " ").trim()).orElse("");
+                    var description = Optional.ofNullable(info.orElseThrow().value("description")).map(v -> v.value().toString().replaceAll("(?<=[^\\n \\t])[ \\t]{2,}", " ").trim()).orElse("");
 
-                    var availableSince = Optional.ofNullable(info.get().value("availableSince"))
+                    var availableSince = Optional.ofNullable(info.orElseThrow().value("availableSince"))
                             .map(v -> v.value().toString())
                             .orElse("");
 
-                    var experimental = Optional.ofNullable(info.get().value("experimental"))
+                    var experimental = Optional.ofNullable(info.orElseThrow().value("experimental"))
                             .map(v -> (boolean) v.value())
                             .orElse(false);
 
@@ -288,15 +288,15 @@ public class GenerateAllConfigPartial {
                 continue;
             }
 
-            var variant = (String) info.get().value("category").value();
+            var variant = (String) info.orElseThrow().value("category").value();
             var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
-            var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString().replaceAll("(?<=[^\\n \\t])[ \\t]{2,}", " ").trim()).orElse("");
+            var description = Optional.ofNullable(info.orElseThrow().value("description")).map(v -> v.value().toString().replaceAll("(?<=[^\\n \\t])[ \\t]{2,}", " ").trim()).orElse("");
 
-            var availableSince = Optional.ofNullable(info.get().value("availableSince"))
+            var availableSince = Optional.ofNullable(info.orElseThrow().value("availableSince"))
                     .map(v -> v.value().toString())
                     .orElse("");
 
-            var experimental = Optional.ofNullable(info.get().value("experimental"))
+            var experimental = Optional.ofNullable(info.orElseThrow().value("experimental"))
                     .map(v -> (boolean) v.value())
                     .orElse(false);
 
@@ -395,7 +395,7 @@ public class GenerateAllConfigPartial {
         // Read the template file
         var template = new String(Files.readAllBytes(Paths.get(templateFile)), StandardCharsets.UTF_8);
 
-        try (var dest = new FileWriter(destinationFile)) {
+        try (var dest = new FileWriter(destinationFile, StandardCharsets.UTF_8)) {
 
             dest.write(template);
 

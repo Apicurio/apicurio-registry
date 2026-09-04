@@ -43,7 +43,7 @@ jobs:
         run: df -h
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4
 
       - name: Set up Docker Buildx
         id: buildx
@@ -186,6 +186,21 @@ jobs:
             TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest-release"
           fi
           docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.jvm \
+              $TAGS \
+              --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
+
+      - name: Build and Push Multi-arch Application Images (mutable)
+        run: |
+          cd registry
+          TAGS="-t docker.io/apicurio/apicurio-registry:$RELEASE_VERSION-mutable"
+          TAGS="$TAGS -t docker.io/apicurio/apicurio-registry:$MINOR_TAG-mutable"
+          TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:$RELEASE_VERSION-mutable"
+          TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:$MINOR_TAG-mutable"
+          if [ "$IS_LATEST_RELEASE" = "true" ]; then
+            TAGS="$TAGS -t docker.io/apicurio/apicurio-registry:latest-mutable"
+            TAGS="$TAGS -t quay.io/apicurio/apicurio-registry:latest-mutable"
+          fi
+          docker buildx build --push -f ./distro/docker/target/docker/Dockerfile.mutable.jvm \
               $TAGS \
               --platform linux/amd64,linux/arm64,linux/s390x,linux/ppc64le ./distro/docker/target/docker
 

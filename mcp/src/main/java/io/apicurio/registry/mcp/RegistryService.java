@@ -1,6 +1,10 @@
 package io.apicurio.registry.mcp;
 
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArdFilter;
+import io.apicurio.registry.rest.client.models.ArdSearchQuery;
+import io.apicurio.registry.rest.client.models.ArdSearchRequest;
+import io.apicurio.registry.rest.client.models.ArdSearchResponse;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
@@ -32,7 +36,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class RegistryService {
@@ -432,6 +438,54 @@ public class RegistryService {
                 throw new ToolCallException("Unable to retrieve MCP tool.");
             }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * Invokes the registry's {@code POST /.well-known/ard/search} endpoint (ARD - Agentic
+     * Resource Discovery). {@code type}, {@code tags}, {@code capabilities} and
+     * {@code publisher} are comma-separated lists that populate the corresponding
+     * {@code query.filter} keys (OR semantics within a key, AND semantics across keys), per
+     * the ARD spec.
+     */
+    public String ardSearch(
+            String text,
+            String type,
+            String tags,
+            String capabilities,
+            String publisher,
+            String pageToken,
+            Integer pageSize
+    ) throws Exception {
+        var query = new ArdSearchQuery();
+        query.setText(text);
+
+        Map<String, Object> filter = new HashMap<>();
+        putCommaSeparatedFilter(filter, "type", type);
+        putCommaSeparatedFilter(filter, "tags", tags);
+        putCommaSeparatedFilter(filter, "capabilities", capabilities);
+        putCommaSeparatedFilter(filter, "publisher", publisher);
+        if (!filter.isEmpty()) {
+            var ardFilter = new ArdFilter();
+            ardFilter.setAdditionalData(filter);
+            query.setFilter(ardFilter);
+        }
+
+        var request = new ArdSearchRequest();
+        request.setQuery(query);
+        request.setPageToken(pageToken);
+        request.setPageSize(pageSize);
+
+        ArdSearchResponse response = client().wellKnown().ard().search().post(request);
+        return utils.toPrettyJson(response);
+    }
+
+    private void putCommaSeparatedFilter(Map<String, Object> filter, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            filter.put(key, Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .filter(v -> !v.isEmpty())
+                    .toList());
         }
     }
 

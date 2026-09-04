@@ -221,12 +221,7 @@ public class JdkAuthFactory {
         }
 
         private static String urlEncode(String value) {
-            try {
-                return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8.name());
-            } catch (java.io.UnsupportedEncodingException e) {
-                // UTF-8 is always supported
-                throw new RuntimeException(e);
-            }
+            return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
         }
 
         private static final java.lang.reflect.Method GET_PROPAGATORS;

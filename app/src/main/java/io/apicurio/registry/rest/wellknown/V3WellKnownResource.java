@@ -2,8 +2,12 @@ package io.apicurio.registry.rest.wellknown;
 
 import io.apicurio.registry.rest.v3.WellResource;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
-import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
+import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
+import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
+import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -29,11 +33,6 @@ public class V3WellKnownResource implements WellResource {
     }
 
     @Override
-    public AgentCard getAgentCardV1() {
-        return delegate.getAgentCardV1();
-    }
-
-    @Override
     public AgentCard getAgentCardForOrchestrate() {
         return delegate.getAgentCardForOrchestrate();
     }
@@ -45,25 +44,6 @@ public class V3WellKnownResource implements WellResource {
         int off = offset != null ? offset.intValue() : 0;
         int lim = limit != null ? limit.intValue() : 20;
         return delegate.searchAgents(name, skill, capability, inputMode, outputMode, off, lim);
-    }
-
-    @Override
-    public AgentSearchResults searchPublicAgents(BigInteger offset, BigInteger limit) {
-        int off = offset != null ? offset.intValue() : 0;
-        int lim = limit != null ? limit.intValue() : 20;
-        return delegate.getPublicAgents(off, lim);
-    }
-
-    @Override
-    public AgentSearchResults searchEntitledAgents(BigInteger offset, BigInteger limit) {
-        int off = offset != null ? offset.intValue() : 0;
-        int lim = limit != null ? limit.intValue() : 20;
-        return delegate.getEntitledAgents(off, lim);
-    }
-
-    @Override
-    public AgentSearchResults searchAgentsAdvanced(AgentSearchRequest data) {
-        return delegate.searchAgentsAdvanced(data);
     }
 
     @Override
@@ -87,5 +67,31 @@ public class V3WellKnownResource implements WellResource {
     @Override
     public Response getSchema(String schemaType, String version) {
         return delegate.getSchema(schemaType, version);
+    }
+
+    @Override
+    public AiCatalog getAiCatalog() {
+        return delegate.getAiCatalog();
+    }
+
+    @Override
+    public AiCatalog getArdManifest() {
+        return delegate.getArdManifest();
+    }
+
+    @Override
+    public ArdSearchResponse ardSearch(ArdSearchRequest data) {
+        return delegate.ardSearch(data);
+    }
+
+    @Override
+    public AiCatalog ardListAgents(String filter, String orderBy, BigInteger pageSize, String pageToken) {
+        Integer size = pageSize != null ? pageSize.intValue() : 20;
+        return delegate.ardListAgents(filter, orderBy, size, pageToken);
+    }
+
+    @Override
+    public ArdExploreResponse ardExplore(ArdExploreRequest data) {
+        return delegate.ardExplore(data);
     }
 }

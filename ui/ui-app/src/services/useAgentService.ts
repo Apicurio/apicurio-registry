@@ -13,6 +13,16 @@ export interface AgentCapabilities {
 }
 
 /**
+ * Agent interface structure
+ */
+export interface AgentInterface {
+    url: string;
+    protocolBinding: string;
+    protocolVersion?: string;
+    tenant?: string;
+}
+
+/**
  * Agent search result structure
  */
 export interface AgentSearchResult {
@@ -21,7 +31,7 @@ export interface AgentSearchResult {
     name: string;
     description?: string;
     version?: string;
-    url?: string;
+    supportedInterfaces?: AgentInterface[];
     skills?: string[];
     capabilities?: AgentCapabilities;
     createdOn?: number;
@@ -41,8 +51,8 @@ export interface AgentSearchResults {
  */
 export interface AgentSearchFilters {
     name?: string;
-    capability?: string;
-    skill?: string;
+    capability?: string | string[];
+    skill?: string | string[];
 }
 
 /**
@@ -67,6 +77,21 @@ const getBaseUrl = (config: ConfigService): string => {
     }
 };
 
+const appendFilterParam = (params: URLSearchParams, key: string, value?: string | string[]): void => {
+    if (!value) {
+        return;
+    }
+    if (Array.isArray(value)) {
+        value.forEach((v) => {
+            if (v) {
+                params.append(key, v);
+            }
+        });
+    } else {
+        params.append(key, value);
+    }
+};
+
 const searchAgents = async (
     config: ConfigService,
     auth: AuthService,
@@ -83,15 +108,9 @@ const searchAgents = async (
     params.append("offset", String(start));
     params.append("limit", String(limit));
 
-    if (filters.name) {
-        params.append("name", filters.name);
-    }
-    if (filters.capability) {
-        params.append("capability", filters.capability);
-    }
-    if (filters.skill) {
-        params.append("skill", filters.skill);
-    }
+    appendFilterParam(params, "name", filters.name);
+    appendFilterParam(params, "capability", filters.capability);
+    appendFilterParam(params, "skill", filters.skill);
 
     const baseUrl = getBaseUrl(config);
     const url = `${baseUrl}/.well-known/agents?${params.toString()}`;

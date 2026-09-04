@@ -6,7 +6,7 @@
     <parent>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry</artifactId>
-        <version>3.3.2-SNAPSHOT</version>
+        <version>3.3.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -22,6 +22,7 @@
             quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-23
         </quarkus.native.builder-image>
         <jna.version>5.19.1</jna.version>
+        <jansi.version>2.4.3</jansi.version>
         <!-- Suffix of the native executable. Empty on Linux/macOS, ".exe" on Windows
              (set by the windows profile below). -->
         <executable.suffix></executable.suffix>
@@ -43,6 +44,15 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-vertx</artifactId>
+        </dependency>
+
+        <!-- Used by TerminalUtils, to detect the terminal width. The version is declared here
+             because Quarkus 3.33.3 replaced the managed org.fusesource.jansi:jansi with
+             org.jline:jansi, so this artifact is no longer managed by the BOM. -->
+        <dependency>
+            <groupId>org.fusesource.jansi</groupId>
+            <artifactId>jansi</artifactId>
+            <version>${jansi.version}</version>
         </dependency>
 
         <dependency>

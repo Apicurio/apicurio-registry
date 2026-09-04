@@ -437,6 +437,13 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
+     * A statement to select the bytes of a content row by contentId, joined with one artifact version that
+     * references it, so that the artifact type can be returned in the same query. Returns no rows if the
+     * content does not exist or if it is orphaned (not referenced by any artifact version).
+     */
+    public String selectContentAndArtifactTypeById();
+
+    /**
      * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
      * is replaced at runtime with OR conditions for each reference.
      */
@@ -667,6 +674,8 @@ public interface SqlStatements {
     public String deleteConfigProperty();
 
     public String insertConfigProperty();
+
+    public String upsertConfigProperty();
 
     public String deleteAllConfigProperties();
 

@@ -17,9 +17,11 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 class RulesResourceConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);

@@ -6,9 +6,8 @@ import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
 import io.apicurio.registry.rules.compatibility.CompatibilityExecutionResult;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
-import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityDifference;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
+import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -76,23 +75,21 @@ public class ArtifactTypeTest extends AbstractRegistryTestBase {
         Assertions.assertFalse(compatibilityExecutionResult.isCompatible());
         Set<CompatibilityDifference> incompatibleDifferences = compatibilityExecutionResult
                 .getIncompatibleDifferences();
-        Difference ageDiff = findDiffByPathUpdated(incompatibleDifferences, "/properties/age");
-        Difference zipCodeDiff = findDiffByPathUpdated(incompatibleDifferences, "/properties/zipcode");
+        RuleViolation ageDiff = findDiffByContext(incompatibleDifferences, "/properties/age");
+        RuleViolation zipCodeDiff = findDiffByContext(incompatibleDifferences, "/properties/zipcode");
+        Assertions.assertNotNull(ageDiff);
+        Assertions.assertNotNull(zipCodeDiff);
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(), ageDiff.getDescription());
         Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(),
-                ageDiff.getDiffType().getDescription());
-        Assertions.assertEquals("/properties/age", ageDiff.getPathUpdated());
-        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(),
-                zipCodeDiff.getDiffType().getDescription());
-        Assertions.assertEquals("/properties/zipcode", zipCodeDiff.getPathUpdated());
+                zipCodeDiff.getDescription());
     }
 
-    private Difference findDiffByPathUpdated(Set<CompatibilityDifference> incompatibleDifferences,
-            String path) {
+    private RuleViolation findDiffByContext(Set<CompatibilityDifference> incompatibleDifferences,
+            String context) {
         for (CompatibilityDifference cd : incompatibleDifferences) {
-            JsonSchemaCompatibilityDifference jsonSchemaCompatibilityDifference = (JsonSchemaCompatibilityDifference) cd;
-            Difference diff = jsonSchemaCompatibilityDifference.getDifference();
-            if (diff.getPathUpdated().equals(path)) {
-                return diff;
+            RuleViolation ruleViolation = cd.asRuleViolation();
+            if (ruleViolation.getContext().equals(context)) {
+                return ruleViolation;
             }
         }
         return null;

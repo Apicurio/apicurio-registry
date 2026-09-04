@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.3.2-SNAPSHOT</version>
+  <version>3.3.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -144,6 +144,10 @@
 
     <tar.long.file.mode>posix</tar.long.file.mode>
 
+    <!-- Re-augmentable (Quarkus mutable-jar) variant of the app distribution, used by the
+         "-mutable" container image. Skipped by default, enabled by -Dfull. -->
+    <apicurio.mutable-jar.skip>true</apicurio.mutable-jar.skip>
+
     <projectRoot>${project.basedir}</projectRoot>
 
     <!--
@@ -185,16 +189,16 @@
     <jandex.version>3.6.0</jandex.version>
 
     <!-- Schema types -->
-    <avro.version>1.12.1</avro.version>
+    <avro.version>1.12.2</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.18.1</okio.version>
     <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.35.1</protobuf.version>
+    <protobuf.version>4.36.1</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.74.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.75.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -224,7 +228,7 @@
     <apitomy-data-models.version>3.1.3</apitomy-data-models.version>
 
     <!-- GraphQL -->
-    <graphql.version>26.0</graphql.version>
+    <graphql.version>26.1</graphql.version>
 
     <!-- JSON Schema Validator -->
     <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
@@ -237,20 +241,20 @@
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
     <!-- We need to manually include the version because of dependency issues with snakeyaml -->
-    <swagger-parser-v3.version>2.1.46</swagger-parser-v3.version>
+    <swagger-parser-v3.version>2.1.48</swagger-parser-v3.version>
 
     <!-- Dependency versions -->
-    <lombok.version>1.18.46</lombok.version>
+    <lombok.version>1.18.48</lombok.version>
     <commons-codec.version>1.22.1</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
-    <kafka-oauth-client.version>0.17.1</kafka-oauth-client.version>
-    <debezium.version>3.6.1.Final</debezium.version>
+    <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
+    <debezium.version>3.6.2.Final</debezium.version>
     <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.26.1</nats.version>
-    <snakeyaml.version>2.6</snakeyaml.version>
+    <nats.version>2.26.2</nats.version>
+    <snakeyaml.version>2.7</snakeyaml.version>
     <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
@@ -284,7 +288,7 @@
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
-    <version.maven-antrun.plugin>3.1.0</version.maven-antrun.plugin>
+
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
     <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
@@ -294,7 +298,7 @@
     <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
-    <version.puppycrawl>13.10.0</version.puppycrawl>
+    <version.puppycrawl>13.11.0</version.puppycrawl>
     <!-- Protocol Buffers -->
     <proto-plugin.version>5.1.8</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
@@ -311,7 +315,7 @@
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.0.8</groovy.version>
+    <groovy.version>5.1.1</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
@@ -482,6 +486,13 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-common</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-common</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
@@ -1321,18 +1332,24 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>${version.maven-antrun.plugin}</version>
+        <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
-            <goals>
-              <goal>run</goal>
-            </goals>
+            <id>create-meta-dir</id>
             <phase>initialize</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
             <configuration>
-              <target>
-                <mkdir dir="${project.build.directory}/meta"/>
-              </target>
+              <outputDirectory>${project.build.directory}/meta</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}</directory>
+                  <excludes>
+                    <exclude>**</exclude>
+                  </excludes>
+                </resource>
+              </resources>
             </configuration>
           </execution>
         </executions>
@@ -1340,7 +1357,7 @@
       <plugin>
         <groupId>io.github.git-commit-id</groupId>
         <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>10.0.0</version>
+        <version>10.0.1</version>
         <configuration>
           <skip>${skipCommitIdPlugin}</skip>
           <generateGitPropertiesFile>true</generateGitPropertiesFile>
@@ -1409,6 +1426,10 @@
           <name>full</name>
         </property>
       </activation>
+      <properties>
+        <!-- Also build the re-augmentable app distribution (see app/pom.xml, build-mutable) -->
+        <apicurio.mutable-jar.skip>false</apicurio.mutable-jar.skip>
+      </properties>
       <modules>
         <!-- Include non-essential modules so -Dfull is a true superset -->
         <module>cli</module>
@@ -1421,7 +1442,6 @@
         <module>operator</module>
         <module>console-plugin/backend</module>
         <module>utils/exportConfluent</module>
-        <module>utils/extra-tests</module>
         <module>utils/flink</module>
       </modules>
     </profile>
@@ -1448,6 +1468,18 @@
       <id>examples</id>
       <modules>
         <module>examples</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>perf-tests</id>
+      <modules>
+        <module>perf-tests</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>perf-comparison-tests</id>
+      <modules>
+        <module>perf-comparison-tests</module>
       </modules>
     </profile>
     <profile>

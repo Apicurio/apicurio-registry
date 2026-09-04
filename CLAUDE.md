@@ -106,8 +106,9 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Every new code path has tests. Missing tests = automatic rejection.
 - [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
 - [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
-- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans — plain JUnit with `new` bypasses interceptors.
+- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans; plain JUnit with `new` bypasses interceptors.
 - [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
+- [ ] When the diff touches `**/src/test/**`, run `/apicurio-test-quality` (scores test code against 30 documented failure patterns P1-P30; score below 7.0 blocks submission).
 
 ### Submission
 - [ ] `./mvnw test-compile -pl <module> -am -DskipTests` compiles cleanly (use `test-compile`, not `compile`, when touching test files).
@@ -139,6 +140,18 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
   ```json
   { "hooks": { "Notification": [{ "matcher": "", "hooks": [{ "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/notify.sh" }] }] } }
   ```
+
+## OpenCode Configuration
+
+OpenCode is supported via symlinks into `.claude/`, so there is a single source of truth:
+
+- **Commands**: `.opencode/commands/*.md` symlink to `.claude/commands/*.md`
+- **Skills**: `.opencode/skills/<name>` symlinks to `.claude/skills/<name>`
+
+Edit the files under `.claude/`; OpenCode follows the symlinks and picks up changes on its
+next startup (OpenCode loads config once at startup — restart it after editing).
+When adding a new command or skill, create the real file in `.claude/` first, then add the
+matching symlink under `.opencode/`.
 
 ## MCP Integration
 

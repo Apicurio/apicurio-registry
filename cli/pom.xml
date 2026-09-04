@@ -42,6 +42,20 @@
         </dependency>
 
         <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-reader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal-jansi</artifactId>
+        </dependency>
+
+
+        <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-vertx</artifactId>
         </dependency>
@@ -304,6 +318,7 @@
             <properties>
                 <executable.suffix>.exe</executable.suffix>
                 <cli.common.scripts.excludes>acr</cli.common.scripts.excludes>
+                <jline.native.args>-J-Djline.terminal=jansi,</jline.native.args>
             </properties>
         </profile>
 

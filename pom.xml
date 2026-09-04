@@ -205,6 +205,10 @@
     <!-- Picocli -->
     <picocli.version>4.7.7</picocli.version>
 
+    <!-- JLine (terminal I/O for CLI interactive mode) -->
+    <jline.version>3.29.0</jline.version>
+    <jna.version>5.19.1</jna.version>
+
     <!-- Logging -->
     <log4j.version>2.26.1</log4j.version>
 
@@ -334,6 +338,23 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- JLine -->
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline-terminal</artifactId>
+        <version>${jline.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline-reader</artifactId>
+        <version>${jline.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline-terminal-jansi</artifactId>
+        <version>${jline.version}</version>
+      </dependency>
+
       <!-- This project -->
       <dependency>
         <groupId>io.apicurio</groupId>

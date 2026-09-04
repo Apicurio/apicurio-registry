@@ -12,6 +12,8 @@ import java.util.Map;
 public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
 
     private static final String DB_PASSWORD = "P4ssw0rd!#";
+    private static final String STORAGE_SQL_KIND_KEY = "apicurio.storage.sql.kind";
+    private static final String DB_KIND_MYSQL = "mysql";
 
     private static final DockerImageName IMAGE =DockerImageName.parse("mysql:8").asCompatibleSubstituteFor("mysql");
 
@@ -37,7 +39,7 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
 
             if ("mas".equals(currentEnv)) {
                 Map<String, String> props = new HashMap<>();
-                props.put("apicurio.storage.sql.kind", "mysql");
+                props.put(STORAGE_SQL_KIND_KEY, DB_KIND_MYSQL);
                 props.put("apicurio.datasource.url", "jdbc:mysql://localhost:3306/test");
                 props.put("apicurio.datasource.username", "test");
                 props.put("apicurio.datasource.password", "test");
@@ -50,7 +52,7 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
     }
 
     private static boolean isMySqlStorage() {
-        return ConfigProvider.getConfig().getValue("apicurio.storage.sql.kind", String.class).equals("mysql");
+        return ConfigProvider.getConfig().getValue(STORAGE_SQL_KIND_KEY, String.class).equals(DB_KIND_MYSQL);
     }
 
     private Map<String, String> startMySql() {
@@ -59,7 +61,7 @@ public class MySqlEmbeddedTestResource implements QuarkusTestResourceLifecycleMa
         String datasourceUrl = database.getJdbcUrl();
 
         Map<String, String> props = new HashMap<>();
-        props.put("apicurio.storage.sql.kind", "mysql");
+        props.put(STORAGE_SQL_KIND_KEY, DB_KIND_MYSQL);
         props.put("apicurio.datasource.url", datasourceUrl);
         props.put("apicurio.datasource.username", "root");
         props.put("apicurio.datasource.password", DB_PASSWORD);

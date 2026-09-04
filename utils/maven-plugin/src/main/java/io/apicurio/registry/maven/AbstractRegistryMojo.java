@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutionException;
  */
 public abstract class AbstractRegistryMojo extends AbstractMojo {
 
+    private static final String STORE_TYPE_PKCS12 = "PKCS12";
+
     /**
      * The registry's url. e.g. http://localhost:8080/apis/registry/v3
      */
@@ -192,7 +194,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
             case "JKS":
                 clientOptions.trustStoreJks(trustStorePath, trustStorePassword);
                 break;
-            case "PKCS12":
+            case STORE_TYPE_PKCS12:
                 clientOptions.trustStorePkcs12(trustStorePath, trustStorePassword);
                 break;
             case "PEM":
@@ -217,7 +219,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
             case "JKS":
                 clientOptions.keystoreJks(keyStorePath, keyStorePassword);
                 break;
-            case "PKCS12":
+            case STORE_TYPE_PKCS12:
                 clientOptions.keystorePkcs12(keyStorePath, keyStorePassword);
                 break;
             case "PEM":
@@ -243,11 +245,11 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         if (lowerPath.endsWith(".jks")) {
             return "JKS";
         } else if (lowerPath.endsWith(".p12") || lowerPath.endsWith(".pfx")) {
-            return "PKCS12";
+            return STORE_TYPE_PKCS12;
         } else if (lowerPath.endsWith(".pem") || lowerPath.endsWith(".crt") || lowerPath.endsWith(".cer")) {
             return "PEM";
         }
-        return "PKCS12"; // Default to PKCS12
+        return STORE_TYPE_PKCS12; // Default to PKCS12
     }
 
     @Override

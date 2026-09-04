@@ -30,6 +30,11 @@ import java.util.Set;
  */
 public class McpToolContentValidator implements ContentValidator {
 
+    private static final String FIELD_NAME_PATH = "/name";
+    private static final String FIELD_INPUT_SCHEMA = "inputSchema";
+    private static final String FIELD_INPUT_SCHEMA_TYPE_PATH = "/inputSchema/type";
+    private static final String FIELD_REQUIRED = "required";
+
     /**
      * Declared by both Tool (via BaseMetadata) and ToolAnnotations, so it is validated in both places.
      */
@@ -90,11 +95,11 @@ public class McpToolContentValidator implements ContentValidator {
     private void validateNameField(JsonNode tree, Set<RuleViolation> violations) {
         if (!tree.has("name")) {
             violations.add(
-                    new RuleViolation("MCP tool definition must have a 'name' field", "/name"));
+                    new RuleViolation("MCP tool definition must have a 'name' field", FIELD_NAME_PATH));
         } else if (!tree.get("name").isTextual()) {
-            violations.add(new RuleViolation("'name' field must be a string", "/name"));
+            violations.add(new RuleViolation("'name' field must be a string", FIELD_NAME_PATH));
         } else if (tree.get("name").asText().trim().isEmpty()) {
-            violations.add(new RuleViolation("'name' field must not be empty", "/name"));
+            violations.add(new RuleViolation("'name' field must not be empty", FIELD_NAME_PATH));
         }
     }
 
@@ -104,30 +109,30 @@ public class McpToolContentValidator implements ContentValidator {
     }
 
     private void validateInputSchemaField(JsonNode tree, Set<RuleViolation> violations) {
-        if (!tree.has("inputSchema")) {
+        if (!tree.has(FIELD_INPUT_SCHEMA)) {
             violations.add(new RuleViolation("MCP tool definition must have an 'inputSchema' field",
-                    "/inputSchema"));
+                    "/" + FIELD_INPUT_SCHEMA));
             return;
         }
 
-        JsonNode inputSchema = tree.get("inputSchema");
+        JsonNode inputSchema = tree.get(FIELD_INPUT_SCHEMA);
         if (!inputSchema.isObject()) {
             violations.add(
-                    new RuleViolation("'inputSchema' field must be an object", "/inputSchema"));
+                    new RuleViolation("'inputSchema' field must be an object", "/" + FIELD_INPUT_SCHEMA));
             return;
         }
 
         // inputSchema must have a "type" field with value "object"
         if (!inputSchema.has("type")) {
             violations.add(new RuleViolation("'inputSchema' must have a 'type' field",
-                    "/inputSchema/type"));
+                    FIELD_INPUT_SCHEMA_TYPE_PATH));
         } else if (!inputSchema.get("type").isTextual()) {
             violations.add(new RuleViolation("'inputSchema.type' must be a string",
-                    "/inputSchema/type"));
+                    FIELD_INPUT_SCHEMA_TYPE_PATH));
         } else if (!"object".equals(inputSchema.get("type").asText())) {
             violations.add(new RuleViolation(
                     "'inputSchema.type' must be 'object' per the MCP specification",
-                    "/inputSchema/type"));
+                    FIELD_INPUT_SCHEMA_TYPE_PATH));
         }
 
         // If "properties" is present, it must be an object
@@ -137,12 +142,12 @@ public class McpToolContentValidator implements ContentValidator {
         }
 
         // If "required" is present, it must be an array of strings
-        if (inputSchema.has("required")) {
-            if (!inputSchema.get("required").isArray()) {
+        if (inputSchema.has(FIELD_REQUIRED)) {
+            if (!inputSchema.get(FIELD_REQUIRED).isArray()) {
                 violations.add(new RuleViolation("'inputSchema.required' must be an array",
                         "/inputSchema/required"));
             } else {
-                JsonValidationUtils.validateStringArray(inputSchema.get("required"),
+                JsonValidationUtils.validateStringArray(inputSchema.get(FIELD_REQUIRED),
                         "/inputSchema/required", "required parameter name", violations);
             }
         }

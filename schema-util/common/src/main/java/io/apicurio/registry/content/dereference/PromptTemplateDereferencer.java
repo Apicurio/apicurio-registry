@@ -23,6 +23,9 @@ import java.util.Map;
  */
 public class PromptTemplateDereferencer implements ContentDereferencer {
 
+    private static final String FIELD_VARIABLES = "variables";
+    private static final String FIELD_OUTPUT_SCHEMA = "outputSchema";
+
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlReader = new ObjectMapper(new YAMLFactory());
     private static final ObjectMapper yamlWriter = new ObjectMapper(
@@ -36,13 +39,13 @@ public class PromptTemplateDereferencer implements ContentDereferencer {
             JsonNode tree = parseContent(content);
             if (tree.isObject()) {
                 ObjectNode obj = (ObjectNode) tree;
-                if (obj.has("variables")) {
-                    JsonNode resolved = resolveRefsRecursive(obj.get("variables"), resolvedReferences);
-                    obj.set("variables", resolved);
+                if (obj.has(FIELD_VARIABLES)) {
+                    JsonNode resolved = resolveRefsRecursive(obj.get(FIELD_VARIABLES), resolvedReferences);
+                    obj.set(FIELD_VARIABLES, resolved);
                 }
-                if (obj.has("outputSchema")) {
-                    JsonNode resolved = resolveRefsRecursive(obj.get("outputSchema"), resolvedReferences);
-                    obj.set("outputSchema", resolved);
+                if (obj.has(FIELD_OUTPUT_SCHEMA)) {
+                    JsonNode resolved = resolveRefsRecursive(obj.get(FIELD_OUTPUT_SCHEMA), resolvedReferences);
+                    obj.set(FIELD_OUTPUT_SCHEMA, resolved);
                 }
             }
             String result = yamlWriter.writeValueAsString(tree);
@@ -58,11 +61,11 @@ public class PromptTemplateDereferencer implements ContentDereferencer {
             JsonNode tree = parseContent(content);
             if (tree.isObject()) {
                 ObjectNode obj = (ObjectNode) tree;
-                if (obj.has("variables")) {
-                    rewriteRefsRecursive(obj.get("variables"), resolvedReferenceUrls);
+                if (obj.has(FIELD_VARIABLES)) {
+                    rewriteRefsRecursive(obj.get(FIELD_VARIABLES), resolvedReferenceUrls);
                 }
-                if (obj.has("outputSchema")) {
-                    rewriteRefsRecursive(obj.get("outputSchema"), resolvedReferenceUrls);
+                if (obj.has(FIELD_OUTPUT_SCHEMA)) {
+                    rewriteRefsRecursive(obj.get(FIELD_OUTPUT_SCHEMA), resolvedReferenceUrls);
                 }
             }
             String result = yamlWriter.writeValueAsString(tree);

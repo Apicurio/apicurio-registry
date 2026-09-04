@@ -38,6 +38,7 @@ public class PromptTemplateMCPServer {
     private static final Logger log = LoggerFactory.getLogger(PromptTemplateMCPServer.class);
 
     private static final String PROMPT_TEMPLATE_TYPE = "PROMPT_TEMPLATE";
+    private static final String BRANCH_LATEST = "branch=latest";
 
     @Inject
     RegistryService service;
@@ -102,7 +103,7 @@ public class PromptTemplateMCPServer {
             String argumentsJson
     ) {
         return handleError(() -> {
-            String version = versionExpression != null ? versionExpression : "branch=latest";
+            String version = versionExpression != null ? versionExpression : BRANCH_LATEST;
 
             String content = service.getVersionContent(groupId, artifactId, version);
 
@@ -132,7 +133,7 @@ public class PromptTemplateMCPServer {
             String variablesJson
     ) {
         return handleError(() -> {
-            String version = versionExpression != null ? versionExpression : "branch=latest";
+            String version = versionExpression != null ? versionExpression : BRANCH_LATEST;
 
             String content = service.getVersionContent(groupId, artifactId, version);
 
@@ -154,7 +155,7 @@ public class PromptTemplateMCPServer {
             @PromptArg(description = "The version expression (defaults to latest)", required = false) String version,
             @PromptArg(description = "JSON object with template variables", required = false) String variables
     ) {
-        String versionExpr = version != null ? version : "branch=latest";
+        String versionExpr = version != null ? version : BRANCH_LATEST;
 
         try {
             String content = service.getVersionContent(groupId, artifactId, versionExpr);

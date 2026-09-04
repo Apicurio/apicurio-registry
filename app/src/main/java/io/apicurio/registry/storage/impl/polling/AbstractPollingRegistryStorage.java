@@ -38,6 +38,9 @@ import java.util.function.Function;
  */
 public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker> extends AbstractReadOnlyRegistryStorage {
 
+    private static final String DB_GREEN = "green";
+    private static final String DB_BLUE = "blue";
+
     @Inject
     Logger log;
 
@@ -128,8 +131,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
         }
         if (refreshLock.tryLock()) {
             try {
-                log.trace("Running {} refresh. Active database is {} and state is {}.",
-                        storageName(), active == green ? "green" : "blue", state);
+                if (log.isTraceEnabled()) {
+                    log.trace("Running {} refresh. Active database is {} and state is {}.",
+                            storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                }
 
                 switch (state) {
                     case READY_TO_SWITCH -> {
@@ -186,8 +191,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                             status = status.toBuilder()
                                     .lastSyncAttempt(now)
                                     .build();
-                            log.debug("Running {} poll. Active database is {} and state is {}.",
-                                    storageName(), active == green ? "green" : "blue", state);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Running {} poll. Active database is {} and state is {}.",
+                                        storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                            }
                             try {
                                 var pollResult = pollingDataSourceManager.poll();
                                 if (pollResult.isHasChanges()) {
@@ -203,8 +210,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                         }
                     }
                 }
-                log.trace("{} refresh finished. Active database is {} and state is {}.",
-                        storageName(), active == green ? "green" : "blue", state);
+                if (log.isTraceEnabled()) {
+                    log.trace("{} refresh finished. Active database is {} and state is {}.",
+                            storageName(), active == green ? DB_GREEN : DB_BLUE, state);
+                }
             } finally {
                 refreshLock.unlock();
             }

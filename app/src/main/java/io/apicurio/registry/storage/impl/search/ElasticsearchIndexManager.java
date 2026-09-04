@@ -26,6 +26,9 @@ public class ElasticsearchIndexManager {
 
     private static final Logger log = LoggerFactory.getLogger(ElasticsearchIndexManager.class);
 
+    private static final String FIELD_VERSION = "version";
+    private static final String FIELD_TYPE_KEYWORD = "keyword";
+
     private static final int CURRENT_MAPPING_VERSION = 2;
     public static final String MAPPING_VERSION_DOC_ID = "_mapping_version";
     public static final String REINDEX_LOCK_DOC_ID = "_reindex_lock";
@@ -203,7 +206,7 @@ public class ElasticsearchIndexManager {
                     .index(indexName)
                     .id(MAPPING_VERSION_DOC_ID), Map.class);
             if (response.found() && response.source() != null) {
-                Object version = response.source().get("version");
+                Object version = response.source().get(FIELD_VERSION);
                 if (version instanceof Number) {
                     return ((Number) version).intValue();
                 }
@@ -224,7 +227,7 @@ public class ElasticsearchIndexManager {
         client.index(i -> i
                 .index(indexName)
                 .id(MAPPING_VERSION_DOC_ID)
-                .document(Map.of("type", "mapping_version", "version", CURRENT_MAPPING_VERSION))
+                .document(Map.of("type", "mapping_version", FIELD_VERSION, CURRENT_MAPPING_VERSION))
         );
         log.info("Wrote mapping version {} to index '{}'.", CURRENT_MAPPING_VERSION, indexName);
     }
@@ -265,11 +268,11 @@ public class ElasticsearchIndexManager {
                 .properties("groupId", Property.of(p -> p.keyword(k -> k)))
                 .properties("artifactId", Property.of(p -> p.keyword(k -> k)))
                 .properties("ga_key", Property.of(p -> p.keyword(k -> k)))
-                .properties("version", Property.of(p -> p.keyword(k -> k)))
+                .properties(FIELD_VERSION, Property.of(p -> p.keyword(k -> k)))
                 .properties("artifactType", Property.of(p -> p.keyword(k -> k)))
                 .properties("state", Property.of(p -> p.keyword(k -> k)))
                 .properties("name", Property.of(p -> p.text(t -> t
-                        .fields("keyword", Property.of(f -> f.keyword(k -> k)))
+                        .fields(FIELD_TYPE_KEYWORD, Property.of(f -> f.keyword(k -> k)))
                 )))
                 .properties("description", Property.of(p -> p.text(t -> t)))
                 .properties("content", Property.of(p -> p.text(t -> t)))
@@ -280,10 +283,10 @@ public class ElasticsearchIndexManager {
                 .properties("versionOrder", Property.of(p -> p.integer(i -> i)))
                 .properties("labels", Property.of(p -> p.nested(n -> n
                         .properties("key", Property.of(lp -> lp.text(t -> t
-                                .fields("keyword", Property.of(f -> f.keyword(k -> k)))
+                                .fields(FIELD_TYPE_KEYWORD, Property.of(f -> f.keyword(k -> k)))
                         )))
                         .properties("value", Property.of(lp -> lp.text(t -> t
-                                .fields("keyword", Property.of(f -> f.keyword(k -> k)))
+                                .fields(FIELD_TYPE_KEYWORD, Property.of(f -> f.keyword(k -> k)))
                         )))
                 )))
                 .properties("structure", Property.of(p -> p.keyword(k -> k)))

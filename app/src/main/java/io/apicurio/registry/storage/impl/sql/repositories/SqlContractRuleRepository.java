@@ -27,6 +27,7 @@ public class SqlContractRuleRepository {
 
     private static final String CATEGORY_DOMAIN = "DOMAIN";
     private static final String CATEGORY_MIGRATION = "MIGRATION";
+    private static final String RULE_CATEGORY_COL = "ruleCategory";
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private final Logger log;
@@ -49,7 +50,7 @@ public class SqlContractRuleRepository {
             List<Pair<String, ContractRuleDto>> rows = handle
                     .createQuery(sqlStatements.selectContractRulesByArtifact())
                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
-                    .map(rs -> Pair.of(rs.getString("ruleCategory"),
+                    .map(rs -> Pair.of(rs.getString(RULE_CATEGORY_COL),
                             ContractRuleDtoMapper.instance.map(rs)))
                     .list();
             return buildRuleSet(rows);
@@ -83,7 +84,7 @@ public class SqlContractRuleRepository {
             List<Pair<String, ContractRuleDto>> rows = handle
                     .createQuery(sqlStatements.selectContractRulesByGlobalId())
                     .bind(0, globalId)
-                    .map(rs -> Pair.of(rs.getString("ruleCategory"),
+                    .map(rs -> Pair.of(rs.getString(RULE_CATEGORY_COL),
                             ContractRuleDtoMapper.instance.map(rs)))
                     .list();
             return buildRuleSet(rows);
@@ -202,7 +203,7 @@ public class SqlContractRuleRepository {
         return handles.withHandle(handle -> {
             List<Pair<String, ContractRuleDto>> rows = handle
                     .createQuery(sqlStatements.selectGlobalContractRules())
-                    .map(rs -> Pair.of(rs.getString("ruleCategory"),
+                    .map(rs -> Pair.of(rs.getString(RULE_CATEGORY_COL),
                             ContractRuleDtoMapper.instance.map(rs)))
                     .list();
             return buildRuleSet(rows);
@@ -239,7 +240,7 @@ public class SqlContractRuleRepository {
                                 .artifactId(rs.getString("artifactId"))
                                 .globalId(rs.getObject("globalId") != null
                                         ? rs.getLong("globalId") : null)
-                                .ruleCategory(rs.getString("ruleCategory"))
+                                .ruleCategory(rs.getString(RULE_CATEGORY_COL))
                                 .rule(rule)
                                 .build();
                     })

@@ -292,6 +292,8 @@ public class PromptTemplateConverter {
         return renderTemplate(template, args);
     }
 
+    private static final String FIELD_DESCRIPTION = "description";
+
     private PromptTemplate parseFromNode(JsonNode node) {
         if (node == null || !node.isObject()) {
             return null;
@@ -300,7 +302,7 @@ public class PromptTemplateConverter {
         PromptTemplate template = new PromptTemplate();
         template.setTemplateId(getTextValue(node, "templateId"));
         template.setName(getTextValue(node, "name"));
-        template.setDescription(getTextValue(node, "description"));
+        template.setDescription(getTextValue(node, FIELD_DESCRIPTION));
         template.setVersion(getTextValue(node, "version"));
         template.setTemplate(getTextValue(node, "template"));
 
@@ -315,7 +317,7 @@ public class PromptTemplateConverter {
                 JsonNode varNode = entry.getValue();
                 varSchema.setType(getTextValue(varNode, "type"));
                 varSchema.setRequired(getBooleanValue(varNode, "required"));
-                varSchema.setDescription(getTextValue(varNode, "description"));
+                varSchema.setDescription(getTextValue(varNode, FIELD_DESCRIPTION));
                 if (varNode.has("default")) {
                     varSchema.setDefaultValue(nodeToObject(varNode.get("default")));
                 }
@@ -330,7 +332,7 @@ public class PromptTemplateConverter {
             MCPConfiguration mcp = new MCPConfiguration();
             mcp.setEnabled(getBooleanValue(mcpNode, "enabled"));
             mcp.setName(getTextValue(mcpNode, "name"));
-            mcp.setDescription(getTextValue(mcpNode, "description"));
+            mcp.setDescription(getTextValue(mcpNode, FIELD_DESCRIPTION));
 
             JsonNode argsNode = mcpNode.get("arguments");
             if (argsNode != null && argsNode.isArray()) {
@@ -338,7 +340,7 @@ public class PromptTemplateConverter {
                 for (JsonNode argNode : argsNode) {
                     MCPArgument arg = new MCPArgument();
                     arg.setName(getTextValue(argNode, "name"));
-                    arg.setDescription(getTextValue(argNode, "description"));
+                    arg.setDescription(getTextValue(argNode, FIELD_DESCRIPTION));
                     arg.setRequired(getBooleanValue(argNode, "required"));
                     arguments.add(arg);
                 }

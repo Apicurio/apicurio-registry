@@ -37,6 +37,8 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     private static final Logger LOG = LoggerFactory.getLogger(RegistryClientFacadeImpl.class);
     private static final String CLIENT_ID_HEADER = "X-Registry-Client-Id";
     private static final String OPERATION_HEADER = "X-Registry-Operation";
+    private static final String DEFAULT_GROUP = "default";
+    private static final String BRANCH_LATEST = "branch=latest";
 
     private final RegistryClient client;
     private final String baseUrl;
@@ -133,7 +135,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
         InputStream is = new ByteArrayInputStream(schemaString.getBytes(StandardCharsets.UTF_8));
         String ct = ArtifactTypeToContentType.toContentType(artifactType);
         VersionSearchResults results = client.search().versions().post(is, ct, config -> {
-            config.queryParameters.groupId = reference.getGroupId() == null ? "default"
+            config.queryParameters.groupId = reference.getGroupId() == null ? DEFAULT_GROUP
                     : reference.getGroupId();
             config.queryParameters.artifactId = reference.getArtifactId();
             config.queryParameters.canonical = canonical;
@@ -185,7 +187,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     @Override
     public RegistryVersionCoordinates getVersionCoordinatesByGAV(String groupId, String artifactId, String version) {
         if (version == null) {
-            version = "branch=latest";
+            version = BRANCH_LATEST;
         }
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
@@ -196,7 +198,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     public io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(
             String groupId, String artifactId) {
         try {
-            String g = groupId != null ? groupId : "default";
+            String g = groupId != null ? groupId : DEFAULT_GROUP;
             return client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
                     .contract().ruleset().get();
         } catch (Exception e) {
@@ -209,8 +211,8 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     public io.apicurio.registry.rest.client.models.ContractRuleSet getVersionContractRuleset(
             String groupId, String artifactId, String version) {
         try {
-            String g = groupId != null ? groupId : "default";
-            String ver = version != null ? version : "branch=latest";
+            String g = groupId != null ? groupId : DEFAULT_GROUP;
+            String ver = version != null ? version : BRANCH_LATEST;
             return client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
                     .versions().byVersionExpression(ver).contract().ruleset().get();
         } catch (Exception e) {
@@ -223,7 +225,7 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
     @Override
     public List<String> getArtifactVersions(String groupId, String artifactId) {
         try {
-            String g = groupId != null ? groupId : "default";
+            String g = groupId != null ? groupId : DEFAULT_GROUP;
             var result = client.groups().byGroupId(g).artifacts().byArtifactId(artifactId)
                     .versions().get(config -> {
                         config.queryParameters.limit = 500;

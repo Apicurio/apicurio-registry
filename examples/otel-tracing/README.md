@@ -439,7 +439,7 @@ Apicurio Registry is built with all OpenTelemetry signals enabled (traces, metri
 |----------|-------------|
 | `apicurio.registry.url` | Registry API endpoint |
 | `apicurio.registry.auto-register` | Auto-register schemas |
-| `apicurio.registry.artifact.resolver-strategy` | Strategy for artifact resolution |
+| `apicurio.registry.artifact-resolver-strategy` | Strategy for artifact resolution |
 
 ## Troubleshooting
 

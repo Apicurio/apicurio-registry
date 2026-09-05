@@ -43,4 +43,19 @@ public final class Columns {
     public static final String ROLE = "Role";
 
     public static final String REFERENCE_NAME = "Ref Name";
+
+    public static final String SYNC_STATE = "Sync State";
+    public static final String LAST_SUCCESSFUL_SYNC = "Last Successful Sync";
+    public static final String LAST_SYNC_ATTEMPT = "Last Sync Attempt";
+    public static final String GROUP_COUNT = "Groups";
+    public static final String ARTIFACT_COUNT = "Artifacts";
+    public static final String VERSION_COUNT = "Versions";
+    public static final String SOURCES = "Sources";
+    public static final String ERRORS = "Errors";
+    public static final String TASK_ID = "Task ID";
+    public static final String REPO_ID = "Repo ID";
+    public static final String REF = "Ref";
+    public static final String RESULT = "Result";
+    public static final String CREATED_AT = "Created At";
+    public static final String COMPLETED_AT = "Completed At";
 }

@@ -1,5 +1,6 @@
 package io.apicurio.registry.resolver;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.resolver.cache.ContentWithReferences;
 import io.apicurio.registry.resolver.cache.ERCache;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
@@ -88,6 +89,13 @@ public class ERCacheTest {
 
         String firstValue = cache.getByContentHash(contentHashKey, firstLoader);
         assertEquals("a value", firstValue);
+
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         String secondValue = cache.getByContentHash(contentHashKey, secondLoader);
         assertEquals("another value", secondValue);
     }
@@ -117,6 +125,96 @@ public class ERCacheTest {
         assertThrows(RuntimeException.class, () -> {
             cache.getByContentHash(contentHashKey, staticValueLoader);
         });
+    }
+
+    /**
+     * Regression for #5236: Registry/client failures must surface as the original exception
+     * (not wrapped in a generic cache RuntimeException that hides the Registry response).
+     */
+    @Test
+    void testPreservesOriginalLoadException() {
+        String contentHashKey = "preserve-original-error";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureRetryCount(0);
+
+        IllegalStateException original = new IllegalStateException(
+                "Registry rejected schema: validity rule failed");
+        Function<String, String> failingLoader = (key) -> {
+            throw original;
+        };
+
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> cache.getByContentHash(contentHashKey, failingLoader));
+
+        assertEquals(original, thrown);
+        assertEquals("Registry rejected schema: validity rule failed", thrown.getMessage());
+    }
+
+    @Test
+    void testRetriesOnHttp429UntilRetriesExhausted() {
+        String contentHashKey = "retry-429";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureRetryCount(2);
+        cache.configureRetryBackoff(Duration.ofMillis(1));
+
+        AtomicInteger attempts = new AtomicInteger(0);
+        ApiException rateLimited = new TestApiException(429, "rate limited");
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> cache.getByContentHash(
+                contentHashKey, key -> {
+                    attempts.incrementAndGet();
+                    throw rateLimited;
+                }));
+
+        assertEquals(rateLimited, thrown);
+        assertEquals(3, attempts.get());
+    }
+
+    @Test
+    void testFailsFastOnNon429HttpErrors() {
+        for (int status : new int[] { 404, 409, 500 }) {
+            String contentHashKey = "fail-fast-" + status;
+            ERCache<String> cache = newCache(contentHashKey);
+            cache.configureRetryCount(3);
+            cache.configureRetryBackoff(Duration.ofMillis(1));
+
+            AtomicInteger attempts = new AtomicInteger(0);
+            ApiException error = new TestApiException(status, "HTTP " + status);
+
+            RuntimeException thrown = assertThrows(RuntimeException.class, () -> cache.getByContentHash(
+                    contentHashKey, key -> {
+                        attempts.incrementAndGet();
+                        throw error;
+                    }));
+
+            assertEquals(error, thrown);
+            assertEquals(1, attempts.get(), "HTTP " + status + " should not retry");
+        }
+    }
+
+    @Test
+    void testPreservesApiExceptionWrappedInCauseChain() {
+        String contentHashKey = "nested-api-exception";
+        ERCache<String> cache = newCache(contentHashKey);
+        cache.configureRetryCount(2);
+        cache.configureRetryBackoff(Duration.ofMillis(1));
+
+        ApiException notFound = new TestApiException(404, "artifact not found");
+        RuntimeException wrapped = new RuntimeException("load failed", notFound);
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> cache.getByContentHash(
+                contentHashKey, key -> {
+                    throw wrapped;
+                }));
+
+        assertEquals(notFound, thrown);
+    }
+
+    private static class TestApiException extends ApiException {
+        TestApiException(int statusCode, String message) {
+            super(message);
+            setResponseStatusCode(statusCode);
+        }
     }
 
     @Test

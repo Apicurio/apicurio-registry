@@ -50,6 +50,9 @@ public class ArtifactType {
     /** MCP (Model Context Protocol) tool definition. */
     public static final String MCP_TOOL = "MCP_TOOL";
 
+    /** MCP (Model Context Protocol) server definition, as published to an MCP registry. */
+    public static final String MCP_SERVER = "MCP_SERVER";
+
     /** Apache Iceberg table metadata. */
     public static final String ICEBERG_TABLE = "ICEBERG_TABLE";
 

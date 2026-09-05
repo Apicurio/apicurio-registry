@@ -4,6 +4,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.avro.content.canon.EnhancedAvroContentCanonicalizer;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -34,6 +35,9 @@ public class AvroCanonicalHashUpgraderTest extends AbstractResourceTestBase {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
 
     @Inject
     HandleFactory handles;
@@ -327,7 +331,7 @@ public class AvroCanonicalHashUpgraderTest extends AbstractResourceTestBase {
     private void runUpgrader() {
         handles.<Void, RuntimeException>withHandleNoException((Handle handle) -> {
             try {
-                new AvroCanonicalHashUpgrader().upgrade(handle);
+                new AvroCanonicalHashUpgrader().upgrade(handle, referenceResolutionConfig.maxDepth);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

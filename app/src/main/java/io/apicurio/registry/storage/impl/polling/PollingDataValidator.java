@@ -39,9 +39,11 @@ public class PollingDataValidator {
     private static final Logger log = LoggerFactory.getLogger(PollingDataValidator.class);
 
     private final RulesService rulesService;
+    private final int maxReferenceDepth;
 
-    public PollingDataValidator(RulesService rulesService) {
+    public PollingDataValidator(RulesService rulesService, int maxReferenceDepth) {
         this.rulesService = rulesService;
+        this.maxReferenceDepth = maxReferenceDepth;
     }
 
     /**
@@ -122,7 +124,7 @@ public class PollingDataValidator {
                         })
                         .toList();
                 resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(
-                        refDtos, storage::getContentByReference);
+                        refDtos, storage::getContentByReference, maxReferenceDepth);
             } else {
                 references = Collections.emptyList();
                 resolvedReferences = Collections.emptyMap();

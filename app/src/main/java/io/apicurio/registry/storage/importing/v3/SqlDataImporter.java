@@ -41,17 +41,20 @@ public class SqlDataImporter extends AbstractDataImporter {
 
     protected final boolean preserveContentId;
 
+    protected final int maxReferenceDepth;
+
     // ID remapping
     protected final Map<Long, Long> globalIdMapping = new HashMap<>();
     protected final Map<Long, Long> contentIdMapping = new HashMap<>();
 
     public SqlDataImporter(Logger logger, RegistryStorageContentUtils utils, RegistryStorage storage,
-            boolean preserveGlobalId, boolean preserveContentId) {
+            boolean preserveGlobalId, boolean preserveContentId, int maxReferenceDepth) {
         super(logger);
         this.utils = utils;
         this.storage = storage;
         this.preserveGlobalId = preserveGlobalId;
         this.preserveContentId = preserveContentId;
+        this.maxReferenceDepth = maxReferenceDepth;
     }
 
     @Override
@@ -117,7 +120,7 @@ public class SqlDataImporter extends AbstractDataImporter {
             if (entity.canonicalHash == null && entity.artifactType != null) {
                 TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
                         RegistryContentUtils.recursivelyResolveReferences(references,
-                                storage::getContentByReference));
+                                storage::getContentByReference, maxReferenceDepth));
                 entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             }
 

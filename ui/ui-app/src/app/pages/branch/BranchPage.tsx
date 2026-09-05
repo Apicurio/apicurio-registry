@@ -5,6 +5,7 @@ import { Breadcrumb, BreadcrumbItem, PageSection,  } from "@patternfly/react-cor
 import { Link, useParams } from "react-router";
 import {
     EXPLORE_PAGE_IDX,
+    handleMutatingActionError,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -86,7 +87,7 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
             const aid: string = encodeURIComponent(artifactId as string);
             appNavigation.navigateTo(`/explore/${gid}/${aid}/branches`);
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting a version."));
+            handleMutatingActionError(error, "Error deleting a branch.", setPageError, () => pleaseWait(false));
         });
     };
 

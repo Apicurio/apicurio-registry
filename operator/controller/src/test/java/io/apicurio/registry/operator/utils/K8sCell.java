@@ -1,6 +1,7 @@
 package io.apicurio.registry.operator.utils;
 
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
@@ -32,16 +33,15 @@ public class K8sCell<T extends HasMetadata> {
         return new K8sCell<>(client, initialReader);
     }
 
+    /**
+     * Create is deferred until the first {@link #get()}, {@link #getCached()}, or {@link #getOptional()}
+     * call. A {@link KubernetesClientException} from the POST (e.g. 409 on an existing object) propagates
+     * unchanged, so it cannot be mistaken for a later read of a missing resource.
+     */
     public static <T extends HasMetadata> K8sCell<T> k8sCellCreate(KubernetesClient client, Supplier<T> initialCreator) {
         return new K8sCell<>(client, () -> {
-            try {
-                var r = initialCreator.get();
-                r = client.resource(r).create();
-                return r;
-            } catch (Exception ex) {
-                log.debug("Could not create resource", ex);
-                return null;
-            }
+            T r = initialCreator.get();
+            return client.resource(r).create();
         });
     }
 
@@ -87,7 +87,7 @@ public class K8sCell<T extends HasMetadata> {
                 cachedValue = client.resource(cachedValue).update();
                 return true;
             } catch (KubernetesClientException ex) {
-                if (ex.getMessage().contains("the object has been modified") || ex.getMessage().contains("timeout")) {
+                if (isConflict(ex) || isRetryableTimeout(ex)) {
                     log.info("Retrying update of {} because of a Kubernetes client exception: {}",
                             ResourceID.fromResource(cachedValue), ex.getMessage());
                     return false;
@@ -96,5 +96,27 @@ public class K8sCell<T extends HasMetadata> {
                 }
             }
         });
+    }
+
+    /**
+     * HTTP 409 or Status.reason Conflict — the Fabric8-idiomatic conflict check used by
+     * OperatorErrorConditionManager and requested for OLM InstallPlan retries.
+     */
+    static boolean isConflict(KubernetesClientException ex) {
+        if (ex.getCode() == 409) {
+            return true;
+        }
+        Status status = ex.getStatus();
+        return status != null && "Conflict".equals(status.getReason());
+    }
+
+    /**
+     * Client-side / message-signaled timeouts. Fabric8 often surfaces these as
+     * {@link KubernetesClientException} with {@code getCode() == -1} and "timeout" in the message,
+     * not as HTTP 408.
+     */
+    static boolean isRetryableTimeout(KubernetesClientException ex) {
+        String message = ex.getMessage();
+        return message != null && message.contains("timeout");
     }
 }

@@ -26,6 +26,7 @@ import org.awaitility.core.ConditionFactory;
 import static io.apicurio.registry.operator.Tags.OLM;
 import static io.apicurio.registry.operator.it.ITBase.setDefaultAwaitilityTimings;
 import static io.apicurio.registry.operator.it.OLMTestUtils.*;
+import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -577,20 +578,18 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     @SuppressWarnings("unchecked")
     private void patchSubscriptionChannel(String newChannel) {
-        var subscription = client.genericKubernetesResources(
-                        "operators.coreos.com/v1alpha1", "Subscription")
-                .inNamespace(namespace)
-                .withName("apicurio-registry-operator-subscription")
-                .get();
-        assertThat(subscription).as("Subscription should exist").isNotNull();
-
-        var props = subscription.getAdditionalProperties();
-        var spec = (java.util.Map<String, Object>) props.get("spec");
-        spec.put("channel", newChannel);
-        client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
-                .inNamespace(namespace)
-                .resource(subscription)
-                .update();
+        k8sCell(client, () -> {
+            var subscription = client.genericKubernetesResources(
+                            "operators.coreos.com/v1alpha1", "Subscription")
+                    .inNamespace(namespace)
+                    .withName("apicurio-registry-operator-subscription")
+                    .get();
+            assertThat(subscription).as("Subscription should exist").isNotNull();
+            return subscription;
+        }).update(subscription -> {
+            var spec = (java.util.Map<String, Object>) subscription.getAdditionalProperties().get("spec");
+            spec.put("channel", newChannel);
+        });
         log.info("Patched subscription channel to {}", newChannel);
     }
 
@@ -685,15 +684,20 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 .inNamespace(namespace).list().getItems();
 
         for (var ip : installPlans) {
-            var props = ip.getAdditionalProperties();
-            var spec = (java.util.Map<String, Object>) props.get("spec");
+            var spec = (java.util.Map<String, Object>) ip.getAdditionalProperties().get("spec");
             if (spec != null && Boolean.FALSE.equals(spec.get("approved"))) {
-                spec.put("approved", true);
-                client.genericKubernetesResources("operators.coreos.com/v1alpha1", "InstallPlan")
+                var ipName = ip.getMetadata().getName();
+                k8sCell(client, () -> client.genericKubernetesResources(
+                                "operators.coreos.com/v1alpha1", "InstallPlan")
                         .inNamespace(namespace)
-                        .resource(ip)
-                        .update();
-                log.info("Approved install plan: {}", ip.getMetadata().getName());
+                        .withName(ipName)
+                        .get())
+                        .update(fresh -> {
+                            var freshSpec = (java.util.Map<String, Object>) fresh.getAdditionalProperties()
+                                    .get("spec");
+                            freshSpec.put("approved", true);
+                        });
+                log.info("Approved install plan: {}", ipName);
             }
         }
     }

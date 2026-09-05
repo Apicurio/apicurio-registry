@@ -526,8 +526,14 @@ public interface SqlStatements {
     public String selectArtifactVersionStateForUpdate();
 
     /**
-     * A statement used to select the max versionOrder for an artifact with row-level locking. Used for atomic
-     * conditional version creation.
+     * A statement used to lock the parent artifacts row before reading version order. This prevents the
+     * zero-rows race where SELECT FOR UPDATE on an empty versions result set acquires no lock.
+     */
+    public String selectArtifactRowForUpdate();
+
+    /**
+     * A statement used to select the max versionOrder for an artifact. The caller must already hold the
+     * artifacts row lock via {@link #selectArtifactRowForUpdate()}.
      */
     public String selectMaxVersionOrderForUpdate();
 

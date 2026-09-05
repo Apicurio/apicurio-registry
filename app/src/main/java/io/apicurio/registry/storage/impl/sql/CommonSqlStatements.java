@@ -149,7 +149,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
             query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
                     + " VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
+            // NOTE: Duplicate versionOrder is prevented by UQ_versions_3 (groupId, artifactId, versionOrder).
             query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
                     + " VALUES (?, ?, ?, ?, ?, (SELECT maxVer FROM (SELECT MAX(versionOrder) + 1 AS maxVer FROM versions WHERE groupId = ? AND artifactId = ?) temp), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         }
@@ -206,6 +206,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectArtifactVersionStateForUpdate() {
         return "SELECT v.state FROM versions v "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? FOR UPDATE";
+    }
+
+    @Override
+    public String selectArtifactRowForUpdate() {
+        return "SELECT a.artifactId FROM artifacts a "
+                + "WHERE a.groupId = ? AND a.artifactId = ? FOR UPDATE";
     }
 
     @Override

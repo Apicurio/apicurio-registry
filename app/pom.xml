@@ -24,6 +24,7 @@
     <!-- Max heap for the forked surefire JVM that runs the tests. -->
     <surefire.maxHeap>4g</surefire.maxHeap>
     <surefire.forkCount>1</surefire.forkCount>
+    <byteman.agent.argLine/>
   </properties>
 
   <dependencies>
@@ -238,6 +239,18 @@
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
       <version>${commons-beanutils.version}</version>
+    </dependency>
+
+    <!-- Byteman BMUnit5 annotations on the compile classpath so Byteman
+         test classes compile without -Pbyteman. Provided scope keeps them
+         off the runtime classpath and out of the packaged artifact. The
+         full Byteman agent and submit/install deps are in the -Pbyteman
+         profile below. -->
+    <dependency>
+      <groupId>org.jboss.byteman</groupId>
+      <artifactId>byteman-bmunit5</artifactId>
+      <version>4.0.27</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Test Only -->
@@ -603,7 +616,7 @@
           <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
                MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
                -Dsurefire.maxHeap=<size>. See issue #9265. -->
-          <argLine>@{argLine} -Xmx${surefire.maxHeap}</argLine>
+          <argLine>@{argLine} -Xmx${surefire.maxHeap} ${byteman.agent.argLine}</argLine>
           <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -856,5 +869,39 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>byteman</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-bmunit5</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-submit</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-install</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <properties>
+        <byteman.agent.argLine>-Djdk.attach.allowAttachSelf=true -Dbyteman.agent=true</byteman.agent.argLine>
+      </properties>
+    </profile>
+  </profiles>
 
 </project>

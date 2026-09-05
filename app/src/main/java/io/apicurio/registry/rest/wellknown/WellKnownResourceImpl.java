@@ -697,11 +697,16 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return true;
     }
 
+    /**
+     * Applies the requested pagination window to the compatible tools. The limit is clamped to the
+     * same maximum page size as the other well-known search endpoints, which also keeps
+     * {@code fromIndex + safeLimit} from overflowing when a very large limit is requested.
+     */
     private McpCompatibleToolsResults buildPaginatedCompatibleResults(List<McpToolSearchResult> compatibleTools,
             Integer offset, Integer limit) {
         int total = compatibleTools.size();
         int safeOffset = Math.max(0, offset);
-        int safeLimit = Math.max(1, limit);
+        int safeLimit = Math.max(1, Math.min(limit, 500));
         int fromIndex = Math.min(safeOffset, total);
         int toIndex = Math.min(fromIndex + safeLimit, total);
         List<McpToolSearchResult> page = compatibleTools.subList(fromIndex, toIndex);

@@ -426,6 +426,35 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String LARGE_LIMIT_SOURCE_TOOL = """
+            {
+                "name": "large_limit_source",
+                "title": "Large Limit Source Tool",
+                "description": "Produces unique large-limit output property",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "unique_large_limit_field": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
+    private static final String LARGE_LIMIT_COMPATIBLE_TOOL = """
+            {
+                "name": "large_limit_compat",
+                "title": "Large Limit Compatible Tool",
+                "description": "Consumes unique large-limit output property",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "unique_large_limit_field": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
     @Test
     public void testFindCompatibleToolsSuccess() throws Exception {
         String groupId = TestUtils.generateGroupId();
@@ -531,6 +560,42 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("count", equalTo(2))
                 .body("tools", hasSize(0));
+    }
+
+    @Test
+    public void testFindCompatibleToolsLargeLimit() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "large-limit-source";
+
+        createMcpTool(groupId, sourceId, LARGE_LIMIT_SOURCE_TOOL);
+        createMcpTool(groupId, "large-limit-compat-1", LARGE_LIMIT_COMPATIBLE_TOOL);
+        createMcpTool(groupId, "large-limit-compat-2", LARGE_LIMIT_COMPATIBLE_TOOL);
+
+        // A limit larger than the maximum page size is clamped rather than applied literally,
+        // for every offset within the result set and for the offset just past its end.
+        assertCompatibleToolsPage(groupId, sourceId, 0, Integer.MAX_VALUE, 2);
+        assertCompatibleToolsPage(groupId, sourceId, 1, Integer.MAX_VALUE, 1);
+        assertCompatibleToolsPage(groupId, sourceId, 2, Integer.MAX_VALUE, 0);
+    }
+
+    /**
+     * Asserts that a compatible-tools request succeeds and returns the expected page. The total
+     * count stays at the two compatible tools created by the caller, independent of the window.
+     */
+    private void assertCompatibleToolsPage(String groupId, String sourceId, int offset, int limit,
+            int expectedToolsOnPage) {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .queryParam("offset", offset)
+                .queryParam("limit", limit)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("tools", hasSize(expectedToolsOnPage));
     }
 
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {

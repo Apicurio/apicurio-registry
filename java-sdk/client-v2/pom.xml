@@ -16,6 +16,17 @@
     <projectRoot>${project.basedir}/../..</projectRoot>
   </properties>
   <dependencies>
+    <!-- Build-ordering dependency: forces Maven to build client before client-v2
+         so the kiota binary is downloaded exactly once to the shared folder before
+         this module's kiota generate goal runs.  Without this, -T 1C can schedule
+         both modules concurrently and they race on Files.copy (ETXTBSY).
+         Marked optional so consumers of client-v2 do not pull client transitively. -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk-common</artifactId>
@@ -201,6 +212,7 @@
               <kiotaVersion>${kiota.version}</kiotaVersion>
               <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
               <baseURL>${kiota.base.url}</baseURL>
+              <targetBinaryFolder>${kiota.binary.folder}</targetBinaryFolder>
               <file>${project.build.directory}/openapi-v2-filtered.json</file>
               <namespace>io.apicurio.registry.rest.client.v2</namespace>
               <clientClass>RegistryClient</clientClass>

@@ -179,10 +179,27 @@ public class PromptRenderingService {
             if (effective == null) {
                 effective = new HashMap<>(variables);
             }
-            effective.put(varName, MAPPER.convertValue(defaultNode, Object.class));
+            String declaredType = field.getValue().path("type").asText("string");
+            effective.put(varName, convertDefaultValue(defaultNode, declaredType));
         }
 
         return effective != null ? effective : variables;
+    }
+
+    /**
+     * Converts a declared default's JSON node to a Java value, coercing a whole-number decimal
+     * literal (e.g. {@code 5.0}) to {@code Long} when the variable's declared type is
+     * {@code integer}. YAML and JSON numeric literals with a decimal point always deserialize as
+     * a floating-point type, even when they represent a whole number, so without this coercion an
+     * {@code integer}-typed default written as {@code 5.0} would fail its own type validation.
+     */
+    private Object convertDefaultValue(JsonNode defaultNode, String declaredType) {
+        Object value = MAPPER.convertValue(defaultNode, Object.class);
+        if ("integer".equals(declaredType) && value instanceof Double doubleValue
+                && doubleValue == Math.rint(doubleValue) && !doubleValue.isInfinite()) {
+            return doubleValue.longValue();
+        }
+        return value;
     }
 
     /**

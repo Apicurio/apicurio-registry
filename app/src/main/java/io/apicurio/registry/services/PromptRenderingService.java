@@ -59,6 +59,13 @@ public class PromptRenderingService {
     private static final Pattern UNLESS_BLOCK_PATTERN =
             Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}((?:(?!\\{\\{/unless\\}\\})[\\s\\S])*?)\\{\\{/unless\\}\\}");
 
+    private static final String TYPE_STRING = "string";
+    private static final String TYPE_INTEGER = "integer";
+    private static final String TYPE_NUMBER = "number";
+    private static final String TYPE_BOOLEAN = "boolean";
+    private static final String TYPE_ARRAY = "array";
+    private static final String TYPE_OBJECT = "object";
+
     /**
      * Renders a prompt template by substituting variables.
      *
@@ -179,7 +186,7 @@ public class PromptRenderingService {
             if (effective == null) {
                 effective = new HashMap<>(variables);
             }
-            String declaredType = field.getValue().path("type").asText("string");
+            String declaredType = field.getValue().path("type").asText(TYPE_STRING);
             effective.put(varName, convertDefaultValue(defaultNode, declaredType));
         }
 
@@ -195,7 +202,7 @@ public class PromptRenderingService {
      */
     private Object convertDefaultValue(JsonNode defaultNode, String declaredType) {
         Object value = MAPPER.convertValue(defaultNode, Object.class);
-        if ("integer".equals(declaredType) && value instanceof Double doubleValue
+        if (TYPE_INTEGER.equals(declaredType) && value instanceof Double doubleValue
                 && doubleValue == Math.rint(doubleValue) && !doubleValue.isInfinite()) {
             return doubleValue.longValue();
         }
@@ -248,7 +255,7 @@ public class PromptRenderingService {
      */
     private void validateValue(String varName, Object value, JsonNode varSchema,
             List<RenderValidationError> errors) {
-        String expectedType = varSchema.path("type").asText("string");
+        String expectedType = varSchema.path("type").asText(TYPE_STRING);
         RenderValidationError typeError = validateType(varName, value, expectedType);
         if (typeError != null) {
             errors.add(typeError);
@@ -264,7 +271,7 @@ public class PromptRenderingService {
         }
 
         // Validate range for numeric types
-        if ("integer".equals(expectedType) || "number".equals(expectedType)) {
+        if (TYPE_INTEGER.equals(expectedType) || TYPE_NUMBER.equals(expectedType)) {
             RenderValidationError rangeError = validateRange(varName, value, varSchema);
             if (rangeError != null) {
                 errors.add(rangeError);
@@ -308,12 +315,12 @@ public class PromptRenderingService {
         String actualType = getTypeName(value);
 
         boolean valid = switch (expectedType) {
-            case "string" -> value instanceof String;
-            case "integer" -> value instanceof Integer || value instanceof Long;
-            case "number" -> value instanceof Number;
-            case "boolean" -> value instanceof Boolean;
-            case "array" -> value instanceof List;
-            case "object" -> value instanceof Map;
+            case TYPE_STRING -> value instanceof String;
+            case TYPE_INTEGER -> value instanceof Integer || value instanceof Long;
+            case TYPE_NUMBER -> value instanceof Number;
+            case TYPE_BOOLEAN -> value instanceof Boolean;
+            case TYPE_ARRAY -> value instanceof List;
+            case TYPE_OBJECT -> value instanceof Map;
             default -> true; // Unknown types pass validation
         };
 
@@ -392,12 +399,12 @@ public class PromptRenderingService {
      */
     private String getTypeName(Object value) {
         if (value == null) return "null";
-        if (value instanceof String) return "string";
-        if (value instanceof Integer || value instanceof Long) return "integer";
-        if (value instanceof Number) return "number";
-        if (value instanceof Boolean) return "boolean";
-        if (value instanceof List) return "array";
-        if (value instanceof Map) return "object";
+        if (value instanceof String) return TYPE_STRING;
+        if (value instanceof Integer || value instanceof Long) return TYPE_INTEGER;
+        if (value instanceof Number) return TYPE_NUMBER;
+        if (value instanceof Boolean) return TYPE_BOOLEAN;
+        if (value instanceof List) return TYPE_ARRAY;
+        if (value instanceof Map) return TYPE_OBJECT;
         return value.getClass().getSimpleName();
     }
 

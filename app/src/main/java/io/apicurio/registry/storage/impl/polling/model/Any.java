@@ -42,12 +42,12 @@ public class Any {
                 var type = Type.from(rawType);
                 if (type.isPresent()) {
                     try {
-                        var entity = YAML_MAPPER.treeToValue(raw, type.get().getKlass());
-                        var any = Any.builder().raw(raw).type(type.get()).entity(entity).build();
+                        var entity = YAML_MAPPER.treeToValue(raw, type.orElseThrow().getKlass());
+                        var any = Any.builder().raw(raw).type(type.orElseThrow()).entity(entity).build();
                         return Optional.of(any);
                     } catch (JsonProcessingException ex) {
                         if (state != null) {
-                            state.recordError("Could not parse file %s as %s: %s", path, type.get(),
+                            state.recordError("Could not parse file %s as %s: %s", path, type.orElseThrow(),
                                     ex.getOriginalMessage());
                         }
                         return Optional.empty();

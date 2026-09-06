@@ -7,8 +7,6 @@ export interface TemplateToken {
     kind: TemplateTokenKind;
 }
 
-const HANDLEBARS_TAG = /\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}|\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g;
-
 const classifyTag = (tag: string): "variable" | "block" => {
     const inner = tag.replace(/^\{+|\}+$/g, "").trim();
     const head = inner.split(/\s+/, 1)[0];
@@ -18,19 +16,66 @@ const classifyTag = (tag: string): "variable" | "block" => {
     return "variable";
 };
 
+const tagCloserAt = (template: string, openerIndex: number): { closer: string; openerLength: number } => {
+    if (template.startsWith("{{!--", openerIndex)) {
+        return { closer: "--}}", openerLength: 5 };
+    }
+    if (template.startsWith("{{!", openerIndex)) {
+        return { closer: "}}", openerLength: 3 };
+    }
+    if (template.startsWith("{{{", openerIndex)) {
+        return { closer: "}}}", openerLength: 3 };
+    }
+    return { closer: "}}", openerLength: 2 };
+};
+
+const findTagCloser = (
+    template: string,
+    openerIndex: number,
+    closer: string,
+    openerLength: number
+): { closerIndex: number; closerLength: number } | null => {
+    const searchFrom = openerIndex + openerLength;
+    const preferredIndex = template.indexOf(closer, searchFrom);
+    if (preferredIndex !== -1) {
+        return { closerIndex: preferredIndex, closerLength: closer.length };
+    }
+    // Match the old regex fallback: {{!-- / {{{ still close on }} when the preferred terminator is missing.
+    if (closer !== "}}") {
+        const fallbackIndex = template.indexOf("}}", searchFrom);
+        if (fallbackIndex !== -1) {
+            return { closerIndex: fallbackIndex, closerLength: 2 };
+        }
+    }
+    return null;
+};
+
 export const tokenizeTemplate = (template: string): TemplateToken[] => {
     const tokens: TemplateToken[] = [];
     let lastIndex = 0;
-    let match;
-    while ((match = HANDLEBARS_TAG.exec(template)) !== null) {
-        if (match.index > lastIndex) {
-            tokens.push({ text: template.substring(lastIndex, match.index), kind: "plain" });
+
+    while (lastIndex < template.length) {
+        const openerIndex = template.indexOf("{{", lastIndex);
+        if (openerIndex === -1) {
+            break;
         }
-        const tag = match[0];
+
+        const { closer, openerLength } = tagCloserAt(template, openerIndex);
+        const found = findTagCloser(template, openerIndex, closer, openerLength);
+        if (found === null) {
+            break;
+        }
+
+        if (openerIndex > lastIndex) {
+            tokens.push({ text: template.substring(lastIndex, openerIndex), kind: "plain" });
+        }
+        const tagEnd = found.closerIndex + found.closerLength;
+        const tag = template.substring(openerIndex, tagEnd);
         const kind = tag.startsWith("{{!") ? "plain" : classifyTag(tag);
         tokens.push({ text: tag, kind });
-        lastIndex = match.index + match[0].length;
+        lastIndex = tagEnd;
     }
+
     if (lastIndex < template.length) {
         tokens.push({ text: template.substring(lastIndex), kind: "plain" });
     }

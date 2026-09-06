@@ -49,6 +49,20 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 """;
     }
 
+    @Override
+    public String upsertConfigProperty() {
+        return """
+                MERGE INTO config AS target
+                USING (VALUES (?, ?, ?)) AS source (propName, propValue, modifiedOn)
+                ON (target.propName = source.propName)
+                WHEN MATCHED THEN
+                UPDATE SET propValue = source.propValue, modifiedOn = source.modifiedOn
+                WHEN NOT MATCHED THEN
+                INSERT (propName, propValue, modifiedOn)
+                VALUES (source.propName, source.propValue, source.modifiedOn);
+                """;
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */

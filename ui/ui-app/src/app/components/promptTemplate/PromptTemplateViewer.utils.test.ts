@@ -107,6 +107,70 @@ describe("tokenizeTemplate", () => {
     it("handles an empty template", () => {
         expect(tokenizeTemplate("")).toEqual([]);
     });
+
+    it("treats unmatched opening delimiters as plain text", () => {
+        expect(tokenizeTemplate("Hello {{")).toEqual([
+            { text: "Hello {{", kind: "plain" }
+        ]);
+    });
+
+    it("keeps a valid tag and treats a later unmatched opener as plain text", () => {
+        expect(tokenizeTemplate("{{name}} leftover {{")).toEqual([
+            { text: "{{name}}", kind: "variable" },
+            { text: " leftover {{", kind: "plain" }
+        ]);
+    });
+
+    it("treats an unmatched block comment opener as plain text", () => {
+        expect(tokenizeTemplate("{{!-- never closed")).toEqual([
+            { text: "{{!-- never closed", kind: "plain" }
+        ]);
+    });
+
+    it("treats an unmatched triple-stash opener as plain text", () => {
+        expect(tokenizeTemplate("{{{raw")).toEqual([
+            { text: "{{{raw", kind: "plain" }
+        ]);
+    });
+
+    it("falls back to }} for a comment with a typo'd closer and keeps later variables", () => {
+        expect(tokenizeTemplate("{{!-- note }} then {{name}}")).toEqual([
+            { text: "{{!-- note }}", kind: "plain" },
+            { text: " then ", kind: "plain" },
+            { text: "{{name}}", kind: "variable" }
+        ]);
+    });
+
+    it("falls back to }} for a triple-stash with a typo'd closer and keeps later variables", () => {
+        expect(tokenizeTemplate("{{{ a }} {{name}}")).toEqual([
+            { text: "{{{ a }}", kind: "variable" },
+            { text: " ", kind: "plain" },
+            { text: "{{name}}", kind: "variable" }
+        ]);
+    });
+
+    it("treats {{!--}} as a closed comment and keeps later variables", () => {
+        expect(tokenizeTemplate("{{!--}}{{name}} and {{other}}")).toEqual([
+            { text: "{{!--}}", kind: "plain" },
+            { text: "{{name}}", kind: "variable" },
+            { text: " and ", kind: "plain" },
+            { text: "{{other}}", kind: "variable" }
+        ]);
+    });
+
+    it("falls back to }} for a quadruple-brace opener without }}}", () => {
+        expect(tokenizeTemplate("{{{{raw}} }}")).toEqual([
+            { text: "{{{{raw}}", kind: "variable" },
+            { text: " }}", kind: "plain" }
+        ]);
+    });
+
+    it("does not rescan a large unmatched suffix", () => {
+        const input = "{{".repeat(64_000);
+        expect(tokenizeTemplate(input)).toEqual([
+            { text: input, kind: "plain" }
+        ]);
+    }, 1000);
 });
 
 describe("formatRange", () => {

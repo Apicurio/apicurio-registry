@@ -990,8 +990,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         if (references == null) {
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
-                references = HandleReferencesType.fromValue(configuredDefault.get());
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()) {
+                references = HandleReferencesType.fromValue(configuredDefault.orElseThrow());
             } else {
                 references = HandleReferencesType.PRESERVE;
             }

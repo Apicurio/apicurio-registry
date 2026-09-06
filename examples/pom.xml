@@ -63,6 +63,7 @@
     <module>camel-quarkus-kafka</module>
     <module>a2a-real-world-integration</module>
     <module>odcs-data-contracts</module>
+    <module>custom-artifact-types</module>
   </modules>
 
   <scm>

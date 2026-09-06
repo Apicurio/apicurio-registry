@@ -60,8 +60,7 @@ public class RulesServiceImpl implements RulesService {
             String artifactType, TypedContent content, RuleApplicationType ruleApplicationType,
             List<ArtifactReference> references, Map<String, TypedContent> resolvedReferences)
             throws RuleViolationException {
-        @SuppressWarnings("unchecked")
-        Set<RuleType> artifactRules = Collections.EMPTY_SET;
+        Set<RuleType> artifactRules = Collections.emptySet();
         if (ruleApplicationType == RuleApplicationType.UPDATE) {
             artifactRules = new HashSet<>(storageToUse.getArtifactRules(groupId, artifactId));
         }

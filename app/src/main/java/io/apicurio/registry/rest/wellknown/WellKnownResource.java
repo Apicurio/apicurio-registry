@@ -2,8 +2,12 @@ package io.apicurio.registry.rest.wellknown;
 
 import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
-import io.apicurio.registry.rest.v3.beans.AgentSearchRequest;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
+import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
+import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
+import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
+import io.apicurio.registry.rest.v3.beans.ArdSearchResponse;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DefaultValue;
@@ -46,15 +50,6 @@ public interface WellKnownResource {
 
     /**
      * Returns the Agent Card for this Apicurio Registry instance.
-     * This is the canonical A2A v1.0 discovery endpoint.
-     */
-    @GET
-    @Path("/a2a")
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentCard getAgentCardV1();
-
-    /**
-     * Returns the Agent Card for this Apicurio Registry instance.
      * Alias for compatibility with watsonx Orchestrate, which discovers agents
      * at /.well-known/agent-card.json by default.
      */
@@ -79,37 +74,6 @@ public interface WellKnownResource {
             @PathParam("groupId") String groupId,
             @PathParam("artifactId") String artifactId,
             @QueryParam("version") String version);
-
-    /**
-     * Returns agents marked as public. No authentication required.
-     */
-    @GET
-    @Path("/agents/public")
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentSearchResults getPublicAgents(
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
-
-    /**
-     * Returns agents the authenticated caller is entitled to access.
-     * Includes public agents plus agents in groups the caller can read.
-     */
-    @GET
-    @Path("/agents/entitled")
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentSearchResults getEntitledAgents(
-            @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
-
-    /**
-     * Advanced agent search with combined text query and structured filters.
-     * Respects the caller's entitlements.
-     */
-    @POST
-    @Path("/agents/search")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    AgentSearchResults searchAgentsAdvanced(AgentSearchRequest request);
 
     /**
      * Search for registered Agent Cards by various criteria.
@@ -220,4 +184,71 @@ public interface WellKnownResource {
     Response getSchema(
             @PathParam("schemaType") String schemaType,
             @PathParam("version") String version);
+
+    /**
+     * Returns the AI Catalog (ai-catalog.io) document for this registry instance, projecting
+     * all visible Agent Card and MCP tool artifacts into AI Catalog entries.
+     *
+     * @return the AI Catalog document
+     */
+    @GET
+    @Path("/ai-catalog.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog getAiCatalog();
+
+    /**
+     * Returns the ARD (Agentic Resource Discovery) manifest document for this registry
+     * instance. This is the ARD v0.91 normative discovery path; the payload is identical to
+     * {@link #getAiCatalog()}.
+     *
+     * @return the AI Catalog document
+     */
+    @GET
+    @Path("/ard.json")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog getArdManifest();
+
+    /**
+     * ARD (Agentic Resource Discovery) search endpoint. Returns AI Catalog entries matching
+     * the requested text query and structured filters.
+     *
+     * @param request the ARD search request
+     * @return the ARD search response
+     */
+    @POST
+    @Path("/ard/search")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    ArdSearchResponse ardSearch(ArdSearchRequest request);
+
+    /**
+     * ARD deterministic agent/tool listing endpoint, with optional filter, ordering, and
+     * pagination.
+     *
+     * @param filter EBNF-ish filter expression (e.g. {@code type=<value>})
+     * @param orderBy optional ordering hint (currently a no-op)
+     * @param pageSize page size
+     * @param pageToken opaque pagination token
+     * @return the AI Catalog document containing the (possibly filtered/paginated) entries
+     */
+    @GET
+    @Path("/ard/agents")
+    @Produces(MediaType.APPLICATION_JSON)
+    AiCatalog ardListAgents(
+            @QueryParam("filter") String filter,
+            @QueryParam("orderBy") String orderBy,
+            @QueryParam("pageSize") @DefaultValue("20") Integer pageSize,
+            @QueryParam("pageToken") String pageToken);
+
+    /**
+     * ARD facet exploration endpoint.
+     *
+     * @param request the ARD explore request
+     * @return the ARD explore response containing the requested facets
+     */
+    @POST
+    @Path("/ard/explore")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    ArdExploreResponse ardExplore(ArdExploreRequest request);
 }

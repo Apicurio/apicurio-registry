@@ -65,7 +65,7 @@ public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
                     .filter(s -> s.getClass().isInstance(updated.getWrapped())).collect(Collectors.toSet());
             if (ALL_CRITERION.equals(((CombinedSchema) original).getCriterion())
                     && typeCompatible.size() == 1)
-                return typeCompatible.stream().findAny().get();
+                return typeCompatible.stream().findAny().orElseThrow();
         }
         return original;
     }
@@ -162,7 +162,7 @@ public class SchemaDiffVisitor extends JsonSchemaWrapperVisitor {
         if (orig instanceof EnumSchema) {
             Set<Object> possibleValues = ((EnumSchema) orig).getPossibleValues();
             if (possibleValues.size() == 1) {
-                orig = ConstSchema.builder().permittedValue(possibleValues.stream().findAny().get()).build();
+                orig = ConstSchema.builder().permittedValue(possibleValues.stream().findAny().orElseThrow()).build();
             }
         }
 

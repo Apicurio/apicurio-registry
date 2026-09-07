@@ -104,7 +104,7 @@ public class KafkaAdminUtil {
                                             .map(Short::valueOf)
                                             .or(() -> Optional.of((short) Math.min(3, nodes.size())));
 
-                                    props.putIfAbsent(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, valueOf(max(replicationFactor.get() - 1, 1)));
+                                    props.putIfAbsent(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, valueOf(max(replicationFactor.orElseThrow() - 1, 1)));
 
                                     return new NewTopic(topic, partitions, replicationFactor).configs(props);
 

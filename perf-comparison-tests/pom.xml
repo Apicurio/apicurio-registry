@@ -12,7 +12,7 @@
   <description>Opt-in Confluent-compatible API benchmark for schema registry products.</description>
   <properties>
     <projectRoot>${project.basedir}/..</projectRoot>
-    <gatling.version>3.15.1</gatling.version>
+    <gatling.version>3.13.5</gatling.version>
     <maven.javadoc.skip>true</maven.javadoc.skip>
     <maven.source.skip>true</maven.source.skip>
   </properties>
@@ -42,6 +42,27 @@
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-netty-4.1</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>io.netty:*:[4.2,)</exclude>
+                  </excludes>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>

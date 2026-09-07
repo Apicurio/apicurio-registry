@@ -9,12 +9,6 @@ type WellKnownRequestBuilder struct {
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.BaseRequestBuilder
 }
 
-// A2a get Agent Card (A2A v1.0).
-// returns a *A2aRequestBuilder when successful
-func (m *WellKnownRequestBuilder) A2a() *A2aRequestBuilder {
-	return NewA2aRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
-}
-
 // AgentCardJson get Agent Card (Orchestrate).
 // returns a *AgentCardJsonRequestBuilder when successful
 func (m *WellKnownRequestBuilder) AgentCardJson() *AgentCardJsonRequestBuilder {
@@ -31,6 +25,24 @@ func (m *WellKnownRequestBuilder) AgentJson() *AgentJsonRequestBuilder {
 // returns a *AgentsRequestBuilder when successful
 func (m *WellKnownRequestBuilder) Agents() *AgentsRequestBuilder {
 	return NewAgentsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// AiCatalogJson get AI Catalog.
+// returns a *AiCatalogJsonRequestBuilder when successful
+func (m *WellKnownRequestBuilder) AiCatalogJson() *AiCatalogJsonRequestBuilder {
+	return NewAiCatalogJsonRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Ard the ard property
+// returns a *ArdRequestBuilder when successful
+func (m *WellKnownRequestBuilder) Ard() *ArdRequestBuilder {
+	return NewArdRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// ArdJson get ARD manifest.
+// returns a *ArdJsonRequestBuilder when successful
+func (m *WellKnownRequestBuilder) ArdJson() *ArdJsonRequestBuilder {
+	return NewArdJsonRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
 // NewWellKnownRequestBuilderInternal instantiates a new WellKnownRequestBuilder and sets the default values.

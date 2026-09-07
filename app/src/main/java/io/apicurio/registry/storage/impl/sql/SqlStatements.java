@@ -675,6 +675,8 @@ public interface SqlStatements {
 
     public String insertConfigProperty();
 
+    public String upsertConfigProperty();
+
     public String deleteAllConfigProperties();
 
     public String selectConfigPropertyByName();

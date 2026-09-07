@@ -12,12 +12,12 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Set;
@@ -119,7 +119,7 @@ class KubernetesOpsSmokeTest {
         try {
             var fullPath = Path.of(
                     requireNonNull(Thread.currentThread().getContextClassLoader().getResource(path)).toURI());
-            return ContentHandle.create(FileUtils.readFileToByteArray(fullPath.toFile()));
+            return ContentHandle.create(Files.readAllBytes(fullPath));
         } catch (IOException | URISyntaxException ex) {
             throw new RuntimeException(ex);
         }

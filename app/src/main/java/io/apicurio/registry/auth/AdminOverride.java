@@ -53,7 +53,7 @@ public class AdminOverride {
     private boolean hasAdminClaim() {
         final Optional<Object> claimValue = jsonWebToken.get().claim(authConfig.adminOverrideClaim);
         if (claimValue.isPresent()) {
-            return authConfig.adminOverrideClaimValue.equals(claimValue.get().toString());
+            return authConfig.adminOverrideClaimValue.equals(claimValue.orElseThrow().toString());
         }
         return false;
     }

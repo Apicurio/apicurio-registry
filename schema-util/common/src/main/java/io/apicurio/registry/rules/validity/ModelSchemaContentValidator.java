@@ -10,7 +10,6 @@ import io.apicurio.registry.types.RuleType;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,40 +95,9 @@ public class ModelSchemaContentValidator extends AbstractContentValidator {
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException {
-        Set<String> allRefs = getAllRefs(content);
+        Set<String> allRefs = extractExternalJsonRefs(content);
         if (!allRefs.isEmpty()) {
             validateMappedReferences(references, allRefs, "Unmapped reference detected.");
-        }
-    }
-
-    private Set<String> getAllRefs(TypedContent content) {
-        try {
-            JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
-            Set<String> refs = new HashSet<>();
-            findRefs(tree, refs);
-            return refs;
-        } catch (Exception e) {
-            return Collections.emptySet();
-        }
-    }
-
-    private void findRefs(JsonNode node, Set<String> refs) {
-        if (node.isObject()) {
-            if (node.has("$ref")) {
-                String ref = node.get("$ref").asText(null);
-                if (ref != null && !ref.startsWith("#/")) {
-                    refs.add(ref);
-                }
-            }
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> field = fields.next();
-                findRefs(field.getValue(), refs);
-            }
-        } else if (node.isArray()) {
-            for (JsonNode element : node) {
-                findRefs(element, refs);
-            }
         }
     }
 }

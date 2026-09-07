@@ -1,0 +1,30 @@
+{
+  "includeStandardArtifactTypes": true,
+  "artifactTypes": [
+    {
+      "artifactType": "MARKDOWN",
+      "name": "Markdown",
+      "description": "Markdown documents with a level-1 title and level-2 sections.",
+      "contentTypes": [
+        "text/markdown",
+        "text/plain"
+      ],
+      "contentAccepter": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentAccepter"
+      },
+      "contentValidator": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentValidator"
+      },
+      "compatibilityChecker": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownCompatibilityChecker"
+      },
+      "contentCanonicalizer": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentCanonicalizer"
+      }
+    }
+  ]
+}

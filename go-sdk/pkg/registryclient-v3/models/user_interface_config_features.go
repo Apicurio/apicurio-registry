@@ -27,6 +27,8 @@ type UserInterfaceConfigFeatures struct {
 	searchIndex *bool
 	// The settings property
 	settings *bool
+	// Maximum content length (in bytes) for UI 'Import from URL' responses.
+	urlImportMaxContentLength *int64
 }
 
 // NewUserInterfaceConfigFeatures instantiates a new UserInterfaceConfigFeatures and sets the default values.
@@ -188,6 +190,16 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
+	res["urlImportMaxContentLength"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetInt64Value()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetUrlImportMaxContentLength(val)
+		}
+		return nil
+	}
 	return res
 }
 
@@ -213,6 +225,12 @@ func (m *UserInterfaceConfigFeatures) GetSearchIndex() *bool {
 // returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetSettings() *bool {
 	return m.settings
+}
+
+// GetUrlImportMaxContentLength gets the urlImportMaxContentLength property value. Maximum content length (in bytes) for UI 'Import from URL' responses.
+// returns a *int64 when successful
+func (m *UserInterfaceConfigFeatures) GetUrlImportMaxContentLength() *int64 {
+	return m.urlImportMaxContentLength
 }
 
 // Serialize serializes information the current object
@@ -273,6 +291,12 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 	}
 	{
 		err := writer.WriteBoolValue("settings", m.GetSettings())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteInt64Value("urlImportMaxContentLength", m.GetUrlImportMaxContentLength())
 		if err != nil {
 			return err
 		}
@@ -341,6 +365,11 @@ func (m *UserInterfaceConfigFeatures) SetSettings(value *bool) {
 	m.settings = value
 }
 
+// SetUrlImportMaxContentLength sets the urlImportMaxContentLength property value. Maximum content length (in bytes) for UI 'Import from URL' responses.
+func (m *UserInterfaceConfigFeatures) SetUrlImportMaxContentLength(value *int64) {
+	m.urlImportMaxContentLength = value
+}
+
 type UserInterfaceConfigFeaturesable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
@@ -354,6 +383,7 @@ type UserInterfaceConfigFeaturesable interface {
 	GetRoleManagement() *bool
 	GetSearchIndex() *bool
 	GetSettings() *bool
+	GetUrlImportMaxContentLength() *int64
 	SetAgents(value *bool)
 	SetBreadcrumbs(value *bool)
 	SetDeleteArtifact(value *bool)
@@ -364,4 +394,5 @@ type UserInterfaceConfigFeaturesable interface {
 	SetRoleManagement(value *bool)
 	SetSearchIndex(value *bool)
 	SetSettings(value *bool)
+	SetUrlImportMaxContentLength(value *int64)
 }

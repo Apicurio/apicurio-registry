@@ -89,6 +89,7 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] API error responses never expose internal state (usernames, stack traces, class names).
 - [ ] Use Quarkus/MicroProfile facilities (`@CircuitBreaker`, `@Retry`, `@Timeout`) instead of hand-rolled equivalents.
 - [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.
+- [ ] Features storing their own metadata in labels follow `.claude/rules/labels.md` (reserved `apicurio.<feature>.*` key namespace; labels are user-editable, so never store security-relevant state in one).
 - [ ] Non-variant-specific changes under `storage/impl/` must work across all 4 storage variants.
 - [ ] Auth changes require both positive and negative (403) test cases.
 - [ ] New Java files follow the surrounding style. Do **not** add a per-file Apache

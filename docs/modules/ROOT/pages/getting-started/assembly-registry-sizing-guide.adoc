@@ -15,7 +15,7 @@ Maven module, run against a topology intended to resemble a real deployment (reg
 via the {operator}, PostgreSQL or KafkaSQL storage placed behind an injected-latency proxy to
 approximate a managed/remote datastore, Keycloak securing the registry). They are a data point
 from one specific test environment, not a universal guarantee for your environment - see
-<<registry-sizing-methodology_{context}>> for how to reproduce or extend this testing against
+xref:registry-sizing-methodology_{context}[] for how to reproduce or extend this testing against
 your own infrastructure and workload shape.
 
 == Prerequisites
@@ -50,7 +50,7 @@ The results in this chapter were produced by the `perf-tests` module (see
   (`perf-tests/k8s/common/run-external-load.sh`), against the registry exposed via a NodePort
   Service, so the load generator's own resource usage doesn't compete with the registry under
   test for the same node's capacity.
-* Reads and writes are measured *separately* (see <<registry-sizing-sql-storage_{context}>> for
+* Reads and writes are measured *separately* (see xref:registry-sizing-sql-storage_{context}[] for
   why), by setting the traffic mix to 100% reads or 100% writes rather than a blended ratio -
   resolving an already-registered schema by ID is representative of how producers/consumers use a
   schema registry on close to every message, while registering a new schema is comparatively rare.
@@ -72,7 +72,7 @@ SQL storage (PostgreSQL, MySQL, or Microsoft SQL Server) processes every read an
 synchronous database round-trip. Read and write throughput are governed by different, unrelated
 bottlenecks, so this section reports them separately rather than as one blended number.
 
-=== Read throughput
+*Read throughput*
 
 A single replica's read path (resolving an existing schema by ID) sustains, at 200 concurrent
 clients:
@@ -104,7 +104,7 @@ memory limit (given enough memory). More CPU is likely to raise this ceiling fur
 chapter does not yet have data on by how much.
 ====
 
-=== Write throughput
+*Write throughput*
 
 Write throughput does *not* scale with concurrency or resources the way reads do. Every artifact
 or version creation allocates a global ID by executing an atomic increment against a single shared
@@ -157,7 +157,7 @@ journal) rather than performing a network round-trip to a remote database. Both 
 write paths behave very differently from SQL storage's, so - as with SQL storage - this section
 reports them separately.
 
-=== Read throughput
+*Read throughput*
 
 Under the same test conditions and methodology as the SQL storage figures above (200 concurrent
 clients, 2 CPU / 2Gi replica, ~15ms +/- 5ms injected storage-backend latency, 3-minute run with
@@ -183,9 +183,9 @@ database server that SQL storage pays on every read, even over a fast connection
 storage's read path, this saturates the 2 CPU limit at this concurrency - more CPU is likely to
 raise this ceiling further.
 
-=== Write throughput
+*Write throughput*
 
-Unlike SQL storage's write path (see <<registry-sizing-sql-storage_{context}>>), KafkaSQL
+Unlike SQL storage's write path (see xref:registry-sizing-sql-storage_{context}[]), KafkaSQL
 storage's writes are not serialized behind a single database row lock - each write is a produce
 to a Kafka topic, and throughput scales with concurrency rather than staying flat:
 
@@ -235,7 +235,7 @@ capacity.
 [role="_abstract"]
 
 * Size for reads and writes *separately* - they have different, unrelated bottlenecks for SQL
-  storage (see <<registry-sizing-sql-storage_{context}>>). A blended requests/sec number hides
+  storage (see xref:registry-sizing-sql-storage_{context}[]). A blended requests/sec number hides
   this and can be misleading.
 * If your write rate is more than incidental, treat the write-throughput ceiling above as a hard
   budget independent of replica count or resources, until
@@ -264,7 +264,7 @@ capacity.
 * For workloads dominated by high-throughput schema resolution (the common case for Kafka
   producers/consumers validating or resolving schemas), KafkaSQL storage's local materialized-view
   read path showed substantially higher read throughput than SQL storage's in this testing (see
-  <<registry-sizing-kafkasql-storage_{context}>>). KafkaSQL storage's write throughput also scales
+  xref:registry-sizing-kafkasql-storage_{context}[]). KafkaSQL storage's write throughput also scales
   with concurrency rather than staying flat the way SQL storage's does, though it's not tested
   past 200 concurrent writers here and its startup/catch-up time while replaying the underlying
   Kafka topic isn't reflected in these figures.

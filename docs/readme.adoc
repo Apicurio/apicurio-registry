@@ -69,6 +69,19 @@ For examples of how to structure your content, see the existing content in the `
 === Tips for formatting and styling content
 For more details and examples of how to create technical content using AsciiDoc source files, see link:tips-for-creating-asciidoc-content.adoc[Tips for creating AsciiDoc content]
 
+== Linting for the downstream modular build
+
+The `getting-started` assemblies are split into modules by the downstream (Red Hat) build, which fails on structure that Antora accepts. CI checks every docs pull request against that split view: `docs/scripts/vale-pipeline.py` splits each changed assembly with `leben.py` and runs vale with the AsciiDocDITA rules over the result, and `docs/scripts/downstream-compat.py` checks the structural contract the splitter relies on. Errors block the merge; warnings are reported only.
+
+Run the same checks locally before opening a pull request:
+
+----
+$ python3 docs/scripts/downstream-compat.py
+$ python3 docs/scripts/vale-pipeline.py
+----
+
+For prerequisites, options, and the list of rules, see link:scripts/README.md[docs/scripts/README.md].
+
 == Building the documentation using Antora
 
 You can perform a local build of the documentation for test purposes using the `antora` tool (https://antora.org/):

@@ -7,7 +7,7 @@ Two top-level workflows make up the whole pipeline:
 | Workflow | Contents |
 |----------|----------|
 | `quick-check.yaml` (**Quick Check**) | The fast PR gate: **Quick Verify** (~5 min, every PR push) and a fast UI build. No lifecycle awareness, no Decide job — it always runs the same way. Drives `lifecycle/tested` while a PR is in `lifecycle/ready-for-review`. |
-| `verify.yaml` (**Verify**) | Everything else: Build (Java app + Docker images), unit tests, CLI, SDKs, console plugin, integration tests, extra tests, operator tests, and (on push to `main`) image publishing. One `decide` job, shared by every job in this workflow via `needs:`. Drives `lifecycle/full-verified`. |
+| `verify.yaml` (**Verify**) | Everything else: Build (Java app + Docker images), unit tests, CLI, SDKs, console plugin, docs lint (leben split + vale + downstream contract), integration tests, extra tests, operator tests, and (on push to `main`) image publishing. One `decide` job, shared by every job in this workflow via `needs:`. Drives `lifecycle/full-verified`. |
 
 Performance workflows are intentionally not PR gates:
 
@@ -64,9 +64,10 @@ disagree with one that started after — Decide re-evaluates live, every time.
 | `integration` | `app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
 | `sdk` | `java-sdk/`, `go-sdk/`, `python-sdk/`, `typescript-sdk/` | build, sdk |
 | `cli` | `cli/`, `java-sdk/`, `verify-cli.yaml` | build, cli-verify |
+| `docs` | `docs/modules/`, `docs/scripts/`, `.vale.ini`, `verify-docs.yaml` | docs-verify |
 | `ci` | `.github/workflows/**` | all test phases except cli-verify |
 
-Docs-only or UI-only PRs skip Java unit tests and integration tests entirely.
+Docs-only PRs run only Docs Verification; UI-only PRs skip Java unit tests and integration tests entirely.
 Push to main always runs everything regardless of change detection.
 
 ### Verification Gate
@@ -104,6 +105,28 @@ by the time Gate's live check ran even though Decide itself had skipped
 everything at the start of that same run. Deciding from live author/review
 facts directly (this design) needs no live re-fetch and no bot-applied label
 at all, so there is nothing left to race.
+
+### Docs Verification
+
+`verify-docs.yaml` (called by `verify.yaml` when Decide's `run-docs` is true) is the
+gated check for the `getting-started` assemblies that feed the downstream (Red Hat)
+modular build. It runs two stdlib-only scripts from `docs/scripts/` on the assemblies
+a PR added, modified or renamed (all of them on a push to `main`):
+
+- `downstream-compat.py` checks the structural contract the downstream splitter
+  (`docs/scripts/leben.py`, an unmodified copy of the downstream script) relies on:
+  `[id="..."]`/heading adjacency, no `<<...>>` shorthand xrefs, cross-assembly xref
+  targets (warning only).
+- `vale-pipeline.py` splits each assembly with `leben.py` and runs vale with the
+  AsciiDocDITA package pinned in `.vale.ini` over the split output. Vale on the raw
+  monolith is noisy by design and is never the gate.
+
+Errors fail the job and therefore the Verification Gate; warnings are summary-only.
+Up to ten errors and ten warnings per step appear as annotations on the changed
+files; the full report is in the job summary and the `docs-vale-<sha>` artifact.
+Reviewers for docs paths are auto-requested through `.github/CODEOWNERS`. Run the
+same checks locally with `python3 docs/scripts/vale-pipeline.py`; see
+`docs/scripts/README.md`.
 
 ## Unit Test Sharding
 
@@ -230,13 +253,14 @@ non-Java changes (docs, UI).
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
 | `verify-cli.yaml` | Called by verify | CLI native build (GraalVM) + tests on Linux and macOS. Conditional on `cli/` or `java-sdk/` changes | ~15-25 min |
+| `verify-docs.yaml` | Called by verify | Splits changed `getting-started/assembly-*.adoc` with the vendored `docs/scripts/leben.py` and runs vale (AsciiDocDITA, pinned in `.vale.ini`) over the split output, plus `downstream-compat.py` structural checks. Errors block, warnings are summary-only. PRs lint changed assemblies; push to main lints all | ~2 min |
 | `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only. Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
 
 ## Validation Workflows
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds | ~10 min |
+| `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds. Not part of the Verification Gate; the gated docs check is `verify-docs.yaml` | ~10 min |
 | `validate-openapi.yaml` | PR (openapi.json), workflow_call | Lints OpenAPI spec with `@rhoas/spectral-ruleset` | ~5 min |
 | `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited | Checks the PR body links an issue and every commit is DCO signed; flags possible duplicate PRs by linked issue or overlapping files. Independent of the lifecycle: a red check never blocks `/accept`, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API | <1 min |
 

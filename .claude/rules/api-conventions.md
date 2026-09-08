@@ -1,6 +1,7 @@
 ---
 paths:
   - "app/src/main/java/**/rest/**/*.java"
+  - "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/**"
   - "java-sdk/**/*.java"
 ---
 # REST API Conventions

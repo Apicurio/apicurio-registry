@@ -23,6 +23,8 @@ public final class Columns {
 
     public static final String VERSION = "Version";
     public static final String STATE = "State";
+    public static final String BRANCH_ID = "Branch ID";
+    public static final String SYSTEM_DEFINED = "System Defined";
     public static final String GLOBAL_ID = "Global ID";
     public static final String CONTENT_ID = "Content ID";
 

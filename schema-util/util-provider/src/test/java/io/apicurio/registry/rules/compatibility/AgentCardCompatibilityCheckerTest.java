@@ -517,4 +517,161 @@ class AgentCardCompatibilityCheckerTest {
         assertEquals(2, result.getIncompatibleDifferences().size(),
                 "Both the disabled boolean capability and the removed extension should be reported");
     }
+
+    private TypedContent createAgentCardYaml(String yaml) {
+        return TypedContent.create(ContentHandle.create(yaml), ContentTypes.APPLICATION_YAML);
+    }
+
+    @Test
+    void testBackwardCompatibleYamlFormat() {
+        String existing = """
+                name: TestAgent
+                description: Test agent
+                version: 1.0.0
+                supportedInterfaces:
+                  - url: https://example.com/agent
+                    protocolBinding: http+json
+                    protocolVersion: "1.0"
+                capabilities: {}
+                skills:
+                  - id: skill1
+                    name: Skill 1
+                    description: A skill
+                defaultInputModes:
+                  - text
+                defaultOutputModes:
+                  - text
+                """;
+
+        String proposed = """
+                name: TestAgent
+                description: Test agent updated
+                version: 1.1.0
+                supportedInterfaces:
+                  - url: https://example.com/agent
+                    protocolBinding: http+json
+                    protocolVersion: "1.0"
+                capabilities: {}
+                skills:
+                  - id: skill1
+                    name: Skill 1
+                    description: A skill
+                  - id: skill2
+                    name: Skill 2
+                    description: Added skill
+                defaultInputModes:
+                  - text
+                defaultOutputModes:
+                  - text
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCardYaml(existing)),
+                createAgentCardYaml(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(), "Adding a skill in YAML format should be backward compatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleYamlFormat() {
+        String existing = """
+                name: TestAgent
+                description: Test agent
+                version: 1.0.0
+                supportedInterfaces:
+                  - url: https://example.com/agent
+                    protocolBinding: http+json
+                    protocolVersion: "1.0"
+                capabilities: {}
+                skills:
+                  - id: skill1
+                    name: Skill 1
+                    description: A skill
+                  - id: skill2
+                    name: Skill 2
+                    description: Skill 2
+                defaultInputModes:
+                  - text
+                defaultOutputModes:
+                  - text
+                """;
+
+        String proposed = """
+                name: TestAgent
+                description: Test agent
+                version: 1.1.0
+                supportedInterfaces:
+                  - url: https://example.com/agent
+                    protocolBinding: http+json
+                    protocolVersion: "1.0"
+                capabilities: {}
+                skills:
+                  - id: skill1
+                    name: Skill 1
+                    description: A skill
+                defaultInputModes:
+                  - text
+                defaultOutputModes:
+                  - text
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCardYaml(existing)),
+                createAgentCardYaml(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(), "Removing a skill in YAML format should be backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+    }
+
+    @Test
+    void testCrossFormatCompatibilityJsonToYaml() {
+        String existing = baseCard(SKILL1, "");
+        String proposed = """
+                name: TestAgent
+                description: Test agent
+                version: 1.1.0
+                supportedInterfaces:
+                  - url: https://example.com/agent
+                    protocolBinding: http+json
+                    protocolVersion: "1.0"
+                capabilities: {}
+                skills:
+                  - id: skill1
+                    name: Skill 1
+                    description: A skill
+                  - id: skill2
+                    name: Skill 2
+                    description: Another skill
+                defaultInputModes:
+                  - text
+                defaultOutputModes:
+                  - text
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCardYaml(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(), "Updating from JSON to YAML should be backward compatible");
+    }
+
+    @Test
+    void testBackwardCompatibleYamlFlowMapping() {
+        String existing = "{name: TestAgent, description: Test agent, version: 1.0.0, supportedInterfaces: [{url: \"https://example.com/agent\", protocolBinding: http+json, protocolVersion: \"1.0\"}], capabilities: {}, skills: [{id: skill1, name: Skill 1, description: A skill}], defaultInputModes: [text], defaultOutputModes: [text]}";
+        String proposed = "{name: TestAgent, description: Test agent, version: 1.1.0, supportedInterfaces: [{url: \"https://example.com/agent\", protocolBinding: http+json, protocolVersion: \"1.0\"}], capabilities: {}, skills: [{id: skill1, name: Skill 1, description: A skill}, {id: skill2, name: Skill 2, description: Added skill}], defaultInputModes: [text], defaultOutputModes: [text]}";
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCardYaml(existing)),
+                createAgentCardYaml(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(), "YAML flow mapping syntax should be parsed and backward compatible");
+    }
 }

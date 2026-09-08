@@ -28,7 +28,6 @@ public class ModelSchemaCompatibilityChecker
     private static final String CONTEXT_OUTPUT = "/output";
     private static final String CONTEXT_DOCUMENT = "/document";
 
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
@@ -52,10 +51,6 @@ public class ModelSchemaCompatibilityChecker
     }
 
     private JsonNode parseContent(String content) throws Exception {
-        String trimmed = content.trim();
-        if (trimmed.startsWith("{")) {
-            return jsonMapper.readTree(content);
-        }
         return yamlMapper.readTree(content);
     }
 

@@ -472,3 +472,176 @@ test('legacy orchestrator/auto-merge migrates to native auto-merge', async () =>
   assert.match(w.calls.graphql[0].query, /enablePullRequestAutoMerge/);
 });
 
+
+// ---------------------------------------------------------------------------
+// Stale sweep
+//
+// The sweep decides "has anything happened since we labelled this stale?" by
+// walking the issue timeline. Two properties of that API make it easy to get
+// wrong, and both regressed in production: the timeline is paginated
+// oldest-first, and not every event carries created_at.
+// ---------------------------------------------------------------------------
+
+const DAY = 24 * 60 * 60 * 1000;
+const ago = days => new Date(Date.now() - days * DAY).toISOString();
+
+const STALE_CONFIG = {
+  maintainers: [], merge: { strategy: 'rebase' },
+  stale: {
+    days_until_stale: 7,
+    days_until_close: 14,
+    days_until_stale_waiting_on_author: 4,
+    days_until_close_waiting_on_author: 7,
+    stale_message: 'Inactive. @{author}, update or comment. Closed {close_window}.{assignees}',
+    close_message: 'Closing due to inactivity.',
+  },
+};
+
+// timelinePages models the real pagination shape: github.paginate concatenates
+// every page, while an unpaginated call would only ever see pages[0].
+function makeStaleWorld({ labels = [LABELS.READY_FOR_REVIEW], updatedDaysAgo = 30,
+                          timelinePages = [[]], assignees = [] } = {}) {
+  const prLabels = new Set(labels);
+  const calls = { added: [], removed: [], comments: [], closed: [] };
+
+  const pr = {
+    number: 42,
+    draft: false,
+    labels: [...prLabels].map(name => ({ name })),
+    user: { login: 'contributor' },
+    assignees: assignees.map(login => ({ login })),
+    head: { sha: SHA, ref: 'feature-x' },
+    base: { ref: 'not-main' }, // skip reconcile; this suite is about staleness
+    updated_at: ago(updatedDaysAgo),
+  };
+
+  const github = {
+    rest: {
+      issues: {
+        addLabels: async ({ labels: ls }) => ls.forEach(l => { prLabels.add(l); calls.added.push(l); }),
+        removeLabel: async ({ name }) => { prLabels.delete(name); calls.removed.push(name); },
+        createComment: async ({ body }) => calls.comments.push(body),
+        getLabel: async () => { const e = new Error('nf'); e.status = 404; throw e; },
+        createLabel: async () => ({}),
+        updateLabel: async () => ({}),
+        listEventsForTimeline: 'listEventsForTimeline',
+      },
+      pulls: {
+        list: 'pulls.list',
+        update: async ({ pull_number, state }) => calls.closed.push({ pull_number, state }),
+      },
+    },
+    paginate: async (fn) => {
+      if (fn === 'pulls.list') return [pr];
+      if (fn === 'listEventsForTimeline') return timelinePages.flat();
+      return [];
+    },
+  };
+
+  const core = { info: () => {}, warning: () => {}, error: () => {} };
+  return { github, core, calls, prLabels };
+}
+
+function staleContext() {
+  return { repo: { owner: 'Apicurio', repo: 'apicurio-registry' } };
+}
+
+const staleLabelEvent = daysAgo => ({
+  event: 'labeled', label: { name: LABELS.STALE }, created_at: ago(daysAgo),
+  actor: { login: 'github-actions[bot]' },
+});
+
+// A 'committed' timeline event as GitHub actually returns it: no created_at
+// and no actor — the commit date lives in author.date. Treating it as activity
+// made every PR with a commit look permanently active, so the stale label was
+// stripped on the next sweep and nothing ever closed.
+const committedEvent = daysAgo => ({
+  event: 'committed', sha: SHA, author: { name: 'C', date: ago(daysAgo) },
+});
+
+test('stale: old commit in the timeline does not count as activity', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[committedEvent(30), staleLabelEvent(1)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.removed.includes(LABELS.STALE),
+      'stale label must survive a commit that predates it');
+  });
+});
+
+test('stale: a human comment after the label clears it', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[staleLabelEvent(2),
+        { event: 'commented', created_at: ago(1), user: { login: 'contributor' } }]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.removed.includes(LABELS.STALE));
+  });
+});
+
+test('stale: the bot own warning comment does not count as activity', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[staleLabelEvent(1),
+        { event: 'commented', created_at: ago(1), actor: { login: 'github-actions[bot]' },
+          user: { login: 'github-actions[bot]' } }]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.removed.includes(LABELS.STALE));
+  });
+});
+
+test('stale: label event on a later timeline page is still found', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // Page 1 holds an old stale cycle and the activity that cleared it; the
+    // current label is on page 2. Reading only page 1 backdates staleSince,
+    // making that old activity look recent — and the label gets stripped.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [
+        [staleLabelEvent(20), { event: 'commented', created_at: ago(19), user: { login: 'contributor' } }],
+        [staleLabelEvent(1)],
+      ],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.removed.includes(LABELS.STALE),
+      'activity predating the current stale label must not clear it');
+  });
+});
+
+test('stale: closes once the grace period has elapsed', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[committedEvent(30), staleLabelEvent(8)]], // grace is 14 - 7 = 7
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.deepEqual(w.calls.closed, [{ pull_number: 42, state: 'closed' }]);
+  });
+});
+
+test('stale: warning ccs the assignees but not the author', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({ assignees: ['maintainer-jane', 'contributor'] });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.STALE));
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /cc @maintainer-jane/);
+    assert.equal((w.calls.comments[0].match(/@contributor/g) || []).length, 1,
+      'the author is already addressed by name and must not be cc-ed again');
+  });
+});
+
+test('stale: warning with no assignees has no cc line', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld();
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 1);
+    assert.doesNotMatch(w.calls.comments[0], /cc @/);
+  });
+});

@@ -59,10 +59,6 @@ Both features are disabled by default and independently feature-gated.
 |`apicurio.ard.enabled`
 |`false`
 |Enable the `POST /ard/search`, `GET /ard/agents`, and `POST /ard/explore` endpoints
-
-|`apicurio.ard.federation.default`
-|`none`
-|Default ARD federation mode advertised by this registry. Only `none` (no federation) is currently implemented; other values are accepted for forward compatibility but do not change behavior.
 |===
 
 // ref-ai-catalog-publishing

@@ -1,21 +1,20 @@
 package io.apicurio.registry.rules.compatibility.jsonschema;
 
+import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffContext;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffUtil;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Collections;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
-import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
-import java.util.Collections;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class JsonSchemaDiffUtilTest {
     public static Stream<Arguments> multipleOfCases() {
@@ -38,7 +37,7 @@ public class JsonSchemaDiffUtilTest {
     @Test
     void findDifferencesThrowsUnprocessableForUnsupportedDraft() {
         String draft2020 = "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\"}";
-        Assertions.assertThrows(UnprocessableSchemaException.class,
-            () -> JsonSchemaDiffLibrary.findDifferences(draft2020, draft2020, Collections.emptyMap()));
+        assertThrows(UnprocessableSchemaException.class,
+                () -> JsonSchemaDiffLibrary.findDifferences(draft2020, draft2020, Collections.emptyMap()));
     }
 }

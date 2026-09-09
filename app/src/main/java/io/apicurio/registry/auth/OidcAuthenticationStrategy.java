@@ -296,6 +296,26 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                 cachedAccessTokens.remove(credentialsHash, future);
                 future.completeExceptionally(ex);
                 throw ex;
+            } finally {
+                // The catch above covers RuntimeException only; on an Error the future
+                // would stay in the map uncompleted. reuseOrReplace hands any not-done
+                // future to every later caller, and join() has no timeout, so they would
+                // block forever.
+                //
+                // A finally cannot see the throwable, so the real cause is not attached
+                // here. It is not lost: the creator rethrows it and it propagates with a
+                // full stack trace. Joining threads instead see this OidcAuthException,
+                // which authenticateWithClientCredentials caches for FAILURE_CACHE_TTL,
+                // so those credentials fail fast for 60s rather than wedging.
+                //
+                // Note this covers a creator that DIES. A creator wedged inside
+                // getAccessToken never leaves the try block at all, so the join is still
+                // unbounded on that path; bounding it needs a @Timeout on the fetch.
+                if (!future.isDone()) {
+                    cachedAccessTokens.remove(credentialsHash, future);
+                    future.completeExceptionally(new OidcAuthException(
+                            "Token fetch thread died without completing the future"));
+                }
             }
         }
 

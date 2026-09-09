@@ -8,6 +8,37 @@ include::{mod-loc}shared/all-attributes.adoc[]
 You can manage schema and API artifacts stored in {registry} by using the {registry} web console.
 
 
+[id="navigating-registry-dashboard_{context}"]
+== Navigating the {registry} dashboard
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the {registry} dashboard to view registry totals, find recently modified artifacts, and open common tasks.
+
+.Prerequisites
+* You have access to the web console of a running {registry} instance.
+
+.Procedure
+. In the {registry} web console, click the *Dashboard* tab.
+. Review the *Groups*, *Artifacts*, and *Versions* cards to view the totals for your registry.
++
+Click a card to open the *Search* tab with the corresponding resource type selected.
+. To open a recently modified artifact, click its name in *Recent Artifacts*.
++
+The list contains up to 10 artifacts, ordered by modification time with the most recent first.
+. To start another task, return to *Dashboard* and select an action in *Quick Actions*:
++
+** *Create Artifact*: Opens the artifact creation wizard. This action requires permission to create artifacts and a web console with write operations enabled.
+** *Search Registry*: Opens the *Search* tab.
+** *Explore Groups*: Opens the *Explore* tab, where you can browse groups and their artifacts.
+** *Settings*: Opens the registry settings. This action requires administrator access and a web console with the settings feature enabled.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:adding-artifacts-using-console_{context}[]
+* xref:configuring-settings-using-console_{context}[]
+
+
 [id="configuring-registry-ui_{context}"]
 == Configuring the {registry} web console
 :_mod-docs-content-type: PROCEDURE
@@ -53,24 +84,26 @@ You can use the {registry} web console to browse the schema and API artifacts st
 
 .Procedure
 
-. On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as name, group, labels, or global ID. When you filter by artifact type or by version state, you select the value from a list instead of typing it.
+. On the *Search* tab, select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as name, group, labels, or global ID. When you filter by artifact type, select the value from a list instead of typing it.
++
+The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
 +
 .Artifacts in {registry} web console
 image::images/getting-started/registry-web-console.png[Artifacts in Registry web console]
 +
 . Click an artifact to view the following details:
 
-** *Overview*: Displays artifact metadata such as artifact ID, name, description, labels, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
-** *Versions*: Displays a list of all artifact versions. The tab is empty unless you uploaded a version when you created the artifact.
+** *Overview*: Displays artifact metadata and the *Versions in artifact* list. The list is empty if the artifact has no versions.
+** *Rules*: Displays the content rules that you can configure for the artifact.
 ** *Branches*: Displays a list of branches for the artifact. The tab displays at least the `latest` branch and might display other generated branches depending on your configuration.
 +
 .Artifact details in {registry} web console
 image::images/getting-started/registry-web-console-artifact.png[Artifacts in Registry web console]
 +
-. Click the *Versions* tab to view a list of all artifact versions. Then click one of the versions in the list, or click *View Version* from the Action menu for a version. You can then view the following artifact version details:
+. On the artifact's *Overview* tab, click a version in the *Versions in artifact* list, or select *View version* from the actions menu for that version. You can then view the following artifact version details:
 
 ** *Overview*: Displays artifact version metadata such as version name, description, global ID, content ID, labels, and so on. Also displays any comments created for the artifact version.
-** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically generated REST API documentation.
+** *Documentation*: Displays a visualization for supported artifact types. For OpenAPI and AsyncAPI, it displays API documentation. For JSON Schema, it displays schema properties and a generated example.
 ** *Content*: Displays a read-only view of the full artifact version content. For JSON content, you can click *JSON* or *YAML* to display your preferred format.
 ** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*. To add references to a new artifact or version, use the *Artifact References* step when you create it.
 +
@@ -83,7 +116,134 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 .Additional resources
 * xref:adding-artifacts-using-console_{context}[]
 * xref:configuring-rules-using-console_{context}[]
+* xref:comparing-artifact-versions-using-console_{context}[]
+* xref:changing-version-state-using-console_{context}[]
+* xref:viewing-json-schema-using-console_{context}[]
 * {registry-rule-reference}
+
+
+[id="comparing-artifact-versions-using-console_{context}"]
+== Comparing artifact versions using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can compare the content of two versions of the same artifact to review schema or API changes.
+
+.Prerequisites
+* You have access to the web console of a running {registry} instance.
+* You have an artifact with at least two versions whose content you can retrieve. Disabled versions are unavailable for content comparison.
+
+.Procedure
+. On the *Explore* tab, open the group that contains the artifact.
+. Click the artifact to open its details.
+. On the *Overview* tab, select the checkboxes for two versions in the *Versions in artifact* list.
++
+The *Compare* button is available when you select exactly two versions. To change the selection, clear a checkbox or click *Clear selection*.
+. Click *Compare* to open the *Compare Versions* dialog.
++
+The comparison displays the older version on the left and the newer version on the right, based on creation time. The comparison is read-only.
+. Optional: Click *Inline* to display the changes in a single view.
+. Optional: Click *Wrap text* to wrap long lines.
+
+.Verification
+* Verify that the *Older* and *Newer* labels identify the versions that you selected.
+
+
+[id="artifact-version-states-using-console_{context}"]
+== Artifact version states in the web console
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Each artifact version has a state that identifies its lifecycle stage. The web console displays only the state changes available for the selected version.
+
+.Version states and available changes in the web console
+[cols="1,3,2",options="header"]
+|===
+|State |Description |Available new states
+
+|*Draft* (`DRAFT`)
+|A version for preparing content before publication. Publishing a draft applies the configured content rules.
+|*Enabled*
+
+|*Enabled* (`ENABLED`)
+|An active version whose content applications can retrieve.
+|*Deprecated*, *Disabled*
+
+|*Deprecated* (`DEPRECATED`)
+|A version that applications can still retrieve but that you intend to retire. Use an enabled version for new applications.
+|*Enabled*, *Disabled*
+
+|*Disabled* (`DISABLED`)
+|A version whose content requests return `404 Not Found`. Its metadata remains available, and you can change its state again.
+|*Enabled*, *Deprecated*
+|===
+
+You can create a version in the `DRAFT` state, but you cannot change an existing version back to `DRAFT` after publication.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:changing-version-state-using-console_{context}[]
+
+
+[id="changing-version-state-using-console_{context}"]
+== Changing an artifact version state using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can change an artifact version's state to publish a draft, deprecate a version, or disable access to its content.
+
+.Prerequisites
+* You have access to a running {registry} instance with write operations enabled in the web console and storage.
+* You have permission to update versions of the artifact.
+* You have confirmed that applications no longer need to retrieve the version's content if you plan to disable it.
+
+.Procedure
+. On the *Explore* tab, open the group that contains the artifact.
+. Click the artifact to open its details.
+. On the *Overview* tab, click the version in the *Versions in artifact* list.
+. On the version's *Overview* tab, click *Change* next to *Status*.
+. In the *Change version state* dialog, select a value from the *New state* list.
++
+For a draft version, the only available value is *Enabled*. For other versions, select one of the available *Enabled*, *Deprecated*, or *Disabled* values.
+. Click *Change state*.
++
+When you publish a draft, {registry} applies the configured content rules. If a rule fails, {registry} rejects the state change.
+
+.Verification
+* Verify that *Status* on the version's *Overview* tab displays the selected state.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:artifact-version-states-using-console_{context}[]
+* xref:configuring-rules-using-console_{context}[]
+
+
+[id="viewing-json-schema-using-console_{context}"]
+== Viewing a JSON Schema visualization using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can view the properties, constraints, and generated example for a JSON Schema in the web console to review its structure without reading the source content.
+
+.Prerequisites
+* You have access to the web console of a running {registry} instance.
+* You have a JSON Schema artifact with a version whose content you can retrieve.
+
+.Procedure
+. On the *Explore* tab, open the group that contains the JSON Schema artifact.
+. Click the artifact to open its details.
+. On the *Overview* tab, click the version in the *Versions in artifact* list.
+. Click the *Documentation* tab.
++
+The schema visualization displays the schema title, description, and properties. Property details include types, required markers, and constraints that the schema defines.
+. Optional: Click *Show properties* for a nested property to expand its structure.
+. Review the *Generated Example* panel to see sample JSON content based on the schema.
++
+The generated example is read-only. Viewing it does not change the stored schema.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:browsing-artifacts-using-console_{context}[]
 
 
 
@@ -142,8 +302,8 @@ You can create rules first and add content later.
 
 . Click *Create* and view the artifact details:
 +
-** *Overview*: Displays artifact metadata such as artifact ID, name, description, labels, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
-** *Versions*: Displays a list of all artifact versions. The tab is empty unless you uploaded a version when you created the artifact.
+** *Overview*: Displays artifact metadata and the *Versions in artifact* list. The list is empty if the artifact has no versions.
+** *Rules*: Displays the content rules that you can configure for the artifact.
 ** *Branches*: Displays a list of branches for the artifact. The tab displays at least the `latest` branch and might display other generated branches depending on your configuration.
 +
 .Artifact details in {registry} web console
@@ -160,7 +320,7 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 
 . To save the artifact contents to a local file, for example, `my-protobuf-schema.proto` or `my-openapi.json`, click *Download* at the end of the page.
 
-. To add a new artifact version, switch to the **Versions** tab and then click *Create version* in the toolbar.  From there, provide the following information:
+. To add an artifact version, on the artifact's *Overview* tab, click *Create version* next to *Versions in artifact*. Specify the following information:
 .. *Version Number*: Optionally add a version string for the new version.
 .. *Content*: Specify the content using either of the following options:
 ... *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
@@ -289,7 +449,7 @@ WARNING: Deleting an artifact version is permanent and cannot be undone. If you 
 
 . On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find the artifact that contains the version you want to delete.
 . Click the artifact to view its details.
-. Click the *Versions* tab to view a list of all artifact versions.
+. On the *Overview* tab, find the version in the *Versions in artifact* list.
 . Find the version that you want to delete, and select *Delete version* from the Action menu (three vertical dots) for that version.
 . Confirm the deletion when prompted.
 
@@ -406,6 +566,34 @@ endif::[]
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+[id="changing-group-owner-using-console_{context}"]
+== Changing a group owner using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can transfer ownership of a group to another user account when responsibility for the group changes. Changing a group owner does not change the owners of artifacts in that group.
+
+.Prerequisites
+* You have a running {registry} instance with authentication enabled and write operations enabled in the web console and storage.
+* You have a group other than `default` with an assigned owner. The web console does not provide an owner field for the `default` group.
+* You have logged in to the web console as the current group owner with write access or as an administrator.
+* You have the username of the account that you want to assign as the group owner.
+
+.Procedure
+. On the *Explore* tab, click the group that you want to reassign.
+. On the *Overview* tab, click the pencil icon next to *Owner* in the *Group metadata* panel.
+. In the *Change owner* dialog, enter the account's username in *New owner*.
+. Click *Change owner*.
+
+.Verification
+* Verify that *Owner* in the *Group metadata* panel displays the new username.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:changing-artifact-owner-using-console_{context}[]
+* xref:configuring-settings-using-console_{context}[]
+
 
 [id="configuring-settings-using-console_{context}"]
 == Configuring {registry} settings using the web console

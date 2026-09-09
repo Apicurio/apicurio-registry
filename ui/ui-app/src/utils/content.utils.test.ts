@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { ContentTypes } from "@models/ContentTypes.ts";
 
 // Mock the artifact types service module: content.utils imports it only for the
 // ArtifactTypes constants, but loading the real module pulls the full service (and
@@ -9,7 +10,7 @@ vi.mock("@services/useArtifactTypesService.ts", () => ({
     }
 }));
 
-import { detectVersionInContent } from "./content.utils";
+import { detectVersionInContent, fileExtensionForContentType, fileExtensionForDraft } from "./content.utils";
 
 const OPENAPI_JSON: string = `{
     "openapi": "3.0.2",
@@ -97,5 +98,48 @@ describe("detectVersionInContent", () => {
 
     it("returns undefined for multi-document YAML", () => {
         expect(detectVersionInContent("openapi: 3.0.2\ninfo:\n    version: '1.0.0'\n---\nsecond: doc\n")).toBeUndefined();
+    });
+});
+
+describe("fileExtensionForContentType", () => {
+    it("maps known content types to file extensions", () => {
+        expect(fileExtensionForContentType(ContentTypes.APPLICATION_JSON)).toBe("json");
+        expect(fileExtensionForContentType(ContentTypes.APPLICATION_YAML)).toBe("yaml");
+        expect(fileExtensionForContentType(ContentTypes.APPLICATION_XML)).toBe("xml");
+        expect(fileExtensionForContentType(ContentTypes.TEXT_XML)).toBe("xml");
+        expect(fileExtensionForContentType(ContentTypes.APPLICATION_WSDL)).toBe("wsdl");
+        expect(fileExtensionForContentType(ContentTypes.APPLICATION_GRAPHQL)).toBe("graphql");
+        expect(fileExtensionForContentType(ContentTypes.APPLICATION_PROTOBUF)).toBe("proto");
+        expect(fileExtensionForContentType(ContentTypes.APPLICATION_THRIFT)).toBe("thrift");
+        expect(fileExtensionForContentType(ContentTypes.TEXT_PROMPT_TEMPLATE)).toBe("txt");
+    });
+
+    it("ignores response header parameters", () => {
+        expect(fileExtensionForContentType("application/x-yaml; charset=utf-8")).toBe("yaml");
+    });
+
+    it("falls back to text for missing or unknown content types", () => {
+        expect(fileExtensionForContentType(undefined)).toBe("txt");
+        expect(fileExtensionForContentType("application/vnd.example+json")).toBe("txt");
+    });
+});
+
+describe("fileExtensionForDraft", () => {
+    it("preserves the existing protobuf draft extension rule", () => {
+        expect(fileExtensionForDraft(
+            { type: "PROTOBUF" } as any,
+            { content: "syntax = \"proto3\";", contentType: ContentTypes.APPLICATION_PROTOBUF }
+        )).toBe("proto");
+    });
+
+    it("does not infer protobuf or thrift draft extensions from content type alone", () => {
+        expect(fileExtensionForDraft(
+            { type: "AVRO" } as any,
+            { content: "syntax = \"proto3\";", contentType: ContentTypes.APPLICATION_PROTOBUF }
+        )).toBe("txt");
+        expect(fileExtensionForDraft(
+            { type: "AVRO" } as any,
+            { content: "service Example {}", contentType: ContentTypes.APPLICATION_THRIFT }
+        )).toBe("txt");
     });
 });

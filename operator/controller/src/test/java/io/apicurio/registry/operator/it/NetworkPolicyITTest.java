@@ -14,9 +14,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 public class NetworkPolicyITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(NetworkPolicyITTest.class);

@@ -1,8 +1,13 @@
 import { NavigateFunction, useNavigate } from "react-router";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { effectiveNavPrefixPath as resolvePrefix } from "@services/useAppNavigation.utils.ts";
+
+const effectiveNavPrefixPath = (config: ConfigService): string => {
+    return resolvePrefix(config.uiNavPrefixPath() || "", config.uiContextPath() || "");
+};
 
 const navigateTo = (config: ConfigService, path: string, navigateFunc: NavigateFunction): void => {
-    const prefix: string = config.uiNavPrefixPath() || "";
+    const prefix: string = effectiveNavPrefixPath(config);
     const to: string = `${prefix}${path}`;
     console.debug("[UseAppNavigation] Navigating to: ", to);
     setTimeout(() => {
@@ -24,7 +29,7 @@ export const useAppNavigation: () => AppNavigation = (): AppNavigation => {
             return navigateTo(config, path, navigate);
         },
         createLink: (path: string) => {
-            const prefix: string = config.uiNavPrefixPath() || "";
+            const prefix: string = effectiveNavPrefixPath(config);
             return `${prefix}${path}`;
         },
     };

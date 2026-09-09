@@ -92,7 +92,8 @@ class AgentCardCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(), "Removing a skill should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("skill2")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("skill2")
+                        && "/skills".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -124,7 +125,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(), "Removing an interface should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
                 .anyMatch(d -> d.asRuleViolation().getDescription().contains("Interface")
-                        && d.asRuleViolation().getDescription().contains("removed")));
+                        && d.asRuleViolation().getDescription().contains("removed")
+                        && "/supportedInterfaces".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -163,7 +165,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Disabling a capability should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("pushNotifications")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("pushNotifications")
+                        && "/capabilities".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -192,7 +195,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Removing security scheme should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("apikey")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("apikey")
+                        && "/securitySchemes".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -227,7 +231,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Removing input modes should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("image")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("image")
+                        && "/modes".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -246,7 +251,8 @@ class AgentCardCompatibilityCheckerTest {
         assertFalse(result.isCompatible(),
                 "Removing output modes should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
-                .anyMatch(d -> d.asRuleViolation().getDescription().contains("json")));
+                .anyMatch(d -> d.asRuleViolation().getDescription().contains("json")
+                        && "/modes".equals(d.asRuleViolation().getContext())));
     }
 
     @Test
@@ -327,6 +333,188 @@ class AgentCardCompatibilityCheckerTest {
                 "Changing protocol version should be backward incompatible");
         assertTrue(result.getIncompatibleDifferences().stream()
                 .anyMatch(d -> d.asRuleViolation().getDescription()
-                        .contains("Protocol version changed")));
+                        .contains("Protocol version changed")
+                        && "/supportedInterfaces".equals(d.asRuleViolation().getContext())));
+    }
+
+    private static final String TRANSLATE_EXTENSION =
+            """
+            { "uri": "https://example.com/ext/translate", "description": "Translation" }""";
+    private static final String SUMMARISE_EXTENSION =
+            """
+            { "uri": "https://example.com/ext/summarise", "description": "Summarisation" }""";
+
+    private static String cardWithExtensions(String extensions) {
+        return baseCard(SKILL1, "").replace("\"capabilities\": {}",
+                "\"capabilities\": { \"extensions\": [" + extensions + "] }");
+    }
+
+    @Test
+    void testBackwardIncompatibleRemovingCapabilityExtension() {
+        String existing = cardWithExtensions(TRANSLATE_EXTENSION);
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing a declared capability extension should be backward incompatible");
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> d.asRuleViolation().getDescription()
+                        .contains("https://example.com/ext/translate")),
+                "The violation should name the removed extension uri");
+    }
+
+    @Test
+    void testBackwardIncompatibleRemovingOneOfSeveralCapabilityExtensions() {
+        String existing = cardWithExtensions(TRANSLATE_EXTENSION + "," + SUMMARISE_EXTENSION);
+        String proposed = cardWithExtensions(TRANSLATE_EXTENSION);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Removing one of several capability extensions should be backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size(),
+                "Only the removed extension should be reported");
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> d.asRuleViolation().getDescription()
+                        .contains("https://example.com/ext/summarise")));
+    }
+
+    @Test
+    void testCapabilityExtensionViolationIsReportedAgainstExtensionsPath() {
+        String existing = cardWithExtensions(TRANSLATE_EXTENSION);
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertEquals("/capabilities/extensions",
+                result.getIncompatibleDifferences().iterator().next().asRuleViolation().getContext());
+    }
+
+    @Test
+    void testBackwardCompatibleAddingCapabilityExtension() {
+        String existing = cardWithExtensions(TRANSLATE_EXTENSION);
+        String proposed = cardWithExtensions(TRANSLATE_EXTENSION + "," + SUMMARISE_EXTENSION);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Adding a capability extension should be backward compatible");
+    }
+
+    @Test
+    void testBackwardCompatibleRetainingCapabilityExtension() {
+        String existing = cardWithExtensions(TRANSLATE_EXTENSION);
+        String proposed = cardWithExtensions(TRANSLATE_EXTENSION).replace(
+                "\"description\": \"Translation\"", "\"description\": \"Translation v2\"");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Keeping an extension uri while editing its description should stay compatible");
+    }
+
+    @Test
+    void testCapabilityExtensionWithoutUriIsIgnored() {
+        String existing = cardWithExtensions("{ \"description\": \"Anonymous extension\" }");
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "An extension with no uri cannot be tracked, so it should not be reported");
+    }
+
+    @Test
+    void testCapabilityExtensionWithNonTextualUriIsIgnored() {
+        String existing = cardWithExtensions("{ \"uri\": 42 }");
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "A non-textual uri is not an identity, so it should not be reported");
+    }
+
+    @Test
+    void testCapabilityExtensionWithBlankUriIsIgnored() {
+        String existing = cardWithExtensions("{ \"uri\": \"   \" }, { \"uri\": \"\" }");
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "A blank uri is not an identity, so it should not be reported as a removal");
+    }
+
+    @Test
+    void testBackwardIncompatibleRenamingCapabilityExtensionUri() {
+        String existing = cardWithExtensions(TRANSLATE_EXTENSION);
+        String proposed = cardWithExtensions(SUMMARISE_EXTENSION);
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Changing an extension uri drops the old one, so it is backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size(),
+                "The new uri counts as an add, so only the old uri is a removal");
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> d.asRuleViolation().getDescription()
+                        .contains("https://example.com/ext/translate")));
+    }
+
+    @Test
+    void testBooleanCapabilitiesStillCheckedAlongsideExtensions() {
+        String existing = baseCard(SKILL1, "").replace("\"capabilities\": {}",
+                "\"capabilities\": { \"streaming\": true, \"extensions\": [" + TRANSLATE_EXTENSION
+                        + "] }");
+        String proposed = baseCard(SKILL1, "").replace("\"capabilities\": {}",
+                "\"capabilities\": { \"streaming\": false }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible());
+        assertEquals(2, result.getIncompatibleDifferences().size(),
+                "Both the disabled boolean capability and the removed extension should be reported");
     }
 }

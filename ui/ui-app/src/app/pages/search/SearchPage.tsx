@@ -14,7 +14,7 @@ import {
     toPageError, SearchGroupList, SearchVersionList
 } from "@app/pages";
 import { RootPageHeader } from "@app/components";
-import { If, ListWithToolbar } from "@apicurio/common-ui-components";
+import { If, ListWithToolbar } from "@apitomy/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy, SearchFilter, useSearchService } from "@services/useSearchService.ts";

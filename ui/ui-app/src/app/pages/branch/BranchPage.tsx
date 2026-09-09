@@ -12,7 +12,7 @@ import {
     toPageError
 } from "@app/pages";
 import { ConfirmDeleteModal, EditMetaDataModal, IfFeature, MetaData, RootPageHeader } from "@app/components";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
@@ -118,6 +118,7 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();

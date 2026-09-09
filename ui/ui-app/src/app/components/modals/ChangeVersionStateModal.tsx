@@ -12,7 +12,7 @@ import {
     Modal
 } from "@patternfly/react-core/deprecated";
 import { VersionState, VersionStateObject } from "@sdk/lib/generated-client/models";
-import { ObjectSelect } from "@apicurio/common-ui-components";
+import { ObjectSelect } from "@apitomy/common-ui-components";
 
 
 /**

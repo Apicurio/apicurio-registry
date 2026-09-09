@@ -3,6 +3,7 @@ package io.apicurio.registry.events;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import org.json.JSONObject;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
@@ -11,18 +12,22 @@ public class ArtifactDeleted extends OutboxEvent {
 
     private final JSONObject eventPayload;
 
-    private ArtifactDeleted(String id, String aggregateId, JSONObject eventPayload) {
-        super(id, aggregateId);
+    private ArtifactDeleted(String id, String aggregateId, JSONObject eventPayload, Instant timestamp) {
+        super(id, aggregateId, timestamp);
         this.eventPayload = eventPayload;
     }
 
     public static ArtifactDeleted of(String groupId, String artifactId) {
+        return of(groupId, artifactId, Instant.now());
+    }
+
+    public static ArtifactDeleted of(String groupId, String artifactId, Instant timestamp) {
         String id = UUID.randomUUID().toString();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId).put("eventType",
                 ARTIFACT_DELETED.name());
 
-        return new ArtifactDeleted(id, groupId + "-" + artifactId, jsonObject);
+        return new ArtifactDeleted(id, groupId + "-" + artifactId, jsonObject, timestamp);
     }
 
     @Override

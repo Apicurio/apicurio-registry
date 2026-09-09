@@ -222,8 +222,7 @@ public class DebeziumDeploymentManager {
         kubernetesClient.load(DebeziumDeploymentManager.class.getResourceAsStream(resourcePath))
                 .serverSideApply();
 
-        // Wait for all pods to be ready (6 minute timeout)
-        kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, java.util.concurrent.TimeUnit.SECONDS);
+        RegistryDeploymentManager.waitForAllPodsReady();
     }
 
     /**
@@ -434,9 +433,8 @@ public class DebeziumDeploymentManager {
                     modifiedManifest.getBytes(java.nio.charset.StandardCharsets.UTF_8)
             )).serverSideApply();
 
-            // Wait for all pods to be ready (including initContainer completion)
             LOGGER.info("Waiting for Debezium Connect pod to be ready (including initContainer)...");
-            kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, java.util.concurrent.TimeUnit.SECONDS);
+            RegistryDeploymentManager.waitForAllPodsReady();
 
             LOGGER.info("Debezium Connect with local converters deployed successfully");
 

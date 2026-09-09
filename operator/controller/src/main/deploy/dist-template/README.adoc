@@ -21,6 +21,8 @@ Apply the installation file:
 ----
 cat install/install.yaml | sed "s/PLACEHOLDER_NAMESPACE/$NAMESPACE/g" | kubectl -n $NAMESPACE apply -f -
 ----
++
+NOTE: `install/install.yaml` grants the operator cluster-wide RBAC and watches all namespaces. For a single-namespace, least-privilege deployment, apply `install/install-namespaced.yaml` the same way instead (`cat install/install-namespaced.yaml | sed "s/PLACEHOLDER_NAMESPACE/$NAMESPACE/g" | kubectl -n $NAMESPACE apply -f -`); it uses namespace-scoped RBAC and the operator watches only `$NAMESPACE`.
 
 == How to Install the Registry
 

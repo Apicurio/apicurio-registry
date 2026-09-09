@@ -15,7 +15,7 @@ import {
 } from "@patternfly/react-core";
 import { GroupMetaData, Rule } from "@sdk/lib/generated-client/models";
 import { WarningTriangleIcon } from "@patternfly/react-icons";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 /**
  * Properties
@@ -50,7 +50,7 @@ export const GroupRulesTabContent: FunctionComponent<GroupRulesTabContentProps> 
             </If>
             <If condition={props.group.groupId !== "default"}>
                 <div className="group-rules">
-                    <Card variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>
                             <div className="rules-label">Group-specific rules</div>
                         </CardTitle>

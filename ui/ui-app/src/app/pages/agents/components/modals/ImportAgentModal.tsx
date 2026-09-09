@@ -16,7 +16,7 @@ import {
 } from "@patternfly/react-core";
 import { Modal } from "@patternfly/react-core/deprecated";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
-import { UrlUpload } from "@apicurio/common-ui-components";
+import { UrlUpload } from "@apitomy/common-ui-components";
 import { AgentCard, AgentCardViewer } from "@app/components/agentCard";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
@@ -73,6 +73,16 @@ export const ImportAgentModal: FunctionComponent<ImportAgentModalProps> = (props
                 setFetchError("The agent card must have a \"name\" field of type string.");
                 setParsedCard(undefined);
                 return;
+            }
+            if (Array.isArray(card.skills)) {
+                const skillIds = card.skills
+                    .map((skill: { id?: string }) => skill?.id?.trim())
+                    .filter((id: string | undefined) => id !== undefined && id !== "");
+                if (new Set(skillIds).size !== skillIds.length) {
+                    setFetchError("The agent card contains skills with duplicate IDs. Skill IDs must be unique.");
+                    setParsedCard(undefined);
+                    return;
+                }
             }
             setParsedCard(card as AgentCard);
         } catch {

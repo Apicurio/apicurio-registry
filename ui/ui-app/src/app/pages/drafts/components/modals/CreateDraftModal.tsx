@@ -26,7 +26,7 @@ import {
 import {
     Modal
 } from "@patternfly/react-core/deprecated";
-import { If, ObjectSelect, UrlUpload } from "@apicurio/common-ui-components";
+import { If, ObjectSelect, UrlUpload } from "@apitomy/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { detectContentType } from "@utils/content.utils.ts";

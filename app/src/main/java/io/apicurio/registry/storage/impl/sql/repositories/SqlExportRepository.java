@@ -346,7 +346,7 @@ public class SqlExportRepository {
         if (!StringUtil.isEmpty(location)) {
             log.debug("Creating internal database snapshot to location {}.", location);
             handles.withHandleNoException(handle -> {
-                handle.createQuery(sqlStatements.createDataSnapshot()).bind(0, location).mapTo(String.class)
+                handle.createQuery(sqlStatements.createDataSnapshot(location)).bind(0, location).mapTo(String.class)
                         .first();
             });
             return location;

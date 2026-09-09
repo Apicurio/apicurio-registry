@@ -24,10 +24,12 @@ import {
     IfFeature,
     InvalidContentModal,
     MetaData,
-    RootPageHeader
+    RootPageHeader,
+    TestVersionModal,
+    TestVersionSuccessModal
 } from "@app/components";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { PleaseWaitModal } from "@apicurio/common-ui-components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
@@ -35,6 +37,7 @@ import { DownloadService, useDownloadService } from "@services/useDownloadServic
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import {
     ArtifactMetaData,
+    CreateVersion,
     Labels,
     RuleViolationProblemDetails,
     SearchedVersion,
@@ -50,6 +53,7 @@ import {
 } from "@app/pages/drafts/components/modals";
 import { EditAgentModal } from "@app/pages/agents/components";
 import { AgentCard } from "@app/components/agentCard";
+import { isErrorStatus } from "@utils/rest.utils.ts";
 
 
 /**
@@ -72,6 +76,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
+    const [isTestVersionModalOpen, setIsTestVersionModalOpen] = useState(false);
+    const [isTestVersionSuccessModalOpen, setIsTestVersionSuccessModalOpen] = useState(false);
     const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
     const [isEditAgentCardModalOpen, setIsEditAgentCardModalOpen] = useState(false);
 
@@ -94,19 +100,10 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         activeTabKey = "documentation";
     }
 
-    const is404 = (e: any) => {
-        if (typeof e === "string") {
-            try {
-                const eo: any = JSON.parse(e);
-                if (eo && eo.status && eo.status === 404) {
-                    return true;
-                }
-            } catch {
-                // Do nothing
-            }
-        }
-        return false;
-    };
+    // Note: the SDK's generated client throws structured error objects (with a
+    // `responseStatusCode` or `status` field), not JSON strings, so status checks
+    // must go through the shared isErrorStatus() helper rather than JSON.parse().
+    const is404 = (e: any) => isErrorStatus(e, 404);
 
     const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
         let gid: string|null = groupId as string;
@@ -336,6 +333,23 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         setIsInvalidContentModalOpen(true);
     };
 
+    const doTestVersion = (data: CreateVersion): void => {
+        setIsTestVersionModalOpen(false);
+        pleaseWait(true, "Testing content, please wait...");
+        const gid: string | null = (groupId === "default") ? null : (groupId as string);
+        groups.testArtifactVersion(gid, artifactId as string, data).then(() => {
+            pleaseWait(false);
+            setIsTestVersionSuccessModalOpen(true);
+        }).catch(error => {
+            pleaseWait(false);
+            if (error && (error.status === 400 || error.status === 409) && Array.isArray(error.causes)) {
+                handleInvalidContentError(error);
+            } else {
+                setPageError(toPageError(error, "Error testing content."));
+            }
+        });
+    };
+
     const doFinalizeDraft = (draft: Draft, dryRun?: boolean): void => {
         setIsConfirmFinalizeModalOpen(false);
         pleaseWait(true, "Finalizing draft, please wait...");
@@ -404,6 +418,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
         return () => guard.cancel();
@@ -494,6 +509,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                         onCreateDraftFrom={() => {
                             setIsCreateDraftFromModalOpen(true);
                         }}
+                        onTest={() => setIsTestVersionModalOpen(true)}
                         artifact={artifact}
                         version={artifactVersion}
                         codegenEnabled={true}
@@ -543,6 +559,16 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                     setInvalidContentError(undefined);
                     setIsInvalidContentModalOpen(false);
                 }} />
+            <TestVersionModal
+                artifactType={artifact?.artifactType as string}
+                isOpen={isTestVersionModalOpen}
+                onClose={() => setIsTestVersionModalOpen(false)}
+                onTest={doTestVersion}
+            />
+            <TestVersionSuccessModal
+                isOpen={isTestVersionSuccessModalOpen}
+                onClose={() => setIsTestVersionSuccessModalOpen(false)}
+            />
             <NewDraftFromModal
                 isOpen={isCreateDraftFromModalOpen}
                 onClose={() => setIsCreateDraftFromModalOpen(false)}

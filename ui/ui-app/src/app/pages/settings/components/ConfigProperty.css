@@ -14,7 +14,7 @@
 
 .configuration-property .property-name {
     font-weight: bold;
-    color: #333;
+    color: var(--pf-t--global--text--color--regular, #333);
     margin-bottom: 5px;
 }
 .configuration-property .property-description {

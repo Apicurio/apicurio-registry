@@ -42,7 +42,7 @@ public class KubernetesOpsRegistryStorage extends AbstractPollingRegistryStorage
     @Inject
     Event<StorageEvent> storageEvent;
 
-    @ConfigProperty(name = "apicurio.storage.kind")
+    @ConfigProperty(name = "apicurio.storage.kind", defaultValue = "sql")
     @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops", availableSince = "3.0.0")
     String registryStorageType;
 

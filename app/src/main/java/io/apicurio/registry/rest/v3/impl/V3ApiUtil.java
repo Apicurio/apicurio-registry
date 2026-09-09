@@ -83,9 +83,8 @@ public final class V3ApiUtil {
             return null;
         }
 
-        String contractId = detectContractId(labels);
-        String p = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+        String contractId = ContractLabels.findContractId(labels);
+        String p = ContractLabels.prefixFor(contractId);
 
         ContractMetadata cm = new ContractMetadata();
         String status = labels.get(p + ContractLabels.SUFFIX_STATUS);
@@ -115,22 +114,8 @@ public final class V3ApiUtil {
         cm.setStableDate(labels.get(p + ContractLabels.SUFFIX_STABLE_DATE));
         cm.setDeprecatedDate(labels.get(p + ContractLabels.SUFFIX_DEPRECATED_DATE));
         cm.setDeprecationReason(labels.get(p + ContractLabels.SUFFIX_DEPRECATION_REASON));
+        cm.setCompatibilityGroup(labels.get(p + ContractLabels.SUFFIX_COMPATIBILITY_GROUP));
         return cm;
-    }
-
-    private static String detectContractId(Map<String, String> labels) {
-        String suffix = "." + ContractLabels.SUFFIX_ID;
-        for (Map.Entry<String, String> entry : labels.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
-                String middle = key.substring(ContractLabels.PREFIX.length(),
-                        key.length() - suffix.length());
-                if (!middle.isEmpty() && !middle.contains(".")) {
-                    return entry.getValue();
-                }
-            }
-        }
-        return null;
     }
 
     /**

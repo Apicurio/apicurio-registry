@@ -220,7 +220,8 @@ the SSH port. Do not expose the SSH port outside the cluster unless necessary.
 |--------|------------|
 | Malicious content in repository | The registry validates all data during loading. Invalid files cause a load failure, and the registry continues serving the last known good data (blue-green swap is not performed). |
 | Force-push erasing history | Shallow clones (`--depth 1`) limit exposure. The registry reads from pinned commit SHAs, so concurrent force-pushes do not corrupt in-flight reads. |
-| Symlink attacks in repository | JGit (used by the registry) does not follow symlinks when reading Git objects. The registry reads from the Git object store, not the working tree. |
+| Symlink attacks in repository (read path) | JGit (used by the registry) does not follow symlinks when reading Git objects. The registry reads schema/artifact content from the Git object store, not the working tree — so a symlink committed to the repository is not dereferenced when data is loaded. |
+| Symlink attacks in repository (validation working tree) | Dry-run validation clones a ref into a working tree on the shared volume and cleans it up afterwards. This cleanup operates on the working tree (not the object store), so the object-store guarantee above does **not** cover it: cleanup treats symlinks as links and deletes only the link itself (never following it), and the checkout path is confined to the per-task directory. Keep the shared volume dedicated to GitOps. (When dry-run validation is enabled the registry writes request files under `validate/`, so it needs write access to that path — see the read-only note in Recommendations.) |
 
 ### Log Sanitization
 
@@ -233,6 +234,9 @@ only file paths are shown.
 ### Recommendations for Production Deployments
 
 1. **Use read-only volume mounts** — mount the shared volume as `:ro` in the registry container.
+   If dry-run validation is enabled, the registry must be able to write request files under
+   `validate/`; keep that path writable (e.g. a separate mount/subpath) rather than mounting the
+   whole volume read-only.
 2. **Provide known_hosts** — avoid TOFU by pre-populating the known_hosts file.
 3. **Use Kubernetes Secrets** — mount SSH keys as Kubernetes Secrets, not ConfigMaps.
 4. **Restrict network access** — use NetworkPolicy to limit SSH server exposure (push mode).

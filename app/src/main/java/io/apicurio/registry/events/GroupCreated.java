@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import org.json.JSONObject;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.StorageEventType.GROUP_CREATED;
@@ -11,8 +12,8 @@ import static io.apicurio.registry.storage.StorageEventType.GROUP_CREATED;
 public class GroupCreated extends OutboxEvent {
     private final JSONObject eventPayload;
 
-    private GroupCreated(String id, String aggregateId, JSONObject eventPayload) {
-        super(id, aggregateId);
+    private GroupCreated(String id, String aggregateId, JSONObject eventPayload, Instant timestamp) {
+        super(id, aggregateId, timestamp);
         this.eventPayload = eventPayload;
     }
 
@@ -22,7 +23,8 @@ public class GroupCreated extends OutboxEvent {
         jsonObject.put("id", id).put("groupId", groupMetaDataDto.getGroupId()).put("eventType",
                 GROUP_CREATED.name());
 
-        return new GroupCreated(id, groupMetaDataDto.getGroupId(), jsonObject);
+        Instant timestamp = Instant.ofEpochMilli(groupMetaDataDto.getCreatedOn());
+        return new GroupCreated(id, groupMetaDataDto.getGroupId(), jsonObject, timestamp);
     }
 
     @Override

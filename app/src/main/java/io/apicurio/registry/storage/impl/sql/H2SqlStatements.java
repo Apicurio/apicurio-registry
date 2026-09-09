@@ -82,8 +82,24 @@ public class H2SqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String createDataSnapshot(String location) {
+        if (location != null && location.endsWith(COMPRESSED_SNAPSHOT_EXTENSION)) {
+            return "SCRIPT TO ? COMPRESSION GZIP";
+        }
+        return createDataSnapshot();
+    }
+
+    @Override
     public String restoreFromSnapshot() {
         return "RUNSCRIPT FROM ?";
+    }
+
+    @Override
+    public String restoreFromSnapshot(String location) {
+        if (location != null && location.endsWith(COMPRESSED_SNAPSHOT_EXTENSION)) {
+            return "RUNSCRIPT FROM ? COMPRESSION GZIP";
+        }
+        return restoreFromSnapshot();
     }
 
     @Override

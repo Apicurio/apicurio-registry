@@ -12,6 +12,7 @@ import org.apache.xml.security.parser.XMLParserException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -43,7 +44,7 @@ public class XmlContentCanonicalizer implements ContentCanonicalizer {
             Canonicalizer canon = xmlCanonicalizer.get();
             var out = new ByteArrayOutputStream(content.getContent().getSizeBytes());
             canon.canonicalize(content.getContent().bytes(), out, false); // TODO secureValidation?
-            var canonicalized = out.toString(Canonicalizer.ENCODING);
+            var canonicalized = out.toString(StandardCharsets.UTF_8);
             return TypedContent.create(ContentHandle.create(canonicalized), ContentTypes.APPLICATION_XML);
         } catch (CanonicalizationException | IOException | XMLParserException e) {
         }

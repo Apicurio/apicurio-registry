@@ -8,6 +8,8 @@ import java.util.List;
  */
 public interface SqlStatements {
 
+    String COMPRESSED_SNAPSHOT_EXTENSION = ".sql.gz";
+
     /**
      * Gets the database type associated with these statements.
      */
@@ -435,6 +437,13 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
+     * A statement to select the bytes of a content row by contentId, joined with one artifact version that
+     * references it, so that the artifact type can be returned in the same query. Returns no rows if the
+     * content does not exist or if it is orphaned (not referenced by any artifact version).
+     */
+    public String selectContentAndArtifactTypeById();
+
+    /**
      * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
      * is replaced at runtime with OR conditions for each reference.
      */
@@ -666,6 +675,8 @@ public interface SqlStatements {
 
     public String insertConfigProperty();
 
+    public String upsertConfigProperty();
+
     public String deleteAllConfigProperties();
 
     public String selectConfigPropertyByName();
@@ -726,7 +737,23 @@ public interface SqlStatements {
 
     public String createDataSnapshot();
 
+    /**
+     * Returns the SQL statement to create a data snapshot at the given location, optionally
+     * applying compression based on the file extension.
+     */
+    default String createDataSnapshot(String location) {
+        return createDataSnapshot();
+    }
+
     public String restoreFromSnapshot();
+
+    /**
+     * Returns the SQL statement to restore from a snapshot at the given location, optionally
+     * applying decompression based on the file extension.
+     */
+    default String restoreFromSnapshot(String location) {
+        return restoreFromSnapshot();
+    }
 
     // ========== Events ==========
 

@@ -2,7 +2,7 @@ import React, { FunctionComponent, useState } from "react";
 import "./ConfigProperty.css";
 import { Button, Flex, FlexItem, Switch } from "@patternfly/react-core";
 import { PropertyInput } from "@app/pages";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { CheckIcon, CloseIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
 

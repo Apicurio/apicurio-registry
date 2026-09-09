@@ -23,11 +23,11 @@ include::{mod-loc}shared/all-attributes.adoc[]
 | Contents
 | Example
 
-| *Minor* (e.g., 3.3.0 -> 3.4.0)
+| *Minor* (for example, 3.3.0 to 3.4.0)
 | New features, enhancements, and bug fixes
 | Scheduled development milestones
 
-| *Patch* (e.g., 3.3.0 -> 3.3.1)
+| *Patch* (for example, 3.3.0 to 3.3.1)
 | CVE and security fixes only
 | Dependency upgrades, security patches
 |===
@@ -42,9 +42,11 @@ They are limited to changes that address known security vulnerabilities.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} maintains the *two most recent minor versions* with security patches.
+{registry} maintains the two most recent minor versions with security patches.
 
 When a new minor version is released, the oldest supported minor version reaches end-of-life and no longer receives updates.
+
+The following example illustrates how the support window moves forward as new minor versions are released. Version numbers after the current release are illustrative, not announcements.
 
 .Example support timeline
 [cols="1,1,1", options="header"]
@@ -57,7 +59,7 @@ When a new minor version is released, the oldest supported minor version reaches
 | 3.3.x, 3.2.x
 | 3.1.x and older
 
-| 3.4.0 released
+| Next minor release (a future 3.4.0)
 | 3.4.x, 3.3.x
 | 3.2.x and older
 |===
@@ -91,7 +93,7 @@ Choose the channel type that matches how you deploy {registry}: container images
 | Pinned to an exact release. Never changes.
 
 | `3.3`
-| Floating tag that always points to the latest patch in the 3.3.x series (e.g., 3.3.0 -> 3.3.1 -> 3.3.2).
+| Floating tag that always points to the latest patch in the 3.3.x series (for example, 3.3.0, then 3.3.1, then 3.3.2).
 
 | `latest` / `latest-release`
 | Always points to the most recent stable release across all minor versions.
@@ -100,7 +102,7 @@ Choose the channel type that matches how you deploy {registry}: container images
 | Most recent build from the `main` branch. Unstable and not recommended for production.
 |===
 
-Use the minor-series floating tag (e.g., `3.3`) to automatically receive security patches without upgrading to a new minor version.
+Use the minor-series floating tag (for example, `3.3`) to automatically receive security patches without upgrading to a new minor version.
 
 
 [id="olm-channels_{context}"]
@@ -109,7 +111,7 @@ Use the minor-series floating tag (e.g., `3.3`) to automatically receive securit
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-If you deploy {registry} using the {operator}, each minor version has its own OLM channel.
+If you deploy {registry} by using the {operator}, each minor version has its own OLM channel.
 
 [cols="1,3", options="header"]
 |===
@@ -123,7 +125,7 @@ If you deploy {registry} using the {operator}, each minor version has its own OL
 | Rolling channel that always tracks the latest minor version.
 |===
 
-Subscribe to a minor-version channel (e.g., `3.3.x`) for stability, or to the `3.x` rolling channel to always receive the latest features.
+Subscribe to a minor-version channel (for example, `3.3.x`) for stability, or to the `3.x` rolling channel to always receive the latest features.
 
 
 [id="upgrading-registry_{context}"]
@@ -151,8 +153,7 @@ Always back up your database before upgrading to a new minor version.
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-Patch upgrades (e.g., 3.3.0 -> 3.3.1) are safe and always recommended.
-They contain only CVE fixes and do not introduce behavioral changes.
+You can apply a patch upgrade (for example, 3.3.0 to 3.3.1) at any time. Patch releases contain only CVE fixes and do not introduce behavioral changes.
 
 .Procedure
 . Back up your database.
@@ -166,7 +167,7 @@ They contain only CVE fixes and do not introduce behavioral changes.
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-Minor upgrades (e.g., 3.3.x -> 3.4.0) include new features, enhancements, and bug fixes.
+You can upgrade to a new minor version (for example, from 3.3.x to the next minor release) to receive new features, enhancements, and bug fixes.
 
 .Procedure
 . Review the release notes for the target version to understand new features and any behavioral changes.
@@ -182,8 +183,7 @@ Minor upgrades (e.g., 3.3.x -> 3.4.0) include new features, enhancements, and bu
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Upgrading across multiple minor versions (e.g., 3.2.x -> 3.4.x) is supported.
-Database migrations are cumulative and applied in order on startup.
+You can upgrade across multiple minor versions in one step (for example, from 3.2.x directly to a later minor version). Database migrations are cumulative, and {registry} applies them in order on startup.
 
 Review the release notes for all intermediate versions to understand the full set of changes.
 
@@ -194,12 +194,12 @@ Review the release notes for all intermediate versions to understand the full se
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-{registry} does *not* support downgrades.
+{registry} does not support downgrades.
 
 Database schema migrations are forward-only and irreversible.
-Starting an older version of {registry} against a database that has been migrated to a newer schema version will fail.
+Starting an older version of {registry} against a database that has been migrated to a newer schema version fails.
 
-If you deploy {registry} using the {operator}, switching to an older OLM channel is also not supported.
+If you deploy {registry} by using the {operator}, switching to an older OLM channel is also not supported.
 
 
 [id="handling-failed-upgrade_{context}"]
@@ -218,7 +218,7 @@ If an upgrade introduces issues, restore your {registry} deployment from the dat
 +
 [IMPORTANT]
 ====
-Do *not* attempt to manually revert database schema changes.
+Do not attempt to manually revert database schema changes.
 ====
 
 
@@ -242,6 +242,8 @@ For KafkaSQL deployments, back up both the Kafka topic data and the SQL snapshot
 . Store the backup in a secure location.
 . Verify that the backup can be restored before proceeding with the upgrade.
 
+ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * xref:registry-migration_{context}[Migrating from {registry} {registry-v2} to {registry} 3.x]
+endif::[]

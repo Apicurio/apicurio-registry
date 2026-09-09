@@ -47,7 +47,12 @@ public class KafkaSqlCoordinator {
      */
     public Object waitForResponse(UUID uuid) {
         try {
-            latches.get(uuid).await(configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            boolean completed = latches.get(uuid).await(
+                    configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            if (!completed) {
+                throw new RegistryException(
+                        "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
+            }
 
             Object rval = returnValues.remove(uuid);
             if (rval == NULL) {
@@ -63,6 +68,7 @@ public class KafkaSqlCoordinator {
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
         } finally {
             latches.remove(uuid);
+            returnValues.remove(uuid);
         }
     }
 
@@ -79,11 +85,14 @@ public class KafkaSqlCoordinator {
             return;
         }
 
+        // Retrieve the latch in a single atomic call to avoid a TOCTOU race where
+        // waitForResponse removes the latch between a containsKey check and a get.
         // If there is no countdown latch, then there is no HTTP thread waiting for
         // a response. This means one of two possible things:
         // 1) We're in a cluster and the HTTP thread is on another node
         // 2) We're starting up and consuming all the old journal entries
-        if (!latches.containsKey(uuid)) {
+        CountDownLatch latch = latches.get(uuid);
+        if (latch == null) {
             return;
         }
 
@@ -94,7 +103,7 @@ public class KafkaSqlCoordinator {
             returnValue = NULL;
         }
         returnValues.put(uuid, returnValue);
-        latches.get(uuid).countDown();
+        latch.countDown();
     }
 
 }

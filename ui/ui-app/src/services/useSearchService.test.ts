@@ -11,7 +11,7 @@ const { getRegistryClientMock } = vi.hoisted(() => {
     return { getRegistryClientMock: vi.fn() };
 });
 
-vi.mock("@apicurio/common-ui-components", () => ({
+vi.mock("@apitomy/common-ui-components", () => ({
     useAuth: () => ({})
 }));
 

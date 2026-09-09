@@ -24,7 +24,7 @@
 }
 
 .version-overview-tab-content .title-and-type .title {
-    color: #333;
+    color: var(--pf-t--global--text--color--regular, #333);
     font-size: 17px;
     font-weight: bold;
     line-height: 24px;

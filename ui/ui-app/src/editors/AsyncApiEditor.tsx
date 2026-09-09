@@ -1,10 +1,10 @@
-import React, { RefObject, useEffect } from "react";
+import React, { RefObject, useEffect, useMemo } from "react";
 import "./AsyncApiEditor.css";
 import { Editor as DraftEditor, EditorProps } from "./editor-types";
 import { parseJson, parseYaml, toJsonString, toYamlString } from "@utils/content.utils.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
-
+import { deriveOrigin } from "@utils/url.utils.ts";
 
 export type AsyncApiEditorProps = {
     className?: string;
@@ -26,10 +26,16 @@ export const AsyncApiEditor: DraftEditor = (props: AsyncApiEditorProps) => {
     }
 
     // TODO we have a lot of common functionality between the asyncapi and openapi editors.  Need to share!
+    const expectedOrigin = useMemo(() => {
+        return deriveOrigin(editorsUrl, window.location.origin);
+    }, [editorsUrl]);
     useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        const eventListener: any = (event) => {
+        const eventListener = (event: MessageEvent) => {
+            if (!expectedOrigin || event.origin !== expectedOrigin) {
+                return;
+            }
             if (event.data && event.data.type === "apicurio_onChange") {
                 let newContent: any = event.data.data.content;
                 if (typeof newContent === "object") {
@@ -84,7 +90,9 @@ export const AsyncApiEditor: DraftEditor = (props: AsyncApiEditorProps) => {
                 }
             }
         };
-        ref.current.contentWindow.postMessage(message, "*");
+        if (expectedOrigin) {
+            ref.current.contentWindow.postMessage(message, expectedOrigin);
+        }
     };
 
     return (

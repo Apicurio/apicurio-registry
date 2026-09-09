@@ -7,6 +7,7 @@ But first, read this page (including the small print at the end).
 
 * [Legal](#legal)
 * [Reporting an issue](#reporting-an-issue)
+* [Getting started and where to ask](#getting-started-and-where-to-ask)
 * [Before you contribute](#before-you-contribute)
   + [Code reviews](#code-reviews)
   + [Coding Guidelines](#coding-guidelines)
@@ -32,6 +33,26 @@ This project uses GitHub issues to manage the issues. Open an issue directly in 
 If you believe you found a bug, and it's likely possible, please indicate a way to reproduce it, what you are seeing and what you would expect to see.
 Don't forget to indicate your Apicurio Registry, Java, and Maven versions.
 
+For security vulnerabilities, please do not use GitHub issues. Instead, email
+[cncf-apicurio-registry-security@lists.cncf.io](mailto:cncf-apicurio-registry-security@lists.cncf.io).
+See [SECURITY.md](SECURITY.md) for details.
+
+For general questions and development discussions, use the
+[cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
+or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+
+## Getting started and where to ask
+
+New here? This section points you to the right place for whatever you need.
+
+**Not sure where a question belongs?** [SUPPORT.md](SUPPORT.md) maps each kind of question or report to the channel that will answer it fastest, from usage questions and bugs to feature ideas and security reports.
+
+**Looking for a first issue?** Browse issues labelled [`good first issue`](https://github.com/Apicurio/apicurio-registry/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [`help wanted`](https://github.com/Apicurio/apicurio-registry/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22). When you find one, follow [Claiming an issue](#claiming-an-issue) to self-assign before you start, and ask in the issue if anything is unclear.
+
+**Building and running the project** is covered in [DEVELOPING.md](DEVELOPING.md): prerequisites, build options, running the server, running tests, and IDE setup.
+
+**New to open source, or joining through a mentorship program?** You are very welcome. Apicurio Registry is a CNCF Sandbox project and takes part in programs such as [LFX Mentorship](https://mentorship.lfx.linuxfoundation.org/) and [CNCF Mentoring](https://github.com/cncf/mentoring); general guidance for new CNCF contributors is collected at [contribute.cncf.io](https://contribute.cncf.io/). The guidelines on this page apply equally to mentees and first-time contributors. When in doubt, just ask in the issue or on Slack.
+
 ## Before you contribute
 
 To contribute, use GitHub Pull Requests, from your **own** fork.
@@ -51,8 +72,8 @@ We may use this information to acknowledge your contributions!
 
 Before you start working on an issue, let us know so we don't end up with duplicate effort:
 
-1. **Comment on the issue** saying you'd like to work on it.
-2. **Wait for a maintainer to assign it to you.** We may have context on scope, dependencies, or ongoing work that affects the approach.
+1. **Comment on the issue** using `/assign-me` (or `/claim`) to self-assign, or ask if you have questions before claiming.
+2. **Assignment Limit:** Contributors can have a maximum of 3 open issues assigned concurrently. Use `/unassign-me` to release an issue.
 3. **If someone is already assigned**, don't open a competing PR — ask in the issue whether they need help or have moved on.
 4. **Stale assignments:** if an assigned issue has no PR and no update for two weeks, comment asking for a status update. If there's no response within a few days, a maintainer can reassign it.
 
@@ -66,7 +87,7 @@ All submissions, including submissions by project members, need to be reviewed b
 
 ### Coding Guidelines
 
- * We primarily use the Git history to track authorship. GitHub also has [this nice page with your contributions](https://github.com/quarkusio/quarkus/graphs/contributors).
+ * We primarily use the Git history to track authorship. GitHub also has [this nice page with your contributions](https://github.com/Apicurio/apicurio-registry/graphs/contributors).
  * Please take care to write code that fits with existing code styles.  For your convenience we have Formatters and/or Code Templates for both [Eclipse](https://github.com/Apicurio/apicurio-configs/tree/main/eclipse) and [IntelliJ](https://github.com/Apicurio/apicurio-configs/tree/main/intellij).
  * Commits should be atomic and semantic. Please properly squash your pull requests before submitting them. Fixup commits can be used temporarily during the review process but things should be squashed at the end to have meaningful commits.
  * We typically squash and merge pull requests when they are approved.  This tends to keep the commit history a little bit more tidy without placing undue burden on the developers.
@@ -75,35 +96,74 @@ All submissions, including submissions by project members, need to be reviewed b
 
 Because we are all humans, and to ensure Apicurio Registry is stable for everyone, all changes must pass continuous integration before being merged. Apicurio CI is based on GitHub Actions, which means that pull requests will receive automatic feedback.  Please watch out for the results of these workflows to see if your PR passes all tests.
 
+CI runs in two tiers:
+
+1. **Fast gate** (`Quick Check` workflow, ~5 min): runs on every push to every PR,
+   regardless of author or review state. Compiles the project (including test
+   sources) and runs the pure unit tests plus a curated app smoke set. This is what
+   gives you rapid feedback while iterating.
+2. **Full verification** (`Verify` workflow): the complete suite — build, unit
+   tests, CLI, SDKs, console plugin, integration tests, extra tests, operator
+   tests, and the Verification Gate (the single required check for merging). It
+   runs immediately for maintainers and other trusted authors (e.g. Renovate), or
+   once your PR has an approving review otherwise — not gated by any label a
+   maintainer has to apply. It also always runs on every push to `main`. If it
+   fails, the PR reverts to `lifecycle/ready-for-review` and `lifecycle/tested` is
+   cleared so it's clear a fresh fast-gate pass and review are needed again.
+
 ### Tests and documentation are not optional
 
 Don't forget to include tests in your pull requests.
 Also don't forget the documentation (reference documentation, javadoc...).
 
-Be sure to test your pull request using all storage variants:
+Be sure to test your pull request against the storage variants your change affects.
 
-1. SQL storage (using the `-Psql` profile)
-2. SQL Server storage (using the `-Pmssql` profile)
-3. KafkaSQL storage (using the `-Pkafkasql` profile)
+Since Apicurio Registry 3.0 a single build supports every storage variant, so the
+variant is selected at runtime rather than by a Maven profile
+(see [DEVELOPING.md](DEVELOPING.md#build-configuration)):
+
+| Storage variant                | Selected with                                                            |
+|--------------------------------|--------------------------------------------------------------------------|
+| SQL                            | `-Dapicurio.storage.kind=sql` (default)                                   |
+| KafkaSQL                       | `-Dapicurio.storage.kind=kafkasql`                                        |
+| GitOps (experimental)          | `-Dapicurio.storage.kind=gitops`                                          |
+| Kubernetes ConfigMap (experimental) | `-Dapicurio.storage.kind=kubernetesops`                              |
+
+For the SQL variant, the database flavor is chosen separately with
+`-Dapicurio.storage.sql.kind`, which accepts `h2` (default), `postgresql`, `mssql`,
+and `mysql`.
+
+Storage-specific unit tests live under the matching packages and can be run directly:
+
+```bash
+./mvnw test -pl app -Dtest='io.apicurio.registry.storage.impl.kafkasql.**'
+```
+
+Integration tests are opt-in and are documented in the
+[integration tests module](integration-tests/):
+
+```bash
+./mvnw verify -Pintegration-tests -pl integration-tests -am
+```
+
+CI runs the full storage matrix as the pre-merge gate, so running every variant
+locally is not required.
 
 ### Customizing Registry supported ArtifactTypes
 
-Apicurio Registry is a modular project and allows reuse of artifact types to extend and enhance functionality.
+The artifact types supported by a registry instance can be configured at deployment time, without
+changing the registry code, through a JSON file referenced by `apicurio.artifact-types.config-file`.
+Each custom type delegates its behaviour (content detection, validation, compatibility checking,
+canonicalization, ...) either to **webhooks** or to **Java classes** implementing the interfaces of
+`apicurio-registry-schema-util-common` (`ContentAccepter`, `ContentValidator`, `CompatibilityChecker`, ...).
 
-You can modify the currently supported artifact types and add new types by providing a higher priority implementation of `io.apicurio.registry.types.<my-type>.provider.ArtifactTypeUtilProviderImpl` to the dependency injection framework.
+Java providers are added to the container image by deriving from the `apicurio/apicurio-registry:VERSION-mutable`
+image (a re-augmentable Quarkus mutable-jar, produced with `-Dfull`), copying the jar into
+`/deployments/quarkus-app/providers/` and running `/deployments/build.sh`. See the
+["Configuring custom artifact types"](docs/modules/ROOT/pages/getting-started/assembly-custom-artifact-types.adoc)
+documentation and the [custom-artifact-types example](examples/custom-artifact-types/) for a complete walkthrough.
 
-In [this GitHub repository](https://github.com/andreaTP/apicurio-registry-with-bigquery-example), you can find an example where we add demo `BigQuery` support.
-
-The important parts are as follows:
-
- - Use [Apicurio Registry as a dependency](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/pom.xml#L45-L49)
- - Provide a [higher priority `ArtifactTypeUtilProviderImpl`](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L30-L33)
- - [Update the provider list](https://github.com/andreaTP/apicurio-registry-with-bigquery-example/blob/66c5d18d9c0b5e246597b79e5c5b82a54752a65d/src/main/java/io/apicurio/registry/types/bigquery/provider/ArtifactTypeUtilProviderImpl.java#L48) in the constructor to include the additional artifact type
-
-**NOTES:**
-
-- When creating an artifact of a type that is not included in the default, you must _always_ specify the appropriate artifact type.
-- The registry UI will show the plain name of the additional type and won't have an appropriate icon to identify it.
+**NOTE:** The registry UI shows the plain name of a custom type and has no dedicated icon for it.
 
 ## Versioning & Release Cycle
 

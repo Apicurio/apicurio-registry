@@ -8,7 +8,7 @@
     width: 100%;
 }
 
-.references-toolbar .filter-types-toggle span.pf-v5-c-menu-toggle__text {
+.references-toolbar .filter-types-toggle span.pf-v6-c-menu-toggle__text {
     width: 125px;
     text-align: left;
 }
@@ -21,7 +21,7 @@
     margin-left: 16px;
 }
 
-.references-toolbar .view-mode-toggle-item .pf-v5-c-toggle-group__button {
+.references-toolbar .view-mode-toggle-item .pf-v6-c-toggle-group__button {
     padding-left: 12px;
     padding-right: 12px;
 }

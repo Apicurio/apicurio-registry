@@ -328,6 +328,211 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(404);
     }
 
+    private static final String COMPAT_SOURCE_TOOL = """
+            {
+                "name": "db_search",
+                "title": "Database Search",
+                "description": "Search product database",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": { "type": "string" },
+                        "limit": { "type": "integer" }
+                    },
+                    "required": ["query"]
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "records": { "type": "array" },
+                        "total": { "type": "integer" }
+                    },
+                    "required": ["records", "total"]
+                }
+            }
+            """;
+
+    private static final String COMPAT_MATCHING_TOOL = """
+            {
+                "name": "record_processor",
+                "title": "Record Processor",
+                "description": "Process search result records",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "records": { "type": "array" },
+                        "total": { "type": "integer" },
+                        "format": { "type": "string" }
+                    },
+                    "required": ["records"]
+                }
+            }
+            """;
+
+    private static final String COMPAT_INCOMPATIBLE_TOOL = """
+            {
+                "name": "incompatible_processor",
+                "title": "Incompatible Processor",
+                "description": "Expects records to be string not array",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "records": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
+    private static final String COMPAT_NO_OUTPUT_TOOL = """
+            {
+                "name": "sink_tool",
+                "title": "Sink Tool",
+                "description": "Consumes inputs without producing structured output",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "data": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
+    private static final String PAGINATED_SOURCE_TOOL = """
+            {
+                "name": "paginated_source",
+                "title": "Paginated Source Tool",
+                "description": "Produces unique pagination output property",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "unique_page_field": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
+    private static final String PAGINATED_COMPATIBLE_TOOL = """
+            {
+                "name": "paginated_compat",
+                "title": "Paginated Compatible Tool",
+                "description": "Consumes unique pagination output property",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "unique_page_field": { "type": "string" }
+                    }
+                }
+            }
+            """;
+
+    @Test
+    public void testFindCompatibleToolsSuccess() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "source-db-search";
+        String candidateId = "candidate-processor";
+        String incompatibleId = "incompatible-proc";
+
+        createMcpTool(groupId, sourceId, COMPAT_SOURCE_TOOL);
+        createMcpTool(groupId, candidateId, COMPAT_MATCHING_TOOL);
+        createMcpTool(groupId, incompatibleId, COMPAT_INCOMPATIBLE_TOOL);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("tools", hasSize(1))
+                .body("tools[0].artifactId", equalTo(candidateId));
+    }
+
+    @Test
+    public void testFindCompatibleToolsNoOutputSchema() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "no-output-source";
+        createMcpTool(groupId, sourceId, COMPAT_NO_OUTPUT_TOOL);
+
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0))
+                .body("tools", hasSize(0));
+    }
+
+    @Test
+    public void testFindCompatibleToolsSourceNotFound() {
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", "nonexistent-group")
+                .pathParam("artifactId", "nonexistent-tool")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testFindCompatibleToolsPagination() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "paginated-source";
+
+        // Create two compatible candidates so we can paginate
+        createMcpTool(groupId, sourceId, PAGINATED_SOURCE_TOOL);
+        createMcpTool(groupId, "compat-page-1", PAGINATED_COMPATIBLE_TOOL);
+        createMcpTool(groupId, "compat-page-2", PAGINATED_COMPATIBLE_TOOL);
+
+        // Full result: 2 compatible tools, count reflects total
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .queryParam("offset", 0)
+                .queryParam("limit", 100)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("tools", hasSize(2));
+
+        // Paginated result: limit=1 returns only one tool but count stays total
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .queryParam("offset", 0)
+                .queryParam("limit", 1)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("tools", hasSize(1));
+
+        // Offset beyond results: empty page, count unchanged
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .queryParam("offset", 100)
+                .queryParam("limit", 10)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(2))
+                .body("tools", hasSize(0));
+    }
+
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);

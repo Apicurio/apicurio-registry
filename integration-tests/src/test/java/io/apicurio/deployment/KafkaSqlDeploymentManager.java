@@ -1,7 +1,9 @@
 package io.apicurio.deployment;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -15,11 +17,15 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -68,40 +74,102 @@ public class KafkaSqlDeploymentManager {
         String simpleAvro = resourceToString("artifactTypes/avro/multi-field_v1.json");
 
         Vertx vertx = Vertx.vertx();
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx).retry());
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryBaseUrl, vertx)
+                // Seeding runs against a registry that may still be converging; the read-idle
+                // timeout kills stalled connections and retries must cover a slow redeploy.
+                // KafkaSQL applies every one of these 1000 concurrent creates through a single
+                // ordered consumer thread, so a request near the tail of that backlog can
+                // legitimately wait well past a "normal" request's timeout under loaded CI --
+                // a shorter deadline here previously produced a client-side connection-closed
+                // error that silently aborted seeding partway through (see the incident this
+                // comment was added for: 999/1000 artifacts, snapshot never triggered).
+                .requestTimeout(10_000, 180_000).retry(true, 5, 1_000));
 
-        LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
-        for (int idx = 0; idx < 1000; idx++) {
-            String artifactId = UUID.randomUUID().toString();
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                    simpleAvro, ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts().post(createArtifact,
-                    config -> config.headers.add("X-Registry-ArtifactId", artifactId));
-            CreateRule createRule = new CreateRule();
-            createRule.setRuleType(RuleType.VALIDITY);
-            createRule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId(NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID).artifacts()
-                    .byArtifactId(artifactId).rules().post(createRule);
+        // Thousands of sequential blocking calls take 20+ minutes on a loaded CI
+        // runner (this read as "the job hangs" more than once); fan out instead.
+        ExecutorService executor = Executors.newFixedThreadPool(16);
+        try {
+            LOGGER.info("Creating 1000 artifacts that will be packed into a snapshot..");
+            seedGroup(client, NEW_ARTIFACTS_SNAPSHOT_TEST_GROUP_ID, 1000, simpleAvro, executor);
+
+            LOGGER.info("Creating kafkasql snapshot..");
+            client.admin().snapshots().post();
+
+            LOGGER.info("Adding new artifacts on top of the snapshot..");
+            seedGroup(client, "default", 1000, simpleAvro, executor);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while preparing snapshot data", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Error preparing snapshot data", e.getCause());
+        } finally {
+            executor.shutdown();
+            vertx.close();
         }
+    }
 
-        LOGGER.info("Creating kafkasql snapshot..");
-        client.admin().snapshots().post();
+    private static void seedGroup(RegistryClient client, String groupId, int count, String content,
+            ExecutorService executor) throws InterruptedException, ExecutionException {
+        // Prime the write path synchronously: on a freshly deployed KafkaSQL registry the
+        // first write bootstraps the journal (topic creation etc.), and a parallel burst
+        // of first-writes races that bootstrap and fails. One serial create first, then
+        // fan out.
+        createArtifactWithRule(client, groupId, content);
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (int idx = 1; idx < count; idx++) {
+            futures.add(CompletableFuture.runAsync(() -> createArtifactWithRule(client, groupId, content),
+                    executor));
+        }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+    }
 
-        LOGGER.info("Adding new artifacts on top of the snapshot..");
-        for (int idx = 0; idx < 1000; idx++) {
-            String artifactId = UUID.randomUUID().toString();
+    private static void createArtifactWithRule(RegistryClient client, String groupId, String content) {
+        String artifactId = UUID.randomUUID().toString();
+        try {
+            // The two REST calls below are independent HTTP requests that can land on
+            // different KafkaSQL replicas; a replica's local consumer may not yet have
+            // caught up to a create-artifact message a moment ago produced (and applied)
+            // on a different replica, and a slow/overloaded replica can also bounce a
+            // request outright. Retry the pair as a unit -- and tolerate 409 (already
+            // exists) on either call, since a retry can land after a previous attempt's
+            // write actually succeeded server-side even though its response was lost.
+            TestUtils.retry(() -> {
+                createArtifactTolerateConflict(client, groupId, artifactId, content);
+                createRuleTolerateConflict(client, groupId, artifactId);
+            }, "seed artifact+rule " + artifactId, 10);
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Failed to seed artifact " + artifactId + " in group " + groupId, e);
+        }
+    }
+
+    private static void createArtifactTolerateConflict(RegistryClient client, String groupId,
+            String artifactId, String content) {
+        try {
             CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
-                    simpleAvro, ContentTypes.APPLICATION_JSON);
-            client.groups().byGroupId("default").artifacts().post(createArtifact,
+                    content, ContentTypes.APPLICATION_JSON);
+            client.groups().byGroupId(groupId).artifacts().post(createArtifact,
                     config -> config.headers.add("X-Registry-ArtifactId", artifactId));
+        } catch (ApiException e) {
+            if (e.getResponseStatusCode() != HttpURLConnection.HTTP_CONFLICT) {
+                throw e;
+            }
+        }
+    }
+
+    private static void createRuleTolerateConflict(RegistryClient client, String groupId,
+            String artifactId) {
+        try {
             CreateRule createRule = new CreateRule();
             createRule.setRuleType(RuleType.VALIDITY);
             createRule.setConfig("SYNTAX_ONLY");
-            client.groups().byGroupId("default").artifacts().byArtifactId(artifactId).rules()
+            client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
                     .post(createRule);
+        } catch (ApiException e) {
+            if (e.getResponseStatusCode() != HttpURLConnection.HTTP_CONFLICT) {
+                throw e;
+            }
         }
-
-        vertx.close();
     }
 
     private static void deleteRegistryDeployment() {

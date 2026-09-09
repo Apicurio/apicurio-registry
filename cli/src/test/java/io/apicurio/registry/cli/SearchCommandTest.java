@@ -106,8 +106,9 @@ public class SearchCommandTest extends AbstractCLITest {
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
         assertThat(results.getGroups())
-                .as(withCliOutput("Paginated search should return at most 1 result"))
-                .hasSizeLessThanOrEqualTo(1);
+                .as(withCliOutput("Paginated search with limit=1 should return at most 2 results "
+                        + "(1 from server + the injected implicit default group)"))
+                .hasSizeLessThanOrEqualTo(2);
     }
 
     @Test
@@ -194,6 +195,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
         assertThat(results.getArtifacts())
                 .as(withCliOutput("Type-filtered search should return JSON artifacts"))
+                .isNotEmpty()
                 .allMatch(a -> "JSON".equals(a.getArtifactType()));
     }
 

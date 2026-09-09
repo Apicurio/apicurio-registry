@@ -1,6 +1,7 @@
-import { FunctionComponent, useEffect, useRef } from "react";
+import { FunctionComponent, useEffect, useRef, useMemo } from "react";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { deriveOrigin } from "@utils/url.utils.ts";
 
 export type OpenApiVisualizerProps = {
     spec: any;
@@ -24,6 +25,10 @@ export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (pro
 
     logger.info("[OpenApiVisualizer] OAI docs URL: ", oaiDocsUrl());
 
+    const expectedOrigin = useMemo(() => {
+        return deriveOrigin(oaiDocsUrl(), window.location.origin);
+    }, [config]);
+
     const sendSpecToIframe = (spec: Record<string, unknown>): void => {
         if (ref.current?.contentWindow) {
             const message = {
@@ -33,7 +38,9 @@ export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (pro
                     content: spec
                 }
             };
-            ref.current.contentWindow.postMessage(message, "*");
+            if (expectedOrigin) {
+                ref.current.contentWindow.postMessage(message, expectedOrigin);
+            }
         }
     };
 
@@ -47,6 +54,9 @@ export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (pro
     // message listener is set up, causing the initial postMessage to be lost.
     useEffect(() => {
         const handler = (evt: MessageEvent): void => {
+            if (!expectedOrigin || evt.origin !== expectedOrigin) {
+                return;
+            }
             if (evt.data?.type === "apicurio-docs-ready" && props.spec && Object.keys(props.spec).length > 0) {
                 sendSpecToIframe(props.spec);
             }

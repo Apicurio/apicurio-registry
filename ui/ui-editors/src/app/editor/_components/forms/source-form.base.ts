@@ -186,7 +186,7 @@ export abstract class SourceFormComponent<T extends Node> extends AbstractBaseCo
             if (this.isSourceFormatJson()) {
                 newSource = JSON.stringify(parsedSource, null, 4);
             } else {
-                newSource = YAML.dump(this.sourceJs(), {
+                newSource = YAML.dump(parsedSource, {
                     indent: 4,
                     lineWidth: 110,
                     noRefs: true
@@ -215,7 +215,7 @@ export abstract class SourceFormComponent<T extends Node> extends AbstractBaseCo
             if (this.isSourceFormatJson()) {
                 newSource = JSON.stringify(parsedSource, null, 4);
             } else {
-                newSource = YAML.dump(this.sourceJs(), {
+                newSource = YAML.dump(parsedSource, {
                     indent: 4,
                     lineWidth: 110,
                     noRefs: true

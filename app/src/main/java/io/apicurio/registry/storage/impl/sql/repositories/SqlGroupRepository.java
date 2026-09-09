@@ -109,7 +109,7 @@ public class SqlGroupRepository {
                     labels.forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertGroupLabel())
                                 .bind(0, group.getGroupId())
-                                .bind(1, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
+                                .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
                                 .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                     });
                 }
@@ -215,7 +215,7 @@ public class SqlGroupRepository {
                     dto.getLabels().forEach((k, v) -> {
                         handle.createUpdate(sqlStatements.insertGroupLabel())
                                 .bind(0, groupId)
-                                .bind(1, limitStr(k.toLowerCase(), 256))
+                                .bind(1, limitStr(asLowerCase(k), 256))
                                 .bind(2, limitStr(asLowerCase(v), 512))
                                 .execute();
                     });
@@ -302,13 +302,15 @@ public class SqlGroupRepository {
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
-                        String labelKey = label.getKey().toLowerCase();
+                        String labelKey = asLowerCase(label.getKey());
                         where.append("EXISTS(SELECT l.* FROM group_labels l WHERE ");
                         buildWildcardClause(where, "l.labelKey", labelKey, filter.isNot(), binders);
                         if (label.getValue() != null) {
-                            String labelValue = label.getValue().toLowerCase();
+                            String labelValue = asLowerCase(label.getValue());
                             where.append(" AND ");
-                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                            // Compare against LOWER(l.labelValue) because label values are not always
+                            // lowercased at write time.
+                            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
                                     binders);
                         }
                         where.append(" AND l.groupId = g.groupId)");
@@ -408,8 +410,8 @@ public class SqlGroupRepository {
                 entity.labels.forEach((k, v) -> {
                     handle.createUpdate(sqlStatements.insertGroupLabel())
                             .bind(0, normalizeGroupId(entity.groupId))
-                            .bind(1, k.toLowerCase())
-                            .bind(2, v.toLowerCase())
+                            .bind(1, asLowerCase(k))
+                            .bind(2, asLowerCase(v))
                             .execute();
                 });
             }

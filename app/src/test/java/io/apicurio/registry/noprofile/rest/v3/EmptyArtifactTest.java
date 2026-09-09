@@ -13,8 +13,25 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import static io.restassured.RestAssured.given;
+
 @QuarkusTest
 public class EmptyArtifactTest extends AbstractResourceTestBase {
+
+    @Test
+    public void testCreateArtifactNullBody() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+
+        // Missing body entirely
+        given().contentType(ContentTypes.APPLICATION_JSON)
+                .when().post("/registry/v3/groups/" + groupId + "/artifacts")
+                .then().statusCode(400);
+
+        // Explicit JSON null body
+        given().contentType(ContentTypes.APPLICATION_JSON).body("null")
+                .when().post("/registry/v3/groups/" + groupId + "/artifacts")
+                .then().statusCode(400);
+    }
 
     @Test
     public void testCreateEmptyArtifact() throws Exception {

@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "stdio": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e", "REGISTRY_URL=http://host.docker.internal:8081",
+        "-e", "APICURIO_MCP_AUTH_ENABLED=true",
+        "-e", "APICURIO_MCP_AUTH_TOKEN_ENDPOINT=http://host.docker.internal:8080/realms/registry/protocol/openid-connect/token",
+        "-e", "APICURIO_MCP_AUTH_CLIENT_ID=admin-client",
+        "-e", "APICURIO_MCP_AUTH_CLIENT_SECRET=test1",
+        "-e", "QUARKUS_OIDC_TENANT_ENABLED=false",
+        "-e", "APICURIO_MCP_HTTP_ENABLED=false",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot"
+      ]
+    }
+  }
+}

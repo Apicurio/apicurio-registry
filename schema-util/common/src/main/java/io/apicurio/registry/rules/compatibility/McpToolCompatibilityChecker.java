@@ -21,14 +21,19 @@ import java.util.Set;
  * - Changing name, title, description, annotations: Always compatible
  */
 public class McpToolCompatibilityChecker
-        extends AbstractCompatibilityChecker<McpToolCompatibilityDifference> {
+        extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
+
+    private static final String CONTEXT_REQUIRED = "/inputSchema/required";
+    private static final String CONTEXT_TYPE = "/inputSchema/type";
+    private static final String CONTEXT_PROPERTIES = "/inputSchema/properties";
+    private static final String CONTEXT_DOCUMENT = "/document";
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    protected Set<McpToolCompatibilityDifference> isBackwardsCompatibleWith(String existing,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
             String proposed, Map<String, TypedContent> resolvedReferences) {
-        Set<McpToolCompatibilityDifference> differences = new HashSet<>();
+        Set<SimpleCompatibilityDifference> differences = new HashSet<>();
 
         try {
             JsonNode existingNode = mapper.readTree(existing);
@@ -47,65 +52,60 @@ public class McpToolCompatibilityChecker
             checkRequiredParamRemovals(existingNode, proposedNode, differences);
 
         } catch (Exception e) {
-            differences.add(new McpToolCompatibilityDifference(
-                    McpToolCompatibilityDifference.Type.PARSE_ERROR,
-                    "Failed to parse MCP tool definition: " + e.getMessage()));
+            differences.add(new SimpleCompatibilityDifference(
+                    "Failed to parse MCP tool definition: " + e.getMessage(), CONTEXT_DOCUMENT));
         }
 
         return differences;
     }
 
     private void checkInputSchemaTypeChange(JsonNode existing, JsonNode proposed,
-            Set<McpToolCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         String existingType = getInputSchemaType(existing);
         String proposedType = getInputSchemaType(proposed);
 
         if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
-            differences.add(new McpToolCompatibilityDifference(
-                    McpToolCompatibilityDifference.Type.INPUT_SCHEMA_TYPE_CHANGED,
-                    "inputSchema type changed from '" + existingType + "' to '" + proposedType
-                            + "'"));
+            differences.add(new SimpleCompatibilityDifference(
+                    "inputSchema type changed from '" + existingType + "' to '" + proposedType + "'",
+                    CONTEXT_TYPE));
         }
     }
 
     private void checkPropertyRemovals(JsonNode existing, JsonNode proposed,
-            Set<McpToolCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingProps = extractPropertyNames(existing);
         Set<String> proposedProps = extractPropertyNames(proposed);
 
         for (String prop : existingProps) {
             if (!proposedProps.contains(prop)) {
-                differences.add(new McpToolCompatibilityDifference(
-                        McpToolCompatibilityDifference.Type.PROPERTY_REMOVED,
-                        "Input property '" + prop + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Input property '" + prop + "' was removed", CONTEXT_PROPERTIES));
             }
         }
     }
 
     private void checkRequiredParamAdditions(JsonNode existing, JsonNode proposed,
-            Set<McpToolCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingRequired = extractRequiredParams(existing);
         Set<String> proposedRequired = extractRequiredParams(proposed);
 
         for (String param : proposedRequired) {
             if (!existingRequired.contains(param)) {
-                differences.add(new McpToolCompatibilityDifference(
-                        McpToolCompatibilityDifference.Type.REQUIRED_PARAM_ADDED,
-                        "Required parameter '" + param + "' was added"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Required parameter '" + param + "' was added", CONTEXT_REQUIRED));
             }
         }
     }
 
     private void checkRequiredParamRemovals(JsonNode existing, JsonNode proposed,
-            Set<McpToolCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingRequired = extractRequiredParams(existing);
         Set<String> proposedRequired = extractRequiredParams(proposed);
 
         for (String param : existingRequired) {
             if (!proposedRequired.contains(param)) {
-                differences.add(new McpToolCompatibilityDifference(
-                        McpToolCompatibilityDifference.Type.REQUIRED_PARAM_REMOVED,
-                        "Required parameter '" + param + "' was removed"));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Required parameter '" + param + "' was removed", CONTEXT_REQUIRED));
             }
         }
     }
@@ -150,10 +150,5 @@ public class McpToolCompatibilityChecker
             }
         }
         return required;
-    }
-
-    @Override
-    protected CompatibilityDifference transform(McpToolCompatibilityDifference original) {
-        return original;
     }
 }

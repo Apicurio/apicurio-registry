@@ -1,6 +1,6 @@
-import "./App.css";
 import "@patternfly/patternfly/patternfly.css";
 import "@patternfly/patternfly/patternfly-addons.css";
+import "./App.css";
 
 import { FunctionComponent } from "react";
 import { BrowserRouter as Router } from "react-router";
@@ -8,6 +8,7 @@ import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { MainPageWithAuth } from "@app/MainPageWithAuth.tsx";
 import { ErrorBoundaryWithRouter } from "@app/components";
+import { ThemeProvider } from "@services/useThemeService.tsx";
 
 export type AppProps = object;
 
@@ -22,10 +23,12 @@ export const App: FunctionComponent<AppProps> = () => {
     logger.info("[App] Using app contextPath: ", contextPath);
 
     return (
-        <Router basename={contextPath}>
-            <ErrorBoundaryWithRouter>
-                <MainPageWithAuth />
-            </ErrorBoundaryWithRouter>
-        </Router>
+        <ThemeProvider>
+            <Router basename={contextPath}>
+                <ErrorBoundaryWithRouter>
+                    <MainPageWithAuth />
+                </ErrorBoundaryWithRouter>
+            </Router>
+        </ThemeProvider>
     );
 };

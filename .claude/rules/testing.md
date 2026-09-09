@@ -13,8 +13,8 @@ paths:
 
 ## Integration Tests
 - Located in `integration-tests/` module
-- Profiles: `local-tests`, `remote-mem`, `remote-sql`, `remote-kafka`
-- Run: `./mvnw verify -pl integration-tests -P<profile>`
+- Profiles: `integration-tests`, `remote-mem`, `remote-sql`, `remote-kafka`, `remote-kubernetesops`
+- Run: `./mvnw verify -Pintegration-tests -pl integration-tests -am`
 
 ## Storage Variant Coverage
 - Features touching storage MUST work across all variants (sql, kafkasql, gitops, kubernetesops)

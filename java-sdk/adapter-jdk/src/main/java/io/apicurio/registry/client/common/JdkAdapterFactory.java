@@ -83,6 +83,10 @@ public final class JdkAdapterFactory {
                         options.getClientSecret(), options.getScope(), options.isOtelEnabled());
                 return new JdkOAuth2RequestAdapter(httpClient, tokenProvider);
 
+            case BEARER:
+                return new JdkAuthenticatedRequestAdapter(httpClient,
+                        "Bearer " + options.getBearerToken());
+
             default:
                 throw new IllegalArgumentException("Unsupported authentication type: " + options.getAuthType());
         }

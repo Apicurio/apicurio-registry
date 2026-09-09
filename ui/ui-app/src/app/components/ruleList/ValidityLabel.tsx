@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import { Label } from "@patternfly/react-core";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 
 /**

@@ -121,6 +121,31 @@
     background-repeat: no-repeat;
 }
 
+.mcp-tool-icon24 {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjNjM2NmYxIj48cGF0aCBkPSJNNyAyaDJ2NGg2VjJoMnY0aDFhMiAyIDAgMCAxIDIgMnYzYTYgNiAwIDAgMS01IDUuOTJWMjFoLTJ2LTQuMDhBNiA2IDAgMCAxIDggMTFWOEg3YTIgMiAwIDAgMS0yLTJWNGEyIDIgMCAwIDEgMi0yem0xIDZ2M2E0IDQgMCAwIDAgOCAwVjhIOHoiLz48L3N2Zz4=');
+    background-repeat: no-repeat;
+}
+
+.iceberg-table-icon24 {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjZDk3NzA2Ij48cGF0aCBkPSJNNCA0aDE2djRINHptMCA2aDd2MTBINHptOSAwaDd2MTBoLTd6Ii8+PC9zdmc+');
+    background-repeat: no-repeat;
+}
+
+.iceberg-view-icon24 {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjZTExZDQ4Ij48cGF0aCBkPSJNMTIgNUM2IDUgMi43IDkuNCAyIDEyYy43IDIuNiA0IDcgMTAgN3M5LjMtNC40IDEwLTdjLS43LTIuNi00LTctMTAtN3ptMCAxMS41QTQuNSA0LjUgMCAxIDEgMTIgNy41YTQuNSA0LjUgMCAwIDEgMCA5em0wLTdhMi41IDIuNSAwIDEgMCAwIDUgMi41IDIuNSAwIDAgMCAwLTV6Ii8+PC9zdmc+');
+    background-repeat: no-repeat;
+}
+
+.openrpc-icon24 {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMGQ5NDg4Ij48cGF0aCBkPSJNOS40IDQuNiA0IDEybDUuNCA3LjQgMS42LTEuMkw2LjYgMTJsNC40LTYuMnptNS4yIDAtMS42IDEuMkwxNy40IDEybC00LjQgNi4yIDEuNiAxLjJMMjAgMTJ6Ii8+PC9zdmc+');
+    background-repeat: no-repeat;
+}
+
+.odcs-contract-icon24 {
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjNDc1NTY5Ij48cGF0aCBkPSJNNiAyaDlsNSA1djE1SDZ6bTggMS41VjhoNC41ek04LjcgMTUuM2wyIDIgNC42LTQuNi0xLjEtMS4xLTMuNSAzLjUtLjktLjl6Ii8+PC9zdmc+');
+    background-repeat: no-repeat;
+}
+
 .thrift-icon24 {
     background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjMjMxZjIwIj48cGF0aCBkPSJNMyA0aDE4djMuMmgtNy4xVjIwaC0zLjhWNy4ySDN6Ij48L3BhdGg+PC9zdmc+');
     background-repeat: no-repeat;

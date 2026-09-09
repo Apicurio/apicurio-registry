@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: apicurio-registry-operator-rolebinding
+
+subjects:
+  - kind: ServiceAccount
+    namespace: ${PLACEHOLDER_NAMESPACE}
+    name: apicurio-registry-operator
+
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: apicurio-registry-operator-role

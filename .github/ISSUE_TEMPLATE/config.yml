@@ -1,0 +1,20 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "Usage question or help (CNCF Slack)"
+    url: https://cloud-native.slack.com/archives/C0BDWTC1DTM
+    about: "Ask how-to and usage questions in the #apicurio channel on CNCF Slack. New to CNCF Slack? Join at https://slack.cncf.io first."
+  - name: "Questions and answers (GitHub Discussions)"
+    url: https://github.com/Apicurio/apicurio-registry/discussions/categories/q-a
+    about: "Search existing answers, or ask a question that stays findable for the next person. Best for configuration, deployment, and integration help."
+  - name: "Feature idea or design discussion (GitHub Discussions)"
+    url: https://github.com/Apicurio/apicurio-registry/discussions/categories/ideas
+    about: "Share an idea and shape it with the community before opening a formal feature request."
+  - name: "Documentation"
+    url: https://www.apicur.io/registry/docs/
+    about: "Installation, configuration, and user guides. Many questions are already answered here."
+  - name: "Report a security vulnerability"
+    url: https://github.com/Apicurio/apicurio-registry/blob/main/SECURITY.md
+    about: "Please do not open a public issue for security problems. Follow the private disclosure process in SECURITY.md."
+  - name: "Not sure where to ask?"
+    url: https://github.com/Apicurio/apicurio-registry/blob/main/SUPPORT.md
+    about: "SUPPORT.md maps each kind of question or report to the channel that will get you the fastest answer."

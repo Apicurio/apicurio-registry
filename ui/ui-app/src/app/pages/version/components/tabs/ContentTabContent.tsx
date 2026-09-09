@@ -5,7 +5,7 @@ import YAML from "yaml";
 import Editor from "@monaco-editor/react";
 import { detectContentType } from "@utils/content.utils.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { useResizeObserver } from "@apicurio/common-ui-components";
+import { useResizeObserver } from "@apitomy/common-ui-components";
 import { registerCustomLanguages } from "@editors/registerLanguages.ts";
 
 

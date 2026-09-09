@@ -1,6 +1,6 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import { ErrorTabContent } from "@app/pages";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { isJson, parseJson, isYaml, parseYaml } from "@utils/content.utils";
 import {
     AgentCardVisualizer,

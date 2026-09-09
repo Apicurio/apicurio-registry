@@ -76,6 +76,11 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |PodDisruptionSpec
 |`{ enabled: true }`
 
+|`autoscaling`
+|Horizontal pod autoscaling configuration for the component
+|AutoscalingSpec
+|`{ enabled: false }`
+
 |`networkPolicy`
 |NetworkPolicy configuration
 |NetworkPolicySpec
@@ -86,6 +91,8 @@ The following fields are available for both `spec.app` and `spec.ui` components:
 |String
 |`""`
 |===
+
+The top-level `spec.consolePlugin.enabled` field (Boolean, default `false`) controls whether the {operator} deploys the OpenShift Console plugin component.
 
 The following fields are specific to `spec.app`:
 

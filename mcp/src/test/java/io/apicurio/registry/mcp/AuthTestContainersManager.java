@@ -68,6 +68,8 @@ public class AuthTestContainersManager implements QuarkusTestResourceLifecycleMa
                 .withEnv("QUARKUS_OIDC_TOKEN_PATH", keycloakInternalRealmUrl + "/protocol/openid-connect/token")
                 .withEnv("QUARKUS_OIDC_TOKEN_ISSUER", keycloakExternalRealmUrl)
                 .withEnv("QUARKUS_OIDC_TENANT_ENABLED", "true")
+                // Group deletion is disabled by default; tests clean up the groups they create.
+                .withEnv("APICURIO_REST_DELETION_GROUP_ENABLED", "true")
                 .withEnv("APICURIO_AUTH_ROLE_BASED_AUTHORIZATION", "true")
                 .withEnv("APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION", "true")
                 .withEnv("APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED", "true")

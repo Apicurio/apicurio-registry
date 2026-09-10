@@ -3,11 +3,11 @@ package io.apicurio.registry.mcp;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -19,12 +19,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * MCP server to authenticate with Registry using OAuth2 client credentials,
  * and verifies that authenticated requests succeed.
  * <p>
- * This test is tagged as "integration" and requires Docker to be running.
- * Run with: mvn test -Dtest=McpAuthenticationTest -Dgroups=integration
+ * This test requires Docker to be running: it starts Keycloak and a released
+ * Registry image via Testcontainers.
  */
 @QuarkusTest
 @TestProfile(McpAuthTestProfile.class)
-@Tag("integration")
 public class McpAuthenticationTest {
 
     private static final Logger log = LoggerFactory.getLogger(McpAuthenticationTest.class);
@@ -103,11 +102,13 @@ public class McpAuthenticationTest {
             // Add a compatibility rule to the artifact to enforce BACKWARD compatibility
             registryService.createArtifactRule(testGroupId, testArtifactId, "COMPATIBILITY", "BACKWARD");
             
-            // Test compatibility (Happy Path)
-            String compatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"string\"}, \"name\": {\"type\": \"string\"}}}";
-            String result = registryService.testSchemaRules(testGroupId, testArtifactId, compatibleSchema, "application/json");
-            
-            assertTrue(result.contains("compatible"), "Result should indicate schema is compatible");
+            // Test compatibility (Happy Path). Re-submitting the schema unchanged produces no
+            // differences at all, so it is guaranteed to satisfy the BACKWARD rule. Note that
+            // *adding* a property is NOT compatible here -- Apicurio's JSON Schema diff reports
+            // it as "Object type property schemas narrowed at /propertySchemasAdded".
+            String result = registryService.testSchemaRules(testGroupId, testArtifactId, initialSchema, "application/json");
+
+            assertEquals("Schema is valid and compatible.", result);
             log.info("Schema compatibility happy path result: {}", result);
 
             // Test compatibility (Failure Path)
@@ -115,8 +116,10 @@ public class McpAuthenticationTest {
             String incompatibleSchema = "{\"$schema\": \"http://json-schema.org/draft-07/schema#\", \"type\": \"object\", \"properties\": {\"id\": {\"type\": \"integer\"}}}";
             String negativeResult = registryService.testSchemaRules(testGroupId, testArtifactId, incompatibleSchema, "application/json");
 
-            assertTrue(negativeResult.contains("Schema rules check failed"), "Result should indicate schema is incompatible");
-            assertTrue(negativeResult.contains("id"), "Result should contain the cause description mentioning the 'id' field");
+            assertTrue(negativeResult.startsWith("Schema rules check failed: "),
+                    "Result should report a rule violation, but was: " + negativeResult);
+            assertTrue(negativeResult.contains("Subschema type changed at /properties/id"),
+                    "Result should name the incompatible change to the 'id' property, but was: " + negativeResult);
             log.info("Schema compatibility failure path result: {}", negativeResult);
         } finally {
             try {

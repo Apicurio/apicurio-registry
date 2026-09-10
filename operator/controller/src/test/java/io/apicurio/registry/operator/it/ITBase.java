@@ -6,12 +6,17 @@ import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.resource.Labels;
 import io.apicurio.registry.utils.Cell;
 import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.ConfigMap;
 import io.fabric8.kubernetes.api.model.NamespaceBuilder;
+import io.fabric8.kubernetes.api.model.ServiceAccount;
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodCondition;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
+
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
+import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBindingBuilder;
 import io.fabric8.kubernetes.api.model.rbac.RoleBinding;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.ConfigBuilder;
@@ -31,6 +36,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +51,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
 import static io.apicurio.registry.operator.utils.Mapper.toYAML;
@@ -58,6 +65,7 @@ import static org.awaitility.Awaitility.await;
 import static org.eclipse.microprofile.config.ConfigProvider.getConfig;
 
 @ExtendWith(OperatorTestExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class ITBase implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(ITBase.class);
@@ -78,23 +86,28 @@ public abstract class ITBase implements OperatorTestContext {
             Integer.getInteger("test.operator.timeout.medium", 120));
     public static final Duration LONG_DURATION = ofSeconds(
             Integer.getInteger("test.operator.timeout.long", 420));
+    public static final Duration KAFKA_BROKER_READY_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.kafka-broker", 600));
+    public static final Duration KAFKA_REGISTRY_READY_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.kafka-registry", 480));
+    public static final Duration DATABASE_TIMEOUT = ofSeconds(
+            Integer.getInteger("test.operator.timeout.database", 900));
 
     public enum OperatorDeployment {
         local, remote
     }
 
-    protected static OperatorDeployment operatorDeployment;
-    protected static KubernetesClient client;
-    protected static PodLogManager podLogManager;
-    protected static PortForwardManager portForwardManager;
-    protected static IngressManager ingressManager;
-    protected static String deploymentTarget;
-    protected static String namespace;
-    protected static boolean cleanup;
-    protected static boolean strimziInstalled = false;
-    private static App app;
-    protected static JobManager jobManager;
-    protected static HostAliasManager hostAliasManager;
+    protected OperatorDeployment operatorDeployment;
+    protected KubernetesClient client;
+    protected PodLogManager podLogManager;
+    protected PortForwardManager portForwardManager;
+    protected IngressManager ingressManager;
+    protected String deploymentTarget;
+    protected String namespace;
+    protected boolean cleanup;
+    private App app;
+    protected JobManager jobManager;
+    protected HostAliasManager hostAliasManager;
 
     @Override
     public KubernetesClient getClient() {
@@ -106,8 +119,12 @@ public abstract class ITBase implements OperatorTestContext {
         return namespace;
     }
 
+    static boolean isLocalDeployment() {
+        return getConfig().getValue(OPERATOR_DEPLOYMENT_PROP, OperatorDeployment.class) == OperatorDeployment.local;
+    }
+
     @BeforeAll
-    public static void before() throws Exception {
+    public void before() throws Exception {
         operatorDeployment = getConfig().getValue(OPERATOR_DEPLOYMENT_PROP,
                 OperatorDeployment.class);
         deploymentTarget = getConfig().getValue(DEPLOYMENT_TARGET, String.class);
@@ -146,9 +163,13 @@ public abstract class ITBase implements OperatorTestContext {
                 namespace,
                 ((operatorDeployment == OperatorDeployment.remote) ? "remote" : "local"),
                 deploymentTarget);
+        await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+            assertThat(client.resources(ApicurioRegistry3.class).inNamespace(namespace)
+                    .list().getItems()).isEmpty();
+        });
     }
 
-    protected static void startOperatorPodLog() {
+    protected void startOperatorPodLog() {
         if (operatorDeployment == OperatorDeployment.remote) {
             var operatorPod = waitOnOperatorPodReady();
             if (getConfig().getValue(REMOTE_DEBUG_PROP, Boolean.class)) {
@@ -163,8 +184,8 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    protected static void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+    protected void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
@@ -172,7 +193,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
+    protected void checkDeploymentDoesNotExist(ApicurioRegistry3 primary, String component) {
         Runnable check = () -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -183,7 +204,7 @@ public abstract class ITBase implements OperatorTestContext {
         check.run();
     }
 
-    protected static void checkServiceExists(ApicurioRegistry3 primary, String component) {
+    protected void checkServiceExists(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.services()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -192,7 +213,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
+    protected void checkServiceDoesNotExist(ApicurioRegistry3 primary, String component) {
         Runnable check = () -> {
             assertThat(client.services()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -202,7 +223,7 @@ public abstract class ITBase implements OperatorTestContext {
         check.run();
     }
 
-    protected static void checkIngressExists(ApicurioRegistry3 primary, String component) {
+    protected void checkIngressExists(ApicurioRegistry3 primary, String component) {
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.network().v1().ingresses()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -211,7 +232,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
+    protected void checkIngressDoesNotExist(ApicurioRegistry3 primary, String component) {
         Runnable check = () -> {
             assertThat(client.network().v1().ingresses()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
@@ -221,7 +242,7 @@ public abstract class ITBase implements OperatorTestContext {
         check.run();
     }
 
-    protected static PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
+    protected PodDisruptionBudget checkPodDisruptionBudgetExists(ApicurioRegistry3 primary,
                                                                         String component) {
         final Cell<PodDisruptionBudget> rval = cell();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
@@ -235,7 +256,7 @@ public abstract class ITBase implements OperatorTestContext {
         return rval.get();
     }
 
-    protected static NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
+    protected NetworkPolicy checkNetworkPolicyExists(ApicurioRegistry3 primary, String component) {
         final Cell<NetworkPolicy> rval = cell();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             NetworkPolicy networkPolicy = client.network().v1().networkPolicies()
@@ -247,7 +268,7 @@ public abstract class ITBase implements OperatorTestContext {
         return rval.get();
     }
 
-    private static void configureRestAssured() {
+    private void configureRestAssured() {
         RestAssured.config = RestAssured.config()
                 .httpClient(HttpClientConfig.httpClientConfig()
                         // Helps with port-forwarded connection issues.
@@ -262,7 +283,7 @@ public abstract class ITBase implements OperatorTestContext {
                 .build();
     }
 
-    private static List<HasMetadata> loadTestResources() throws IOException {
+    private List<HasMetadata> loadTestResources() throws IOException {
         var installFilePath = Path
                 .of(getConfig().getValue(REMOTE_TESTS_INSTALL_FILE, String.class));
         try {
@@ -277,7 +298,7 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    private static void createTestResources() throws Exception {
+    private void createTestResources() throws Exception {
         log.info("Creating generated resources into Namespace {}", namespace);
         loadTestResources().forEach(r -> {
             log.info("Creating resource kind {} with name {} in namespace {}", r.getKind(), r.getMetadata().getName(), namespace);
@@ -293,7 +314,7 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    protected static Deployment getOperatorDeployment() {
+    protected Deployment getOperatorDeployment() {
         List<Deployment> operatorDeployments = new ArrayList<>();
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
             operatorDeployments.clear();
@@ -307,7 +328,7 @@ public abstract class ITBase implements OperatorTestContext {
         return operatorDeployments.get(0);
     }
 
-    protected static Pod waitOnOperatorPodReady() {
+    protected Pod waitOnOperatorPodReady() {
         Cell<Pod> pod = cell();
         // Wait until the operator pod name remains stable, we're occasionally having timeout when trying to access pod logs.
         // TODO: Handle pod restarts/redeployments.
@@ -332,7 +353,7 @@ public abstract class ITBase implements OperatorTestContext {
         return pod.get();
     }
 
-    private static void cleanTestResources() throws Exception {
+    private void cleanTestResources() throws Exception {
         if (cleanup) {
             log.info("Deleting generated resources from Namespace {}", namespace);
             loadTestResources().forEach(r -> {
@@ -341,7 +362,7 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    private static void createCRDs() {
+    private void createCRDs() {
         log.info("Creating CRDs");
         try {
             var crd = client.load(new FileInputStream(CRD_FILE));
@@ -355,7 +376,7 @@ public abstract class ITBase implements OperatorTestContext {
         }
     }
 
-    private static void startOperator() {
+    private void startOperator() {
         app = CDI.current().select(App.class).get();
         app.start(configOverride -> {
             configOverride.withKubernetesClient(client);
@@ -363,28 +384,123 @@ public abstract class ITBase implements OperatorTestContext {
         });
     }
 
-    static void applyStrimziResources() throws IOException {
+    private static final String STRIMZI_NAMESPACE = "strimzi-system";
+    private static final AtomicBoolean STRIMZI_INSTALLED = new AtomicBoolean(false);
+
+    // Installs the Strimzi operator once per JVM, cluster-wide: the operator Deployment lives
+    // in a shared namespace and watches all namespaces, so each test class only needs the Kafka
+    // CRs in its own namespace. Previously every test class downloaded and applied the full
+    // Strimzi manifest — with a readiness wait per resource — into its own namespace, and the
+    // operator pod had to boot per class. Test classes run strictly sequentially (see -T1 in
+    // operator/Makefile), so a single shared install is safe.
+    void applyStrimziResources() throws IOException {
+        if (!STRIMZI_INSTALLED.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            installStrimzi();
+        } catch (RuntimeException | Error | IOException e) {
+            // Let the next class retry instead of cascading the failure into
+            // broker-readiness timeouts in every remaining Kafka test class.
+            STRIMZI_INSTALLED.set(false);
+            throw e;
+        }
+    }
+
+    private void installStrimzi() throws IOException {
         // Use Strimzi 0.47.0 which supports both KRaft mode and Kafka 3.9.x
         // Note: Strimzi 0.48+ removed support for Kafka 3.9.x, so we pin to 0.47.0
         var strimziClusterOperatorURL = new URL("https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.47.0/strimzi-cluster-operator-0.47.0.yaml");
         try (BufferedInputStream in = new BufferedInputStream(strimziClusterOperatorURL.openStream())) {
             List<HasMetadata> resources = Serialization.unmarshal(in);
+            createNamespace(client, STRIMZI_NAMESPACE);
             resources.forEach(r -> {
-                if (r.getKind().equals("ClusterRoleBinding") && r instanceof ClusterRoleBinding) {
-                    var crb = (ClusterRoleBinding) r;
-                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
-                } else if (r.getKind().equals("RoleBinding") && r instanceof RoleBinding) {
-                    var crb = (RoleBinding) r;
-                    crb.getSubjects().forEach(s -> s.setNamespace(namespace));
+                if (r instanceof ClusterRoleBinding crb) {
+                    crb.getSubjects().forEach(s -> s.setNamespace(STRIMZI_NAMESPACE));
+                } else if (r instanceof RoleBinding rb) {
+                    rb.getSubjects().forEach(s -> s.setNamespace(STRIMZI_NAMESPACE));
+                } else if (r instanceof Deployment deployment) {
+                    // Watch all namespaces, not just the one the operator is installed in
+                    deployment.getSpec().getTemplate().getSpec().getContainers()
+                            .forEach(c -> c.getEnv().stream()
+                                    .filter(e -> "STRIMZI_NAMESPACE".equals(e.getName()))
+                                    .forEach(e -> {
+                                        e.setValue("*");
+                                        e.setValueFrom(null);
+                                    }));
                 }
-                log.info("Creating Strimzi resource kind {} in namespace {}", r.getKind(), namespace);
-                client.resource(r).inNamespace(namespace).createOrReplace();
-                await().atMost(Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
-                    assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                    return true;
-                });
+                log.info("Creating Strimzi resource kind {} in namespace {}", r.getKind(), STRIMZI_NAMESPACE);
+                // Typed create for namespaced resources so the target namespace is unambiguous
+                if (r instanceof Deployment deployment) {
+                    client.apps().deployments().inNamespace(STRIMZI_NAMESPACE).resource(deployment)
+                            .createOrReplace();
+                } else if (r instanceof ServiceAccount sa) {
+                    client.serviceAccounts().inNamespace(STRIMZI_NAMESPACE).resource(sa)
+                            .createOrReplace();
+                } else if (r instanceof ConfigMap cm) {
+                    client.configMaps().inNamespace(STRIMZI_NAMESPACE).resource(cm).createOrReplace();
+                } else if (r instanceof RoleBinding rb) {
+                    client.rbac().roleBindings().inNamespace(STRIMZI_NAMESPACE).resource(rb)
+                            .createOrReplace();
+                } else {
+                    // Cluster-scoped resources (ClusterRole, ClusterRoleBinding, CRDs)
+                    client.resource(r).createOrReplace();
+                }
             });
+            // The stock manifest binds the operator's roles only via RoleBindings in the install
+            // namespace; watching all namespaces (STRIMZI_NAMESPACE=*) needs them granted
+            // cluster-wide (per Strimzi's "watch the whole cluster" docs). Leader election stays
+            // namespaced on purpose.
+            for (var clusterRole : List.of("strimzi-cluster-operator-namespaced",
+                    "strimzi-cluster-operator-watched", "strimzi-entity-operator")) {
+                client.rbac().clusterRoleBindings().resource(new ClusterRoleBindingBuilder()
+                        .withNewMetadata().withName(clusterRole + "-clusterwide").endMetadata()
+                        .withNewRoleRef("rbac.authorization.k8s.io", "ClusterRole", clusterRole)
+                        .addNewSubject().withKind("ServiceAccount").withName("strimzi-cluster-operator")
+                        .withNamespace(STRIMZI_NAMESPACE).endSubject()
+                        .build()).createOrReplace();
+            }
         }
+        // Wait once for the shared operator to be running
+        await().atMost(Duration.ofMinutes(2)).ignoreExceptions().untilAsserted(() -> {
+            var deployment = client.apps().deployments().inNamespace(STRIMZI_NAMESPACE)
+                    .withName("strimzi-cluster-operator").get();
+            assertThat(deployment).as("strimzi-cluster-operator Deployment in %s", STRIMZI_NAMESPACE)
+                    .isNotNull();
+            assertThat(deployment.getStatus().getReadyReplicas()).isNotNull().isGreaterThanOrEqualTo(1);
+        });
+    }
+
+    /**
+     * Waits for a Kafka broker pod (deployed by Strimzi in KRaft mode) to become ready.
+     * Pod naming follows the KafkaNodePool convention: {@code <cluster>-<nodepool>-<id>}.
+     */
+    void waitForKafkaBrokerReady(String clusterName) {
+        await().atMost(KAFKA_BROKER_READY_TIMEOUT).ignoreExceptions().untilAsserted(() ->
+                assertThat(client.pods().inNamespace(namespace).withName(clusterName + "-dual-role-0")
+                        .get().getStatus().getConditions())
+                        .filteredOn(c -> "Ready".equals(c.getType()))
+                        .map(PodCondition::getStatus)
+                        .containsOnly("True"));
+    }
+
+    /**
+     * Waits for a KafkaSQL-backed registry deployment to have one ready replica and to log
+     * the expected storage message.
+     */
+    void waitForKafkaSqlRegistryReady(ApicurioRegistry3 registry) {
+        var deploymentName = registry.getMetadata().getName() + "-app-deployment";
+        await().atMost(KAFKA_REGISTRY_READY_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+            var readyReplicas = client.apps().deployments().inNamespace(namespace)
+                    .withName(deploymentName).get().getStatus().getReadyReplicas();
+            assertThat(readyReplicas).isNotNull().isEqualTo(1);
+            var podName = client.pods().inNamespace(namespace).list().getItems().stream()
+                    .map(pod -> pod.getMetadata().getName())
+                    .filter(name -> name.startsWith(deploymentName))
+                    .findFirst().get();
+            assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
+                    .contains("Using Kafka-SQL artifactStore");
+        });
     }
 
     static void createNamespace(KubernetesClient client, String namespace) {
@@ -392,7 +508,7 @@ public abstract class ITBase implements OperatorTestContext {
         client.resource(
                         new NamespaceBuilder().withNewMetadata().addToLabels("app", "apicurio-registry-operator-test")
                                 .withName(namespace).endMetadata().build())
-                .create();
+                .createOrReplace();
     }
 
     static String calculateNamespace() {
@@ -404,14 +520,14 @@ public abstract class ITBase implements OperatorTestContext {
         Awaitility.setDefaultTimeout(LONG_DURATION);
     }
 
-    static void createResources(List<HasMetadata> resources, String resourceType) {
+    void createResources(List<HasMetadata> resources, String resourceType) {
         resources.forEach(r -> {
             log.info("Creating {} resource kind {} in namespace {}", resourceType, r.getKind(), namespace);
+            // createOrReplace is synchronous: it throws on failure and the resource exists when
+            // it returns. A read-back poll here used to cost ~3 s per resource on a loaded CI
+            // runner (per class, per test group). CRD establishment is awaited explicitly at
+            // the call sites that create CRs right after.
             client.resource(r).inNamespace(namespace).createOrReplace();
-            await().ignoreExceptions().until(() -> {
-                assertThat(client.resource(r).inNamespace(namespace).get()).isNotNull();
-                return true;
-            });
         });
     }
 
@@ -445,7 +561,7 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     @AfterAll
-    static void afterAll() throws Exception {
+    void afterAll() throws Exception {
         portForwardManager.close();
         if (operatorDeployment == OperatorDeployment.local) {
             app.stop();
@@ -459,6 +575,18 @@ public abstract class ITBase implements OperatorTestContext {
         if (cleanup) {
             log.info("Deleting namespace : {}", namespace);
             assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
+            // Namespace deletion is asynchronous: the API server only removes the namespace
+            // object once every resource inside it — including cluster-wide-scoped ones like
+            // Ingress hostnames — has actually been garbage-collected. The delete call above
+            // only confirms the request was accepted, not that cleanup finished. Without
+            // waiting here, the next test class to run (e.g. the Keycloak-based auth tests,
+            // which all reuse the same Ingress hostname) can start before this namespace's
+            // Ingress is actually gone, and get rejected by the ingress admission webhook for
+            // a "host already defined" conflict that has nothing to do with its own test.
+            await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+                assertThat(client.namespaces().withName(namespace).get()).isNull();
+            });
+            log.info("Namespace {} fully terminated", namespace);
         }
         client.close();
     }

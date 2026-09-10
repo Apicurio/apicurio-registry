@@ -25,9 +25,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 class RulesResourceIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RulesResourceIT.class);

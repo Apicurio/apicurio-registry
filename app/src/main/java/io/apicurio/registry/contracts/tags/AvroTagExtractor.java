@@ -1,5 +1,6 @@
 package io.apicurio.registry.contracts.tags;
 
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.ArtifactType;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -30,7 +31,7 @@ public class AvroTagExtractor implements TagExtractor {
     @Override
     public Map<String, Set<String>> extractTags(ContentHandle content) {
         try {
-            Schema schema = new Schema.Parser().parse(content.content());
+            Schema schema = AvroParserAccessor.newParser().parse(content.content());
             Map<String, Set<String>> result = new LinkedHashMap<>();
             Set<String> visited = new HashSet<>();
             extractTagsFromSchema(schema, "", result, visited);

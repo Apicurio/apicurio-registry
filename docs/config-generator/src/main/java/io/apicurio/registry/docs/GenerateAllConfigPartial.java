@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Red Hat
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.apicurio.registry.docs;
 
 import io.apicurio.common.apps.config.ConfigPropertyCategory;
@@ -224,15 +240,15 @@ public class GenerateAllConfigPartial {
                         throw new IllegalArgumentException("The field: \"" + annotation.target() + "\" is annotated with @ConfigProperty but not with @io.apicurio.common.apps.config.Info");
                     }
 
-                    var variant = (String) info.get().value("category").value();
+                    var variant = (String) info.orElseThrow().value("category").value();
                     var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
-                    var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
+                    var description = Optional.ofNullable(info.orElseThrow().value("description")).map(v -> v.value().toString().replaceAll("(?<=[^\\n \\t])[ \\t]{2,}", " ").trim()).orElse("");
 
-                    var availableSince = Optional.ofNullable(info.get().value("availableSince"))
+                    var availableSince = Optional.ofNullable(info.orElseThrow().value("availableSince"))
                             .map(v -> v.value().toString())
                             .orElse("");
 
-                    var experimental = Optional.ofNullable(info.get().value("experimental"))
+                    var experimental = Optional.ofNullable(info.orElseThrow().value("experimental"))
                             .map(v -> (boolean) v.value())
                             .orElse(false);
 
@@ -272,15 +288,15 @@ public class GenerateAllConfigPartial {
                 continue;
             }
 
-            var variant = (String) info.get().value("category").value();
+            var variant = (String) info.orElseThrow().value("category").value();
             var category = ConfigPropertyCategory.valueOf(variant).getRawValue();
-            var description = Optional.ofNullable(info.get().value("description")).map(v -> v.value().toString()).orElse("");
+            var description = Optional.ofNullable(info.orElseThrow().value("description")).map(v -> v.value().toString().replaceAll("(?<=[^\\n \\t])[ \\t]{2,}", " ").trim()).orElse("");
 
-            var availableSince = Optional.ofNullable(info.get().value("availableSince"))
+            var availableSince = Optional.ofNullable(info.orElseThrow().value("availableSince"))
                     .map(v -> v.value().toString())
                     .orElse("");
 
-            var experimental = Optional.ofNullable(info.get().value("experimental"))
+            var experimental = Optional.ofNullable(info.orElseThrow().value("experimental"))
                     .map(v -> (boolean) v.value())
                     .orElse(false);
 
@@ -379,7 +395,7 @@ public class GenerateAllConfigPartial {
         // Read the template file
         var template = new String(Files.readAllBytes(Paths.get(templateFile)), StandardCharsets.UTF_8);
 
-        try (var dest = new FileWriter(destinationFile)) {
+        try (var dest = new FileWriter(destinationFile, StandardCharsets.UTF_8)) {
 
             dest.write(template);
 

@@ -2,7 +2,7 @@ import React, { FunctionComponent, useEffect, useState } from "react";
 import "./GroupArtifactsTable.css";
 import { Link } from "react-router";
 import { SortByDirection, ThProps } from "@patternfly/react-table";
-import { FromNow, ObjectDropdown, ResponsiveTable } from "@apicurio/common-ui-components";
+import { FromNow, ObjectDropdown, ResponsiveTable } from "@apitomy/common-ui-components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { ArtifactDescription, ArtifactTypeIcon } from "@app/components";
 import { shash } from "@utils/string.utils.ts";

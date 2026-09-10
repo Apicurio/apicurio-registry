@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.plugin.name }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.plugin.name }}
+    app.kubernetes.io/part-of: apicurio-registry
+    app.kubernetes.io/component: console-plugin
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: {{ .Values.plugin.name }}-cert
+spec:
+  ports:
+    - name: {{ .Values.plugin.port }}-tcp
+      port: {{ .Values.plugin.port }}
+      protocol: TCP
+      targetPort: {{ .Values.plugin.port }}
+  selector:
+    app.kubernetes.io/name: {{ .Values.plugin.name }}
+  type: ClusterIP

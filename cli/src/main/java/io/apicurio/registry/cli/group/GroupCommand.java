@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.group;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.GroupOrderMixin;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
@@ -21,6 +22,8 @@ import static io.apicurio.registry.cli.utils.Columns.LABELS;
 import static io.apicurio.registry.cli.utils.Columns.MODIFIED_BY;
 import static io.apicurio.registry.cli.utils.Columns.MODIFIED_ON;
 import static io.apicurio.registry.cli.utils.Columns.OWNER;
+import static io.apicurio.registry.cli.common.IdUtil.DEFAULT_GROUP;
+import static io.apicurio.registry.cli.common.IdUtil.injectDefaultGroup;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 
@@ -47,6 +50,9 @@ public class GroupCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @ParentCommand
     @Getter
     private Acr parent;
@@ -61,6 +67,8 @@ public class GroupCommand extends AbstractCommand {
             r.queryParameters.orderby = ordering.getOrderBy();
             r.queryParameters.order = ordering.getOrder();
         }));
+
+        injectDefaultGroup(groups, pagination.getPage());
         output.writeStdOutChunkWithException(out -> {
             switch (outputType.getOutputType()) {
                 case json -> {
@@ -79,8 +87,11 @@ public class GroupCommand extends AbstractCommand {
                             LABELS
                     );
                     groups.getGroups().forEach(g -> {
+                        final String displayGroupId = DEFAULT_GROUP.equals(g.getGroupId())
+                                ? g.getGroupId() + " (implicit)"
+                                : g.getGroupId();
                         table.addRow(
-                                g.getGroupId(),
+                                displayGroupId,
                                 g.getDescription(),
                                 convertToString(g.getCreatedOn()),
                                 g.getOwner(),
@@ -90,6 +101,7 @@ public class GroupCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), groups.getCount());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

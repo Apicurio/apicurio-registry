@@ -3,6 +3,8 @@ import "./GroupRulesTabContent.css";
 import "@app/styles/empty.css";
 import { RuleList, RuleListType } from "@app/components";
 import {
+    Alert,
+    AlertActionCloseButton,
     Card,
     CardBody,
     CardTitle,
@@ -13,7 +15,7 @@ import {
 } from "@patternfly/react-core";
 import { GroupMetaData, Rule } from "@sdk/lib/generated-client/models";
 import { WarningTriangleIcon } from "@patternfly/react-icons";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 /**
  * Properties
@@ -24,6 +26,9 @@ export type GroupRulesTabContentProps = {
     onEnableRule: (ruleType: string) => void;
     onDisableRule: (ruleType: string) => void;
     onConfigureRule: (ruleType: string, config: string) => void;
+    actionError?: string;
+    onDismissActionError: () => void;
+    pendingRuleType?: string;
 };
 
 /**
@@ -45,7 +50,7 @@ export const GroupRulesTabContent: FunctionComponent<GroupRulesTabContentProps> 
             </If>
             <If condition={props.group.groupId !== "default"}>
                 <div className="group-rules">
-                    <Card variant="secondary" style={{ backgroundColor: "white" }}>
+                    <Card variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
                         <CardTitle>
                             <div className="rules-label">Group-specific rules</div>
                         </CardTitle>
@@ -56,12 +61,22 @@ export const GroupRulesTabContent: FunctionComponent<GroupRulesTabContentProps> 
                                 individually enabled, configured, and disabled. Group-specific rules override
                                 the equivalent global rules.
                             </p>
+                            {props.actionError && (
+                                <Alert
+                                    variant="danger"
+                                    title={props.actionError}
+                                    actionClose={<AlertActionCloseButton onClose={props.onDismissActionError} />}
+                                    isInline
+                                    style={{ marginBottom: "15px" }}
+                                    data-testid="rule-action-error" />
+                            )}
                             <RuleList
                                 type={RuleListType.Group}
                                 rules={props.rules}
                                 onEnableRule={props.onEnableRule}
                                 onDisableRule={props.onDisableRule}
                                 onConfigureRule={props.onConfigureRule}
+                                pendingRuleType={props.pendingRuleType}
                             />
                         </CardBody>
                     </Card>

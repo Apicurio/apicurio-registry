@@ -19,7 +19,7 @@ public class GlobalRuleGetCommand extends AbstractCommand {
 
     @Parameters(
             index = "0",
-            description = "The rule type (VALIDITY, COMPATIBILITY, or INTEGRITY)"
+            description = "The rule type ({{rule-types}})"
     )
     private String ruleType;
 

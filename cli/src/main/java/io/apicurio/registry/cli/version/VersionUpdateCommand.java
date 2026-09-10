@@ -46,13 +46,13 @@ public class VersionUpdateCommand extends AbstractCommand {
     private String artifactId;
 
     @Option(
-            names = {"-n", "--name"},
+            names = {"--name"},
             description = "Updated version name."
     )
     private String name;
 
     @Option(
-            names = {"-d", "--description"},
+            names = {"--description"},
             description = "Updated version description."
     )
     private String description;

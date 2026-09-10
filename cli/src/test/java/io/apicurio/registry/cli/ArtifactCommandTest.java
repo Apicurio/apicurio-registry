@@ -11,7 +11,13 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,6 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @QuarkusTest
 @TestMethodOrder(OrderAnnotation.class)
 public class ArtifactCommandTest extends AbstractCLITest {
+
+    private static final Duration HTTP_CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration HTTP_REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     // -- Unordered tests (no dependency on state) --
 
@@ -68,6 +77,112 @@ public class ArtifactCommandTest extends AbstractCLITest {
     @Test
     public void testArtifactListNonExistentGroup() {
         executeAndAssertFailure("artifact", "--group", "non-existent-group");
+    }
+
+    @Test
+    public void testArtifactCreateInfersContentTypeFromArtifactType() throws Exception {
+        // Regression test for #9294: artifact/version create used to hardcode
+        // content-type to application/json regardless of --type, so a PROTOBUF
+        // artifact created without --content-type was served back as application/json.
+        Path tempFile = Files.createTempFile("test-schema", ".proto");
+        Files.writeString(tempFile, """
+                syntax = "proto3";
+                message Greeting {
+                string message = 1;
+                }
+                """);
+        String artifactId = null;
+
+        try {
+                out.getBuffer().setLength(0);
+                executeAndAssertSuccess("artifact", "create", "--output-type", "json",
+                        "--group", "default",
+                        "--type", "PROTOBUF",
+                        "--file", tempFile.toString(),
+                        "proto-content-type-artifact");
+                var artifact = MAPPER.readValue(out.toString(), ArtifactMetaData.class);
+                artifactId = artifact.getArtifactId();
+
+                out.getBuffer().setLength(0);
+                executeAndAssertSuccess("artifact", "version", "get", "1",
+                        "--group", "default", "--artifact", artifactId,
+                        "--output-type", "json");
+                JsonNode version = MAPPER.readTree(out.toString());
+                long globalId = version.get("globalId").asLong();
+
+                var request = HttpRequest.newBuilder()
+                        .uri(URI.create(registryUrl + "/apis/registry/v3/ids/globalIds/" + globalId))
+                        .timeout(HTTP_REQUEST_TIMEOUT)
+                        .GET()
+                        .build();
+                var response = HttpClient.newBuilder()
+                        .connectTimeout(HTTP_CONNECT_TIMEOUT)
+                        .build()
+                        .send(request, HttpResponse.BodyHandlers.discarding());
+
+                assertThat(response.headers().firstValue("Content-Type"))
+                        .as(withCliOutput("A PROTOBUF artifact created without --content-type should be " +
+                                "served back as application/x-protobuf, not application/json"))
+                        .hasValue("application/x-protobuf");
+        } finally {
+                Files.deleteIfExists(tempFile);
+                if (artifactId != null) {
+                        executeAndAssertSuccess("artifact", "delete", "--group", "default", artifactId);
+                }
+        }
+    }
+
+    @Test
+    public void testArtifactCreateInfersContentTypeFromArtifactTypeExtensionless() throws Exception {
+        // Same as #9294, but the file has no recognizable extension, so this only
+        // passes if --type (not the filename) drives the content-type fallback.
+        Path tempFile = Files.createTempFile("test-schema", "");
+        Files.writeString(tempFile, """
+                syntax = "proto3";
+                message Greeting {
+                string message = 1;
+                }
+                """);
+        String artifactId = null;
+
+        try {
+                out.getBuffer().setLength(0);
+                executeAndAssertSuccess("artifact", "create", "--output-type", "json",
+                        "--group", "default",
+                        "--type", "PROTOBUF",
+                        "--file", tempFile.toString(),
+                        "proto-extensionless-artifact");
+                var artifact = MAPPER.readValue(out.toString(), ArtifactMetaData.class);
+                artifactId = artifact.getArtifactId();
+
+                out.getBuffer().setLength(0);
+                executeAndAssertSuccess("artifact", "version", "get", "1",
+                        "--group", "default", "--artifact", artifactId,
+                        "--output-type", "json");
+                JsonNode version = MAPPER.readTree(out.toString());
+                long globalId = version.get("globalId").asLong();
+
+                var request = HttpRequest.newBuilder()
+                        .uri(URI.create(registryUrl + "/apis/registry/v3/ids/globalIds/" + globalId))
+                        .timeout(HTTP_REQUEST_TIMEOUT)
+                        .GET()
+                        .build();
+                var response = HttpClient.newBuilder()
+                        .connectTimeout(HTTP_CONNECT_TIMEOUT)
+                        .build()
+                        .send(request, HttpResponse.BodyHandlers.discarding());
+
+                assertThat(response.headers().firstValue("Content-Type"))
+                        .as(withCliOutput("An extensionless PROTOBUF artifact created without --content-type " +
+                                "should still be served back as application/x-protobuf, driven by --type " +
+                                "rather than the filename"))
+                        .hasValue("application/x-protobuf");
+        } finally {
+                Files.deleteIfExists(tempFile);
+                if (artifactId != null) {
+                        executeAndAssertSuccess("artifact", "delete", "--group", "default", artifactId);
+                }
+        }
     }
 
     // -- Ordered tests (depend on state from previous tests) --
@@ -297,6 +412,13 @@ public class ArtifactCommandTest extends AbstractCLITest {
         assertThat(artifacts.getArtifacts())
                 .as(withCliOutput("Should find artifacts in default group without --group flag"))
                 .isNotEmpty();
+
+        // Test displayGroupId renders 'default' in table output
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("artifact", "--output-type", "table");
+        assertThat(out.toString())
+                .as(withCliOutput("Table output should display 'default' for default group"))
+                .contains("default");
     }
 
     @Test

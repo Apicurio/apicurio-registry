@@ -14,12 +14,12 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
-
   kafka-connect0:
     restart: "unless-stopped"
-    image: debezium/connect:nightly
+    image: quay.io/debezium/connect:latest
     depends_on:
       - broker
+      - schema-registry
     ports:
       - "8083:8083"
     environment:
@@ -30,15 +30,11 @@ services:
       ENABLE_APICURIO_CONVERTERS: "true"
       KEY_CONVERTER: io.apicurio.registry.utils.converter.AvroConverter
       VALUE_CONVERTER: io.apicurio.registry.utils.converter.AvroConverter
-      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8080/apis/registry/v2
-      CONNECT_KEY_CONVERTER: io.apicurio.registry.utils.converter.AvroConverter
-      CONNECT_KEY_CONVERTER_APICURIO.REGISTRY_URL: http://schema-registry:8080/apis/registry/v2
-      CONNECT_KEY_CONVERTER_APICURIO_REGISTRY_AUTO-REGISTER: "true"
-      CONNECT_KEY_CONVERTER_APICURIO_REGISTRY_FIND-LATEST: "true"
+      CONNECT_KEY_CONVERTER_APICURIO_REGISTRY_URL: "http://schema-registry:8080/apis/registry/v3"
+      CONNECT_KEY_CONVERTER_APICURIO_REGISTRY_AUTO_REGISTER: "true"
       CONNECT_VALUE_CONVERTER: io.apicurio.registry.utils.converter.AvroConverter
-      CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_URL: http://schema-registry:8080/apis/registry/v2
-      CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_AUTO-REGISTER: "true"
-      CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_FIND-LATEST: "true"
+      CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_URL: "http://schema-registry:8080/apis/registry/v3"
+      CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_AUTO_REGISTER: "true"
       CONNECT_SCHEMA_NAME_ADJUSTMENT_MODE: avro
 
   broker:
@@ -60,19 +56,29 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
-
-    # Schema Registry
+  # Schema Registry
   schema-registry:
-    image: apicurio/apicurio-registry-sql:latest-snapshot
+    image: apicurio/apicurio-registry:latest-release
     restart: always
     ports:
       - "8080:8080"
     environment:
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "postgresql"
       APICURIO_DATASOURCE_URL: "jdbc:postgresql://apicurio-db/apicuriodb"
       APICURIO_DATASOURCE_USERNAME: "postgres"
       APICURIO_DATASOURCE_PASSWORD: "postgres"
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: divolte-kafka:2181
+    depends_on:
+      - apicurio-db
+
+  schema-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-release
+    ports:
+      - "8888:8080"
+    environment:
+      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
+    depends_on:
+      - schema-registry
 
   kafka-ui:
     container_name: kafka-ui
@@ -86,7 +92,7 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "broker:9092"
-      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "http://schema-registry:8080/apis/ccompat/v6"
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: "http://schema-registry:8080/apis/ccompat/v7"
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: "http://kafka-connect0:8083"
       KAFKA_CLUSTERS_0_KSQLDBSERVER: "http://ksqldb-server:8088"
@@ -97,6 +103,7 @@ services:
     container_name: ksqldb-server
     depends_on:
       - broker
+      - schema-registry
     ports:
       - "8088:8088"
     environment:
@@ -104,7 +111,7 @@ services:
       KSQL_BOOTSTRAP_SERVERS: broker:9092
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
-      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8080/apis/ccompat/v6"
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8080/apis/ccompat/v7"
 
   ksqldb-cli:
     image: confluentinc/ksqldb-cli:0.28.2
@@ -116,9 +123,9 @@ services:
     tty: true
 
   apicurio-db:
+    image: 'postgres:16'
     ports:
       - '5432:5432'
-    image: 'postgres:latest'
     environment:
       POSTGRES_DB: apicuriodb
       POSTGRES_USER: postgres

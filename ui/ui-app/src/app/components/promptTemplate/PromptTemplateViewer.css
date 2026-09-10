@@ -40,16 +40,16 @@
 }
 
 .prompt-template-viewer .template-variable {
-    background-color: #0066cc;
-    color: white;
+    background-color: var(--pf-t--global--color--brand--default);
+    color: var(--pf-t--global--text--color--inverse);
     padding: 1px 5px;
     border-radius: 3px;
     font-weight: 600;
 }
 
 .prompt-template-viewer .template-block {
-    background-color: #6a3d9a;
-    color: white;
+    background-color: var(--pf-t--global--color--purple--default);
+    color: var(--pf-t--global--text--color--inverse);
     padding: 1px 5px;
     border-radius: 3px;
     font-weight: 600;
@@ -93,13 +93,4 @@
     padding: 1px 4px;
     background-color: var(--pf-t--global--background--color--secondary--default);
     border-radius: 3px;
-}
-
-.prompt-template-viewer .model-link {
-    color: inherit;
-    text-decoration: none;
-}
-
-.prompt-template-viewer .model-link:hover {
-    text-decoration: underline;
 }

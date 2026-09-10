@@ -2,23 +2,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-installing-registry-storage
 [id="installing-registry-storage_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Installing {registry} storage on OpenShift
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
-Install and configure your chosen registry storage option:
-
-**Kafka storage**
-
-* xref:installing-kafka-streams-operatorhub_{context}[]
-* xref:setting-up-kafka-streams-storage_{context}[]
-* xref:registry-kafka-topic-names_{context}[]
-* xref:configuring-kafka-oauth_{context}[]
-
-**PostgreSQL database storage**
-
-* xref:installing-postgresql-operatorhub_{context}[]
-* xref:setting-up-postgresql-storage_{context}[]
+Install and configure your chosen registry storage option: Kafka storage or PostgreSQL database storage.
 
 **Prerequisites**
 
@@ -27,15 +16,15 @@ Install and configure your chosen registry storage option:
 //INCLUDES
 //include::{mod-loc}getting-started/proc_installing-registry-kafka-streams-template-storage.adoc[leveloffset=+1]
 
-
 // Metadata created by nebel
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 // proc-installing-kafka-streams-operatorhub
 [id="installing-kafka-streams-operatorhub_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Installing {kafka-streams} from the OpenShift OperatorHub
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 If you do not already have {kafka-streams} installed, you can install the {kafka-streams} Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console. It provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
@@ -43,7 +32,6 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 .Prerequisites
 
 * Cluster administrator access to an OpenShift cluster is configured.
-
 
 .Procedure
 
@@ -65,6 +53,7 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 
 . Click *Install*, and wait a few moments until the Operator is ready for use.
 
+[role="_additional-resources"]
 .Additional resources
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]
@@ -73,8 +62,9 @@ If you do not already have {kafka-streams} installed, you can install the {kafka
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="setting-up-kafka-streams-storage_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} with Kafka storage on OpenShift
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can configure Kafka-based storage for {registry} by using {kafka-streams} on OpenShift. The `kafkasql` storage option uses Kafka as the primary data store, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. This storage option is suitable for production environments when you configure `persistent` storage for the Kafka cluster on OpenShift.
@@ -96,7 +86,7 @@ You can install {registry} in an existing Kafka cluster or create a new Kafka cl
 .. Under *Provided APIs* and then *Kafka*, click *Create Instance* to create a new Kafka cluster.
 .. Edit the custom resource definition as appropriate, and click *Create*.
 +
-WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}].
+WARNING: The default example creates a cluster with 3 Zookeeper nodes and 3 Kafka nodes with `ephemeral` storage. This temporary storage is suitable for development and testing only, and not for production. For more details, see {NameDeployStreamsOpenShift} in the additional resources.
 
 . After the cluster is ready, click *Provided APIs* > *Kafka* > *my-cluster* > *YAML*.
 
@@ -172,19 +162,20 @@ WARNING: The journal topic must use `cleanup.policy: delete` with infinite reten
 
 [role="_additional-resources"]
 .Additional resources
-
+* link:{LinkDeployStreamsOpenShift}[{NameDeployStreamsOpenShift}]
 ifdef::apicurio-registry[]
 * https://strimzi.io/docs/overview/latest/[Strimzi documentation]
 endif::[]
 
-
 // Metadata created by nebel
+//
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 // ref-registry-kafka-topic-names
 [id="registry-kafka-topic-names_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Kafka topic name configuration
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The default Kafka topic name that {registry} uses to store data is `kafkasql-journal`. This topic is created automatically by {registry}. You can override this behavior or the default topic name by setting the appropriate environment variable or Java system property.
@@ -203,16 +194,15 @@ The default Kafka topic name that {registry} uses to store data is `kafkasql-jou
 | `true`
 |===
 
-
-
 // Metadata created by nebel
 //
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 // proc-configuring-kafka-oauth
 [id="configuring-kafka-oauth_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring OAuth authentication for Kafka storage
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 When using Kafka-based storage in {kafka-streams}, {registry} supports accessing a Kafka cluster that requires OAuth authentication.
@@ -222,7 +212,6 @@ If you are using the {operator}, you can configure OAuth directly in the `Apicur
 endif::[]
 
 Alternatively, you can configure OAuth by setting environment variables in your {registry} deployment. When you set these environment variables, the Kafka producer and consumer applications in {registry} use this configuration to authenticate to the Kafka cluster over OAuth.
-
 
 .Prerequisites
 * Kafka-based storage of {registry} data in {kafka-streams} is configured. See xref:setting-up-kafka-streams-storage_{context}[].
@@ -250,12 +239,9 @@ Alternatively, you can configure OAuth by setting environment variables in your 
 | `\http://localhost:8090`
 |===
 
-
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/assembly-configuring-the-registry.adoc[]
-
-
 
 // Metadata created by nebel
 //
@@ -263,8 +249,9 @@ Alternatively, you can configure OAuth by setting environment variables in your 
 
 // proc-installing-postgresql-operatorhub
 [id="installing-postgresql-operatorhub_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Installing a PostgreSQL database from the OpenShift OperatorHub
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 If you do not already have a PostgreSQL database Operator installed, you can install a PostgreSQL Operator on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console. It provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
@@ -295,22 +282,20 @@ If you do not already have a PostgreSQL database Operator installed, you can ins
 +
 IMPORTANT: You must read the documentation from your chosen *PostgreSQL* Operator for details on how to create and manage your database.
 
+[role="_additional-resources"]
 .Additional resources
 
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]
-
-
-
-
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 // proc-setting-up-postgresql-storage
 [id="setting-up-postgresql-storage_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring {registry} with PostgreSQL database storage on OpenShift
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Configure storage for {registry} on OpenShift using a PostgreSQL database Operator. You can install {registry} in an existing database or create a new database, depending on your environment. The following example uses the PostgreSQL Operator by Dev4Ddevs.com.
@@ -400,7 +385,5 @@ http://example-apicurioregistry-sql.my-project.my-domain-name.com/
 [role="_additional-resources"]
 .Additional resources
 
- * link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]
- * https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator QuickStart]
-
-
+* link:https://access.crunchydata.com/documentation/postgres-operator/4.3.2/quickstart/[Crunchy PostgreSQL Operator QuickStart]
+* https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator QuickStart]

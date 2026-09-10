@@ -1,30 +1,20 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="deploying-registry-secured-kafka_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Deploying {registry} with a secured Kafka instance
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 You can deploy {registry} with KafkaSQL storage connected to a Kafka instance that requires TLS encryption, SASL authentication, or both.
 {registry} supports multiple security configurations for Kafka connections, including TLS-only encryption, OAUTHBEARER authentication, and SCRAM-SHA-512 authentication.
 
-* xref:secured-kafka-overview_{context}[]
-* xref:secured-kafka-prerequisites_{context}[]
-* xref:secured-kafka-tls_{context}[]
-* xref:secured-kafka-scram_{context}[]
-* xref:secured-kafka-oauth_{context}[]
-ifndef::service-registry-downstream[]
-* xref:secured-kafka-access-operator_{context}[]
-endif::[]
-* xref:secured-kafka-security-protocols_{context}[]
-* xref:secured-kafka-topic-config_{context}[]
-* xref:secured-kafka-troubleshooting_{context}[]
-
 
 // con-secured-kafka-overview
 [id="secured-kafka-overview_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Secured Kafka overview
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 When you use KafkaSQL storage, {registry} connects to a Kafka cluster as both a producer and a consumer.
@@ -67,8 +57,9 @@ The security protocol that {registry} uses depends on which combination of TLS a
 
 // ref-secured-kafka-prerequisites
 [id="secured-kafka-prerequisites_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Prerequisites for secured Kafka deployment
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Before you deploy {registry} with a secured Kafka instance, verify that you have the required resources.
@@ -85,8 +76,9 @@ endif::[]
 
 // proc-secured-kafka-tls
 [id="secured-kafka-tls_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with TLS encryption
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 When your Kafka cluster requires TLS encryption, you configure {registry} with the Kafka cluster CA certificate so that {registry} can verify the broker identity.
@@ -158,8 +150,9 @@ tls:
 
 // proc-secured-kafka-scram
 [id="secured-kafka-scram_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with SCRAM-SHA-512 authentication
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 When your Kafka cluster uses SCRAM-SHA-512 authentication, you configure the SASL credentials by using environment variables in the `spec.app.env` section of the `ApicurioRegistry3` custom resource.
@@ -240,8 +233,9 @@ NOTE: This example uses `SASL_SSL` because TLS is also configured via the `tls` 
 
 // proc-secured-kafka-oauth
 [id="secured-kafka-oauth_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with OAUTHBEARER authentication
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 When your Kafka cluster uses OAUTHBEARER authentication, you configure the OAuth credentials by using the structured `auth` section of the `ApicurioRegistry3` custom resource.
@@ -316,8 +310,9 @@ NOTE: When you configure both TLS and OAUTHBEARER authentication, the operator s
 ifndef::service-registry-downstream[]
 // proc-secured-kafka-access-operator
 [id="secured-kafka-access-operator_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring KafkaSQL with the {kafka-streams} Kafka Access Operator
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Starting with {registry} version 3.2.0, you can use the {kafka-streams} Kafka Access Operator to automatically provide all Kafka connection details, including security credentials, in a single {kubernetes} Secret.
@@ -423,8 +418,9 @@ endif::[]
 
 // ref-secured-kafka-security-protocols
 [id="secured-kafka-security-protocols_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Kafka security protocol reference
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} uses the `apicurio.kafka.common.security.protocol` property (environment variable `APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL`) to determine how to connect to the Kafka cluster.
@@ -454,8 +450,9 @@ When you configure security manually by using environment variables, you must se
 
 // proc-secured-kafka-topic-config
 [id="secured-kafka-topic-config_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Configuring Kafka topics for {registry}
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 {registry} uses Kafka topics to store artifact data. You must configure these topics with the correct retention settings to prevent data loss.
@@ -510,8 +507,9 @@ WARNING: You must configure the Kafka topics used by {registry} with `cleanup.po
 
 // ref-secured-kafka-troubleshooting
 [id="secured-kafka-troubleshooting_{context}"]
+== Secured Kafka connection errors and fixes
+
 :_mod-docs-content-type: REFERENCE
-== Troubleshooting secured Kafka connections
 
 [role="_abstract"]
 You might encounter errors when you configure {registry} to connect to a secured Kafka instance.

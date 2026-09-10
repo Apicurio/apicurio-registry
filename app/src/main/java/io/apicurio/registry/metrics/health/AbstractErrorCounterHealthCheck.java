@@ -51,7 +51,7 @@ public abstract class AbstractErrorCounterHealthCheck {
     }
 
     protected synchronized void callSuper() {
-        if (!up && nextStatusReset.isPresent() && Instant.now().isAfter(nextStatusReset.get())) {
+        if (!up && nextStatusReset.isPresent() && Instant.now().isAfter(nextStatusReset.orElseThrow())) {
             nextStatusReset = Optional.empty();
             up = true; // Next 'if' will reset the error count
         }

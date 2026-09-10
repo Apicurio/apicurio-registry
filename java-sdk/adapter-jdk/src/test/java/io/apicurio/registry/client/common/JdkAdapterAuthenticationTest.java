@@ -88,6 +88,21 @@ class JdkAdapterAuthenticationTest {
     }
 
     @Test
+    void testJdkAdapterWithBearerTokenCreatesAdapter() throws Exception {
+        RegistryClientOptions options = RegistryClientOptions.create()
+                .registryUrl("http://localhost:8080")
+                .httpAdapter(HttpAdapterType.JDK)
+                .bearerToken("test-access-token");
+
+        RequestAdapter adapter = assertDoesNotThrow(() ->
+                RegistryClientRequestAdapterFactory.createRequestAdapter(options, Version.V3));
+
+        assertNotNull(adapter, "Adapter should be created");
+        assertTrue(adapter.getClass().getName().contains("JdkAuthenticatedRequestAdapter"),
+                "Should create JdkAuthenticatedRequestAdapter for bearer auth");
+    }
+
+    @Test
     void testBasicAuthAdapterStoresAuthorizationHeader() throws Exception {
         RegistryClientOptions options = RegistryClientOptions.create()
                 .registryUrl("http://localhost:8080")

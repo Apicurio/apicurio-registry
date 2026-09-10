@@ -15,7 +15,7 @@ public interface ParsedSchema<T> {
     public byte[] getRawSchema();
 
     /**
-     * @return the the schema references (if any)
+     * @return the schema references (if any)
      */
     public List<ParsedSchema<T>> getSchemaReferences();
 

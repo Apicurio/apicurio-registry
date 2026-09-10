@@ -12,7 +12,7 @@ import {
 import { OutlinedFolderIcon } from "@patternfly/react-icons";
 import { SearchedGroup } from "@sdk/lib/generated-client/models";
 import { ArtifactGroup, ListedItemLabels } from "@app/components";
-import { ObjectDropdown } from "@apicurio/common-ui-components";
+import { ObjectDropdown } from "@apitomy/common-ui-components";
 
 /**
  * Properties

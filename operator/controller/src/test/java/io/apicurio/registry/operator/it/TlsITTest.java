@@ -17,6 +17,7 @@ import java.net.URI;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static io.apicurio.registry.operator.Tags.FEATURE_SETUP;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.getContainerFromDeployment;
@@ -26,11 +27,12 @@ import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 @Tag(FEATURE_SETUP)
 public class TlsITTest extends ITBase {
 
     @BeforeAll
-    public static void setup() {
+    public void setup() {
         List<HasMetadata> resources = Serialization
                 .unmarshal(AuthITTest.class.getResourceAsStream("/k8s/examples/tls/secrets.yaml"));
 

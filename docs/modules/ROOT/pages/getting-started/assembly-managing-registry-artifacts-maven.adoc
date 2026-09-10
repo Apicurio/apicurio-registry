@@ -3,17 +3,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="managing-registry-artifacts-maven_{context}"]
 = Managing {registry} content using the Maven plug-in
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
-When developing client applications, you can use the {registry} Maven plug-in to manage schema and API artifacts stored in {registry}:
+When developing client applications, you can use the {registry} Maven plug-in to manage schema and API artifacts stored in {registry}.
 
-* xref:adding-artifacts-using-maven-plugin_{context}[]
-* xref:downloading-artifacts-using-maven-plugin_{context}[]
-* xref:testing-artifacts-using-maven-plugin_{context}[]
-* xref:adding-artifact-references-manually-using-maven-plugin_{context}[]
-* xref:adding-artifact-references-automatically-using-maven-plugin_{context}[]
-* xref:configuring-tls-maven-plugin_{context}[]
+== Prerequisites
 
-.Prerequisites
 * {registry} is installed and running in your environment.
 * Apache Maven is installed and configured in your environment.
 
@@ -25,6 +21,8 @@ When developing client applications, you can use the {registry} Maven plug-in to
 
 [id="adding-artifacts-using-maven-plugin_{context}"]
 == Adding schema and API artifacts using the Maven plug-in
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 The most common use case for the Maven plug-in is adding artifacts during a build of your client application. You can accomplish this by using the `register` execution goal.
@@ -45,24 +43,24 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
       <execution>
         <phase>generate-sources</phase>
         <goals>
-            <goal>register</goal>  <1>
+            <goal>register</goal>
         </goals>
         <configuration>
-            <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl>
             <authServerUrl>MY-AUTH-SERVER</authServerUrl>
             <clientId>MY-CLIENT-ID</clientId>
-            <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <clientSecret>MY-CLIENT-SECRET</clientSecret>
             <clientScope>MY-CLIENT-SCOPE</clientScope>
             <artifacts>
                 <artifact>
-                    <groupId>TestGroup</groupId> <4>
+                    <groupId>TestGroup</groupId>
                     <artifactId>FullNameRecord</artifactId>
                     <file>${project.basedir}/src/main/resources/schemas/record.avsc</file>
                     <ifExists>FAIL</ifExists>
                 </artifact>
                 <artifact>
                     <groupId>TestGroup</groupId>
-                    <artifactId>ExampleAPI</artifactId> <5>
+                    <artifactId>ExampleAPI</artifactId>
                     <artifactType>GRAPHQL</artifactType>
                     <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
                     <ifExists>FIND_OR_CREATE_VERSION</ifExists>
@@ -75,16 +73,16 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
  </plugin>
 ----
 +
-<1> Specify `register` as the execution goal to upload the schema artifact to {registry}.
-<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
-<3> If authentication is required, you can specify your authentication server and client credentials.
-<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
-<5> You can register multiple artifacts using the specified group ID, artifact ID, and location.
+`goal`:: Specify `register` as the execution goal to upload the schema artifact to {registry}.
+`registryUrl`:: Specify the {registry} URL with the `../apis/registry/v3` endpoint.
+`clientSecret`:: If authentication is required, you can specify your authentication server and client credentials.
+`groupId` (first artifact):: Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
+`artifactId` (second artifact):: You can register multiple artifacts using the specified group ID, artifact ID, and location.
 
 . Build your Maven project, for example, by using the `mvn package` command.
-
++
 You can also run the `register` goal directly from the command line without a Maven project by passing the artifact configuration as system properties. Use the same field names that you would use in the Maven plug-in configuration:
-
++
 [source,shell]
 ----
 mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
@@ -95,25 +93,25 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
   -Dartifacts.file=./src/main/resources/schemas/record.avsc \
   -Dartifacts.ifExists=FAIL
 ----
-
++
 Use `artifacts.<field>` when registering a single artifact, or `artifacts.<index>.<field>` such as `artifacts.0.groupId` and `artifacts.1.groupId` when registering multiple artifacts.
-
++
 For OpenAPI and AsyncAPI artifacts, you can set `versionStrategy` to `API_INFO_VERSION` to derive the version from the `info.version` field in the API document when `version` is not explicitly configured.
-
++
 * If the derived version ends with `-SNAPSHOT`, the Maven plug-in strips the suffix before registration and registers the version as a draft.
 * When the API document later uses the same version without the `-SNAPSHOT` suffix, the Maven plug-in updates the existing draft content and promotes that version to `ENABLED`.
 * For other artifact types, `API_INFO_VERSION` is ignored.
-
-To update draft content or promote a draft created in this way, artifact version mutability must be enabled on the server. For more details, see xref:assembly-deploying-registry-operator.adoc#configuring-registry-operator_{context}[Enabling artifact version mutability].
-
++
+To update draft content or promote a draft created in this way, artifact version mutability must be enabled on the server. For more details, see the artifact version mutability configuration reference in the additional resources.
++
 For list properties, use an additional numeric index. The following formats are supported:
-
++
 * `artifacts.<index>.references.<index>.<field>`
 * `artifacts.<index>.existingReferences.<index>.<field>`
 * `artifacts.<index>.protoPaths.<index>`
-
++
 When registering a single artifact, you can omit the artifact index and use `artifacts.references.0.name`, `artifacts.existingReferences.0.resourceName`, or `artifacts.protoPaths.0`.
-
++
 [source,shell]
 ----
 mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
@@ -130,9 +128,9 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
   -Dartifacts.0.protoPaths.0=./src/main/proto \
   -Dartifacts.0.protoPaths.1=./src/main/proto/common
 ----
-
++
 The following example derives the artifact version from an AsyncAPI or OpenAPI document:
-
++
 [source,shell]
 ----
 mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
@@ -146,16 +144,17 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
 
 [role="_additional-resources"]
 .Additional resources
- * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
-
-
+* link:assembly-deploying-registry-operator.html#enabling-version-mutability_{context}[Artifact version mutability configuration]
+* link:https://maven.apache.org/index.html[Apache Maven documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples]
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
 [id="downloading-artifacts-using-maven-plugin_{context}"]
 == Downloading schema and API artifacts using the Maven plug-in
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can use the Maven plug-in to download artifacts from {registry}. This is often useful, for example, when generating code from a registered schema.
@@ -176,18 +175,18 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
     <execution>
       <phase>generate-sources</phase>
       <goals>
-        <goal>download</goal> <1>
+        <goal>download</goal>
       </goals>
       <configuration>
-          <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+          <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl>
           <authServerUrl>MY-AUTH-SERVER</authServerUrl>
           <clientId>MY-CLIENT-ID</clientId>
-          <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+          <clientSecret>MY-CLIENT-SECRET</clientSecret>
           <clientScope>MY-CLIENT-SCOPE</clientScope>
           <artifacts>
               <artifact>
-                  <groupId>TestGroup</groupId> <4>
-                  <artifactId>FullNameRecord</artifactId> <5>
+                  <groupId>TestGroup</groupId>
+                  <artifactId>FullNameRecord</artifactId>
                   <file>${project.build.directory}/classes/record.avsc</file>
                   <overwrite>true</overwrite>
               </artifact>
@@ -205,18 +204,18 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
 </plugin>
 ----
 +
-<1> Specify `download` as the execution goal.
-<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
-<3> If authentication is required, you can specify your authentication server and client credentials.
-<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
-<5> You can download multiple artifacts to a specified directory using the artifact ID.
+`goal`:: Specify `download` as the execution goal.
+`registryUrl`:: Specify the {registry} URL with the `../apis/registry/v3` endpoint.
+`clientSecret`:: If authentication is required, you can specify your authentication server and client credentials.
+`groupId` (first artifact):: Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
+`artifactId` (second artifact):: You can download multiple artifacts to a specified directory using the artifact ID.
 
 . Build your Maven project, for example, by using the `mvn package` command.
 
 [role="_additional-resources"]
 .Additional resources
- * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
+* link:https://maven.apache.org/index.html[Apache Maven documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples]
 
 
 
@@ -226,6 +225,8 @@ You can use the Maven plug-in to download artifacts from {registry}. This is oft
 [id="testing-artifacts-using-maven-plugin_{context}"]
 == Testing schema and API artifacts using the Maven plug-in
 
+:_mod-docs-content-type: PROCEDURE
+
 [role="_abstract"]
 You might want to verify that an artifact can be registered without actually making any changes. This is often useful when rules are configured in {registry}. Testing the artifact results in a failure if the artifact content violates any of the configured rules.
 
@@ -233,7 +234,6 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
 
 .Prerequisites
 * You have created a Maven project for your client application. For more details, see the https://maven.apache.org/index.html[Apache Maven documentation].
-
 
 .Procedure
 . Update your Maven `pom.xml` file to use the `apicurio-registry-maven-plugin` to test an artifact. The following example shows testing an Apache Avro schema:
@@ -248,19 +248,19 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
       <execution>
         <phase>generate-sources</phase>
         <goals>
-            <goal>test-update</goal>  <1>
+            <goal>test-update</goal>
         </goals>
         <configuration>
-            <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+            <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl>
             <authServerUrl>MY-AUTH-SERVER</authServerUrl>
             <clientId>MY-CLIENT-ID</clientId>
-            <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+            <clientSecret>MY-CLIENT-SECRET</clientSecret>
             <clientScope>MY-CLIENT-SCOPE</clientScope>
             <artifacts>
                 <artifact>
-                    <groupId>TestGroup</groupId> <4>
+                    <groupId>TestGroup</groupId>
                     <artifactId>FullNameRecord</artifactId>
-                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file> <5>
+                    <file>${project.basedir}/src/main/resources/schemas/record.avsc</file>
                 </artifact>
             </artifacts>
         </configuration>
@@ -269,18 +269,18 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
  </plugin>
 ----
 +
-<1> Specify `test-update` as the execution goal to test the schema artifact.
-<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
-<3> If authentication is required, you can specify your authentication server and client credentials.
-<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
-<5> You can test multiple artifacts from a specified directory using the artifact ID.
+`goal`:: Specify `test-update` as the execution goal to test the schema artifact.
+`registryUrl`:: Specify the {registry} URL with the `../apis/registry/v3` endpoint.
+`clientSecret`:: If authentication is required, you can specify your authentication server and client credentials.
+`groupId`:: Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group.
+`file`:: You can test multiple artifacts from a specified directory using the artifact ID.
 
 . Build your Maven project, for example, by using the `mvn package` command.
 
 [role="_additional-resources"]
 .Additional resources
- * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For open source examples of using the {registry} Maven plug-in, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples].
+* link:https://maven.apache.org/index.html[Apache Maven documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples]
 
 
 
@@ -289,6 +289,8 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
 
 [id="adding-artifact-references-manually-using-maven-plugin_{context}"]
 == Adding artifact references manually using the {registry} Maven plug-in
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
@@ -303,7 +305,7 @@ The following artifact types support artifact references:
 
 This section shows a simple example of using the {registry} Maven plug-in to manually register an artifact reference to a simple Avro schema artifact stored in {registry}. This example assumes that the following `Exchange` schema artifact has already been created in {registry}:
 
-.Exchange schema
+The following example shows the `Exchange` schema:
 [source,json]
 ----
 {
@@ -316,7 +318,7 @@ This section shows a simple example of using the {registry} Maven plug-in to man
 
 This example then creates a `TradeKey` schema artifact, which includes a reference to the nested `Exchange` schema artifact:
 
-.TradeKey schema with nested reference to Exchange schema
+The following `TradeKey` schema contains a nested reference to the `Exchange` schema:
 [source,json]
 ----
 {
@@ -353,17 +355,17 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
         <execution>
             <phase>generate-sources</phase>
             <goals>
-                <goal>register</goal> <1>
+                <goal>register</goal>
             </goals>
             <configuration>
-                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl>
                 <authServerUrl>MY-AUTH-SERVER</authServerUrl>
                 <clientId>MY-CLIENT-ID</clientId>
-                <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+                <clientSecret>MY-CLIENT-SECRET</clientSecret>
                 <clientScope>MY-CLIENT-SCOPE</clientScope>
                 <artifacts>
                     <artifact>
-                        <groupId>test-group</groupId> <4>
+                        <groupId>test-group</groupId>
                         <artifactId>TradeKey</artifactId>
                         <version>2.0</version>
                         <artifactType>AVRO</artifactType>
@@ -373,7 +375,7 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
                         <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                         <canonicalize>true</canonicalize>
                         <references>
-                            <reference> <5>
+                            <reference>
                                 <name>com.kubetrade.schema.common.Exchange</name>
                                 <groupId>test-group</groupId>
                                 <artifactId>Exchange</artifactId>
@@ -394,19 +396,19 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
 </plugin>
 ----
 +
-<1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
-<2> Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
-<3> If authentication is required, you can specify your authentication server and client credentials.
-<4> Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
-<5> Specify the {registry} artifact reference using its group ID, artifact ID, version, type, and location. You can register multiple artifact references in this way.
+`goal`:: Specify `register` as the execution goal to upload the schema artifacts to {registry}.
+`registryUrl`:: Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
+`clientSecret`:: If authentication is required, you can specify your authentication server and client credentials.
+`groupId`:: Specify the {registry} artifact group ID. You can specify the `default` group if you do not want to use a unique group ID.
+`reference`:: Specify the {registry} artifact reference using its group ID, artifact ID, version, type, and location. You can register multiple artifact references in this way.
 
 . Build your Maven project, for example, by using the `mvn package` command.
 
 [role="_additional-resources"]
 .Additional resources
- * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For an open source example of using the {registry} Maven plug-in to manually register an artifact reference, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references[avro-maven-with-references demonstration example].
- * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
+* link:https://maven.apache.org/index.html[Apache Maven documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references[avro-maven-with-references demonstration example]
+* {registry-client-serdes-config}
 
 
 
@@ -417,6 +419,8 @@ This example then creates a `TradeKey` schema artifact, which includes a referen
 
 [id="adding-artifact-references-automatically-using-maven-plugin_{context}"]
 == Adding artifact references automatically using the {registry} Maven plug-in
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
@@ -442,7 +446,7 @@ For more information about the support scope of Red{nbsp}Hat Technology Preview 
 
 This section shows a simple example of using the Maven plug-in to register an Avro schema and automatically detect and register an artifact reference to a simple schema artifact. This example assumes that the parent `TradeKey` artifact and the nested `Exchange` schema artifact are both available in the same directory:
 
-.TradeKey schema with nested reference to Exchange schema
+The following `TradeKey` schema contains a nested reference to the `Exchange` schema:
 [source,json]
 ----
 {
@@ -462,7 +466,7 @@ This section shows a simple example of using the Maven plug-in to register an Av
 }
 ----
 
-.Exchange schema
+The following example shows the `Exchange` schema:
 [source,json]
 ----
 {
@@ -490,26 +494,26 @@ This section shows a simple example of using the Maven plug-in to register an Av
         <execution>
             <phase>generate-sources</phase>
             <goals>
-                <goal>register</goal> <1>
+                <goal>register</goal>
             </goals>
             <configuration>
-                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+                <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl>
                 <authServerUrl>MY-AUTH-SERVER</authServerUrl>
                 <clientId>MY-CLIENT-ID</clientId>
-                <clientSecret>MY-CLIENT-SECRET</clientSecret> <3>
+                <clientSecret>MY-CLIENT-SECRET</clientSecret>
                 <clientScope>MY-CLIENT-SCOPE</clientScope>
                 <artifacts>
                     <artifact>
-                        <groupId>test-group</groupId> <4>
+                        <groupId>test-group</groupId>
                         <artifactId>TradeKey</artifactId>
                         <version>2.0</version>
                         <artifactType>AVRO</artifactType>
                         <file>
-                            ${project.basedir}/src/main/resources/schemas/TradeKey.avsc <5>
+                            ${project.basedir}/src/main/resources/schemas/TradeKey.avsc
                         </file>
                         <ifExists>FIND_OR_CREATE_VERSION</ifExists>
                         <canonicalize>true</canonicalize>
-                        <autoRefs>true</autoRefs> <6>
+                        <autoRefs>true</autoRefs>
                     </artifact>
                 </artifacts>
             </configuration>
@@ -518,32 +522,30 @@ This section shows a simple example of using the Maven plug-in to register an Av
 </plugin>
 ----
 +
-<1> Specify `register` as the execution goal to upload the schema artifacts to {registry}.
-<2> Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
-<3> If authentication is required, you can specify your authentication server and client credentials.
-<4> Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
-<5> Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory.
-<6> Set the `<autoRefs>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
+`goal`:: Specify `register` as the execution goal to upload the schema artifacts to {registry}.
+`registryUrl`:: Specify the {registry} URL by using the `../apis/registry/v3` endpoint.
+`clientSecret`:: If authentication is required, you can specify your authentication server and client credentials.
+`groupId`:: Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
+`file`:: Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory.
+`autoRefs`:: Set the `<autoRefs>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
 
 . Build your Maven project, for example, by using the `mvn package` command.
 
 [role="_additional-resources"]
 .Additional resources
- * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For an open source example of using the {registry} Maven plug-in to automatically register multiple artifact references, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example].
- * For more examples of artifact references, see the section on configuring each artifact type in {registry-client-serdes-config}.
-
-
+* link:https://maven.apache.org/index.html[Apache Maven documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example]
+* {registry-client-serdes-config}
 
 [id="configuring-tls-maven-plugin_{context}"]
-== Configuring TLS and authentication for the Maven plug-in
+== TLS configuration options for the Maven plug-in
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When connecting to a TLS-enabled {registry} instance, you can configure the Maven plug-in to use SSL/TLS for secure communication. The plug-in supports various trust store and key store formats, as well as multiple authentication methods.
 
-=== TLS configuration options
-
-The following table describes the TLS-related configuration options available in the Maven plug-in:
+The following tables describe the TLS-related configuration options available in the Maven plug-in.
 
 .Trust store configuration
 [cols="1,3",options="header"]
@@ -596,45 +598,20 @@ The following table describes the TLS-related configuration options available in
 |If set to `false`, disable hostname verification in SSL/TLS connections. *WARNING:* Disabling this reduces security and should only be used for development or testing.
 |===
 
-=== Example: TLS with PKCS12 trust store
+[role="_additional-resources"]
+.Additional resources
+* link:https://maven.apache.org/index.html[Apache Maven documentation]
+* xref:configuring-tls-maven-plugin-examples_{context}[]
 
-The following example shows how to configure the Maven plug-in to connect to a TLS-enabled {registry} using a PKCS12 trust store:
+[id="configuring-tls-maven-plugin-examples_{context}"]
+== TLS and authentication configuration examples for the Maven plug-in
 
-[source,xml]
-----
-<plugin>
-  <groupId>io.apicurio</groupId>
-  <artifactId>apicurio-registry-maven-plugin</artifactId>
-  <version>${apicurio.version}</version>
-  <executions>
-    <execution>
-      <phase>generate-sources</phase>
-      <goals>
-        <goal>register</goal>
-      </goals>
-      <configuration>
-          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl> <1>
-          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath> <2>
-          <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword> <3>
-          <artifacts>
-              <artifact>
-                  <groupId>default</groupId>
-                  <artifactId>MySchema</artifactId>
-                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
-              </artifact>
-          </artifacts>
-      </configuration>
-    </execution>
-  </executions>
-</plugin>
-----
-<1> Use `https://` for the registry URL when connecting with TLS.
-<2> Specify the path to your PKCS12 trust store containing the CA certificate(s).
-<3> Use environment variables for passwords to avoid storing secrets in your `pom.xml`.
+:_mod-docs-content-type: CONCEPT
 
-=== Example: TLS with basic authentication
+[role="_abstract"]
+These examples show how to combine TLS configuration options with different authentication methods when connecting the Maven plug-in to a TLS-enabled {registry} instance.
 
-The following example shows how to combine TLS with basic authentication:
+*TLS with PKCS12 trust store.* The following example shows how to configure the Maven plug-in to connect to a TLS-enabled {registry} using a PKCS12 trust store:
 
 [source,xml]
 ----
@@ -652,7 +629,42 @@ The following example shows how to combine TLS with basic authentication:
           <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
           <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
           <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
-          <username>${env.REGISTRY_USERNAME}</username> <1>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+
+`registryUrl`:: Use `https://` for the registry URL when connecting with TLS.
+`trustStorePath`:: Specify the path to your PKCS12 trust store containing the CA certificate(s).
+`trustStorePassword`:: Use environment variables for passwords to avoid storing secrets in your `pom.xml`.
+
+*TLS with basic authentication.* The following example shows how to combine TLS with basic authentication:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
+          <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
+          <username>${env.REGISTRY_USERNAME}</username>
           <password>${env.REGISTRY_PASSWORD}</password>
           <artifacts>
               <artifact>
@@ -666,11 +678,10 @@ The following example shows how to combine TLS with basic authentication:
   </executions>
 </plugin>
 ----
-<1> Combine TLS configuration with basic authentication credentials.
 
-=== Example: TLS with OAuth2 authentication
+`username`, `password`:: Combine TLS configuration with basic authentication credentials.
 
-The following example shows how to configure TLS with OAuth2/OIDC client credentials authentication:
+*TLS with OAuth2 authentication.* The following example shows how to configure TLS with OAuth2/OIDC client credentials authentication:
 
 [source,xml]
 ----
@@ -688,7 +699,7 @@ The following example shows how to configure TLS with OAuth2/OIDC client credent
           <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
           <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
           <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
-          <authServerUrl>https://keycloak.example.com/realms/registry/protocol/openid-connect/token</authServerUrl> <1>
+          <authServerUrl>https://keycloak.example.com/realms/registry/protocol/openid-connect/token</authServerUrl>
           <clientId>${env.CLIENT_ID}</clientId>
           <clientSecret>${env.CLIENT_SECRET}</clientSecret>
           <clientScope>openid</clientScope>
@@ -704,11 +715,10 @@ The following example shows how to configure TLS with OAuth2/OIDC client credent
   </executions>
 </plugin>
 ----
-<1> Specify the OAuth2/OIDC token endpoint URL for authentication.
 
-=== Example: Mutual TLS (mTLS)
+`authServerUrl`:: Specify the OAuth2/OIDC token endpoint URL for authentication.
 
-The following example shows how to configure mutual TLS where both the client and server authenticate each other using certificates:
+*Mutual TLS (mTLS).* The following example shows how to configure mutual TLS where both the client and server authenticate each other using certificates:
 
 [source,xml]
 ----
@@ -724,9 +734,9 @@ The following example shows how to configure mutual TLS where both the client an
       </goals>
       <configuration>
           <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
-          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath> <1>
+          <trustStorePath>${project.basedir}/certs/truststore.p12</trustStorePath>
           <trustStorePassword>${env.TRUSTSTORE_PASSWORD}</trustStorePassword>
-          <keyStorePath>${project.basedir}/certs/client-keystore.p12</keyStorePath> <2>
+          <keyStorePath>${project.basedir}/certs/client-keystore.p12</keyStorePath>
           <keyStorePassword>${env.KEYSTORE_PASSWORD}</keyStorePassword>
           <artifacts>
               <artifact>
@@ -740,46 +750,11 @@ The following example shows how to configure mutual TLS where both the client an
   </executions>
 </plugin>
 ----
-<1> Trust store to verify the server's certificate.
-<2> Key store containing the client certificate for authentication.
 
-=== Example: TLS with PEM certificates
+`trustStorePath`:: Trust store to verify the server's certificate.
+`keyStorePath`:: Key store containing the client certificate for authentication.
 
-The following example shows how to use PEM-formatted certificates:
-
-[source,xml]
-----
-<plugin>
-  <groupId>io.apicurio</groupId>
-  <artifactId>apicurio-registry-maven-plugin</artifactId>
-  <version>${apicurio.version}</version>
-  <executions>
-    <execution>
-      <phase>generate-sources</phase>
-      <goals>
-        <goal>register</goal>
-      </goals>
-      <configuration>
-          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
-          <trustStorePath>${project.basedir}/certs/ca-cert.pem</trustStorePath> <1>
-          <trustStoreType>PEM</trustStoreType>
-          <artifacts>
-              <artifact>
-                  <groupId>default</groupId>
-                  <artifactId>MySchema</artifactId>
-                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
-              </artifact>
-          </artifacts>
-      </configuration>
-    </execution>
-  </executions>
-</plugin>
-----
-<1> PEM certificate files do not require a password.
-
-=== Example: mTLS with PEM certificates
-
-The following example shows mTLS configuration using PEM-formatted certificate and key files:
+*TLS with PEM certificates.* The following example shows how to use PEM-formatted certificates:
 
 [source,xml]
 ----
@@ -797,8 +772,41 @@ The following example shows mTLS configuration using PEM-formatted certificate a
           <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
           <trustStorePath>${project.basedir}/certs/ca-cert.pem</trustStorePath>
           <trustStoreType>PEM</trustStoreType>
-          <keyStorePath>${project.basedir}/certs/client-cert.pem</keyStorePath> <1>
-          <keyStorePemKeyPath>${project.basedir}/certs/client-key.pem</keyStorePemKeyPath> <2>
+          <artifacts>
+              <artifact>
+                  <groupId>default</groupId>
+                  <artifactId>MySchema</artifactId>
+                  <file>${project.basedir}/src/main/resources/schemas/schema.avsc</file>
+              </artifact>
+          </artifacts>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+----
+
+`trustStorePath`:: PEM certificate files do not require a password.
+
+*mTLS with PEM certificates.* The following example shows mTLS configuration using PEM-formatted certificate and key files:
+
+[source,xml]
+----
+<plugin>
+  <groupId>io.apicurio</groupId>
+  <artifactId>apicurio-registry-maven-plugin</artifactId>
+  <version>${apicurio.version}</version>
+  <executions>
+    <execution>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>register</goal>
+      </goals>
+      <configuration>
+          <registryUrl>https://registry.example.com:8443/apis/registry/v3</registryUrl>
+          <trustStorePath>${project.basedir}/certs/ca-cert.pem</trustStorePath>
+          <trustStoreType>PEM</trustStoreType>
+          <keyStorePath>${project.basedir}/certs/client-cert.pem</keyStorePath>
+          <keyStorePemKeyPath>${project.basedir}/certs/client-key.pem</keyStorePemKeyPath>
           <keyStoreType>PEM</keyStoreType>
           <artifacts>
               <artifact>
@@ -812,13 +820,12 @@ The following example shows mTLS configuration using PEM-formatted certificate a
   </executions>
 </plugin>
 ----
-<1> Path to the client certificate PEM file.
-<2> Path to the client private key PEM file. Required when using PEM format for mTLS.
+
+`keyStorePath`:: Path to the client certificate PEM file.
+`keyStorePemKeyPath`:: Path to the client private key PEM file. Required when using PEM format for mTLS.
 
 [role="_additional-resources"]
 .Additional resources
- * For more details on using Apache Maven, see the https://maven.apache.org/index.html[Apache Maven documentation].
- * For a complete example with multiple TLS and authentication configurations, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/maven-plugin-tls-credentials[maven-plugin-tls-credentials demonstration example].
- * For a Kubernetes mTLS setup example, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/mtls-minikube[mTLS Minikube demonstration example].
-
-
+* link:https://maven.apache.org/index.html[Apache Maven documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/maven-plugin-tls-credentials[maven-plugin-tls-credentials demonstration example]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/mtls-minikube[mTLS Minikube demonstration example]

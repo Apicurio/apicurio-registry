@@ -1,0 +1,47 @@
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <profiles>
+        <profile>
+            <id>google-maven-mirror</id>
+            <repositories>
+                <!-- Primary: Google Mirror using exact central ID -->
+                <repository>
+                    <id>central</id>
+                    <name>Google Maven Central</name>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                </repository>
+                <!-- Fallback: True Maven Central -->
+                <repository>
+                    <id>central-fallback</id>
+                    <name>True Maven Central</name>
+                    <url>https://repo.maven.apache.org/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>central</id>
+                    <name>Google Maven Central</name>
+                    <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>central-fallback</id>
+                    <name>True Maven Central</name>
+                    <url>https://repo.maven.apache.org/maven2/</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>false</enabled></snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>google-maven-mirror</activeProfile>
+    </activeProfiles>
+</settings>

@@ -13,7 +13,7 @@ import static org.awaitility.Awaitility.await;
 
 public abstract class BaseAuthITTest extends ITBase {
 
-    protected static ApicurioRegistry3 prepareInfra(String apicurioResource, String keycloakRealm, String keycloakResource) {
+    protected ApicurioRegistry3 prepareInfra(String apicurioResource, String keycloakRealm, String keycloakResource) {
 
         installKeycloak(keycloakRealm, keycloakResource);
 
@@ -28,7 +28,7 @@ public abstract class BaseAuthITTest extends ITBase {
         return registry;
     }
 
-    protected static void installKeycloak(String keycloakRealm, String keycloakResource) {
+    protected void installKeycloak(String keycloakRealm, String keycloakResource) {
         ConfigMap configMap = Serialization
                 .unmarshal(AuthITTest.class.getResourceAsStream(keycloakRealm));
 

@@ -37,6 +37,7 @@ import static io.apicurio.registry.operator.Constants.DEFAULT_READINESS_PROBE;
 import static io.apicurio.registry.operator.Constants.DEFAULT_REPLICAS;
 import static io.apicurio.registry.operator.Constants.TLS_DEFAULT_LIVENESS_PROBE;
 import static io.apicurio.registry.operator.Constants.TLS_DEFAULT_READINESS_PROBE;
+import static io.apicurio.registry.operator.api.v1.ContainerNames.CONSOLE_PLUGIN_CONTAINER_NAME;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_APP_CONTAINER_NAME;
 import static io.apicurio.registry.operator.api.v1.ContainerNames.REGISTRY_UI_CONTAINER_NAME;
 import static io.apicurio.registry.operator.resource.Labels.getSelectorLabels;
@@ -54,10 +55,12 @@ public class ResourceFactory {
 
     public static final String COMPONENT_APP = "app";
     public static final String COMPONENT_UI = "ui";
+    public static final String COMPONENT_CONSOLE_PLUGIN = "console-plugin";
 
     // TODO: Merge the two sets of constants into an enum. Also consider including container names.
     public static final String COMPONENT_APP_SPEC_FIELD_NAME = "app";
     public static final String COMPONENT_UI_SPEC_FIELD_NAME = "ui";
+    public static final String COMPONENT_CONSOLE_PLUGIN_SPEC_FIELD_NAME = "consolePlugin";
 
     public static final String RESOURCE_TYPE_DEPLOYMENT = "deployment";
     public static final String RESOURCE_TYPE_SERVICE = "service";
@@ -180,6 +183,59 @@ public class ResourceFactory {
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_UI);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
         addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_UI);
+        return r;
+    }
+
+    public Deployment getDefaultConsolePluginDeployment(ApicurioRegistry3 primary) {
+        var r = initDefaultDeployment(primary, COMPONENT_CONSOLE_PLUGIN, 1, null);
+        mergeDeploymentPodTemplateSpec(
+                COMPONENT_CONSOLE_PLUGIN_SPEC_FIELD_NAME,
+                primary,
+                r.getSpec().getTemplate(),
+                CONSOLE_PLUGIN_CONTAINER_NAME,
+                Configuration.getConsolePluginImage().orElse(""),
+                List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(9443).build()),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/q/health/ready").withPort(new IntOrString(9443)).withScheme("HTTPS").build()).withInitialDelaySeconds(5).withPeriodSeconds(10).build(),
+                new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/q/health/live").withPort(new IntOrString(9443)).withScheme("HTTPS").build()).withInitialDelaySeconds(5).withPeriodSeconds(10).build(),
+                Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
+                Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi"))
+        );
+        var pts = r.getSpec().getTemplate();
+        if (pts.getSpec() == null) {
+            pts.setSpec(new PodSpec());
+        }
+        if (pts.getSpec().getVolumes() == null) {
+            pts.getSpec().setVolumes(new ArrayList<>());
+        }
+        pts.getSpec().getVolumes().add(new VolumeBuilder()
+                .withName("serving-cert")
+                .withNewSecret()
+                .withSecretName(primary.getMetadata().getName() + "-" + COMPONENT_CONSOLE_PLUGIN + "-cert")
+                .withDefaultMode(420)
+                .endSecret()
+                .build());
+        var container = getContainerFromPodTemplateSpec(pts, CONSOLE_PLUGIN_CONTAINER_NAME);
+        if (container != null) {
+            if (container.getVolumeMounts() == null) {
+                container.setVolumeMounts(new ArrayList<>());
+            }
+            container.getVolumeMounts().add(new VolumeMountBuilder()
+                    .withName("serving-cert")
+                    .withMountPath("/var/serving-cert")
+                    .withReadOnly(true)
+                    .build());
+        }
+        addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_CONSOLE_PLUGIN);
+        addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_CONSOLE_PLUGIN);
+        addDefaultLabels(r.getSpec().getTemplate().getMetadata().getLabels(), primary, COMPONENT_CONSOLE_PLUGIN);
+        return r;
+    }
+
+    public Service getDefaultConsolePluginService(ApicurioRegistry3 primary) {
+        var r = getDefaultResource(primary, Service.class, RESOURCE_TYPE_SERVICE, COMPONENT_CONSOLE_PLUGIN);
+        r.getMetadata().getAnnotations().put("service.beta.openshift.io/serving-cert-secret-name",
+                primary.getMetadata().getName() + "-" + COMPONENT_CONSOLE_PLUGIN + "-cert");
+        addSelectorLabels(r.getSpec().getSelector(), primary, COMPONENT_CONSOLE_PLUGIN);
         return r;
     }
 

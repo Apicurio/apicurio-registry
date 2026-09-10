@@ -1,7 +1,8 @@
 package io.apicurio.registry.cli.auth;
 
 /**
- * Platform-specific credential storage provider (macOS Keychain, Linux Secret Service).
+ * Platform-specific credential storage provider (macOS Keychain, Linux Secret Service,
+ * Windows Credential Manager).
  */
 public interface CredentialProvider {
 

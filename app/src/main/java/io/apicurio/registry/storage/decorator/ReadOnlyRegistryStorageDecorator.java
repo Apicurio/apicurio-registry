@@ -33,6 +33,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
@@ -187,13 +188,26 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
     }
 
     public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
-            java.util.Map<String, String> labels) throws RegistryStorageException {
+            Map<String, String> labels) throws RegistryStorageException {
         checkReadOnly();
         delegate.mergeArtifactLabels(groupId, artifactId, prefix, labels);
     }
 
+    public void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.updateContractMetadata(groupId, artifactId, prefix, labels);
+    }
+
+    public void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.transitionContractStatus(groupId, artifactId, fromStatus, toStatus, prefix,
+                effectiveDate);
+    }
+
     public void mergeVersionLabels(String groupId, String artifactId, String version,
-            String prefix, java.util.Map<String, String> labels)
+            String prefix, Map<String, String> labels)
             throws RegistryStorageException {
         checkReadOnly();
         delegate.mergeVersionLabels(groupId, artifactId, version, prefix, labels);

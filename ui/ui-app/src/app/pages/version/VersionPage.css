@@ -1,4 +1,4 @@
-div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs__button::before {
+div.artifact-page-tabs > ul > li.pf-v6-c-tabs__item.pf-m-current > button.pf-v6-c-tabs__link::before {
     border-bottom-color: transparent;
 }
 
@@ -7,7 +7,6 @@ div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs
     flex-direction: column;
 }
 
-.artifact-details-main .pf-c-tab-content,
 .artifact-details-main .pf-v6-c-tab-content {
     flex-grow: 1;
     display: flex;
@@ -22,7 +21,7 @@ div.artifact-page-tabs > ul > li.pf-c-tabs__item.pf-m-current > button.pf-c-tabs
     padding: 12px 24px 0;
 }
 
-.pf-v5-c-breadcrumb__item-divider {
+.pf-v6-c-breadcrumb__item-divider {
     color: #666;
 }
 

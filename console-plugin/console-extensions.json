@@ -1,0 +1,65 @@
+[
+  {
+    "type": "console.model/metadata",
+    "properties": {
+      "model": {
+        "group": "registry.apicur.io",
+        "version": "v1",
+        "kind": "ApicurioRegistry3"
+      },
+      "label": "%plugin__apicurio-registry~Apicurio Registry%",
+      "labelPlural": "%plugin__apicurio-registry~Apicurio Registry Instances%",
+      "abbr": "AR3",
+      "color": "#0066CC"
+    }
+  },
+  {
+    "type": "console.navigation/section",
+    "properties": {
+      "id": "apicurio",
+      "perspective": "admin",
+      "name": "%plugin__apicurio-registry~Apicurio%",
+      "insertAfter": "operators"
+    }
+  },
+  {
+    "type": "console.navigation/resource-ns",
+    "properties": {
+      "id": "apicurio-registry",
+      "perspective": "admin",
+      "section": "apicurio",
+      "name": "%plugin__apicurio-registry~Registry Instances%",
+      "model": {
+        "group": "registry.apicur.io",
+        "version": "v1",
+        "kind": "ApicurioRegistry3"
+      }
+    }
+  },
+  {
+    "type": "console.page/resource/list",
+    "properties": {
+      "model": {
+        "group": "registry.apicur.io",
+        "version": "v1",
+        "kind": "ApicurioRegistry3"
+      },
+      "component": {
+        "$codeRef": "RegistryListPage"
+      }
+    }
+  },
+  {
+    "type": "console.page/resource/details",
+    "properties": {
+      "model": {
+        "group": "registry.apicur.io",
+        "version": "v1",
+        "kind": "ApicurioRegistry3"
+      },
+      "component": {
+        "$codeRef": "RegistryDetailPage"
+      }
+    }
+  }
+]

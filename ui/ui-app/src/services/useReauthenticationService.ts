@@ -1,4 +1,4 @@
-import { AuthService } from "@apicurio/common-ui-components";
+import { AuthService } from "@apitomy/common-ui-components";
 
 type ReauthenticationInterceptor = () => Promise<boolean>;
 type ReauthenticationListener = (isPending: boolean) => void;
@@ -108,6 +108,9 @@ function createReauthenticationService(): ReauthenticationService {
             return () => {
                 if (interceptor === nextInterceptor) {
                     interceptor = undefined;
+                    if (isPending) {
+                        cancelReauthentication();
+                    }
                 }
             };
         },

@@ -3,6 +3,7 @@ package io.apicurio.registry.cli.artifact;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
+import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.IdUtil;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
@@ -16,6 +17,7 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ParentCommand;
 
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_ID;
 import static io.apicurio.registry.cli.utils.Columns.ARTIFACT_TYPE;
 import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
@@ -63,6 +65,9 @@ public class ArtifactCommand extends AbstractCommand {
     @Mixin
     private OutputTypeMixin outputType;
 
+    @Mixin
+    private ColumnsMixin columns;
+
     @ParentCommand
     @Getter
     private Acr parent;
@@ -103,7 +108,7 @@ public class ArtifactCommand extends AbstractCommand {
                     );
                     artifacts.getArtifacts().forEach(a -> {
                         table.addRow(
-                                a.getGroupId(),
+                                displayGroupId(a.getGroupId()),
                                 a.getArtifactId(),
                                 a.getName(),
                                 a.getArtifactType(),
@@ -116,6 +121,7 @@ public class ArtifactCommand extends AbstractCommand {
                         );
                     });
                     table.setPagination(pagination.getPage(), pagination.getSize(), artifacts.getCount());
+                    table.setSelectedColumns(columns.getColumns());
                     table.print(out);
                 }
             }

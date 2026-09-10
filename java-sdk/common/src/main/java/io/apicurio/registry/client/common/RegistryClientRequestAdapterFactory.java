@@ -7,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -305,9 +306,17 @@ public class RegistryClientRequestAdapterFactory {
         }
 
         try {
-            var _ignored1 = new URI(url);
-            var _ignored2 = _ignored1.toURL();
-        } catch (Exception ex) {
+            var uri = new URI(url);
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                throw new IllegalArgumentException(
+                        "Registry API URL '" + url + "' is not well-formed: scheme and host are required.");
+            }
+            var scheme = uri.getScheme().toLowerCase(java.util.Locale.ROOT);
+            if (!"http".equals(scheme) && !"https".equals(scheme)) {
+                throw new IllegalArgumentException(
+                        "Registry API URL '" + url + "' is not well-formed: unsupported scheme '" + uri.getScheme() + "'.");
+            }
+        } catch (URISyntaxException ex) {
             throw new IllegalArgumentException("Registry API URL '" + url + "' is not well-formed: " + ex.getMessage());
         }
 
@@ -324,6 +333,11 @@ public class RegistryClientRequestAdapterFactory {
                 break;
             case OAUTH2:
                 validateOAuth2Credentials(options.getTokenEndpoint(), options.getClientId(), options.getClientSecret());
+                break;
+            case BEARER:
+                if (options.getBearerToken() == null || options.getBearerToken().trim().isEmpty()) {
+                    throw new IllegalArgumentException("Bearer token cannot be null or empty");
+                }
                 break;
         }
     }

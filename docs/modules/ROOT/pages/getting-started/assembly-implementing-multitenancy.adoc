@@ -2,33 +2,31 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-implementing-multitenancy
 [id="implementing-multitenancy_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Implementing multitenancy with {registry}
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 Implement multitenancy with {registry} on {kubernetes} using the {operator}.
 {registry} uses a multi-instance operator pattern. Each tenant receives a dedicated `ApicurioRegistry3` custom resource (CR), which the operator reconciles into an independent set of {kubernetes} resources. This approach provides strong isolation between tenants at the infrastructure level. It uses {kubernetes}-native mechanisms for security, resource management, and network segmentation.
 
-* xref:multitenancy-overview_{context}[]
-* xref:multitenancy-deployment-patterns_{context}[]
-* xref:multitenancy-namespace-per-tenant_{context}[]
-* xref:multitenancy-storage-isolation_{context}[]
-* xref:multitenancy-authentication-per-tenant_{context}[]
-* xref:multitenancy-resource-management_{context}[]
-* xref:multitenancy-network-isolation_{context}[]
-* xref:multitenancy-lightweight-group-isolation_{context}[]
+== Prerequisites
 
-.Prerequisites
 
 * {installing-the-registry-openshift}
-* The {operator} is installed. See xref:deploying-registry-operator_{context}[].
+* The {operator} is installed.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:deploying-registry-operator_{context}[]
 
 //INCLUDES
 
 // con-multitenancy-overview
 [id="multitenancy-overview_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Multitenancy overview
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 The {operator} watches for `ApicurioRegistry3` custom resources and creates the following {kubernetes} resources
@@ -60,8 +58,9 @@ The multi-instance approach provides the following isolation boundaries:
 
 // ref-multitenancy-deployment-patterns
 [id="multitenancy-deployment-patterns_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Deployment patterns
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can deploy multiple {registry} instances using three primary patterns.
@@ -118,8 +117,9 @@ This pattern provides maximum isolation and is suitable when tenants manage thei
 
 // proc-multitenancy-namespace-per-tenant
 [id="multitenancy-namespace-per-tenant_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Deploying with namespace-per-tenant isolation
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Deploy {registry} using the namespace-per-tenant pattern (Pattern B) to provide strong isolation between tenants.
@@ -247,8 +247,9 @@ spec:
 
 // ref-multitenancy-storage-isolation
 [id="multitenancy-storage-isolation_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Storage isolation options
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Each tenant's CR must point to a separate storage backend. The operator does not provision
@@ -326,8 +327,9 @@ WARNING: When using KafkaSQL, ensure that each tenant uses separate Kafka topics
 
 // ref-multitenancy-authentication-per-tenant
 [id="multitenancy-authentication-per-tenant_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Authentication options per tenant
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Each tenant instance can be configured with its own authentication settings. Different tenants can
@@ -390,8 +392,9 @@ spec:
 
 // ref-multitenancy-resource-management
 [id="multitenancy-resource-management_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Resource management per tenant
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Each {registry} instance receives the following default resource requests and limits.
@@ -467,8 +470,9 @@ spec:
 
 // ref-multitenancy-network-isolation
 [id="multitenancy-network-isolation_{context}"]
-:_mod-docs-content-type: REFERENCE
 == Network isolation options
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The operator creates NetworkPolicy resources for each instance by default.
@@ -530,8 +534,9 @@ automatically derived from the `olm.targetNamespaces` annotation.
 
 // con-multitenancy-lightweight-group-isolation
 [id="multitenancy-lightweight-group-isolation_{context}"]
-:_mod-docs-content-type: CONCEPT
 == Lightweight isolation with groups
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 For scenarios where full instance-per-tenant isolation is not required, {registry} supports logical isolation

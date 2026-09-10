@@ -68,6 +68,29 @@ public class TableRequirementValidatorTest {
     }
 
     @Test
+    public void testAssertRefSnapshotIdMainNullExpectedWithMinusOneActual() {
+        Map<String, Object> metadata = buildMetadata();
+        metadata.put("current-snapshot-id", -1L);
+        Map<String, Object> req = new HashMap<>();
+        req.put("type", "assert-ref-snapshot-id");
+        req.put("ref", "main");
+        req.put("snapshot-id", null);
+        List<Map<String, Object>> reqs = List.of(req);
+        assertDoesNotThrow(
+                () -> TableRequirementValidator.validate(reqs, metadata, GROUP_ID, ARTIFACT_ID));
+    }
+
+    @Test
+    public void testAssertRefSnapshotIdMainMinusOneExpectedWithNullActual() {
+        Map<String, Object> metadata = buildMetadata();
+        metadata.remove("current-snapshot-id");
+        List<Map<String, Object>> reqs = List
+                .of(Map.of("type", "assert-ref-snapshot-id", "ref", "main", "snapshot-id", -1L));
+        assertDoesNotThrow(
+                () -> TableRequirementValidator.validate(reqs, metadata, GROUP_ID, ARTIFACT_ID));
+    }
+
+    @Test
     public void testAssertRefSnapshotIdMainMismatch() {
         Map<String, Object> metadata = buildMetadata();
         metadata.put("current-snapshot-id", -1L);

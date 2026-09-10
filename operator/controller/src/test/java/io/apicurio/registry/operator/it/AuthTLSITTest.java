@@ -30,7 +30,7 @@ public class AuthTLSITTest extends BaseAuthITTest {
     private static final Logger log = LoggerFactory.getLogger(AuthTLSITTest.class);
 
     @BeforeAll
-    public static void init() {
+    public void init() {
         Awaitility.setDefaultTimeout(Duration.ofSeconds(60));
     }
 

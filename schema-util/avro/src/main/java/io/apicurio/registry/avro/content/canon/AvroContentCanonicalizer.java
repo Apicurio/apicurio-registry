@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -57,7 +58,9 @@ public class AvroContentCanonicalizer implements ContentCanonicalizer {
             return TypedContent.create(ContentHandle.create(converted), ContentTypes.APPLICATION_JSON);
         } catch (Throwable t) {
             // best effort
-            final Schema.Parser parser = new Schema.Parser();
+            // Seeded inline rather than via AvroParserAccessor#newParser(Map) because this call site also
+            // needs the parsed reference schemas themselves, to pass to Schema#toString.
+            final Schema.Parser parser = AvroParserAccessor.newParser();
             final List<Schema> schemaRefs = new ArrayList<>();
             for (TypedContent referencedContent : resolvedReferences.values()) {
                 Schema schemaRef = parser.parse(referencedContent.getContent().content());

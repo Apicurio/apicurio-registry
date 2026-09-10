@@ -772,6 +772,35 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testGetSchemaByIdReturnsCorrectTypeAndOrphanIs404() throws Exception {
+        String subject = "testGetSchemaByIdOrphan";
+        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(1);
+
+        int id = ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
+
+        // Sanity check: the id resolves to a Schema whose schemaType reflects the AVRO artifact type
+        // (single-query path in SchemasResourceImpl#getSchemaById / getContentAndArtifactTypeById).
+        SchemaString schema = confluentClient.getId(id);
+        Assertions.assertNotNull(schema);
+        Assertions.assertNotNull(schema.getSchemaString());
+
+        // Permanently delete the only version referencing this content, then run the orphaned-content
+        // cleanup so the contentId genuinely has no artifact version pointing at it any more.
+        confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
+        confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1", true);
+        storage.deleteAllOrphanedContent();
+
+        try {
+            confluentClient.getId(id);
+            fail("Schema lookup by an orphaned contentId should fail with "
+                    + ErrorCode.SCHEMA_NOT_FOUND.value() + " (schema not found)");
+        } catch (RestClientException rce) {
+            assertEquals(ErrorCode.SCHEMA_NOT_FOUND.value(), rce.getErrorCode(),
+                    "Should get a 404 status for an orphaned contentId");
+        }
+    }
+
+    @Test
     public void testGetSchemaTypes() throws Exception {
         assertEquals(new HashSet<>(Arrays.asList("AVRO", "JSON", "PROTOBUF")),
                 new HashSet<>(confluentClient.getSchemaTypes()));
@@ -926,8 +955,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     "type" : "long"
                   }, {
                     "name" : "currency",
-                    "type" : {
-                      "type" : "myavro.currencies.Currency"    }
+                    "type" : "myavro.currencies.Currency"
                   }, {
                     "name" : "amount",
                     "type" : "double"
@@ -944,8 +972,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     "type" : "long"
                   }, {
                     "name" : "currency",
-                    "type" : {
-                      "type" : "myavro.currencies.Currency"    }
+                    "type" : "myavro.currencies.Currency"
                   }, {
                     "name" : "updatedValue",
                     "type" : "double"

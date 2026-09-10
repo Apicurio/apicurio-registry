@@ -2,19 +2,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-managing-registry-artifacts-api
 [id="managing-registry-artifacts-api_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Managing {registry} content using the REST API
 //If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
 Client applications can use {registry} REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Core Registry API v3 provides operations for artifacts, versions, metadata, and rules stored in {registry}. For detailed information, see the {registry-rest-api}.
-
-Use the Core Registry API v3 to perform the following tasks:
-
-* xref:managing-artifacts-using-rest-api_{context}[]
-* xref:managing-artifact-versions-using-rest-api_{context}[]
-* xref:managing-artifact-references-using-rest-api_{context}[]
-* xref:exporting-importing-using-rest-api_{context}[]
 
 **Prerequisites**
 
@@ -32,8 +26,9 @@ Use the Core Registry API v3 to perform the following tasks:
 
 // proc-managing-artifacts-using-rest-api
 [id="managing-artifacts-using-rest-api_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifacts using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Use the Core Registry API v3 to add and retrieve a schema artifact in {registry}.
@@ -98,8 +93,9 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 // proc-managing-artifact-versions-using-rest-api
 [id="managing-artifact-versions-using-rest-api_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifact versions using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 If you do not specify an artifact version number when adding schema and API artifacts using the Core Registry API v3, {registry} generates a version number automatically. The default version when creating a new artifact is `1`.
@@ -169,8 +165,9 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 
 // proc-managing-artifact-references-using-rest-api
 [id="managing-artifact-references-using-rest-api_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Managing schema and API artifact references using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
@@ -336,9 +333,81 @@ NOTE: Some artifact types (for example, JSON Schema) allow circular dependencies
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
 // proc-exporting-importing-using-rest-api
-[id="exporting-importing-using-rest-api_{context}"]
+[id="searching-artifacts-using-rest-api_{context}"]
+== Searching for schema and API artifacts using {registry} REST API commands
+
 :_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the {registry} REST API search endpoints to find artifacts, versions, and groups. Search filters match exactly by default, and you can use the `*` wildcard for pattern matching.
+
+.Procedure
+. Search for artifacts with an exact filter value:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?artifactId=my-artifact"
+----
+. To match patterns, include the `*` wildcard anywhere in the `groupId`, `artifactId`, or `labels` filter values:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?artifactId=my-*"
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?labels=env*:prod*"
+----
++
+The `*` character is the only supported wildcard.
+. To search by name, use an exact value or a leading or trailing `*` wildcard. The `name` filter matches against the artifact name or the artifact ID, and behaves the same on the artifact and version search endpoints:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/versions?name=*payment*"
+----
++
+The `description` filter is different: it always matches substrings.
+. Optional: To improve performance on large result sets, set the `skipCount` parameter to `true`. The registry then skips the expensive total count query, and the `count` field in the response is `0`:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?limit=50&skipCount=true"
+----
++
+The `skipCount` parameter is available on the artifact and version search endpoints, and on the endpoints that list the artifacts of a group and the versions of an artifact.
+
+[id="canonicalizing-content-using-rest-api_{context}"]
+== Canonicalizing content using the {registry} REST API
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the {registry} REST API to convert schema or API content to its canonical form without storing it. Canonical content is useful for comparing schemas independently of formatting differences.
+
+.Procedure
+. Send the content to the canonicalization endpoint. The `artifactType` query parameter is required:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json" --data @schema.json \
+  "http://localhost:8080/apis/registry/v3/content/canonicalize?artifactType=AVRO"
+----
++
+The response body contains the canonicalized content. An empty request body or an unknown artifact type produces a `400` error response.
+. To retrieve the canonical form of a stored artifact version with its references resolved, use the `canonical` parameter on the version content endpoint instead:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/versions/1.0.0/content?canonical=true"
+----
++
+[NOTE]
+====
+The canonicalization endpoint operates on the content exactly as provided and does not resolve external references. To canonicalize content that uses references, store the content first and use the `canonical` parameter.
+====
+
+[id="exporting-importing-using-rest-api_{context}"]
 == Exporting and importing registry data using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 As an administrator, you can use the Core Registry API v3 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.

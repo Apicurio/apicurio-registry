@@ -11,6 +11,7 @@ import picocli.CommandLine.Parameters;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
 import static java.util.Optional.ofNullable;
 
 @Command(
@@ -35,6 +36,9 @@ public class GroupDeleteCommand extends AbstractCommand {
 
     @Override
     public void run(OutputBuffer output) throws Exception {
+        if (isDefaultGroup(groupId)) {
+            throw new CliException("The group 'default' is implicit and cannot be deleted.", VALIDATION_ERROR_RETURN_CODE);
+        }
         // Check if the group exists
         client.getRegistryClient().groups().byGroupId(groupId).get();
 

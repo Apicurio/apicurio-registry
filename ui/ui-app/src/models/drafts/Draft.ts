@@ -16,6 +16,7 @@ export interface Draft {
     modifiedOn?: Date;
     labels?: object;
     contentId?: number;
+    globalId?: number;
     isDraft?: boolean;
 
 }

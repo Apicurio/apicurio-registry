@@ -1,0 +1,11 @@
+{
+  "name": "annotated_tool",
+  "inputSchema": {
+    "type": "object"
+  },
+  "annotations": {
+    "title": "Annotated Tool",
+    "audience": ["user"],
+    "priority": 5
+  }
+}

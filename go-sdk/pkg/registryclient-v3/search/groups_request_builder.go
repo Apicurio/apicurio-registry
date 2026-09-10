@@ -17,7 +17,7 @@ type GroupsRequestBuilderGetQueryParameters struct {
 	Description *string `uriparametername:"description"`
 	// Filter by group name.
 	GroupId *string `uriparametername:"groupId"`
-	// Filter by one or more name/value label.  Separate each name/value pair using a colon.  Forexample `labels=foo:bar` will return only artifacts with a label named `foo`and value `bar`.
+	// Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).
 	Labels []string `uriparametername:"labels"`
 	// The number of artifacts to return.  Defaults to 20.
 	Limit *int32 `uriparametername:"limit"`

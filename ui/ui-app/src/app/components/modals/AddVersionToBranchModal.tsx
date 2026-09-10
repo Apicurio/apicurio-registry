@@ -11,7 +11,7 @@ import {
     Modal
 } from "@patternfly/react-core/deprecated";
 import { SearchedBranch, SearchedVersion } from "@sdk/lib/generated-client/models";
-import { IfNotEmpty, IfNotLoading, ObjectSelect } from "@apicurio/common-ui-components";
+import { IfNotEmpty, IfNotLoading, ObjectSelect } from "@apitomy/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { shash } from "@utils/string.utils.ts";
 import { PlusCircleIcon } from "@patternfly/react-icons";
@@ -98,7 +98,6 @@ export const AddVersionToBranchModal: FunctionComponent<AddVersionToBranchModalP
                                 itemToString={item => item.branchId}
                                 itemToTestId={item => `branch-${shash(item.branchId)}`}
                                 toggleId="select-branch-toggle"
-                                appendTo="document"
                             />
                         </FormGroup>
                     </Form>

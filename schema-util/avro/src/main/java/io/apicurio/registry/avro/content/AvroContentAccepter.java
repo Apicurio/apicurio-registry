@@ -1,5 +1,6 @@
 package io.apicurio.registry.avro.content;
 
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentAccepter;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
@@ -30,7 +31,9 @@ public class AvroContentAccepter implements ContentAccepter {
                 return false;
             }
             // Avro without quote
-            final Schema.Parser parser = new Schema.Parser();
+            // Seeded inline rather than via AvroParserAccessor#newParser(Map) because this call site also
+            // needs the parsed reference schemas themselves, and skips any reference name already known.
+            final Schema.Parser parser = AvroParserAccessor.newParser();
             final List<Schema> schemaRefs = new ArrayList<>();
             for (Map.Entry<String, TypedContent> referencedContent : resolvedReferences.entrySet()) {
                 if (!parser.getTypes().containsKey(referencedContent.getKey())) {

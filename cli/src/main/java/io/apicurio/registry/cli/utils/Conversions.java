@@ -179,11 +179,17 @@ public final class Conversions {
     }
 
     public static String convertToString(OffsetDateTime ts) {
+        if (ts == null) {
+            return "";
+        }
         return ts.atZoneSameInstant(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
     }
 
     public static String convertToString(Date ts) {
+        if (ts == null) {
+            return "";
+        }
         return ts.toInstant()
                 .atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
@@ -201,6 +207,9 @@ public final class Conversions {
     }
 
     public static String convertToString(Map<String, ?> labels) {
+        if (labels == null) {
+            return "";
+        }
         return labels.entrySet().stream()
                 .map(e -> e.getKey() + "=" + e.getValue())
                 .collect(Collectors.joining(","));

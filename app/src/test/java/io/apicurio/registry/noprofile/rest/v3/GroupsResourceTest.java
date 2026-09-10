@@ -55,6 +55,7 @@ import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
 import static java.net.HttpURLConnection.HTTP_NO_CONTENT;
+import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
@@ -162,7 +163,10 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .pathParam("artifactId", "testUpdateArtifactOwner/EmptyAPI/1").body(body)
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
 
-        // TODO verify that the owner was changed.
+        given().when().pathParam("groupId", "testUpdateArtifactOwner")
+                .pathParam("artifactId", "testUpdateArtifactOwner/EmptyAPI/1")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(200)
+                .body("owner", equalTo("newOwner"));
     }
 
     @Test
@@ -360,22 +364,62 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     @Test
     public void testGetArtifact() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
+        String yamlArtifactContent = resourceToString("openapi-empty.yaml");
 
-        // Create OpenAPI artifact
+        // Create OpenAPI artifacts
         createArtifact(GROUP, "testGetArtifact/EmptyAPI", ArtifactType.OPENAPI, artifactContent,
                 ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, "testGetArtifact/EmptyAPI-yaml", ArtifactType.OPENAPI, yamlArtifactContent,
+                ContentTypes.APPLICATION_YAML);
 
-        // Get the artifact content
+        // Get the artifact content (JSON)
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/EmptyAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
-                .then().statusCode(200).body("openapi", equalTo("3.0.2"))
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact_EmptyAPI.json\""))
+                .body("openapi", equalTo("3.0.2"))
                 .body("info.title", equalTo("Empty API"));
+
+        // Get the artifact content (YAML)
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/EmptyAPI-yaml")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"testGetArtifact_EmptyAPI-yaml.yaml\""))
+                .body(Matchers.containsString("openapi: 3.0.2"))
+                .body(Matchers.containsString("title: Empty API"));
 
         // Try to get artifact content for an artifact that doesn't exist.
         given().when().pathParam("groupId", GROUP).pathParam("artifactId", "testGetArtifact/MissingAPI")
                 .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest").then()
                 .statusCode(404).body("status", equalTo(404)).body("title", equalTo(
                         "No version '<tip of the branch 'latest'>' found for artifact with ID 'testGetArtifact/MissingAPI' in group 'GroupsResourceTest'."));
+    }
+
+    @Test
+    public void testContentDispositionSanitizationAndTruncation() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // 1. Test special characters sanitization: path separators (slashes) are allowed in artifact IDs
+        // but must be sanitized to underscores in the Content-Disposition filename.
+        String specialArtifactId = "test/Artifact/Special/Chars";
+        createArtifact(GROUP, specialArtifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", specialArtifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"test_Artifact_Special_Chars.json\""));
+
+        // 2. Test filename length truncation (max 128 characters)
+        String longArtifactId = "a".repeat(150);
+        createArtifact(GROUP, longArtifactId, ArtifactType.OPENAPI, artifactContent,
+                ContentTypes.APPLICATION_JSON);
+
+        String expectedFilename = "a".repeat(128 - ".json".length()) + ".json";
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", longArtifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .header("Content-Disposition", equalTo("attachment; filename=\"" + expectedFilename + "\""));
     }
 
     @Test
@@ -888,7 +932,8 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body(createVersion).post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions")
                 .then().statusCode(400).body("status", equalTo(400))
                 .body("title", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
-                        + " of incompatible diffs: {1}, list of diff types: [SUBSCHEMA_TYPE_CHANGED at /properties/age]"))
+                        + " of incompatible diffs: {1}, list of diff types: ["
+                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription() + " at /properties/age]"))
                 .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
                 .body("causes[0].context", equalTo("/properties/age"));
 
@@ -1728,6 +1773,19 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 });
         assertEquals(1, comments.size());
         assertEquals("COMMENT_1", comments.get(0).getValue());
+
+        // Try to update a comment that does not exist (should return 404)
+        nc = NewComment.builder().value("COMMENT_NON_EXISTENT").build();
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("commentId", "999999").body(nc)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments/{commentId}")
+                .then().statusCode(HTTP_NOT_FOUND);
+
+        // Try to delete a comment that does not exist (should return 404)
+        given().when().pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .pathParam("commentId", "999999")
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/comments/{commentId}")
+                .then().statusCode(HTTP_NOT_FOUND);
     }
 
     @Test
@@ -1949,15 +2007,13 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .extract().asString();
 
         // Verify the preserved content is valid YAML by parsing it
-        try {
-            JsonNode preservedYaml = ContentTypeUtil.parseYaml(ContentHandle.create(preservedContent));
-            Assertions.assertNotNull(preservedYaml, "Preserved content should be valid YAML");
-            Assertions.assertTrue(preservedYaml.has("asyncapi"), "YAML should have 'asyncapi' field");
-            Assertions.assertEquals("3.0.0", preservedYaml.get("asyncapi").asText(),
-                    "Should be AsyncAPI 3.0.0");
-        } catch (IOException e) {
-            Assertions.fail("Failed to parse preserved content as YAML: " + e.getMessage());
-        }
+        JsonNode preservedYaml = Assertions.assertDoesNotThrow(
+                () -> ContentTypeUtil.parseYaml(ContentHandle.create(preservedContent)),
+                "Failed to parse preserved content as YAML");
+        Assertions.assertNotNull(preservedYaml, "Preserved content should be valid YAML");
+        Assertions.assertTrue(preservedYaml.has("asyncapi"), "YAML should have 'asyncapi' field");
+        Assertions.assertEquals("3.0.0", preservedYaml.get("asyncapi").asText(),
+                "Should be AsyncAPI 3.0.0");
 
         // Get the content of the artifact rewriting external references
         // CRITICAL: This should return YAML content with YAML content type (not JSON content type)
@@ -1980,17 +2036,14 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
 
         // Verify the content is valid YAML by parsing it
         String responseBody = rawResponse.asString();
-        JsonNode yamlNode = null;
-        try {
-            yamlNode = ContentTypeUtil.parseYaml(ContentHandle.create(responseBody));
-            Assertions.assertNotNull(yamlNode, "Response should be valid YAML");
-            Assertions.assertTrue(yamlNode.has("asyncapi"), "YAML should have 'asyncapi' field");
-            Assertions.assertEquals("3.0.0", yamlNode.get("asyncapi").asText(),
-                    "Should be AsyncAPI 3.0.0");
-        } catch (IOException e) {
-            Assertions.fail("Failed to parse response as YAML: " + e.getMessage() + ". Body starts with: "
-                    + responseBody.substring(0, Math.min(100, responseBody.length())));
-        }
+        JsonNode yamlNode = Assertions.assertDoesNotThrow(
+                () -> ContentTypeUtil.parseYaml(ContentHandle.create(responseBody)),
+                "Failed to parse response as YAML. Body starts with: "
+                        + responseBody.substring(0, Math.min(100, responseBody.length())));
+        Assertions.assertNotNull(yamlNode, "Response should be valid YAML");
+        Assertions.assertTrue(yamlNode.has("asyncapi"), "YAML should have 'asyncapi' field");
+        Assertions.assertEquals("3.0.0", yamlNode.get("asyncapi").asText(),
+                "Should be AsyncAPI 3.0.0");
 
         // Verify the reference was rewritten to point to the REST API
         // Navigate to the $ref field: components -> messages -> ShoppingCartCreatedMessage -> payload -> schema -> $ref

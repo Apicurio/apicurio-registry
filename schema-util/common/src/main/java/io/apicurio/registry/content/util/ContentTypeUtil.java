@@ -14,6 +14,8 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Locale;
+import java.util.regex.Pattern;
 
 public final class ContentTypeUtil {
 
@@ -87,7 +89,7 @@ public final class ContentTypeUtil {
             return false;
         }
         // Check for standard text/plain and variations
-        return ct.toLowerCase().contains(CT_TEXT_PLAIN);
+        return ct.toLowerCase(Locale.ROOT).contains(CT_TEXT_PLAIN);
     }
 
     /**
@@ -160,7 +162,20 @@ public final class ContentTypeUtil {
     public static JsonNode parseJsonOrYaml(TypedContent content) throws IOException {
         JsonNode node = null;
         String contentType = content.getContentType();
-        if (contentType.toLowerCase().contains("yaml") || contentType.toLowerCase().contains("yml")
+        if (contentType == null) {
+            // A null content type is treated as unknown: we cannot rely on it to pick a parser.
+            // The callers (content accepters, reference finders, validators) deliberately let a
+            // null content type through, so this must not throw on null. Because JSON is a subset
+            // of YAML, try JSON first (the common case) and fall back to YAML on a parse failure,
+            // so YAML-shaped content submitted without a content type (e.g. prompt templates,
+            // which are published as YAML) is still detected instead of being silently rejected.
+            try {
+                node = ContentTypeUtil.parseJson(content.getContent());
+            } catch (IOException e) {
+                node = ContentTypeUtil.parseYaml(content.getContent());
+            }
+        } else if (contentType.toLowerCase(Locale.ROOT).contains("yaml")
+                || contentType.toLowerCase(Locale.ROOT).contains("yml")
                 || contentType.equalsIgnoreCase("text/x-prompt-template")) {
             node = ContentTypeUtil.parseYaml(content.getContent());
         } else {
@@ -174,10 +189,39 @@ public final class ContentTypeUtil {
         return node;
     }
 
-    // FIXME this doesn't work for GraphQL
+    private static final Pattern GRAPHQL_DEF_PATTERN = Pattern.compile("(?m)^\\s*(?:extend\\s+)?(type|interface|scalar|union|input)\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*(?:\\{|implements|\\=|$)");
+    private static final Pattern GRAPHQL_SCHEMA_PATTERN = Pattern.compile("(?m)^\\s*schema\\s*\\{");
+    private static final Pattern GRAPHQL_DIRECTIVE_PATTERN = Pattern.compile("(?m)^\\s*directive\\s+@[a-zA-Z_][a-zA-Z0-9_]*");
+
+    /**
+     * Returns true if the content is likely a GraphQL schema.
+     */
+    public static boolean isParsableGraphQL(ContentHandle content) {
+        try {
+            String text = content.content().trim();
+            if (text.startsWith("{") || text.startsWith("<")) {
+                return false;
+            }
+            
+            return GRAPHQL_DEF_PATTERN.matcher(text).find()
+                    || GRAPHQL_SCHEMA_PATTERN.matcher(text).find()
+                    || GRAPHQL_DIRECTIVE_PATTERN.matcher(text).find();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static String determineContentType(ContentHandle content) {
+        // Ensure content is fully materialized once in memory.
+        // If we do not call bytes() here, the isParsableJson check may consume
+        // the underlying InputStream (e.g. via ObjectMapper.readTree), leaving
+        // the stream empty and causing subsequent format checks to incorrectly fail.
+        content.bytes();
         if (isParsableJson(content)) {
             return CT_APPLICATION_JSON;
+        }
+        if (isParsableGraphQL(content)) {
+            return ContentTypes.APPLICATION_GRAPHQL;
         }
         if (isParsableYaml(content)) {
             return CT_APPLICATION_YAML;

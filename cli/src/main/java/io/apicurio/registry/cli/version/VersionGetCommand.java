@@ -36,6 +36,7 @@ import static io.apicurio.registry.cli.utils.Columns.VERSION;
 import static io.apicurio.registry.cli.utils.Conversions.convert;
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static io.apicurio.registry.cli.common.IdUtil.displayGroupId;
 
 /** Retrieves a version's metadata or content. */
 @Command(
@@ -134,7 +135,7 @@ public class VersionGetCommand extends AbstractCommand {
                 case table -> {
                     final var table = new TableBuilder();
                     table.addColumns(FIELD, VALUE);
-                    table.addRow(GROUP_ID, version.getGroupId());
+                    table.addRow(GROUP_ID, displayGroupId(version.getGroupId()));
                     table.addRow(ARTIFACT_ID, version.getArtifactId());
                     table.addRow(VERSION, version.getVersion());
                     table.addRow(NAME, version.getName());

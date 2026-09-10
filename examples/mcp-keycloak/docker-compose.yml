@@ -1,0 +1,138 @@
+# Registry + Keycloak for MCP server integration testing.
+#
+# Supports stdio (local process, client credentials) and HTTP (network clients,
+# OAuth token forwarding). See README.md for client configuration and verification steps.
+#
+# Usage:
+#   docker compose up -d
+
+services:
+  keycloak:
+    container_name: mcp-keycloak
+    image: quay.io/keycloak/keycloak:23.0.7
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: "8080"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8080:8080"
+    volumes:
+      # Shared test realm from apicurio-registry-utils-tests (no duplicate copy in this example)
+      - ../../utils/tests/src/main/resources/realm.json:/opt/keycloak/data/import/realm.json
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # Adds the apicurio-mcp OAuth client (authorization code + PKCE) to the imported realm
+  keycloak-bootstrap:
+    image: quay.io/keycloak/keycloak:23.0.7
+    container_name: mcp-keycloak-bootstrap
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: on-failure
+    entrypoint: ["/bin/bash", "/bootstrap/bootstrap-apicurio-mcp-client.sh"]
+    volumes:
+      - ./bootstrap-apicurio-mcp-client.sh:/bootstrap/bootstrap-apicurio-mcp-client.sh:ro
+      - ./apicurio-mcp-client.json:/bootstrap/apicurio-mcp-client.json:ro
+    environment:
+      KC_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+
+  apicurio-registry:
+    image: quay.io/apicurio/apicurio-registry:latest-snapshot
+    container_name: mcp-keycloak-registry
+    environment:
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED: "true"
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
+      QUARKUS_OIDC_CLIENT_ID: "registry-api"
+      APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
+      APICURIO_UI_AUTH_OIDC_REDIRECT_URI: "http://localhost:8888/"
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      QUARKUS_OIDC_TLS_VERIFICATION: "none"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+      QUARKUS_PROFILE: "prod"
+    ports:
+      - "8081:8080"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      keycloak-bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  apicurio-registry-ui:
+    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: mcp-keycloak-registry-ui
+    environment:
+      REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
+      REGISTRY_AUTH_TYPE: "oidc"
+      REGISTRY_AUTH_URL: "http://localhost:8080/realms/registry"
+    ports:
+      - "8888:8080"
+    depends_on:
+      apicurio-registry:
+        condition: service_healthy
+
+  # Optional: build a local MCP image when developing the MCP module:
+  #   ./mvnw install -Pfull -pl mcp -am -DskipTests
+  #   cd mcp/target/docker && docker build -f Dockerfile.jvm \
+  #     -t quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot .
+  apicurio-registry-mcp:
+    image: quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot
+    container_name: mcp-keycloak-mcp-server
+    environment:
+      # Required: dev profile disables HTTP auth by default (unauthenticated /mcp returns 200)
+      QUARKUS_PROFILE: "prod"
+      QUARKUS_HTTP_AUTH_PROACTIVE: "true"
+      REGISTRY_URL: "http://apicurio-registry:8080"
+      # Apicurio MCP HTTP settings
+      APICURIO_MCP_HTTP_ENABLED: "true"
+      APICURIO_MCP_HTTP_FORWARD_TOKEN: "true"
+      # Quarkus MCP + OIDC companion settings
+      QUARKUS_MCP_SERVER_HTTP_ENABLED: "true"
+      QUARKUS_MCP_SERVER_STDIO_ENABLED: "false"
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_APPLICATION_TYPE: "service"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
+      QUARKUS_OIDC_TENANT_PATHS: "/mcp"
+      QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_PATHS: "/mcp"
+      QUARKUS_HTTP_AUTH_PERMISSION_AUTHENTICATED_POLICY: "authenticated"
+      QUARKUS_OIDC_TLS_VERIFICATION: "none"
+      # Optional: OAuth discovery and CORS for HTTP-mode MCP clients
+      QUARKUS_OIDC_RESOURCE_METADATA_AUTHORIZATION_SERVER: "http://localhost:8080/realms/registry"
+      QUARKUS_OIDC_RESOURCE_METADATA_ENABLED: "true"
+      QUARKUS_OIDC_RESOURCE_METADATA_FORCE_HTTPS_SCHEME: "false"
+      QUARKUS_OIDC_TOKEN_AUDIENCE: "apicurio-mcp"
+      QUARKUS_HTTP_CORS_ENABLED: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "http://localhost:6274"
+    ports:
+      - "8082:8080"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      keycloak-bootstrap:
+        condition: service_completed_successfully
+      apicurio-registry:
+        condition: service_healthy
+
+networks:
+  default:
+    name: mcp-keycloak-network

@@ -1,19 +1,12 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="registry-compatibility-modes_{context}"]
 = {registry} schema compatibility modes
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
 In {registry}, compatibility modes determine which changes are permitted when you upload a new version of an artifact. Because these rules vary depending on the data format (such as Avro, JSON Schema, Protobuf, OpenAPI, or XSD), each artifact type has its own specific criteria for what constitutes a compatible or incompatible change.
-
-* xref:registry-compatibility-overview_{context}[]
-* xref:registry-compatibility-mode-descriptions_{context}[]
-* xref:registry-compatibility-avro_{context}[]
-* xref:registry-compatibility-json-schema_{context}[]
-* xref:registry-compatibility-protobuf_{context}[]
-* xref:registry-compatibility-openapi_{context}[]
-* xref:registry-compatibility-xsd_{context}[]
 
 [role="_additional-resources"]
 .Additional resources
@@ -21,9 +14,10 @@ In {registry}, compatibility modes determine which changes are permitted when yo
 
 
 // ref-registry-compatibility-overview
-:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-overview_{context}"]
 == Overview of compatibility rules
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 When you add a new version of an artifact to {registry}, you can configure the `COMPATIBILITY` rule to check whether the new content is compatible with existing versions.
@@ -46,9 +40,10 @@ For the full list of supported artifact types and rule maturity levels, see the 
 
 
 // ref-registry-compatibility-mode-descriptions
-:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-mode-descriptions_{context}"]
 == Compatibility mode descriptions
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 Compatibility modes act as a set of rules that determine whether a new schema version is allowed based on its ability to work with existing data and applications.
@@ -93,9 +88,10 @@ The transitive modes (`BACKWARD_TRANSITIVE`, `FORWARD_TRANSITIVE`, and `FULL_TRA
 
 
 // ref-registry-compatibility-avro
-:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-avro_{context}"]
 == Avro schema compatibility
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} uses the Apache Avro library to check compatibility for Avro schemas.
@@ -151,7 +147,7 @@ The following table describes common Avro schema changes and whether they mainta
 |===
 
 .Transitive compatibility example for Avro
-
+====
 The following example demonstrates how transitive compatibility differs from non-transitive compatibility:
 
 * *Version 1*: `{fields: [name: string]}`
@@ -161,12 +157,14 @@ The following example demonstrates how transitive compatibility differs from non
 In the example, Version 3 is backward compatible with Version 2 because the `email` field exists in Version 2 data.
 However, Version 3 is _not_ backward compatible with Version 1 because the `email` field is missing and there is no default value.
 As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANSITIVE` check.
+====
 
 
 // ref-registry-compatibility-json-schema
-:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-json-schema_{context}"]
 == JSON Schema compatibility
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} uses a custom library to analyze differences between JSON Schema versions.
@@ -278,9 +276,10 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 
 
 // ref-registry-compatibility-protobuf
-:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-protobuf_{context}"]
 == Protobuf schema compatibility
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} checks Protobuf schema compatibility based on the wire format contract.
@@ -335,7 +334,7 @@ Because Protobuf uses numeric field tags to identify fields on the wire, the fol
 |===
 
 .Reserving fields in Protobuf
-
+====
 When you remove a field from a Protobuf schema, reserve both the tag number and the field name to prevent reuse:
 
 ----
@@ -348,12 +347,14 @@ message Person {
 ----
 
 Reserving fields is critical for maintaining forward and backward compatibility because it prevents accidental reuse of tag numbers or field names.
+====
 
 
 // ref-registry-compatibility-openapi
-:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-openapi_{context}"]
 == OpenAPI compatibility
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} checks OpenAPI specification compatibility by comparing operations and schemas between versions.
@@ -413,9 +414,10 @@ The following table describes common changes and whether they maintain or break 
 
 
 // ref-registry-compatibility-xsd
-:_mod-docs-content-type: REFERENCE
 [id="registry-compatibility-xsd_{context}"]
 == XSD compatibility
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 {registry} checks XML Schema Definition (XSD) compatibility by comparing elements, attributes, types, and constraints between versions.

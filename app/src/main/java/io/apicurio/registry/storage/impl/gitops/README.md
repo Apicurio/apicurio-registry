@@ -175,7 +175,7 @@ code review. The registry handles conflict detection if two repos define the sam
 
 In environments where outbound network access is restricted, an external process pushes changes to a
 Git repository hosted inside the cluster. The sidecar exposes an SSH endpoint for receiving pushes.
-See [`distro/gitops/README.md`](../../../../distro/gitops/README.md) for push mode configuration.
+See [`distro/gitops/README.md`](../../../../../../../../../../distro/gitops/README.md) for push mode configuration.
 
 ### PR Verification with CI/CD
 
@@ -389,7 +389,7 @@ Error categories:
 
 A pre-built container image (`quay.io/apicurio/apicurio-registry-gitops-sync`) is available
 for pulling from remote Git repositories. It runs as a sidecar alongside the registry,
-managing a shared volume. See [`distro/gitops/README.md`](../../../../distro/gitops/README.md)
+managing a shared volume. See [`distro/gitops/README.md`](../../../../../../../../../../distro/gitops/README.md)
 for configuration, security levels, and deployment details.
 
 ## Future Work
@@ -407,7 +407,7 @@ For the full design document and implementation plan, see the
 
 ### Docker Compose
 
-For complete working examples with Docker Compose, see [`examples/gitops/`](../../../../examples/gitops/).
+For complete working examples with Docker Compose, see [`examples/gitops/`](../../../../../../../../../../examples/gitops/).
 
 ### Kubernetes / OpenShift (Operator)
 
@@ -447,7 +447,7 @@ gitops:
 
 Additional configuration (custom sidecar image, extra env vars) is done via `podTemplateSpec`
 overrides. See the operator example CRs for all supported scenarios:
-[`operator/controller/src/test/resources/k8s/examples/gitops/`](../../../../operator/controller/src/test/resources/k8s/examples/gitops/).
+[`operator/controller/src/test/resources/k8s/examples/gitops/`](../../../../../../../../../../operator/controller/src/test/resources/k8s/examples/gitops/).
 
 <!--
 

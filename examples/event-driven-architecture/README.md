@@ -46,7 +46,7 @@ open-source project provides several components that work with Avro:
 
 1. Start the environment
 
-    ```consolee
+    ```console
     docker compose up -d
     ```
 
@@ -54,10 +54,16 @@ The last command will start the following components:
 
 - Single node Zookeeper and Kafka cluster
 - Single node Kafka Connect cluster
-- Apicurio service registry
+- Apicurio Registry
 - PostgreSQL (ready for CDC)
-- KsqlDb instance
+- ksqlDB instance
 - Kafka UI
+- Apicurio Registry UI
+
+The Registry API is available at http://localhost:8080, while the standalone Registry UI is available at http://localhost:8888.
+
+> **Note**
+> The Registry UI is configured with `REGISTRY_API_URL=http://localhost:8080`, which assumes Docker and your web browser are running on the same machine. If you are accessing Docker on a remote host (for example over SSH port forwarding), update `REGISTRY_API_URL` to point to the appropriate Registry API endpoint.
 
 ## Apicurio converters
 
@@ -73,8 +79,9 @@ and their respective registry configurations:
 
 ```json
 {
-  "value.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v2",
-  "key.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v2",
+  "value.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v3",
+  "value.converter.apicurio.registry.auto-register": "true",
+  "key.converter.apicurio.registry.url": "http://schema-registry:8080/apis/registry/v3",
   "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
   "key.converter.apicurio.registry.auto-register": "true",
   "key.converter": "io.apicurio.registry.utils.converter.AvroConverter"
@@ -88,7 +95,7 @@ and their respective registry configurations:
 Let's create the Debezium connector to start capturing changes in the database.
 
 1. Create the connector using the REST API.
-You can execute this ste either by using the `curl` command below
+You can execute this step either by using the `curl` command below
 or by creating the connector from the Kafka UI.
 
     ```console

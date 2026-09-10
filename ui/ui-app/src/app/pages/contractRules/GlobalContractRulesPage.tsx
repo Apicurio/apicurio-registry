@@ -57,7 +57,9 @@ export const GlobalContractRulesPage: FunctionComponent<PageProperties> = () => 
 
     const createLoaders = (): Promise<any> => {
         return contracts.getGlobalContractRuleset().then(setRuleset).catch(error => {
-            setPageError(toPageError(error, "Error loading global contract rules."));
+            if (error?.status !== 404) {
+                setPageError(toPageError(error, "Error loading global contract rules."));
+            }
         });
     };
 

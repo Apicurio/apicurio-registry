@@ -12,6 +12,9 @@ team:
   domain: commerce
   contact: orders@company.com
 schemas:
+  # each schemas[] entry is independent — field PII/tags apply only to this artifact.
+  # nested types stored as separate registry artifacts need their own entry (or contract).
+  # CEL rules on the parent can still reach nested values at evaluation time (records are materialized).
   - name: OrderEvent
     type: avro
     location: orders/OrderEvent:3

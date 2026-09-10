@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.Route;
@@ -23,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
 import static io.apicurio.deployment.KubernetesTestResources.*;
@@ -32,6 +34,18 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
 
     public static KubernetesClient kubernetesClient;
+
+    // Guards against failsafe's rerun re-executing the test plan (and therefore the
+    // deployment) in the same JVM.
+    private static final AtomicBoolean DEPLOYED = new AtomicBoolean(false);
+
+    // Set when handleInfraDeployment() throws below. testPlanExecutionStarted() cannot
+    // abort the JUnit Platform launcher's test plan from a TestExecutionListener callback,
+    // so a failure here used to be logged and silently ignored: tests then ran against a
+    // half-seeded/never-restarted deployment and failed with confusing, unrelated
+    // assertion errors far away from the actual root cause. ApicurioRegistryBaseIT checks
+    // this in its @BeforeAll so every test class fails fast with the real error instead.
+    private static volatile Throwable deploymentFailure;
 
     static List<LogWatch> logWatch;
 
@@ -64,12 +78,29 @@ public class RegistryDeploymentManager implements TestExecutionListener {
 
         if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
 
+            // Failsafe re-executes the whole test plan for failing-test reruns
+            // (rerunFailingTestsCount). Deploy only once per JVM: redeploying would
+            // tear down and recreate the namespace mid-run, and the rerun can never
+            // pass against a half-recreated deployment.
+            if (!DEPLOYED.compareAndSet(false, true)) {
+                LOGGER.info("Registry already deployed in this JVM (failsafe rerun), skipping redeploy");
+                return;
+            }
+
             kubernetesClient = new KubernetesClientBuilder().build();
 
             try {
                 handleInfraDeployment();
             } catch (Exception e) {
                 LOGGER.error("Error starting registry deployment", e);
+                deploymentFailure = e;
+            }
+
+            // Namespace cleanup must not run at test-plan end either: that method
+            // fires between the initial plan and the failsafe rerun plan. The CI
+            // runner is ephemeral, so deleting on JVM shutdown is sufficient.
+            if (!Boolean.parseBoolean(System.getProperty("preserveNamespace"))) {
+                Runtime.getRuntime().addShutdownHook(new Thread(this::cleanupTestResources));
             }
 
             LOGGER.info("Test suite started ##################################################");
@@ -81,21 +112,39 @@ public class RegistryDeploymentManager implements TestExecutionListener {
         LOGGER.info("Test suite ended ##################################################");
 
         try {
+            if (logWatch != null && !logWatch.isEmpty()) {
+                logWatch.forEach(LogWatch::close);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Exception closing log watchers", e);
+        }
+    }
 
-            // Finally, once the testsuite is done, cleanup all the resources in the cluster
-            if (kubernetesClient != null
-                    && !(Boolean.parseBoolean(System.getProperty("preserveNamespace")))) {
+    /**
+     * Fails fast, with the real root cause, if test-infra deployment failed during
+     * testPlanExecutionStarted(). Must be called from every test class's setup (see
+     * ApicurioRegistryBaseIT#prepareRestAssured) since a TestExecutionListener cannot itself
+     * abort the test plan it was notified about.
+     */
+    public static void verifyDeploymentSucceeded() throws Exception {
+        if (deploymentFailure != null) {
+            throw new IllegalStateException(
+                    "Registry test-infra deployment failed during test-plan startup; "
+                            + "no tests can run against a broken/incomplete deployment. "
+                            + "See the 'Error starting registry deployment' log entry for the root cause.",
+                    deploymentFailure);
+        }
+    }
+
+    private void cleanupTestResources() {
+        try {
+            if (kubernetesClient != null) {
                 LOGGER.info("Closing test resources ##################################################");
-
-                if (logWatch != null && !logWatch.isEmpty()) {
-                    logWatch.forEach(LogWatch::close);
-                }
 
                 final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
                         .withName(TEST_NAMESPACE);
 
                 namespaceResource.delete();
-
             }
         } catch (Exception e) {
             LOGGER.error("Exception closing test resources", e);
@@ -190,8 +239,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             LOGGER.debug("Error creating registry resources:", ex);
         }
 
-        // Wait for all the pods of the variant to be ready
-        kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+        waitForAllPodsReady();
 
         setupTestNetworking();
 
@@ -229,12 +277,49 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     private static void deployResource(String resource) {
-        // Deploy all the resources associated to the external requirements
         kubernetesClient.load(RegistryDeploymentManager.class.getResourceAsStream(resource))
                 .serverSideApply();
 
-        // Wait for all the external resources pods to be ready
-        kubernetesClient.pods().inNamespace(TEST_NAMESPACE).waitUntilReady(360, TimeUnit.SECONDS);
+        waitForAllPodsReady();
+    }
+
+    static final int POD_WAIT_TIMEOUT_SECONDS = 360;
+    static final int POD_WAIT_MAX_ATTEMPTS = 2;
+
+    static void waitForAllPodsReady() {
+        for (int attempt = 1; attempt <= POD_WAIT_MAX_ATTEMPTS; attempt++) {
+            try {
+                kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
+                        .waitUntilReady(POD_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                return;
+            } catch (KubernetesClientTimeoutException e) {
+                logPodStatus();
+                if (attempt == POD_WAIT_MAX_ATTEMPTS) {
+                    throw new RuntimeException(
+                            "Pods not ready after " + POD_WAIT_MAX_ATTEMPTS + " attempts ("
+                                    + POD_WAIT_TIMEOUT_SECONDS + "s each)",
+                            e);
+                }
+                LOGGER.warn("Pod wait attempt {}/{} timed out, retrying: {}",
+                        attempt, POD_WAIT_MAX_ATTEMPTS, e.getMessage());
+            }
+        }
+    }
+
+    static void logPodStatus() {
+        try {
+            PodList pods = kubernetesClient.pods().inNamespace(TEST_NAMESPACE).list();
+            pods.getItems().forEach(pod -> {
+                String name = pod.getMetadata().getName();
+                String phase = pod.getStatus() != null ? pod.getStatus().getPhase() : "unknown";
+                boolean ready = pod.getStatus() != null && pod.getStatus().getConditions() != null
+                        && pod.getStatus().getConditions().stream()
+                                .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
+                LOGGER.info("Pod {}: phase={}, ready={}", name, phase, ready);
+            });
+        } catch (Exception e) {
+            LOGGER.warn("Could not list pods for diagnostics: {}", e.getMessage());
+        }
     }
 
     /**

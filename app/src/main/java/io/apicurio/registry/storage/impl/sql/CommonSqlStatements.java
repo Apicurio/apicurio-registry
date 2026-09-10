@@ -146,12 +146,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
         // TODO: Use COALESCE to unify into a single query.
         String query;
         if (firstVersion) {
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
-                    + " VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
+                    + " VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
             // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
-            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
-                    + " VALUES (?, ?, ?, ?, (SELECT maxVer FROM (SELECT MAX(versionOrder) + 1 AS maxVer FROM versions WHERE groupId = ? AND artifactId = ?) temp), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
+                    + " VALUES (?, ?, ?, ?, ?, (SELECT maxVer FROM (SELECT MAX(versionOrder) + 1 AS maxVer FROM versions WHERE groupId = ? AND artifactId = ?) temp), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         }
         return query;
     }
@@ -433,6 +433,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateVersionSortKey()
+     */
+    @Override
+    public String updateVersionSortKey() {
+        return "UPDATE versions SET versionSortKey = ? WHERE globalId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateArtifactVersionState()
      */
     @Override
@@ -657,6 +665,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectContentById() {
         return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
                 + "WHERE c.contentId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentAndArtifactTypeById()
+     */
+    @Override
+    public String selectContentAndArtifactTypeById() {
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash, a.type AS artifactType FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE c.contentId = ? LIMIT 1";
     }
 
     /**
@@ -938,8 +957,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String importArtifactVersion() {
-        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        return "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     /**
@@ -1142,6 +1161,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     @Override
     public String insertConfigProperty() {
         return "INSERT INTO config (propName, propValue, modifiedOn) VALUES (?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertConfigProperty()
+     */
+    @Override
+    public String upsertConfigProperty() {
+        return "MERGE INTO config (propName, propValue, modifiedOn) KEY (propName) VALUES (?, ?, ?)";
     }
 
     /**

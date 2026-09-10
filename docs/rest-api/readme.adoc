@@ -2,7 +2,7 @@
 
 To build and view the latest Apicurio Registry REST API documentation from the source code:   
 
-1. Build the Apicurio Registry project: `mvn clean install`
+1. Build the Apicurio Registry REST API documentation: `./mvnw clean install -pl docs/rest-api -am -DskipTests` (or `./mvnw clean install -Dfull -DskipTests`)
 2. Change directory to `apicurio-registry/docs/rest-api/target`
 3. Extract `apicurio-registry-docs-rest-api-<version>-static.zip` 
 4. Execute `run.sh`

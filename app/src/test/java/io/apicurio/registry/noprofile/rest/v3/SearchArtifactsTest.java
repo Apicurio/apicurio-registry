@@ -171,6 +171,51 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchArtifactsByLabelsNamespaceAndColonInValue() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Artifact 1: Namespaced label key (env:tag = production)
+        String artifactId1 = "Artifact-Namespace";
+        this.createArtifact(group, artifactId1, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData1 = new EditableArtifactMetaData();
+        metaData1.setLabels(Map.of("env:tag", "production"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId1).body(metaData1)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // Artifact 2: Colon in label value (color = red:dark)
+        String artifactId2 = "Artifact-ColonInValue";
+        this.createArtifact(group, artifactId2, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData2 = new EditableArtifactMetaData();
+        metaData2.setLabels(Map.of("color", "red:dark"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId2).body(metaData2)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // --- 1. Namespace Key Regression Checks ---
+
+        // Query "env:tag:" (trailing colon) -> matches key "env:tag" with any value
+        given().when().queryParam("labels", "env:tag:").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // Query "env:tag:production" -> matches key "env:tag" and value "production"
+        given().when().queryParam("labels", "env:tag:production").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // --- 2. Colon-in-Value Behavior Tradeoff Check ---
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Artifact 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        given().when().queryParam("labels", "color:red:dark").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+
+        // Querying key-only "color" matches Artifact 2
+        given().when().queryParam("labels", "color").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId2));
+    }
+
+    @Test
     public void testSearchArtifactsOrderBy() throws Exception {
         String group = UUID.randomUUID().toString();
         String artifactContent = resourceToString("openapi-empty.json");
@@ -286,6 +331,59 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
         given().when().queryParam("canonical", "true").queryParam("artifactType", ArtifactType.OPENAPI)
                 .body(searchByContent).post("/registry/v3/search/artifacts").then().statusCode(200)
                 .body("count", equalTo(2));
+    }
+
+    @Test
+    public void testSearchArtifactsLimitAndOffsetEdgeCases() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "Empty-" + idx;
+            String name = "empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setName(name);
+                        ca.getFirstVersion().setName(name);
+                    });
+        }
+
+        // A negative limit is normalized to 1, not passed to storage as an invalid query (#8611).
+        given().when().queryParam("groupId", group).queryParam("limit", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // A negative offset is normalized to 0, returning the full result set.
+        given().when().queryParam("groupId", group).queryParam("offset", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+
+        // limit=0 keeps its current semantics (empty page); only negative values are normalized.
+        given().when().queryParam("groupId", group).queryParam("limit", 0)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
+
+        // Boundary values: offset=0 and limit=1 are valid and behave normally.
+        given().when().queryParam("groupId", group).queryParam("offset", 0)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+        given().when().queryParam("groupId", group).queryParam("limit", 1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // Both parameters invalid at once: offset -> 0, limit -> 1.
+        given().when().queryParam("groupId", group).queryParam("offset", -1).queryParam("limit", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // Oversized values are capped (offset at Integer.MAX_VALUE, limit at MAX_LIMIT) instead of
+        // wrapping to a negative int, which would have produced a 500.
+        given().when().queryParam("groupId", group).queryParam("offset", 2147483648L)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
+        given().when().queryParam("groupId", group).queryParam("limit", 2147483648L)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
     }
 
 }

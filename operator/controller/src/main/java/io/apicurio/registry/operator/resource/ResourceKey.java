@@ -18,6 +18,7 @@ import lombok.ToString;
 import java.util.function.Function;
 
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
+import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_CONSOLE_PLUGIN;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 
 @AllArgsConstructor
@@ -38,6 +39,9 @@ public class ResourceKey<R> {
     public static final String APP_ROLE_ID = "AppRoleResource";
     public static final String APP_ROLE_BINDING_ID = "AppRoleBindingResource";
     public static final String GITOPS_SSH_SERVICE_ID = "GitOpsSshServiceResource";
+
+    public static final String CONSOLE_PLUGIN_DEPLOYMENT_ID = "ConsolePluginDeploymentResource";
+    public static final String CONSOLE_PLUGIN_SERVICE_ID = "ConsolePluginServiceResource";
 
     public static final String UI_DEPLOYMENT_ID = "UIDeploymentResource";
     public static final String UI_SERVICE_ID = "UIServiceResource";
@@ -81,6 +85,12 @@ public class ResourceKey<R> {
     public static final ResourceKey<PodDisruptionBudget> UI_POD_DISRUPTION_BUDGET_KEY = new ResourceKey<>(UI_POD_DISRUPTION_BUDGET_ID, PodDisruptionBudget.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIPodDisruptionBudget);
 
     public static final ResourceKey<HorizontalPodAutoscaler> UI_HORIZONTAL_POD_AUTOSCALER_KEY = new ResourceKey<>(UI_HORIZONTAL_POD_AUTOSCALER_ID, HorizontalPodAutoscaler.class, COMPONENT_UI, ResourceFactory.INSTANCE::getDefaultUIHorizontalPodAutoscaler);
+
+    // ===== Console Plugin
+
+    public static final ResourceKey<Deployment> CONSOLE_PLUGIN_DEPLOYMENT_KEY = new ResourceKey<>(CONSOLE_PLUGIN_DEPLOYMENT_ID, Deployment.class, COMPONENT_CONSOLE_PLUGIN, ResourceFactory.INSTANCE::getDefaultConsolePluginDeployment);
+
+    public static final ResourceKey<Service> CONSOLE_PLUGIN_SERVICE_KEY = new ResourceKey<>(CONSOLE_PLUGIN_SERVICE_ID, Service.class, COMPONENT_CONSOLE_PLUGIN, ResourceFactory.INSTANCE::getDefaultConsolePluginService);
 
     @EqualsAndHashCode.Include
     @ToString.Include

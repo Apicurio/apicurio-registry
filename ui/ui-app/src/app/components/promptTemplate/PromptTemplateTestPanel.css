@@ -21,3 +21,10 @@
 .prompt-template-test-panel .validation-errors {
     margin-top: 8px;
 }
+
+.prompt-template-test-panel .label-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}

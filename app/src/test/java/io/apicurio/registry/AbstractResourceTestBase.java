@@ -130,7 +130,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected void deleteGlobalRules(int expectedDefaultRulesCount) throws Exception {
-        // Delete all global rules
+        // Delete all global rules. Under CI load the H2-backed registry can be slow enough that
+        // the default 20-retry budget is exhausted; give the setup step a wider window.
         TestUtils.retry(() -> {
             try {
                 clientV3.admin().rules().delete();
@@ -138,7 +139,7 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
                 // ignore
             }
             Assertions.assertEquals(expectedDefaultRulesCount, clientV3.admin().rules().get().size());
-        });
+        }, "delete global rules", 60);
     }
 
     protected CreateArtifactResponse createArtifact(String artifactId, String artifactType, String content,

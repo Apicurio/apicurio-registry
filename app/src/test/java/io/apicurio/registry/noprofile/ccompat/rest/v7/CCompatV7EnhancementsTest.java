@@ -212,6 +212,74 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
                 .get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
     }
 
+    @Test
+    public void testSubjectVersionsPaginationWithLargeLimit() throws Exception {
+        var subject = TestUtils.generateSubject();
+
+        // Create 3 versions so effectiveOffset(1) < rval.size()(3) — exercises the subList path
+        var schema1 = "{\"type\" : \"string\"}";
+        var schemaContent1 = new RegisterSchemaRequest();
+        schemaContent1.setSchema(schema1);
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent1))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        var schema2 = "{\"type\": \"record\", \"name\": \"Test\", \"fields\": [{\"name\": \"f1\", \"type\": \"string\"}]}";
+        var schemaContent2 = new RegisterSchemaRequest();
+        schemaContent2.setSchema(schema2);
+        schemaContent2.setSchemaType("AVRO");
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent2))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        var schema3 = "{\"type\": \"record\", \"name\": \"Test2\", \"fields\": [{\"name\": \"f2\", \"type\": \"int\"}]}";
+        var schemaContent3 = new RegisterSchemaRequest();
+        schemaContent3.setSchema(schema3);
+        schemaContent3.setSchemaType("AVRO");
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent3))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        // Pre-fix: (1 + Integer.MAX_VALUE) overflows to negative, subList(1, -N) throws.
+        // Post-fix: long widening caps toIndex to rval.size() safely.
+        given().when().queryParam("offset", 1).queryParam("limit", Integer.MAX_VALUE)
+                .get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+    }
+
+    @Test
+    public void testSubjectVersionsPaginationWithNegativeOffset() throws Exception {
+        var subject = TestUtils.generateSubject();
+
+        // Create 3 versions so offset clamping is exercised against a non-empty list
+        var schema1 = "{\"type\" : \"string\"}";
+        var schemaContent1 = new RegisterSchemaRequest();
+        schemaContent1.setSchema(schema1);
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent1))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        var schema2 = "{\"type\": \"record\", \"name\": \"Test\", \"fields\": [{\"name\": \"f1\", \"type\": \"string\"}]}";
+        var schemaContent2 = new RegisterSchemaRequest();
+        schemaContent2.setSchema(schema2);
+        schemaContent2.setSchemaType("AVRO");
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent2))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        var schema3 = "{\"type\": \"record\", \"name\": \"Test2\", \"fields\": [{\"name\": \"f2\", \"type\": \"int\"}]}";
+        var schemaContent3 = new RegisterSchemaRequest();
+        schemaContent3.setSchema(schema3);
+        schemaContent3.setSchemaType("AVRO");
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent3))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        // Pre-fix: offset=-1 reached subList(-1, ...) directly -> IndexOutOfBoundsException.
+        // Post-fix: Math.max(0, -1) = 0, so subList(0, 1) is safe.
+        given().when().queryParam("offset", -1).queryParam("limit", 1)
+                .get("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+    }
+
     // ========== Normalize Parameter Tests ==========
 
     @Test

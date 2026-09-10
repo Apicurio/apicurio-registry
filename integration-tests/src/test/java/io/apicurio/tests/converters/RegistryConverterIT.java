@@ -133,6 +133,63 @@ public class RegistryConverterIT extends ApicurioRegistryBaseIT {
     }
 
     @Test
+    public void testAvroConverterDebeziumLogicalTypes() throws Exception {
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema dateSchema = org.apache.kafka.connect.data.SchemaBuilder
+                    .int32().name("io.debezium.time.Date").version(1).build();
+
+            org.apache.kafka.connect.data.Schema sc = struct()
+                    .name("dbserver1.inventory.orders.Value")
+                    .field("order_number", INT32_SCHEMA)
+                    .field("order_date", dateSchema)
+                    .field("customer_id", INT32_SCHEMA)
+                    .field("quantity", INT32_SCHEMA)
+                    .field("price", org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
+                    .build();
+
+            Struct struct = new Struct(sc);
+            struct.put("order_number", 10045);
+            struct.put("order_date", 19443);
+            struct.put("customer_id", 1001);
+            struct.put("quantity", 5);
+            struct.put("price", 29.99);
+
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            TestUtils.waitForSchema(contentId -> {
+                try {
+                    return registryClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+
+            Struct result = (Struct) converter.toConnectData(subject, bytes).value();
+
+            Assertions.assertNotNull(result, "Deserialized struct must not be null");
+            Assertions.assertEquals(10045, result.get("order_number"));
+            Assertions.assertEquals(19443, result.get("order_date"),
+                    "order_date with connect.name=io.debezium.time.Date must not be null");
+            Assertions.assertEquals(1001, result.get("customer_id"));
+            Assertions.assertEquals(5, result.get("quantity"));
+            Assertions.assertEquals(29.99, result.get("price"));
+
+            Assertions.assertEquals("io.debezium.time.Date",
+                    result.schema().field("order_date").schema().name(),
+                    "Connect schema must preserve connect.name after registry round-trip");
+        }
+    }
+
+    @Test
     public void testAvroBytesDefaultValue() throws Exception {
         String expectedSchema = "{\n" + "  \"type\" : \"record\",\n" + "  \"name\" : \"ConnectDefault\",\n"
                 + "  \"namespace\" : \"io.confluent.connect.avro\",\n" + "  \"fields\" : [ {\n"

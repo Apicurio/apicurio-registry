@@ -20,14 +20,21 @@ import org.slf4j.LoggerFactory;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 
 /**
- * Database upgrader that recomputes canonical hashes for all Avro content. This is needed because the Avro
- * canonicalizer was updated to normalize nullable unions ({@code ["null", T]}) so that the implicit and
- * explicit {@code "default": null} forms produce the same canonical hash. Existing rows stored before the
- * fix may have stale hashes that prevent deduplication of equivalent schemas.
+ * Database upgrader that recomputes canonical hashes for all Avro content. Existing rows stored before a
+ * change to the Avro canonicalizer may have stale hashes that prevent deduplication of equivalent schemas,
+ * so this upgrader is re-run whenever that canonicalizer changes. It has been run for:
+ * <ul>
+ * <li>db version 104 — nullable unions ({@code ["null", T]}) were normalized so that the implicit and
+ * explicit {@code "default": null} forms produce the same canonical hash.</li>
+ * <li>db version 108 — resolved references are now seeded into the parser, so schemas that reference
+ * another artifact canonicalize instead of silently falling back to their raw, uncanonicalized content.</li>
+ * </ul>
  */
 @RegisterForReflection
 public class AvroCanonicalHashUpgrader implements IDbUpgrader {
@@ -46,23 +53,43 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                     + "JOIN artifacts a ON a.groupId = v.groupId AND a.artifactId = v.artifactId "
                 + "WHERE a.type = ?";
 
-        int successCount = handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
-                .map(new ContentWithTypeRowMapper()).stream().mapToInt(entity -> {
-                    try {
-                        return updateEntity(handle, entity);
-                    } catch (Exception ex) {
-                        log.warn("Failed to update canonical hash for contentId {}.",
-                                entity.contentEntity.contentId, ex);
-                        return 0;
-                    }
-                }).sum();
+        AtomicInteger processedCount = new AtomicInteger();
+        AtomicInteger updatedCount = new AtomicInteger();
+        AtomicInteger skippedCount = new AtomicInteger();
+        AtomicInteger failedCount = new AtomicInteger();
 
-        log.info("Successfully updated {} Avro canonical content hashes.", successCount);
+        // Same pattern as SqlExportRepository / SqlVersionRepository: MappedQuery.stream() only
+        // closes the ResultSet/Statement via onClose, so the Stream must be closed explicitly.
+        Stream<ContentWithType> stream = handle.createQuery(sql).bind(0, ArtifactType.AVRO).setFetchSize(50)
+                .map(new ContentWithTypeRowMapper()).stream();
+        try (stream) {
+            stream.forEach(entity -> {
+                processedCount.incrementAndGet();
+                try {
+                    int result = updateEntity(handle, entity);
+                    if (result > 0) {
+                        updatedCount.incrementAndGet();
+                    } else {
+                        skippedCount.incrementAndGet();
+                    }
+                } catch (Exception ex) {
+                    failedCount.incrementAndGet();
+                    log.warn("Failed to update canonical hash for contentId {}.",
+                            entity.contentEntity.contentId, ex);
+                }
+            });
+        }
+
+        log.info(
+                "Avro canonical hash upgrade complete: processed={}, updated={}, skipped={}, failed={}.",
+                processedCount.get(), updatedCount.get(), skippedCount.get(), failedCount.get());
     }
 
     private int updateEntity(Handle handle, ContentWithType entity) {
         List<ArtifactReferenceDto> references = RegistryContentUtils
                 .deserializeReferences(entity.contentEntity.serializedReferences);
+
+        validateReferencesResolvable(handle, references);
 
         ContentWrapperDto data = ContentWrapperDto.builder()
                 .content(ContentHandle.create(entity.contentEntity.contentBytes))
@@ -77,12 +104,24 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
                     .createUpdate("UPDATE content SET canonicalHash = ? WHERE contentId = ?")
                     .bind(0, newCanonicalHash).bind(1, entity.contentEntity.contentId).execute();
             if (rowCount == 0) {
+                // Row disappeared between SELECT and UPDATE; treat as failure (not a silent skip).
                 log.warn("Database row not found for contentId {}.", entity.contentEntity.contentId);
-                return 0;
+                throw new IllegalStateException(
+                        "Database row not found for contentId " + entity.contentEntity.contentId);
             }
             return 1;
         }
         return 0;
+    }
+
+    private void validateReferencesResolvable(Handle handle, List<ArtifactReferenceDto> references) {
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+        for (ArtifactReferenceDto reference : references) {
+            ContentWrapperDto resolved = resolveReference(handle, reference);
+            validateReferencesResolvable(handle, resolved.getReferences());
+        }
     }
 
     private ContentWrapperDto resolveReference(Handle handle, ArtifactReferenceDto reference) {

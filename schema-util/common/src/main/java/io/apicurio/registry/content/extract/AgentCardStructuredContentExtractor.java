@@ -37,6 +37,7 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
             extractProtocolBindings(root, elements);
             extractSecuritySchemeTypes(root, elements);
             extractTags(root, elements);
+            extractProtocolVersion(root, elements);
 
             return elements;
         } catch (Exception e) {
@@ -97,6 +98,14 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
                     elements.add(new StructuredElement("protocolbinding",
                             iface.get("protocolBinding").asText()));
                 }
+                if (iface.has("protocolVersion") && iface.get("protocolVersion").isTextual()) {
+                    elements.add(new StructuredElement("protocolversion",
+                            iface.get("protocolVersion").asText()));
+                }
+                if (iface.has("url") && iface.get("url").isTextual()) {
+                    elements.add(new StructuredElement("url",
+                            iface.get("url").asText()));
+                }
             }
         }
     }
@@ -106,6 +115,13 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
         if (!schemes.isMissingNode() && schemes.isObject()) {
             schemes.fieldNames().forEachRemaining(name ->
                     elements.add(new StructuredElement("securityscheme", name)));
+        }
+    }
+
+    private void extractProtocolVersion(JsonNode root, List<StructuredElement> elements) {
+        JsonNode version = root.path("protocolVersion");
+        if (!version.isMissingNode() && version.isTextual()) {
+            elements.add(new StructuredElement("protocolversion", version.asText()));
         }
     }
 

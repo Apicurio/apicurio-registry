@@ -6,6 +6,7 @@ import io.apicurio.registry.content.TypedContent;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -21,8 +22,15 @@ import java.util.Set;
  * - Removing capability extensions (by uri): Backward incompatible
  * - Removing interfaces (by url+protocolBinding): Backward incompatible
  * - Changing protocolVersion on existing interface: Backward incompatible
+ * - Removing protocolVersion from an existing interface: Backward incompatible
+ * - Changing the card-level protocolVersion: Backward incompatible
+ * - Adding a card-level protocolVersion where there was none: Always compatible
  * - Adding security schemes: Always compatible
  * - Removing security schemes: Backward incompatible
+ * - Changing an existing security scheme's definition: Backward incompatible
+ * - Changing an existing security scheme's description: Always compatible
+ * - Withdrawing an OAuth2 scope: Backward incompatible
+ * - Rewording an OAuth2 scope's description: Always compatible
  * - Adding input/output modes: Always compatible
  * - Removing input/output modes: Backward incompatible
  */
@@ -34,11 +42,24 @@ public class AgentCardCompatibilityChecker
     private static final String CONTEXT_CAPABILITIES = "/capabilities";
     private static final String CONTEXT_CAPABILITY_EXTENSIONS = "/capabilities/extensions";
     private static final String CONTEXT_SECURITY_SCHEMES = "/securitySchemes";
+    private static final String CONTEXT_PROTOCOL_VERSION = "/protocolVersion";
     private static final String CONTEXT_MODES = "/modes";
     private static final String CONTEXT_DOCUMENT = "/document";
     private static final String MSG_WAS_REMOVED = "' was removed";
 
     private static final ObjectMapper mapper = new ObjectMapper();
+
+    /**
+     * Security scheme fields whose value defines how a client must authenticate. The description
+     * field is documentation, and fields outside this list are ignored on purpose: the schema
+     * permits vendor extensions, and churn in one of those must not fail a publish.
+     */
+    private static final List<String> SECURITY_SCHEME_FIELDS = List.of("type", "scheme",
+            "bearerFormat", "name", "location", "oauth2MetadataUrl", "openIdConnectUrl");
+
+    private static final String FLOWS_FIELD = "flows";
+
+    private static final String SCOPES_FIELD = "scopes";
 
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
@@ -53,6 +74,8 @@ public class AgentCardCompatibilityChecker
             checkSkillRemovals(existingNode, proposedNode, differences);
             checkCapabilityRemovals(existingNode, proposedNode, differences);
             checkSecuritySchemeRemovals(existingNode, proposedNode, differences);
+            checkSecuritySchemeDefinitionChanges(existingNode, proposedNode, differences);
+            checkCardProtocolVersionChange(existingNode, proposedNode, differences);
             checkModeRemovals(existingNode, proposedNode, "defaultInputModes", "input mode",
                     differences);
             checkModeRemovals(existingNode, proposedNode, "defaultOutputModes", "output mode",
@@ -93,24 +116,53 @@ public class AgentCardCompatibilityChecker
         for (JsonNode existingIface : existingInterfaces) {
             String url = getTextValue(existingIface, "url");
             String binding = getTextValue(existingIface, "protocolBinding");
-            String existingVersion = getTextValue(existingIface, "protocolVersion");
+            String existingVersion = getComparableValue(existingIface, "protocolVersion");
 
             if (url == null || binding == null || existingVersion == null) {
                 continue;
             }
 
-            for (JsonNode proposedIface : proposedInterfaces) {
-                String pUrl = getTextValue(proposedIface, "url");
-                String pBinding = getTextValue(proposedIface, "protocolBinding");
-                String pVersion = getTextValue(proposedIface, "protocolVersion");
+            // Neither the schema nor validateSupportedInterfaces requires url+protocolBinding to be
+            // unique, so weigh every matching entry before concluding: one of them keeping the
+            // version means nothing was withdrawn, and duplicates must not multiply the difference.
+            boolean matched = false;
+            boolean versionRetained = false;
+            String changedVersion = null;
 
-                if (url.equals(pUrl) && binding.equals(pBinding)
-                        && pVersion != null && !existingVersion.equals(pVersion)) {
-                    differences.add(new SimpleCompatibilityDifference(
-                            "Protocol version changed from '" + existingVersion + "' to '"
-                                    + pVersion + "' for interface " + url + " (" + binding + ")",
-                            CONTEXT_INTERFACES));
+            for (JsonNode proposedIface : proposedInterfaces) {
+                if (!url.equals(getTextValue(proposedIface, "url"))
+                        || !binding.equals(getTextValue(proposedIface, "protocolBinding"))) {
+                    continue;
                 }
+
+                matched = true;
+                String pVersion = getComparableValue(proposedIface, "protocolVersion");
+                if (existingVersion.equals(pVersion)) {
+                    versionRetained = true;
+                    break;
+                }
+                if (pVersion != null) {
+                    changedVersion = pVersion;
+                }
+            }
+
+            // An interface with no match at all is already reported as an interface removal.
+            if (!matched || versionRetained) {
+                continue;
+            }
+
+            if (changedVersion != null) {
+                differences.add(new SimpleCompatibilityDifference(
+                        "Protocol version changed from '" + existingVersion + "' to '"
+                                + changedVersion + "' for interface " + url + " (" + binding + ")",
+                        CONTEXT_INTERFACES));
+            } else {
+                // A retained interface that drops its protocolVersion withdraws a guarantee the
+                // client had. The validity rule requires the field, but it is opt-in, so the card
+                // can reach this checker without it.
+                differences.add(new SimpleCompatibilityDifference(
+                        "Protocol version '" + existingVersion + "' was removed from interface "
+                                + url + " (" + binding + ")", CONTEXT_INTERFACES));
             }
         }
     }
@@ -191,6 +243,204 @@ public class AgentCardCompatibilityChecker
                         "Security scheme '" + scheme + MSG_WAS_REMOVED, CONTEXT_SECURITY_SCHEMES));
             }
         }
+    }
+
+    /**
+     * A retained scheme name says nothing about how a client authenticates: the definition behind
+     * it can change completely. checkSecuritySchemeRemovals only diffs the names, so compare the
+     * fields that carry the meaning.
+     */
+    private void checkSecuritySchemeDefinitionChanges(JsonNode existing, JsonNode proposed,
+            Set<SimpleCompatibilityDifference> differences) {
+        JsonNode existingSchemes = existing.get("securitySchemes");
+        JsonNode proposedSchemes = proposed.get("securitySchemes");
+
+        if (existingSchemes == null || !existingSchemes.isObject() || proposedSchemes == null
+                || !proposedSchemes.isObject()) {
+            return;
+        }
+
+        Iterator<String> schemeNames = existingSchemes.fieldNames();
+        while (schemeNames.hasNext()) {
+            String schemeName = schemeNames.next();
+            JsonNode existingScheme = existingSchemes.get(schemeName);
+            JsonNode proposedScheme = proposedSchemes.get(schemeName);
+
+            // A scheme that is gone entirely is already reported as a removal, and one the
+            // existing card never defined as an object promised nothing to take away.
+            if (proposedScheme == null || !existingScheme.isObject()) {
+                continue;
+            }
+
+            if (!proposedScheme.isObject()) {
+                // The name survives, so checkSecuritySchemeRemovals stays quiet, but the
+                // definition behind it is gone. The validity rule rejects this, and it is opt-in.
+                differences.add(new SimpleCompatibilityDifference(
+                        "Security scheme '" + schemeName + "' is no longer defined as an object",
+                        CONTEXT_SECURITY_SCHEMES));
+                continue;
+            }
+
+            for (String field : SECURITY_SCHEME_FIELDS) {
+                String existingValue = getComparableValue(existingScheme, field);
+                if (existingValue == null) {
+                    // Nothing was promised, so whatever the proposed card says cannot break a
+                    // client that was written against the existing one.
+                    continue;
+                }
+                String proposedValue = getComparableValue(proposedScheme, field);
+                if (!existingValue.equals(proposedValue)) {
+                    differences.add(new SimpleCompatibilityDifference(
+                            describeSchemeFieldChange(schemeName, field, existingValue,
+                                    proposedValue),
+                            CONTEXT_SECURITY_SCHEMES));
+                }
+            }
+
+            JsonNode existingFlows = existingScheme.get(FLOWS_FIELD);
+            if (existingFlows != null && !existingFlows.isNull()) {
+                checkRetainedValues(schemeName, FLOWS_FIELD, existingFlows,
+                        proposedScheme.get(FLOWS_FIELD), differences);
+            }
+        }
+    }
+
+    /**
+     * flows is a free-form object in the schema and the validity rule does not inspect it, so
+     * compare it structurally rather than by known field names: whatever the existing card
+     * declared must still be there, unchanged. Additions - a new grant type, a new scope - are
+     * ignored, so they stay compatible. Reports the outermost point at which the two stop
+     * matching rather than every leaf beneath it, which keeps the number of differences
+     * proportional to the edit.
+     */
+    private void checkRetainedValues(String schemeName, String path, JsonNode existing,
+            JsonNode proposed, Set<SimpleCompatibilityDifference> differences) {
+        if (proposed == null) {
+            differences.add(new SimpleCompatibilityDifference(
+                    "Security scheme '" + schemeName + "' no longer declares '" + path + "'",
+                    CONTEXT_SECURITY_SCHEMES));
+            return;
+        }
+
+        if (path.endsWith("/" + SCOPES_FIELD) && existing.isObject() && proposed.isObject()) {
+            checkRetainedScopeNames(schemeName, path, existing, proposed, differences);
+            return;
+        }
+
+        if (existing.isObject() && proposed.isObject()) {
+            Iterator<String> fieldNames = existing.fieldNames();
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                checkRetainedValues(schemeName, path + "/" + fieldName, existing.get(fieldName),
+                        proposed.get(fieldName), differences);
+            }
+            return;
+        }
+
+        if (existing.isArray() && proposed.isArray()) {
+            checkRetainedArrayValues(schemeName, path, existing, proposed, differences);
+            return;
+        }
+
+        if (!existing.equals(proposed)) {
+            differences.add(new SimpleCompatibilityDifference(
+                    describeSchemeFieldChange(schemeName, path, renderValue(existing),
+                            renderValue(proposed)),
+                    CONTEXT_SECURITY_SCHEMES));
+        }
+    }
+
+    /**
+     * A scopes map is name -> short description, so only the names are contract: withdrawing one
+     * breaks a client, rewording one does not. Comparing the values would contradict the
+     * description exemption applied to the scheme's own fields, and would judge the map form more
+     * harshly than the array form that checkRetainedArrayValues already treats as a set.
+     */
+    private void checkRetainedScopeNames(String schemeName, String path, JsonNode existing,
+            JsonNode proposed, Set<SimpleCompatibilityDifference> differences) {
+        Iterator<String> scopeNames = existing.fieldNames();
+        while (scopeNames.hasNext()) {
+            String scopeName = scopeNames.next();
+            if (!proposed.has(scopeName)) {
+                differences.add(new SimpleCompatibilityDifference(
+                        "Security scheme '" + schemeName + "' no longer offers '" + scopeName
+                                + "' in '" + path + "'", CONTEXT_SECURITY_SCHEMES));
+            }
+        }
+    }
+
+    /**
+     * An array inside flows is a set of offered values - a scope list is the usual case - so only
+     * losing an entry is a break. This mirrors how checkModeRemovals treats defaultInputModes:
+     * comparing the arrays whole would report a purely additive edit as incompatible.
+     */
+    private void checkRetainedArrayValues(String schemeName, String path, JsonNode existing,
+            JsonNode proposed, Set<SimpleCompatibilityDifference> differences) {
+        for (JsonNode existingItem : existing) {
+            boolean retained = false;
+            for (JsonNode proposedItem : proposed) {
+                if (existingItem.equals(proposedItem)) {
+                    retained = true;
+                    break;
+                }
+            }
+            if (!retained) {
+                differences.add(new SimpleCompatibilityDifference(
+                        "Security scheme '" + schemeName + "' no longer offers '"
+                                + renderValue(existingItem) + "' in '" + path + "'",
+                        CONTEXT_SECURITY_SCHEMES));
+            }
+        }
+    }
+
+    /**
+     * The card-level protocolVersion is the version the agent as a whole speaks -
+     * RegistryAgentCardBuilder fills it from the same config value as the per-interface one - so a
+     * client can rely on it without reading supportedInterfaces. It is optional, so an existing
+     * card that did not declare one promised nothing that a proposed card could take away.
+     */
+    private void checkCardProtocolVersionChange(JsonNode existing, JsonNode proposed,
+            Set<SimpleCompatibilityDifference> differences) {
+        String existingVersion = getComparableValue(existing, "protocolVersion");
+        if (existingVersion == null) {
+            return;
+        }
+
+        String proposedVersion = getComparableValue(proposed, "protocolVersion");
+        if (existingVersion.equals(proposedVersion)) {
+            return;
+        }
+
+        differences.add(new SimpleCompatibilityDifference(
+                "The agent protocolVersion " + describeChange(existingVersion, proposedVersion),
+                CONTEXT_PROTOCOL_VERSION));
+    }
+
+    private String describeSchemeFieldChange(String schemeName, String field, String existingValue,
+            String proposedValue) {
+        return "Security scheme '" + schemeName + "' field '" + field + "' "
+                + describeChange(existingValue, proposedValue);
+    }
+
+    private String describeChange(String existingValue, String proposedValue) {
+        return proposedValue == null
+                ? "was removed (was '" + existingValue + "')"
+                : "changed from '" + existingValue + "' to '" + proposedValue + "'";
+    }
+
+    /**
+     * Compares whatever value is present rather than textual values alone. getTextValue yields null
+     * for a non-textual node, which is indistinguishable from an absent one, so a field that turns
+     * into a number would otherwise be reported as having been removed when it was changed. The
+     * validity rule would reject those shapes, but it is opt-in.
+     */
+    private String getComparableValue(JsonNode node, String fieldName) {
+        JsonNode field = node.get(fieldName);
+        return (field == null || field.isNull()) ? null : renderValue(field);
+    }
+
+    private String renderValue(JsonNode node) {
+        return node.isTextual() ? node.asText() : node.toString();
     }
 
     private void checkModeRemovals(JsonNode existing, JsonNode proposed, String fieldName,

@@ -1,15 +1,20 @@
 package io.apicurio.registry.rules.compatibility.jsonschema;
 
+import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffContext;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffUtil;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Collections;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class JsonSchemaDiffUtilTest {
     public static Stream<Arguments> multipleOfCases() {
@@ -27,5 +32,12 @@ public class JsonSchemaDiffUtilTest {
                 DiffType.NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_DIVISIBLE,
                 DiffType.NUMBER_TYPE_MULTIPLE_OF_UPDATED_IS_NOT_DIVISIBLE);
         assertEquals(context.foundIncompatibleDifference(), isIncompatible);
+    }
+
+    @Test
+    void findDifferencesThrowsUnprocessableForUnsupportedDraft() {
+        String draft2020 = "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\"}";
+        assertThrows(UnprocessableSchemaException.class,
+                () -> JsonSchemaDiffLibrary.findDifferences(draft2020, draft2020, Collections.emptyMap()));
     }
 }

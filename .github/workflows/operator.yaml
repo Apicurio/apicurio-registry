@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -63,7 +63,10 @@ jobs:
         working-directory: operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+          # base_ref is empty on pull_request_review events; check the PR payload's base
+          # ref too so review-triggered runs still include the rolling (3.x) channel.
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ] \
+             || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make $ROLLING_CHANNEL_ARG bundle
@@ -72,7 +75,10 @@ jobs:
         working-directory: operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+          # base_ref is empty on pull_request_review events; check the PR payload's base
+          # ref too so review-triggered runs still include the rolling (3.x) channel.
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ] \
+             || [ "${{ github.event.pull_request.base.ref }}" = "main" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make $ROLLING_CHANNEL_ARG catalog
@@ -108,22 +114,54 @@ jobs:
           retention-days: 1
 
   operator-test-local:
-    name: Local Tests
+    name: Local Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: operator-build
-    # Only run local tests on push to main
-    if: inputs.publish
+    # Same JUnit @Tag groups as Remote Tests below, minus the OLM ones — OLM
+    # install/upgrade is a remote-cluster-only concept (subscribing to a
+    # catalog), not applicable to the in-process "local" operator. Sharded
+    # into separate jobs/runners/Minikube instances rather than JVM-level
+    # parallelism: the Makefile deliberately forces -T1 because @QuarkusTest
+    # local-mode instances cannot safely share one JVM, but separate jobs
+    # have no such restriction — each gets its own JVM and its own cluster.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: smoke
+            groups: "smoke"
+          - name: kafka
+            groups: "kafka"
+          - name: auth
+            groups: "auth"
+            excluded-groups: "kafka"
+          - name: database
+            groups: "database"
+          - name: feature-a
+            groups: "feature-a"
+            excluded-groups: "feature-setup"
+          - name: feature-b
+            groups: "feature-b"
+            excluded-groups: "feature-setup"
+          - name: feature-setup
+            groups: "feature-setup"
     steps:
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: operator-build-artifacts
+          path: operator/
 
       - name: Download Docker images
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -174,12 +212,28 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
-      # Makefile enforces -T1 (single-threaded) because operator @QuarkusTest tests require sequential execution.
       # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
-      - name: Build and run local tests on Minikube
+      # -Dfailsafe.rerunFailingTestsCount=1: retry failed tests once as a safety net for
+      #   transient resource-related flakes, same as Remote Tests below.
+      - name: Run ${{ matrix.name }} local tests on Minikube
         working-directory: operator
         run: |
-          make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" build
+          make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop -Dfailsafe.rerunFailingTestsCount=1" \
+            GROUPS="${{ matrix.groups }}" \
+            EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
+            test-local-group
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-operator-local-${{ matrix.name }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: flaky-tests-operator-local-${{ matrix.name }}
+          path: flaky-tests-operator-local-${{ matrix.name }}.json
 
   operator-test:
     name: Remote Tests (${{ matrix.name }})
@@ -243,7 +297,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -366,7 +420,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -419,7 +473,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -432,7 +486,7 @@ jobs:
           make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" SKIP_TESTS=true build
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0

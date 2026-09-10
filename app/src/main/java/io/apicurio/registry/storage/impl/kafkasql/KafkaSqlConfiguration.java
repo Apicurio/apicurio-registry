@@ -393,9 +393,9 @@ public class KafkaSqlConfiguration {
         });
 
         if (trustStoreLocation.isPresent() && effectiveTrustStorePassword.isPresent() && trustStoreType.isPresent()) {
-            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, trustStoreType.get());
-            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStoreLocation.get());
-            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, effectiveTrustStorePassword.get());
+            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, trustStoreType.orElseThrow());
+            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, trustStoreLocation.orElseThrow());
+            props.putIfAbsent(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, effectiveTrustStorePassword.orElseThrow());
         }
 
         // Finally, try to configure the keystore, if specified
@@ -433,9 +433,9 @@ public class KafkaSqlConfiguration {
         });
 
         if (effectiveKeyStoreLocation.isPresent() && effectiveKeyStorePassword.isPresent() && effectiveKeyStoreType.isPresent()) {
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, effectiveKeyStoreType.get());
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, effectiveKeyStoreLocation.get());
-            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, effectiveKeyStorePassword.get());
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, effectiveKeyStoreType.orElseThrow());
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, effectiveKeyStoreLocation.orElseThrow());
+            props.putIfAbsent(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, effectiveKeyStorePassword.orElseThrow());
             effectiveKeyPassword.ifPresent(s -> props.putIfAbsent(SslConfigs.SSL_KEY_PASSWORD_CONFIG, s));
         }
     }

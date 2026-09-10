@@ -45,10 +45,13 @@ import java.util.List;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -569,7 +572,8 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body("{}") // missing status
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
-                .then().statusCode(400);
+                .then().statusCode(400)
+                .body("name", equalTo("MissingRequiredParameterException"));
     }
 
     @Test
@@ -582,7 +586,74 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
                 .body("{\"status\": null}") // explicit null status
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
-                .then().statusCode(400);
+                .then().statusCode(400)
+                .body("name", equalTo("MissingRequiredParameterException"));
+    }
+
+    @Test
+    public void testStatusTransition_ValidStatus_Returns200() throws Exception {
+        String artifactId = "testStatusTransition_ValidStatus-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": \"DRAFT\"}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(200)
+                .body("status", equalTo("DRAFT"));
+    }
+
+    @Test
+    public void testStatusTransition_BogusStatus_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_BogusStatus-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": \"BOGUS\"}")
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400)
+                .body("name", equalTo("InvalidParameterValueException"))
+                .body("detail", equalTo("InvalidParameterValueException: Request contains parameter 'status' with invalid value.  Expected 'valid status enum value' but got 'BOGUS'"))
+                .body(not(containsString("ContractStatusTransition.Status")))
+                .body(not(containsString("io.apicurio")))
+                .body(not(containsString("No enum constant")));
+    }
+
+    @Test
+    public void testStatusTransition_WrongShape_Returns400() throws Exception {
+        String artifactId = "testStatusTransition_WrongShape-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"status\": [\"BOGUS\"]}") // wrong shape
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then().statusCode(400)
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", equalTo("BadRequestException: Not able to deserialize data provided."))
+                .body("detail", not(containsString("ContractStatusTransition")))
+                .body("detail", not(containsString("Status")));
+    }
+
+    @Test
+    public void testInvalidEnum_Unrelated() throws Exception {
+        String artifactId = "testInvalidEnum_Unrelated-" + UUID.randomUUID();
+        String content = resourceToString("openapi-empty.json");
+        createArtifact(GROUP, artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body("{\"domainRules\":[{\"name\":\"rule-1\",\"kind\":\"BOGUS_KIND\"}]}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then().statusCode(400)
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", equalTo("BadRequestException: Not able to deserialize data provided."))
+                .body("detail", not(containsString("BOGUS_KIND")))
+                .body("detail", not(containsString("ContractRule")));
     }
 
     @Test
@@ -1049,10 +1120,49 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
 
     @Test
     public void testSearchContracts_ReturnsResults() throws Exception {
+        String artifactId = "testSearch_All-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200);
+
         given().when()
                 .get("/registry/v3/search/contracts")
                 .then().statusCode(200)
-                .body("count", notNullValue());
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
+    }
+
+    @Test
+    public void testSearchContracts_ExcludesArtifactsWithoutContractMetadata() throws Exception {
+        String withContract = "testSearch_Exclude_With-" + UUID.randomUUID();
+        String withoutContract = "testSearch_Exclude_Without-" + UUID.randomUUID();
+
+        createArtifact(GROUP, withContract, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(GROUP, withoutContract, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", withContract)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT).build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200);
+
+        // Only the artifact with contract metadata is returned; the artifact without any
+        // contract.* labels is excluded by the base "contract.*" namespace filter.
+        given().when()
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", hasItem(withContract))
+                .body("artifacts.artifactId", not(hasItem(withoutContract)));
     }
 
     @Test
@@ -1068,10 +1178,84 @@ public class DataContractsResourceTest extends AbstractResourceTestBase {
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
 
+        // Filtering by the matching status returns the artifact.
         given().when()
                 .queryParam("status", "DRAFT")
                 .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
+
+        // Filtering by a non-matching status does not return the artifact.
+        given().when()
+                .queryParam("status", "STABLE")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", not(hasItem(artifactId)));
+    }
+
+    @Test
+    public void testSearchContracts_WithOwnerTeamFilter() throws Exception {
+        String artifactId = "testSearch_OwnerTeam-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        // Store a mixed-case owner team and query with a different case to verify the
+        // label value filter is case-insensitive (LOWER(l.labelValue) in the SQL layer).
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT)
+                        .ownerTeam("Search-Team").build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then().statusCode(200);
+
+        // Matching owner team (lowercase query, mixed-case stored value) returns the artifact.
+        given().when()
+                .queryParam("ownerTeam", "search-team")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
+
+        // Non-matching owner team does not return the artifact.
+        given().when()
+                .queryParam("ownerTeam", "other-team")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", not(hasItem(artifactId)));
+    }
+
+    @Test
+    public void testSearchContracts_WithCompatibilityGroupFilter() throws Exception {
+        String artifactId = "testSearch_CompatGroup-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO,
+                "{\"type\":\"record\",\"name\":\"R\",\"fields\":[{\"name\":\"x\",\"type\":\"int\"}]}",
+                ContentTypes.APPLICATION_JSON);
+
+        // Store a mixed-case compatibility group and query with a different case to verify
+        // the label value filter is case-insensitive (LOWER(l.labelValue) in the SQL layer).
+        given().when().contentType(CT_JSON)
+                .pathParam("groupId", GROUP).pathParam("artifactId", artifactId)
+                .body(EditableContractMetadata.builder().status(EditableContractMetadata.Status.DRAFT)
+                        .compatibilityGroup("Orders-CG").build())
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then().statusCode(200);
+
+        // Matching compatibility group (lowercase query, mixed-case stored value) returns the artifact.
+        given().when()
+                .queryParam("compatibilityGroup", "orders-cg")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("count", greaterThanOrEqualTo(1))
+                .body("artifacts.artifactId", hasItem(artifactId));
+
+        // Non-matching compatibility group does not return the artifact.
+        given().when()
+                .queryParam("compatibilityGroup", "inventory-cg")
+                .get("/registry/v3/search/contracts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", not(hasItem(artifactId)));
     }
 
     @Test

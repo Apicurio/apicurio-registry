@@ -1,0 +1,246 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
+[id="assembly-ai-catalog-ard_{context}"]
+= AI Catalog and ARD discovery
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+With AI Catalog and Agentic Resource Discovery (ARD), you can discover registered `AGENT_CARD` and `MCP_TOOL` artifacts by using compatible clients.
+{registry} publishes an AI Catalog document and provides an ARD search API in addition to its existing discovery endpoints.
+
+ifdef::service-registry-downstream[]
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
+endif::[]
+
+// con-ai-catalog-ard-overview
+[id="ai-catalog-ard-overview_{context}"]
+== AI Catalog and ARD overview
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+AI Catalog and Agentic Resource Discovery (ARD) are related standards for discovering agentic AI artifacts, including Agent2Agent (A2A) agent cards and Model Context Protocol (MCP) servers.
+A Linux Foundation working group maintains these community standards.
+
+AI Catalog:: A static JSON envelope that supports multiple artifact types, typically served at `/.well-known/ai-catalog.json`.
+Each entry identifies an artifact by its Internet Assigned Numbers Authority (IANA) media type and either links to it (`url`) or embeds it (`data`).
+ARD:: A discovery standard that extends AI Catalog with a domain-based identifier scheme (`urn:air:<publisher>:<namespace>:<name>`) and a required `POST /search` REST API for dynamic discovery.
+It also defines optional `GET /agents` and `POST /explore` endpoints.
+The standard path for publishing and retrieving an ARD catalog is `/.well-known/ard.json`.
+
+{registry} provides a read-only view of existing `AGENT_CARD` and `MCP_TOOL` artifacts in both formats.
+This view requires no schema migration or additional artifact types.
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://ai-catalog.io/[AI Catalog specification]
+* link:https://agenticresourcediscovery.org/[ARD specification]
+
+// ref-ai-catalog-configuration
+[id="ai-catalog-ard-configuration_{context}"]
+== AI Catalog and ARD configuration properties
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+AI Catalog publishing and ARD search are disabled by default.
+You can enable each feature independently with its configuration property.
+
+.AI Catalog and ARD configuration properties
+[cols="2,1,3",options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.ai-catalog.enabled`
+|`false`
+|Whether to enable the `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints
+
+|`apicurio.ai-catalog.publisher-domain`
+|_Derived from request host_
+|The `<publisher>` segment in `urn:air:` identifiers. If you do not configure this property, {registry} derives the value from the host and port of the incoming request.
+
+|`apicurio.ai-catalog.host-name`
+|`Apicurio Registry`
+|Display name for this registry instance, reported as the catalog's `host.displayName`
+
+|`apicurio.ai-catalog.spec-version`
+|`1.0`
+|The AI Catalog specification version reported in the catalog document
+
+|`apicurio.ard.enabled`
+|`false`
+|Whether to enable the `POST /ard/search`, `GET /ard/agents`, and `POST /ard/explore` endpoints
+
+|`apicurio.ard.federation.default`
+|`none`
+|Default ARD federation mode that {registry} advertises. The implementation supports only `none` (no federation). It accepts other values for compatibility with future versions, but these values do not change the behavior.
+|===
+
+// ref-ai-catalog-publishing
+[id="ai-catalog-publishing_{context}"]
+== AI Catalog publishing
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+When `apicurio.ai-catalog.enabled=true`, {registry} serves an AI Catalog document at two equivalent paths.
+
+`GET /.well-known/ai-catalog.json`::
+Returns the AI Catalog document.
+This earlier path remains available for clients that support only AI Catalog.
+
+`GET /.well-known/ard.json`::
+Returns the same AI Catalog document.
+An ARD crawler retrieves the document from this path as required by the ARD specification.
+A client conforms to the specification even if it retrieves only `ard.json`.
+If you can serve only one path, use this path.
+
+.Example response
+[source,json]
+----
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Apicurio Registry",
+    "identifier": "registry.example.com:8080"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:registry.example.com:8080:ai-agents:translator-agent",
+      "displayName": "Translation Agent",
+      "type": "application/a2a-agent-card+json",
+      "url": "http://registry.example.com:8080/.well-known/agents/ai-agents/translator-agent",
+      "description": "Translates text between languages",
+      "capabilities": ["translation"],
+      "version": "1.0.0"
+    },
+    {
+      "identifier": "urn:air:registry.example.com:8080:system:registry",
+      "displayName": "Apicurio Registry",
+      "type": "application/ai-registry+json",
+      "url": "http://registry.example.com:8080/.well-known/ard/search",
+      "description": "ARD search API for this registry."
+    }
+  ]
+}
+----
+
+Artifact entries::
+Each entry has an `identifier` in the `urn:air:<publisher>:<namespace>:<name>` form.
+Entries for `AGENT_CARD` artifacts use `application/a2a-agent-card+json`.
+Entries for `MCP_TOOL` artifacts use `application/mcp-server-card+json`.
+
+Registry entry::
+When `apicurio.ard.enabled=true`, the catalog also includes an entry of type `application/ai-registry+json` that identifies the registry.
+This entry points to the `/.well-known/ard/search` endpoint.
+A crawler that retrieves only the static catalog can discover the search API from this entry, as defined by the ARD specification.
+
+Artifact visibility::
+The catalog includes only artifacts that the caller can access.
+It uses the same `public`, `entitled`, and `private` visibility model as `/.well-known/agents`.
+
+// ref-ard-search-api
+[id="ard-search-api_{context}"]
+== ARD search API
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+When `apicurio.ard.enabled=true`, {registry} provides ARD REST search endpoints under both `/.well-known/ard/*` and `/apis/registry/v3/well-known/ard/*`.
+
+`POST /ard/search`::
+The required ARD search endpoint accepts a `query` object with a required `text` field and an optional structured `filter`.
+The supported filter keys are `type`, `tags`, `capabilities`, and `publisher`.
+Values within a filter key use the OR operator; different keys use the AND operator.
++
+.Example request
+[source,json]
+----
+{
+  "query": {
+    "text": "translation",
+    "filter": {
+      "type": ["application/a2a-agent-card+json"]
+    }
+  },
+  "pageSize": 10
+}
+----
++
+.Example response
+[source,json]
+----
+{
+  "results": [
+    {
+      "identifier": "urn:air:registry.example.com:8080:ai-agents:translator-agent",
+      "displayName": "Translation Agent",
+      "type": "application/a2a-agent-card+json",
+      "url": "http://registry.example.com:8080/.well-known/agents/ai-agents/translator-agent",
+      "score": 100,
+      "source": "http://registry.example.com:8080"
+    }
+  ],
+  "pageToken": null
+}
+----
++
+NOTE: The search returns only entries that match every requested criterion, and each result has a `score` of `100`.
+The implementation does not support fuzzy or semantic ranking.
+It supports only `federation: none` semantics and accepts other `federation` values for compatibility with future versions without changing the behavior.
+
+`GET /ard/agents`::
+The optional, deterministic browsing endpoint accepts a `filter` query parameter in the form `key=value[ AND key=value]*`.
+The supported filter keys are `type`, `tags`, `capabilities`, and `publisher`.
+The endpoint also accepts `orderBy`, `pageSize`, and `pageToken` parameters.
+It returns an AI Catalog document.
+When more results remain, the response includes a `nextPageToken` value that you can use to request the next page.
++
+.Example request
+[source,bash]
+----
+curl -G "http://localhost:8080/.well-known/ard/agents" \
+  --data-urlencode "filter=type=application/a2a-agent-card+json" \
+  --data-urlencode "pageSize=10"
+----
+
+`POST /ard/explore`::
+The optional facet aggregation endpoint accepts the same `query` as `POST /search` and a required `resultType.facets` array that names the fields to aggregate.
+The supported fields are `type` and `publisher`.
+The endpoint returns counts grouped by field value instead of ranked entries.
++
+.Example request
+[source,json]
+----
+{
+  "resultType": {
+    "facets": [
+      { "field": "type" }
+    ]
+  }
+}
+----
+
+// ref-ai-catalog-ard-scope
+[id="ai-catalog-ard-scope_{context}"]
+== Scope and limitations
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+AI Catalog and ARD provide a read-only view of existing artifacts in {registry}, which stores and governs metadata.
+They do not provide a runtime platform for those artifacts.
+
+The implementation has the following limitations:
+
+* It does not support Trust Manifest, which is optional in the specification.
+* It searches only the local {registry} index (`federation: none`).
+* It does not import entries from external `ai-catalog.json` or `ard.json` documents as artifacts.
+* It returns a `score` of `100` for matching results without semantic relevance ranking.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-a2a-features.adoc[A2A protocol features]
+* xref:getting-started/assembly-agent-discovery-patterns.adoc[Agent discovery and multi-agent orchestration]

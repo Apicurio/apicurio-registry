@@ -28,10 +28,12 @@ public class CatalogInfo {
 
         private final String csvName;
         private final Semver version;
+        private final String replaces;
 
-        ChannelEntry(String csvName, Semver version) {
+        ChannelEntry(String csvName, Semver version, String replaces) {
             this.csvName = csvName;
             this.version = version;
+            this.replaces = replaces;
         }
     }
 
@@ -64,8 +66,9 @@ public class CatalogInfo {
     }
 
     /**
-     * Returns a suitable "previous" entry for upgrade testing — the second entry in the channel
-     * (i.e., the one immediately before the head). Returns null if the channel has fewer than 2 entries.
+     * Returns the direct predecessor of the channel head for upgrade testing. Entries are ordered
+     * by the replaces chain (head first), so the second entry is the head's direct predecessor.
+     * Returns null if the channel has fewer than 2 entries in the chain.
      */
     public ChannelEntry getPreviousEntry(String channelName) {
         var entries = channels.get(channelName);
@@ -91,6 +94,28 @@ public class CatalogInfo {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns the number of replaces-chain hops OLM has to walk to get from the given entry up to
+     * the channel head, or -1 if the channel or the entry is not found. Entries are ordered
+     * head-first along the replaces chain, so this is simply the entry's index.
+     * <p>
+     * Callers use this to size upgrade timeouts: OLM installs one CSV per hop, and every hop costs
+     * a bundle-unpack Job (an image pull) plus an operator Deployment rollout, so a chain that
+     * grows by one release makes the whole upgrade measurably slower.
+     */
+    public int getHopsToHead(String channelName, String csvName) {
+        var entries = channels.get(channelName);
+        if (entries == null) {
+            return -1;
+        }
+        for (int i = 0; i < entries.size(); i++) {
+            if (entries.get(i).getCsvName().equals(csvName)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**

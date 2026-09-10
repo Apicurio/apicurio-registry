@@ -1,5 +1,6 @@
 ---
 description: Execute an implementation plan with incremental commits
+agent: build
 ---
 
 You are implementing changes for the Apicurio Registry project based on a plan.

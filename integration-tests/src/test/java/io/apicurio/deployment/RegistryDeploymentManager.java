@@ -39,6 +39,14 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     // deployment) in the same JVM.
     private static final AtomicBoolean DEPLOYED = new AtomicBoolean(false);
 
+    // Set when handleInfraDeployment() throws below. testPlanExecutionStarted() cannot
+    // abort the JUnit Platform launcher's test plan from a TestExecutionListener callback,
+    // so a failure here used to be logged and silently ignored: tests then ran against a
+    // half-seeded/never-restarted deployment and failed with confusing, unrelated
+    // assertion errors far away from the actual root cause. ApicurioRegistryBaseIT checks
+    // this in its @BeforeAll so every test class fails fast with the real error instead.
+    private static volatile Throwable deploymentFailure;
+
     static List<LogWatch> logWatch;
 
     static String testLogsIdentifier;
@@ -85,6 +93,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 handleInfraDeployment();
             } catch (Exception e) {
                 LOGGER.error("Error starting registry deployment", e);
+                deploymentFailure = e;
             }
 
             // Namespace cleanup must not run at test-plan end either: that method
@@ -108,6 +117,22 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             }
         } catch (Exception e) {
             LOGGER.error("Exception closing log watchers", e);
+        }
+    }
+
+    /**
+     * Fails fast, with the real root cause, if test-infra deployment failed during
+     * testPlanExecutionStarted(). Must be called from every test class's setup (see
+     * ApicurioRegistryBaseIT#prepareRestAssured) since a TestExecutionListener cannot itself
+     * abort the test plan it was notified about.
+     */
+    public static void verifyDeploymentSucceeded() throws Exception {
+        if (deploymentFailure != null) {
+            throw new IllegalStateException(
+                    "Registry test-infra deployment failed during test-plan startup; "
+                            + "no tests can run against a broken/incomplete deployment. "
+                            + "See the 'Error starting registry deployment' log entry for the root cause.",
+                    deploymentFailure);
         }
     }
 

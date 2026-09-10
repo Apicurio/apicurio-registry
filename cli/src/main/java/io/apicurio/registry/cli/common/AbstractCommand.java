@@ -46,7 +46,9 @@ public abstract class AbstractCommand implements Callable<Integer> {
     public Integer call() {
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
         try {
-            configureLogging();
+            var verbose = isVerbose();
+            configureLogging(verbose);
+            client.setHttpLoggingEnabled(verbose);
             updateNotifier.checkAndNotify(getTopLevelCommandName());
             run(output);
             return OK_RETURN_CODE;
@@ -103,6 +105,10 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private static final String LOG_CATEGORY_PREFIX = "quarkus.log.category.\"";
     private static final String LOG_CATEGORY_SUFFIX = "\".level";
 
+    private boolean isVerbose() {
+        return spec.root().userObject() instanceof Acr acr && acr.isVerbose();
+    }
+
     /**
      * Configures logging for the current command.
      * <p>
@@ -115,9 +121,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
      * and Quarkus resolves {@code quarkus.log.*} at build time, so per-package levels in the CLI
      * config are never picked up by Quarkus's own logging setup.
      */
-    private void configureLogging() {
-        var root = spec.root().userObject();
-        if (!(root instanceof Acr acr) || !acr.isVerbose()) {
+    private void configureLogging(boolean verbose) {
+        if (!verbose) {
             return;
         }
 

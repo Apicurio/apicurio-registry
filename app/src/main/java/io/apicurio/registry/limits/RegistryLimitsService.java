@@ -228,7 +228,7 @@ public class RegistryLimitsService {
     }
 
     /**
-     * @param meta
+     * @param labels
      * @param errorMessages
      */
     protected void checkLabels(Map<String, String> labels, List<String> errorMessages) {

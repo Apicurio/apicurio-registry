@@ -1,6 +1,7 @@
 ---
 description: Smart test runner that identifies affected modules and runs appropriate test suites
 argument-hint: [module-name-or-test-class]
+agent: repo-ops
 ---
 
 Smart test runner for the Apicurio Registry project.

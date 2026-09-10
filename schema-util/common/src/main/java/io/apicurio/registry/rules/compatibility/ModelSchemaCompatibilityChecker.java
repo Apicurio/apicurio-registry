@@ -21,15 +21,20 @@ import java.util.Set;
  * - Cannot remove input or output schemas entirely
  */
 public class ModelSchemaCompatibilityChecker
-        extends AbstractCompatibilityChecker<ModelSchemaCompatibilityDifference> {
+        extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
+
+    private static final String CONTEXT_INPUT = "/input";
+    private static final String CONTEXT_INPUT_REQUIRED = "/input/required";
+    private static final String CONTEXT_OUTPUT = "/output";
+    private static final String CONTEXT_DOCUMENT = "/document";
 
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
-    protected Set<ModelSchemaCompatibilityDifference> isBackwardsCompatibleWith(String existing,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
             String proposed, Map<String, TypedContent> resolvedReferences) {
-        Set<ModelSchemaCompatibilityDifference> differences = new HashSet<>();
+        Set<SimpleCompatibilityDifference> differences = new HashSet<>();
 
         try {
             JsonNode existingNode = parseContent(existing);
@@ -39,9 +44,8 @@ public class ModelSchemaCompatibilityChecker
             checkOutputSchemaCompatibility(existingNode, proposedNode, differences);
 
         } catch (Exception e) {
-            differences.add(new ModelSchemaCompatibilityDifference(
-                    ModelSchemaCompatibilityDifference.Type.PARSE_ERROR,
-                    "Failed to parse Model Schema: " + e.getMessage()));
+            differences.add(new SimpleCompatibilityDifference(
+                    "Failed to parse Model Schema: " + e.getMessage(), CONTEXT_DOCUMENT));
         }
 
         return differences;
@@ -56,15 +60,14 @@ public class ModelSchemaCompatibilityChecker
     }
 
     private void checkInputSchemaCompatibility(JsonNode existing, JsonNode proposed,
-            Set<ModelSchemaCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingInput = existing.get("input");
         JsonNode proposedInput = proposed.get("input");
 
         if (existingInput != null && existingInput.isObject()) {
             if (proposedInput == null || !proposedInput.isObject()) {
-                differences.add(new ModelSchemaCompatibilityDifference(
-                        ModelSchemaCompatibilityDifference.Type.INPUT_SCHEMA_REMOVED,
-                        "Input schema was removed."));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Input schema was removed.", CONTEXT_INPUT));
                 return;
             }
 
@@ -75,15 +78,14 @@ public class ModelSchemaCompatibilityChecker
     }
 
     private void checkOutputSchemaCompatibility(JsonNode existing, JsonNode proposed,
-            Set<ModelSchemaCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         JsonNode existingOutput = existing.get("output");
         JsonNode proposedOutput = proposed.get("output");
 
         if (existingOutput != null && existingOutput.isObject()) {
             if (proposedOutput == null || !proposedOutput.isObject()) {
-                differences.add(new ModelSchemaCompatibilityDifference(
-                        ModelSchemaCompatibilityDifference.Type.OUTPUT_SCHEMA_REMOVED,
-                        "Output schema was removed."));
+                differences.add(new SimpleCompatibilityDifference(
+                        "Output schema was removed.", CONTEXT_OUTPUT));
                 return;
             }
 
@@ -93,53 +95,47 @@ public class ModelSchemaCompatibilityChecker
     }
 
     private void checkRequiredFieldChanges(JsonNode existingInput, JsonNode proposedInput,
-            Set<ModelSchemaCompatibilityDifference> differences) {
+            Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingRequired = extractRequiredFields(existingInput);
         Set<String> proposedRequired = extractRequiredFields(proposedInput);
 
         for (String field : proposedRequired) {
             if (!existingRequired.contains(field)) {
-                differences.add(new ModelSchemaCompatibilityDifference(
-                        ModelSchemaCompatibilityDifference.Type.REQUIRED_INPUT_FIELD_ADDED,
-                        "New required input field '" + field + "' was added. This breaks backward compatibility."));
+                differences.add(new SimpleCompatibilityDifference(
+                        "New required input field '" + field + "' was added. This breaks backward compatibility.",
+                        CONTEXT_INPUT_REQUIRED));
             }
         }
     }
 
     private void checkPropertyRemovals(JsonNode existingSchema, JsonNode proposedSchema,
-            String schemaName, Set<ModelSchemaCompatibilityDifference> differences) {
+            String schemaName, Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingProps = extractPropertyNames(existingSchema);
         Set<String> proposedProps = extractPropertyNames(proposedSchema);
 
-        ModelSchemaCompatibilityDifference.Type type = "input".equals(schemaName)
-                ? ModelSchemaCompatibilityDifference.Type.INPUT_PROPERTY_REMOVED
-                : ModelSchemaCompatibilityDifference.Type.OUTPUT_PROPERTY_REMOVED;
-
         for (String prop : existingProps) {
             if (!proposedProps.contains(prop)) {
-                differences.add(new ModelSchemaCompatibilityDifference(type,
-                        capitalizeFirst(schemaName) + " property '" + prop + "' was removed."));
+                differences.add(new SimpleCompatibilityDifference(
+                        capitalizeFirst(schemaName) + " property '" + prop + "' was removed.",
+                        propertiesContext(schemaName)));
             }
         }
     }
 
     private void checkPropertyTypeChanges(JsonNode existingSchema, JsonNode proposedSchema,
-            String schemaName, Set<ModelSchemaCompatibilityDifference> differences) {
+            String schemaName, Set<SimpleCompatibilityDifference> differences) {
         Set<String> existingProps = extractPropertyNames(existingSchema);
         Set<String> proposedProps = extractPropertyNames(proposedSchema);
-
-        ModelSchemaCompatibilityDifference.Type type = "input".equals(schemaName)
-                ? ModelSchemaCompatibilityDifference.Type.INPUT_PROPERTY_TYPE_CHANGED
-                : ModelSchemaCompatibilityDifference.Type.OUTPUT_PROPERTY_TYPE_CHANGED;
 
         for (String prop : existingProps) {
             if (proposedProps.contains(prop)) {
                 String existingType = getPropertyType(existingSchema, prop);
                 String proposedType = getPropertyType(proposedSchema, prop);
                 if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
-                    differences.add(new ModelSchemaCompatibilityDifference(type,
+                    differences.add(new SimpleCompatibilityDifference(
                             capitalizeFirst(schemaName) + " property '" + prop + "' type changed from '"
-                                    + existingType + "' to '" + proposedType + "'."));
+                                    + existingType + "' to '" + proposedType + "'.",
+                            propertiesContext(schemaName)));
                 }
             }
         }
@@ -181,15 +177,14 @@ public class ModelSchemaCompatibilityChecker
         return null;
     }
 
+    private static String propertiesContext(String schemaName) {
+        return "/" + schemaName + "/properties";
+    }
+
     private static String capitalizeFirst(String s) {
         if (s == null || s.isEmpty()) {
             return s;
         }
         return s.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + s.substring(1);
-    }
-
-    @Override
-    protected CompatibilityDifference transform(ModelSchemaCompatibilityDifference original) {
-        return original;
     }
 }

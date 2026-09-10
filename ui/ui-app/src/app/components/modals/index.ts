@@ -13,3 +13,5 @@ export * from "./LabelsFormGroup";
 export * from "./ReferencesFormGroup";
 export * from "./GenerateClientModal";
 export * from "./VersionCompareModal";
+export * from "./TestVersionModal";
+export * from "./TestVersionSuccessModal";

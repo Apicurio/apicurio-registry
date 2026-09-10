@@ -272,6 +272,25 @@ jobs:
           printf '%s\n' "$OUT" >> "$GITHUB_STEP_SUMMARY"
           exit $RC
 
+      # Trend check, the counterpart to "Check results against baseline" above but for the
+      # external run and its own baseline file. Informational, and deliberately so: perf-main
+      # only runs after a merge has landed, and throughput on GitHub-hosted runners varies by
+      # roughly 25% run to run, so this reports into the summary rather than gating. The hard
+      # gate is the validity check above - "did the run happen" is answerable, "is 460 rps
+      # slower than usual" is not, on this hardware.
+      - name: Compare external load run against baseline
+        if: always()
+        continue-on-error: true
+        working-directory: perf-tests
+        run: |
+          LOG=/tmp/external-load-results/console.log
+          if [ ! -f "$LOG" ]; then
+            echo "No external load console log - skipping baseline comparison."
+            exit 0
+          fi
+          python3 scripts/check-external-baseline.py "$LOG" external-baseline.json \
+            --storage '${{ matrix.storage }}'
+
       - name: Upload external validation results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

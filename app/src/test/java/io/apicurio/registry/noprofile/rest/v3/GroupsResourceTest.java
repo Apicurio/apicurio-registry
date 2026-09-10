@@ -2080,6 +2080,62 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test that dereferencing an AsyncAPI 3.0 document referencing an Avro schema via REST API
+     * produces inlined schema with explicit versioned schemaFormat (application/vnd.apache.avro+json;version=1.9.0).
+     */
+    @Test
+    public void testDereferenceAsyncApiAvroSchemaFormat() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String avroSchemaContent = resourceToString("avro/ShoppingCartCreated.avsc");
+        String asyncApiContent = resourceToString("asyncapi-shopping-cart.yml");
+
+        // Create the Avro schema artifact
+        createArtifact(groupId, "testAvroDereference/ShoppingCartCreated", ArtifactType.AVRO,
+                avroSchemaContent, ContentTypes.APPLICATION_JSON);
+
+        // Create the AsyncAPI artifact with reference to the Avro schema
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("./avro/ShoppingCartCreated.avsc").groupId(groupId)
+                .artifactId("testAvroDereference/ShoppingCartCreated").version("1").build());
+        createArtifactWithReferences(groupId, "testAvroDereference/ShoppingCartAPI",
+                ArtifactType.ASYNCAPI, asyncApiContent, ContentTypes.APPLICATION_YAML, refs);
+
+        // Retrieve the AsyncAPI document with ?references=DEREFERENCE
+        io.restassured.response.Response response = given().when().pathParam("groupId", groupId)
+                .pathParam("artifactId", "testAvroDereference/ShoppingCartAPI")
+                .queryParam("references", "DEREFERENCE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content");
+
+        Assertions.assertEquals(200, response.getStatusCode(),
+                "Expected 200 OK but got: " + response.getStatusCode() + " - " + response.asString());
+
+        // Parse response as YAML/JSON
+        String responseBody = response.asString();
+        JsonNode yamlNode = ContentTypeUtil.parseYaml(ContentHandle.create(responseBody));
+        Assertions.assertNotNull(yamlNode, "Response body should be valid YAML");
+
+        // Navigate to inlined Avro schema: components -> schemas -> ShoppingCartCreated
+        JsonNode components = yamlNode.get("components");
+        Assertions.assertNotNull(components, "Response should have 'components'");
+        JsonNode schemas = components.get("schemas");
+        Assertions.assertNotNull(schemas, "Components should have 'schemas'");
+        JsonNode shoppingCartCreated = schemas.get("ShoppingCartCreated");
+        Assertions.assertNotNull(shoppingCartCreated, "Schemas should contain 'ShoppingCartCreated'");
+
+        // Assert schemaFormat contains the version parameter ;version=1.9.0
+        JsonNode schemaFormatNode = shoppingCartCreated.get("schemaFormat");
+        Assertions.assertNotNull(schemaFormatNode, "Inlined schema wrapper must contain 'schemaFormat'");
+        String schemaFormat = schemaFormatNode.asText();
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0", schemaFormat);
+
+        // Assert the Avro schema content was correctly inlined inside 'schema'
+        JsonNode schemaNode = shoppingCartCreated.get("schema");
+        Assertions.assertNotNull(schemaNode, "Inlined schema wrapper must contain 'schema'");
+        Assertions.assertEquals("record", schemaNode.get("type").asText());
+        Assertions.assertEquals("ShoppingCartCreated", schemaNode.get("name").asText());
+    }
+
+    /**
      * Test that attempting to create a group with reserved names returns 400 Bad Request.
      * This test validates the fix for issue #7128 where users could create a second "default" group
      * that would become inaccessible.

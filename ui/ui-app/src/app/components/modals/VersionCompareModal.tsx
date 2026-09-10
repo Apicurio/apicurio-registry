@@ -10,6 +10,7 @@ import {
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { DiffView } from "@app/components";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 
 /**
  * Properties
@@ -44,13 +45,14 @@ export const VersionCompareModal: FunctionComponent<VersionCompareModalProps> = 
     // Load version contents when modal opens
     useEffect(() => {
         if (isOpen && version1 && version2) {
+            const guard: LoaderGuard = newLoaderGuard();
             setIsLoading(true);
             setError(null);
 
             Promise.all([
                 groups.getArtifactVersionContent(groupId, artifactId, version1.version!),
                 groups.getArtifactVersionContent(groupId, artifactId, version2.version!)
-            ]).then(([content1, content2]) => {
+            ]).then(guard.wrap(([content1, content2]: [string, string]) => {
                 // Determine which version is older based on createdOn date
                 const date1 = new Date(version1.createdOn!);
                 const date2 = new Date(version2.createdOn!);
@@ -64,11 +66,13 @@ export const VersionCompareModal: FunctionComponent<VersionCompareModalProps> = 
                     setVersion2Content(content1);
                 }
                 setIsLoading(false);
-            }).catch((err) => {
+            })).catch(guard.wrap((err: unknown) => {
                 console.error("Error loading version content:", err);
                 setError("Failed to load version content. Please try again.");
                 setIsLoading(false);
-            });
+            }));
+
+            return () => guard.cancel();
         }
     }, [isOpen, version1, version2, groupId, artifactId]);
 

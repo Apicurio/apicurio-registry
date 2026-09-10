@@ -12,7 +12,10 @@ name: PR Validation
 
 on:
   pull_request_target:
-    types: [opened, reopened, synchronize, edited]
+    # milestoned/demilestoned matter because the milestone check is the one
+    # blocking check the PR author cannot clear: without them the check would
+    # stay red until an unrelated push after a maintainer sets the milestone.
+    types: [opened, reopened, synchronize, edited, milestoned, demilestoned]
     branches: [main]
 
 permissions:
@@ -36,7 +39,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.19.0
+          node-version: 24.20.0
 
       - name: Run unit tests
         run: node --test .github/scripts/pr-validation.test.js

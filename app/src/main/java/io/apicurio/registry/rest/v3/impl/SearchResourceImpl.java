@@ -7,6 +7,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -59,6 +60,7 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
+    private static final String CONTRACT_LABEL_PREFIX = "contract.*";
 
     @Inject
     @Current
@@ -432,17 +434,26 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<>();
 
-        // All contracts have a contract.*.status label
-        filters.add(SearchFilter.ofLabel("contract."));
+        // Contract metadata is stored in labels within the reserved "contract.*" namespace.
+        // The key is "contract.{suffix}" when no contract id has been assigned yet (e.g.
+        // "contract.status"), or "contract.{contractId}.{suffix}" once a contract id exists
+        // (e.g. "contract.myid.status"). The trailing "*" is required for a prefix match
+        // covering both forms, since the SQL layer only treats "*" as a wildcard. Without it
+        // the filter becomes an exact match on "contract." and never matches anything.
+        filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX));
 
+        // Suffix filters match the label key by suffix. "contract.*" + suffix becomes
+        // "contract.%{suffix}" in SQL, where "%" covers the optional "{contractId}." segment
+        // (and the empty string), so both label forms above are matched.
         if (!StringUtil.isEmpty(status)) {
-            filters.add(SearchFilter.ofLabel("contract.", status));
+            filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_STATUS, status));
         }
         if (!StringUtil.isEmpty(ownerTeam)) {
-            filters.add(SearchFilter.ofLabel("contract.", ownerTeam));
+            filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_OWNER_TEAM, ownerTeam));
         }
         if (!StringUtil.isEmpty(compatibilityGroup)) {
-            filters.add(SearchFilter.ofLabel("contract.", compatibilityGroup));
+            filters.add(SearchFilter.ofLabel(
+                    CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_COMPATIBILITY_GROUP, compatibilityGroup));
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,

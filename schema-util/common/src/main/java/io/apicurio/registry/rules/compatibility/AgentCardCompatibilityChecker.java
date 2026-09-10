@@ -36,6 +36,7 @@ public class AgentCardCompatibilityChecker
     private static final String CONTEXT_SECURITY_SCHEMES = "/securitySchemes";
     private static final String CONTEXT_MODES = "/modes";
     private static final String CONTEXT_DOCUMENT = "/document";
+    private static final String MSG_WAS_REMOVED = "' was removed";
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -73,7 +74,7 @@ public class AgentCardCompatibilityChecker
         for (String key : existingKeys) {
             if (!proposedKeys.contains(key)) {
                 differences.add(new SimpleCompatibilityDifference(
-                        "Interface '" + key + "' was removed", CONTEXT_INTERFACES));
+                        "Interface '" + key + MSG_WAS_REMOVED, CONTEXT_INTERFACES));
             }
         }
 
@@ -122,7 +123,7 @@ public class AgentCardCompatibilityChecker
         for (String skillId : existingSkills) {
             if (!proposedSkills.contains(skillId)) {
                 differences.add(new SimpleCompatibilityDifference(
-                        "Skill '" + skillId + "' was removed", CONTEXT_SKILLS));
+                        "Skill '" + skillId + MSG_WAS_REMOVED, CONTEXT_SKILLS));
             }
         }
     }
@@ -173,7 +174,7 @@ public class AgentCardCompatibilityChecker
         for (String uri : existingUris) {
             if (!proposedUris.contains(uri)) {
                 differences.add(new SimpleCompatibilityDifference(
-                        "Capability extension '" + uri + "' was removed",
+                        "Capability extension '" + uri + MSG_WAS_REMOVED,
                         CONTEXT_CAPABILITY_EXTENSIONS));
             }
         }
@@ -187,7 +188,7 @@ public class AgentCardCompatibilityChecker
         for (String scheme : existingSchemes) {
             if (!proposedSchemes.contains(scheme)) {
                 differences.add(new SimpleCompatibilityDifference(
-                        "Security scheme '" + scheme + "' was removed", CONTEXT_SECURITY_SCHEMES));
+                        "Security scheme '" + scheme + MSG_WAS_REMOVED, CONTEXT_SECURITY_SCHEMES));
             }
         }
     }
@@ -200,7 +201,7 @@ public class AgentCardCompatibilityChecker
         for (String mode : existingModes) {
             if (!proposedModes.contains(mode)) {
                 differences.add(new SimpleCompatibilityDifference(
-                        "The " + modeType + " '" + mode + "' was removed", CONTEXT_MODES));
+                        "The " + modeType + " '" + mode + MSG_WAS_REMOVED, CONTEXT_MODES));
             }
         }
     }

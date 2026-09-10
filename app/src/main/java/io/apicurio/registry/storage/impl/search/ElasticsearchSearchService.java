@@ -52,6 +52,12 @@ public class ElasticsearchSearchService {
     private static final Set<SearchFilterType> INDEX_ONLY_FILTER_TYPES = EnumSet.of(
             SearchFilterType.content, SearchFilterType.structure);
 
+    private static final String FIELD_GA_KEY = "ga_key";
+    private static final String FIELD_ARTIFACT_COUNT = "artifact_count";
+    private static final String FIELD_DESCRIPTION = "description";
+    private static final String FIELD_CREATED_ON = "createdOn";
+    private static final String FIELD_MODIFIED_ON = "modifiedOn";
+
     @Inject
     ElasticsearchClient client;
 
@@ -157,7 +163,7 @@ public class ElasticsearchSearchService {
         SearchResponse<Map> response = client.search(s -> {
             s.index(config.getIndexName())
                     .query(query)
-                    .collapse(c -> c.field("ga_key"))
+                    .collapse(c -> c.field(FIELD_GA_KEY))
                     .from(offset)
                     .size(limit);
 
@@ -165,11 +171,11 @@ public class ElasticsearchSearchService {
                 s.sort(sortOption);
             }
             s.sort(SortOptions.of(so -> so.field(FieldSort.of(f -> f
-                    .field("ga_key").order(SortOrder.Asc)))));
+                    .field(FIELD_GA_KEY).order(SortOrder.Asc)))));
 
             if (!skipCount) {
-                s.aggregations("artifact_count", a -> a
-                        .cardinality(ca -> ca.field("ga_key").precisionThreshold(40000)));
+                s.aggregations(FIELD_ARTIFACT_COUNT, a -> a
+                        .cardinality(ca -> ca.field(FIELD_GA_KEY).precisionThreshold(40000)));
             }
 
             return s;
@@ -177,9 +183,9 @@ public class ElasticsearchSearchService {
 
         long totalCount = 0;
         if (!skipCount && response.aggregations() != null
-                && response.aggregations().containsKey("artifact_count")) {
+                && response.aggregations().containsKey(FIELD_ARTIFACT_COUNT)) {
             totalCount = (long) response.aggregations()
-                    .get("artifact_count").cardinality().value();
+                    .get(FIELD_ARTIFACT_COUNT).cardinality().value();
         }
 
         List<SearchedArtifactDto> artifacts = new ArrayList<>();
@@ -279,7 +285,7 @@ public class ElasticsearchSearchService {
             return buildNameQuery(filter.getStringValue());
 
         case description:
-            return buildTextQuery("description", filter.getStringValue());
+            return buildTextQuery(FIELD_DESCRIPTION, filter.getStringValue());
 
         case content:
             return buildTextQuery("content", filter.getStringValue());
@@ -431,10 +437,10 @@ public class ElasticsearchSearchService {
             fieldName = "name.keyword";
             break;
         case createdOn:
-            fieldName = "createdOn";
+            fieldName = FIELD_CREATED_ON;
             break;
         case modifiedOn:
-            fieldName = "modifiedOn";
+            fieldName = FIELD_MODIFIED_ON;
             break;
         case globalId:
             fieldName = "globalId";
@@ -487,7 +493,7 @@ public class ElasticsearchSearchService {
         builder.version(toStr(source.get("version")));
         builder.artifactType(toStr(source.get("artifactType")));
         builder.name(toStr(source.get("name")));
-        builder.description(toStr(source.get("description")));
+        builder.description(toStr(source.get(FIELD_DESCRIPTION)));
         builder.owner(toStr(source.get("owner")));
         builder.modifiedBy(toStr(source.get("modifiedBy")));
 
@@ -498,12 +504,12 @@ public class ElasticsearchSearchService {
         }
 
         // Timestamps
-        Object createdOn = source.get("createdOn");
+        Object createdOn = source.get(FIELD_CREATED_ON);
         if (createdOn != null) {
             builder.createdOn(new Date(toLong(createdOn)));
         }
 
-        Object modifiedOn = source.get("modifiedOn");
+        Object modifiedOn = source.get(FIELD_MODIFIED_ON);
         if (modifiedOn != null) {
             builder.modifiedOn(new Date(toLong(modifiedOn)));
         }
@@ -528,17 +534,17 @@ public class ElasticsearchSearchService {
         builder.groupId(toStr(source.get("groupId")));
         builder.artifactId(toStr(source.get("artifactId")));
         builder.name(toStr(source.get("name")));
-        builder.description(toStr(source.get("description")));
+        builder.description(toStr(source.get(FIELD_DESCRIPTION)));
         builder.artifactType(toStr(source.get("artifactType")));
         builder.owner(toStr(source.get("owner")));
         builder.modifiedBy(toStr(source.get("modifiedBy")));
 
-        Object createdOn = source.get("createdOn");
+        Object createdOn = source.get(FIELD_CREATED_ON);
         if (createdOn != null) {
             builder.createdOn(new Date(toLong(createdOn)));
         }
 
-        Object modifiedOn = source.get("modifiedOn");
+        Object modifiedOn = source.get(FIELD_MODIFIED_ON);
         if (modifiedOn != null) {
             builder.modifiedOn(new Date(toLong(modifiedOn)));
         }

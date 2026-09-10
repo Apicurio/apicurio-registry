@@ -74,6 +74,12 @@ jobs:
       - name: Test PR lifecycle scripts
         run: node --test .github/scripts/pr-lifecycle.test.js
 
+      - name: Test performance comparison result parser
+        run: python3 -m unittest discover -s perf-comparison-tests/scripts -p 'test_*.py' -v
+
+      - name: Test performance test result parsers
+        run: python3 -m unittest discover -s perf-tests/scripts -p 'test_*.py' -v
+
       - name: Verify docs generation
         run: |
           if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
@@ -110,7 +116,7 @@ jobs:
           # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
-          ./mvnw clean package -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
+          ./mvnw clean install -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
@@ -131,6 +137,16 @@ jobs:
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
             -t apicurio/apicurio-registry:${{ github.sha }} \
             ./distro/docker/target/docker
+
+      - name: Build Mutable Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.mutable.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }}-mutable \
+            ./distro/docker/target/docker
+
+      - name: Smoke Test Re-augmentation of the Mutable Docker Image
+        run: |
+          docker run --rm apicurio/apicurio-registry:${{ github.sha }}-mutable /deployments/build.sh --prune
 
       - name: Save Docker Image
         uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
@@ -175,7 +191,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24.19.0'
+          node-version: '24.20.0'
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
@@ -304,7 +320,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.27.0'
+          go-version: '1.27.1'
 
       - name: Regenerate Go SDK
         run: |
@@ -407,11 +423,28 @@ jobs:
 
   # ============================================================================
   # PUBLISH: Push images (only on push to main)
+  #
+  # always() is required, not cosmetic. gate runs under always() so that it can
+  # report on a run in which Decide legitimately skipped some of its needs
+  # (cli-verify and go-sdk-freshness are skipped on most pushes, by design).
+  # A skipped ancestor propagates "skipped" down to every descendant that does
+  # not opt out with always(), so without it this job is skipped on every push
+  # to main even when build-java and gate both succeed — which is exactly what
+  # happened between 2026-08-22 and 2026-09-03, leaving latest-snapshot stale
+  # on quay.io for twelve days and latest-snapshot-mutable never published at
+  # all. The explicit result checks below restore the safety property that the
+  # implicit success() was providing: publish only a commit that built cleanly
+  # and passed the Verification Gate.
   # ============================================================================
   publish:
     name: Publish Images
     needs: [build-java, gate]
-    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    if: >-
+      always()
+      && github.event_name == 'push'
+      && github.repository_owner == 'Apicurio'
+      && needs.build-java.result == 'success'
+      && needs.gate.result == 'success'
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}

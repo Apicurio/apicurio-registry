@@ -62,6 +62,12 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String upsertConfigProperty() {
+        return "INSERT INTO config (propName, propValue, modifiedOn) VALUES (?, ?, ?) "
+                + "ON CONFLICT (propName) DO UPDATE SET propValue = EXCLUDED.propValue, modifiedOn = EXCLUDED.modifiedOn";
+    }
+
+    @Override
     public String createDataSnapshot() {
         throw new IllegalStateException("Snapshot creation is not supported for Postgresql storage");
     }

@@ -30,6 +30,7 @@ public class PromptTemplateCompatibilityChecker
     private static final String CONTEXT_OUTPUT_SCHEMA = "/outputSchema";
     private static final String CONTEXT_OUTPUT_SCHEMA_PROPERTIES = "/outputSchema/properties";
     private static final String CONTEXT_DOCUMENT = "/document";
+    private static final String MSG_VARIABLE_PREFIX = "Variable '";
 
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
@@ -84,7 +85,7 @@ public class PromptTemplateCompatibilityChecker
             if (proposedVars == null || !proposedVars.has(varName)) {
                 if (proposedTemplateVars.contains(varName)) {
                     differences.add(new SimpleCompatibilityDifference(
-                            "Variable '" + varName + "' was removed but is still used in the template.",
+                            MSG_VARIABLE_PREFIX + varName + "' was removed but is still used in the template.",
                             CONTEXT_VARIABLES));
                 }
                 continue;
@@ -106,7 +107,7 @@ public class PromptTemplateCompatibilityChecker
 
         if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
             differences.add(new SimpleCompatibilityDifference(
-                    "Variable '" + varName + "' type changed from '" + existingType
+                    MSG_VARIABLE_PREFIX + varName + "' type changed from '" + existingType
                             + "' to '" + proposedType + "'.",
                     CONTEXT_VARIABLES));
         }
@@ -119,7 +120,7 @@ public class PromptTemplateCompatibilityChecker
 
         if (!wasRequired && isRequired) {
             differences.add(new SimpleCompatibilityDifference(
-                    "Variable '" + varName + "' changed from optional to required.", CONTEXT_VARIABLES));
+                    MSG_VARIABLE_PREFIX + varName + "' changed from optional to required.", CONTEXT_VARIABLES));
         }
     }
 
@@ -141,7 +142,7 @@ public class PromptTemplateCompatibilityChecker
         for (JsonNode val : existingEnum) {
             if (!proposedValues.contains(val.asText())) {
                 differences.add(new SimpleCompatibilityDifference(
-                        "Variable '" + varName + "' enum value '" + val.asText() + "' was removed.",
+                        MSG_VARIABLE_PREFIX + varName + "' enum value '" + val.asText() + "' was removed.",
                         CONTEXT_VARIABLES));
             }
         }

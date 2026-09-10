@@ -82,7 +82,7 @@ public class DynamicConfigPropertyIndexImpl implements DynamicConfigPropertyInde
             Optional<String> actualPropertyValue = config.getOptionalValue(requiredPropertyName,
                     String.class);
             if (requiredPropertyValue != null && (actualPropertyValue.isEmpty()
-                    || !requiredPropertyValue.equals(actualPropertyValue.get()))) {
+                    || !requiredPropertyValue.equals(actualPropertyValue.orElseThrow()))) {
                 return false;
             }
             if (requiredPropertyValue == null && actualPropertyValue.isEmpty()) {

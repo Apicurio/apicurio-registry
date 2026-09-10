@@ -498,6 +498,75 @@ public class PromptRenderingServiceTest {
         Assertions.assertEquals("count", response.getValidationErrors().get(0).getVariableName());
     }
 
+    @Test
+    public void testWholeNumberDecimalDefaultIsAcceptedForIntegerType() {
+        // A YAML/JSON numeric literal with a decimal point always deserializes as a
+        // floating-point value, even when it represents a whole number (5.0 -> Double 5.0).
+        // An "integer"-typed default written this way must still be accepted and rendered
+        // as a plain integer, not reported as a type mismatch against its own default.
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+                default: 5.0
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "limits", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Limit: 5", response.getRendered());
+    }
+
+    @Test
+    public void testFractionalDefaultIsStillRejectedForIntegerType() {
+        // A genuinely fractional default (not a whole number) must still fail validation
+        // against an "integer" type; only whole-number decimal literals are coerced.
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+                default: 5.5
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "limits", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("max_results", response.getValidationErrors().get(0).getVariableName());
+        Assertions.assertEquals("integer", response.getValidationErrors().get(0).getExpectedType());
+    }
+
+    @Test
+    public void testWholeNumberDecimalDefaultUnaffectedForNumberType() {
+        // A "number"-typed default should be unaffected by the integer-specific coercion
+        // and keep its original decimal representation.
+        String yamlContent = """
+            templateId: temp
+            template: "Temperature: {{temp}}"
+            variables:
+              temp:
+                type: number
+                default: 5.0
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "temp", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Temperature: 5.0", response.getRendered());
+    }
+
     // ===== Enum Validation Tests =====
 
     @Test

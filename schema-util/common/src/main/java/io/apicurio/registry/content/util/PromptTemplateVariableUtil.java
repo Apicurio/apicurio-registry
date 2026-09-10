@@ -50,8 +50,16 @@ public final class PromptTemplateVariableUtil {
     /**
      * The single pattern that defines what a prompt template variable placeholder looks like.
      * Group 1 is the variable name, with any surrounding whitespace already stripped.
+     *
+     * The leading <code>(?&lt;!\{)</code> keeps the pattern from starting one character inside a
+     * longer run of braces. Without it, <code>{{{name}}}</code> still contains <code>{{name}}</code>
+     * starting at the second character, so the placeholder matched, the value was substituted, and
+     * the outer brace on each side was left behind as stray text. Triple-brace is not supported
+     * syntax here, so it is left exactly as written instead of being half-rendered. Note this is
+     * deliberately not paired with a trailing <code>(?!\})</code>: <code>{{name}}}</code> is a
+     * placeholder followed by a literal closing brace, which already renders correctly.
      */
-    public static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{\\{\\s*(\\w+)\\s*\\}\\}");
+    public static final Pattern VARIABLE_PATTERN = Pattern.compile("(?<!\\{)\\{\\{\\s*(\\w+)\\s*\\}\\}");
 
     /**
      * Handlebars tags that are spelled like a plain variable placeholder but are control syntax

@@ -54,15 +54,10 @@ PROJECT_INDEX.json
 CLAUDE.local.md
 claudedocs
 
-# Vale linter
-.vale.ini
-.vale/
-
 # Serena MCP
 .serena
 
-# Vale linting tooling
-.vale.ini
+# Vale: .vale.ini is tracked; styles are fetched by `vale sync`
 .vale/
 
 .claude/scheduled_tasks.lock

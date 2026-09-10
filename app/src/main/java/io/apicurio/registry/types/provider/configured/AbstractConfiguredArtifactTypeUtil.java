@@ -27,7 +27,7 @@ public abstract class AbstractConfiguredArtifactTypeUtil<T> {
         }
 
         protected O invokeHook(I requestBody, Class<O> outputClass) throws HttpClientException {
-            return httpClientService.post(provider.getUrl(), requestBody, outputClass);
+            return httpClientService.post(provider.getUrl(), provider.getHeaders(), requestBody, outputClass);
         }
     }
 

@@ -75,9 +75,9 @@ public class Utils {
         }
         @SuppressWarnings("unchecked")
         var rawLabels = (Map<String, Object>) (Map<?, ?>) toRawLabels(jsonMap);
-        return (String[]) rawLabels.entrySet().stream()
+        return rawLabels.entrySet().stream()
                 .map(e -> e.getKey() + ":" + e.getValue())
-                .toArray();
+                .toArray(String[]::new);
     }
 
     public static <R> R handleError(Function0R<R> action) {

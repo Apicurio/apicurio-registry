@@ -138,9 +138,14 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           command: |
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
             docker buildx build \
               --push \
               --file ./support-chat/src/main/docker/Dockerfile.jvm \
               --platform linux/amd64,linux/arm64 \
+              --label org.opencontainers.image.source="https://github.com/Apicurio/apicurio-registry" \
+              --label org.opencontainers.image.revision="${{ github.sha }}" \
+              --label org.opencontainers.image.version="latest-snapshot" \
+              --label org.opencontainers.image.created="$BUILD_DATE" \
               --tag quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot \
               ./support-chat

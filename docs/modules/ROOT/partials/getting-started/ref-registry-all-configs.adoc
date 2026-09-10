@@ -82,6 +82,16 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enable A2A protocol support _(experimental)_
+|`apicurio.a2a.openapi-integration.enabled`
+|`boolean`
+|`false`
+|`3.3.4`
+|Auto-generate a companion AGENT_CARD artifact from the 'x-agent-card' OpenAPI vendor extension _(experimental)_
+|`apicurio.a2a.openapi-integration.sync-on-update.enabled`
+|`boolean`
+|`true`
+|`3.3.4`
+|Update the generated Agent Card whenever its source OpenAPI artifact is updated
 |===
 
 == aicatalog

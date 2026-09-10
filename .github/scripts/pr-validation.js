@@ -8,6 +8,7 @@
 // Blocking checks (fail the GitHub check):
 //   - issue link: the body references an issue this PR closes
 //   - DCO sign-off: every commit carries a Signed-off-by trailer
+//   - milestone: the PR and every issue it closes carry an open milestone
 //
 // Advisory only (reported, never blocking):
 //   - duplicate PRs, matched by linked issue or by overlapping files
@@ -124,6 +125,62 @@ function checkDcoSignOff(commits) {
     detail: `${unsigned.length} commit(s) are missing a \`Signed-off-by:\` trailer:\n\n${list}\n\n`
       + 'Sign off with `git commit -s`, or repair existing commits with '
       + '`git rebase --signoff upstream/main` and force-push.',
+  };
+}
+
+/**
+ * The issues this PR closes, fetched so their milestones can be checked. A
+ * lookup that fails (deleted issue, a number that is really a PR in another
+ * repo) is skipped rather than reported: the milestone check should not
+ * invent a violation out of an API error.
+ */
+async function fetchLinkedIssues(github, owner, repo, linkedIssues, core) {
+  const issues = [];
+  for (const number of linkedIssues) {
+    try {
+      const { data } = await github.rest.issues.get({ owner, repo, issue_number: number });
+      issues.push(data);
+    } catch (e) {
+      core.warning(`Could not load issue #${number} for the milestone check: ${e.message}`);
+    }
+  }
+  return issues;
+}
+
+/**
+ * Milestones drive the release notes (generated from the milestone's issues)
+ * and make work findable after the fact, so both the PR and everything it
+ * closes need one. A closed milestone is treated as missing — it belongs to a
+ * release that already shipped, so nothing new can land in it.
+ *
+ * Setting a milestone needs triage permission, so this is the one blocking
+ * check an outside contributor cannot clear themselves. The message says so.
+ */
+function checkMilestone(pr, issues) {
+  const problems = [];
+
+  const describe = (subject, milestone) => {
+    if (!milestone) {
+      problems.push(`- ${subject} has no milestone.`);
+    } else if (milestone.state === 'closed') {
+      problems.push(`- ${subject} is on milestone \`${milestone.title}\`, which is closed.`);
+    }
+  };
+
+  describe('This PR', pr.milestone);
+  for (const issue of issues) {
+    describe(`Issue #${issue.number}`, issue.milestone);
+  }
+
+  if (problems.length === 0) {
+    return null;
+  }
+  return {
+    name: 'Milestone',
+    detail: `${problems.join('\n')}\n\n`
+      + 'Setting a milestone requires triage permission, so **a maintainer has to '
+      + 'do this** — there is no action for the PR author here. The milestone '
+      + 'determines which release notes this work appears in.',
   };
 }
 
@@ -290,9 +347,11 @@ async function validate({ github, context, core }) {
   });
 
   const linkedIssues = extractLinkedIssues(pr.body, owner, repo);
+  const issues = await fetchLinkedIssues(github, owner, repo, linkedIssues, core);
   const violations = [
     checkIssueLink(linkedIssues),
     checkDcoSignOff(commits),
+    checkMilestone(pr, issues),
   ].filter(Boolean);
 
   let duplicates = { byIssue: [], byFile: [] };
@@ -326,4 +385,5 @@ module.exports = {
   hasSignOff,
   checkIssueLink,
   checkDcoSignOff,
+  checkMilestone,
 };

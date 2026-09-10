@@ -11,6 +11,7 @@ const {
   hasSignOff,
   checkIssueLink,
   checkDcoSignOff,
+  checkMilestone,
 } = require('./pr-validation.js');
 
 const OWNER = 'Apicurio';
@@ -175,13 +176,21 @@ const SIGNED_COMMIT = (sha, subject) => (
 );
 const UNSIGNED_COMMIT = (sha, subject) => ({ sha, ...commitWith(subject, 'dev@example.com') });
 
+// Most tests are not about milestones, so PRs and linked issues carry an open
+// one by default and the milestone check stays quiet. Tests that do care pass
+// `milestone: null` on the PR fixture or seed `issuesByNumber`.
+const OPEN_MILESTONE = { title: '3.4.0', state: 'open' };
+const CLOSED_MILESTONE = { title: '3.3.3', state: 'closed' };
+
 /**
  * Fake octokit client covering only the calls pr-validation.js makes.
  * `commitsByPr` and `filesByPr` are keyed by PR number; `openPrs` seeds
- * github.rest.pulls.list. Every write call is recorded onto `calls` so
- * tests can assert on exact arguments.
+ * github.rest.pulls.list; `issuesByNumber` seeds github.rest.issues.get for
+ * the milestone check. Every write call is recorded onto `calls` so tests can
+ * assert on exact arguments.
  */
-function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {} } = {}) {
+function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {},
+                            issuesByNumber = {} } = {}) {
   const calls = {
     createdComments: [], updatedComments: [], addedLabels: [], removedLabels: [], listParams: [],
   };
@@ -203,6 +212,11 @@ function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {} } = {
         ),
       },
       issues: {
+        get: async ({ issue_number }) => {
+          const issue = issuesByNumber[issue_number];
+          if (issue instanceof Error) throw issue;
+          return { data: issue ?? { number: issue_number, milestone: OPEN_MILESTONE } };
+        },
         listComments: async ({ issue_number }) => (
           { data: comments.filter(c => c.issue_number === issue_number) }
         ),
@@ -268,7 +282,12 @@ function withDefaultBase(prs) {
 
 function makeContext(pr) {
   const [withBase] = withDefaultBase([pr]);
-  return { repo: { owner: OWNER, repo: REPO }, payload: { pull_request: withBase } };
+  // Same idea as base.ref above: default to a milestoned PR so tests that are
+  // not about milestones do not all have to say so.
+  return {
+    repo: { owner: OWNER, repo: REPO },
+    payload: { pull_request: { milestone: OPEN_MILESTONE, ...withBase } },
+  };
 }
 
 test('validate(): unsigned commit fails the check, labels the PR, and posts one comment', async (t) => {
@@ -468,4 +487,107 @@ test('validate(): a duplicate-detection failure still reports a real violation',
   assert.match(getFailed(), /Issue link/);
   assert.match(getFailed(), /DCO sign-off/);
   assert.match(calls.createdComments[0].body, /Issue link/);
+});
+
+// ---------------------------------------------------------------------------
+// Milestone check
+//
+// Both the PR and every issue it closes need an open milestone: the release
+// notes are generated from a milestone's issues, and the PR's own milestone
+// keeps the work findable by search. Unlike the other blocking checks this
+// one is not the author's to fix, which is why the message says who must act.
+// ---------------------------------------------------------------------------
+
+test('checkMilestone(): passes when the PR and its issues are milestoned', () => {
+  const violation = checkMilestone(
+    { milestone: OPEN_MILESTONE },
+    [{ number: 42, milestone: OPEN_MILESTONE }]
+  );
+  assert.equal(violation, null);
+});
+
+test('checkMilestone(): reports a PR with no milestone', () => {
+  const violation = checkMilestone({ milestone: null }, []);
+  assert.match(violation.detail, /This PR has no milestone/);
+  assert.match(violation.detail, /a maintainer has to do this/);
+});
+
+test('checkMilestone(): a closed milestone counts as missing', () => {
+  const violation = checkMilestone({ milestone: CLOSED_MILESTONE }, []);
+  assert.match(violation.detail, /`3\.3\.3`, which is closed/);
+});
+
+test('checkMilestone(): reports each unmilestoned issue separately', () => {
+  const violation = checkMilestone({ milestone: OPEN_MILESTONE }, [
+    { number: 42, milestone: null },
+    { number: 43, milestone: CLOSED_MILESTONE },
+    { number: 44, milestone: OPEN_MILESTONE },
+  ]);
+  assert.match(violation.detail, /Issue #42 has no milestone/);
+  assert.match(violation.detail, /Issue #43 is on milestone/);
+  assert.doesNotMatch(violation.detail, /Issue #44/);
+});
+
+test('validate(): an unmilestoned PR fails the check and is labelled', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = {
+    number: 1, user: { login: 'contributor' }, body: 'Closes #42',
+    labels: [], draft: false, milestone: null,
+  };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.match(getFailed(), /Milestone/);
+  assert.deepEqual(calls.addedLabels, [{ issue_number: 1, labels: ['lifecycle/validation-failed'] }]);
+  assert.match(calls.createdComments[0].body, /This PR has no milestone/);
+});
+
+test('validate(): a milestoned PR closing an unmilestoned issue still fails', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    issuesByNumber: { 42: { number: 42, milestone: null } },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.match(getFailed(), /Milestone/);
+  assert.match(calls.createdComments[0].body, /Issue #42 has no milestone/);
+});
+
+test('validate(): an issue that cannot be fetched is warned about, not failed', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  const { github } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    issuesByNumber: { 42: new Error('Not Found') },
+  });
+  const { core, warnings, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  assert.ok(warnings.some(w => /Could not load issue #42/.test(w)));
+});
+
+test('validate(): exempt bot authors skip the milestone check entirely', async (t) => {
+  stubConfig(t, { auto_accept: ['renovate[bot]'] });
+  const pr = {
+    number: 1, user: { login: 'renovate[bot]' }, body: '',
+    labels: [], draft: false, milestone: null,
+  };
+  const { github, calls } = createFakeGithub({});
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  assert.deepEqual(calls.addedLabels, []);
+  assert.deepEqual(calls.createdComments, []);
 });

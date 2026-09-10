@@ -61,9 +61,14 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
     }
 
     private boolean isCompressible(WriterInterceptorContext context) {
-        if (!restConfig.isCompressionEnabled()) {
-            return false;
-        }
+        // Check cheap, purely local conditions (headers already on hand, and the
+        // quarkus.http.compress-media-types list, which is a static/env-derived property resolved
+        // once and cached in compressMediaTypes) before resolving the dynamic
+        // apicurio.rest.compression.enabled property below. That last check is the only one that
+        // goes through the @Dynamic Supplier/MicroProfile Config resolution chain, so ordering it
+        // last means a request with no Accept-Encoding header, an already-encoded body, or a
+        // non-compressible media type - the common case for most responses - never pays that cost
+        // at all.
         String acceptEncoding = httpHeaders.getHeaderString(HttpHeaders.ACCEPT_ENCODING);
         if (!clientAcceptsGzip(acceptEncoding)) {
             return false;
@@ -75,8 +80,11 @@ public class HttpCompressionWriterInterceptor implements WriterInterceptor {
         if (mediaType == null) {
             return false;
         }
-        return getCompressMediaTypes().contains(
-                (mediaType.getType() + "/" + mediaType.getSubtype()).toLowerCase(Locale.ROOT));
+        if (!getCompressMediaTypes().contains(
+                (mediaType.getType() + "/" + mediaType.getSubtype()).toLowerCase(Locale.ROOT))) {
+            return false;
+        }
+        return restConfig.isCompressionEnabled();
     }
 
     private List<String> getCompressMediaTypes() {

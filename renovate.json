@@ -381,10 +381,7 @@
       "matchPackageNames": [
         "@microsoft/kiota-*"
       ],
-      "enabled": true,
-      "schedule": [
-        "* 0 15 * *"
-      ]
+      "enabled": true
     },
     {
       "groupName": "Dependencies: UI Tests",

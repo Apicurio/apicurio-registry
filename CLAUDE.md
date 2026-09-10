@@ -89,6 +89,7 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] API error responses never expose internal state (usernames, stack traces, class names).
 - [ ] Use Quarkus/MicroProfile facilities (`@CircuitBreaker`, `@Retry`, `@Timeout`) instead of hand-rolled equivalents.
 - [ ] Use `Locale.ROOT` with `toUpperCase()` / `toLowerCase()`.
+- [ ] Features storing their own metadata in labels follow `.claude/rules/labels.md` (reserved `apicurio.<feature>.*` key namespace; labels are user-editable, so never store security-relevant state in one).
 - [ ] Non-variant-specific changes under `storage/impl/` must work across all 4 storage variants.
 - [ ] Auth changes require both positive and negative (403) test cases.
 - [ ] New Java files follow the surrounding style. Do **not** add a per-file Apache
@@ -106,8 +107,9 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Every new code path has tests. Missing tests = automatic rejection.
 - [ ] Test assertions check **specific values** ("counter is 3"), not just existence ("counter is not null").
 - [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
-- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans — plain JUnit with `new` bypasses interceptors.
+- [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans; plain JUnit with `new` bypasses interceptors.
 - [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
+- [ ] When the diff touches `**/src/test/**`, run `/apicurio-test-quality` (scores test code against 30 documented failure patterns P1-P30; score below 7.0 blocks submission).
 
 ### Submission
 - [ ] `./mvnw test-compile -pl <module> -am -DskipTests` compiles cleanly (use `test-compile`, not `compile`, when touching test files).

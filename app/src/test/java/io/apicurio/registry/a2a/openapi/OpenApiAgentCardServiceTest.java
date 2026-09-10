@@ -6,6 +6,7 @@ import io.apicurio.registry.json.content.canon.JsonContentCanonicalizer;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -89,8 +91,10 @@ public class OpenApiAgentCardServiceTest {
     }
 
     private void sync(String openApiJson, boolean isUpdate) {
-        service.syncCompanionAgentCard(storage, GROUP_ID, OPENAPI_ARTIFACT_ID, openApiContent(openApiJson),
-                "alice", isUpdate);
+        String assembled = service.validateAndAssemble(openApiContent(openApiJson), isUpdate);
+        if (assembled != null) {
+            service.createOrSyncCompanion(storage, GROUP_ID, OPENAPI_ARTIFACT_ID, assembled, "alice");
+        }
     }
 
     @Test
@@ -123,6 +127,28 @@ public class OpenApiAgentCardServiceTest {
     @Test
     void noExtension_doesNothing() {
         sync(OPENAPI_NO_CARD, false);
+        verifyNoStorageWrites();
+    }
+
+    @Test
+    void malformedExtension_throwsBeforeTouchingStorageAtAll() {
+        String malformed = """
+                {
+                  "openapi": "3.0.0",
+                  "info": {
+                    "title": "Weather API",
+                    "version": "1.0.0",
+                    "x-agent-card": { "capabilities": {} }
+                  },
+                  "paths": {}
+                }
+                """;
+
+        assertThrows(RuleViolationException.class,
+                () -> service.validateAndAssemble(openApiContent(malformed), false));
+
+        // validateAndAssemble is called BEFORE the OpenAPI write, so it must never touch storage -
+        // createOrSyncCompanion is a separate call the caller only makes after a successful write.
         verifyNoStorageWrites();
     }
 

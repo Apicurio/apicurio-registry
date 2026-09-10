@@ -36,12 +36,19 @@ import java.util.Map;
  * group as the source OpenAPI artifact (so the existing group-level entitlement model applies to it
  * unchanged, per the A2A epic's key design decisions).
  *
- * <p><b>Failure policy:</b> a malformed {@code x-agent-card} extension fails the OpenAPI write itself
- * (the caller is expected to let {@link io.apicurio.registry.rules.violation.RuleViolationException}
- * from {@link OpenApiAgentCardAssembler} propagate) — the user needs to know their extension is
- * broken. Everything else (storage errors creating/syncing the companion, a naming collision with an
- * artifact this feature did not create) is logged and swallowed: the OpenAPI write the user actually
- * asked for must never fail because of trouble with a derived side-artifact.
+ * <p>Callers must use this service in two steps, mirroring how {@code rulesService.applyRules(...)}
+ * already validates OpenAPI content before it is persisted:
+ * <ol>
+ * <li>{@link #validateAndAssemble(TypedContent)} - called <b>before</b> the OpenAPI write. Lets
+ * {@link io.apicurio.registry.rules.violation.RuleViolationException} propagate if the extension is
+ * present but malformed, so a bad {@code x-agent-card} block rejects the OpenAPI write itself before
+ * anything is persisted - exactly like any other content validation failure.</li>
+ * <li>{@link #createOrSyncCompanion(RegistryStorage, String, String, String, String, boolean)} -
+ * called <b>after</b> the OpenAPI write has already succeeded, passing the already-validated JSON
+ * from step 1. Storage errors here (or a naming collision with an artifact this feature did not
+ * create) are logged and swallowed: the OpenAPI write the user actually asked for must never fail
+ * because of trouble with this derived side-artifact.</li>
+ * </ol>
  */
 @ApplicationScoped
 public class OpenApiAgentCardService {
@@ -56,57 +63,72 @@ public class OpenApiAgentCardService {
     private final JsonContentCanonicalizer canonicalizer = new JsonContentCanonicalizer();
 
     /**
-     * Assembles an Agent Card from the given OpenAPI content's {@code x-agent-card} extension (if
-     * any) and creates or synchronizes its companion AGENT_CARD artifact.
+     * Validates the given OpenAPI content's {@code x-agent-card} extension (if any) and returns the
+     * assembled Agent Card JSON, ready to be passed to
+     * {@link #createOrSyncCompanion(RegistryStorage, String, String, String, String, boolean)} once
+     * the caller's OpenAPI write has succeeded. Call this <b>before</b> writing the OpenAPI content to
+     * storage.
+     *
+     * @param openApiContent the OpenAPI content about to be written
+     * @param isUpdate       {@code true} if this is a version update to an existing OpenAPI artifact,
+     *                       {@code false} if the OpenAPI artifact is being created
+     * @return the assembled Agent Card JSON, or {@code null} if there is nothing to do (the feature is
+     *         disabled, sync-on-update is disabled and this is an update, or the OpenAPI content has no
+     *         {@code x-agent-card} extension)
+     * @throws io.apicurio.registry.rules.violation.RuleViolationException if the extension is present
+     *         but does not assemble into a valid A2A v1.0 Agent Card. Intentionally not swallowed: this
+     *         is what rejects the caller's OpenAPI write.
+     */
+    public String validateAndAssemble(TypedContent openApiContent, boolean isUpdate) {
+        if (!config.isEnabled()) {
+            return null;
+        }
+        if (isUpdate && !config.isSyncOnUpdateEnabled()) {
+            return null;
+        }
+
+        try {
+            return assembler.assemble(openApiContent);
+        } catch (IOException e) {
+            // The caller is about to attempt (or has already attempted, depending on call order) to
+            // parse/validate this same content through its own content validator, which will surface
+            // a much better syntax error than we could here. Treat this as "nothing to do" rather than
+            // duplicating that failure with a less clear message.
+            log.debug("Failed to parse OpenAPI content while checking for '{}': {}",
+                    OpenApiAgentCardAssembler.EXTENSION_KEY, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Creates or synchronizes the companion AGENT_CARD artifact for an OpenAPI artifact whose
+     * {@code x-agent-card} extension was already validated and assembled by
+     * {@link #validateAndAssemble(TypedContent, boolean)}. Call this <b>after</b> the OpenAPI write has
+     * already succeeded, passing that same {@code assembledJson}.
      *
      * @param storage          the storage to operate on (the full decorator-wrapped
      *                         {@code @Current RegistryStorage}, so the companion write is subject to
      *                         the same read-only/limits/search-indexing behavior as any other write)
      * @param groupId          the raw (already-normalized) group ID of the OpenAPI artifact
      * @param openApiArtifactId the artifact ID of the OpenAPI artifact
-     * @param openApiContent   the OpenAPI content that was just successfully written
+     * @param assembledJson    the Agent Card JSON previously returned by
+     *                         {@link #validateAndAssemble(TypedContent, boolean)}; must not be
+     *                         {@code null}
      * @param owner            the owner to record on the companion artifact/version
-     * @param isUpdate         {@code true} if this is a version update to an existing OpenAPI
-     *                         artifact, {@code false} if the OpenAPI artifact was just created
-     * @throws io.apicurio.registry.rules.violation.RuleViolationException if the extension is
-     *         present but does not assemble into a valid A2A v1.0 Agent Card. Intentionally NOT
-     *         swallowed: this is the only failure mode that should reject the caller's OpenAPI write.
      */
-    public void syncCompanionAgentCard(RegistryStorage storage, String groupId, String openApiArtifactId,
-            TypedContent openApiContent, String owner, boolean isUpdate) {
-        if (!config.isEnabled()) {
-            return;
-        }
-        if (isUpdate && !config.isSyncOnUpdateEnabled()) {
-            return;
-        }
-
-        String assembledJson;
-        try {
-            assembledJson = assembler.assemble(openApiContent);
-        } catch (IOException e) {
-            // The OpenAPI content was already accepted by the primary write earlier in this same
-            // request; a parse failure here would be surprising rather than a user error. Don't fail
-            // an already-successful write over it.
-            log.warn("Failed to re-parse OpenAPI content while checking for '{}' on {}/{}: {}",
-                    OpenApiAgentCardAssembler.EXTENSION_KEY, groupId, openApiArtifactId, e.getMessage());
-            return;
-        }
-        if (assembledJson == null) {
-            // No x-agent-card extension present - nothing to do.
-            return;
-        }
-
+    public void createOrSyncCompanion(RegistryStorage storage, String groupId, String openApiArtifactId,
+            String assembledJson, String owner) {
         String companionArtifactId = companionArtifactId(openApiArtifactId);
         try {
-            createOrSyncCompanion(storage, groupId, openApiArtifactId, companionArtifactId, assembledJson, owner);
+            createOrSyncCompanionInternal(storage, groupId, openApiArtifactId, companionArtifactId,
+                    assembledJson, owner);
         } catch (Exception e) {
             log.warn("Failed to auto-generate/sync Agent Card companion '{}' for OpenAPI artifact {}/{}: {}",
                     companionArtifactId, groupId, openApiArtifactId, e.getMessage(), e);
         }
     }
 
-    private void createOrSyncCompanion(RegistryStorage storage, String groupId, String openApiArtifactId,
+    private void createOrSyncCompanionInternal(RegistryStorage storage, String groupId, String openApiArtifactId,
             String companionArtifactId, String assembledJson, String owner) {
         String newHash = canonicalHash(assembledJson);
 

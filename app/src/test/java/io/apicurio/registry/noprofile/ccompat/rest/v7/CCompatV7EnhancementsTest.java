@@ -141,6 +141,24 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testGetSchemasReturnsIdentifyingFields() throws Exception {
+        var subject = TestUtils.generateSubject();
+        var schemaContent = new RegisterSchemaRequest();
+        schemaContent.setSchema("{\"type\" : \"string\"}");
+
+        given().when().contentType(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST)
+                .body(objectMapper.writeValueAsString(schemaContent))
+                .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
+
+        // The listing returns the same Schema bean as the single-schema endpoints, so
+        // subject, version and id must be populated and not just the schema content.
+        given().when().get("/ccompat/v7/schemas?subjectPrefix={prefix}", subject).then().statusCode(200)
+                .body("$", hasSize(1)).body("[0].subject", equalTo(subject))
+                .body("[0].version", equalTo(1)).body("[0].id", notNullValue())
+                .body("[0].schema", notNullValue());
+    }
+
+    @Test
     public void testGetSubjectsBySchemaId() throws Exception {
         // Create a schema
         var subject = TestUtils.generateSubject();

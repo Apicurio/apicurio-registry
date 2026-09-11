@@ -9,6 +9,8 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.types.ArtifactType;
 import jakarta.inject.Inject;
@@ -63,6 +65,16 @@ public class ApiConverter {
         }
         List<SchemaReference> refs = references.stream().map(this::convert).collect(Collectors.toList());
         schema.setReferences(refs.isEmpty() ? null : refs);
+        return schema;
+    }
+
+    public Schema convert(SearchedVersionDto version, ContentWrapperDto contentWrapper) {
+        Schema schema = convert(contentWrapper.getContent(), version.getArtifactType(),
+                contentWrapper.getReferences());
+        schema.setSubject(version.getArtifactId());
+        schema.setVersion(convertUnsigned(version.getVersionOrder()).intValue());
+        schema.setId(convertUnsigned(Boolean.TRUE.equals(cconfig.legacyIdModeEnabled.get())
+                ? version.getGlobalId() : version.getContentId()).intValue());
         return schema;
     }
 

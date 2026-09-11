@@ -21,10 +21,8 @@
          module's kiota generate goal runs.  The ordering is required rather than a
          precaution.  KiotaMojo 0.0.38 returns early when the destination file
          already exists, and it publishes the binary with a plain Files.copy into
-         that final path, so the file is visible while it is still partly written.
-         A second execution on the same folder can therefore take the early return,
-         mark a partial file executable and run it.  Under -T 1C the two modules
-         would otherwise be free to run their kiota goals at the same time.
+         that final path, so a module whose kiota goal runs at the same time (which
+         -T 1C allows) can see a partly written file, mark it executable and run it.
          Marked optional so consumers of client-v2 do not pull client transitively. -->
     <dependency>
       <groupId>io.apicurio</groupId>

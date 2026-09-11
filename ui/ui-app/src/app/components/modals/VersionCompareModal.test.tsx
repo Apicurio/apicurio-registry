@@ -13,7 +13,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const setters: Record<string, any> = {};
 let effects: Array<{ fn: () => any; deps: any[] }> = [];
 let stateIndex = 0;
+// Order must match the useState call order in VersionCompareModal.tsx. If a useState is added
+// or reordered there, update this list, otherwise the assertions silently target the wrong
+// setter. expectedStateCount below turns that silent drift into a failing test.
 const stateNames = ["version1Content", "version2Content", "isLoading", "error"];
+const expectedStateCount = stateNames.length;
 
 vi.mock("react", async (importOriginal) => {
     const actual = await importOriginal<typeof import("react")>();
@@ -70,6 +74,8 @@ const runComponent = async (version1: any, version2: any) => {
         version2,
         onClose: vi.fn()
     });
+    // If this fails, VersionCompareModal changed its useState calls and stateNames is stale.
+    expect(stateIndex).toBe(expectedStateCount);
     // The first effect is the loader; the second resets state when the modal closes.
     return effects[0];
 };

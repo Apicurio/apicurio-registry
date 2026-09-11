@@ -50,6 +50,68 @@ var stats = {
             self.assertEqual(900000, result["ok"])
             self.assertEqual(2, result["ko"])
 
+    def write_comparison_run(self, root, repetition, replicas):
+        run_dir = root / f"repetition-{repetition}" / "apicurio"
+        stats_path = run_dir / "gatling" / "simulation" / "js" / "stats.js"
+        stats_path.parent.mkdir(parents=True)
+
+        (run_dir / "deployment-metadata.json").write_text(json.dumps({
+            "product": "apicurio",
+            "operation": "READ_ID",
+            "users": 100,
+            "warmup": 60,
+            "duration": 180,
+            "seeds": 1000,
+            "replicas": replicas
+        }))
+
+        stats_path.write_text("""
+var stats = {
+    contents: {
+        measured: {
+            type: "REQUEST", name: "Measured READ_ID",
+            stats: {
+                "numberOfRequests": {"total": "10", "ok": "10", "ko": "0"},
+                "meanResponseTime": {"total": "10", "ok": "10", "ko": "0"},
+                "percentiles1": {"total": "8", "ok": "8", "ko": "0"},
+                "percentiles2": {"total": "12", "ok": "12", "ko": "0"},
+                "percentiles3": {"total": "20", "ok": "20", "ko": "0"},
+                "percentiles4": {"total": "25", "ok": "25", "ko": "0"}
+            }
+        }
+    }
+}
+""")
+
+    def run_comparison(self, root):
+        original_argv = COMPARE_RESULTS.sys.argv
+        try:
+            COMPARE_RESULTS.sys.argv = [
+                "compare-results.py",
+                str(root),
+                str(root / "comparison")
+            ]
+            return COMPARE_RESULTS.main()
+        finally:
+            COMPARE_RESULTS.sys.argv = original_argv
+
+    def test_rejects_incomparable_replica_counts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            self.write_comparison_run(root, 1, 1)
+            self.write_comparison_run(root, 2, 2)
+
+            with self.assertRaisesRegex(ValueError, "Incomparable run parameters"):
+                self.run_comparison(root)
+
+    def test_accepts_matching_replica_counts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            self.write_comparison_run(root, 1, 2)
+            self.write_comparison_run(root, 2, 2)
+
+            self.assertIsNone(self.run_comparison(root))
+
     def test_rejects_invalid_measured_duration(self):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = pathlib.Path(directory) / "run-1"

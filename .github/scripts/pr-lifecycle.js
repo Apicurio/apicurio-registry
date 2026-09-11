@@ -1615,7 +1615,11 @@ async function handleStale({ github, context, core }) {
     const effectiveDaysUntilClose = isWaitingOnAuthor ? daysUntilCloseWaitingOnAuthor : daysUntilClose;
 
     if (hasLabel(pr, LABELS.STALE)) {
-      const { data: events } = await github.rest.issues.listEventsForTimeline({
+      // Must be paginated: the timeline is oldest-first, so on a long-lived PR
+      // an unpaginated read either misses the current stale label entirely
+      // (skipping the PR forever) or picks up a previous one, which backdates
+      // staleSince and makes intervening activity look like it came after.
+      const events = await github.paginate(github.rest.issues.listEventsForTimeline, {
         owner, repo, issue_number: pr.number, per_page: 100,
       });
 
@@ -1628,11 +1632,14 @@ async function handleStale({ github, context, core }) {
       const staleSince = new Date(staleEvent.created_at);
       const daysSinceStale = (now - staleSince) / (1000 * 60 * 60 * 24);
 
+      // Only events that carry created_at are considered. 'committed' events
+      // are deliberately not in the list: they have no created_at at all (the
+      // commit date lives in author.date), so they cannot be ordered against
+      // staleSince, and a push already clears the label via handlePrPush.
       const hasActivity = events.some(e => {
-        if (new Date(e.created_at) <= staleSince) return false;
+        if (!e.created_at || new Date(e.created_at) <= staleSince) return false;
         if (e.actor?.login === BOT_LOGIN || e.user?.login === BOT_LOGIN) return false;
-        return e.event === 'commented' || e.event === 'committed' ||
-               e.event === 'head_ref_force_pushed';
+        return e.event === 'commented' || e.event === 'head_ref_force_pushed';
       });
 
       // pr is a snapshot from before this run, so a PR can't hit both the
@@ -1653,9 +1660,18 @@ async function handleStale({ github, context, core }) {
       const closeWindow = graceDays <= 0
         ? 'as soon as the next check'
         : `in ${graceDays} more day${graceDays === 1 ? '' : 's'}`;
+      // Assignees are the maintainers on the hook for the PR, so they get a cc
+      // too — most of these PRs lapse waiting on review, not on the author.
+      const assignees = (pr.assignees || [])
+        .map(a => a.login)
+        .filter(login => login !== pr.user.login);
+      const assigneeMention = assignees.length
+        ? `\n\ncc ${assignees.map(login => `@${login}`).join(' ')}`
+        : '';
       const staleMessage = (config.stale?.stale_message || 'This PR is stale.')
         .replace(/\{author\}/g, pr.user.login)
-        .replace(/\{close_window\}/g, closeWindow);
+        .replace(/\{close_window\}/g, closeWindow)
+        .replace(/\{assignees\}/g, assigneeMention);
       await api.postComment(pr.number, staleMessage);
       core.info(`PR #${pr.number} marked as stale`);
     }

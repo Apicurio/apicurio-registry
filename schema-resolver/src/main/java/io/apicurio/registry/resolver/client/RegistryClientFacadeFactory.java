@@ -69,7 +69,15 @@ public class RegistryClientFacadeFactory {
 
         configureAuthentication(clientOptions, config);
 
-        clientOptions.retry();
+        if (config.getClientRetryEnabled()) {
+            clientOptions.retry(true,
+                    (int) config.getClientRetryMaxAttempts(),
+                    config.getClientRetryDelayMs(),
+                    config.getClientRetryBackoffMultiplier(),
+                    config.getClientRetryMaxDelayMs());
+        } else {
+            clientOptions.disableRetry();
+        }
 
         configureTrustStore(clientOptions, config);
         configureKeyStore(clientOptions, config);

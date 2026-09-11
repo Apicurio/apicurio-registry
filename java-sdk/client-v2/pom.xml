@@ -16,10 +16,15 @@
     <projectRoot>${project.basedir}/../..</projectRoot>
   </properties>
   <dependencies>
-    <!-- Build-ordering dependency: forces Maven to build client before client-v2
-         so the kiota binary is downloaded exactly once to the shared folder before
-         this module's kiota generate goal runs.  Without this, -T 1C can schedule
-         both modules concurrently and they race on Files.copy (ETXTBSY).
+    <!-- Build-ordering dependency: forces Maven to build client before client-v2,
+         so the kiota binary is downloaded once into the shared folder before this
+         module's kiota generate goal runs.  The ordering is required rather than a
+         precaution.  KiotaMojo 0.0.38 returns early when the destination file
+         already exists, and it publishes the binary with a plain Files.copy into
+         that final path, so the file is visible while it is still partly written.
+         A second execution on the same folder can therefore take the early return,
+         mark a partial file executable and run it.  Under -T 1C the two modules
+         would otherwise be free to run their kiota goals at the same time.
          Marked optional so consumers of client-v2 do not pull client transitively. -->
     <dependency>
       <groupId>io.apicurio</groupId>

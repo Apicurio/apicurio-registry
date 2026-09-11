@@ -1,0 +1,23 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: registry-with-metrics
+spec:
+  app:
+    ingress:
+      host: registry.apps.cluster.example
+    # Operator-side metrics collection
+    metrics:
+      # Disabled by default. When enabled, the Operator scrapes each application Pod.
+      enabled: true
+      # How often to collect. Minimum 10.
+      scrapeIntervalSeconds: 60
+      # Warn when 80% of the database connection pool is in use.
+      connectionPoolUtilizationThreshold: 0.8
+      # Warn when 10% of REST API requests are answered with a 5xx status.
+      errorRateThreshold: 0.1
+      # Warn when the KafkaSQL consumer falls this many records behind.
+      kafkaConsumerLagThreshold: 1000
+  ui:
+    ingress:
+      host: registry-ui.apps.cluster.example

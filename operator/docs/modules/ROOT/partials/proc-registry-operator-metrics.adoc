@@ -1,0 +1,151 @@
+[#registry-operator-metrics]
+= Reporting {registry} metrics in the custom resource
+
+[role="_abstract"]
+You can configure the {operator} to read the {registry} metrics endpoint and report a summary in the `status` section of the `ApicurioRegistry3` custom resource.
+This gives cluster administrators a view of request rate, error rate, database connection pool use, stored artifact counts and KafkaSQL consumer lag through `kubectl` alone, without installing a separate monitoring stack.
+
+The {operator} also emits {platform} Events when a value crosses a threshold, so that `kubectl describe` surfaces problems next to the rest of the deployment history.
+
+This feature is disabled by default.
+
+.Prerequisites
+* You have already installed {registry} using the {operator}.
+
+.Procedure
+. Configure the `ApicurioRegistry3` CR with the `spec.app.metrics` section:
++
+[source,yaml]
+----
+include::ROOT:example$apicurioregistry3_metrics_cr.yaml[]
+----
+
+. Apply the CR to your cluster:
++
+[source,shell]
+----
+kubectl apply -f apicurioregistry3_metrics_cr.yaml
+----
+
+. Read the reported values:
++
+[source,shell]
+----
+kubectl get apicurioregistry3 registry-with-metrics -o jsonpath='{.status.metrics}'
+----
+
+. Read any Events that were emitted for this deployment:
++
+[source,shell]
+----
+kubectl describe apicurioregistry3 registry-with-metrics
+----
+
+.Metrics configuration options
+[%header,cols="3,2,2,4"]
+|===
+| Configuration option | Type | Default | Description
+
+| `spec.app.metrics.enabled`
+| boolean
+| `false`
+| Enable operator-side collection of {registry} metrics.
+
+| `spec.app.metrics.scrapeIntervalSeconds`
+| integer
+| `60`
+| How often the {operator} collects metrics, in seconds. Minimum 10; the CRD rejects anything lower.
+
+| `spec.app.metrics.connectionPoolUtilizationThreshold`
+| number
+| `0.8`
+| Emit a `ConnectionPoolSaturated` Event when the fraction of in-use database connections reaches this value.
+
+| `spec.app.metrics.errorRateThreshold`
+| number
+| `0.1`
+| Emit a `HighErrorRate` Event when the fraction of REST API requests answered with a 5xx status reaches this value.
+
+| `spec.app.metrics.kafkaConsumerLagThreshold`
+| integer
+| `1000`
+| Emit a `KafkaConsumerLagHigh` Event when the KafkaSQL consumer lag reaches this number of records.
+
+| `spec.app.metrics.prometheusRuleEnabled`
+| boolean
+| `false`
+| Generate a `PrometheusRule` carrying the same thresholds, so a cluster running the Prometheus Operator raises the same alerts through its own alerting path. See the note below.
+|===
+
+.Reported values
+The {operator} contacts each {registry} application Pod on its management interface, port 9000, path `/metrics`, and aggregates what it finds.
+
+[%header,cols="3,4"]
+|===
+| Status field | How it is derived
+
+| `status.metrics.summary.requestRate`
+| Change in the REST API request counter since the previous collection, divided by the elapsed time, summed across Pods.
+
+| `status.metrics.summary.errorRate`
+| Share of the requests in that interval that were answered with a 5xx status.
+
+| `status.metrics.summary.connectionPoolUtilization`
+| In-use database connections as a fraction of the current pool, on whichever Pod is using the most of
+its pool. Reported as the highest rather than the average so that one exhausted replica is not hidden
+behind idle ones.
+
+| `status.metrics.summary.artifactCount`
+| Number of artifacts in storage. Every replica counts the same shared storage, so this is the highest value seen rather than a sum.
+
+| `status.metrics.summary.artifactVersionCount`
+| Number of artifact versions in storage, taken the same way.
+
+| `status.metrics.summary.kafkaConsumerLag`
+| Highest consumer lag reported by any Pod. Present only with KafkaSQL storage.
+
+| `status.metrics.summary.scrapedPods`
+| How many application Pods the values above were read from. At most 10 Pods are read per collection, so on a larger deployment, or when a Pod cannot be reached, the totals cover only the Pods that answered.
+
+| `status.metrics.lastCollected`
+| The time of the last successful collection. A failed collection does not move it, so a timestamp that has stopped advancing means the Operator can no longer read the Pods, and the `MetricsUnavailable` condition says why.
+|===
+
+A field is omitted when the underlying metric is not exposed, rather than reported as zero.
+Rates need two collections, so they appear one interval after the feature is enabled.
+
+`artifactCount` and `artifactVersionCount` come from gauges that {registry} does not publish by default,
+because each refresh of them costs an aggregate count over the whole dataset, which is not cheap on a large
+registry. To have the Operator report them, set `apicurio.metrics.storage-usage.enabled` to `true` on the
+{registry} deployment, for example through `spec.app.env`. Until then the two fields are simply absent, and
+the rest of the summary is unaffected.
+
+.Emitted Events
+Events are of type `Warning` and repeat at most once every 10 minutes while the breach continues.
+
+[%header,cols="2,4"]
+|===
+| Reason | Meaning
+
+| `ConnectionPoolSaturated`
+| Database connection pool use on at least one Pod reached `connectionPoolUtilizationThreshold`.
+
+| `HighErrorRate`
+| The share of 5xx responses reached `errorRateThreshold`.
+
+| `KafkaConsumerLagHigh`
+| KafkaSQL consumer lag reached `kafkaConsumerLagThreshold`.
+|===
+
+
+.Alerting through the Prometheus Operator
+Setting `spec.app.metrics.prometheusRuleEnabled` makes the {operator} generate a `PrometheusRule` named
+`<cr-name>-app-metrics`, with one alert per threshold, matching the Events above.
+It is only created when the Prometheus Operator CRDs are present on the cluster, and it is removed again when
+the option is turned off.
+
+The rules are evaluated over metrics Prometheus has already collected. Generating them does not arrange that
+collection, so until something scrapes {registry}, for example a `ServiceMonitor`, the rules never fire.
+.Limitations
+* Metrics collection only supports plain HTTP. Configuring `spec.app.tls.keystoreSecretRef` moves the Quarkus management interface to HTTPS, so those deployments are skipped and the CR reports a `MetricsUnavailable` condition explaining why. Setting `insecureRequests` does not change this, it only affects the API port. Collection failures never fail reconciliation and never discard the last known summary.
+* At most 10 Pods are contacted per collection.

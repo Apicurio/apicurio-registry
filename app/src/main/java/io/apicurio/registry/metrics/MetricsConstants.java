@@ -27,6 +27,10 @@ public interface MetricsConstants {
     String STORAGE_PREFIX = "storage.";
     String STORAGE_METHOD_CALL = STORAGE_PREFIX + "method.call";
     String STORAGE_METHOD_CALL_DESCRIPTION = "Timing and results of storage methods calls";
+    String STORAGE_ARTIFACTS = STORAGE_PREFIX + "artifacts";
+    String STORAGE_ARTIFACTS_DESCRIPTION = "Number of artifacts currently held in storage";
+    String STORAGE_ARTIFACT_VERSIONS = STORAGE_PREFIX + "artifact.versions";
+    String STORAGE_ARTIFACT_VERSIONS_DESCRIPTION = "Number of artifact versions currently held in storage";
 
     // Storage tags/labels
 

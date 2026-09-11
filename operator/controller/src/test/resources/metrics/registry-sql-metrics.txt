@@ -1,0 +1,25 @@
+# TYPE agroal_active_count gauge
+# HELP agroal_active_count Number of active connections. These connections are in use and not available to be acquired.
+# TYPE agroal_max_used_count gauge
+# HELP agroal_max_used_count Maximum number of connections active simultaneously.
+# TYPE rest_requests_seconds_max gauge
+# HELP rest_requests_seconds_max Timing and results of REST endpoints calls
+# TYPE rest_requests_seconds histogram
+# HELP rest_requests_seconds Timing and results of REST endpoints calls
+# TYPE agroal_available_count gauge
+# HELP agroal_available_count Number of idle connections in the pool, available to be acquired.
+# NOTE: captured from quay.io/apicurio/apicurio-registry:latest-snapshot, SQL storage, after 7 successful
+# and 3 not-found API requests. Predates the storage and Kafka gauges added in this change, which is why
+# neither appears here.
+agroal_active_count{datasource="h2"} 0.0
+agroal_max_used_count{datasource="h2"} 20.0
+rest_requests_seconds_count{method="(unspecified)",path="(unspecified)",status_code_group="5xx"} 0.0
+rest_requests_seconds_count{method="(unspecified)",path="(unspecified)",status_code_group="401"} 0.0
+rest_requests_seconds_count{method="(unspecified)",path="(unspecified)",status_code_group="2xx"} 0.0
+rest_requests_seconds_count{method="(unspecified)",path="(unspecified)",status_code_group="1xx"} 0.0
+rest_requests_seconds_count{method="(unspecified)",path="(unspecified)",status_code_group="4xx"} 0.0
+rest_requests_seconds_count{method="(unspecified)",path="(unspecified)",status_code_group="3xx"} 0.0
+rest_requests_seconds_count{method="GET",path="/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}",status_code_group="4xx"} 3.0
+rest_requests_seconds_count{method="GET",path="/apis/registry/v3/groups/{groupId}/artifacts",status_code_group="2xx"} 7.0
+agroal_awaiting_count{datasource="h2"} 0.0
+agroal_available_count{datasource="h2"} 20.0

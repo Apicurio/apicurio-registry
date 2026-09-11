@@ -143,6 +143,34 @@ are in a separate module and need to be explicitly enabled:
 See the [integration tests module](integration-tests/) for test groups, deployment
 modes, and detailed usage instructions.
 
+### Auth Test Resources
+
+Tests that exercise authentication need an OIDC provider. Two implementations live in
+`utils/tests` (`io.apicurio.registry.utils.tests`) and can be selected per test profile:
+
+| Test resource                  | Backing                                                                        | Startup | Use when                                                                                        |
+|--------------------------------|--------------------------------------------------------------------------------|---------|-------------------------------------------------------------------------------------------------|
+| `KeycloakTestContainerManager` | Keycloak testcontainer (Docker)                                                 | ~30s+   | The test depends on *realm state*: pre-created clients, realm roles, role mappings, or TLS       |
+| `MockOAuth2TestResource`       | [mock-oauth2-server](https://github.com/navikt/mock-oauth2-server) (in-JVM)     | <1s     | The test only needs *valid OIDC tokens*: discovery, token issuance, and JWKS validation suffice  |
+
+Guidelines:
+
+- **Prefer `MockOAuth2TestResource` for new tests** - it requires no Docker daemon and starts
+  in milliseconds instead of tens of seconds.
+- Enable it through the ready-made `MockOAuth2AuthTestProfile`, or annotate directly with
+  `@QuarkusTestResource(MockOAuth2TestResource.class)` and add any needed
+  `apicurio.auth.*` policy overrides in a profile's `getConfigOverrides()`.
+- Customization is available via init args: `issuer.id` (default `default`) and
+  `token.expiry` in seconds (default `3600`), e.g.
+  `new TestResourceEntry(MockOAuth2TestResource.class, Map.of("token.expiry", "60"))`.
+- Tests can declare a `MockOAuth2Server server` field (or call `getServer()`) to issue custom
+  tokens with explicit claims, e.g. role claims such as `sr-admin`.
+- The mock server accepts *any* client id/secret at its token endpoint, but issued tokens
+  carry no roles by default. Tests relying on realm-defined clients or role assignments must
+  stay on `KeycloakTestContainerManager`.
+
+`AuthenticatedReadAccessAuthTest` is a working example of a test using the lightweight provider.
+
 ## Running with Postgres (docker-compose)
 
 Run Apicurio Registry with Postgres:

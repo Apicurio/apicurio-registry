@@ -3,7 +3,7 @@ import "./ArtifactPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useMatch, useParams } from "react-router";
-import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
+import { EXPLORE_PAGE_IDX, handleMutatingActionError, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     ChangeOwnerModal,
     ConfirmDeleteModal,
@@ -192,7 +192,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             pleaseWait(false, "");
             appNavigation.navigateTo("/explore");
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting an artifact."));
+            handleMutatingActionError(error, "Error deleting an artifact.", setPageError, () => pleaseWait(false));
         });
     };
 
@@ -262,7 +262,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 versionDeleteSuccessCallback();
             }
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting a version."));
+            handleMutatingActionError(error, "Error deleting a version.", setPageError, () => pleaseWait(false));
         });
     };
 
@@ -287,8 +287,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             const bid: string = encodeURIComponent(branchId);
             appNavigation.navigateTo(`/explore/${gid}/${aid}/branches/${bid}/versions`);
         }).catch(error => {
-            pleaseWait(false);
-            setPageError(toPageError(error, "Error adding a version to a branch."));
+            handleMutatingActionError(error, "Error adding a version to a branch.", setPageError, () => pleaseWait(false));
         });
     };
 
@@ -321,7 +320,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 branchDeleteSuccessCallback();
             }
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting a branch."));
+            handleMutatingActionError(error, "Error deleting a branch.", setPageError, () => pleaseWait(false));
         });
     };
 

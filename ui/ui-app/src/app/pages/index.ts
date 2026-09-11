@@ -21,3 +21,4 @@ export * from "./PageErrorType";
 export * from "./PageProperties";
 export * from "./Pages";
 export * from "./toPageError";
+export * from "./handleMutatingActionError";

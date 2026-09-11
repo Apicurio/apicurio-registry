@@ -7,6 +7,7 @@ import {
     ExplorePageEmptyState,
     ExplorePageToolbar,
     ExplorePageToolbarFilterCriteria, ImportModal,
+    handleMutatingActionError,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -230,7 +231,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
                     search(criteria, resetPaging);
                 }, 1500);
             }).catch(error => {
-                setPageError(toPageError(error, "Error importing multiple artifacts"));
+                handleMutatingActionError(error, "Error importing multiple artifacts", setPageError, () => setImporting(false));
             });
         }
     };
@@ -259,7 +260,7 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
             setPaging(resetPaging);
             search(criteria, resetPaging);
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting group."));
+            handleMutatingActionError(error, "Error deleting group.", setPageError, () => pleaseWait(false));
         });
     };
 

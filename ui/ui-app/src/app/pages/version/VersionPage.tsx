@@ -7,6 +7,7 @@ import {
     ContentTabContent,
     DocumentationTabContent,
     EXPLORE_PAGE_IDX,
+    handleMutatingActionError,
     PageDataLoader,
     PageError,
     PageErrorHandler,
@@ -255,7 +256,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             const aid: string = encodeURIComponent(artifactId as string);
             appNavigation.navigateTo(`/explore/${gid}/${aid}`);
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting a version."));
+            handleMutatingActionError(error, "Error deleting a version.", setPageError, () => pleaseWait(false));
         });
     };
 

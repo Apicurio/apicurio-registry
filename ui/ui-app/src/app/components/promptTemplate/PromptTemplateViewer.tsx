@@ -18,8 +18,7 @@ import {
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
 import { VariableSchema } from "./promptTemplateVariables";
-import { formatRange, highlightVariables } from "./PromptTemplateViewer.utils";
-
+import { formatDefault, formatRange, getVariablesList, highlightVariables } from "./PromptTemplateViewer.utils";
 
 export interface PromptTemplateMetadata {
     author?: string;
@@ -53,23 +52,6 @@ export interface PromptTemplate {
 export type PromptTemplateViewerProps = {
     promptTemplate: PromptTemplate;
     className?: string;
-};
-
-const getVariablesList = (variables: Record<string, VariableSchema> | VariableSchema[] | undefined): { name: string; variable: VariableSchema }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
-    }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
-};
-
-// Format a variable default for display in the Variables table.
-// Objects and arrays go through JSON.stringify so they don't render as "[object Object]".
-const formatDefault = (value: any): string => {
-    if (typeof value === "object" && value !== null) {
-        return JSON.stringify(value);
-    }
-    return String(value);
 };
 
 export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> = (props: PromptTemplateViewerProps) => {

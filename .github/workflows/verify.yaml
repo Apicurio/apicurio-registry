@@ -253,6 +253,8 @@ jobs:
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
   # See Discussion #8364 for the evaluation results that led to this change.
+  # How to read the artifact, and the measured baseline it should be compared
+  # against, are in README.md under "Reading the Scalpel report".
   scalpel-report:
     name: Scalpel Report
     needs: [decide]
@@ -280,23 +282,100 @@ jobs:
 
       - name: Generate Scalpel report
         run: |
+          set -o pipefail
+          mkdir -p target
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
           # wagon flags: same transient-failure hardening as the other CI jobs.
+          # The log is kept because the report carries no reactor size; the
+          # next step reads it from the Reactor Summary.
           ./mvnw validate --no-transfer-progress \
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
             -Dscalpel.reportFile=target/scalpel-report.json \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5
+            -Dmaven.wagon.http.retryHandler.count=5 \
+            | tee target/scalpel-build.log
 
+      # affectedModules is not the build set. Upstream prerequisites are dropped
+      # from the report, not from the build, so a reader who takes
+      # affectedModules as "what gets built" understates it. This step does the
+      # arithmetic once, into the run summary and into the artifact.
+      - name: Summarize Scalpel report
+        if: ${{ !cancelled() }}
+        run: |
+          report=target/scalpel-report.json
+          summary=target/scalpel-report-summary.md
+          # 0.3.10 reports schema version 1, which has no reactor total and no
+          # skippedModules. The Reactor Summary is the only source for it.
+          reactor=$(grep -c 'SUCCESS \[' target/scalpel-build.log 2>/dev/null) || reactor=0
+
+          {
+            echo "## Scalpel report"
+            echo
+            echo "This job runs \`mode=report\`. Scalpel trimmed nothing here, and no"
+            echo "other job in this run was trimmed either. Anything below is a"
+            echo "projection of what a trimming build would have done, not a saving"
+            echo "this run made."
+            echo
+            # Scalpel returns before writing anything on two of its paths, so an
+            # absent report is a result and not an error. Explain it rather than
+            # bailing out. The same check covers an unreadable report: this step
+            # only reports, so it should not redden the job over one.
+            if ! jq -e 'type == "object"' "$report" > /dev/null 2>&1; then
+              echo "Scalpel left no usable report, so the projection is a **full build**."
+              echo
+              echo "That is an outcome and not a failure. Scalpel returns before writing"
+              echo "anything when a changed file matches \`scalpel.disableTriggers\`"
+              echo "(\`.github/**\`, \`.mvn/**\`, \`mvnw*\`) or when \`scalpel.excludePaths\`"
+              echo "removes every changed file, and both are common here. A Maven failure"
+              echo "before the session starts leaves the same empty state, so check the"
+              echo "Generate step when the run is red."
+            elif [ "$(jq -r '.fullBuildTriggered // false' "$report")" = "true" ]; then
+              trigger=$(jq -r '.triggerFile // "not recorded"' "$report")
+              echo "A changed file matched \`scalpel.fullBuildTriggers\`, so the projection"
+              echo "is a **full build** with no reduced build set. Trigger: \`$trigger\`."
+            else
+              affected=$(jq '.affectedModules | length' "$report")
+              upstream=$(jq '.excludedUpstreamCount // 0' "$report")
+              build_set=$(( affected + upstream ))
+              echo "| | modules |"
+              echo "| --- | ---: |"
+              echo "| \`affectedModules\`, listed in the report | $affected |"
+              echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
+              echo "| projected build set | $build_set |"
+              # A build that died partway still has a report, because Scalpel
+              # writes it at session start. Its Reactor Summary is truncated, so
+              # the count would be below the build set and the subtraction would
+              # go negative. Omit the rows rather than publish a wrong number.
+              if [ "$reactor" -ge "$build_set" ] && [ "$reactor" -gt 0 ]; then
+                echo "| reactor | $reactor |"
+                echo "| projected modules not built | $(( reactor - build_set )) |"
+              fi
+              echo
+              echo "The build set is \`affectedModules + excludedUpstreamCount\`. Upstream"
+              echo "build prerequisites are dropped from the report and not from the"
+              echo "build, so reading \`affectedModules\` on its own understates what"
+              echo "compiles."
+            fi
+            echo
+            echo "See \`.github/workflows/README.md\`, \"Reading the Scalpel report\"."
+          } > "$summary"
+
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+      # A failed build is when the offline artifact is wanted most: Scalpel
+      # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-          path: target/scalpel-report.json
+          path: |
+            target/scalpel-report.json
+            target/scalpel-report-summary.md
           retention-days: 30
           if-no-files-found: warn
 

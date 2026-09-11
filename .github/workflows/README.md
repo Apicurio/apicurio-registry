@@ -225,12 +225,90 @@ non-Java changes (docs, UI).
 | `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verification Gate) is the single required check | N/A |
 | `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
-| `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
+| `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
 | `verify-cli.yaml` | Called by verify | CLI native build (GraalVM) + tests on Linux and macOS. Conditional on `cli/` or `java-sdk/` changes | ~15-25 min |
 | `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only. Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
+
+### Reading the Scalpel report
+
+The `scalpel-report` job runs `mode=report`. It works out which modules a PR
+affects and writes `scalpel-report.json`. It does not trim anything. That job
+builds the whole reactor, and so does every other job in the run. The report
+describes what a trimming build would do, so nothing in it is a saving that
+already happened.
+
+The reactor splits three ways, and only the last part is a saving:
+
+```
+reactor   = affectedModules + excludedUpstreamCount + modules not built
+build set = affectedModules + excludedUpstreamCount
+```
+
+`excludedUpstreamCount` counts upstream build prerequisites of the affected
+modules. Scalpel drops them from the report and not from the build, so they
+still compile. Taking `affectedModules` as the build set therefore understates
+it by exactly that count.
+
+A worked example, from the artifact of PR #10087 (run 34514275050) on a
+57-module reactor:
+
+| field | value |
+| --- | ---: |
+| `affectedModules` | 5 |
+| `excludedUpstreamCount` | 42 |
+| build set | 47 |
+| modules not built | 10 |
+
+Read naively, "5 affected out of 57" looks like a 91% saving. The projection is
+10 modules out of 57, which is 17.5%.
+
+The job writes `scalpel-report-summary.md` next to the JSON and into the run
+summary, so this arithmetic is already done for the run you are looking at. The
+reactor and modules-not-built rows are left out when the Maven log gives no
+usable reactor count, which happens when the build died partway.
+
+An artifact with no `scalpel-report.json` in it is a result rather than a broken
+job. Scalpel returns before writing anything when a changed file matches
+`scalpel.disableTriggers` or when `scalpel.excludePaths` removes every changed
+file, and a PR that touches both Java and `.github/**` reaches the job and then
+hits the first of those. The summary file says so in that case.
+
+One limit of the pinned 0.3.10 is worth knowing: it writes schema version 1,
+which has no `skippedModules` field and no reactor total, so the summary step
+counts the reactor from the Maven build log instead. The job passes no
+`scalpel.baseBranch`, so Scalpel derives it from `GITHUB_BASE_REF` and diffs
+against `origin/<base branch>`, which is `origin/main` for most PRs but is
+whatever branch a PR actually targets.
+
+#### Measured baseline
+
+Scalpel 0.4.0 replayed over the last 40 first-parent commits of `main` with
+this project's `.mvn/maven.config`, on 2026-09-11:
+
+| outcome | runs | share |
+| --- | ---: | ---: |
+| full build, every changed file matched `excludePaths` | 14 | 35.0% |
+| full build, root-aggregator cascade or a genuinely wide change | 10 | 25.0% |
+| trimmed | 10 | 25.0% |
+| full build, `disableTriggers` matched | 6 | 15.0% |
+
+Mean modules not built over all 40 runs: 5.8%. Over the 10 trimmed runs alone:
+23.3%. Mean modules that would compile with `maven.test.skip=true` on those
+trimmed runs: 55.8%.
+
+The replay ran on 0.4.0 and not on the pinned 0.3.10, so read the distribution
+as indicative rather than as a measurement of the version running in CI today.
+
+Most of those full builds come from two upstream defects:
+[maveniverse/scalpel#184](https://github.com/maveniverse/scalpel/issues/184),
+where exhausting `excludePaths` builds everything, and
+[#185](https://github.com/maveniverse/scalpel/issues/185), where a changed file
+under a directory that is not a reactor module falls back to the root
+aggregator. [#187](https://github.com/maveniverse/scalpel/issues/187) asks for
+the report to make the three-way split readable without this note.
 
 ## Validation Workflows
 

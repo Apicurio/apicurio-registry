@@ -265,7 +265,7 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
         createAgentCard(groupId, agentId2, AGENT_CARD_CONTENT);
         createAgentCard(groupId, agentId3, AGENT_CARD_CONTENT);
 
-        givenAtRoot()
+        String pageToken = givenAtRoot()
                 .when()
                 .contentType(ContentType.JSON)
                 .queryParam("pageSize", 2)
@@ -274,7 +274,20 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("items", hasSize(2))
                 .body("total", greaterThanOrEqualTo(3))
-                .body("pageToken", notNullValue());
+                .body("pageToken", notNullValue())
+                .extract()
+                .path("pageToken");
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .queryParam("pageSize", 2)
+                .queryParam("pageToken", pageToken)
+                .get("/.well-known/ard/agents")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(1))
+                .body("items.url", hasItem(endsWith(groupId + "/" + agentId3)));
     }
 
     @Test

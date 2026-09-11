@@ -10059,7 +10059,7 @@
       "ArdAgentsResponse": {
         "description": "Response body for the ARD GET /agents endpoint.",
         "required": [
-          "items"
+          "items","total"
         ],
         "type": "object",
         "properties": {

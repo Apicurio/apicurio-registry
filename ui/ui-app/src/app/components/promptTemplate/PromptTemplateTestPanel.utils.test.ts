@@ -3,6 +3,7 @@ import {
     buildInitialValues,
     buildVersionIdentity,
     coerceEnumValue,
+    renderErrorMessage,
     shouldAcceptRenderResponse
 } from "./PromptTemplateTestPanel.utils";
 
@@ -109,5 +110,26 @@ describe("shouldAcceptRenderResponse", () => {
 
     it("rejects a stale response after the version identity changes", () => {
         expect(shouldAcceptRenderResponse(3, 3, "g::a::1", "g::a::2")).toBe(false);
+    });
+});
+
+describe("renderErrorMessage", () => {
+    it("prefers the ProblemDetails detail", () => {
+        expect(renderErrorMessage({
+            title: "Bad Request",
+            detail: "Variable 'customerName' is required but was not provided."
+        })).toBe("Variable 'customerName' is required but was not provided.");
+    });
+
+    it("falls back to the ProblemDetails title", () => {
+        expect(renderErrorMessage({ title: "Not Found" })).toBe("Not Found");
+    });
+
+    it("uses the message of a plain error", () => {
+        expect(renderErrorMessage(new Error("Network Error"))).toBe("Network Error");
+    });
+
+    it("uses the generic text when nothing is usable", () => {
+        expect(renderErrorMessage(undefined)).toBe("Error rendering prompt template");
     });
 });

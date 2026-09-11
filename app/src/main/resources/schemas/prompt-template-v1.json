@@ -33,6 +33,38 @@
       "minLength": 1,
       "description": "The prompt template text with {{variable}} placeholders for substitution"
     },
+    "templateFormat": {
+      "type": "string",
+      "enum": ["mustache"],
+      "default": "mustache",
+      "description": "Templating syntax used by the 'template' field. Only 'mustache' is accepted, matched case-sensitively. The registry renders mustache-style {{variable}} placeholders with Handlebars-style {{#if}}, {{#unless}} and {{else}} conditional blocks, as implemented by the registry renderer. A template using those blocks is therefore not portable to a strict mustache engine."
+    },
+    "authors": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Contributors to this prompt template"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Tags for categorization and search"
+    },
+    "model": {
+      "type": "object",
+      "description": "Model configuration recorded alongside the template. Stored as metadata and not interpreted by the registry.",
+      "properties": {
+        "api": {
+          "type": "string",
+          "description": "The model API this template targets, for example 'chat' or 'completion'"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Model invocation parameters such as temperature and max_tokens",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "variables": {
       "type": "object",
       "description": "Schema definitions for template variables",

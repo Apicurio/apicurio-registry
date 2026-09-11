@@ -253,6 +253,8 @@ jobs:
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
   # See Discussion #8364 for the evaluation results that led to this change.
+  # How to read the artifact, and the measured baseline it should be compared
+  # against, are in README.md under "Reading the Scalpel report".
   scalpel-report:
     name: Scalpel Report
     needs: [decide]
@@ -280,23 +282,54 @@ jobs:
 
       - name: Generate Scalpel report
         run: |
+          set -o pipefail
+          mkdir -p target
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
           # wagon flags: same transient-failure hardening as the other CI jobs.
+          # The log is kept because the report carries no reactor size; the
+          # next step reads it from the Reactor Build Order block.
           ./mvnw validate --no-transfer-progress \
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
             -Dscalpel.reportFile=target/scalpel-report.json \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5
+            -Dmaven.wagon.http.retryHandler.count=5 \
+            | tee target/scalpel-build.log
 
+      # affectedModules is not the build set. Upstream prerequisites are dropped
+      # from the report, not from the build, so a reader who takes
+      # affectedModules as "what gets built" understates it. The script does the
+      # arithmetic once, into the run summary and into the artifact. It lives
+      # under .github/scripts so it can be unit tested; see scripts-tests.yaml.
+      - name: Summarize Scalpel report
+        if: ${{ !cancelled() }}
+        run: |
+          summary=target/scalpel-report-summary.md
+          mkdir -p target
+          # Written aside and moved into place. A redirect straight onto the
+          # final path truncates it before the script starts, so a script that
+          # died partway would upload a header and nothing else. A missing file
+          # is the honest outcome, and the upload step only warns on one.
+          bash .github/scripts/scalpel-summary.sh \
+            target/scalpel-report.json \
+            target/scalpel-build.log > "$summary.tmp"
+          mv "$summary.tmp" "$summary"
+          cat "$summary" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+      # A failed build is when the offline artifact is wanted most: Scalpel
+      # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-          path: target/scalpel-report.json
+          path: |
+            target/scalpel-report.json
+            target/scalpel-report-summary.md
+            target/scalpel-build.log
           retention-days: 30
           if-no-files-found: warn
 

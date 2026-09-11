@@ -248,10 +248,46 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
                 .get("/.well-known/ard/agents")
                 .then()
                 .statusCode(200)
-                .body("specVersion", equalTo("1.0"))
-                .body("host.displayName", equalTo("Apicurio Registry"))
-                .body("entries.url",
-                        hasItem(endsWith(groupId + "/" + agentId)));
+                .body("items.url",
+                    hasItem(endsWith(groupId + "/" + agentId)))
+                .body("total", greaterThanOrEqualTo(1));
+    }
+    @Test
+    public void testArdListAgentsPagination() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String unique = TestUtils.generateArtifactId().replace("-", "");
+
+        String agentId1 = "ard-page-a-" + unique;
+        String agentId2 = "ard-page-b-" + unique;
+        String agentId3 = "ard-page-c-" + unique;
+
+        createAgentCard(groupId, agentId1, AGENT_CARD_CONTENT);
+        createAgentCard(groupId, agentId2, AGENT_CARD_CONTENT);
+        createAgentCard(groupId, agentId3, AGENT_CARD_CONTENT);
+
+        String pageToken = givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .queryParam("pageSize", 2)
+                .get("/.well-known/ard/agents")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(2))
+                .body("total", greaterThanOrEqualTo(3))
+                .body("pageToken", notNullValue())
+                .extract()
+                .path("pageToken");
+
+        givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .queryParam("pageSize", 2)
+                .queryParam("pageToken", pageToken)
+                .get("/.well-known/ard/agents")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(1))
+                .body("items.url", hasItem(endsWith(groupId + "/" + agentId1)));
     }
 
     @Test
@@ -271,11 +307,11 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
                 .get("/.well-known/ard/agents")
                 .then()
                 .statusCode(200)
-                .body("entries.url",
-                        hasItem(endsWith(groupId + "/" + agentId)))
-                .body("entries.url",
-                        not(hasItem(endsWith(groupId + "/" + toolId))))
-                .body("entries.type", everyItem(equalTo("application/a2a-agent-card+json")));
+                .body("items.url",
+                    hasItem(endsWith(groupId + "/" + agentId)))
+                .body("items.url",
+                    not(hasItem(endsWith(groupId + "/" + toolId))))
+                .body("items.type", everyItem(equalTo("application/a2a-agent-card+json")));
     }
 
     @Test

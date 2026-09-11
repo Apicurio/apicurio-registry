@@ -15,6 +15,7 @@ import io.apicurio.registry.rest.v3.beans.AgentInterface;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdAgentsResponse;
 import io.apicurio.registry.rest.v3.beans.AiCatalogEntry;
 import io.apicurio.registry.rest.v3.beans.AiCatalogHost;
 import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
@@ -907,7 +908,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public AiCatalog ardListAgents(String filter, String orderBy, Integer pageSize, String pageToken) {
+    public ArdAgentsResponse ardListAgents(String filter, String orderBy, Integer pageSize, String pageToken) {
         if (!ardConfig.isEnabled()) {
             throw new NotFoundException("ARD support is disabled");
         }
@@ -941,9 +942,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         String nextPageToken = toIndex < total ? encodePageToken(toIndex) : null;
 
-        AiCatalog catalog = buildAiCatalog(publisherDomain, entries);
-        catalog.setNextPageToken(nextPageToken);
-        return catalog;
+        ArdAgentsResponse response = new ArdAgentsResponse();
+        response.setItems(entries);
+        response.setTotal(total);
+        response.setPageToken(nextPageToken);
+
+        return response;
     }
 
     @Override

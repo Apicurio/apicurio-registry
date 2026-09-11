@@ -56,6 +56,10 @@ public class CoreRegistryExceptionMapperService {
             code = codeMap.getCode(t.getClass());
         }
 
+        if (code <= 0) {
+            code = HTTP_INTERNAL_ERROR;
+        }
+
         if (code == HTTP_INTERNAL_ERROR) {
             // If the error is not something we should ignore, then we report it to the liveness object
             // and log it. Otherwise we only log it if debug logging is enabled.
@@ -87,16 +91,25 @@ public class CoreRegistryExceptionMapperService {
             ((RuleViolationProblemDetails) details).setCauses(toRestCauses(rve.getCauses()));
         } else {
             details = new ProblemDetails();
-            details.setTitle(t.getLocalizedMessage());
-            if (includeStackTrace) {
-                details.setDetail(getStackTrace(t));
+            if (code >= 500 && !includeStackTrace) {
+                details.setTitle("Internal Server Error");
+                details.setDetail("An unexpected error occurred.");
             } else {
-                details.setDetail(getRootMessage(t));
+                details.setTitle(t.getLocalizedMessage());
+                if (includeStackTrace) {
+                    details.setDetail(getStackTrace(t));
+                } else {
+                    details.setDetail(getRootMessage(t));
+                }
             }
         }
 
         details.setStatus(code);
-        details.setName(t.getClass().getSimpleName());
+        if (code >= 500 && !includeStackTrace) {
+            details.setName("InternalError");
+        } else {
+            details.setName(t.getClass().getSimpleName());
+        }
         return details;
     }
 

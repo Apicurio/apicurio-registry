@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 109);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -155,6 +155,7 @@ CREATE TABLE versions (
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);
+ALTER TABLE versions ADD CONSTRAINT UQ_versions_3 UNIQUE (groupId, artifactId, versionOrder);
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts (groupId, artifactId) ON DELETE CASCADE;
 ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (contentId) REFERENCES content (contentId);
 CREATE INDEX IDX_versions_1 ON versions (version);

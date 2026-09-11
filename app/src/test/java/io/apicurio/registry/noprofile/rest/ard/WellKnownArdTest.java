@@ -287,7 +287,7 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("items", hasSize(1))
-                .body("items.url", hasItem(endsWith(groupId + "/" + agentId3)));
+                .body("items.url", hasItem(endsWith(groupId + "/" + agentId1)));
     }
 
     @Test

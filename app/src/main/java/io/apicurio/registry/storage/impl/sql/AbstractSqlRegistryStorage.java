@@ -141,6 +141,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Info(category = CATEGORY_STORAGE, description = "Storage event topic")
     String eventsTopic;
 
+    @ConfigProperty(name = "apicurio.storage.sql.sequence.block-size", defaultValue = "50")
+    @Info(category = CATEGORY_STORAGE, description = "Number of global/content/comment ID values reserved from the database per allocation. Higher values reduce contention on the shared sequence row under concurrent writes, at the cost of skipping any unused IDs when the application stops. Set to 1 to allocate every ID individually.", availableSince = "3.3.2")
+    int sequenceBlockSize;
+
     @ConfigProperty(name = "apicurio.storage.enable-automatic-group-creation", defaultValue = "true")
     @Info(category = CATEGORY_STORAGE, description = "Enable automatic creation of group when creating an artifact", availableSince = "3.0.15")
     boolean enableAutomaticGroupCreation;
@@ -268,7 +272,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
      */
     protected void createRepositories(HandleFactory handleFactory) {
         // Level 0: no inter-repository dependencies
-        sequenceRepository = new SqlSequenceRepository(handleFactory, sqlStatements, log);
+        sequenceRepository = new SqlSequenceRepository(handleFactory, sqlStatements, log,
+                sequenceBlockSize);
         configRepository = new SqlConfigRepository(handleFactory, sqlStatements, log);
         roleMappingRepository = new SqlRoleMappingRepository(handleFactory, sqlStatements, log);
         downloadRepository = new SqlDownloadRepository(handleFactory, sqlStatements, log);

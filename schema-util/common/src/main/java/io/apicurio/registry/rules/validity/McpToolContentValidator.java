@@ -117,6 +117,10 @@ public class McpToolContentValidator implements ContentValidator {
             return;
         }
 
+        // Meta-validation below runs only if the MCP-specific checks pass, so a malformed
+        // 'properties' or 'required' reports one clear violation instead of two at the same location.
+        int violationsBeforeStructuralChecks = violations.size();
+
         // inputSchema must have a "type" field with value "object"
         if (!inputSchema.has("type")) {
             violations.add(new RuleViolation("'inputSchema' must have a 'type' field",
@@ -145,6 +149,10 @@ public class McpToolContentValidator implements ContentValidator {
                 JsonValidationUtils.validateStringArray(inputSchema.get("required"),
                         "/inputSchema/required", "required parameter name", violations);
             }
+        }
+
+        if (violations.size() == violationsBeforeStructuralChecks) {
+            JsonValidationUtils.validateJsonSchema(inputSchema, "/inputSchema", violations);
         }
     }
 

@@ -5,10 +5,12 @@ import io.fabric8.kubernetes.api.model.Status;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.javaoperatorsdk.operator.processing.event.ResourceID;
+import org.awaitility.core.ConditionTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -96,6 +98,34 @@ public class K8sCell<T extends HasMetadata> {
                 }
             }
         });
+    }
+
+    /**
+     * Deletes the resource and waits for it to disappear. If it is still present after
+     * {@code gracefulTimeout} (e.g. blocked by a finalizer), force-clears its finalizers and
+     * waits again up to {@code forceTimeout}. A no-op if the resource does not exist.
+     * <p>
+     * Both waits ignore exceptions: reading a resource that is being torn down races with the API
+     * server dropping its endpoint, so transient read failures are expected while polling for
+     * absence.
+     */
+    public void delete(Duration gracefulTimeout, Duration forceTimeout) {
+        var current = getOptional();
+        if (current.isEmpty()) {
+            return;
+        }
+        client.resource(current.get()).delete();
+        try {
+            await().atMost(gracefulTimeout).ignoreExceptions().until(() -> getOptional().isEmpty());
+        } catch (ConditionTimeoutException ex) {
+            log.warn("Timed out waiting for graceful deletion of {}, force-removing finalizers",
+                    ResourceID.fromResource(current.get()));
+            getOptional().ifPresent(r -> {
+                r.getMetadata().setFinalizers(List.of());
+                client.resource(r).patch();
+            });
+            await().atMost(forceTimeout).ignoreExceptions().until(() -> getOptional().isEmpty());
+        }
     }
 
     /**
